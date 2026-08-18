@@ -20,7 +20,7 @@ object CurrencyUtil {
   }
   
   def getCurrencyCodes(): List[String] = {
-    getCurrencies.map(_.currencies
+    getCurrencies().map(_.currencies
       .filter(_.alphanumeric_code.isDefined)
       .map(_.alphanumeric_code.getOrElse(""))).headOption.getOrElse(Nil)
   }

@@ -3650,7 +3650,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val bufferedSource: BufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
     try {
       val proPairs: List[(String, String)] = for{
-        line <- bufferedSource.getLines.toList if(line.startsWith("webui_") || line.startsWith("#webui_"))
+        line <- bufferedSource.getLines().toList if(line.startsWith("webui_") || line.startsWith("#webui_"))
         webuiProps = line.toString.split("=", 2)
       } yield {
         val webuiPropsKey = webuiProps(0).trim.replaceAll("#","") //Remove the whitespace
@@ -4654,7 +4654,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val maybeResponse = fun(callContext, operationId)
           if(maybeResponse.isDefined) {
             jsonResponse = maybeResponse
-            break
+            break()
           }
         }
       })

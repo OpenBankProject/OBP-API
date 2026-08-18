@@ -76,7 +76,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metricsForUrl.size should equal(1)
 
       val metric = metricsForUrl(0)
-      shouldBeEqual(metric.getDate, day1)
+      shouldBeEqual(metric.getDate(), day1)
       metric.getUrl() should equal(testUrl1)
     }
 

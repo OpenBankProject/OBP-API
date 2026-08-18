@@ -715,6 +715,12 @@
                    under Scala 3 while still compiling on 2.13. Only this module gets the flag;
                    obp-commons stays on 2.13 permanently and must not accrue Scala 3 churn. -->
               <arg>-Xsource:3</arg>
+              <!-- Auto-application (`m` where the method is declared `def m()`) is a hard error
+                   in Scala 3, not a warning, so it is debt that has to be paid before the flip
+                   rather than after it. Raising it here means a new one fails the build on 2.13
+                   instead of surfacing as a compile error in the flip. Scoped to this module for
+                   the same reason -Xsource:3 is. -->
+              <arg>-Wconf:msg=Auto-application:e</arg>
             </args>
           </configuration>
         </plugin>

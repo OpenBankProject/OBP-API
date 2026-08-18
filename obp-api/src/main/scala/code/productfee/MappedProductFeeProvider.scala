@@ -154,7 +154,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
       case None => Future {
         tryo {
           ProductFee.insert(
-            APIUtil.generateUUID, bankId.value, productCode.value, name, isActive, moreInfo,
+            APIUtil.generateUUID(), bankId.value, productCode.value, name, isActive, moreInfo,
             currency, amount, frequency, `type`)
         } ?~! s"$CreateProductFeeError"
       }

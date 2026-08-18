@@ -99,7 +99,7 @@ object JwsUtil extends MdcLoggable {
     // Parse JWS with detached payload
     val parsedJWSObject: JWSObject = JWSObject.parse(xJwsSignature, new Payload(rebuiltDetachedPayload));
     // Verify the RSA
-    val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
+    val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders())
     val isVerifiedJws = parsedJWSObject.verify(verifier)
     val isVerifiedSigningTime = verifySigningTime(jwsProtectedHeaderAsString)
     logger.debug("JWS Protected Header: " + jwsProtectedHeaderAsString)
@@ -221,7 +221,7 @@ object JwsUtil extends MdcLoggable {
     logger.debug("signRequestResponseCommon says criticalParams is: " + criticalParams)
 
     criticalParams.add("b64")
-    criticalParams.addAll(getDeferredCriticalHeaders)
+    criticalParams.addAll(getDeferredCriticalHeaders())
     // Create and sign JWS
 
     logger.debug("signRequestResponseCommon says before Create and sign JWS")

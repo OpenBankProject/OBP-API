@@ -40,7 +40,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
   override def updateAllPendingTransactionRequests: Box[Option[Unit]] = {
     val transactionRequests = MappedTransactionRequest.findFirstByStatus(TransactionRequestStatus.PENDING.toString)
     logger.debug("Updating status of all pending transactions: ")
-    val statuses = LocalMappedConnectorInternal.getTransactionRequestStatuses
+    val statuses = LocalMappedConnectorInternal.getTransactionRequestStatuses()
     transactionRequests.map{ tr =>
       for {
         transactionRequest <- tr.toTransactionRequest

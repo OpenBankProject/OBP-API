@@ -269,12 +269,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   def randomLocation : LocationPlainJSON = {
     def sign = {
-      val b = nextBoolean
+      val b = nextBoolean()
       if(b) 1
       else -1
     }
-    val longitude : Double = nextInt(180)*sign*nextDouble
-    val latitude : Double = nextInt(90)*sign*nextDouble
+    val longitude : Double = nextInt(180)*sign*nextDouble()
+    val latitude : Double = nextInt(90)*sign*nextDouble()
     JSONFactory.createLocationPlainJSON(latitude, longitude)
   }
 

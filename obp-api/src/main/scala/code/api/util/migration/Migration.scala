@@ -246,7 +246,7 @@ object Migration extends MdcLoggable {
     }
 
     private def dummyScript(): Boolean = {
-      val name = nameOf(dummyScript)
+      val name = nameOf(dummyScript())
       runOnce(name) {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -304,14 +304,14 @@ object Migration extends MdcLoggable {
     }
 
     private def populateTableRateLimiting(): Boolean = {
-      val name = nameOf(populateTableRateLimiting)
+      val name = nameOf(populateTableRateLimiting())
       runOnce(name) {
         TableRateLmiting.populate(name)
       }
     }
     
     private def updateTableViewDefinition(): Boolean = {
-      val name = nameOf(updateTableViewDefinition)
+      val name = nameOf(updateTableViewDefinition())
       runOnce(name) {
         UpdateTableViewDefinition.populate(name)
       }
@@ -329,38 +329,38 @@ object Migration extends MdcLoggable {
       }
     }
     private def alterTableMappedConsent(): Boolean = {
-      val name = nameOf(alterTableMappedConsent)
+      val name = nameOf(alterTableMappedConsent())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnJsonWebToken(name)
       }
     }
     private def alterColumnChallengeAtTableMappedConsent(): Boolean = {
-      val name = nameOf(alterColumnChallengeAtTableMappedConsent)
+      val name = nameOf(alterColumnChallengeAtTableMappedConsent())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnChallenge(name)
       }
     }
     private def alterTableOpenIDConnectToken(): Boolean = {
-      val name = nameOf(alterTableOpenIDConnectToken)
+      val name = nameOf(alterTableOpenIDConnectToken())
       runOnce(name) {
         MigrationOfOpnIDConnectToken.alterColumnAccessToken(name)
         MigrationOfOpnIDConnectToken.alterColumnRefreshToken(name)
       }
     }
     private def populateNameAndAppTypeFieldsAtConsumerTable(): Boolean = {
-      val name = nameOf(populateNameAndAppTypeFieldsAtConsumerTable)
+      val name = nameOf(populateNameAndAppTypeFieldsAtConsumerTable())
       runOnce(name) {
         MigrationOfConsumer.populateNamAndAppType(name)
       }
     }
     private def populateAzpAndSubFieldsAtConsumerTable(): Boolean = {
-      val name = nameOf(populateAzpAndSubFieldsAtConsumerTable)
+      val name = nameOf(populateAzpAndSubFieldsAtConsumerTable())
       runOnce(name) {
         MigrationOfConsumer.populateAzpAndSub(name)
       }
     }
     private def changeTypeOfAudFieldAtConsumerTable(): Boolean = {
-      val name = nameOf(changeTypeOfAudFieldAtConsumerTable)
+      val name = nameOf(changeTypeOfAudFieldAtConsumerTable())
       runOnce(name) {
         MigrationOfConsumer.alterTypeofAud(name)
       }
@@ -386,25 +386,25 @@ object Migration extends MdcLoggable {
       }
     }
     private def populateTableBankAccountRouting(): Boolean = {
-      val name = nameOf(populateTableBankAccountRouting)
+      val name = nameOf(populateTableBankAccountRouting())
       runOnce(name) {
         MigrationOfAccountRoutings.populate(name)
       }
     }
     private def populateSettlementBankAccounts(): Boolean = {
-      val name = nameOf(populateSettlementBankAccounts)
+      val name = nameOf(populateSettlementBankAccounts())
       runOnce(name) {
         MigrationOfSettlementAccounts.populate(name)
       }
     }
     private def alterColumnStatusAtTableMappedConsent(): Boolean = {
-      val name = nameOf(alterColumnStatusAtTableMappedConsent)
+      val name = nameOf(alterColumnStatusAtTableMappedConsent())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnStatus(name)
       }
     }
     private def alterColumnDetailsAtTableTransactionRequest(): Boolean = {
-      val name = nameOf(alterColumnDetailsAtTableTransactionRequest)
+      val name = nameOf(alterColumnDetailsAtTableTransactionRequest())
       runOnce(name) {
         MigrationOfTransactionRequerst.alterColumnDetails(name)
       }
@@ -562,77 +562,77 @@ object Migration extends MdcLoggable {
     }
 
     private def dropIndexAtUserAuthContext(): Boolean = {
-      val name = nameOf(dropIndexAtUserAuthContext)
+      val name = nameOf(dropIndexAtUserAuthContext())
       runOnce(name) {
         MigrationOfMappedUserAuthContext.dropUniqueIndex(name)
       }
     }
     
     private def addAccountAccessConsumerId(): Boolean = {
-      val name = nameOf(addAccountAccessConsumerId)
+      val name = nameOf(addAccountAccessConsumerId())
       runOnce(name) {
         MigrationOfAccountAccessAddedConsumerId.addAccountAccessConsumerId(name)
       }
     }
 
     private def alterWebhookColumnUrlLength(): Boolean = {
-      val name = nameOf(alterWebhookColumnUrlLength)
+      val name = nameOf(alterWebhookColumnUrlLength())
       runOnce(name) {
         MigrationOfWebhookUrlFieldLength.alterColumnUrlLength(name)
       }
     }
 
     private def alterTransactionRequestAttributeValueType(): Boolean = {
-      val name = nameOf(alterTransactionRequestAttributeValueType)
+      val name = nameOf(alterTransactionRequestAttributeValueType())
       runOnce(name) {
         MigrationOfTransactionRequestAttributeValueType.alterColumnValueType(name)
       }
     }
 
     private def alterMappedCounterpartyDescriptionLength(): Boolean = {
-      val name = nameOf(alterMappedCounterpartyDescriptionLength)
+      val name = nameOf(alterMappedCounterpartyDescriptionLength())
       runOnce(name) {
         MigrationOfMappedCounterpartyDescriptionLength.alterColumnDescriptionLength(name)
       }
     }
 
     private def alterMetricColumnUrlLength(): Boolean = {
-      val name = nameOf(alterMetricColumnUrlLength)
+      val name = nameOf(alterMetricColumnUrlLength())
       runOnce(name) {
         MigrationOfMetricTable.alterColumnCorrelationidLength(name)
       }
     }
 
     private def alterMetricArchiveColumnCorrelationidLength(): Boolean = {
-      val name = nameOf(alterMetricArchiveColumnCorrelationidLength)
+      val name = nameOf(alterMetricArchiveColumnCorrelationidLength())
       runOnce(name) {
         MigrationOfMetricArchiveTable.alterColumnCorrelationidLength(name)
       }
     }
 
     private def dropConsentAuthContextDropIndex(): Boolean = {
-      val name = nameOf(dropConsentAuthContextDropIndex)
+      val name = nameOf(dropConsentAuthContextDropIndex())
       runOnce(name) {
         MigrationOfConsentAuthContextDropIndex.dropUniqueIndex(name)
       }
     }
   
     private def alterMappedExpectedChallengeAnswerChallengeTypeLength(): Boolean = {
-      val name = nameOf(alterMappedExpectedChallengeAnswerChallengeTypeLength)
+      val name = nameOf(alterMappedExpectedChallengeAnswerChallengeTypeLength())
       runOnce(name) {
         MigrationOfMappedExpectedChallengeAnswerFieldLength.alterColumnLength(name)
       }
     }
   
     private def alterTransactionRequestChallengeChallengeTypeLength(): Boolean = {
-      val name = nameOf(alterTransactionRequestChallengeChallengeTypeLength)
+      val name = nameOf(alterTransactionRequestChallengeChallengeTypeLength())
       runOnce(name) {
         MigrationOfTransactionRequestChallengeChallengeTypeLength.alterColumnChallengeChallengeTypeLength(name)
       }
     }  
   
     private def alterUserAttributeNameLength(): Boolean = {
-      val name = nameOf(alterUserAttributeNameLength)
+      val name = nameOf(alterUserAttributeNameLength())
       runOnce(name) {
         MigrationOfUserAttributeNameFieldLength.alterNameLength(name)
       }
@@ -650,63 +650,63 @@ object Migration extends MdcLoggable {
     }
 
     private def dropMappedBadLoginAttemptIndex(): Boolean = {
-      val name = nameOf(dropMappedBadLoginAttemptIndex)
+      val name = nameOf(dropMappedBadLoginAttemptIndex())
       runOnce(name) {
         MigrationOfMappedBadLoginAttemptDropIndex.dropUniqueIndex(name)
       }
     }
 
     private def alterCounterpartyLimitFieldType(): Boolean = {
-      val name = nameOf(alterCounterpartyLimitFieldType)
+      val name = nameOf(alterCounterpartyLimitFieldType())
       runOnce(name) {
         MigrationOfCounterpartyLimitFieldType.alterCounterpartyLimitFieldType(name)
       }
     }
 
     private def renameCustomerRoleNames(): Boolean = {
-      val name = nameOf(renameCustomerRoleNames)
+      val name = nameOf(renameCustomerRoleNames())
       runOnce(name) {
         MigrationOfCustomerRoleNames.renameCustomerRoles(name)
       }
     }
 
     private def addUniqueIndexOnResourceUserUserId(): Boolean = {
-      val name = nameOf(addUniqueIndexOnResourceUserUserId)
+      val name = nameOf(addUniqueIndexOnResourceUserUserId())
       runOnce(name) {
         MigrationOfUserIdIndexes.addUniqueIndexOnResourceUserUserId(name)
       }
     }
 
     private def addIndexOnMappedMetricUserId(): Boolean = {
-      val name = nameOf(addIndexOnMappedMetricUserId)
+      val name = nameOf(addIndexOnMappedMetricUserId())
       runOnce(name) {
         MigrationOfUserIdIndexes.addIndexOnMappedMetricUserId(name)
       }
     }
     
     private def alterRoleNameLength(): Boolean = {
-      val name = nameOf(alterRoleNameLength)
+      val name = nameOf(alterRoleNameLength())
       runOnce(name) {
         MigrationOfRoleNameFieldLength.alterRoleNameLength(name)
       }
     }
 
     private def alterConsentRequestColumnConsumerIdLength(): Boolean = {
-      val name = nameOf(alterConsentRequestColumnConsumerIdLength)
+      val name = nameOf(alterConsentRequestColumnConsumerIdLength())
       runOnce(name) {
         MigrationOfConsentRequestConsumerIdFieldLength.alterColumnConsumerIdLength(name)
       }
     }
 
     private def alterMappedConsentColumnConsumerIdLength(): Boolean = {
-      val name = nameOf(alterMappedConsentColumnConsumerIdLength)
+      val name = nameOf(alterMappedConsentColumnConsumerIdLength())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnConsumerIdLength(name)
       }
     }
 
     private def alterMetricColumnConsumerIdLength(): Boolean = {
-      val name = nameOf(alterMetricColumnConsumerIdLength)
+      val name = nameOf(alterMetricColumnConsumerIdLength())
       runOnce(name) {
         MigrationOfMetricConsumerIdFieldLength.alterColumnConsumerIdLength(name)
       }
@@ -823,14 +823,14 @@ object Migration extends MdcLoggable {
     }
 
     private def migrateChatRoomIsOpenRoom(): Boolean = {
-      val name = nameOf(migrateChatRoomIsOpenRoom)
+      val name = nameOf(migrateChatRoomIsOpenRoom())
       runOnce(name) {
         MigrationOfChatRoomIsOpenRoom.migrateColumn(name)
       }
     }
 
     private def migrateChatRoomCreatedByAndLastMessageSender(): Boolean = {
-      val name = nameOf(migrateChatRoomCreatedByAndLastMessageSender)
+      val name = nameOf(migrateChatRoomCreatedByAndLastMessageSender())
       runOnce(name) {
         MigrationOfChatRoomCreatedByAndLastMessageSender.migrateColumns(name)
       }

@@ -12,7 +12,7 @@ import net.liftweb.common.Full
 
 
 object ObpLookupSystem extends ObpLookupSystem {
-  this.init
+  this.init()
 }
 
 trait ObpLookupSystem extends MdcLoggable {
@@ -60,7 +60,7 @@ trait ObpLookupSystem extends MdcLoggable {
       case (Full(h), Full(p)) if !embeddedAdapter =>
         val hostname = h
         val port = p
-        val akka_connector_hostname = Helper.getAkkaConnectorHostname
+        val akka_connector_hostname = Helper.getAkkaConnectorHostname()
         s"pekko.tcp://SouthSideAkkaConnector_${akka_connector_hostname}@${hostname}:${port}/user/${actorName}"
 
       case _ =>

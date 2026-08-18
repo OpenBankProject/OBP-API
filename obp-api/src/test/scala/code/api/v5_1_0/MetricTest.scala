@@ -100,7 +100,7 @@ class MetricTest extends V510ServerSetup {
       val response2 = makeGetRequest(request2)
       Then("We get successful response")
       response2.code should equal(200)
-      request2.toRequest
+      request2.toRequest()
       val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
       aggregateMetricJSON2.count shouldBe (15)
 
@@ -111,7 +111,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (23)
       }
@@ -122,7 +122,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (12)
       }
@@ -133,7 +133,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (21)
       }
@@ -144,7 +144,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (9)
       }
@@ -155,7 +155,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (9)
       }
@@ -166,7 +166,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (0)
       }
@@ -177,7 +177,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (0)
       }
@@ -188,7 +188,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe(7)
       }
@@ -199,7 +199,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (7)
       }
@@ -210,7 +210,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (7)
       }
@@ -221,7 +221,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (0)
       }
@@ -232,7 +232,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (0)
       }
@@ -244,7 +244,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count > 25 shouldBe (true)
       }
@@ -255,7 +255,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (12)
       }
@@ -266,7 +266,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (7)
       }
@@ -276,7 +276,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (0)
       }
@@ -286,7 +286,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count shouldBe (12)
       }
@@ -296,7 +296,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count > (21) should be (true)
       }
@@ -306,7 +306,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count should be (0)
       }
@@ -316,7 +316,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count > (21) should be (true)
       }
@@ -326,7 +326,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count should be (0)
       }
@@ -336,7 +336,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count should be (0)
       }
@@ -361,7 +361,7 @@ class MetricTest extends V510ServerSetup {
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
-        request2.toRequest
+        request2.toRequest()
         val aggregateMetricJSON2 = response2.body.extract[AggregateMetricJSON]
         aggregateMetricJSON2.count > (0) shouldBe(true )
       }

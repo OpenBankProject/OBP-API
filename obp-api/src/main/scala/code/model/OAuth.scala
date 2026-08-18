@@ -382,7 +382,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   }
   
   override def populateMissingUUIDs(): Boolean = {
-    logger.warn("Executed script: MappedConsumersProvider." + NameOf.nameOf(populateMissingUUIDs))
+    logger.warn("Executed script: MappedConsumersProvider." + NameOf.nameOf(populateMissingUUIDs()))
     //back up consumer table
     DbFunction.makeBackUpOfTableByName("consumer")
 

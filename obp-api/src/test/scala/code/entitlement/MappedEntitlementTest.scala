@@ -15,7 +15,7 @@ class MappedEntitlementTest extends ServerSetup {
   def createEntitlement(bankId: String, userId: String, roleName: String) = Entitlement.entitlement.vend.addEntitlement(bankId, userId, roleName)
 
   private def delete(): Unit = {
-    val found = Entitlement.entitlement.vend.getEntitlements.openOr(List())
+    val found = Entitlement.entitlement.vend.getEntitlements().openOr(List())
     found.foreach {
       d => {
         Entitlement.entitlement.vend.deleteEntitlement(Full(d))
@@ -39,7 +39,7 @@ class MappedEntitlementTest extends ServerSetup {
       Entitlement.entitlement.vend.getEntitlements().openOr(List()).size should equal(0)
 
       When("We try to get it all")
-      val found = Entitlement.entitlement.vend.getEntitlements.openOr(List())
+      val found = Entitlement.entitlement.vend.getEntitlements().openOr(List())
 
       Then("We don't")
       found.size should equal(0)
@@ -71,7 +71,7 @@ class MappedEntitlementTest extends ServerSetup {
     val entitlement2 = createEntitlement(bankId2, userId2, role1.toString)
 
     When("We try to get it all")
-    val found = Entitlement.entitlement.vend.getEntitlements.openOr(List())
+    val found = Entitlement.entitlement.vend.getEntitlements().openOr(List())
 
     Then("We don't")
     found.size should equal(2)

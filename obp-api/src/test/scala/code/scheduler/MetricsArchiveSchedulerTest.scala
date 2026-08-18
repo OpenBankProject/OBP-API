@@ -146,11 +146,11 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
 
     Scenario("Each run is recorded in the metricsarchiverun log") {
       seedMetric(daysAgo(800), validUuid())
-      MetricsArchiveRun.count should equal(0L)
+      MetricsArchiveRun.count() should equal(0L)
 
       MetricsArchiveScheduler.runOnce()
 
-      MetricsArchiveRun.count should equal(1L)
+      MetricsArchiveRun.count() should equal(1L)
       val last = MetricsArchiveRun.lastRun
       last.isDefined should equal(true)
       last.get.rowsMovedToArchive should equal(1)
@@ -169,7 +169,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       val skipped = outcome.asInstanceOf[RunSkippedAlreadyInProgress]
       skipped.jobId should equal(lockJobId)
       skipped.apiInstanceId should equal("other-node")
-      MetricsArchiveRun.count should equal(0L)
+      MetricsArchiveRun.count() should equal(0L)
       MappedMetric.count() should equal(1L)
     }
 
@@ -178,10 +178,10 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
         MetricsArchiveRun.recordRun(validUuid(), "test", daysAgo(10 - i), daysAgo(10 - i),
           rowsMovedToArchive = i, rowsDeletedFromArchive = 0, success = true, remark = None)
       }
-      MetricsArchiveRun.count should equal(10L)
+      MetricsArchiveRun.count() should equal(10L)
 
       MetricsArchiveRun.pruneToMostRecent(5)
-      MetricsArchiveRun.count should equal(5L)
+      MetricsArchiveRun.count() should equal(5L)
 
       And("the production cap is 1000")
       MetricsArchiveRun.maxRowsToKeep should equal(1000)
