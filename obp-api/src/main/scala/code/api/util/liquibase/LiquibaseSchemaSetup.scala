@@ -13,40 +13,42 @@ import liquibase.resource.ClassLoaderResourceAccessor
  *
  * The reason for the change is the shape of the problem rather than any complaint about Flyway.
  * Flyway applies hand-written SQL, so a vendor is supported only once somebody writes its whole
- * script set in its own dialect: this branch has 118 scripts for h2 and 118 more for postgres, and
- * nothing at all for mysql, sqlserver or oracle - three drivers `FlywaySchemaSetup.vendorFolder`
- * names and would happily boot against, silently, with no tables. OBP does not choose the database;
- * the bank's data source does. Liquibase describes each change once and generates the dialect per
- * vendor, so those three become configurations that work rather than folders nobody filled in.
+ * script set in its own dialect: it had 118 scripts for h2 and 118 more for postgres, and nothing
+ * at all for mysql, sqlserver or oracle - three drivers it named in its vendor mapping and would
+ * happily boot against, silently, with no tables. OBP does not choose the database; the bank's
+ * data source does. Liquibase describes each change once and generates the dialect per vendor, so
+ * those three become configurations that work rather than folders nobody filled in.
  *
- * During the changeover both tools are on the classpath and exactly one of them is enabled - two
- * tools creating tables on boot is the one state that must never exist. `liquibase.enabled`
- * therefore defaults to FALSE for as long as Flyway owns the schema, and flips to true in the same
- * commit that removes Flyway. Not before: the CI workflows write their props from scratch and
- * mention no database prop at all, so the code's default IS the CI configuration - which is how
- * `flyway.enabled` defaulting to false, with Schemifier already empty, put every CI shard on a
- * database with no tables while local runs stayed green off a hand-edited props file.
- * LiquibaseSchemaSetupTest pins both halves of that.
+ * `liquibase.enabled` defaults to TRUE, because nothing else creates a table: Schemifier creates
+ * nothing (ToSchemify.models is Nil) and Flyway is gone. "Off" therefore does not mean "something
+ * else handles it", it means the database has no tables - set it to false only to take schema
+ * management out of the application entirely and run the migrations yourself. The default is also
+ * the CI configuration, since the workflows write their props from scratch and mention no database
+ * prop at all; that is how `flyway.enabled` defaulting to false, with Schemifier already empty, put
+ * every CI shard on a database with no tables while local runs stayed green off a hand-edited props
+ * file. LiquibaseSchemaSetupTest holds the default against ToSchemify.models so the two cannot
+ * drift apart again.
  */
 object LiquibaseSchemaSetup extends MdcLoggable {
 
   /**
    * The changelog, as a classpath resource path.
    *
-   * One path for every vendor - which is the whole point of the change. There is no counterpart
-   * to `FlywaySchemaSetup.vendorFolder` here, and there is deliberately no fallback: Flyway's
-   * `case _ => "h2"` sends an unrecognised driver to H2's dialect, and Liquibase reads the vendor
-   * off the live connection instead of off a string.
+   * One path for every vendor - which is the whole point of the change. There is deliberately no
+   * per-vendor selection and no fallback: Flyway needed one, mapping the driver name to a folder
+   * and sending anything unrecognised to H2's dialect, whereas Liquibase reads the vendor off the
+   * live connection.
    */
   val changeLogPath: String = "db/changelog/db.changelog-master.yaml"
 
   /**
    * Whether Liquibase runs when `liquibase.enabled` is absent from the props.
    *
-   * False while Flyway is still the authority. Named rather than inlined for the same reason
-   * Flyway's is: so the mutual exclusion between the two can be asserted rather than remembered.
+   * Named rather than inlined so a test can hold it against ToSchemify.models: while that list is
+   * empty nothing but Liquibase creates a table, so a default of false means a deployment silently
+   * gets no schema.
    */
-  val enabledByDefault: Boolean = false
+  val enabledByDefault: Boolean = true
 
   /**
    * The Liquibase instance, with the DataSource passed in so a test can run the real configuration
@@ -167,7 +169,8 @@ object LiquibaseSchemaSetup extends MdcLoggable {
       logger.info(s"Liquibase: running migrations from classpath:$changeLogPath")
       bringUpToDate(APIUtil.vendor.HikariDatasource.ds)
     } else {
-      logger.info("Liquibase: disabled (liquibase.enabled=false) - Flyway is the schema authority")
+      logger.warn("Liquibase: disabled (liquibase.enabled=false) - nothing else creates the " +
+        "schema, so the database must already have every table this build expects")
     }
   }
 }

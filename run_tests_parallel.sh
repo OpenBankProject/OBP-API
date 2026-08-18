@@ -361,7 +361,7 @@ if [[ "$HAVE_PY3" = "1" ]]; then
   fi
   echo "Lint: changelog data migrations..."
   if ! python3 .github/scripts/check_changelog_data_migrations.py; then
-    echo "❌ Lint failed (a Flyway data migration has no counterpart in the changelog). Fix before running." >&2
+    echo "❌ Lint failed (a de-duplication changeset is missing from the changelog). Fix before running." >&2
     exit 1
   fi
 else

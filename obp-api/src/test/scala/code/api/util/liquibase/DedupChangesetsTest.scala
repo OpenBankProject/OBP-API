@@ -6,7 +6,6 @@ import liquibase.Liquibase
 import liquibase.database.DatabaseFactory
 import liquibase.database.jvm.JdbcConnection
 import liquibase.resource.ClassLoaderResourceAccessor
-import org.flywaydb.core.Flyway
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -19,10 +18,11 @@ import org.scalatest.matchers.should.Matchers
  * created, which therefore accumulated duplicate rows, being brought up to a schema that has the
  * index. Without the DELETE the index cannot be built at all.
  *
- * So this reproduces that: the H2 scripts are applied only up to V115, which leaves the tables
- * without the V116 unique indexes, duplicates are inserted, and the dedup changelog is run on its
- * own - the full master changelog cannot be, because its baseline would try to CREATE TABLE over
- * the tables Flyway just made.
+ * So this reproduces that state directly: the table is created without its unique index,
+ * duplicates are inserted, and the dedup changelog is run on its own. The table is created here
+ * rather than by running the master changelog, because the baseline creates the unique index in
+ * the same breath as the table - there is no way to reach "table but no constraint" through it,
+ * and that is precisely the state an older database is in.
  *
  * The assertion is not merely "one row survives" but "the survivor is the lowest id". That rule is
  * deliberate and load-bearing: the earliest-inserted row is the one most likely to have downstream
@@ -72,18 +72,15 @@ class DedupChangesetsTest extends AnyFlatSpec with Matchers {
     val db = "dedup_changesets"
     withConnection(db)(execute(_, "DROP ALL OBJECTS"))
     try {
-      // Stop before V116, which is the script that both de-duplicates and creates the index. That
-      // is what an existing deployment looks like: the tables are there, the constraint is not.
-      val migrated = Flyway.configure(getClass.getClassLoader)
-        .dataSource(dataSourceFor(db))
-        .locations("classpath:db/migration/h2")
-        .target("115")
-        .load().migrate()
-      withClue("the tables must have been created: ") {
-        migrated.migrationsExecuted should be > 100
-      }
-
       withConnection(db) { c =>
+        // The columns the dedup touches, and the primary key it keeps the lowest of. Deliberately
+        // without the unique index on TAGID - that absence is the whole scenario.
+        execute(c, """CREATE TABLE "MAPPEDTAG"(
+                      "ID" BIGINT NOT NULL,
+                      "TAGID" CHARACTER VARYING(36),
+                      "TAG" CHARACTER VARYING(64),
+                      CONSTRAINT "MAPPEDTAG_PK" PRIMARY KEY("ID"))""")
+
         // Three rows sharing a tagid, inserted out of id order so "lowest id" cannot be confused
         // with "inserted first in this test".
         execute(c, """INSERT INTO "MAPPEDTAG" ("ID", "TAGID", "TAG") VALUES (30, 'dup', 'third')""")

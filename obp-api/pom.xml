@@ -413,15 +413,10 @@
     </dependency>
     <!-- Schema authority for tables whose Lift entity has been removed. Coexists with
          Schemifier during the Mapper -> Doobie migration, gated by flyway.enabled. -->
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-core</artifactId>
-      <version>${flyway.version}</version>
-    </dependency>
-    <!-- Liquibase is taking the schema over from Flyway: it generates each vendor's DDL from one
-         changelog, which is what OBP needs - the bank's data source decides the database, and
-         Flyway's model is one hand-written SQL set per vendor. Both are present during the
-         changeover; exactly one is enabled at a time (see LiquibaseSchemaSetupTest). -->
+    <!-- Liquibase owns the schema. It replaced Flyway because it generates each vendor's DDL from
+         one changelog, which is what OBP needs: the bank's data source decides the database, and
+         Flyway's model is one hand-written SQL set per vendor - it had h2 and postgres, and
+         nothing for the three other drivers it would have booted against. -->
     <dependency>
       <groupId>org.liquibase</groupId>
       <artifactId>liquibase-core</artifactId>

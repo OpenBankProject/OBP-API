@@ -30,7 +30,7 @@ class ConsentItemSchemaTest extends ServerSetup {
 
     Scenario("the table exists and is queryable") {
       // Fails outright if the table is missing - which is what happens if the entity is deleted
-      // without Flyway taking over.
+      // without the changelog taking over.
       noException should be thrownBy DoobieUtil.runQuery(
         sql"SELECT COUNT(*) FROM consent_item".query[Int].unique)
     }

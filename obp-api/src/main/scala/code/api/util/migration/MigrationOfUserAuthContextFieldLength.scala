@@ -11,8 +11,7 @@ import net.liftweb.mapper.Schemifier
 /**
  * One-time historical migration: widens mKey/mValue to varchar(4000). Originally looked the
  * table up via the Lift MappedUserAuthContext entity; that entity is gone - the table is now
- * created by Flyway at that width directly (see
- * db/migration/h2/V019__mappeduserauthcontext.sql) - so this checks for the table by name
+ * created by Liquibase at that width directly (the table is in db/changelog/db.changelog-baseline.yaml) - so this checks for the table by name
  * instead. Kept only so migration_script_log stays a complete history; on a fresh Flyway-created
  * table there is nothing left to widen.
  */

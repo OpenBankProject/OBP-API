@@ -12,7 +12,7 @@ import java.time.{ZoneId, ZonedDateTime}
 object MigrationOfTransactionRequestChallengeChallengeTypeLength {
 
   // The table is named here rather than through a Mapper singleton: mappedtransactionrequest is
-  // owned by Flyway now, and this historical script still has to run against databases created
+  // owned by Liquibase now, and this historical script still has to run against databases created
   // before that.
   private val tableName = "mappedtransactionrequest"
   

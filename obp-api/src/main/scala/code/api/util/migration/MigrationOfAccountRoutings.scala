@@ -14,7 +14,7 @@ import com.openbankproject.commons.model.{AccountId, BankId}
  * not called by populate() or from anywhere else; kept as it was (unreachable) rather than
  * deleted, now rewritten against DoobieBankAccountRoutingQueries instead of the deleted Lift
  * BankAccountRouting entity. tableExists(BankAccountRouting) becomes tableExistsByName, since
- * the table is now created by Flyway (see db/migration/h2/V027__bankaccountrouting.sql).
+ * the table is now created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml).
  */
 object MigrationOfAccountRoutings {
 

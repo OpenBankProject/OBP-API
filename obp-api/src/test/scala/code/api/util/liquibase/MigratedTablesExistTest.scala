@@ -1,4 +1,4 @@
-package code.api.util.flyway
+package code.api.util.liquibase
 
 import code.api.util.DoobieUtil
 import code.setup.ServerSetup
@@ -10,15 +10,22 @@ import doobie.implicits._
  *
  * This exists because of a real failure mode rather than a hypothetical one. Schemifier used to
  * create these tables from the entity definitions; once the entity is deleted, the only thing that
- * creates them is a Flyway script under src/main/resources/db/migration. That directory sits under
- * a .gitignore rule which excludes all of src/main/resources, so the scripts were present on the
- * machine that wrote them and absent from the repository - ten tables' worth. Everything stayed
- * green locally and would have failed on any clean checkout, at the point where the first query
- * hits a table that was never created.
+ * creates them is the changelog under src/main/resources/db/changelog. That directory sits under a
+ * .gitignore rule which excludes all of src/main/resources, so the DDL was present on the machine
+ * that wrote it and absent from the repository - ten tables' worth. Everything stayed green
+ * locally and would have failed on any clean checkout, at the point where the first query hit a
+ * table that was never created.
  *
- * A missing script is not a compile error and not a schema error either: Flyway simply has nothing
- * to apply, and the failure surfaces much later as an unrelated-looking SQL error inside whichever
- * endpoint touched the table first. Asserting existence directly turns that into one obvious red.
+ * Missing DDL is not a compile error and not a schema error either: the migration tool simply has
+ * nothing to apply, and the failure surfaces much later as an unrelated-looking SQL error inside
+ * whichever endpoint touched the table first. Asserting existence directly turns that into one
+ * obvious red.
+ *
+ * With the Flyway scripts gone this is also what stands in for the schema-equivalence checks that
+ * compared the changelog against them: those needed both sides to exist, and their conclusion -
+ * that the generated changelog builds the schema the scripts built - is recorded in the commit
+ * that generated it. What survives is the ongoing assertion, that the tables and indexes the code
+ * depends on are actually there.
  *
  * When a table moves off Mapper, add it here in the same commit.
  */
@@ -180,7 +187,7 @@ class MigratedTablesExistTest extends ServerSetup {
    * Unique indexes the migrated tables must still have, as index_name per table.
    *
    * These are the ones Schemifier built from dbIndexes-declared UniqueIndex. They need their own
-   * assertion because FlywayBaselineExport does not emit them: a table copied straight out of
+   * assertion because the export tool that produced the original DDL did not emit them: a table copied straight out of
    * that export looks complete and quietly loses its unique constraint, which does not fail -
    * inserts that should have been rejected simply start succeeding. Only tables that genuinely
    * have one are listed; most migrated tables have none.
@@ -189,7 +196,7 @@ class MigratedTablesExistTest extends ServerSetup {
    * migration:
    *   SELECT table_name, index_name, index_type_name FROM information_schema.indexes
    *   WHERE table_name = 'YOUR_TABLE';
-   * and add every UNIQUE INDEX row both to the Flyway script and to this list.
+   * and add every UNIQUE INDEX row both to the changelog and to this list.
    */
   private val expectedUniqueIndexes = List(
     "PRODUCTTAG" -> "PRODUCTTAG_BANKID_PRODUCTCODE_TAG",
@@ -311,7 +318,7 @@ class MigratedTablesExistTest extends ServerSetup {
     "RESOURCEUSER" -> "RESOURCEUSER_PROVIDER__PROVIDERID",
     "RESOURCEUSER" -> "RESOURCEUSER_USERID_UNIQUE",
     "AUTHUSER" -> "AUTHUSER_USERNAME_PROVIDER",
-    // Restored by V116: the five scripts written before V013 recorded that FlywayBaselineExport
+    // Restored late in the migration: the five tables migrated before the discovery that the export tool
     // omits dbIndexes-declared unique indexes had dropped these silently.
     "MAPPEDATM" -> "MAPPEDATM_MBANKID_MATMID",
     "MAPPEDCOMMENT" -> "MAPPEDCOMMENT_APIID",
@@ -386,13 +393,13 @@ class MigratedTablesExistTest extends ServerSetup {
     actual.contains(table -> index) ||
       actual.contains(table -> index.take(PostgresIdentifierLimit))
 
-  Feature("tables owned by Flyway rather than Schemifier") {
+  Feature("tables owned by the changelog rather than Schemifier") {
 
-    Scenario("the unique indexes survived the move to Flyway") {
+    Scenario("the unique indexes survived the move off Schemifier") {
       val actual = indexesInDatabase(uniqueOnly = true)
 
       expectedUniqueIndexes.foreach { case (table, index) =>
-        withClue(s"unique index $index on $table is missing - its Flyway script does not create " +
+        withClue(s"unique index $index on $table is missing - the changelog does not create " +
           s"it (looked for the name and for its 63-byte truncation): ") {
           hasIndex(actual, table, index) should equal(true)
         }
@@ -403,7 +410,7 @@ class MigratedTablesExistTest extends ServerSetup {
       val actual = indexesInDatabase(uniqueOnly = false)
 
       expectedPlainIndexes.foreach { case (table, index) =>
-        withClue(s"index $index on $table is missing - its Flyway script does not create it " +
+        withClue(s"index $index on $table is missing - the changelog does not create it " +
           s"(looked for the name and for its 63-byte truncation): ") {
           hasIndex(actual, table, index) should equal(true)
         }
@@ -412,7 +419,7 @@ class MigratedTablesExistTest extends ServerSetup {
 
     Scenario("each migrated table exists and is queryable") {
       migratedTables.foreach { table =>
-        withClue(s"table $table is missing - its Flyway migration is not on the classpath: ") {
+        withClue(s"table $table is missing - the changelog is not on the classpath: ") {
           noException should be thrownBy DoobieUtil.runQuery(
             (fr"SELECT COUNT(*) FROM " ++ Fragment.const(table)).query[Int].unique)
         }

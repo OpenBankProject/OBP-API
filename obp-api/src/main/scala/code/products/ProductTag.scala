@@ -6,7 +6,7 @@ import net.liftweb.common.Box
 // Product tags keyed by (bank_id, product_code, tag). No FK to MappedProduct so tags work for
 // connector-sourced products that have no local row.
 //
-// The Lift ProductTag entity is gone: the table is owned by Flyway and the queries live in
+// The Lift ProductTag entity is gone: the table is owned by Liquibase and the queries live in
 // DoobieProductTags. This object stays as the call site's entry point so callers did not have to
 // change, and delegates.
 object ProductTagsProvider {

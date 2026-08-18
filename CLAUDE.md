@@ -270,26 +270,71 @@ value.flatMap(Option(_)) match {          // Some(null) -> None -> `IS NULL`, as
 ```
 Wrapping at the binding site (`${Option(v)}`) does the same job for a bare `String` parameter.
 
-**Flyway is the only schema authority now, and two things about that are easy to get wrong.**
-`ToSchemify.models` is `Nil`, so Schemifier creates nothing: if Flyway does not run, the database
-has no tables at all. That makes `flyway.enabled` (default **true**) a switch between "the
-application manages the schema" and "you manage it yourself", not between Flyway and Schemifier.
-It bit CI for the whole of PR 91's review: the workflows write `test.default.props` from scratch
-and never mention the prop, while the *local* `test.default.props` is gitignored and had
-`flyway.enabled=true` added by hand — so the local suite reported `ALL SHARDS PASSED` while every
-CI shard aborted in under a minute on `Table "CHATROOM" not found (this database is empty)`.
-Before reporting a suite green, check whether the behaviour depends on a prop, and diff the local
-props against the workflow's Setup-props step; to prove a fix works under CI conditions, remove
-the line locally and re-run.
+**Liquibase is the only schema authority, and the default is the CI configuration.**
+`ToSchemify.models` is `Nil`, so Schemifier creates nothing: if Liquibase does not run, the
+database has no tables at all. That makes `liquibase.enabled` (default **true**) a switch between
+"the application manages the schema" and "you manage it yourself", not between two tools. The
+default matters more than it looks, because the workflows write `test.default.props` from scratch
+and never mention the prop — the code's default *is* what CI runs. It bit CI for the whole of PR
+91's review under the old `flyway.enabled`: the local `test.default.props` is gitignored and had
+the prop added by hand, so the local suite reported `ALL SHARDS PASSED` while every CI shard
+aborted in under a minute on `Table "CHATROOM" not found (this database is empty)`. Before
+reporting a suite green, check whether the behaviour depends on a prop, and diff the local props
+against the workflow's Setup-props step; to prove a fix works under CI conditions, remove the line
+locally and re-run.
 
-The second is `baselineOnMigrate`. It stamps a pre-existing schema at `baselineVersion`, which
-Flyway defaults to 1. That was right while V001 was the whole initial schema; the migration is
-per-table now, V001 is the ATM table alone, and every later script does its own `CREATE TABLE`
-*without* `IF NOT EXISTS` (they are Schemifier's exported DDL). Baselining at 1 therefore runs
-V002 against a database that already has the table and the migration fails — i.e. every upgrade,
-since enabling Flyway against a Schemifier-built schema is the only upgrade path. `configure`
-reads the highest version off the classpath and baselines there instead; `MigrationVersion.LATEST`
-cannot be used, Flyway rejects it when writing the baseline row.
+**One changelog, every vendor — that is why Liquibase replaced Flyway.** Flyway applies
+hand-written SQL, so a vendor is supported only once somebody writes its whole script set in that
+dialect: it had 118 scripts for h2 and 118 for postgres and nothing for mysql, sqlserver or oracle,
+three drivers its `vendorFolder` named and would have booted against silently, with no tables. OBP
+does not choose the database; the bank's data source does. `db/changelog/db.changelog-master.yaml`
+describes each change once and Liquibase emits the dialect per database.
+
+The baseline was **generated from a Postgres database the Flyway scripts built**, not written by
+hand, so it inherits Schemifier's exported DDL rather than somebody's type mapping — regenerate it
+with `scripts/GenerateChangelog.java` + `scripts/normalise_generated_changelog.py`, never by hand.
+From Postgres and not from H2 because H2 stores identifiers uppercase, and a changelog carrying
+uppercase names becomes a case-sensitive `"MAPPEDATM"` on Postgres that every unquoted lowercase
+query would never find. Three things the generator gets wrong or cannot see, all handled by the
+normaliser and the master changelog:
+
+- **timestamped changeset ids and the generating user as author** — both are the identity in
+  `DATABASECHANGELOG`, so regenerating would make Liquibase re-apply the whole schema to a database
+  that already has it. The normaliser derives them from the object created.
+- **Postgres catalogue spellings** — `DOUBLE` reads back as `FLOAT8`, `TIMESTAMP` as `TIMESTAMP
+  WITHOUT TIME ZONE`. Unbounded text is worse: it has *no* portable spelling, and Liquibase's own
+  `TEXT` becomes `CHARACTER LARGE OBJECT` on H2 where the scripts declared
+  `CHARACTER VARYING(1000000000)` — a CLOB rather than a varchar, on 36 columns. It is the
+  `text.type` property the master changelog defines per vendor.
+- **the eight `DELETE`s that collapse duplicates before a unique index can be built** —
+  `generateChangeLog` snapshots a schema and a DELETE leaves nothing to snapshot. They are
+  hand-written in `db.changelog-dedup.yaml`, guarded by a `tableExists` precondition so a fresh
+  database marks them run without executing them, and frozen in
+  `.github/scripts/check_changelog_data_migrations.py`.
+
+**H2 now needs `NON_KEYWORDS=VALUE` in the URL.** The Flyway scripts quoted every identifier, so a
+`"VALUE"` column never met the keyword; the changelog's unquoted `value` does, and `CREATE TABLE`
+fails without it. Already in `test.default.props` and the sample template.
+
+**Upgrading an existing deployment**: `LiquibaseSchemaSetup.bringUpToDate` decides from the state
+of the database, because a deployment upgrading in place has no opportunity to run a command
+first — tables but no `DATABASECHANGELOG` means `changelogSync` (Liquibase's counterpart of
+Flyway's `baselineOnMigrate`) and then `update`. Two traps in that check, both real:
+
+- reading JDBC metadata **unscoped** returns the database's own catalogue too — H2 reports its
+  `INFORMATION_SCHEMA` tables — so a genuinely *empty* database looks populated, takes the adoption
+  path, and has all 410 changesets marked applied without one of them running. Scope the lookup to
+  the connection's own schema. `LiquibaseOnExistingSchemaTest` asserts the empty case for exactly
+  this reason.
+- a start killed part-way leaves its row in `DATABASECHANGELOGLOCK` and every later start waits on
+  a lock nobody will release. `bringUpToDate` catches `LockException` and names the fix
+  (`liquibase releaseLocks`, or `DELETE FROM DATABASECHANGELOGLOCK`); the default behaviour is a
+  silence that reads as a hang.
+
+**Liquibase creates two bookkeeping tables**, `DATABASECHANGELOG` and `DATABASECHANGELOGLOCK`.
+Never add them to `ServerSetup.resetDatabaseForTestClass()`'s `DELETE FROM` list — for the same
+reason `migrationscriptlog` is excluded there: clearing them makes every `mvn test` re-run every
+changeset against objects that already exist and abort the boot.
 
 **A nullable column must be read through `Option`; the compiler will not tell you.** Doobie's
 `Get` for a non-nullable type throws `NonNullableColumnRead` on a SQL NULL and fails the *whole
@@ -299,9 +344,12 @@ its answer depended on the field type: `MappedString`/`MappedDateTime` returned 
 `data openOr false`; `defaultValue` only seeds a *new* instance), `MappedLong`/`MappedInt`
 returned the declared default. Rows holding NULL are ordinary: Schemifier added fields to
 existing tables with `ALTER TABLE ADD COLUMN` and no backfill. `scripts`-side guard:
-`.github/scripts/check_nullable_column_reads.py` reads each column's nullability from its Flyway
-script and holds it against the store's `Row` type; it runs in both workflows and in
-`run_tests_parallel.sh`.
+`.github/scripts/check_nullable_column_reads.py` reads each column's nullability from the
+changelog and holds it against the store's `Row` type; it runs in both workflows and in
+`run_tests_parallel.sh`. It read the H2 `CREATE TABLE` with a regex until the changeover, and that
+regex's type character class had no comma in it — so `NUMERIC(16, 10)` never matched and five
+columns were silently exempt from the check. One of them, `productfee.amount`, was in fact bound
+as a bare `BigDecimal` the whole time.
 
 **Running the whole suite on Postgres**: it passes - 3701 scenarios, 0 failures - and it is worth
 re-running whenever the data layer changes, because H2 is forgiving in ways Postgres is not. No
@@ -321,33 +369,26 @@ Checked at the time: no two names collide once truncated.
 
 **The suite refuses to run against a database that is not disposable.**
 `code.setup.DisposableDatabaseGuard`, called from `TestServer` before `Boot.boot()`, allows
-`jdbc:h2:mem:*`, `obp_suite_*` and `obp_flyway_migration_test`, and throws on anything else -
+`jdbc:h2:mem:*`, `obp_suite_*`, `obp_liquibase_migration_test` and `obp_test_only` (the name
+`scripts/create_test_db.sh` creates), and throws on anything else -
 `obp-mapped` included. It throws rather than halting the JVM deliberately: halting protected the
 data but produced BUILD SUCCESS, because the root pom sets `maven.test.failure.ignore=true` and
 the verdict actually comes from the runner grepping the log for `RUN ABORTED`. Note the boundary:
 this guards the **Scala** suite. Anything that reaches the database without going through the JVM
 - a psql script, a python harness, another running instance - is outside it.
 
-**Per-vendor migration scripts**: `vendorFolder` maps the JDBC driver to
-`db/migration/<vendor>`, and `h2` and `postgres` are populated. The postgres set is generated
-from the h2 set by `scripts/h2_to_postgres_migrations.py`, which applies the three dialect
-differences that actually matter and leaves the comments alone: `"PUBLIC".` is dropped (Postgres's
-schema is `public`, and `"PUBLIC"` quoted is a different one); identifier quotes are removed so
-Postgres folds names to lowercase the way it folds the unquoted lowercase names every query uses
-— keep them and the table exists but is never found; and `CHARACTER VARYING(1000000000)`, which is
-what Lift's `MappedText` became under H2, has to be `TEXT` because it is past Postgres's varchar
-ceiling of 10485760. Regenerate rather than hand-edit when a new script lands.
-`PostgresMigrationTest` proves the result: it builds a database of its own, migrates it, checks
-the table count against the H2 side, checks the names came through lowercase, and drops it. It
-needs a reachable Postgres and cancels itself when there is none, so it is a developer check
-rather than a CI one.
+**Postgres**: there is no per-vendor script set any more — Liquibase generates the DDL from the
+one changelog. `PostgresMigrationTest` proves the result: it builds a database of its own, migrates
+it with `bringUpToDate`, checks the table count against the H2 side, checks the names came through
+lowercase and that unbounded text landed as `TEXT`, and drops it. It needs a reachable Postgres and
+cancels itself when there is none, so it is a developer check rather than a CI one.
 
-**Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
+**Verifying the changelog is actually doing something — delete it from `target/classes`, not just `src`**: Liquibase loads from `classpath:db/changelog/`, i.e. `obp-api/target/classes/db/changelog/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove the changelog matters — move it out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. (The deleted `db/migration/` scripts sat there for the same reason after they were removed from `src`.) Remove both:
 ```sh
-rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \
-   obp-api/target/classes/db/migration/h2/V0NN__*.sql
+rm -rf obp-api/src/main/resources/db/changelog \
+       obp-api/target/classes/db/changelog
 ```
-The test DB is `jdbc:h2:mem:` (see `test.default.props`), so it is genuinely fresh per JVM — nothing persists between runs, and if an index still appears after you stashed its migration, the stale `target/classes` copy is why. Confirm with a throwaway probe against `information_schema.indexes` rather than assuming. This bites specifically on SQL-only changes; Scala-side red/green is unaffected because recompilation overwrites the class files.
+The test DB is `jdbc:h2:mem:` (see `test.default.props`), so it is genuinely fresh per JVM — nothing persists between runs, and if a table still appears after you stashed the changelog, the stale `target/classes` copy is why. Confirm with a throwaway probe against `information_schema` rather than assuming. This bites specifically on resource-only changes; Scala-side red/green is unaffected because recompilation overwrites the class files. Done properly the run does not merely fail an assertion — it `RUN ABORTED`s in `Boot`, with `db/changelog/db.changelog-master.yaml does not exist` in the log.
 
 **Surefire reports beat truncated maven output**: When a `mvn test` invocation has hundreds of failures, the run summary at the tail says e.g. `*** 23 TESTS FAILED ***` but the individual failure messages are scrolled off. Don't re-run; mine `obp-api/target/surefire-reports/TEST-*.xml` instead. Suites with failures have `failures=` or `errors=` >0; per-testcase failures are `<failure message="...">` elements. Quick extract:
 ```sh

@@ -10,9 +10,9 @@ import net.liftweb.mapper.Schemifier
  *
  * Originally looked the table up via the Lift MappedConsentAuthContext entity
  * (DbFunction.tableExists(MappedConsentAuthContext)). That entity is gone - the table is now
- * created by Flyway (see db/migration/h2/V018__consentauthcontext.sql) - so this checks for the
+ * created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml) - so this checks for the
  * table by name instead. Every environment that had already run this migration has it recorded in
- * migration_script_log and runOnce skips it; a fresh environment's Flyway-created table never had
+ * migration_script_log and runOnce skips it; a fresh environment's Liquibase-created table never had
  * the legacy index (consentauthcontext_consentid_key_c) in the first place, so dropIndexIfExists
  * is a no-op there. Kept only so migration_script_log stays a complete history.
  */

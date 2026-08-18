@@ -14,7 +14,7 @@ import doobie.implicits._
  *
  * Originally used the Lift MappedUserAuthContext entity's typed findAll/delete_! for the delete
  * step and DbFunction.makeBackUpOfTable(MetaMapper) for the backup; that entity is gone - the
- * table is now created by Flyway (see db/migration/h2/V019__mappeduserauthcontext.sql) - so both
+ * table is now created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml) - so both
  * go through DoobieUtil with plain SQL and the table-name overload of the backup helper. Every
  * environment that had already run this migration has it recorded in migration_script_log and
  * runOnce skips it; the group-by query itself finds nothing to delete on a fresh instance, so the

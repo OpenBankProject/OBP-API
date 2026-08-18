@@ -11,10 +11,9 @@ import java.time.{ZoneId, ZonedDateTime}
  * One-time historical migration: drops a legacy unique index that constrained mUsername alone
  * and would have rejected the same username logging in under two different providers.
  * Originally looked the table up via the Lift MappedBadLoginAttempt entity; that entity is gone
- * - the table is now created by Flyway (see
- * db/migration/h2/V026__mappedbadloginattempt.sql) - so this checks for the table by name
+ * - the table is now created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml) - so this checks for the table by name
  * instead. Kept only so migration_script_log stays a complete history; a fresh environment's
- * Flyway-created table never had the legacy index in the first place.
+ * Liquibase-created table never had the legacy index in the first place.
  */
 object MigrationOfMappedBadLoginAttemptDropIndex {
 

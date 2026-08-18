@@ -6,7 +6,7 @@ import code.api.util.OBPQueryParam
 
 /**
  * Connector traces. The Lift ConnectorTrace entity is gone: the table (connector_trace) is owned
- * by Flyway and the queries live in DoobieConnectorTrace. This object keeps its name and shape so
+ * by Liquibase and the queries live in DoobieConnectorTrace. This object keeps its name and shape so
  * the call sites in code.bankconnectors and Http4s600 did not have to change, and delegates.
  *
  * getAllConnectorTraces now answers with DoobieConnectorTrace.ConnectorTraceRow instead of the

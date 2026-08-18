@@ -170,4 +170,4 @@ dynamic_code_sandbox_permissions=[\
 
 # Flyway owns the schema for tables whose Lift Mapper entity has been removed. Default false:
 # Schemifier is still the authority for every entity that remains.
-flyway.enabled=false
+liquibase.enabled=true

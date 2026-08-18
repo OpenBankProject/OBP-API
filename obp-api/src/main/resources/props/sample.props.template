@@ -1934,10 +1934,21 @@ securelogging_mask_email=true
 # Leave empty unless you use Redirect SCA: empty keeps the same-TPP rule applying to every caller.
 # berlin_group_sca_front_end_consumer_ids=
 
-# Flyway owns the whole schema. Every Lift Mapper entity is gone, so Schemifier creates nothing
-# and Flyway is the only thing that builds tables. Default true - setting this to false does not
+# Liquibase owns the whole schema. Every Lift Mapper entity is gone, so Schemifier creates nothing
+# and Liquibase is the only thing that builds tables. Default true - setting this to false does not
 # hand the schema back to Schemifier, it leaves the database with whatever tables it already had.
 # Turn it off only if you run the migrations yourself, outside the application.
-# Scripts exist for h2 and postgres. Another database boots with no tables and an error in the
-# log until its own scripts are added under db/migration/<vendor>.
-# flyway.enabled=true
+#
+# One changelog covers every vendor: the DDL is generated per database from
+# db/changelog/db.changelog-master.yaml, so there is no per-vendor script set to add. h2 and
+# postgres are verified by tests; mysql, sqlserver and oracle are generated the same way but have
+# not been run here.
+#
+# On an H2 deployment the URL must carry NON_KEYWORDS=VALUE. The changelog declares an unquoted
+# `value` column on several tables and VALUE is a keyword in H2 2.x, so CREATE TABLE fails without
+# it. The sample db.url below already has it.
+#
+# If a start is killed part-way, DATABASECHANGELOGLOCK keeps the row that start took, and the next
+# one waits on a lock nobody will release. Clear it with `liquibase releaseLocks`, or
+# DELETE FROM DATABASECHANGELOGLOCK.
+# liquibase.enabled=true

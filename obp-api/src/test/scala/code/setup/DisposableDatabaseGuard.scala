@@ -16,7 +16,7 @@ import code.api.util.APIUtil
  *
  *   - `jdbc:h2:mem:...`      an in-memory database; it ceases to exist when the JVM does
  *   - `.../obp_suite_<...>`  the per-shard databases a Postgres run creates and drops
- *   - `.../obp_flyway_migration_test`  the one PostgresMigrationTest builds and drops
+
  *
  * Everything else - `obp-mapped`, `obp-mapped-test`, `api-tester`, `bnpp-demo`,
  * `obp_ttk_sandbox`, and any file-backed H2 - fails the check.
@@ -34,7 +34,8 @@ object DisposableDatabaseGuard {
   /** Postgres/other JDBC URLs end in the database name, possibly with `?params`. */
   private val JdbcDatabaseName = """^jdbc:[a-z0-9]+://[^/]+/([^/?;]+).*$""".r
 
-  private val AllowedDatabaseName = """^(obp_suite_[a-z0-9_]+|obp_flyway_migration_test)$""".r
+  private val AllowedDatabaseName =
+    """^(obp_suite_[a-z0-9_]+|obp_liquibase_migration_test|obp_test_only)$""".r
 
   /** True when this URL names a database it is safe to empty and drop. */
   def isDisposable(url: String): Boolean = url match {
@@ -67,7 +68,8 @@ object DisposableDatabaseGuard {
            |
            |  jdbc:h2:mem:...                  in-memory, gone when the JVM exits
            |  .../obp_suite_<name>             a per-shard database for a Postgres run
-           |  .../obp_flyway_migration_test    PostgresMigrationTest's own database
+           |  .../obp_liquibase_migration_test PostgresMigrationTest's own database
+           |  .../obp_test_only                what scripts/create_test_db.sh creates
            |
            |Set db.url in test.default.props, or OBP_DB_URL in the environment, to
            |one of those. Nothing has been written to the database named above.

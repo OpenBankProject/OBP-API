@@ -172,10 +172,12 @@ class Boot extends MdcLoggable {
      */
     MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
-    // Flyway owns the schema for tables whose Lift entity has been removed, and runs before both
-    // the dedup below and schemifyAll() so those tables exist by the time anything reads them.
-    // Gated by flyway.enabled (default false) while Schemifier still owns everything else.
-    code.api.util.flyway.FlywaySchemaSetup.runIfEnabled()
+    // Liquibase owns the schema outright - Schemifier creates nothing, ToSchemify.models is Nil -
+    // and has to run here, first, because everything below assumes the tables exist. The dedup
+    // immediately after reads them, and executeScripts decides "new database or existing one" from
+    // whether resourceuser exists. Moving this later does not fail here; it fails further down,
+    // with an error that points at the reader rather than at the schema.
+    code.api.util.liquibase.LiquibaseSchemaSetup.runIfEnabled()
 
     // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholder /
     // mappedentitlement BEFORE schemifyAll() issues their CREATE UNIQUE INDEX (declared in
@@ -822,7 +824,7 @@ class Boot extends MdcLoggable {
 }
 
 object ToSchemify extends MdcLoggable {
-  // Empty: every table is created by a Flyway script now, none by Schemifier. Kept because the
+  // Empty: every table is created from the Liquibase changelog now, none by Schemifier. Kept because the
   // test reset paths still iterate it, and because a future Mapper entity would go here.
   val models: List[MetaMapper[_]] = Nil
 

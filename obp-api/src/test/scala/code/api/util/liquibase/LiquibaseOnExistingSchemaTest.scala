@@ -2,7 +2,6 @@ package code.api.util.liquibase
 
 import java.sql.{Connection, DriverManager}
 import javax.sql.DataSource
-import org.flywaydb.core.Flyway
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -79,15 +78,19 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
     } finally withConnection(db)(execute(_, "DROP ALL OBJECTS"))
   }
 
-  "a database built by the Flyway scripts" should "be adopted rather than rebuilt" in {
+  "a database whose schema nothing recorded" should "be adopted rather than rebuilt" in {
     val db = "liquibase_upgrade_existing"
     withConnection(db)(execute(_, "DROP ALL OBJECTS"))
     try {
-      // The state an existing deployment is actually in: every table present, no DATABASECHANGELOG.
-      Flyway.configure(getClass.getClassLoader)
-        .dataSource(dataSourceFor(db))
-        .locations("classpath:db/migration/h2")
-        .load().migrate()
+      // The state an existing deployment is actually in: every table present, and no record that
+      // anything built them. Built here with the changelog and then stripped of the bookkeeping,
+      // which reaches that state exactly - and is what a Schemifier-built or Flyway-built database
+      // looks like from Liquibase's side, neither of them having left a DATABASECHANGELOG.
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
+      withConnection(db) { c =>
+        execute(c, "DROP TABLE DATABASECHANGELOG")
+        execute(c, "DROP TABLE DATABASECHANGELOGLOCK")
+      }
       val before = tableCount(db)
       withClue("the fixture must have built the schema: ") {
         before should equal(146L)

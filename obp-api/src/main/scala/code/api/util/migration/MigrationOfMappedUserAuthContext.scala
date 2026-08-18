@@ -12,10 +12,9 @@ import net.liftweb.mapper.Schemifier
  * One-time historical migration: drops a legacy unique index that predates the current
  * (userId, key, createdAt) one. Originally looked the table up via the Lift
  * MappedUserAuthContext entity (DbFunction.tableExists(MappedUserAuthContext)); that entity is
- * gone - the table is now created by Flyway (see
- * db/migration/h2/V019__mappeduserauthcontext.sql) - so this checks for the table by name
+ * gone - the table is now created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml) - so this checks for the table by name
  * instead. Every environment that had already run this migration has it recorded in
- * migration_script_log and runOnce skips it; a fresh environment's Flyway-created table never had
+ * migration_script_log and runOnce skips it; a fresh environment's Liquibase-created table never had
  * the legacy index in the first place, so the drop is a no-op there. Kept only so
  * migration_script_log stays a complete history.
  */
