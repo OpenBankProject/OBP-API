@@ -66,30 +66,38 @@ object UserAgreement {
   }
 
   /**
-   * The agreement of one type for one user that `getLastUserAgreement` resolves to.
+   * The newest agreement of one type for one user, which is what `getLastUserAgreement` returns.
    *
-   * NOT simply "the newest". The date column is DATE precision — no time of day — so two
-   * acceptances on the same day tie. Mapper broke that tie with a STABLE sort over rows in
-   * insertion order, which means the OLDEST of the tied rows wins, despite the method's name.
-   * `id ASC` reproduces that exactly; without it SQL would be free to return either row.
+   * The date column is DATE precision — no time of day — so two acceptances on the same day tie
+   * on date alone and the tie has to be broken by something else. Mapper broke it with a STABLE
+   * sort over rows in insertion order, which handed back the OLDEST of the tied rows despite the
+   * method's name: an agreement re-accepted the same day kept reporting the superseded text. The
+   * identity column breaks it here instead, and it descends, so the row written last wins.
    *
-   * That is a latent defect (re-accepting an agreement on the same day keeps reporting the
-   * superseded text) but it is pre-existing, and correcting it here would be a behaviour change
-   * smuggled in under a storage swap. Preserved verbatim; see UserAgreementProviderTest.
+   * `findAllByUserIds` orders the same way for the same reason — see the note there.
    */
   def newestByUserIdAndType(userId: String, agreementType: String): Box[UserAgreement] =
-    query(fr"WHERE userid = $userId AND agreementtype = $agreementType ORDER BY date_c DESC, id ASC LIMIT 1")
+    query(fr"WHERE userid = $userId AND agreementtype = $agreementType ORDER BY date_c DESC, id DESC LIMIT 1")
       .headOption match {
         case Some(row) => Full(row)
         case None => net.liftweb.common.Empty
       }
 
-  /** Every agreement for a set of users, for the batched getUsers path. */
+  /**
+   * Every agreement for a set of users, for the batched getUsers path.
+   *
+   * Ordered newest-first, and that ordering is load-bearing rather than cosmetic: the caller
+   * picks each type's latest with a stable `sortBy(date)`, and DATE precision means same-day
+   * rows tie there. A stable sort keeps the order it was given, so whichever row this query
+   * returns first is the one that path reports. Without `id DESC` it would report the oldest of
+   * a same-day pair while newestByUserIdAndType reported the newest, and a user's agreement text
+   * would depend on which endpoint asked.
+   */
   def findAllByUserIds(userIds: List[String]): List[UserAgreement] =
     if (userIds.isEmpty) Nil
     else {
       val inFrag = Fragments.in(fr"userid", cats.data.NonEmptyList.fromListUnsafe(userIds.distinct))
-      query(fr"WHERE " ++ inFrag)
+      query(fr"WHERE " ++ inFrag ++ fr"ORDER BY date_c DESC, id DESC")
     }
 
   def deleteAll(): Unit = {

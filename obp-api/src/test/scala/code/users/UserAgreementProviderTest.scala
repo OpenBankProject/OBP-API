@@ -44,7 +44,7 @@ class UserAgreementProviderTest extends ServerSetup {
       created.userInvitationId.nonEmpty should equal(true)
     }
 
-    Scenario("re-accepting on the SAME DAY keeps returning the first acceptance, not the latest") {
+    Scenario("re-accepting on the same day returns the latest acceptance") {
       val userId = "agreement-user-history"
       provider.createUserAgreement(userId, "terms_and_conditions", "version one")
       Thread.sleep(5)
@@ -53,16 +53,39 @@ class UserAgreementProviderTest extends ServerSetup {
       val resolved = provider.getLastUserAgreement(userId, "terms_and_conditions")
         .openOrThrowException("expected an agreement")
 
-      // Pinning a latent defect, not endorsing it. The date column is DATE precision, so both
-      // acceptances tie on the same day; Mapper broke the tie with a stable sort over rows in
-      // insertion order, so the OLDER row wins despite the method being called
-      // getLastUserAgreement. Verified against the Lift implementation before the rewrite.
-      // Correcting it belongs in its own change, not smuggled into a storage swap.
-      withClue("same-day tie resolves to the FIRST acceptance — pre-existing behaviour: ") {
-        resolved.agreementText should equal("version one")
+      // The date column is DATE precision, so both acceptances fall on the same day and the
+      // date alone cannot order them. Mapper broke that tie with a stable sort over rows in
+      // insertion order, which handed back the OLDER row - so an agreement re-accepted the same
+      // day kept reporting the superseded text. The tie is now broken by the identity column
+      // instead, which is the order the rows were written in.
+      withClue("the most recent acceptance must win a same-day tie: ") {
+        resolved.agreementText should equal("version two")
       }
-      And("its hash matches whichever row was resolved")
-      resolved.agreementHash should equal(HashUtil.Sha256Hash("version one"))
+      And("its hash matches the row that was resolved")
+      resolved.agreementHash should equal(HashUtil.Sha256Hash("version two"))
+    }
+
+    Scenario("the batched multi-user path resolves the same acceptance as the single lookup") {
+      // getUsers reads agreements for many users in one query and picks each type's latest in
+      // Scala, with a stable sort by date. Same-day rows tie there too, so the two paths agree
+      // only if the batch query hands them over newest-first - without that they disagree, and
+      // a user's agreement text depends on which endpoint asked.
+      val userId = "agreement-user-batched"
+      provider.createUserAgreement(userId, "terms_and_conditions", "batch version one")
+      Thread.sleep(5)
+      provider.createUserAgreement(userId, "terms_and_conditions", "batch version two")
+
+      val batched = UserAgreement.findAllByUserIds(List(userId))
+        .filter(_.agreementType == "terms_and_conditions")
+        .sortBy(_.date)(Ordering[java.util.Date].reverse)
+        .headOption
+        .getOrElse(fail("expected an agreement from the batched path"))
+
+      val single = provider.getLastUserAgreement(userId, "terms_and_conditions")
+        .openOrThrowException("expected an agreement")
+
+      batched.agreementText should equal("batch version two")
+      batched.agreementText should equal(single.agreementText)
     }
 
     Scenario("agreements do not leak across users or across agreement types") {
