@@ -32,6 +32,13 @@ object TestServer {
   val externalHost = APIUtil.getPropsValue("external.hostname")
   val externalPort = APIUtil.getPropsAsIntValue("external.port")
 
+  // Before anything touches the database. Boot creates the schema and every test class then
+  // deletes the contents of 140 tables, so this is the last point at which pointing at the wrong
+  // database is still harmless. Every path that reaches a database comes through here: the 98
+  // ServerSetup suites, ConcurrentRaceSetup (via ServerSetupWithTestData), SandboxDataLoadingTest
+  // and DefaultUsers all reference TestServer.
+  code.setup.DisposableDatabaseGuard.assertDisposable()
+
   // Initialize Lift framework (replaces WebAppContext bootstrap)
   logger.info("[TestServer] Initializing Lift framework via Boot.boot()")
   new bootstrap.liftweb.Boot().boot
