@@ -14,7 +14,7 @@ object MigrationOfUserIdIndexes {
    * This ensures that user_id is actually unique at the database level
    */
   def addUniqueIndexOnResourceUserUserId(name: String): Boolean = {
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -69,7 +69,7 @@ object MigrationOfUserIdIndexes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${ResourceUser._dbTableNameLC} table does not exist. Skipping unique index creation.""".stripMargin
+          s"""${"resourceuser"} table does not exist. Skipping unique index creation.""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

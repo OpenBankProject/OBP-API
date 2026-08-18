@@ -283,7 +283,7 @@ class SystemViewsTests extends V310ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
       When(s"We make a request $ApiEndpoint4")
       AccountAccess.findAllBySystemViewId(com.openbankproject.commons.model.ViewId(randomSystemViewId))
-        .filter(_.userPrimaryKey == resourceUser1.id.get)
+        .filter(_.userPrimaryKey == resourceUser1.id)
         .forall(a => AccountAccess.deleteRow(a)) // Remove all rows assigned to the system view in order to delete it
       val response400 = deleteSystemView(randomSystemViewId, user1)
       Then("We should get a 200")

@@ -18,7 +18,8 @@ trait CreateAuthUsers {
       def save() = {
         val usr = Users.users.vend.saveResourceUser(value)
         for (uu <- usr) {
-          u.user(uu).save
+          // The foreign key holds RESOURCEUSER.ID; it used to take the entity itself.
+          u.user(uu.id).save
         }
       }
     }

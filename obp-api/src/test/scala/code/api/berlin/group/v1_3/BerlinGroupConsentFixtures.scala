@@ -161,7 +161,7 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   lazy val pseudoUserToken = Tokens.tokens.vend.createToken(
     Access,
     Some(testConsumer.id),
-    Some(pseudoUserOfTestConsumer.id.get),
+    Some(pseudoUserOfTestConsumer.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),

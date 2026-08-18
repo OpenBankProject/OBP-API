@@ -62,7 +62,7 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       "mail.test.mode" -> "true"
     )
     AuthUser.bulkDelete_!!(By(AuthUser.username, postJson.username))
-    ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, postJson.username))
+    ResourceUser.deleteAllByProviderId(postJson.username)
   }
 
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)

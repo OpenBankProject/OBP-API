@@ -57,8 +57,7 @@ object DeleteAccountCascade {
     // user_fk holds RESOURCEUSER's numeric key; resolve each to the public user id as before, with
     // an unresolvable key contributing "" exactly as the Lift foreign key did.
     val userIds = AccountAccess.findAllByAccountId(accountId.value)
-      .map(a => code.model.dataAccess.ResourceUser
-        .find(By(code.model.dataAccess.ResourceUser.id, a.userPrimaryKey))
+      .map(a => code.model.dataAccess.ResourceUser.findByPrimaryKey(a.userPrimaryKey)
         .map(_.userId).getOrElse(""))
     MappedEntitlement.deleteByBankIdAndUserIds(bankId.value, userIds)
   }

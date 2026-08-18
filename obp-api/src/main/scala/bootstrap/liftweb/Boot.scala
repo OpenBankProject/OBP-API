@@ -199,7 +199,7 @@ class Boot extends MdcLoggable {
     // marks the existing-DB pass, in which migrations that require post-Schemifier schema skip
     // themselves (see Migration.executeScripts). The "before Schemifier" wording is historical: the
     // call once sat before schemifyAll() but was moved ahead of it in 2021 (commit ea4537029).
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true => // DB already exists
         Migration.database.executeScripts(startedBeforeSchemifier = true)
         logger.info("The Mapper database already exists. Running the existing-DB migration pass (post-Schemifier; migrations needing fresh schema skip themselves).")
@@ -826,7 +826,6 @@ class Boot extends MdcLoggable {
 object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
-    ResourceUser,
   )
 
   // start grpc server

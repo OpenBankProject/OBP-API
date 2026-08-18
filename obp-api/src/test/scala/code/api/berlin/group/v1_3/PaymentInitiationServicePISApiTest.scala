@@ -861,7 +861,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     val token = Tokens.tokens.vend.createToken(
       TokenType.Access,
       Some(testConsumer2.id),
-      Some(resourceUser1.id.get),
+      Some(resourceUser1.id),
       Some(randomString(40).toLowerCase),
       Some(randomString(40).toLowerCase),
       Some(tokenDuration),

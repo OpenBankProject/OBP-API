@@ -69,7 +69,7 @@ import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
 import code.api.v6_0_0.JSONFactory600.UpdateViewJsonV600
 import code.model._
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.{Users, DoobieUserQueries}
 import code.api.util.DynamicUtil
 import code.util.Helper.SILENCE_IS_GOLDEN
@@ -4113,7 +4113,7 @@ object Http4s600 {
             validatedUser <- Future(code.model.dataAccess.AuthUser.validateAndResetToken(user))
             _ <- Future(code.model.dataAccess.AuthUser.grantDefaultEntitlementsToAuthUser(validatedUser))
           } yield JSONFactory600.ValidateUserEmailResponseJsonV600(
-            user_id = validatedUser.user.obj.map(_.userId).getOrElse(""),
+            user_id = ResourceUser.findByPrimaryKey(validatedUser.user.get).map(_.userId).getOrElse(""),
             email = validatedUser.email.get,
             username = validatedUser.username.get,
             provider = validatedUser.provider.get,

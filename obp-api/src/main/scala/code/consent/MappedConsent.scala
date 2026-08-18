@@ -89,8 +89,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         }
         // Only an unambiguous match narrows the query; several users on one provider id filters
         // nothing, as it did before.
-        ResourceUser.findAll(net.liftweb.mapper.By(ResourceUser.provider_, provider),
-          net.liftweb.mapper.By(ResourceUser.providerId, providerId)) match {
+        ResourceUser.findAllByProviderAndProviderId(provider, providerId) match {
           case x :: Nil => Some(x.userId)
           case _ => None
         }

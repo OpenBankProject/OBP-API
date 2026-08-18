@@ -125,7 +125,7 @@ object MapperAccountHolders extends AccountHolders with MdcLoggable {
 
     //accountHolders --> user
     accountHolders.flatMap { accHolder =>
-      ResourceUser.find(By(ResourceUser.id, accHolder.userKey))
+      ResourceUser.findByPrimaryKey(accHolder.userKey)
     }.toSet
   }
 

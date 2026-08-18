@@ -147,7 +147,7 @@ class UserTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(200)
       response400.body.extract[UserJsonV400]
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
   
@@ -181,7 +181,7 @@ class UserTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(200)
       response400.body.extract[UsersJsonV400]
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
   

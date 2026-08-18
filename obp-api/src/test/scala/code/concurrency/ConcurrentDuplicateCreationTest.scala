@@ -138,10 +138,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       val provider          = "__conc_oauth_provider_i"
       val idGivenByProvider = "__conc_oauth_id_i"
       // Clean up from any prior run.
-      ResourceUser.findAll(
-        By(ResourceUser.provider_, provider),
-        By(ResourceUser.providerId, idGivenByProvider)
-      ).foreach(_.delete_!)
+      ResourceUser.deleteAllByProviderAndProviderId(provider, idGivenByProvider)
       val n = 2
 
       When(s"$n concurrent getOrCreateUserByProviderId calls race for the same (provider, id)")
@@ -157,10 +154,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
 
       Then("no call must throw and exactly one ResourceUser row must exist (UniqueIndex present but exception uncaught)")
       val failures  = results.collect { case scala.util.Failure(e) => e.getClass.getSimpleName + ": " + e.getMessage }
-      val userCount = ResourceUser.count(
-        By(ResourceUser.provider_, provider),
-        By(ResourceUser.providerId, idGivenByProvider)
-      )
+      val userCount = ResourceUser.countByProviderAndProviderId(provider, idGivenByProvider)
       withClue(s"failures=$failures userCount=$userCount (expected: no failures, 1 row) — ") {
         failures shouldBe empty
         userCount should equal(1L)

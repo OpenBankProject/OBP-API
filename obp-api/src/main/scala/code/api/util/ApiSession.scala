@@ -217,10 +217,8 @@ case class CallContext(
     delegatedHumanUserId.openOr {
       val authenticatedUserId = user.map(_.userId).openOr("")
       val grantingHumanUserId = for {
-        callerResourceUser <- code.model.dataAccess.ResourceUser.find(
-          net.liftweb.mapper.By(code.model.dataAccess.ResourceUser.userId_, authenticatedUserId))
-        consentId <- net.liftweb.common.Full(callerResourceUser.CreatedByConsentId.get)
-          .filter(id => id != null && id.nonEmpty)
+        callerResourceUser <- code.model.dataAccess.ResourceUser.findByUserId(authenticatedUserId)
+        consentId <- net.liftweb.common.Box(callerResourceUser.createdByConsentId)
         consent <- code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
       } yield consent.userId
       grantingHumanUserId.filter(_.nonEmpty).openOr(authenticatedUserId)

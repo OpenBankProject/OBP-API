@@ -38,36 +38,36 @@ class AgentDelegationTest extends ServerSetup {
       lastMarketingAgreementSignedDate = None
     ).openOrThrowException("Expected resource user to be created")
 
-  private def storedField(value: String): String = Option(value).getOrElse("")
+  private def storedField(value: Option[String]): String = value.getOrElse("")
 
   Feature("createResourceUser stores CreatedByConsentId and CreatedByUserInvitationId independently") {
 
     Scenario("consent id only — survives the invitation-id None branch", AgentDelegationTag) {
       val consentId = generateUUID()
       val user = createUser(createdByConsentId = Some(consentId))
-      storedField(user.CreatedByConsentId.get) shouldBe consentId
-      storedField(user.CreatedByUserInvitationId.get) shouldBe ""
+      storedField(user.createdByConsentId) shouldBe consentId
+      storedField(user.createdByUserInvitationId) shouldBe ""
     }
 
     Scenario("invitation id only", AgentDelegationTag) {
       val invitationId = generateUUID()
       val user = createUser(createdByUserInvitationId = Some(invitationId))
-      storedField(user.CreatedByConsentId.get) shouldBe ""
-      storedField(user.CreatedByUserInvitationId.get) shouldBe invitationId
+      storedField(user.createdByConsentId) shouldBe ""
+      storedField(user.createdByUserInvitationId) shouldBe invitationId
     }
 
     Scenario("both ids set", AgentDelegationTag) {
       val consentId = generateUUID()
       val invitationId = generateUUID()
       val user = createUser(Some(consentId), Some(invitationId))
-      storedField(user.CreatedByConsentId.get) shouldBe consentId
-      storedField(user.CreatedByUserInvitationId.get) shouldBe invitationId
+      storedField(user.createdByConsentId) shouldBe consentId
+      storedField(user.createdByUserInvitationId) shouldBe invitationId
     }
 
     Scenario("neither id set", AgentDelegationTag) {
       val user = createUser()
-      storedField(user.CreatedByConsentId.get) shouldBe ""
-      storedField(user.CreatedByUserInvitationId.get) shouldBe ""
+      storedField(user.createdByConsentId) shouldBe ""
+      storedField(user.createdByUserInvitationId) shouldBe ""
     }
   }
 

@@ -299,7 +299,7 @@ object Http4s700 {
         .map(_.consentId).filter(_.nonEmpty)
       val agentUserIds =
         if (consentIds.isEmpty) Nil
-        else ResourceUser.findAll(ByList(ResourceUser.CreatedByConsentId, consentIds)).map(_.userId)
+        else ResourceUser.findAllByCreatedByConsentIds(consentIds).map(_.userId)
       (humanUserId :: agentUserIds).filter(_.nonEmpty).distinct
     }
 

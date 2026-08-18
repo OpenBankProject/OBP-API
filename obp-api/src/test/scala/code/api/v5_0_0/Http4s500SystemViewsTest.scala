@@ -439,7 +439,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       
       // Clean up any account access records
       AccountAccess.findAllBySystemViewId(com.openbankproject.commons.model.ViewId(viewId))
-        .filter(_.userPrimaryKey == resourceUser1.id.get)
+        .filter(_.userPrimaryKey == resourceUser1.id)
         .forall(a => AccountAccess.deleteRow(a))
       
       // Now delete the view

@@ -293,7 +293,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   private lazy val secondPsuOfTestConsumerToken = Tokens.tokens.vend.createToken(
     Access,
     Some(testConsumer.id),
-    Some(resourceUser2.id.get),
+    Some(resourceUser2.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),

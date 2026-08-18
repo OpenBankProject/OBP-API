@@ -184,7 +184,7 @@ trait DefaultUsers {
   lazy val testToken1 = Tokens.tokens.vend.createToken(
     Access,
     Some(testConsumer.id),
-    Some(resourceUser1.id.get),
+    Some(resourceUser1.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
@@ -196,7 +196,7 @@ trait DefaultUsers {
   lazy val testToken2 = Tokens.tokens.vend.createToken(
     Access,
     Some(testConsumer2.id),
-    Some(resourceUser2.id.get),
+    Some(resourceUser2.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
@@ -207,7 +207,7 @@ trait DefaultUsers {
   
   lazy val testToken3 = Tokens.tokens.vend.createToken(Access,
     Some(testConsumer3.id),
-    Some(resourceUser3.id.get),
+    Some(resourceUser3.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
@@ -218,7 +218,7 @@ trait DefaultUsers {
 
   lazy val testToken4 = Tokens.tokens.vend.createToken(Access,
     Some(testConsumer4.id),
-    Some(resourceUser4.id.get),
+    Some(resourceUser4.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),

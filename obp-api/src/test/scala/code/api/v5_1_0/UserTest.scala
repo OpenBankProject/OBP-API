@@ -66,7 +66,7 @@ class UserTest extends V510ServerSetup {
       val json = response400.body.extract[UserWithNamesJsonV510]
       json.first_name should equal("")
       json.last_name should equal("")
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 
@@ -89,7 +89,7 @@ class UserTest extends V510ServerSetup {
       json.first_name should equal("Alice")
       json.last_name should equal("Smith")
       authUser.delete_!
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 
@@ -107,7 +107,7 @@ class UserTest extends V510ServerSetup {
       Then("We get successful response - endpoint correctly URL-decodes the provider")
       response.code should equal(200)
       response.body.extract[UserWithNamesJsonV510]
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 
@@ -131,7 +131,7 @@ class UserTest extends V510ServerSetup {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
       // Clean up
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
   Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
@@ -145,7 +145,7 @@ class UserTest extends V510ServerSetup {
       response.code should equal(200)
       response.body.extract[UserJsonV300]
       // Clean up
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 

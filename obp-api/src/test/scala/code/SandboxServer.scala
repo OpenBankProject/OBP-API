@@ -194,7 +194,7 @@ object SandboxServer {
       Tokens.tokens.vend.createToken(
         Access,
         Some(consumer.id),
-        Some(resourceUser.id.get),
+        Some(resourceUser.id),
         Some(randomString(40).toLowerCase),
         Some(randomString(40).toLowerCase),
         Some(expiration),

@@ -102,7 +102,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
   override def beforeEach() = {
     //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
-      m == AuthUser || m == ResourceUser
+      m == AuthUser
     }
     //drop database tables before
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
@@ -255,10 +255,10 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     AuthUser.bulkDelete_!!(By(AuthUser.username, user2Import.user_name))
     AuthUser.bulkDelete_!!(By(AuthUser.username, differentUsername))
     AuthUser.bulkDelete_!!(By(AuthUser.username, secondUserName))
-    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, user1Import.user_name ))
-    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, user2Import.user_name ))
-    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, differentUsername ))
-    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, secondUserName ))
+    ResourceUser.deleteAllByName(user1Import.user_name)
+    ResourceUser.deleteAllByName(user2Import.user_name)
+    ResourceUser.deleteAllByName(differentUsername)
+    ResourceUser.deleteAllByName(secondUserName)
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateSandbox.toString)
   }
 

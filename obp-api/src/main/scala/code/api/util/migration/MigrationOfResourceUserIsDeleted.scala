@@ -17,20 +17,20 @@ object MigrationOfResourceUserIsDeleted {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populateNewFieldIsDeleted(name: String): Boolean = {
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         // Make back up
-        DbFunction.makeBackUpOfTable(ResourceUser)
+        DbFunction.makeBackUpOfTableByName("resourceuser")
 
         val emptyDeletedField = 
           for {
             user <- ResourceUser.findAll() if user.isDeleted.getOrElse(false) == false
           } yield {
-            user.IsDeleted(false).saveMe()
+            ResourceUser.update(user.copy(isDeleted = Some(false)))
           }
         
         val endDate = System.currentTimeMillis()
@@ -57,7 +57,7 @@ object MigrationOfResourceUserIsDeleted {
   }
 
   def alterColumnEmail(name: String): Boolean = {
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -93,7 +93,7 @@ object MigrationOfResourceUserIsDeleted {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${ResourceUser._dbTableNameLC} table does not exist""".stripMargin
+          s"""${"resourceuser"} table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

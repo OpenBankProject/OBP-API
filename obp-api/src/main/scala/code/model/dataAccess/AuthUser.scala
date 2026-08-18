@@ -83,7 +83,16 @@ import scala.xml.{Elem, NodeSeq, Text}
 class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLoggable {
   def getSingleton: code.model.dataAccess.AuthUser.type = AuthUser // what's the "meta" server
 
-  object user extends MappedLongForeignKey(this, ResourceUser)
+  // Points at RESOURCEUSER.ID. A plain MappedLong rather than a MappedLongForeignKey because
+  // ResourceUser is no longer a Mapper entity; the column and its values are unchanged, and the
+  // row it names is fetched with ResourceUser.findByPrimaryKey. The two overrides keep what the
+  // foreign key gave the column: its index, and SQL NULL rather than 0 when it is unset.
+  object user extends MappedLong(this) {
+    override def dbIndexed_? = true
+    private def defined_? : Boolean = get > 0L
+    override def jdbcFriendly(field: String) = if (defined_?) java.lang.Long.valueOf(get) else null
+    override def jdbcFriendly = if (defined_?) java.lang.Long.valueOf(get) else null
+  }
   
   object passwordShouldBeChanged extends MappedBoolean(this)
 
@@ -313,28 +322,29 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
   }
 
   override def save: Boolean = {
-    if(! (user.defined_?)){
+    // The foreign key is unset while the AuthUser has no ResourceUser yet; MappedLong reads that
+    // as 0, which is what MappedLongForeignKey's defined_? tested for.
+    if(user.get == 0L){
       logger.info("user reference is null. We will create a ResourceUser")
       val resourceUser = createUnsavedResourceUser()
       val savedUser = Users.users.vend.saveResourceUser(resourceUser)
-      user(savedUser)   //is this saving resourceUser into a user field?
+      savedUser.map(u => user(u.id))
     }
     else {
       logger.info("user reference is not null. Trying to update the ResourceUser")
-      Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>{
+      Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>
           logger.info("API User found ")
-          u.name_(username.get)
-          .email(email.get)
-          .providerId(username.get)
-          .save
-        }
+          Users.users.vend.saveResourceUser(u.copy(
+            name = username.get,
+            emailAddress = ResourceUser.normalizeEmail(email.get),
+            idGivenByProvider = username.get))
       }
     }
     super.save
   }
 
   override def delete_! : Boolean = {
-    user.obj.map(u => Users.users.vend.deleteResourceUser(u.id.get))
+    ResourceUser.findByPrimaryKey(user.get).map(u => Users.users.vend.deleteResourceUser(u.id))
     super.delete_!
   }
 
@@ -417,7 +427,7 @@ import net.liftweb.util.Helpers._
         case Full(id) =>
           Users.users.vend.getResourceUserByResourceUserId(id).map {
             u =>
-              u.LastUsedLocale(computedLocale).save
+              ResourceUser.update(u.copy(lastUsedLocale = Option(computedLocale)))
               logger.debug(s"ResourceUser.LastUsedLocale is saved for the resource user id: $id")
           }.isDefined
         case _ => true// There is no current user
@@ -615,9 +625,9 @@ import net.liftweb.util.Helpers._
     val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
     // User Agreement table
     UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
-      theUser.user.foreign.map(_.userId).getOrElse(""), "privacy_conditions", privacyPolicyValue)
+      ResourceUser.findByPrimaryKey(theUser.user.get).map(_.userId).getOrElse(""), "privacy_conditions", privacyPolicyValue)
     UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
-      theUser.user.foreign.map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
+      ResourceUser.findByPrimaryKey(theUser.user.get).map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
     if (!skipEmailValidation) {
       sendValidationEmail(theUser)
       func()
@@ -780,9 +790,9 @@ import net.liftweb.util.Helpers._
           // Password correct - extract user ID safely
           logger.info(s"getResourceUserId says: password correct, username: $username, provider: $normalizedProvider")
           LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, username)
-          user.user.obj match {
+          ResourceUser.findByPrimaryKey(user.user.get) match {
             case Full(resourceUser) =>
-              Full(resourceUser.id.get)
+              Full(resourceUser.id)
             case _ =>
               logger.error(s"getResourceUserId: user.user foreign key not set for username: $username")
               Empty
@@ -828,9 +838,9 @@ import net.liftweb.util.Helpers._
         
         // Call connector validation and safely extract user ID
         val connectorResult = checkExternalUserViaConnector(username, password).flatMap { authUser =>
-          authUser.user.obj match {
+          ResourceUser.findByPrimaryKey(authUser.user.get) match {
             case Full(resourceUser) =>
-              Full(resourceUser.id.get)
+              Full(resourceUser.id)
             case _ =>
               logger.error(s"getResourceUserId: external user.user foreign key not set for username: $username")
               Empty
@@ -941,7 +951,7 @@ import net.liftweb.util.Helpers._
         userAuthContexts match {
           case Some(authContexts) => { // Write user auth context to the database
               // get resourceUserId from AuthUser.
-              val resourceUserId = user.user.foreign.map(_.userId).getOrElse("")
+              val resourceUserId = ResourceUser.findByPrimaryKey(user.user.get).map(_.userId).getOrElse("")
               // we try to catch this exception, the createOrUpdateUserAuthContexts can not break the login process.
               tryo {UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(resourceUserId, authContexts)}
                 .openOr(logger.error(s"${resourceUserId} checkExternalUserViaConnector.createOrUpdateUserAuthContexts throw exception! "))
@@ -999,7 +1009,7 @@ def restoreSomeSessions(): Unit = {
   def grantEntitlementsToUseDynamicEndpointsInSpaces(user: AuthUser) = {
     if(emailDomainToSpaceMappings.nonEmpty) {
       val createdByProcess = "grantEntitlementsToUseDynamicEndpointsInSpaces"
-      val userId = user.user.obj.map(_.userId).getOrElse("")
+      val userId = ResourceUser.findByPrimaryKey(user.user.get).map(_.userId).getOrElse("")
 
       // user's already auto granted entitlements.
       val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
@@ -1043,7 +1053,7 @@ def restoreSomeSessions(): Unit = {
   def grantEmailDomainEntitlementsToUser(user: AuthUser) = {
     if(emailDomainToEntitlementMappings.nonEmpty){
       val createdByProcess = "grantEmailDomainEntitlementsToUser"
-      val userId = user.user.obj.map(_.userId).getOrElse("")
+      val userId = ResourceUser.findByPrimaryKey(user.user.get).map(_.userId).getOrElse("")
 
       // user's already auto granted entitlements.
       val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)

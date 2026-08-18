@@ -50,7 +50,7 @@ class PasswordRecoverTest extends V400ServerSetup {
     wipeTestData()
     super.beforeEach()
     AuthUser.bulkDelete_!!(By(AuthUser.username, postJson.username))
-    ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, postJson.username))
+    ResourceUser.deleteAllByProviderId(postJson.username)
   } 
 
   /**

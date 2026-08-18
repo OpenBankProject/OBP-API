@@ -90,8 +90,8 @@ object MapperViews extends Views with MdcLoggable {
     // 2. Batch-load users by primary key
     val distinctUserPks = viewPairs.map(_._1.resourceUserPrimaryKey).distinct
     val usersMap: Map[Long, ResourceUser] = if (distinctUserPks.nonEmpty) {
-      ResourceUser.findAll(ByList(ResourceUser.id, distinctUserPks))
-        .map(u => u.id.get -> u).toMap
+      ResourceUser.findAllByPrimaryKeys(distinctUserPks)
+        .map(u => u.id -> u).toMap
     } else Map.empty
 
     // 3. Group views by user PK and build Permission objects
@@ -711,7 +711,7 @@ object MapperViews extends Views with MdcLoggable {
     val accountAccessList = AccountAccess.findAllByView(view)
     // user_fk holds RESOURCEUSER's numeric key; resolve each one through the still-Mapper entity.
     val users: List[User] = accountAccessList.flatMap(a =>
-      code.model.dataAccess.ResourceUser.find(By(code.model.dataAccess.ResourceUser.id, a.userPrimaryKey)))
+      code.model.dataAccess.ResourceUser.findByPrimaryKey(a.userPrimaryKey))
     users.toSet
   }
 
