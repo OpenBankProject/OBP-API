@@ -303,6 +303,31 @@ existing tables with `ALTER TABLE ADD COLUMN` and no backfill. `scripts`-side gu
 script and holds it against the store's `Row` type; it runs in both workflows and in
 `run_tests_parallel.sh`.
 
+**Running the whole suite on Postgres**: it passes - 3701 scenarios, 0 failures - and it is worth
+re-running whenever the data layer changes, because H2 is forgiving in ways Postgres is not. No
+source change is needed: `db.driver`/`db.url`/`db.user` are read through `APIUtil.getPropsValue`,
+which consults `sys.env` first, so `OBP_DB_DRIVER` / `OBP_DB_URL` / `OBP_DB_USER` override the
+props file per process. What it does need is **one database per shard**: the four shards share a
+props file, and every test class opens with 140 `DELETE FROM`, so pointing them at one database
+means they wipe each other. Create `obp_suite_shard_1..4` (the guard's whitelist expects that
+prefix), give each shard its own `OBP_DB_URL`, and drop them afterwards.
+
+Two things that bite. `max_connections` defaults to 100 on a Homebrew Postgres, and four shards
+at `hikari.maximumPoolSize=20` need 80 on top of whatever else is connected - a local OBP-API
+holds 80 by itself. Raising the pool's own limit is not the fix; a pool of 10 exhausts at five
+concurrent requests. And Postgres truncates identifiers at 63 bytes, so five of the index names
+arrive shortened; `MigratedTablesExistTest` accepts a name or its truncation for that reason.
+Checked at the time: no two names collide once truncated.
+
+**The suite refuses to run against a database that is not disposable.**
+`code.setup.DisposableDatabaseGuard`, called from `TestServer` before `Boot.boot()`, allows
+`jdbc:h2:mem:*`, `obp_suite_*` and `obp_flyway_migration_test`, and throws on anything else -
+`obp-mapped` included. It throws rather than halting the JVM deliberately: halting protected the
+data but produced BUILD SUCCESS, because the root pom sets `maven.test.failure.ignore=true` and
+the verdict actually comes from the runner grepping the log for `RUN ABORTED`. Note the boundary:
+this guards the **Scala** suite. Anything that reaches the database without going through the JVM
+- a psql script, a python harness, another running instance - is outside it.
+
 **Per-vendor migration scripts**: `vendorFolder` maps the JDBC driver to
 `db/migration/<vendor>`, and `h2` and `postgres` are populated. The postgres set is generated
 from the h2 set by `scripts/h2_to_postgres_migrations.py`, which applies the three dialect

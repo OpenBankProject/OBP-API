@@ -347,29 +347,65 @@ class MigratedTablesExistTest extends ServerSetup {
     "CONSENT_ITEM" -> "CONSENT_ITEM_BANK_ID"
   )
 
+  /**
+   * The indexes this database actually has, as (TABLE, INDEX) in upper case.
+   *
+   * Two things are vendor-specific here. `information_schema.indexes` is an H2 extension that
+   * Postgres does not have, which keeps the same information in `pg_index`. And Postgres
+   * truncates an identifier to 63 bytes, so five of these index names arrive shortened - the
+   * index is there and covers the right columns, but `..._ACCOUNTROUTINGADDRESS` comes back as
+   * `..._ACCOUNTROUTINGAD`. Checked at the time: no two names collide once truncated, so nothing
+   * is lost, but a name comparison cannot be written the one way for both vendors.
+   *
+   * So the expectation is met by a name that matches OR is the vendor's truncation of it, which
+   * `hasIndex` does. Postgres also folds unquoted names to lower case, hence the upper()s.
+   */
+  private def indexesInDatabase(uniqueOnly: Boolean): Set[(String, String)] =
+    if (DoobieUtil.dbUrl.startsWith("jdbc:postgresql:")) {
+      val unique = if (uniqueOnly) fr"AND i.indisunique" else Fragment.empty
+      DoobieUtil.runQuery(
+        (fr"""SELECT upper(t.relname), upper(c.relname)
+              FROM pg_index i
+              JOIN pg_class c ON c.oid = i.indexrelid
+              JOIN pg_class t ON t.oid = i.indrelid
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public'""" ++ unique)
+          .query[(String, String)].to[List]).toSet
+    } else {
+      val unique = if (uniqueOnly) fr"WHERE index_type_name = 'UNIQUE INDEX'" else Fragment.empty
+      DoobieUtil.runQuery(
+        (fr"SELECT upper(table_name), upper(index_name) FROM information_schema.indexes" ++ unique)
+          .query[(String, String)].to[List]).toSet
+    }
+
+  /** Postgres cuts an identifier at 63 bytes; NAMEDATALEN is 64 and the last byte is the NUL. */
+  private val PostgresIdentifierLimit = 63
+
+  /** True when the database has this index, allowing for the vendor shortening its name. */
+  private def hasIndex(actual: Set[(String, String)], table: String, index: String): Boolean =
+    actual.contains(table -> index) ||
+      actual.contains(table -> index.take(PostgresIdentifierLimit))
+
   Feature("tables owned by Flyway rather than Schemifier") {
 
     Scenario("the unique indexes survived the move to Flyway") {
-      val actual = DoobieUtil.runQuery(
-        sql"""SELECT table_name, index_name FROM information_schema.indexes
-              WHERE index_type_name = 'UNIQUE INDEX'"""
-          .query[(String, String)].to[List]).toSet
+      val actual = indexesInDatabase(uniqueOnly = true)
 
       expectedUniqueIndexes.foreach { case (table, index) =>
-        withClue(s"unique index $index on $table is missing - its Flyway script does not create it: ") {
-          actual should contain(table -> index)
+        withClue(s"unique index $index on $table is missing - its Flyway script does not create " +
+          s"it (looked for the name and for its 63-byte truncation): ") {
+          hasIndex(actual, table, index) should equal(true)
         }
       }
     }
 
     Scenario("the plain indexes on the metadata read paths survived too") {
-      val actual = DoobieUtil.runQuery(
-        sql"""SELECT table_name, index_name FROM information_schema.indexes"""
-          .query[(String, String)].to[List]).toSet
+      val actual = indexesInDatabase(uniqueOnly = false)
 
       expectedPlainIndexes.foreach { case (table, index) =>
-        withClue(s"index $index on $table is missing - its Flyway script does not create it: ") {
-          actual should contain(table -> index)
+        withClue(s"index $index on $table is missing - its Flyway script does not create it " +
+          s"(looked for the name and for its 63-byte truncation): ") {
+          hasIndex(actual, table, index) should equal(true)
         }
       }
     }
