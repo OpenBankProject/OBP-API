@@ -151,34 +151,45 @@ S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0,\
 code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
 
-# ── Shard 4 catch-all: discover every package not covered by shards 1–3 ───
-#    (same logic as CI shard-8 catch-all — ensures no new package is silently skipped)
-build_s4() {
-  local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')"
-  local ALL_PKGS
-  ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
-               -name "*.scala" 2>/dev/null \
-             | sed 's|.*/test/scala/||; s|/[^/]*\.scala$||; s|/|.|g' \
-             | sort -u)
-  local EXTRAS=""
-  for pkg in $ALL_PKGS; do
-    local covered=false
-    for prefix in $ASSIGNED; do
+# ── Catch-all: every package not named by any shard, appended to the last one ────
+#    (same logic as CI's shard-8 catch-all — a new package is never silently skipped)
+#
+#    This has to exist in EVERY mode, not just the 4-shard one. Without it a package
+#    that no shard names simply does not run, and the script still prints
+#    "ALL SHARDS PASSED" — a green that means nothing. The 6-shard mode had no
+#    catch-all and was skipping 36 of the 87 test packages.
+all_test_packages() {
+  find obp-api/src/test/scala obp-commons/src/test/scala \
+       -name "*.scala" 2>/dev/null \
+    | sed 's|.*/test/scala/||; s|/[^/]*\.scala$||; s|/|.|g' \
+    | sort -u
+}
+
+# catch_all_extras <label> <assigned-prefixes-space-separated>
+#   -> ",pkg1,pkg2,..." for every package none of the prefixes covers
+catch_all_extras() {
+  local label=$1
+  local assigned=$2
+  local extras=""
+  local pkg prefix covered
+  for pkg in $(all_test_packages); do
+    covered=false
+    for prefix in $assigned; do
       if [[ "$pkg" == "$prefix" || "$pkg" == "$prefix."* || "$prefix" == "$pkg."* ]]; then
         covered=true; break
       fi
     done
-    [[ "$covered" = "false" ]] && EXTRAS="${EXTRAS},${pkg}"
+    [[ "$covered" = "false" ]] && extras="${extras},${pkg}"
   done
-  if [[ -n "$EXTRAS" ]]; then
-    echo "  [Shard 4] Catch-all extras: $EXTRAS" >&2
+  if [[ -n "$extras" ]]; then
+    echo "  [$label] Catch-all extras: $extras" >&2
   fi
-  echo "${S4_BASE}${EXTRAS}"
+  echo "$extras"
 }
 
-S4=$(build_s4)
+S4="${S4_BASE}$(catch_all_extras "Shard 4" "$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')")"
 
-# ── 6-shard definitions (split the original shards 3 and 4; no catch-all) ──
+# ── 6-shard definitions (split the original shards 3 and 4; shard 6 catches all) ──
 S3_6="code.api.v1_2_1"
 
 S4_6="code.api.ResourceDocs1_4_0,code.api.util,code.api.berlin,\
@@ -187,8 +198,39 @@ code.customer,code.errormessages"
 
 S5_6="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0"
 
-S6_6="code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
+S6_6_BASE="code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
+
+S6_6="${S6_6_BASE}$(catch_all_extras "Shard 6" "$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3_6" | tr ',' ' ') $(echo "$S4_6" | tr ',' ' ') $(echo "$S5_6" | tr ',' ' ') $(echo "$S6_6_BASE" | tr ',' ' ')")"
+
+# ── Coverage self-check: refuse to run a shard layout that does not cover every package ──
+#    A package no shard names does not run, and the run still ends in "ALL SHARDS PASSED".
+#    That green is worth nothing, and it is not hypothetical: the 6-shard layout was missing
+#    36 of the 87 packages. The catch-all above is what keeps this at zero; this is the assertion
+#    that says so out loud, before any test starts, rather than leaving it to be noticed later.
+assert_full_coverage() {
+  local label=$1
+  local assigned
+  assigned=$(echo "$2" | tr ',' ' ')
+  local missing=""
+  local pkg prefix covered
+  for pkg in $(all_test_packages); do
+    covered=false
+    for prefix in $assigned; do
+      if [[ "$pkg" == "$prefix" || "$pkg" == "$prefix."* || "$prefix" == "$pkg."* ]]; then
+        covered=true; break
+      fi
+    done
+    [[ "$covered" = "false" ]] && missing="${missing} ${pkg}"
+  done
+  if [[ -n "$missing" ]]; then
+    echo "❌ $label leaves these test packages in no shard — they would silently not run:" >&2
+    for pkg in $missing; do echo "     $pkg" >&2; done
+    echo "   Add them to a shard, or to the catch-all's last shard." >&2
+    return 1
+  fi
+  echo "Coverage: $label covers every test package."
+}
 
 run_shard() {
     local n=$1
@@ -408,6 +450,7 @@ if [[ "$SHARDS" = "6" ]]; then
     alloc_free_port || exit 1; P4=$ALLOC_PORT; alloc_free_port || exit 1; H4=$ALLOC_PORT
     alloc_free_port || exit 1; P5=$ALLOC_PORT; alloc_free_port || exit 1; H5=$ALLOC_PORT
     alloc_free_port || exit 1; P6=$ALLOC_PORT; alloc_free_port || exit 1; H6=$ALLOC_PORT
+    assert_full_coverage "the 6-shard layout" "$S1 $S2 $S3_6 $S4_6 $S5_6 $S6_6" || exit 1
     run_shard 1 "$S1"   "$P1" "$H1" & PID1=$!
     run_shard 2 "$S2"   "$P2" "$H2" & PID2=$!
     run_shard 3 "$S3_6" "$P3" "$H3" & PID3=$!
@@ -431,6 +474,7 @@ else
     alloc_free_port || exit 1; P2=$ALLOC_PORT; alloc_free_port || exit 1; H2=$ALLOC_PORT
     alloc_free_port || exit 1; P3=$ALLOC_PORT; alloc_free_port || exit 1; H3=$ALLOC_PORT
     alloc_free_port || exit 1; P4=$ALLOC_PORT; alloc_free_port || exit 1; H4=$ALLOC_PORT
+    assert_full_coverage "the 4-shard layout" "$S1 $S2 $S3 $S4" || exit 1
     run_shard 1 "$S1" "$P1" "$H1" & PID1=$!
     run_shard 2 "$S2" "$P2" "$H2" & PID2=$!
     run_shard 3 "$S3" "$P3" "$H3" & PID3=$!
