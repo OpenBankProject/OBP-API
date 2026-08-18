@@ -10,9 +10,10 @@ import org.flywaydb.core.api.MigrationVersion
  *
  * Rollout: the coexistence phase is over. Every Mapper entity is gone and ToSchemify.models is
  * Nil, so Schemifier creates nothing and Flyway is the only thing that can build a schema. The
- * `flyway.enabled` prop still defaults to false, which means a deployment that does not set it
- * gets no schema at all rather than a half-migrated one; test.default.props sets it, and a
- * deployment has to.
+ * `flyway.enabled` prop therefore defaults to TRUE. While Schemifier was still the authority the
+ * gate stopped Flyway creating tables next to it; with nothing to sit next to, "off" does not mean
+ * "Schemifier handles it", it means the database has no tables. Set it to false only to take
+ * schema management out of the application entirely and run the migrations yourself.
  *
  * baselineOnMigrate: a pre-existing schema without a flyway_schema_history table is stamped as
  * already migrated, at the highest version on the classpath. See `configure` for why that is the
@@ -78,8 +79,19 @@ object FlywaySchemaSetup extends MdcLoggable {
     latestScriptVersion.fold(configured)(v => configured.baselineVersion(v)).load()
   }
 
+  /**
+   * Whether Flyway runs when `flyway.enabled` is absent from the props.
+   *
+   * Named rather than inlined so a test can hold it against ToSchemify.models: while that list is
+   * empty nothing but Flyway creates a table, so a default of false means a deployment silently
+   * gets no schema. That is not hypothetical - the CI props are written from scratch and never
+   * mention flyway.enabled, so with the default off every shard aborted on the first table it
+   * touched, while a developer whose local props happened to set it stayed green.
+   */
+  private[flyway] val enabledByDefault: Boolean = true
+
   def runIfEnabled(): Unit = {
-    if (APIUtil.getPropsAsBoolValue("flyway.enabled", false)) {
+    if (APIUtil.getPropsAsBoolValue("flyway.enabled", enabledByDefault)) {
       val folder = vendorFolder(APIUtil.driver)
       logger.info(s"Flyway: running migrations from classpath:db/migration/$folder")
       val flyway = configure(APIUtil.vendor.HikariDatasource.ds, folder)
@@ -94,7 +106,8 @@ object FlywaySchemaSetup extends MdcLoggable {
       val result = flyway.migrate()
       logger.info(s"Flyway: ${result.migrationsExecuted} migration(s) executed, schema version is now ${Option(result.targetSchemaVersion).getOrElse("(baseline)")}")
     } else {
-      logger.info("Flyway: disabled (flyway.enabled=false) — Schemifier remains the schema authority")
+      logger.warn("Flyway: disabled (flyway.enabled=false) — nothing else creates the schema, " +
+        "so the database must already have every table this build expects")
     }
   }
 }

@@ -38,6 +38,20 @@ class FlywaySchemaSetupTest extends AnyFlatSpec with Matchers {
     FlywaySchemaSetup.vendorFolder("org.postgresql.Driver") should not equal "h2"
   }
 
+  "the flyway.enabled default" should "be on while nothing else creates the schema" in {
+    // The two facts have to move together. ToSchemify.models is what Schemifier creates; while it
+    // is empty, Flyway is the only thing that builds a table, so a props file that does not
+    // mention flyway.enabled must still get a schema. The CI props are written from scratch and
+    // never mention it: with the default off, every shard aborted on the first table it touched
+    // ("Table CHATROOM not found (this database is empty)") while a developer whose local props
+    // set it stayed green. If a Mapper entity is ever added back, this relaxes on its own.
+    if (bootstrap.liftweb.ToSchemify.models.isEmpty) {
+      withClue("ToSchemify.models is empty, so Flyway must run unless a deployment opts out: ") {
+        FlywaySchemaSetup.enabledByDefault should equal(true)
+      }
+    }
+  }
+
   "runIfEnabled" should "do nothing when flyway.enabled is not set" in {
     // test.default.props sets flyway.enabled=true, so this exercises the enabled path against a
     // schema the suite has already migrated: it must be idempotent, not just non-throwing.
