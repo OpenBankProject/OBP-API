@@ -5,6 +5,7 @@ import code.util.Helper.MdcLoggable
 import liquibase.Liquibase
 import liquibase.database.DatabaseFactory
 import liquibase.database.jvm.JdbcConnection
+import liquibase.exception.LockException
 import liquibase.resource.ClassLoaderResourceAccessor
 
 /**
@@ -61,16 +62,110 @@ object LiquibaseSchemaSetup extends MdcLoggable {
     new Liquibase(changeLogPath, new ClassLoaderResourceAccessor(getClass.getClassLoader), database)
   }
 
+  /**
+   * Schemas every database keeps its own catalogue in. Never the application's.
+   *
+   * Only a fallback: the schema is normally read off the connection. It matters when a driver
+   * returns null from getSchema, because the alternative - searching every schema - counts the
+   * database's own catalogue as application tables. On H2 that alone is enough to make an empty
+   * database look populated.
+   */
+  private val systemSchemas =
+    Set("information_schema", "sys", "system", "pg_catalog", "sysibm", "mysql",
+      "performance_schema")
+
+  /**
+   * The lowercased names of the application's tables, read through JDBC metadata.
+   *
+   * JDBC metadata rather than information_schema because Oracle has no information_schema, and a
+   * vendor nobody here runs still working is the entire point of the changeover.
+   *
+   * Scoped to the connection's own schema, which is not a detail. Searching all schemas returns
+   * the database's catalogue too - H2 reports its INFORMATION_SCHEMA tables - so a genuinely empty
+   * database looks populated, `bringUpToDate` takes it for an existing deployment, and
+   * changelogSync marks all 410 changesets applied against a database with no tables in it. The
+   * application then starts against an empty schema with nothing left that would ever build it.
+   * That is not hypothetical: it is what this did before LiquibaseOnExistingSchemaTest's
+   * empty-database scenario caught it.
+   */
+  private def existingTableNames(connection: java.sql.Connection): Set[String] = {
+    val schema = Option(connection.getSchema).filter(_.nonEmpty)
+    val rs = connection.getMetaData.getTables(null, schema.orNull, "%", Array("TABLE"))
+    try {
+      val names = Set.newBuilder[String]
+      while (rs.next()) {
+        val table = Option(rs.getString("TABLE_NAME"))
+        val inSystemSchema = schema.isEmpty &&
+          Option(rs.getString("TABLE_SCHEM")).exists(s => systemSchemas.contains(s.toLowerCase))
+        if (!inSystemSchema) table.foreach(n => names += n.toLowerCase)
+      }
+      names.result()
+    } finally rs.close()
+  }
+
+  /**
+   * Bring the database to the changelog, whatever state it starts in.
+   *
+   * Three states are possible when the application boots, and the choice between them has to be
+   * made here: a deployment upgrading in place has no opportunity to run a command first.
+   *
+   *   empty                      every changeset runs. A fresh deployment, and every CI run.
+   *   tables, no DATABASECHANGELOG   an existing deployment, whose schema was built by Schemifier
+   *                              or by the Flyway scripts - neither of which leaves a Liquibase
+   *                              record. `update` alone would run the baseline's createTable over
+   *                              tables that already exist and fail on the first one, so the
+   *                              changesets are marked applied without being run, and only what
+   *                              comes after is executed. This is Liquibase's changelogSync, and
+   *                              it is the counterpart of Flyway's baselineOnMigrate.
+   *   tables and DATABASECHANGELOG   the normal case, including a boot interrupted part-way:
+   *                              Liquibase records each changeset as it applies it, so the rest
+   *                              simply run on the next start.
+   *
+   * Adoption assumes the existing schema matches the baseline, exactly as baselineOnMigrate did.
+   * It is the same assumption for the same reason - the alternative is refusing to start - and it
+   * holds because the baseline is generated from a database the Flyway scripts built. What it does
+   * NOT cover is a schema that is older than the baseline in some way nothing recorded; that was
+   * equally true of baselining at the highest script version.
+   */
+  def bringUpToDate(dataSource: javax.sql.DataSource): Unit = {
+    val needsAdoption = {
+      val c = dataSource.getConnection
+      try {
+        val tables = existingTableNames(c)
+        val bookkeeping =
+          Set("databasechangelog", "databasechangeloglock", "flyway_schema_history")
+        (tables -- bookkeeping).nonEmpty && !tables.contains("databasechangelog")
+      } finally c.close()
+    }
+
+    val liquibase = configure(dataSource)
+    try {
+      if (needsAdoption) {
+        logger.info("Liquibase: the database already has tables and no DATABASECHANGELOG - " +
+          "recording the changelog as applied rather than rebuilding the schema")
+        liquibase.changeLogSync("")
+      }
+      liquibase.update("")
+      logger.info("Liquibase: schema is up to date")
+    } catch {
+      case e: LockException =>
+        // A process killed mid-migration leaves its row in DATABASECHANGELOGLOCK, and every later
+        // start then waits on a lock whose holder is gone. Say so, with the way out: the default
+        // failure is a long silence, which reads as a hang rather than as this.
+        logger.error("Liquibase: could not acquire the migration lock. If a previous start was " +
+          "killed, DATABASECHANGELOGLOCK still holds its row and no one will release it - clear " +
+          "it with `liquibase releaseLocks`, or DELETE FROM DATABASECHANGELOGLOCK, before " +
+          "starting again.", e)
+        throw e
+    } finally {
+      liquibase.close()
+    }
+  }
+
   def runIfEnabled(): Unit = {
     if (APIUtil.getPropsAsBoolValue("liquibase.enabled", enabledByDefault)) {
       logger.info(s"Liquibase: running migrations from classpath:$changeLogPath")
-      val liquibase = configure(APIUtil.vendor.HikariDatasource.ds)
-      try {
-        liquibase.update("")
-        logger.info("Liquibase: schema is up to date")
-      } finally {
-        liquibase.close()
-      }
+      bringUpToDate(APIUtil.vendor.HikariDatasource.ds)
     } else {
       logger.info("Liquibase: disabled (liquibase.enabled=false) - Flyway is the schema authority")
     }

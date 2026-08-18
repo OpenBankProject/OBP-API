@@ -134,10 +134,11 @@ class SchemaEquivalenceTest extends AnyFlatSpec with Matchers {
         migrated.migrationsExecuted should be > 100
       }
 
-      // Not named `liquibase`: that shadows the `liquibase.*` package, and the diff below then
-      // resolves to this instance's own diff method instead.
-      val migration = LiquibaseSchemaSetup.configure(dataSourceFor(liquibaseDb))
-      try migration.update("") finally migration.close()
+      // Through bringUpToDate rather than update, so the empty-database branch of the adoption
+      // logic is exercised on Postgres too. It turns on the connection's schema being readable,
+      // and a driver that returned null there would send an empty database down the adoption path
+      // and mark every changeset applied without building anything.
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(liquibaseDb))
 
       val reference = databaseFor(flywayDb)
       val comparison = databaseFor(liquibaseDb)

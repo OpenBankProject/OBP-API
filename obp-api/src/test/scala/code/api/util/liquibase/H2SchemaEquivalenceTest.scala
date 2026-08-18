@@ -113,8 +113,7 @@ class H2SchemaEquivalenceTest extends AnyFlatSpec with Matchers {
         migrated.migrationsExecuted should be > 100
       }
 
-      val migration = LiquibaseSchemaSetup.configure(dataSourceFor(liquibaseDb))
-      try migration.update("") finally migration.close()
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(liquibaseDb))
 
       val reference = databaseFor(flywayDb)
       val comparison = databaseFor(liquibaseDb)
