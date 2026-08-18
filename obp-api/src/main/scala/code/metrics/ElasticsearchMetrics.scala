@@ -5,7 +5,6 @@ import code.api.util._
 import code.search.elasticsearchMetrics
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
-import net.liftweb.mapper._
 
 import scala.concurrent.Future
 

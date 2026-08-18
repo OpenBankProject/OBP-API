@@ -5,7 +5,6 @@ import cats.implicits._
 import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.dynamic.entity.query.{FieldSpec, OperatorMatrix}
 import code.util.Helper.MdcLoggable
-import net.liftweb.mapper.By
 import org.json4s.jvalue2monadic
 
 /**

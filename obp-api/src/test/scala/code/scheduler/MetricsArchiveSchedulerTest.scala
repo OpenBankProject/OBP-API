@@ -4,7 +4,6 @@ import java.util.Date
 
 import code.metrics.{MappedMetric, MetricArchive, MetricBatchWriter, MetricsArchiveRun}
 import code.setup.ServerSetup
-import net.liftweb.mapper.By
 
 /**
  * Exercises the actual metrics-archiving logic (not just the HTTP wiring) by seeding

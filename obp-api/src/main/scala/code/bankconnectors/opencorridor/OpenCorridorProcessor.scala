@@ -15,7 +15,6 @@ import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType,
 import code.messageoutbox.MessageOutbox
 import code.transactionrequests.MappedTransactionRequest
 import net.liftweb.common.Box
-import net.liftweb.mapper.By
 
 import java.util.Date
 import org.json4s.native.Serialization.write

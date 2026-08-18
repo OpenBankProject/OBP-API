@@ -8,7 +8,6 @@ import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 

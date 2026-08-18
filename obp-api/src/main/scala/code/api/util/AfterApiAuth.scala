@@ -19,7 +19,6 @@ import code.views.Views
 import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, BankId, BankIdAccountId, User, ViewId}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.mapper.By
 
 import scala.concurrent.Future
 

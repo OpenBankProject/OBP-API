@@ -14,7 +14,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.json
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {

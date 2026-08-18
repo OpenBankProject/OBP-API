@@ -37,7 +37,6 @@ import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121}
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import org.json4s.native.Serialization.write
 import org.json4s._
-import net.liftweb.mapper.By
 
 import java.util.Date
 import scala.concurrent.Await

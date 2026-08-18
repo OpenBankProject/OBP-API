@@ -8,7 +8,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.saveLog
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 
 import scala.util.Try
 

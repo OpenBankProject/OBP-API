@@ -40,7 +40,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST.{JArray, JField, JObject, JString}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.{BeforeAndAfter, Tag}
 

@@ -23,7 +23,6 @@ import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, Amo
 import com.openbankproject.commons.util.ApiShortVersions
 import code.setup.OBPReq
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 
 import java.util.concurrent.TimeUnit

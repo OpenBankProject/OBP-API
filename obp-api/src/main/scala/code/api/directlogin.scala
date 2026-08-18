@@ -43,7 +43,6 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
-import net.liftweb.mapper.{By, By_>, Descending, OrderBy}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 

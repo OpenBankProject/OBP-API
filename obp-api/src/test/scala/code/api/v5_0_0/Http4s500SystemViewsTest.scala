@@ -12,7 +12,6 @@ import org.json4s.JValue
 import org.json4s.JsonAST.{JField, JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 import com.openbankproject.commons.util.JsonAliases.RichJField

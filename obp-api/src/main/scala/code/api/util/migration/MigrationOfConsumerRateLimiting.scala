@@ -9,7 +9,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.Consumer
 import code.ratelimiting.RateLimiting
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, DB}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object TableRateLmiting {

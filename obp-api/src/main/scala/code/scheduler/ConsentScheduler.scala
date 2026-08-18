@@ -6,7 +6,6 @@ import code.consent.{ConsentStatus, MappedConsent}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiStandards, ApiVersion}
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, By_<}
 
 import java.text.SimpleDateFormat
 import java.util.Date

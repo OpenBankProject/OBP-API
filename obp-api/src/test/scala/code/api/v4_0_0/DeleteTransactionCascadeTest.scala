@@ -10,7 +10,6 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class DeleteTransactionCascadeTest extends V400ServerSetup {

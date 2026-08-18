@@ -3,7 +3,6 @@ package code.api.util.migration
 import code.api.util.{APIUtil, JwtUtil}
 import code.api.util.migration.Migration.saveLog
 import code.consent.MappedConsent
-import net.liftweb.mapper._
 import net.liftweb.common.Full
 import code.util.Helper.MdcLoggable
 

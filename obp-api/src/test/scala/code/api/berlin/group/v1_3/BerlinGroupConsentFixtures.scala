@@ -16,7 +16,6 @@ import code.token.Tokens
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.JsonAliases
-import net.liftweb.mapper.By
 import org.json4s.Formats
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan

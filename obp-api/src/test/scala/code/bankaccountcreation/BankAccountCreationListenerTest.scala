@@ -6,7 +6,6 @@ import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.views.Views
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import net.liftweb.util.Props
 import org.scalatest.Tag
 import com.tesobe.model.CreateBankAccount

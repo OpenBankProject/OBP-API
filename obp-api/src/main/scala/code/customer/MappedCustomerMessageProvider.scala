@@ -7,7 +7,6 @@ import com.openbankproject.commons.model.{BankId, Customer, CustomerMessage, Use
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
-import net.liftweb.mapper.By
 
 /**
  * A message shown to a customer.

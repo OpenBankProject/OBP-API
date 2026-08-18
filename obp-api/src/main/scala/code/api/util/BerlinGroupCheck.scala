@@ -13,7 +13,6 @@ import net.liftweb.common.{Box, Empty}
 
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.mapper.By
 
 object BerlinGroupCheck extends MdcLoggable {
 

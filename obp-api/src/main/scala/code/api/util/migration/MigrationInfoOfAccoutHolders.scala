@@ -9,7 +9,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.dataAccess.MappedBankAccount
 import code.views.system.AccountAccess
-import net.liftweb.mapper.{By, ByList, DB}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object BankAccountHoldersAndOwnerViewAccess {

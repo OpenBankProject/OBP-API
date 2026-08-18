@@ -47,7 +47,6 @@ import code.api.v5_0_0.PostConsentRequestJsonV500
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.users.UserAgreement
-import net.liftweb.mapper.By
 import code.atms.Atms.Atm
 import code.consent.MappedConsent
 import code.metrics.APIMetric

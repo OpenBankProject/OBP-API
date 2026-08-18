@@ -29,7 +29,6 @@ package code.concurrency
 import code.api.berlin.group.ConstantsBG
 import code.bankconnectors.DoobieConsentSchedulerQueries
 import code.consent.{ConsentStatus, MappedConsent}
-import net.liftweb.mapper.By
 
 import java.util.{Date, UUID}
 

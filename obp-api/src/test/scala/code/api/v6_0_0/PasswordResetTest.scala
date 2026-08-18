@@ -43,7 +43,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Full}
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 /**

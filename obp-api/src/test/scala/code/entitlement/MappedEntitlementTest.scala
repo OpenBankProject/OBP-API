@@ -2,7 +2,6 @@ package code.entitlement
 
 import code.api.util.ApiRole._
 import code.setup.ServerSetup
-import net.liftweb.mapper.By
 import net.liftweb.common.Full
 
 class MappedEntitlementTest extends ServerSetup {

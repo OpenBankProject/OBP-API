@@ -42,7 +42,6 @@ import com.openbankproject.commons.model.{BankIdAccountId, _}
 import net.liftweb.common.{Box, Failure, Full}
 import org.json4s.JsonAST.JObject
 import org.json4s.JsonDSL._
-import net.liftweb.mapper.By
 
 case class UserExtended(val user: User) extends MdcLoggable {
 

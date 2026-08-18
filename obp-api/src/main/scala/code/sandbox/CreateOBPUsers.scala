@@ -5,7 +5,6 @@ import code.api.util.ErrorMessages
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.Users
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.mapper.By
 
 trait CreateAuthUsers {
 

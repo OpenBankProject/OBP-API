@@ -6,7 +6,6 @@ import code.views.system.AccountAccess
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
-import net.liftweb.mapper.By
 import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future

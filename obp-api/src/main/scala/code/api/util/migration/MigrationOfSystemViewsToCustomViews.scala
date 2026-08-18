@@ -6,7 +6,6 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.views.system.{AccountAccess, ViewDefinition}
-import net.liftweb.mapper.DB
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object UpdateTableViewDefinition {

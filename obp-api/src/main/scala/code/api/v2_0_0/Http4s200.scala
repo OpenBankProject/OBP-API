@@ -36,7 +36,6 @@ import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedAp
 import net.liftweb.common._
 import org.json4s.JsonAST.JValue
 import org.json4s.{Extraction, Formats}
-import net.liftweb.mapper.By
 import org.http4s._
 import org.http4s.dsl.io._
 

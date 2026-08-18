@@ -4,7 +4,6 @@ import code.scope.MappedScope
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.entitlement.MappedEntitlement
-import net.liftweb.mapper.By
 import net.liftweb.common.{Box, Empty, Full}
 
 object MigrationOfCustomerRoleNames {

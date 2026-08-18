@@ -7,7 +7,6 @@ import code.api.util.APIUtil
 import code.nonce.Nonces
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, By_<=}
 
 import java.util.concurrent.TimeUnit
 import java.util.Date

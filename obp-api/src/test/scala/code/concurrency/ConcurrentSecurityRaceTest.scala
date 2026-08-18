@@ -31,7 +31,6 @@ import code.bankconnectors.DoobieBadLoginAttemptQueries
 import code.loginattempts.LoginAttempt
 import code.transactionChallenge.{MappedChallengeProvider, MappedExpectedChallengeAnswer}
 import doobie.implicits._
-import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.{Date, UUID}

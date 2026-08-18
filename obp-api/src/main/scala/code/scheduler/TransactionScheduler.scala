@@ -5,7 +5,6 @@ import code.api.util.APIUtil
 import code.transactionrequests.MappedTransactionRequest
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, By_<}
 
 import scala.util.{Failure, Success, Try}
 
