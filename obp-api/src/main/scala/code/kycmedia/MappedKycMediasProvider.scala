@@ -34,11 +34,13 @@ object MappedKycMedia {
                 mrelatestokycdocumentid, mrelatestokyccheckid
          FROM mappedkycmedia"""
 
-  private type Row = (String, String, String, String, String, String, java.sql.Timestamp, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[String], Option[String])
 
   private def fromRow(row: Row): MappedKycMedia = row match {
     case (bankId, customerId, id, customerNumber, mediaType, url, date, documentId, checkId) =>
-      MappedKycMedia(bankId, customerId, id, customerNumber, mediaType, url, date, documentId, checkId)
+      MappedKycMedia(bankId.orNull, customerId.orNull, id.orNull, customerNumber.orNull,
+        mediaType.orNull, url.orNull, date.orNull, documentId.orNull, checkId.orNull)
   }
 
   private def query(condition: Fragment): List[MappedKycMedia] =

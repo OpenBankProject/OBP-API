@@ -33,13 +33,15 @@ object MappedAccountWebhook {
                 mhttpprotocol, mcreatedbyuserid, misactive
          FROM mappedaccountwebhook"""
 
-  private type Row = (String, String, String, String, String, String, String, String, Boolean)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[Boolean])
 
   private def fromRow(row: Row): MappedAccountWebhook = row match {
     case (accountWebhookId, bankId, accountId, triggerName, url, httpMethod, httpProtocol,
           createdByUserId, isActive) =>
-      MappedAccountWebhook(accountWebhookId, bankId, accountId, triggerName, url, httpMethod,
-        httpProtocol, createdByUserId, isActive)
+      MappedAccountWebhook(accountWebhookId.orNull, bankId.orNull, accountId.orNull,
+        triggerName.orNull, url.orNull, httpMethod.orNull, httpProtocol.orNull,
+        createdByUserId.orNull, isActive.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[MappedAccountWebhook] =

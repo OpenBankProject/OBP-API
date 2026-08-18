@@ -29,11 +29,13 @@ object MappedKycStatus {
   private val selectColumns =
     fr"SELECT mbankid, mcustomerid, mcustomernumber, mok, mdate FROM mappedkycstatus"
 
-  private type Row = (String, String, String, Boolean, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[Boolean],
+    Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): MappedKycStatus = row match {
     case (bankId, customerId, customerNumber, ok, date) =>
-      MappedKycStatus(bankId, customerId, customerNumber, ok, date)
+      MappedKycStatus(bankId.orNull, customerId.orNull, customerNumber.orNull, ok.getOrElse(false),
+        date.orNull)
   }
 
   private def query(condition: Fragment): List[MappedKycStatus] =

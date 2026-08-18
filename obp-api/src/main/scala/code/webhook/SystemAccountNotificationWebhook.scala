@@ -26,12 +26,13 @@ object SystemAccountNotificationWebhook {
     fr"""SELECT webhookid, triggername, url, httpmethod, httpprotocol, createdbyuserid
          FROM systemaccountnotificationwebhook"""
 
-  private type Row = (String, String, String, String, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String])
 
   private def fromRow(row: Row): SystemAccountNotificationWebhook = row match {
     case (webhookId, triggerName, url, httpMethod, httpProtocol, createdByUserId) =>
-      SystemAccountNotificationWebhook(webhookId, triggerName, url, httpMethod, httpProtocol,
-        createdByUserId)
+      SystemAccountNotificationWebhook(webhookId.orNull, triggerName.orNull, url.orNull,
+        httpMethod.orNull, httpProtocol.orNull, createdByUserId.orNull)
   }
 
   private def query(condition: Fragment): List[SystemAccountNotificationWebhook] =

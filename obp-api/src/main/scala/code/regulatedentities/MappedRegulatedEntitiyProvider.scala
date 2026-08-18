@@ -45,16 +45,18 @@ object MappedRegulatedEntity {
                 entitypostcode, entitycountry, entitywebsite, services
          FROM regulatedentity"""
 
-  private type Row = (String, String, String, String, String, String, String, String, String,
-    String, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): MappedRegulatedEntity = row match {
     case (entityId, certificateAuthorityCaOwnerId, entityName, entityCode,
           entityCertificatePublicKey, entityType, entityAddress, entityTownCity, entityPostCode,
           entityCountry, entityWebSite, services) =>
-      MappedRegulatedEntity(entityId, certificateAuthorityCaOwnerId, entityName, entityCode,
-        entityCertificatePublicKey, entityType, entityAddress, entityTownCity, entityPostCode,
-        entityCountry, entityWebSite, services)
+      MappedRegulatedEntity(entityId.orNull, certificateAuthorityCaOwnerId.orNull,
+        entityName.orNull, entityCode.orNull, entityCertificatePublicKey.orNull, entityType.orNull,
+        entityAddress.orNull, entityTownCity.orNull, entityPostCode.orNull, entityCountry.orNull,
+        entityWebSite.orNull, services.orNull)
   }
 
   private def query(condition: Fragment): List[MappedRegulatedEntity] =

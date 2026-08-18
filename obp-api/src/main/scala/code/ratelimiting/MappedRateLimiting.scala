@@ -63,10 +63,10 @@ object RateLimiting {
                 permonthcalllimit, fromdate, todate, createdat, updatedat
          FROM ratelimiting"""
 
-  private type Row = (String, String, Option[String], Option[String], Option[String],
-    Option[Long], Option[Long], Option[Long], Option[Long], Option[Long], Option[Long],
-    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
-    Option[java.sql.Timestamp])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[Long], Option[Long], Option[Long], Option[Long], Option[Long],
+    Option[Long], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp])
 
   // MappedDateTime's reader is `st(if (isNull) Empty else Full(...))` and its defaultValue is
   // null, so Lift read a NULL date as null rather than failing. The conversion matters as much as
@@ -88,14 +88,13 @@ object RateLimiting {
   private def fromRow(row: Row): RateLimiting = row match {
     case (rateLimitingId, consumerId, bankId, apiVersion, apiName, perSecond, perMinute, perHour,
           perDay, perWeek, perMonth, fromDate, toDate, createdAt, updatedAt) =>
-      RateLimiting(rateLimitingId, consumerId, bankId, apiVersion, apiName,
+      RateLimiting(rateLimitingId.orNull, consumerId.orNull, bankId, apiVersion, apiName,
         readLimit(perSecond, "rate_limiting_per_second"),
         readLimit(perMinute, "rate_limiting_per_minute"),
-        readLimit(perHour, "rate_limiting_per_hour"),
-        readLimit(perDay, "rate_limiting_per_day"),
+        readLimit(perHour, "rate_limiting_per_hour"), readLimit(perDay, "rate_limiting_per_day"),
         readLimit(perWeek, "rate_limiting_per_week"),
-        readLimit(perMonth, "rate_limiting_per_month"),
-        readDate(fromDate), readDate(toDate), readDate(createdAt), readDate(updatedAt))
+        readLimit(perMonth, "rate_limiting_per_month"), readDate(fromDate), readDate(toDate),
+        readDate(createdAt), readDate(updatedAt))
   }
 
   private def query(condition: Fragment): List[RateLimiting] =

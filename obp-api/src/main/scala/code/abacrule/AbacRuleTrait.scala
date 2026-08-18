@@ -49,7 +49,8 @@ object AbacRule {
                 updatedbyuserid
          FROM abacrule"""
 
-  private type Row = (String, String, String, Option[Boolean], String, String, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[Boolean],
+    Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): AbacRule = row match {
     case (abacRuleId, ruleName, ruleCode, isActive, description, policy, createdByUserId,
@@ -57,8 +58,8 @@ object AbacRule {
         // MappedBoolean read a NULL column as false - `data openOr false`, with a NULL
         // setting `data = Empty` - so it never failed the read and never returned the
         // field's declared defaultValue. Binding the column as Option keeps both halves.
-      AbacRule(abacRuleId, ruleName, ruleCode, isActive.getOrElse(false), description, policy,
-        createdByUserId, updatedByUserId)
+      AbacRule(abacRuleId.orNull, ruleName.orNull, ruleCode.orNull, isActive.getOrElse(false),
+        description.orNull, policy.orNull, createdByUserId.orNull, updatedByUserId.orNull)
   }
 
   private def query(condition: Fragment): List[AbacRule] =

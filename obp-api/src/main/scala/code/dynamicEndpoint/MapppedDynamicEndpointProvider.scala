@@ -33,11 +33,11 @@ object DynamicEndpoint {
   private val selectColumns =
     fr"SELECT dynamicendpointid, swaggerstring, userid, bankid FROM dynamicendpoint"
 
-  private type Row = (String, String, String, Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): DynamicEndpoint = row match {
     case (dynamicEndpointId, swaggerString, userId, bankId) =>
-      DynamicEndpoint(dynamicEndpointId, swaggerString, userId, bankId.orNull)
+      DynamicEndpoint(dynamicEndpointId.orNull, swaggerString.orNull, userId.orNull, bankId.orNull)
   }
 
   private def query(condition: Fragment): List[DynamicEndpoint] =

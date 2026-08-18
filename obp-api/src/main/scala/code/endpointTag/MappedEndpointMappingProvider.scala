@@ -35,12 +35,13 @@ object EndpointTag {
   private val selectColumns =
     fr"SELECT endpointtagid, operationid, tagname, bankid FROM endpointtag"
 
-  private type Row = (String, String, String, Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): EndpointTag = row match {
     case (endpointTagId, operationId, tagName, bankId) =>
       // null and "" both mean "system-level", matching the Mapper getter.
-      EndpointTag(endpointTagId, operationId, tagName, bankId.filter(_.nonEmpty))
+      EndpointTag(endpointTagId.orNull, operationId.orNull, tagName.orNull,
+        bankId.filter(_.nonEmpty))
   }
 
   private def query(condition: Fragment): List[EndpointTag] =

@@ -39,11 +39,12 @@ object AccountAccess {
   private val selectColumns =
     fr"SELECT user_fk, bank_id, account_id, view_id, consumer_id FROM accountaccess"
 
-  private type Row = (Long, String, String, String, String)
+  private type Row = (Option[Long], Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): AccountAccess = row match {
     case (userPrimaryKey, bankId, accountId, viewId, consumerId) =>
-      AccountAccess(userPrimaryKey, bankId, accountId, viewId, consumerId)
+      AccountAccess(userPrimaryKey.getOrElse(0L), bankId.orNull, accountId.orNull, viewId.orNull,
+        consumerId.orNull)
   }
 
   private def query(condition: Fragment): List[AccountAccess] =

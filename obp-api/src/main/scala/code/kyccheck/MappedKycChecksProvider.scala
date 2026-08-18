@@ -35,13 +35,15 @@ object MappedKycCheck {
                 msatisfied, mcomments
          FROM mappedkyccheck"""
 
-  private type Row = (String, String, String, String, java.sql.Timestamp, String, String, String,
-    Boolean, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[String], Option[String], Option[String], Option[Boolean],
+    Option[String])
 
   private def fromRow(row: Row): MappedKycCheck = row match {
     case (bankId, customerId, id, customerNumber, date, how, staffUserId, staffName, satisfied, comments) =>
-      MappedKycCheck(bankId, customerId, id, customerNumber, date, how, staffUserId, staffName,
-        satisfied, comments)
+      MappedKycCheck(bankId.orNull, customerId.orNull, id.orNull, customerNumber.orNull,
+        date.orNull, how.orNull, staffUserId.orNull, staffName.orNull, satisfied.getOrElse(false),
+        comments.orNull)
   }
 
   private def query(condition: Fragment): List[MappedKycCheck] =

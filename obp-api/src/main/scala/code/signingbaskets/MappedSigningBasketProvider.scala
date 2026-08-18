@@ -69,10 +69,10 @@ object MappedSigningBasket {
 
   private val selectColumns = fr"SELECT basketid, status FROM signingbasket"
 
-  private type Row = (String, Option[String])
+  private type Row = (Option[String], Option[String])
 
   private def fromRow(row: Row): MappedSigningBasket =
-    MappedSigningBasket(row._1, row._2.orNull)
+    MappedSigningBasket(row._1.orNull, row._2.orNull)
 
   private def query(condition: Fragment): List[MappedSigningBasket] =
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)

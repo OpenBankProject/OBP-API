@@ -48,11 +48,13 @@ object MethodRouting extends CustomJsonFormats {
   private val selectColumns =
     fr"SELECT methodroutingid, methodname, bankidpattern, isbankidexactmatch, connectorname, parameters FROM methodrouting"
 
-  private type Row = (String, String, String, Boolean, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[Boolean],
+    Option[String], Option[String])
 
   private def fromRow(row: Row): MethodRouting = row match {
     case (methodRoutingId, methodName, bankIdPattern, isBankIdExactMatch, connectorName, parameters) =>
-      MethodRouting(methodRoutingId, methodName, bankIdPattern, isBankIdExactMatch, connectorName, parameters)
+      MethodRouting(methodRoutingId.orNull, methodName.orNull, bankIdPattern.orNull,
+        isBankIdExactMatch.getOrElse(false), connectorName.orNull, parameters.orNull)
   }
 
   private def query(condition: Fragment): List[MethodRouting] =

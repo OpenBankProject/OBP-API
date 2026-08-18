@@ -51,15 +51,17 @@ object RoutingScheme {
                 description, downstreamrails, status, createdbyuserid, creationdate, lastupdate
          FROM routingscheme"""
 
-  private type Row = (String, String, String, String, String, String, String, String, String,
-    String, java.sql.Timestamp, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): RoutingScheme = row match {
     case (scheme, country, category, addressPattern, secondaryAddressPattern, exampleAddress,
           description, downstreamRails, status, createdByUserId, creationDate, lastUpdate) =>
-      RoutingScheme(scheme, country, category, addressPattern, secondaryAddressPattern,
-        exampleAddress, description, downstreamRails, status, createdByUserId, creationDate,
-        lastUpdate)
+      RoutingScheme(scheme.orNull, country.orNull, category.orNull, addressPattern.orNull,
+        secondaryAddressPattern.orNull, exampleAddress.orNull, description.orNull,
+        downstreamRails.orNull, status.orNull, createdByUserId.orNull, creationDate.orNull,
+        lastUpdate.orNull)
   }
 
   private def query(condition: Fragment): List[RoutingScheme] =

@@ -34,11 +34,13 @@ object EndpointMapping {
     fr"""SELECT endpointmappingid, operationid, requestmapping, responsemapping, bankid
          FROM endpointmapping"""
 
-  private type Row = (String, String, String, String, Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String])
 
   private def fromRow(row: Row): EndpointMapping = row match {
     case (endpointMappingId, operationId, requestMapping, responseMapping, bankId) =>
-      EndpointMapping(endpointMappingId, operationId, requestMapping, responseMapping, bankId.orNull)
+      EndpointMapping(endpointMappingId.orNull, operationId.orNull, requestMapping.orNull,
+        responseMapping.orNull, bankId.orNull)
   }
 
   private def query(condition: Fragment): List[EndpointMapping] =

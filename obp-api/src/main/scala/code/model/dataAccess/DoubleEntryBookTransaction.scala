@@ -53,15 +53,18 @@ object DoubleEntryBookTransaction {
                 credittransactionbankid, credittransactionaccountid, credittransactionid
          FROM doubleentrybooktransaction"""
 
-  private type Row = (String, String, String, String, String, String, String, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): DoubleEntryBookTransaction = row match {
     case (transactionRequestBankId, transactionRequestAccountId, transactionRequestId,
           debitTransactionBankId, debitTransactionAccountId, debitTransactionId,
           creditTransactionBankId, creditTransactionAccountId, creditTransactionId) =>
-      DoubleEntryBookTransaction(transactionRequestBankId, transactionRequestAccountId,
-        transactionRequestId, debitTransactionBankId, debitTransactionAccountId, debitTransactionId,
-        creditTransactionBankId, creditTransactionAccountId, creditTransactionId)
+      DoubleEntryBookTransaction(transactionRequestBankId.orNull,
+        transactionRequestAccountId.orNull, transactionRequestId.orNull,
+        debitTransactionBankId.orNull, debitTransactionAccountId.orNull, debitTransactionId.orNull,
+        creditTransactionBankId.orNull, creditTransactionAccountId.orNull,
+        creditTransactionId.orNull)
   }
 
   private def query(condition: Fragment): List[DoubleEntryBookTransaction] =

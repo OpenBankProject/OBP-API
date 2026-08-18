@@ -43,13 +43,13 @@ object DynamicDataAccess {
 
   // grantedby and entityname are bound through Option on insert, so they are read as Option; the
   // flags follow MappedBoolean, which read a NULL column as false rather than throwing.
-  private type Row = (String, Option[String], Option[Boolean], Option[Boolean], Option[Boolean],
-    Option[Boolean], Option[String], Option[String], Option[String])
+  private type Row = (Option[String], Option[String], Option[Boolean], Option[Boolean],
+    Option[Boolean], Option[Boolean], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): DynamicDataAccess = row match {
     case (dynamicDataId, userId, canRead, canUpdate, canDelete, canGrant, grantedBy, entityName,
           bankId) =>
-      DynamicDataAccess(dynamicDataId, userId.orNull, canRead.getOrElse(false),
+      DynamicDataAccess(dynamicDataId.orNull, userId.orNull, canRead.getOrElse(false),
         canUpdate.getOrElse(false), canDelete.getOrElse(false), canGrant.getOrElse(false),
         grantedBy.orNull, entityName.orNull, bankId)
   }

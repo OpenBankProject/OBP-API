@@ -41,8 +41,9 @@ object ChatMessage {
                 mentioneduserids, replytomessageid, threadid, isdeleted, createdat, updatedat
          FROM chatmessage"""
 
-  private type Row = (String, String, String, String, Option[String], String, Option[String],
-    String, String, Boolean, java.sql.Timestamp, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[Boolean], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
 
   private def splitIds(raw: Option[String]): List[String] =
     raw.filter(_.nonEmpty).toList.flatMap(_.split(",").map(_.trim).filter(_.nonEmpty))
@@ -50,9 +51,10 @@ object ChatMessage {
   private def fromRow(row: Row): ChatMessage = row match {
     case (chatMessageId, chatRoomId, senderUserId, senderConsumerId, content, messageType,
           mentionedUserIds, replyToMessageId, threadId, isDeleted, createdAt, updatedAt) =>
-      ChatMessage(chatMessageId, chatRoomId, senderUserId, senderConsumerId,
-        content.getOrElse(""), messageType, splitIds(mentionedUserIds), replyToMessageId, threadId,
-        isDeleted, createdAt, updatedAt)
+      ChatMessage(chatMessageId.orNull, chatRoomId.orNull, senderUserId.orNull,
+        senderConsumerId.orNull, content.getOrElse(""), messageType.orNull,
+        splitIds(mentionedUserIds), replyToMessageId.orNull, threadId.orNull,
+        isDeleted.getOrElse(false), createdAt.orNull, updatedAt.orNull)
   }
 
   private def query(condition: Fragment): List[ChatMessage] =

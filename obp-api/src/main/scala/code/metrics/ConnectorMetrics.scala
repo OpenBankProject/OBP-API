@@ -46,13 +46,15 @@ object MappedConnectorMetric {
                 issuccessful, apiinstanceid
          FROM mappedconnectormetric"""
 
-  private type Row = (String, String, String, java.sql.Timestamp, Long, String, Boolean, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[java.sql.Timestamp],
+    Option[Long], Option[String], Option[Boolean], Option[String])
 
   private def fromRow(row: Row): MappedConnectorMetric = row match {
     case (connectorName, functionName, correlationId, date, duration, requestParams, isSuccessful,
           apiInstanceId) =>
-      MappedConnectorMetric(connectorName, functionName, correlationId, date, duration,
-        requestParams, isSuccessful, apiInstanceId)
+      MappedConnectorMetric(connectorName.orNull, functionName.orNull, correlationId.orNull,
+        date.orNull, duration.getOrElse(0L), requestParams.orNull, isSuccessful.getOrElse(false),
+        apiInstanceId.orNull)
   }
 
   /**

@@ -37,14 +37,16 @@ object DirectDebit {
                 datecancelled, datestarts, dateexpires, active
          FROM directdebit"""
 
-  private type Row = (String, String, String, String, String, String, java.sql.Timestamp,
-    Option[java.sql.Timestamp], java.sql.Timestamp, Option[java.sql.Timestamp], Boolean)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Boolean])
 
   private def fromRow(row: Row): DirectDebit = row match {
     case (directDebitId, bankId, accountId, customerId, userId, counterpartyId, dateSigned,
           dateCancelled, dateStarts, dateExpires, active) =>
-      DirectDebit(directDebitId, bankId, accountId, customerId, userId, counterpartyId, dateSigned,
-        dateCancelled.orNull, dateStarts, dateExpires.orNull, active)
+      DirectDebit(directDebitId.orNull, bankId.orNull, accountId.orNull, customerId.orNull,
+        userId.orNull, counterpartyId.orNull, dateSigned.orNull, dateCancelled.orNull,
+        dateStarts.orNull, dateExpires.orNull, active.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[DirectDebit] =

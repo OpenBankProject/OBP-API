@@ -49,16 +49,17 @@ object MappedProduct {
   // The free-text columns are read as Option and surfaced as null, mirroring what Lift's
   // MappedString did with a NULL column. Only the key columns and the parent code are non-null:
   // the parent code terminates the tree walk on "", so it must never be null.
-  private type Row = (String, String, String, Option[String], Option[String], Option[String],
-    Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
-    Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): MappedProduct = row match {
     case (bankId, code, parentProductCode, name, category, family, superFamily, moreInfoUrl,
           termsAndConditionsUrl, details, description, licenseId, licenseName) =>
-      MappedProduct(bankId, code, parentProductCode, name.orNull, category.orNull, family.orNull,
-        superFamily.orNull, moreInfoUrl.orNull, termsAndConditionsUrl.orNull, details.orNull,
-        description.orNull, licenseId.orNull, licenseName.orNull)
+      MappedProduct(bankId.orNull, code.orNull, parentProductCode.orNull, name.orNull,
+        category.orNull, family.orNull, superFamily.orNull, moreInfoUrl.orNull,
+        termsAndConditionsUrl.orNull, details.orNull, description.orNull, licenseId.orNull,
+        licenseName.orNull)
   }
 
   private def query(condition: Fragment): List[MappedProduct] =

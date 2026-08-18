@@ -90,16 +90,16 @@ object Mandate {
                 legaltext, description, status, validfrom, validto, createdbyuserid, updatedbyuserid
          FROM mandate"""
 
-  private type Row = (String, Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp],
-    Option[java.sql.Timestamp], Option[String], Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[String], Option[String])
 
   private def fromRow(row: Row): Mandate = row match {
     case (mandateId, bankId, accountId, customerId, mandateName, mandateReference, legalText,
           description, status, validFrom, validTo, createdByUserId, updatedByUserId) =>
-      Mandate(mandateId, bankId.orNull, accountId.orNull, customerId.orNull, mandateName.orNull,
-        mandateReference.orNull, legalText.orNull, description.orNull, status.orNull,
-        validFrom.map(ts => ts: Date).orNull, validTo.map(ts => ts: Date).orNull,
+      Mandate(mandateId.orNull, bankId.orNull, accountId.orNull, customerId.orNull,
+        mandateName.orNull, mandateReference.orNull, legalText.orNull, description.orNull,
+        status.orNull, validFrom.map(ts => ts: Date).orNull, validTo.map(ts => ts: Date).orNull,
         createdByUserId.orNull, updatedByUserId.orNull)
   }
 
@@ -205,15 +205,15 @@ object MandateProvision {
                 linkedchallengetype, isactive, sortorder
          FROM mandateprovision"""
 
-  private type Row = (String, Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
-    Option[Boolean], Option[Int])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[Boolean], Option[Int])
 
   private def fromRow(row: Row): MandateProvision = row match {
     case (provisionId, mandateId, provisionName, provisionDescription, legalReference,
           provisionType, conditions, signatoryRequirements, linkedViewId, linkedAbacRuleId,
           linkedChallengeType, isActive, sortOrder) =>
-      MandateProvision(provisionId, mandateId.orNull, provisionName.orNull,
+      MandateProvision(provisionId.orNull, mandateId.orNull, provisionName.orNull,
         provisionDescription.orNull, legalReference.orNull, provisionType.orNull,
         conditions.orNull, signatoryRequirements.orNull, linkedViewId.orNull,
         linkedAbacRuleId.orNull, linkedChallengeType.orNull,
@@ -310,11 +310,12 @@ object SignatoryPanel {
   private val selectColumns =
     fr"SELECT panelid, mandateid, panelname, description, userids FROM signatorypanel"
 
-  private type Row = (String, Option[String], Option[String], Option[String], Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String])
 
   private def fromRow(row: Row): SignatoryPanel = row match {
     case (panelId, mandateId, panelName, description, userIds) =>
-      SignatoryPanel(panelId, mandateId.orNull, panelName.orNull, description.orNull,
+      SignatoryPanel(panelId.orNull, mandateId.orNull, panelName.orNull, description.orNull,
         userIds.orNull)
   }
 

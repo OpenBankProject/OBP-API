@@ -67,18 +67,22 @@ object MappedExpectedChallengeAnswer {
                 challengecontextstructure, createdat
          FROM expectedchallengeanswer"""
 
-  private type Row = (String, String, String, String, String, String, Boolean, String, String,
-    String, String, String, Int, String, String, String, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[Boolean], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Int], Option[String], Option[String],
+    Option[String], Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): MappedExpectedChallengeAnswer = row match {
     case (challengeId, challengeType, transactionRequestId, expectedAnswer, expectedUserId, salt,
           successful, scaMethod, scaStatus, consentId, basketId, authenticationMethodId,
           attemptCounter, challengePurpose, challengeContextHash, challengeContextStructure,
           createdAt) =>
-      MappedExpectedChallengeAnswer(challengeId, challengeType, transactionRequestId, expectedAnswer,
-        expectedUserId, salt, successful, scaMethod, scaStatus, consentId, basketId,
-        authenticationMethodId, attemptCounter, challengePurpose, challengeContextHash,
-        challengeContextStructure, createdAt)
+      MappedExpectedChallengeAnswer(challengeId.orNull, challengeType.orNull,
+        transactionRequestId.orNull, expectedAnswer.orNull, expectedUserId.orNull, salt.orNull,
+        successful.getOrElse(false), scaMethod.orNull, scaStatus.orNull, consentId.orNull,
+        basketId.orNull, authenticationMethodId.orNull, attemptCounter.getOrElse(0),
+        challengePurpose.orNull, challengeContextHash.orNull, challengeContextStructure.orNull,
+        createdAt.orNull)
   }
 
   private def query(condition: Fragment): List[MappedExpectedChallengeAnswer] =

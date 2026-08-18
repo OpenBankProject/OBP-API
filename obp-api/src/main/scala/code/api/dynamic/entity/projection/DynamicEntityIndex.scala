@@ -37,12 +37,13 @@ object DynamicEntityIndex {
                 state
          FROM dynamicentityindex"""
 
-  private type Row = (String, String, String, String, String, String, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): DynamicEntityIndex = row match {
     case (entityName, bankId, fieldName, fieldType, indexKind, safeTableName, safeColumnName, state) =>
-      DynamicEntityIndex(entityName, bankId, fieldName, fieldType, indexKind, safeTableName,
-        safeColumnName, state)
+      DynamicEntityIndex(entityName.orNull, bankId.orNull, fieldName.orNull, fieldType.orNull,
+        indexKind.orNull, safeTableName.orNull, safeColumnName.orNull, state.orNull)
   }
 
   private def query(condition: Fragment): List[DynamicEntityIndex] =

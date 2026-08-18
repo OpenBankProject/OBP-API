@@ -30,10 +30,11 @@ object MappedScope {
   private val selectColumns =
     fr"SELECT mscopeid, mbankid, mconsumerid, mrolename FROM mappedscope"
 
-  private type Row = (String, String, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): MappedScope = row match {
-    case (scopeId, bankId, consumerId, roleName) => MappedScope(scopeId, bankId, consumerId, roleName)
+    case (scopeId, bankId, consumerId, roleName) => MappedScope(scopeId.orNull, bankId.orNull,
+        consumerId.orNull, roleName.orNull)
   }
 
   private def query(condition: Fragment): List[MappedScope] =

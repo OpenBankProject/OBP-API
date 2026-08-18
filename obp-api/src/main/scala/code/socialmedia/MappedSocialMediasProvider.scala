@@ -26,11 +26,13 @@ object MappedSocialMedia {
   private val selectColumns =
     fr"SELECT mcustomernumber, mtype, mhandle, mdateadded, mdateactivated FROM mappedsocialmedia"
 
-  private type Row = (String, String, String, java.sql.Timestamp, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): MappedSocialMedia = row match {
     case (customerNumber, mediaType, handle, dateAdded, dateActivated) =>
-      MappedSocialMedia(customerNumber, mediaType, handle, dateAdded, dateActivated)
+      MappedSocialMedia(customerNumber.orNull, mediaType.orNull, handle.orNull, dateAdded.orNull,
+        dateActivated.orNull)
   }
 
   private def query(condition: Fragment): List[MappedSocialMedia] =

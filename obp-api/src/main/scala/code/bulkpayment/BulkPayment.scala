@@ -28,14 +28,16 @@ object BulkPayment {
                 amount, description, status, failurereason, transactionid
          FROM BulkPayment"""
 
-  private type Row = (String, Int, String, String, String, String, String, String, String,
+  private type Row = (Option[String], Option[Int], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String])
 
   private def fromRow(row: Row): BulkPayment = row match {
     case (transactionRequestId, itemIndex, endToEndId, routingScheme, address, currency,
           amount, description, status, failureReason, transactionId) =>
-      BulkPayment(transactionRequestId, itemIndex, endToEndId, routingScheme, address, currency,
-        amount, description, status, failureReason, transactionId)
+      BulkPayment(transactionRequestId.orNull, itemIndex.getOrElse(0), endToEndId.orNull,
+        routingScheme.orNull, address.orNull, currency.orNull, amount.orNull, description.orNull,
+        status.orNull, failureReason, transactionId)
   }
 
   def insert(transactionRequestId: String, itemIndex: Int, endToEndId: String, routingScheme: String,

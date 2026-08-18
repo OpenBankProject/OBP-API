@@ -35,11 +35,13 @@ object MappedCustomerMessage {
     fr"""SELECT mmessageid, createdat, mfromperson, mfromdepartment, mmessage, mtransport
          FROM mappedcustomermessage"""
 
-  private type Row = (String, java.sql.Timestamp, String, String, String, String)
+  private type Row = (Option[String], Option[java.sql.Timestamp], Option[String], Option[String],
+    Option[String], Option[String])
 
   private def fromRow(row: Row): MappedCustomerMessage = row match {
     case (messageId, createdAt, fromPerson, fromDepartment, message, transport) =>
-      MappedCustomerMessage(messageId, createdAt, fromPerson, fromDepartment, message, transport)
+      MappedCustomerMessage(messageId.orNull, createdAt.orNull, fromPerson.orNull,
+        fromDepartment.orNull, message.orNull, transport.orNull)
   }
 
   private def query(condition: Fragment): List[MappedCustomerMessage] =

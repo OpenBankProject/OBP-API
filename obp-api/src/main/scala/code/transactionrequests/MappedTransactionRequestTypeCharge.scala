@@ -28,12 +28,13 @@ object MappedTransactionRequestTypeCharge {
     fr"""SELECT mtransactionrequesttypeid, mbankid, mchargecurrency, mchargeamount, mchargesummary
          FROM mappedtransactionrequesttypecharge"""
 
-  private type Row = (String, String, String, String, String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String])
 
   private def fromRow(row: Row): MappedTransactionRequestTypeCharge = row match {
     case (transactionRequestTypeId, bankId, chargeCurrency, chargeAmount, chargeSummary) =>
-      MappedTransactionRequestTypeCharge(transactionRequestTypeId, bankId, chargeCurrency,
-        chargeAmount, chargeSummary)
+      MappedTransactionRequestTypeCharge(transactionRequestTypeId.orNull, bankId.orNull,
+        chargeCurrency.orNull, chargeAmount.orNull, chargeSummary.orNull)
   }
 
   private def query(condition: Fragment): List[MappedTransactionRequestTypeCharge] =

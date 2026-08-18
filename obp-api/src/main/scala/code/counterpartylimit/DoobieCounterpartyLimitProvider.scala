@@ -65,16 +65,16 @@ object DoobieCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
   private val noTransactionLimit = -1
   private val noAmountLimit = BigDecimal(0)
 
-  private def rowOf(r: (String, String, String, String, String, String, Option[BigDecimal],
-    Option[BigDecimal], Option[Int], Option[BigDecimal], Option[Int], Option[BigDecimal],
-    Option[Int])): CounterpartyLimitRow =
+  private def rowOf(r: (Option[String], String, String, String, String, Option[String],
+    Option[BigDecimal], Option[BigDecimal], Option[Int], Option[BigDecimal], Option[Int],
+    Option[BigDecimal], Option[Int])): CounterpartyLimitRow =
     CounterpartyLimitRow(
-      counterpartyLimitId = r._1,
+      counterpartyLimitId = r._1.orNull,
       bankId = r._2,
       accountId = r._3,
       viewId = r._4,
       counterpartyId = r._5,
-      currency = r._6,
+      currency = r._6.orNull,
       maxSingleAmount = r._7.getOrElse(noAmountLimit),
       maxMonthlyAmount = r._8.getOrElse(noAmountLimit),
       maxNumberOfMonthlyTransactions = r._9.getOrElse(noTransactionLimit),
@@ -90,8 +90,9 @@ object DoobieCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
                 maxyearlyamount, maxnumberofyearlytransactions, maxtotalamount, maxnumberoftransactions
          FROM counterpartylimit"""
 
-  private type Row = (String, String, String, String, String, String, Option[BigDecimal], Option[BigDecimal],
-    Option[Int], Option[BigDecimal], Option[Int], Option[BigDecimal], Option[Int])
+  private type Row = (Option[String], String, String, String, String, Option[String],
+    Option[BigDecimal], Option[BigDecimal], Option[Int], Option[BigDecimal], Option[Int],
+    Option[BigDecimal], Option[Int])
 
   private def find(bankId: String, accountId: String, viewId: String, counterpartyId: String): Option[Row] =
     DoobieUtil.runQuery(
@@ -154,7 +155,8 @@ object DoobieCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
                       maxnumberoftransactions = $maxNumberOfTransactions, updatedat = CURRENT_TIMESTAMP
                   WHERE bankid = $bankId AND accountid = $accountId AND viewid = $viewId AND counterpartyid = $counterpartyId"""
               .update.run)
-          CounterpartyLimitRow(existingId, bankId, accountId, viewId, counterpartyId, currency,
+          CounterpartyLimitRow(existingId.orNull, bankId, accountId, viewId, counterpartyId,
+            currency,
             maxSingleAmount, maxMonthlyAmount, maxNumberOfMonthlyTransactions,
             maxYearlyAmount, maxNumberOfYearlyTransactions, maxTotalAmount, maxNumberOfTransactions)
         case None =>

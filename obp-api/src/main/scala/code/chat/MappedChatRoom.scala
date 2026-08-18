@@ -44,16 +44,18 @@ object ChatRoom {
                 createdat, updatedat
          FROM chatroom"""
 
-  private type Row = (String, String, String, Option[String], String, String, Boolean, Boolean,
-    Option[java.sql.Timestamp], String, String, java.sql.Timestamp, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[Boolean], Option[Boolean], Option[java.sql.Timestamp],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): ChatRoom = row match {
     case (chatRoomId, bankId, name, description, joiningKey, createdByUserId, isOpenRoom,
           isArchived, lastMessageAt, lastMessagePreview, lastMessageSenderUsername,
           createdAt, updatedAt) =>
-      ChatRoom(chatRoomId, bankId, name, description.getOrElse(""), joiningKey, createdByUserId,
-        isOpenRoom, isArchived, lastMessageAt.map(ts => ts: Date), lastMessagePreview,
-        lastMessageSenderUsername, createdAt, updatedAt)
+      ChatRoom(chatRoomId.orNull, bankId.orNull, name.orNull, description.getOrElse(""),
+        joiningKey.orNull, createdByUserId.orNull, isOpenRoom.getOrElse(false),
+        isArchived.getOrElse(false), lastMessageAt.map(ts => ts: Date), lastMessagePreview.orNull,
+        lastMessageSenderUsername.orNull, createdAt.orNull, updatedAt.orNull)
   }
 
   private def query(condition: Fragment): List[ChatRoom] =

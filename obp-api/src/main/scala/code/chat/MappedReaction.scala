@@ -23,11 +23,13 @@ object Reaction {
   private val selectColumns =
     fr"SELECT reactionid, chatmessageid, userid, emoji, createdat FROM reaction"
 
-  private type Row = (String, String, String, String, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): Reaction = row match {
     case (reactionId, chatMessageId, userId, emoji, createdAt) =>
-      Reaction(reactionId, chatMessageId, userId, emoji, createdAt)
+      Reaction(reactionId.orNull, chatMessageId.orNull, userId.orNull, emoji.orNull,
+        createdAt.orNull)
   }
 
   private def query(condition: Fragment): List[Reaction] =

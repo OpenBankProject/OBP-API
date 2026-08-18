@@ -33,11 +33,12 @@ object ViewPermission {
   private val selectColumns =
     fr"SELECT bank_id, account_id, view_id, permission, extradata FROM viewpermission"
 
-  private type Row = (Option[String], Option[String], String, String, Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String])
 
   private def fromRow(row: Row): ViewPermission = row match {
     case (bankId, accountId, viewId, permission, extraData) =>
-      ViewPermission(bankId, accountId, viewId, permission, extraData)
+      ViewPermission(bankId, accountId, viewId.orNull, permission.orNull, extraData)
   }
 
   private def query(condition: Fragment): List[ViewPermission] =

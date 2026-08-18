@@ -39,11 +39,11 @@ object ConsentRequest {
   private val selectColumns =
     fr"SELECT consentrequestid, payload, consumerid FROM consentrequest"
 
-  private type Row = (String, Option[String], Option[String])
+  private type Row = (Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): ConsentRequest = row match {
     case (consentRequestId, payload, consumerId) =>
-      ConsentRequest(consentRequestId, payload.orNull, consumerId.orNull)
+      ConsentRequest(consentRequestId.orNull, payload.orNull, consumerId.orNull)
   }
 
   private def query(condition: Fragment): List[ConsentRequest] =

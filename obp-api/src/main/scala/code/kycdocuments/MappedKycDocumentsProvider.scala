@@ -34,13 +34,14 @@ object MappedKycDocument {
                 mexpirydate
          FROM mappedkycdocument"""
 
-  private type Row = (String, String, String, String, String, String, java.sql.Timestamp, String,
-    java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[String],
+    Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): MappedKycDocument = row match {
     case (bankId, customerId, id, customerNumber, docType, number, issueDate, issuePlace, expiryDate) =>
-      MappedKycDocument(bankId, customerId, id, customerNumber, docType, number, issueDate,
-        issuePlace, expiryDate)
+      MappedKycDocument(bankId.orNull, customerId.orNull, id.orNull, customerNumber.orNull,
+        docType.orNull, number.orNull, issueDate.orNull, issuePlace.orNull, expiryDate.orNull)
   }
 
   private def query(condition: Fragment): List[MappedKycDocument] =

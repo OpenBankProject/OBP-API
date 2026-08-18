@@ -45,16 +45,16 @@ object DynamicResourceDoc {
   // Every column the insert below binds through Option is read as one too. A doc posted with a
   // null tags or summary really does store SQL NULL - Mapper did the same - and reading it as a
   // bare String throws NonNullableColumnRead, which fails the whole query rather than the one row.
-  private type Row = (String, Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): DynamicResourceDoc = row match {
     case (dynamicResourceDocId, bankId, partialFunctionName, requestVerb, requestUrl, summary,
           description, exampleRequestBody, successResponseBody, errorResponseBodies, tags, roles,
           methodBody) =>
       // orNull, not "": MappedString handed a NULL column back as null and the JSON showed null.
-      DynamicResourceDoc(dynamicResourceDocId, bankId, partialFunctionName.orNull,
+      DynamicResourceDoc(dynamicResourceDocId.orNull, bankId, partialFunctionName.orNull,
         requestVerb.orNull, requestUrl.orNull, summary.orNull, description.orNull,
         exampleRequestBody, successResponseBody, errorResponseBodies.orNull, tags.orNull,
         roles.orNull, methodBody.orNull)

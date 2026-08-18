@@ -41,15 +41,17 @@ object AccountAccessRequest {
                 checkeruserid, checkercomment, createdat, updatedat
          FROM AccountAccessRequest"""
 
-  private type Row = (Long, String, String, String, String, Boolean, String, String, String,
-    String, String, String, java.sql.Timestamp, java.sql.Timestamp)
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String],
+    Option[Boolean], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): AccountAccessRequest = row match {
     case (id, accountAccessRequestId, bankId, accountId, viewId, isSystemView, requestorUserId,
           targetUserId, businessJustification, status, checkerUserId, checkerComment, created, updated) =>
-      AccountAccessRequest(id, accountAccessRequestId, bankId, accountId, viewId, isSystemView,
-        requestorUserId, targetUserId, businessJustification, status, checkerUserId, checkerComment,
-        created, updated)
+      AccountAccessRequest(id, accountAccessRequestId.orNull, bankId.orNull, accountId.orNull,
+        viewId.orNull, isSystemView.getOrElse(false), requestorUserId.orNull, targetUserId.orNull,
+        businessJustification.orNull, status.orNull, checkerUserId.orNull, checkerComment.orNull,
+        created.orNull, updated.orNull)
   }
 
   private def query(condition: Fragment): List[AccountAccessRequest] =

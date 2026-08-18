@@ -41,23 +41,24 @@ object AttributeDefinition {
                 canbeseenonviews, isactive
          FROM attributedefinition"""
 
-  private type Row = (String, String, String, String, String, String, String, String, Option[Boolean])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[Boolean])
 
   private def fromRow(row: Row): AttributeDefinition = row match {
     case (attributeDefinitionId, bankId, name, category, typeOfValue, description, alias, canBeSeenOnViews, isActive) =>
       AttributeDefinition(
-        attributeDefinitionId = attributeDefinitionId,
-        bankId = BankIdCommonModel(bankId),
-        name = name,
-        category = AttributeCategory.withName(category),
-        `type` = AttributeType.withName(typeOfValue),
-        description = description,
-        alias = alias,
+        attributeDefinitionId = attributeDefinitionId.orNull,
+        bankId = BankIdCommonModel(bankId.orNull),
+        name = name.orNull,
+        category = AttributeCategory.withName(category.orNull),
+        `type` = AttributeType.withName(typeOfValue.orNull),
+        description = description.orNull,
+        alias = alias.orNull,
         // Mapper stored this as a ";"-joined string and read it back with a bare split, so an
         // empty column yields List("") rather than Nil. Preserved: callers filter this list by
         // membership, and the empty-string element is inert there, but changing the shape would
         // be a behaviour change smuggled in with a storage swap.
-        canBeSeenOnViews = canBeSeenOnViews.split(";").toList,
+        canBeSeenOnViews = canBeSeenOnViews.orNull.split(";").toList,
         // MappedBoolean read a NULL column as false, never as the declared defaultValue.
         isActive = isActive.getOrElse(false))
   }

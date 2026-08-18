@@ -49,18 +49,20 @@ object StandingOrder {
                 dateexpires, active
          FROM standingorder"""
 
-  private type Row = (String, String, String, String, String, String, Long, String, String, String,
-    java.sql.Timestamp, Option[java.sql.Timestamp], java.sql.Timestamp, Option[java.sql.Timestamp],
-    Boolean)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[Long], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[Boolean])
 
   private def fromRow(row: Row): StandingOrder = row match {
     case (standingOrderId, bankId, accountId, customerId, userId, counterpartyId, amountValue,
           amountCurrency, whenFrequency, whenDetail, dateSigned, dateCancelled, dateStarts,
           dateExpires, active) =>
-      StandingOrder(standingOrderId, bankId, accountId, customerId, userId, counterpartyId,
-        Helper.smallestCurrencyUnitToBigDecimal(amountValue, amountCurrency), amountCurrency,
-        whenFrequency, whenDetail, dateSigned, dateCancelled.orNull, dateStarts,
-        dateExpires.orNull, active)
+      StandingOrder(standingOrderId.orNull, bankId.orNull, accountId.orNull, customerId.orNull,
+        userId.orNull, counterpartyId.orNull,
+        Helper.smallestCurrencyUnitToBigDecimal(amountValue.getOrElse(0L), amountCurrency.orNull),
+        amountCurrency.orNull, whenFrequency.orNull, whenDetail.orNull, dateSigned.orNull,
+        dateCancelled.orNull, dateStarts.orNull, dateExpires.orNull, active.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[StandingOrder] =

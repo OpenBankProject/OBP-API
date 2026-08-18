@@ -34,11 +34,14 @@ object OpenIDConnectToken {
                 authuserprimarykey, createdat
          FROM openidconnecttoken"""
 
-  private type Row = (String, String, String, String, String, Long, Long, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[Long], Option[Long], Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): OpenIDConnectToken = row match {
     case (accessToken, idToken, refreshToken, scope, tokenType, expiresIn, authUserPrimaryKey, createdAt) =>
-      OpenIDConnectToken(accessToken, idToken, refreshToken, scope, tokenType, expiresIn, authUserPrimaryKey, createdAt)
+      OpenIDConnectToken(accessToken.orNull, idToken.orNull, refreshToken.orNull, scope.orNull,
+        tokenType.orNull, expiresIn.getOrElse(0L), authUserPrimaryKey.getOrElse(0L),
+        createdAt.orNull)
   }
 
   def insert(

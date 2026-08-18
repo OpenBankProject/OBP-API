@@ -33,11 +33,12 @@ object MapperAccountHolders extends AccountHolders with MdcLoggable {
   private val selectColumns =
     fr"SELECT user_c, accountbankpermalink, accountpermalink, source FROM mapperaccountholders"
 
-  private type Row = (Long, String, String, Option[String])
+  private type Row = (Option[Long], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): MapperAccountHolders = row match {
     case (userKey, accountBankPermalink, accountPermalink, source) =>
-      MapperAccountHolders(userKey, accountBankPermalink, accountPermalink, source)
+      MapperAccountHolders(userKey.getOrElse(0L), accountBankPermalink.orNull,
+        accountPermalink.orNull, source)
   }
 
   private def query(condition: Fragment): List[MapperAccountHolders] =

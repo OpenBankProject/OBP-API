@@ -71,14 +71,17 @@ object MessageOutbox {
                 created_at, updated_at
          FROM message_outbox"""
 
-  private type Row = (Long, String, String, String, String, String, String, String, Int,
-    String, String, String, java.sql.Timestamp, java.sql.Timestamp)
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Int], Option[String], Option[String],
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): MessageOutbox = row match {
     case (id, outboxType, subjectId, subjectIdType, operationName, targetId, payloadJson,
           status, attempts, lastError, lastReplyJson, metadataJson, createdAt, updatedAt) =>
-      MessageOutbox(id, outboxType, subjectId, subjectIdType, operationName, targetId, payloadJson,
-        status, attempts, lastError, lastReplyJson, metadataJson, createdAt, updatedAt)
+      MessageOutbox(id, outboxType.orNull, subjectId.orNull, subjectIdType.orNull,
+        operationName.orNull, targetId.orNull, payloadJson.orNull, status.orNull,
+        attempts.getOrElse(0), lastError.orNull, lastReplyJson.orNull, metadataJson.orNull,
+        createdAt.orNull, updatedAt.orNull)
   }
 
   private def query(condition: Fragment): List[MessageOutbox] =

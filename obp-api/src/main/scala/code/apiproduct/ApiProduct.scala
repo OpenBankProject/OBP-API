@@ -57,9 +57,10 @@ object ApiProduct {
                 perdaycalllimit, perweekcalllimit, permonthcalllimit, tags
          FROM apiproduct"""
 
-  private type Row = (String, String, String, String, String, String, String, String, String, String,
-    String, String, Option[Long], Option[Long], Option[Long], Option[Long], Option[Long],
-    Option[Long], String)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Long], Option[Long], Option[Long],
+    Option[Long], Option[Long], Option[Long], Option[String])
 
   // MappedLong's reader is `if (isNull) defaultValue else v`, and every call-limit field here
   // declared `defaultValue = -1L`. A row written before these columns existed holds NULL, so
@@ -71,12 +72,13 @@ object ApiProduct {
           moreInfoUrl, termsAndConditionsUrl, description, collectionId,
           monthlySubscriptionCurrency, monthlySubscriptionAmount,
           perSecond, perMinute, perHour, perDay, perWeek, perMonth, tags) =>
-      ApiProduct(apiProductId, bankId, apiProductCode, parentApiProductCode, name, category,
-        moreInfoUrl, termsAndConditionsUrl, description, collectionId,
-        monthlySubscriptionCurrency, monthlySubscriptionAmount,
+      ApiProduct(apiProductId.orNull, bankId.orNull, apiProductCode.orNull,
+        parentApiProductCode.orNull, name.orNull, category.orNull, moreInfoUrl.orNull,
+        termsAndConditionsUrl.orNull, description.orNull, collectionId.orNull,
+        monthlySubscriptionCurrency.orNull, monthlySubscriptionAmount.orNull,
         perSecond.getOrElse(noCallLimit), perMinute.getOrElse(noCallLimit),
         perHour.getOrElse(noCallLimit), perDay.getOrElse(noCallLimit),
-        perWeek.getOrElse(noCallLimit), perMonth.getOrElse(noCallLimit), tags)
+        perWeek.getOrElse(noCallLimit), perMonth.getOrElse(noCallLimit), tags.orNull)
   }
 
   private def query(condition: Fragment): List[ApiProduct] =

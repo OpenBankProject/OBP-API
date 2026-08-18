@@ -62,14 +62,15 @@ object MappedEntitlement {
                 granted_by_user_id, entitlement_request_id
          FROM mappedentitlement"""
 
-  private type Row = (String, String, String, String, String, String, String, String,
-    Option[String])
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): MappedEntitlement = row match {
     case (entitlementId, bankId, userId, roleName, createdByProcess, groupId, process,
           grantedByUserId, entitlementRequestId) =>
-      MappedEntitlement(entitlementId, bankId, userId, roleName, createdByProcess, groupId, process,
-        grantedByUserId, entitlementRequestId)
+      MappedEntitlement(entitlementId.orNull, bankId.orNull, userId.orNull, roleName.orNull,
+        createdByProcess.orNull, groupId.orNull, process.orNull, grantedByUserId.orNull,
+        entitlementRequestId)
   }
 
   private def query(condition: Fragment): List[MappedEntitlement] =

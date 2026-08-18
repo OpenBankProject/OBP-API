@@ -34,8 +34,9 @@ object Participant {
                 lastreadat, ismuted
          FROM participant"""
 
-  private type Row = (String, String, String, String, Option[String], String, java.sql.Timestamp,
-    java.sql.Timestamp, Boolean)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[Boolean])
 
   private def splitPermissions(raw: Option[String]): List[String] =
     raw.filter(_.nonEmpty).toList.flatMap(_.split(",").map(_.trim).filter(_.nonEmpty))
@@ -43,8 +44,9 @@ object Participant {
   private def fromRow(row: Row): Participant = row match {
     case (participantId, chatRoomId, userId, consumerId, permissions, webhookUrl, joinedAt,
           lastReadAt, isMuted) =>
-      Participant(participantId, chatRoomId, userId, consumerId, splitPermissions(permissions),
-        webhookUrl, joinedAt, lastReadAt, isMuted)
+      Participant(participantId.orNull, chatRoomId.orNull, userId.orNull, consumerId.orNull,
+        splitPermissions(permissions), webhookUrl.orNull, joinedAt.orNull, lastReadAt.orNull,
+        isMuted.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[Participant] =

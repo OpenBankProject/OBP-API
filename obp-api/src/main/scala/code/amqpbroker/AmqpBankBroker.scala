@@ -43,15 +43,16 @@ object AmqpBankBroker {
   private val selectColumns =
     fr"SELECT bank_id, host, port, virtual_host, username, password, use_ssl FROM amqp_bank_broker"
 
-  private type Row = (String, String, Option[Int], String, String, String, Option[Boolean])
+  private type Row = (Option[String], Option[String], Option[Int], Option[String],
+    Option[String], Option[String], Option[Boolean])
 
   private def fromRow(row: Row): AmqpBankBroker = row match {
     case (bankId, host, port, virtualHost, username, password, useSsl) =>
       // MappedInt read a NULL as the declared default (5672); MappedBoolean read one as false.
       // Both columns predate no row today, but neither reader ever failed, and a bare Int or
       // Boolean here would fail the whole query on a row that has been through an upgrade.
-      AmqpBankBroker(bankId, host, port.getOrElse(DefaultPort), virtualHost, username, password,
-        useSsl.getOrElse(false))
+      AmqpBankBroker(bankId.orNull, host.orNull, port.getOrElse(DefaultPort), virtualHost.orNull,
+        username.orNull, password.orNull, useSsl.getOrElse(false))
   }
 
   def findByBankId(bankId: String): Box[AmqpBankBroker] =

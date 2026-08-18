@@ -35,11 +35,13 @@ object MappedEntitlementRequest {
   private val selectColumns =
     fr"SELECT mentitlementrequestid, mbankid, muserid, mrolename, createdat FROM mappedentitlementrequest"
 
-  private type Row = (String, String, String, String, java.sql.Timestamp)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): MappedEntitlementRequest = row match {
     case (entitlementRequestId, bankId, userId, roleName, createdAt) =>
-      MappedEntitlementRequest(entitlementRequestId, bankId, userId, roleName, createdAt)
+      MappedEntitlementRequest(entitlementRequestId.orNull, bankId.orNull, userId.orNull,
+        roleName.orNull, createdAt.orNull)
   }
 
   private def query(condition: Fragment): List[MappedEntitlementRequest] =

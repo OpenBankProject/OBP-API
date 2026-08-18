@@ -39,11 +39,13 @@ object UserAgreement {
   private val selectColumns =
     fr"SELECT useragreementid, userid, agreementtype, agreementtext, agreementhash, date_c FROM useragreement"
 
-  private type Row = (String, String, String, String, String, java.sql.Date)
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[java.sql.Date])
 
   private def fromRow(row: Row): UserAgreement = row match {
     case (userAgreementId, userId, agreementType, agreementText, agreementHash, date) =>
-      UserAgreement(userAgreementId, userId, agreementType, agreementText, agreementHash, date)
+      UserAgreement(userAgreementId.orNull, userId.orNull, agreementType.orNull,
+        agreementText.orNull, agreementHash.orNull, date.orNull)
   }
 
   private def query(condition: Fragment): List[UserAgreement] =

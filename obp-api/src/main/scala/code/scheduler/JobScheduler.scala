@@ -32,11 +32,12 @@ object JobScheduler {
   private val selectColumns =
     fr"SELECT id, jobid, name, apiinstanceid, createdat FROM jobscheduler"
 
-  private type Row = (Long, String, String, String, java.sql.Timestamp)
+  private type Row = (Long, Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): JobScheduler = row match {
     case (id, jobId, name, apiInstanceId, createdAt) =>
-      JobScheduler(id, jobId, name, apiInstanceId, createdAt)
+      JobScheduler(id, jobId.orNull, name.orNull, apiInstanceId.orNull, createdAt.orNull)
   }
 
   private def query(condition: Fragment): List[JobScheduler] =
