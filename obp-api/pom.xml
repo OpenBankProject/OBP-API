@@ -418,6 +418,26 @@
       <artifactId>flyway-core</artifactId>
       <version>${flyway.version}</version>
     </dependency>
+    <!-- Liquibase is taking the schema over from Flyway: it generates each vendor's DDL from one
+         changelog, which is what OBP needs - the bank's data source decides the database, and
+         Flyway's model is one hand-written SQL set per vendor. Both are present during the
+         changeover; exactly one is enabled at a time (see LiquibaseSchemaSetupTest). -->
+    <dependency>
+      <groupId>org.liquibase</groupId>
+      <artifactId>liquibase-core</artifactId>
+      <version>${liquibase.version}</version>
+      <exclusions>
+        <!-- liquibase-core declares snakeyaml 2.2, and because it sits nearer the root than
+             jackson-dataformat-yaml's 2.3, Maven's nearest-wins silently DOWNGRADED the whole
+             build from 2.3 to 2.2. Measured before and after adding this dependency. Excluded
+             here so the version comes from jackson's chain alone rather than from whichever
+             declaration happens to be nearer; SnakeYamlVersionTest pins the result. -->
+        <exclusion>
+          <groupId>org.yaml</groupId>
+          <artifactId>snakeyaml</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>

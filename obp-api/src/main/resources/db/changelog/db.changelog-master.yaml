@@ -1,0 +1,12 @@
+# The root changelog: the single description of the schema that every vendor's DDL is generated
+# from. It is empty because it is introduced ahead of the schema itself - the generated changesets
+# arrive in the step that reads them off the existing Flyway scripts. Liquibase accepts an empty
+# changelog and does nothing with it, which is exactly the intended behaviour while Flyway is still
+# the schema authority (liquibase.enabled defaults to false; see LiquibaseSchemaSetup).
+#
+# Why one file instead of the 118-per-vendor arrangement it replaces: Flyway takes hand-written SQL,
+# so supporting a database means writing and maintaining a whole script set in its dialect - which
+# is why h2 and postgres have 118 each and mysql, sqlserver and oracle have none at all. Liquibase
+# takes the change described once and emits each vendor's dialect from it, so a deployment on a
+# database nobody here runs is a supported configuration rather than a missing folder.
+databaseChangeLog: []

@@ -87,8 +87,12 @@ object FlywaySchemaSetup extends MdcLoggable {
    * gets no schema. That is not hypothetical - the CI props are written from scratch and never
    * mention flyway.enabled, so with the default off every shard aborted on the first table it
    * touched, while a developer whose local props happened to set it stayed green.
+   *
+   * Public rather than private[flyway] because the one invariant that matters during the
+   * changeover to Liquibase is a mutual exclusion between the two, and the assertion holding both
+   * defaults up against each other necessarily lives outside this package.
    */
-  private[flyway] val enabledByDefault: Boolean = true
+  val enabledByDefault: Boolean = true
 
   def runIfEnabled(): Unit = {
     if (APIUtil.getPropsAsBoolValue("flyway.enabled", enabledByDefault)) {
