@@ -129,6 +129,28 @@ object LiquibaseSchemaSetup extends MdcLoggable {
    * NOT cover is a schema that is older than the baseline in some way nothing recorded; that was
    * equally true of baselining at the highest script version.
    */
+  /**
+   * Whether a LockException is anywhere in this exception's cause chain.
+   *
+   * Matched on the chain rather than on the exception itself because `update` runs the change
+   * through Liquibase's command layer, which is free to wrap what a step threw - and it does wrap
+   * some of them, as the changelog-not-found failure shows (a ChangeLogParseException arriving
+   * inside a CommandExecutionException). A `case e: LockException` would then be a message that
+   * never prints, which is worse than no message at all, so this holds either way.
+   */
+  private[liquibase] def causedByLockException(e: Throwable): Boolean = {
+    var current: Throwable = e
+    var seen = 0
+    // Bounded: a cause chain can be self-referential, and this runs on the boot path.
+    while (current != null && seen < 20) {
+      if (current.isInstanceOf[LockException]) return true
+      if (current.getCause eq current) return false
+      current = current.getCause
+      seen += 1
+    }
+    false
+  }
+
   def bringUpToDate(dataSource: javax.sql.DataSource): Unit = {
     val needsAdoption = {
       val c = dataSource.getConnection
@@ -150,7 +172,7 @@ object LiquibaseSchemaSetup extends MdcLoggable {
       liquibase.update("")
       logger.info("Liquibase: schema is up to date")
     } catch {
-      case e: LockException =>
+      case e: Exception if causedByLockException(e) =>
         // A process killed mid-migration leaves its row in DATABASECHANGELOGLOCK, and every later
         // start then waits on a lock whose holder is gone. Say so, with the way out: the default
         // failure is a long silence, which reads as a hang rather than as this.
