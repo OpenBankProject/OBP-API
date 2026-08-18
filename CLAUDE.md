@@ -351,14 +351,18 @@ regex's type character class had no comma in it — so `NUMERIC(16, 10)` never m
 columns were silently exempt from the check. One of them, `productfee.amount`, was in fact bound
 as a bare `BigDecimal` the whole time.
 
-**Running the whole suite on Postgres**: it passes - 3701 scenarios, 0 failures - and it is worth
-re-running whenever the data layer changes, because H2 is forgiving in ways Postgres is not. No
-source change is needed: `db.driver`/`db.url`/`db.user` are read through `APIUtil.getPropsValue`,
-which consults `sys.env` first, so `OBP_DB_DRIVER` / `OBP_DB_URL` / `OBP_DB_USER` override the
-props file per process. What it does need is **one database per shard**: the four shards share a
-props file, and every test class opens with 140 `DELETE FROM`, so pointing them at one database
-means they wipe each other. Create `obp_suite_shard_1..4` (the guard's whitelist expects that
-prefix), give each shard its own `OBP_DB_URL`, and drop them afterwards.
+**Running the whole suite on Postgres**: `./run_tests_parallel.sh --db=postgres`. It passes -
+3707 scenarios, 0 failures, the same count and the same per-shard split as H2 - and it is worth
+re-running whenever the data layer changes, because H2 is forgiving in ways Postgres is not. More
+so now that the Postgres DDL is generated from the changelog at boot rather than read from a
+script somebody has checked.
+
+Why a runner flag rather than a props edit: every test class opens with ~140 `DELETE FROM`, so
+four shards pointed at one database wipe each other mid-run. The flag gives each shard
+`obp_suite_shard_N`, creates them before the run and drops them after, including on Ctrl-C. The
+`obp_suite_` prefix is what `DisposableDatabaseGuard` admits, so a typo cannot reach a real
+database. For a single suite rather than the whole run, uncomment the two Postgres lines in
+`test.default.props.template` and create `obp_test_only` with `scripts/create_test_db.sh`.
 
 Two things that bite. `max_connections` defaults to 100 on a Homebrew Postgres, and four shards
 at `hikari.maximumPoolSize=20` need 80 on top of whatever else is connected - a local OBP-API
@@ -366,6 +370,15 @@ holds 80 by itself. Raising the pool's own limit is not the fix; a pool of 10 ex
 concurrent requests. And Postgres truncates identifiers at 63 bytes, so five of the index names
 arrive shortened; `MigratedTablesExistTest` accepts a name or its truncation for that reason.
 Checked at the time: no two names collide once truncated.
+
+**Two runners cannot share `~/.m2` while both are running.** `obp-commons` installs to the same
+coordinate for every checkout, and the shards resolve it *at run time* - so another checkout's
+install swaps the jar under a run already in progress, some suites fail to load, and the
+discovered test count silently drops while Maven still reports BUILD SUCCESS. The `OBC_LOCK` at
+the top of the runner serialises the *installs*; it does nothing about a running shard's reads.
+Observed from a parallel checkout as 3511 -> 3068 -> 1896 across three runs of one commit. Until
+the coordinate is per-checkout, only one checkout runs the full suite at a time - and a test count
+that moves without a matching change to the test files is the symptom to look for.
 
 **The suite refuses to run against a database that is not disposable.**
 `code.setup.DisposableDatabaseGuard`, called from `TestServer` before `Boot.boot()`, allows
