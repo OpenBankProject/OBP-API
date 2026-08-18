@@ -39,8 +39,12 @@ object FlywaySchemaSetup extends MdcLoggable {
   /**
    * The Flyway configuration, with the DataSource and vendor folder passed in so a test can run
    * the real configuration against a database it built itself rather than reproducing it.
+   *
+   * Public rather than private[flyway] for the same reason enabledByDefault is: the proof that
+   * Liquibase builds the schema these scripts build has to run both of them, so it lives outside
+   * this package and still has to use the real configuration rather than a copy of it.
    */
-  private[flyway] def configure(dataSource: javax.sql.DataSource, folder: String): Flyway = {
+  def configure(dataSource: javax.sql.DataSource, folder: String): Flyway = {
     val location = s"classpath:db/migration/$folder"
 
     // Stamp a pre-existing schema as fully migrated, not as version 1.

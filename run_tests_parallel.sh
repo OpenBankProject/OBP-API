@@ -23,6 +23,7 @@
 #   ───────────────────────────────────────────  ──────────────────────────────
 #   lint: check_test_isolation.py                same (run before tests; abort on fail)
 #   lint: check_nullable_column_reads.py         same (run before tests; abort on fail)
+#   lint: check_changelog_data_migrations.py     same (run before tests; abort on fail)
 #   compile job: mvn clean install -Pprod        pre-compile once: install obp-commons
 #     + upload-artifact(target/)                   into shared ~/.m2 + test-compile
 #   test job: download-artifact + touch +          obp-api into shared target/ — a
@@ -356,6 +357,11 @@ if [[ "$HAVE_PY3" = "1" ]]; then
   echo "Lint: nullable-column reads..."
   if ! python3 .github/scripts/check_nullable_column_reads.py; then
     echo "❌ Lint failed (a nullable column is read into a non-nullable type). Fix before running." >&2
+    exit 1
+  fi
+  echo "Lint: changelog data migrations..."
+  if ! python3 .github/scripts/check_changelog_data_migrations.py; then
+    echo "❌ Lint failed (a Flyway data migration has no counterpart in the changelog). Fix before running." >&2
     exit 1
   fi
 else

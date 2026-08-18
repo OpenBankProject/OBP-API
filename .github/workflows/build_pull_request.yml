@@ -46,6 +46,9 @@ jobs:
       - name: Lint — nullable columns are read through Option
         run: python3 .github/scripts/check_nullable_column_reads.py
 
+      - name: Lint — the changelog still carries the scripts' data migrations
+        run: python3 .github/scripts/check_changelog_data_migrations.py
+
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them

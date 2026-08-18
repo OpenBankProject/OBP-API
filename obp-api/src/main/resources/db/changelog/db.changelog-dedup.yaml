@@ -1,0 +1,186 @@
+# The de-duplications that make the unique indexes creatable. Hand-written, not generated.
+#
+# generateChangeLog snapshots a schema, and a DELETE leaves nothing in a catalogue to snapshot, so
+# these are exactly the part of the Flyway scripts that reverse-generation cannot see. They come
+# from V057 (the three internal id-mapping tables, whose single-column unique index was never
+# created, so getOrCreate*Id could mint two ids for one bank reference) and V116 (five tables
+# migrated before the discovery that FlywayBaselineExport omits dbIndexes-declared unique indexes).
+# Both keep the LOWEST id per key - the earliest-inserted row, the one most likely to have
+# downstream data keyed to it - and both leave NULL keys alone, since a unique index permits many
+# NULLs and those rows cannot violate it.
+#
+# Included BEFORE the baseline so each runs before the createIndex it clears the way for. On a
+# fresh database the table does not exist yet, the precondition fails, and MARK_RAN records the
+# changeset without running it - correct, because an empty table has nothing to de-duplicate and
+# the baseline is about to create it. On a database that already holds rows, the precondition
+# passes and the duplicates go before the index is attempted.
+#
+# dbms is h2,postgresql because that is what this SQL is valid on and what has been verified.
+# MySQL rejects a DELETE whose subquery reads the table being deleted from (error 1093), so it
+# needs the join-against-a-derived-table form; whoever adds MySQL adds those changesets here with
+# dbms: mysql, rather than editing these.
+databaseChangeLog:
+  - changeSet:
+      id: dedup-accountidmapping
+      author: obp
+      comment: >-
+        From V057. Collapses duplicates on accountidmapping before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: accountidmapping
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM accountidmapping
+              WHERE maccountplaintextreference IS NOT NULL
+                AND id NOT IN (
+                  SELECT MIN(id) FROM accountidmapping
+                  WHERE maccountplaintextreference IS NOT NULL
+                  GROUP BY maccountplaintextreference
+                )
+  - changeSet:
+      id: dedup-mappedcustomeridmapping
+      author: obp
+      comment: >-
+        From V057. Collapses duplicates on mappedcustomeridmapping before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: mappedcustomeridmapping
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM mappedcustomeridmapping
+              WHERE mcustomerplaintextreference IS NOT NULL
+                AND id NOT IN (
+                  SELECT MIN(id) FROM mappedcustomeridmapping
+                  WHERE mcustomerplaintextreference IS NOT NULL
+                  GROUP BY mcustomerplaintextreference
+                )
+  - changeSet:
+      id: dedup-transactionidmapping
+      author: obp
+      comment: >-
+        From V057. Collapses duplicates on transactionidmapping before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: transactionidmapping
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM transactionidmapping
+              WHERE transactionplaintextreference IS NOT NULL
+                AND id NOT IN (
+                  SELECT MIN(id) FROM transactionidmapping
+                  WHERE transactionplaintextreference IS NOT NULL
+                  GROUP BY transactionplaintextreference
+                )
+  - changeSet:
+      id: dedup-mappedatm
+      author: obp
+      comment: >-
+        From V116. Collapses duplicates on mappedatm before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: mappedatm
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM mappedatm
+              WHERE mbankid IS NOT NULL AND matmid IS NOT NULL
+                AND id NOT IN (
+                  SELECT MIN(id) FROM mappedatm
+                  WHERE mbankid IS NOT NULL AND matmid IS NOT NULL
+                  GROUP BY mbankid, matmid
+                )
+  - changeSet:
+      id: dedup-mappedcomment
+      author: obp
+      comment: >-
+        From V116. Collapses duplicates on mappedcomment before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: mappedcomment
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM mappedcomment
+              WHERE apiid IS NOT NULL
+                AND id NOT IN (SELECT MIN(id) FROM mappedcomment WHERE apiid IS NOT NULL GROUP BY apiid)
+  - changeSet:
+      id: dedup-mappedtag
+      author: obp
+      comment: >-
+        From V116. Collapses duplicates on mappedtag before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: mappedtag
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM mappedtag
+              WHERE tagid IS NOT NULL
+                AND id NOT IN (SELECT MIN(id) FROM mappedtag WHERE tagid IS NOT NULL GROUP BY tagid)
+  - changeSet:
+      id: dedup-mappedtransactionimage
+      author: obp
+      comment: >-
+        From V116. Collapses duplicates on mappedtransactionimage before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: mappedtransactionimage
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM mappedtransactionimage
+              WHERE imageid IS NOT NULL
+                AND id NOT IN (
+                  SELECT MIN(id) FROM mappedtransactionimage WHERE imageid IS NOT NULL GROUP BY imageid
+                )
+  - changeSet:
+      id: dedup-consent_item
+      author: obp
+      comment: >-
+        From V116. Collapses duplicates on consent_item before the unique index is created,
+        keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: consent_item
+      changes:
+        - sql:
+            dbms: h2,postgresql
+            splitStatements: false
+            sql: |-
+              DELETE FROM consent_item
+              WHERE consent_item_id IS NOT NULL
+                AND id NOT IN (
+                  SELECT MIN(id) FROM consent_item WHERE consent_item_id IS NOT NULL GROUP BY consent_item_id
+                )
