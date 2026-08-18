@@ -6,7 +6,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{InBoundTrait, OutInBoundTransfer}
 import com.openbankproject.commons.model.TopicTrait
 import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import com.openbankproject.commons.util.json
 import org.json4s.JsonDSL._
 import org.json4s.{Formats, JObject, JValue}
@@ -40,9 +40,16 @@ object ConnectorUtils {
   private def deleteIgnoreFieldValue(obj: Any, inBoundClass: Class[_]): Any = obj match {
     case x: Future[_] => x.map(deleteIgnoreFieldValue(_, inBoundClass))
     case x @(Full(v), _: Option[CallContext]) => x.copy(_1 = Full(deleteIgnoreFields(v, inBoundClass)))
+    // An Empty or a Failure carries no payload to strip fields from. Sending it through
+    // deleteIgnoreFields serializes the box itself and then tries to read it back as the DTO's
+    // data type, which throws MappingException("Expected collection but got JObject(box_failure...")
+    // - so a connector method that simply did not find the account raised an exception instead of
+    // returning the box the caller was ready to handle.
+    case x @(box: Box[_], _: Option[CallContext]) => x.copy(_1 = box)
     case x @(v, _: Option[CallContext]) => x.copy(_1 = deleteIgnoreFields(v, inBoundClass))
     case Full((v, cc: Option[CallContext])) => Full(deleteIgnoreFields(v, inBoundClass) -> cc)
     case Full(v) => Full(deleteIgnoreFields(v, inBoundClass))
+    case box: Box[_] => box
     case v => deleteIgnoreFields(v, inBoundClass)
   }
 
@@ -66,15 +73,16 @@ object ConnectorUtils {
         .find(m => m.isMethod && m.name.decodedName.toString == "data")
         .map(_.asMethod.returnType)
 
+    // The collection cases come first on purpose: List and Option are themselves abstract classes,
+    // so an isAbstract check placed above them would decline to convert every list payload - which
+    // is most of them - and the whole thing would quietly do nothing.
     def convert(value: Any, tp: universe.Type): Any = value match {
       case null => null
-      case _ if tp.typeSymbol.isAbstract => value
       case list: List[_] if tp.typeArgs.nonEmpty =>
-        val elementType = tp.typeArgs.head
-        if (elementType.typeSymbol.isAbstract) list
-        else list.map(item => convert(item, elementType))
+        list.map(item => convert(item, tp.typeArgs.head))
       case option: Option[_] if tp.typeArgs.nonEmpty =>
         option.map(item => convert(item, tp.typeArgs.head))
+      case _ if tp.typeSymbol.isAbstract => value
       case single =>
         scala.util.Try(ReflectUtils.toOther[Any](single, tp)).getOrElse(single)
     }

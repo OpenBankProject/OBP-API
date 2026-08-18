@@ -75,5 +75,39 @@ class ConnectorRowJsonRoundTripTest extends code.setup.ServerSetupWithTestData {
       account.accountId should equal(accountId)
       account.currency should equal("EUR")
     }
+
+    scenario("a not-found result comes back as the box it is, not as an exception") {
+      // Stripping fields off an Empty or a Failure means serializing the box and reading it back as
+      // the payload type, which throws. A connector that cannot find the account has to be able to
+      // say so.
+      val proxy = Connector.getConnectorInstance("proxy")
+      val (box, _) = Await.result(
+        proxy.checkBankAccountExists(BankId("no-such-bank"), AccountId("no-such-account"), None),
+        30.seconds)
+      box.isEmpty should equal(true)
+    }
+
+    scenario("a list payload, which is most of them, through the registered proxy") {
+      // List and Option are abstract classes themselves, so a conversion that checks "is the
+      // target abstract?" before unwrapping them declines to convert every list - and every
+      // list-returning connector method stays broken while the single-value ones look fixed.
+      val bankId = BankId("proxy-list-bank")
+      val accountId = AccountId("proxy-list-account")
+      createBank(bankId.value)
+      createAccount(bankId, accountId, "EUR")
+      code.bankaccountbalance.BankAccountBalance.insert(
+        balanceId = "proxy-list-balance", bankId = bankId.value, accountId = accountId.value,
+        balanceType = "closingBooked", amountSmallestUnit = 4200L)
+
+      val proxy = Connector.getConnectorInstance("proxy")
+      val viaProxy = Await.result(
+        proxy.getBankAccountsBalancesByAccountIds(List(accountId), None), 30.seconds)._1
+
+      viaProxy shouldBe a[Full[_]]
+      val balances = viaProxy.openOrThrowException("the balances must survive the proxy round trip")
+      balances.map(_.balanceId.value) should contain("proxy-list-balance")
+      balances.find(_.balanceId.value == "proxy-list-balance").get.balanceAmount should
+        equal(BigDecimal("42.00"))
+    }
   }
 }
