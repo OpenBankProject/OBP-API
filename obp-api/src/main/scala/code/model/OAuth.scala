@@ -447,18 +447,35 @@ object Consumer extends MdcLoggable {
    */
   val redirectURLRegex = """^([.\w]+:|(http|https):/)/(www.)?\S+?(:\d{2,6})?\S*$""".r
 
+  /**
+   * The call limits the entity's MappedLong fields defaulted to, read from props on every access
+   * as they were there.
+   *
+   * These are also what a NULL column reads back as: MappedLong's reader is
+   * `if (isNull) defaultValue else v`, so unlike a boolean - where the getter is
+   * `data openOr false` and the declared default never applies on read - a NULL number really did
+   * come back as this. Rows predating the columns therefore carried the configured limit, not
+   * "unlimited"; MigrationOfConsumerRateLimiting seeds the ratelimiting table from them.
+   */
+  def perSecondCallLimitDefault: Long = APIUtil.getPropsAsLongValue("rate_limiting_per_second", -1)
+  def perMinuteCallLimitDefault: Long = APIUtil.getPropsAsLongValue("rate_limiting_per_minute", -1)
+  def perHourCallLimitDefault: Long = APIUtil.getPropsAsLongValue("rate_limiting_per_hour", -1)
+  def perDayCallLimitDefault: Long = APIUtil.getPropsAsLongValue("rate_limiting_per_day", -1)
+  def perWeekCallLimitDefault: Long = APIUtil.getPropsAsLongValue("rate_limiting_per_week", -1)
+  def perMonthCallLimitDefault: Long = APIUtil.getPropsAsLongValue("rate_limiting_per_month", -1)
+
   /** The defaults the entity's fields carried, several of which came from props at first use. */
   def defaults: Consumer = Consumer(
     consumerId = APIUtil.generateUUID(),
     azp = APIUtil.generateUUID(),
     sub = APIUtil.generateUUID(),
     isActive = APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false),
-    perSecondCallLimit = APIUtil.getPropsAsLongValue("rate_limiting_per_second", -1),
-    perMinuteCallLimit = APIUtil.getPropsAsLongValue("rate_limiting_per_minute", -1),
-    perHourCallLimit = APIUtil.getPropsAsLongValue("rate_limiting_per_hour", -1),
-    perDayCallLimit = APIUtil.getPropsAsLongValue("rate_limiting_per_day", -1),
-    perWeekCallLimit = APIUtil.getPropsAsLongValue("rate_limiting_per_week", -1),
-    perMonthCallLimit = APIUtil.getPropsAsLongValue("rate_limiting_per_month", -1))
+    perSecondCallLimit = perSecondCallLimitDefault,
+    perMinuteCallLimit = perMinuteCallLimitDefault,
+    perHourCallLimit = perHourCallLimitDefault,
+    perDayCallLimit = perDayCallLimitDefault,
+    perWeekCallLimit = perWeekCallLimitDefault,
+    perMonthCallLimit = perMonthCallLimitDefault)
 
   /** RFC 5321's 254-character cap and the address pattern MappedEmail validated against. */
   private val maxEmailLength = 254
@@ -531,11 +548,15 @@ object Consumer extends MdcLoggable {
            perWeek, perMonth, clientCertificate, jwksUri, company, createdAt, updatedAt)) =>
       Consumer(id, consumerId.orNull, key.orNull, secret.orNull, azp.orNull, aud.orNull,
         iss.orNull, sub.orNull,
-        // A NULL flag or number reads back as the field default, which is what Mapper did.
+        // What a NULL column reads back as is per field type, not one rule: MappedBoolean's getter
+        // is `data openOr false`, so a NULL flag is false whatever its declared default, while
+        // MappedLong's reader is `if (isNull) defaultValue`, so a NULL limit is the configured one.
         isActive.getOrElse(false), name.orNull, appType.orNull, description.orNull,
         developerEmail.orNull, redirectURL.orNull, logoUrl.orNull, userAuthenticationURL.orNull,
-        createdByUserId.orNull, perSecond.getOrElse(-1), perMinute.getOrElse(-1),
-        perHour.getOrElse(-1), perDay.getOrElse(-1), perWeek.getOrElse(-1), perMonth.getOrElse(-1),
+        createdByUserId.orNull,
+        perSecond.getOrElse(perSecondCallLimitDefault), perMinute.getOrElse(perMinuteCallLimitDefault),
+        perHour.getOrElse(perHourCallLimitDefault), perDay.getOrElse(perDayCallLimitDefault),
+        perWeek.getOrElse(perWeekCallLimitDefault), perMonth.getOrElse(perMonthCallLimitDefault),
         clientCertificate.orNull, jwksUri.orNull, company.orNull, readDate(createdAt),
         readDate(updatedAt))
   }
