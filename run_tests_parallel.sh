@@ -112,7 +112,10 @@ done
 # Raising the pool is not the alternative - a pool of 10 exhausts at five concurrent requests.
 PG_ADMIN_URL="${OBP_TEST_POSTGRES_URL:-jdbc:postgresql://localhost:5432/postgres}"
 PG_HOST="$(echo "$PG_ADMIN_URL" | sed -E 's|jdbc:postgresql://([^:/]+).*|\1|')"
-PG_PORT="$(echo "$PG_ADMIN_URL" | sed -E 's|jdbc:postgresql://[^:/]+:([0-9]+).*|\1|')"
+# The port is optional in a JDBC URL, and a sed that assumes it is there returns the whole URL
+# unchanged when it is not - psql then fails with something that names neither the URL nor the port.
+PG_PORT="$(echo "$PG_ADMIN_URL" | sed -nE 's|jdbc:postgresql://[^:/]+:([0-9]+).*|\1|p')"
+PG_PORT="${PG_PORT:-5432}"
 PG_USER="${OBP_TEST_POSTGRES_USER:-$USER}"
 PG_DB_PREFIX="obp_suite_shard_"
 
