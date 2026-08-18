@@ -16,7 +16,7 @@
 # catch-all mechanism, without exhausting the single local DB connection pool
 # (> 4 shards causes connection-pool contention and spurious failures).
 # Catch-all logic (build_s4) is a direct port of CI's shard-8 catch-all.
-# Usage: ./run_tests_parallel.sh [--shards=4|6]
+# Usage: ./run_tests_parallel.sh [--shards=4|6] [--db=h2|postgres]
 #
 # ── CI step → local equivalent (how cross-machine machinery is replaced) ───
 #   CI (multi-machine)                            Local (single machine)
@@ -89,11 +89,66 @@ OBC_LOCK="/tmp/obp-commons-m2-install.lock"
 trap '[[ "$(cat "$OBC_LOCK/pid" 2>/dev/null)" == "$$" ]] && rm -rf "$OBC_LOCK"' EXIT
 
 SHARDS=4
+DB=h2
 for arg in "$@"; do
   case $arg in
     --shards=*) SHARDS="${arg#*=}" ;;
+    --db=*)     DB="${arg#*=}" ;;
   esac
 done
+
+# ── --db=postgres ─────────────────────────────────────────────────────────
+# H2 is forgiving in ways Postgres is not, so it is worth running the whole suite on Postgres
+# whenever the data layer changes. It cannot be done by editing the props file alone: every test
+# class opens with ~140 DELETE FROM, so four shards pointed at one database wipe each other. Each
+# shard therefore gets a database of its own, created here and dropped at the end.
+#
+# The names begin with obp_suite_ because that is the prefix code.setup.DisposableDatabaseGuard
+# admits. Everything else - obp-mapped included - is refused by the guard before Boot runs, so a
+# typo here cannot empty a real database.
+#
+# Postgres needs headroom for this: four shards at hikari.maximumPoolSize=20 want 80 connections
+# on top of whatever else is connected, and max_connections defaults to 100 on a Homebrew install.
+# Raising the pool is not the alternative - a pool of 10 exhausts at five concurrent requests.
+PG_ADMIN_URL="${OBP_TEST_POSTGRES_URL:-jdbc:postgresql://localhost:5432/postgres}"
+PG_HOST="$(echo "$PG_ADMIN_URL" | sed -E 's|jdbc:postgresql://([^:/]+).*|\1|')"
+PG_PORT="$(echo "$PG_ADMIN_URL" | sed -E 's|jdbc:postgresql://[^:/]+:([0-9]+).*|\1|')"
+PG_USER="${OBP_TEST_POSTGRES_USER:-$USER}"
+PG_DB_PREFIX="obp_suite_shard_"
+
+pg_psql() { PGPASSWORD="${OBP_TEST_POSTGRES_PASSWORD:-}" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -tAc "$1"; }
+
+pg_create_shard_databases() {
+  local n
+  for ((n = 1; n <= TOTAL_SHARDS_PLANNED; n++)); do
+    pg_psql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${PG_DB_PREFIX}${n}' AND pid <> pg_backend_pid()" >/dev/null
+    pg_psql "DROP DATABASE IF EXISTS ${PG_DB_PREFIX}${n}" >/dev/null
+    pg_psql "CREATE DATABASE ${PG_DB_PREFIX}${n}" >/dev/null || {
+      echo "❌ could not create ${PG_DB_PREFIX}${n} on $PG_HOST:$PG_PORT as $PG_USER" >&2; exit 1; }
+  done
+  echo "Postgres: created ${PG_DB_PREFIX}1..${TOTAL_SHARDS_PLANNED}"
+}
+
+pg_drop_shard_databases() {
+  local n
+  for ((n = 1; n <= TOTAL_SHARDS_PLANNED; n++)); do
+    pg_psql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${PG_DB_PREFIX}${n}' AND pid <> pg_backend_pid()" >/dev/null
+    pg_psql "DROP DATABASE IF EXISTS ${PG_DB_PREFIX}${n}" >/dev/null
+  done
+  echo "Postgres: dropped ${PG_DB_PREFIX}1..${TOTAL_SHARDS_PLANNED}"
+}
+
+TOTAL_SHARDS_PLANNED="$SHARDS"
+if [[ "$DB" == "postgres" ]]; then
+  command -v psql >/dev/null || { echo "❌ --db=postgres needs psql on PATH" >&2; exit 1; }
+  pg_psql "SELECT 1" >/dev/null 2>&1 || {
+    echo "❌ cannot reach Postgres at $PG_HOST:$PG_PORT as $PG_USER" >&2; exit 1; }
+  pg_create_shard_databases
+  # Drop them however this ends, including Ctrl-C: they are large and there is one per shard.
+  trap 'pg_drop_shard_databases; [[ "$(cat "$OBC_LOCK/pid" 2>/dev/null)" == "$$" ]] && rm -rf "$OBC_LOCK"' EXIT
+elif [[ "$DB" != "h2" ]]; then
+  echo "❌ --db must be h2 or postgres (got: $DB)" >&2; exit 1
+fi
 
 # ── Dynamic free-port allocation ──────────────────────────────────────────
 # Each shard is its own `mvn scalatest:test` JVM that binds TWO sockets:
@@ -239,7 +294,21 @@ run_shard() {
     local port=$3          # tests.port       — TestServer       (OBP_TESTS_PORT)
     local http4s_port=$4   # http4s.test.port — Http4sTestServer (OBP_HTTP4S_TEST_PORT)
     local log="test-results/parallel/shard${n}.log"
-    echo "[Shard $n] Starting... (tests.port=$port, http4s.test.port=$http4s_port)"
+    # This shard's own database, for --db=postgres. Passed through `env` rather than as a command
+    # prefix: bash decides what is an assignment BEFORE expanding, so a ${VAR:+NAME=VALUE} in
+    # prefix position is taken as the command name, not as an assignment - it fails with
+    # "NAME=VALUE: command not found", or worse, is simply absent and the shard quietly runs on
+    # whatever the props file says. An empty array expands to nothing, so h2 is unaffected.
+    local -a db_env=()
+    if [[ -n "$DB_ENV_URL_PREFIX" ]]; then
+        db_env=(
+            OBP_DB_DRIVER="$DB_ENV_DRIVER"
+            OBP_DB_URL="${DB_ENV_URL_PREFIX}${n}"
+            OBP_DB_USER="$DB_ENV_USER"
+            OBP_DB_PASSWORD="$DB_ENV_PASSWORD"
+        )
+    fi
+    echo "[Shard $n] Starting... (tests.port=$port, http4s.test.port=$http4s_port${DB_ENV_URL_PREFIX:+, db=${PG_DB_PREFIX}${n}})"
     # OBP_* env vars take priority over the props file (see APIUtil.getPropsValue:
     # property name . -> _, uppercased, prefixed with OBP_). This is the local
     # equivalent of CI's "Setup props" step: the local test.default.props lacks
@@ -284,6 +353,7 @@ run_shard() {
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
+    env "${db_env[@]}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
@@ -444,6 +514,19 @@ rm -rf obp-api/target/surefire-reports obp-commons/target/surefire-reports
 
 echo "Pre-compile done, starting shards..." 
 echo ""
+
+# The db.* props are read through APIUtil.getPropsValue, which consults sys.env first (name's
+# dots -> underscores, uppercased, OBP_ prefix), so these override test.default.props for this
+# process only - the user's own props file is left alone. Empty for h2, which just uses the file.
+if [[ "$DB" == "postgres" ]]; then
+  DB_ENV_DRIVER="org.postgresql.Driver"
+  DB_ENV_URL_PREFIX="jdbc:postgresql://${PG_HOST}:${PG_PORT}/${PG_DB_PREFIX}"
+  DB_ENV_USER="$PG_USER"
+  DB_ENV_PASSWORD="${OBP_TEST_POSTGRES_PASSWORD:-}"
+  echo "Database: Postgres, one per shard (${PG_DB_PREFIX}N)"
+else
+  DB_ENV_DRIVER=""; DB_ENV_URL_PREFIX=""; DB_ENV_USER=""; DB_ENV_PASSWORD=""
+fi
 
 if [[ "$SHARDS" = "6" ]]; then
     echo "Starting 6 shards in parallel..."
