@@ -253,8 +253,13 @@ object ViewDefinition {
           canGrantAccessToViews, canRevokeAccessToViews) =>
       ViewDefinition(id, name.orNull, description.orNull, bankId.orNull, accountId.orNull,
         viewId.orNull, compositeUniqueKey.orNull, metadataView.orNull,
-        // A NULL flag reads back as the field default, which is what Mapper did.
-        isSystem.getOrElse(false), isPublic.getOrElse(false), isFirehose.getOrElse(true),
+        // A NULL flag reads back as false, which is what Mapper did - and NOT as the field's
+        // defaultValue. MappedBoolean seeds `data` with defaultValue for a NEW instance, but a
+        // NULL column sets data = Empty on read and the getter is `data openOr false`. isFirehose_
+        // is the one where those two differ (its defaultValue is true), so reading it as true
+        // would widen a permission flag that Lift read as false. The case-class default above
+        // still carries true, which is the new-instance half of the same behaviour.
+        isSystem.getOrElse(false), isPublic.getOrElse(false), isFirehose.getOrElse(false),
         usePrivateAlias.getOrElse(false), usePublicAlias.getOrElse(false),
         hideOtherMetadata.getOrElse(false), canGrantAccessToViews.orNull,
         canRevokeAccessToViews.orNull)
