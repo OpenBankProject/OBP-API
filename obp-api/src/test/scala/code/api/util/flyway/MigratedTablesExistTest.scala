@@ -310,7 +310,14 @@ class MigratedTablesExistTest extends ServerSetup {
     "CONSUMER" -> "CONSUMER_AZP_SUB",
     "RESOURCEUSER" -> "RESOURCEUSER_PROVIDER__PROVIDERID",
     "RESOURCEUSER" -> "RESOURCEUSER_USERID_UNIQUE",
-    "AUTHUSER" -> "AUTHUSER_USERNAME_PROVIDER"
+    "AUTHUSER" -> "AUTHUSER_USERNAME_PROVIDER",
+    // Restored by V116: the five scripts written before V013 recorded that FlywayBaselineExport
+    // omits dbIndexes-declared unique indexes had dropped these silently.
+    "MAPPEDATM" -> "MAPPEDATM_MBANKID_MATMID",
+    "MAPPEDCOMMENT" -> "MAPPEDCOMMENT_APIID",
+    "MAPPEDTAG" -> "MAPPEDTAG_TAGID",
+    "MAPPEDTRANSACTIONIMAGE" -> "MAPPEDTRANSACTIONIMAGE_IMAGEID",
+    "CONSENT_ITEM" -> "CONSENT_ITEM_CONSENT_ITEM_ID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
