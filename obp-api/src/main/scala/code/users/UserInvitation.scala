@@ -42,11 +42,17 @@ object UserInvitation {
                 status, purpose, secretkey, createdat
          FROM userinvitation"""
 
-  private type Row = (String, String, String, String, String, String, String, String, String, Long, java.sql.Timestamp)
+  private type Row = (String, String, String, String, String, String, String, String, String,
+    Option[Long], java.sql.Timestamp)
 
   private def fromRow(row: Row): UserInvitation = row match {
     case (userInvitationId, bankId, firstName, lastName, email, company, country, status, purpose, secretKey, createdAt) =>
-      UserInvitation(userInvitationId, bankId, firstName, lastName, email, company, country, status, purpose, secretKey, createdAt)
+      // MappedLong read a NULL as the field's defaultValue, which here was a fresh
+      // SecureRandomUtil.csprng.nextLong(). Reproducing that keeps the read from failing and
+      // keeps the row unusable as an invitation link, which is what a NULL secret key means:
+      // findBySecretKey looks the key up by value, and a fresh random never matches.
+      UserInvitation(userInvitationId, bankId, firstName, lastName, email, company, country,
+        status, purpose, secretKey.getOrElse(SecureRandomUtil.csprng.nextLong()), createdAt)
   }
 
   private def query(condition: Fragment): List[UserInvitation] =

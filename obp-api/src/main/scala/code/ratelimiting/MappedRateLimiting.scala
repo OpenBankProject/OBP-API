@@ -63,15 +63,39 @@ object RateLimiting {
                 permonthcalllimit, fromdate, todate, createdat, updatedat
          FROM ratelimiting"""
 
-  private type Row = (String, String, Option[String], Option[String], Option[String], Long, Long,
-    Long, Long, Long, Long, java.sql.Timestamp, java.sql.Timestamp, java.sql.Timestamp,
-    java.sql.Timestamp)
+  private type Row = (String, String, Option[String], Option[String], Option[String],
+    Option[Long], Option[Long], Option[Long], Option[Long], Option[Long], Option[Long],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp])
+
+  // MappedDateTime's reader is `st(if (isNull) Empty else Full(...))` and its defaultValue is
+  // null, so Lift read a NULL date as null rather than failing. The conversion matters as much as
+  // the Option: the driver hands back a java.sql.Timestamp, which is a java.util.Date subclass and
+  // so type-checks in the Date field, but json4s serializes it as an empty JSON object - and these
+  // four are reported on the rate-limit resource.
+  private def readDate(value: Option[java.sql.Timestamp]): Date =
+    value.map(t => new Date(t.getTime)).orNull
+
+  // MappedLong's reader is `if (isNull) defaultValue else v`, and each of these fields declared
+  // its default as APIUtil.getPropsAsLongValue("rate_limiting_per_*", -1) - the instance's
+  // configured limit, read from props on every access. A row written before the column existed
+  // holds NULL, so reading a bare Long fails the query outright, and this is the table
+  // RateLimitingUtil enforces from. The write path already resolves the same props through
+  // limitOrDefault; this is the read half of it.
+  private def readLimit(value: Option[Long], propName: String): Long =
+    value.getOrElse(APIUtil.getPropsAsLongValue(propName, -1))
 
   private def fromRow(row: Row): RateLimiting = row match {
     case (rateLimitingId, consumerId, bankId, apiVersion, apiName, perSecond, perMinute, perHour,
           perDay, perWeek, perMonth, fromDate, toDate, createdAt, updatedAt) =>
-      RateLimiting(rateLimitingId, consumerId, bankId, apiVersion, apiName, perSecond, perMinute,
-        perHour, perDay, perWeek, perMonth, fromDate, toDate, createdAt, updatedAt)
+      RateLimiting(rateLimitingId, consumerId, bankId, apiVersion, apiName,
+        readLimit(perSecond, "rate_limiting_per_second"),
+        readLimit(perMinute, "rate_limiting_per_minute"),
+        readLimit(perHour, "rate_limiting_per_hour"),
+        readLimit(perDay, "rate_limiting_per_day"),
+        readLimit(perWeek, "rate_limiting_per_week"),
+        readLimit(perMonth, "rate_limiting_per_month"),
+        readDate(fromDate), readDate(toDate), readDate(createdAt), readDate(updatedAt))
   }
 
   private def query(condition: Fragment): List[RateLimiting] =

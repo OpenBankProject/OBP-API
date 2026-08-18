@@ -45,11 +45,15 @@ object ProductFee {
                 frequency, type_c
          FROM productfee"""
 
-  private type Row = (String, String, String, String, Boolean, String, String, BigDecimal, String, String)
+  private type Row = (String, String, String, String, Option[Boolean], String, String, BigDecimal, String, String)
 
   private def fromRow(row: Row): ProductFee = row match {
     case (bankId, productCode, productFeeId, name, isActive, moreInfo, currency, amount, frequency, typeC) =>
-      ProductFee(bankId, productCode, productFeeId, name, isActive, moreInfo, currency, amount, frequency, typeC)
+        // MappedBoolean read a NULL column as false - `data openOr false`, with a NULL
+        // setting `data = Empty` - so it never failed the read and never returned the
+        // field's declared defaultValue. Binding the column as Option keeps both halves.
+      ProductFee(bankId, productCode, productFeeId, name, isActive.getOrElse(false), moreInfo,
+        currency, amount, frequency, typeC)
   }
 
   private def query(condition: Fragment): List[ProductFee] =

@@ -58,7 +58,13 @@ object ApiProduct {
          FROM apiproduct"""
 
   private type Row = (String, String, String, String, String, String, String, String, String, String,
-    String, String, Long, Long, Long, Long, Long, Long, String)
+    String, String, Option[Long], Option[Long], Option[Long], Option[Long], Option[Long],
+    Option[Long], String)
+
+  // MappedLong's reader is `if (isNull) defaultValue else v`, and every call-limit field here
+  // declared `defaultValue = -1L`. A row written before these columns existed holds NULL, so
+  // reading the column as a bare Long turns a legacy row into a failed query instead of -1.
+  private val noCallLimit = -1L
 
   private def fromRow(row: Row): ApiProduct = row match {
     case (apiProductId, bankId, apiProductCode, parentApiProductCode, name, category,
@@ -68,7 +74,9 @@ object ApiProduct {
       ApiProduct(apiProductId, bankId, apiProductCode, parentApiProductCode, name, category,
         moreInfoUrl, termsAndConditionsUrl, description, collectionId,
         monthlySubscriptionCurrency, monthlySubscriptionAmount,
-        perSecond, perMinute, perHour, perDay, perWeek, perMonth, tags)
+        perSecond.getOrElse(noCallLimit), perMinute.getOrElse(noCallLimit),
+        perHour.getOrElse(noCallLimit), perDay.getOrElse(noCallLimit),
+        perWeek.getOrElse(noCallLimit), perMonth.getOrElse(noCallLimit), tags)
   }
 
   private def query(condition: Fragment): List[ApiProduct] =

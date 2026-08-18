@@ -384,7 +384,9 @@ object MappedCustomer {
         creditRating.orNull, creditSource.orNull, creditLimitCurrency.orNull,
         creditLimitAmount.orNull, kycStatus.getOrElse(false), readDate(lastOkDate), title.orNull,
         branchId.orNull, nameSuffix.orNull, customerType.orNull, parentCustomerId.orNull,
-        isPendingAgent.getOrElse(true), isConfirmedAgent.getOrElse(false))
+        // MappedBoolean read a NULL as false for both, `defaultValue = true` on mIsPendingAgent
+        // notwithstanding: that default only seeds a new instance.
+        isPendingAgent.getOrElse(false), isConfirmedAgent.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[MappedCustomer] =

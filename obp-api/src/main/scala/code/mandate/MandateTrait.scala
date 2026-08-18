@@ -217,8 +217,10 @@ object MandateProvision {
         provisionDescription.orNull, legalReference.orNull, provisionType.orNull,
         conditions.orNull, signatoryRequirements.orNull, linkedViewId.orNull,
         linkedAbacRuleId.orNull, linkedChallengeType.orNull,
-        // MappedBoolean/MappedInt read a NULL column back as the field default rather than failing.
-        isActive.getOrElse(true), sortOrder.getOrElse(0))
+        // The two readers differ. MappedBoolean's getter is `data openOr false` and a NULL sets
+        // `data = Empty`, so Lift read a NULL flag as false however the field declared defaultValue.
+        // MappedInt's is `if (isNull) defaultValue else v`, so a NULL count really did read as 0.
+        isActive.getOrElse(false), sortOrder.getOrElse(0))
   }
 
   private def query(condition: Fragment): List[MandateProvision] =

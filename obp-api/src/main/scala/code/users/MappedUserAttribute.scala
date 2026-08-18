@@ -42,11 +42,15 @@ object UserAttribute {
     fr"""SELECT userattributeid, userid, name, type_c, value, ispersonal, createdat
          FROM userattribute"""
 
-  private type Row = (String, String, String, String, String, Boolean, java.sql.Timestamp)
+  private type Row = (String, String, String, String, String, Option[Boolean], java.sql.Timestamp)
 
   private def fromRow(row: Row): UserAttribute = row match {
     case (userAttributeId, userId, name, attributeType, value, isPersonal, createdAt) =>
-      UserAttribute(userAttributeId, userId, name, attributeType, value, isPersonal, createdAt)
+        // MappedBoolean read a NULL column as false - `data openOr false`, with a NULL
+        // setting `data = Empty` - so it never failed the read and never returned the
+        // field's declared defaultValue. Binding the column as Option keeps both halves.
+      UserAttribute(userAttributeId, userId, name, attributeType, value,
+        isPersonal.getOrElse(false), createdAt)
   }
 
   private def query(condition: Fragment): List[UserAttribute] =

@@ -137,7 +137,9 @@ object ResourceUser {
         isDeleted = isDeleted,
         lastMarketingAgreementSignedDate = readDate(signedDate),
         lastUsedLocale = lastUsedLocale,
-        isNaturalPerson = isNaturalPerson.getOrElse(true),
+        // MappedBoolean read a NULL as false whatever the field declared - `defaultValue = true`
+        // only seeds a new in-memory instance, it is not what the getter returned.
+        isNaturalPerson = isNaturalPerson.getOrElse(false),
         principalUserIdOption = blankToNone(principalUserId))
   }
 

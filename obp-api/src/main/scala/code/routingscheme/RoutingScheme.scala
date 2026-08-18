@@ -150,9 +150,11 @@ object BankSupportedRoutingScheme {
     fr"SELECT bankid, scheme, enabled, banknotes FROM banksupportedroutingscheme"
 
   private def query(condition: Fragment): List[BankSupportedRoutingScheme] =
-    DoobieUtil.runQuery((selectColumns ++ condition).query[(String, String, Boolean, String)].to[List])
+    DoobieUtil.runQuery(
+      (selectColumns ++ condition).query[(String, String, Option[Boolean], String)].to[List])
       .map { case (bankId, scheme, enabled, bankNotes) =>
-        BankSupportedRoutingScheme(bankId, scheme, enabled, bankNotes) }
+        // MappedBoolean read a NULL column as false, never as the declared defaultValue.
+        BankSupportedRoutingScheme(bankId, scheme, enabled.getOrElse(false), bankNotes) }
 
   def findAllByBankId(bankId: String): List[BankSupportedRoutingScheme] =
     query(fr"WHERE bankid = $bankId ORDER BY id ASC")

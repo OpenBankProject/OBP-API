@@ -59,7 +59,15 @@ case class CounterpartyLimitRow(
  */
 object DoobieCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
 
-  private def rowOf(r: (String, String, String, String, String, String, BigDecimal, BigDecimal, Int, BigDecimal, Int, BigDecimal, Int)): CounterpartyLimitRow =
+  // MappedInt/MappedDecimal read a NULL column as the field's declared defaultValue, never as a
+  // failure: the amount fields declared BigDecimal(0) and the count fields -1. A row written
+  // before one of these columns existed holds NULL, so a bare Int here fails the whole query.
+  private val noTransactionLimit = -1
+  private val noAmountLimit = BigDecimal(0)
+
+  private def rowOf(r: (String, String, String, String, String, String, Option[BigDecimal],
+    Option[BigDecimal], Option[Int], Option[BigDecimal], Option[Int], Option[BigDecimal],
+    Option[Int])): CounterpartyLimitRow =
     CounterpartyLimitRow(
       counterpartyLimitId = r._1,
       bankId = r._2,
@@ -67,13 +75,13 @@ object DoobieCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
       viewId = r._4,
       counterpartyId = r._5,
       currency = r._6,
-      maxSingleAmount = r._7,
-      maxMonthlyAmount = r._8,
-      maxNumberOfMonthlyTransactions = r._9,
-      maxYearlyAmount = r._10,
-      maxNumberOfYearlyTransactions = r._11,
-      maxTotalAmount = r._12,
-      maxNumberOfTransactions = r._13
+      maxSingleAmount = r._7.getOrElse(noAmountLimit),
+      maxMonthlyAmount = r._8.getOrElse(noAmountLimit),
+      maxNumberOfMonthlyTransactions = r._9.getOrElse(noTransactionLimit),
+      maxYearlyAmount = r._10.getOrElse(noAmountLimit),
+      maxNumberOfYearlyTransactions = r._11.getOrElse(noTransactionLimit),
+      maxTotalAmount = r._12.getOrElse(noAmountLimit),
+      maxNumberOfTransactions = r._13.getOrElse(noTransactionLimit)
     )
 
   private val selectCols: Fragment =
@@ -82,7 +90,8 @@ object DoobieCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
                 maxyearlyamount, maxnumberofyearlytransactions, maxtotalamount, maxnumberoftransactions
          FROM counterpartylimit"""
 
-  private type Row = (String, String, String, String, String, String, BigDecimal, BigDecimal, Int, BigDecimal, Int, BigDecimal, Int)
+  private type Row = (String, String, String, String, String, String, Option[BigDecimal], Option[BigDecimal],
+    Option[Int], Option[BigDecimal], Option[Int], Option[BigDecimal], Option[Int])
 
   private def find(bankId: String, accountId: String, viewId: String, counterpartyId: String): Option[Row] =
     DoobieUtil.runQuery(

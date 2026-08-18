@@ -41,7 +41,7 @@ object AttributeDefinition {
                 canbeseenonviews, isactive
          FROM attributedefinition"""
 
-  private type Row = (String, String, String, String, String, String, String, String, Boolean)
+  private type Row = (String, String, String, String, String, String, String, String, Option[Boolean])
 
   private def fromRow(row: Row): AttributeDefinition = row match {
     case (attributeDefinitionId, bankId, name, category, typeOfValue, description, alias, canBeSeenOnViews, isActive) =>
@@ -58,7 +58,8 @@ object AttributeDefinition {
         // membership, and the empty-string element is inert there, but changing the shape would
         // be a behaviour change smuggled in with a storage swap.
         canBeSeenOnViews = canBeSeenOnViews.split(";").toList,
-        isActive = isActive)
+        // MappedBoolean read a NULL column as false, never as the declared defaultValue.
+        isActive = isActive.getOrElse(false))
   }
 
   /** All definitions for one bank in one category. */
