@@ -320,6 +320,24 @@ class MigratedTablesExistTest extends ServerSetup {
     "CONSENT_ITEM" -> "CONSENT_ITEM_CONSENT_ITEM_ID"
   )
 
+  /**
+   * Plain indexes the same early scripts dropped, restored by V117.
+   *
+   * A missing one changes no answer, only the cost - but the first five are the lookup every
+   * transaction-metadata read performs, against tables that grow with transaction volume, so
+   * losing them turns a hot path into a full scan on any database built from the scripts alone.
+   */
+  private val expectedPlainIndexes = List(
+    "MAPPEDNARRATIVE" -> "MAPPEDNARRATIVE_BANK_ACCOUNT_TRANSACTION_C",
+    "MAPPEDCOMMENT" -> "MAPPEDCOMMENT_VIEW_C_BANK_ACCOUNT_TRANSACTION_C",
+    "MAPPEDTAG" -> "MAPPEDTAG_BANK_ACCOUNT_TRANSACTION_C_VIEW_C",
+    "MAPPEDWHERETAG" -> "MAPPEDWHERETAG_BANK_ACCOUNT_TRANSACTION_C_VIEW_C",
+    "MAPPEDTRANSACTIONIMAGE" -> "MAPPEDTRANSACTIONIMAGE_BANK_ACCOUNT_TRANSACTION_C_VIEW_C",
+    "CONNECTOR_TRACE" -> "CONNECTOR_TRACE_DATE_C",
+    "CONSENT_ITEM" -> "CONSENT_ITEM_CONSENT_REFERENCE_ID",
+    "CONSENT_ITEM" -> "CONSENT_ITEM_CONSENT_REFERENCE_ID_BANK_ID"
+  )
+
   Feature("tables owned by Flyway rather than Schemifier") {
 
     Scenario("the unique indexes survived the move to Flyway") {
@@ -330,6 +348,18 @@ class MigratedTablesExistTest extends ServerSetup {
 
       expectedUniqueIndexes.foreach { case (table, index) =>
         withClue(s"unique index $index on $table is missing - its Flyway script does not create it: ") {
+          actual should contain(table -> index)
+        }
+      }
+    }
+
+    Scenario("the plain indexes on the metadata read paths survived too") {
+      val actual = DoobieUtil.runQuery(
+        sql"""SELECT table_name, index_name FROM information_schema.indexes"""
+          .query[(String, String)].to[List]).toSet
+
+      expectedPlainIndexes.foreach { case (table, index) =>
+        withClue(s"index $index on $table is missing - its Flyway script does not create it: ") {
           actual should contain(table -> index)
         }
       }
