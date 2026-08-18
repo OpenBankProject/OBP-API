@@ -303,6 +303,20 @@ existing tables with `ALTER TABLE ADD COLUMN` and no backfill. `scripts`-side gu
 script and holds it against the store's `Row` type; it runs in both workflows and in
 `run_tests_parallel.sh`.
 
+**Per-vendor migration scripts**: `vendorFolder` maps the JDBC driver to
+`db/migration/<vendor>`, and `h2` and `postgres` are populated. The postgres set is generated
+from the h2 set by `scripts/h2_to_postgres_migrations.py`, which applies the three dialect
+differences that actually matter and leaves the comments alone: `"PUBLIC".` is dropped (Postgres's
+schema is `public`, and `"PUBLIC"` quoted is a different one); identifier quotes are removed so
+Postgres folds names to lowercase the way it folds the unquoted lowercase names every query uses
+— keep them and the table exists but is never found; and `CHARACTER VARYING(1000000000)`, which is
+what Lift's `MappedText` became under H2, has to be `TEXT` because it is past Postgres's varchar
+ceiling of 10485760. Regenerate rather than hand-edit when a new script lands.
+`PostgresMigrationTest` proves the result: it builds a database of its own, migrates it, checks
+the table count against the H2 side, checks the names came through lowercase, and drops it. It
+needs a reachable Postgres and cancels itself when there is none, so it is a developer check
+rather than a CI one.
+
 **Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
 ```sh
 rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \

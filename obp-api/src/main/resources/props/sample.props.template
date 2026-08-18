@@ -1938,4 +1938,6 @@ securelogging_mask_email=true
 # and Flyway is the only thing that builds tables. Default true - setting this to false does not
 # hand the schema back to Schemifier, it leaves the database with whatever tables it already had.
 # Turn it off only if you run the migrations yourself, outside the application.
+# Scripts exist for h2 and postgres. Another database boots with no tables and an error in the
+# log until its own scripts are added under db/migration/<vendor>.
 # flyway.enabled=true

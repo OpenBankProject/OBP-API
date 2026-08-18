@@ -95,13 +95,15 @@ object FlywaySchemaSetup extends MdcLoggable {
       val folder = vendorFolder(APIUtil.driver)
       logger.info(s"Flyway: running migrations from classpath:db/migration/$folder")
       val flyway = configure(APIUtil.vendor.HikariDatasource.ds, folder)
-      // Only the h2 folder has scripts today. Flyway treats a location with no migrations as
-      // nothing to do, so a database whose driver maps elsewhere would boot with no tables and
-      // no complaint - Schemifier is not there to create them any more.
+      // h2 and postgres are populated; mysql, sqlserver and oracle are not. Flyway treats a
+      // location with no migrations as nothing to do, so a database whose driver maps to an
+      // empty folder would boot with no tables and no complaint - Schemifier is not there to
+      // create them any more. Translate the h2 scripts with
+      // scripts/h2_to_postgres_migrations.py as a starting point for a new vendor.
       if (flyway.info().all().isEmpty) {
         logger.error(s"Flyway: no migration scripts found in classpath:db/migration/$folder - " +
-          s"the schema will not be created. Only the h2 folder is populated; a ${APIUtil.driver} " +
-          s"deployment needs its own scripts.")
+          s"the schema will not be created. Only h2 and postgres are populated; a " +
+          s"${APIUtil.driver} deployment needs its own scripts.")
       }
       val result = flyway.migrate()
       logger.info(s"Flyway: ${result.migrationsExecuted} migration(s) executed, schema version is now ${Option(result.targetSchemaVersion).getOrElse("(baseline)")}")
