@@ -869,7 +869,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       Some(new java.util.Date(System.currentTimeMillis())),
       None
     ).openOrThrowException("test token creation failed")
-    Some(consumer2, Token(token.key.get, token.secret.get))
+    Some(consumer2, Token(token.key, token.secret))
   }
 
 

@@ -830,7 +830,6 @@ object ToSchemify extends MdcLoggable {
     AuthUser,
     ResourceUser,
     Consumer,
-    Token,
   )
 
   // start grpc server

@@ -303,7 +303,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   ).openOrThrowException("test second PSU token creation failed")
 
   private lazy val secondPsuOfTestConsumerSession =
-    Some(consumer, Token(secondPsuOfTestConsumerToken.key.get, secondPsuOfTestConsumerToken.secret.get))
+    Some(consumer, Token(secondPsuOfTestConsumerToken.key, secondPsuOfTestConsumerToken.secret))
 
   private def startAuthorisation(
     consentId: String,

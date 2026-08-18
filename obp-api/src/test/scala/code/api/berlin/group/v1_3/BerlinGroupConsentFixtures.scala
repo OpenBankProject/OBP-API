@@ -171,5 +171,5 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   ).openOrThrowException("test pseudo user token creation failed")
 
   // Same consumer as user1, different token: cc.consumer is testConsumer, cc.user is the pseudo-user.
-  lazy val clientCredentialsSession = Some(consumer, Token(pseudoUserToken.key.get, pseudoUserToken.secret.get))
+  lazy val clientCredentialsSession = Some(consumer, Token(pseudoUserToken.key, pseudoUserToken.secret))
 }

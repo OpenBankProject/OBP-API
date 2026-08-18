@@ -799,18 +799,15 @@ object Nonce {
 }
 
 object MappedTokenProvider extends TokensProvider {
-  override def getTokenByKey(key: String): Box[Token] = {
-    Token.find(By(Token.key, key))
-  }
+  override def getTokenByKey(key: String): Box[Token] = Token.findByKey(key)
+
   override def getTokenByKeyFuture(key: String): Future[Box[Token]] = {
     Future{
       getTokenByKey(key)
     }
   }
-  override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = {
-    val token = Token.find(By(Token.key, key),By(Token.tokenType,tokenType.toString))
-    token
-  }
+  override def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] =
+    Token.findByKeyAndType(key, tokenType.toString)
 
   override def getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType): Future[Box[Token]] = {
     Future{
@@ -828,128 +825,200 @@ object MappedTokenProvider extends TokensProvider {
                            insertDate: Option[Date],
                            callbackURL: Option[String]): Box[Token] = {
     tryo {
-      val t = Token.create
-      t.tokenType(tokenType.toString)
-      consumerId match {
-        case Some(v) => t.consumerId(v)
-        case None =>
-      }
-      userId match {
-        case Some(v) => t.userForeignKey(v)
-        case None =>
-      }
-      key match {
-        case Some(v) => t.key(v)
-        case None =>
-      }
-      secret match {
-        case Some(v) => t.secret(v)
-        case None =>
-      }
-      duration match {
-        case Some(v) => t.duration(v)
-        case None =>
-      }
-      expirationDate match {
-        case Some(v) => t.expirationDate(v)
-        case None =>
-      }
-      insertDate match {
-        case Some(v) => t.insertDate(v)
-        case None =>
-      }
-      callbackURL match {
-        case Some(v) => t.callbackURL(v)
-        case None =>
-      }
-      val token = t.saveMe()
-      token
+      // An absent field keeps the entity's default: 0 for the numbers, "" for the strings, null
+      // for the dates and for the two foreign keys.
+      Token.insert(
+        tokenType = tokenType.toString,
+        consumerId = consumerId,
+        userForeignKey = userId,
+        key = key.getOrElse(""),
+        secret = secret.getOrElse(""),
+        duration = duration.getOrElse(0L),
+        expirationDate = expirationDate.orNull,
+        insertDate = insertDate.orNull,
+        callbackURL = callbackURL.getOrElse(""))
     }
   }
 
-  override def updateToken(id: Long, userId: Long): Boolean = {
-    Token.find(By(Token.id, id)) match {
-      case Full(t) => t.userForeignKey(userId).save
+  override def updateToken(id: Long, userId: Long): Boolean =
+    Token.findByPrimaryKey(id) match {
+      case Full(_) => Token.setUserForeignKey(id, userId)
       case _       => false
     }
-  }
 
-  override def gernerateVerifier(id: Long): String = {
-    Token.find(By(Token.id, id)).map(_.gernerateVerifier).getOrElse("")
-  }
+  override def gernerateVerifier(id: Long): String =
+    Token.findByPrimaryKey(id).map(_.gernerateVerifier).getOrElse("")
 
-  override def deleteToken(id: Long): Boolean = {
-    Token.find(By(Token.id, id)) match {
-      case Full(t) => t.delete_!
+  override def deleteToken(id: Long): Boolean =
+    Token.findByPrimaryKey(id) match {
+      case Full(t) => Token.deleteByPrimaryKey(t.id)
       case _       => false
     }
-  }
 
-  override def deleteExpiredTokens(currentDate: Date): Boolean = {
-    Token.findAll(By_<(Token.expirationDate, currentDate)).forall(_.delete_!)
-  }
+  override def deleteExpiredTokens(currentDate: Date): Boolean =
+    Token.deleteExpiredBefore(currentDate)
 }
 
 
-class Token extends LongKeyedMapper[Token]{
-  def getSingleton: code.model.Token.type = Token
-  def primaryKeyField: Token.this.id.type = id
-  object id extends MappedLongIndex(this)
-  object tokenType extends MappedString(this,10)
-  object consumerId extends MappedLongForeignKey(this, Consumer)
-  object userForeignKey extends MappedLongForeignKey(this, ResourceUser)
-  object key extends MappedString(this,250)
-  object secret extends MappedString(this,250)
-  object callbackURL extends MappedString(this,250)
-  object verifier extends MappedString(this,250)
-  object duration extends MappedLong(this)//expressed in milliseconds
-  object expirationDate extends MappedDateTime(this)
-  object insertDate extends MappedDateTime(this)
-  def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
+/**
+ * One OAuth 1.0a token, request or access.
+ *
+ * `consumerId` and `userForeignKey` are the SURROGATE keys of the consumer and the resource user,
+ * not their business ids - the consumer's own string id lives in a column of the same name on its
+ * own table.
+ *
+ * `verifier` and `thirdPartyApplicationSecret` are generated on first read rather than at creation,
+ * and the generator writes them back, so both accessors have a side effect. Preserved.
+ */
+case class Token(
+  id: Long,
+  tokenType: String,
+  consumerId: Option[Long],
+  userForeignKey: Option[Long],
+  key: String,
+  secret: String,
+  callbackURL: String,
+  verifier: String,
+  duration: Long,
+  expirationDate: Date,
+  insertDate: Date,
+  thirdPartyApplicationSecret: String
+) {
+  def user = userForeignKey.map(Users.users.vend.getResourceUserByResourceUserId).getOrElse(Empty)
   //The the consumer from Token by consumerId
-  def consumer = Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.get)
-  def isValid : Boolean = expirationDate.get after new Date(System.currentTimeMillis())
+  def consumer = consumerId.map(Consumers.consumers.vend.getConsumerByPrimaryId).getOrElse(Empty)
+  def isValid : Boolean = expirationDate after new Date(System.currentTimeMillis())
+
+  /** Generates and stores a verifier the first time it is asked for. */
   def gernerateVerifier : String =
-    if (verifier.get.isEmpty){
+    if (verifier.isEmpty){
         def fiveRandomNumbers() : String = {
           def r() = randomInt(9).toString //from zero to 9
           (1 to 5).map(x => r()).foldLeft("")(_ + _)
         }
       val generatedVerifier = fiveRandomNumbers()
-      verifier(generatedVerifier).save
+      Token.setVerifier(id, generatedVerifier)
       generatedVerifier
     }
     else
-      verifier.get
+      verifier
 
   // in the case of user authentication in a third party application
   // (see authenticationURL in class Consumer).
   // This secret will be used between the API server and the third party application
   // It will be used during the callback (the user coming back to the login page)
   // for entering the banking details.
-  object thirdPartyApplicationSecret extends MappedString(this,10){
-
-  }
-
   def generateThirdPartyApplicationSecret: String = {
-    if(thirdPartyApplicationSecret.get.isEmpty){
+    if(thirdPartyApplicationSecret.isEmpty){
       def r() = randomInt(9).toString //from zero to 9
       val generatedSecret = (1 to 10).map(x => r()).foldLeft("")(_ + _)
-      thirdPartyApplicationSecret(generatedSecret).save
+      Token.setThirdPartyApplicationSecret(id, generatedSecret)
       generatedSecret
     }
     else
-      thirdPartyApplicationSecret.get
+      thirdPartyApplicationSecret
   }
 }
-object Token extends Token with LongKeyedMetaMapper[Token]{
-  def gernerateVerifier(key : String) : Box[String] = {
-    Token.find(key) match {
-      case Full(tkn) => Full(tkn.gernerateVerifier)
-      case _ => Failure("Token not found",Empty, Empty)
-    }
+
+object Token {
+
+  // key is a reserved word, so Schemifier named the column key_c.
+  private val selectColumns =
+    fr"""SELECT id, tokentype, consumerid, userforeignkey, key_c, secret, callbackurl, verifier,
+                duration, expirationdate, insertdate, thirdpartyapplicationsecret
+         FROM token"""
+
+  private type Row = (Long, Option[String], Option[Long], Option[Long], Option[String],
+    Option[String], Option[String], Option[String], Option[Long], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[String])
+
+  private def fromRow(row: Row): Token = row match {
+    case (id, tokenType, consumerId, userForeignKey, key, secret, callbackURL, verifier, duration,
+          expirationDate, insertDate, thirdPartyApplicationSecret) =>
+      Token(id, tokenType.orNull, consumerId, userForeignKey, key.orNull, secret.orNull,
+        callbackURL.orNull, verifier.orNull,
+        // A NULL number reads back as 0, which is what MappedLong did.
+        duration.getOrElse(0L),
+        // Dates come back as plain java.util.Date, as MappedDateTime gave.
+        expirationDate.map(t => new Date(t.getTime)).orNull,
+        insertDate.map(t => new Date(t.getTime)).orNull,
+        thirdPartyApplicationSecret.orNull)
   }
 
+  private def query(condition: Fragment): List[Token] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def opt(value: String): Option[String] = Option(value)
+
+  private def ts(value: Date): Option[java.sql.Timestamp] =
+    Option(value).map(d => new java.sql.Timestamp(d.getTime))
+
+  private def one(condition: Fragment): Box[Token] =
+    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def findByKey(key: String): Box[Token] = one(fr"WHERE key_c = ${opt(key)}")
+
+  def findByKeyAndType(key: String, tokenType: String): Box[Token] =
+    one(fr"WHERE key_c = ${opt(key)} AND tokentype = ${opt(tokenType)}")
+
+  def findByPrimaryKey(id: Long): Box[Token] = one(fr"WHERE id = $id")
+
   def getRequestToken(token: String): Box[Token] =
-    Token.find(By(Token.key, token), By(Token.tokenType, TokenType.Request.toString))
+    findByKeyAndType(token, TokenType.Request.toString)
+
+  /**
+   * Tokens of the same consumer and user that outlive the one given.
+   *
+   * DirectLogin treats only the newest token as valid, and this is how it tells: if anything of
+   * the same pair expires later, the token in hand has been superseded.
+   */
+  def findLaterExpiringForUserAndConsumer(userForeignKey: Option[Long], consumerId: Option[Long],
+                                          expirationDate: Date): List[Token] =
+    query(fr"""WHERE userforeignkey = $userForeignKey AND consumerid = $consumerId
+                 AND expirationdate > ${ts(expirationDate)}""")
+
+  def insert(tokenType: String, consumerId: Option[Long], userForeignKey: Option[Long],
+             key: String, secret: String, callbackURL: String, duration: Long,
+             expirationDate: Date, insertDate: Date): Token = {
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO token
+            (tokentype, consumerid, userforeignkey, key_c, secret, callbackurl, verifier,
+             duration, expirationdate, insertdate, thirdpartyapplicationsecret)
+            VALUES (${opt(tokenType)}, $consumerId, $userForeignKey, ${opt(key)}, ${opt(secret)},
+             ${opt(callbackURL)}, '', $duration, ${ts(expirationDate)}, ${ts(insertDate)}, '')"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    Token(id, tokenType, consumerId, userForeignKey, key, secret, callbackURL, "", duration,
+      expirationDate, insertDate, "")
+  }
+
+  def setUserForeignKey(id: Long, userForeignKey: Long): Boolean =
+    DoobieUtil.runUpdate(
+      sql"UPDATE token SET userforeignkey = $userForeignKey WHERE id = $id".update.run) > 0
+
+  def setVerifier(id: Long, verifier: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"UPDATE token SET verifier = ${opt(verifier)} WHERE id = $id".update.run) > 0
+
+  def setThirdPartyApplicationSecret(id: Long, secret: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"UPDATE token SET thirdpartyapplicationsecret = ${opt(secret)} WHERE id = $id"
+        .update.run) > 0
+
+  def deleteByPrimaryKey(id: Long): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM token WHERE id = $id".update.run) > 0
+
+  /** What the database cleaner sweeps. Mapper deleted row by row; one statement does the same. */
+  def deleteExpiredBefore(currentDate: Date): Boolean = {
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM token WHERE expirationdate < ${ts(currentDate)}".update.run)
+    true
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM token".update.run)
+    ()
+  }
 }

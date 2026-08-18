@@ -169,7 +169,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedconsent",
     "mappedbankaccount",
     "viewdefinition",
-    "nonce"
+    "nonce",
+    "token"
   )
 
   /**

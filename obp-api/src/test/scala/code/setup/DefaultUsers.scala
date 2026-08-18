@@ -228,10 +228,10 @@ trait DefaultUsers {
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
   // prepare the tokens
-  lazy val token1 = Token(testToken1.key.get, testToken1.secret.get)
-  lazy val token2 = Token(testToken2.key.get, testToken2.secret.get)
-  lazy val token3 = Token(testToken3.key.get, testToken3.secret.get)
-  lazy val token4 = Token(testToken4.key.get, testToken4.secret.get)
+  lazy val token1 = Token(testToken1.key, testToken1.secret)
+  lazy val token2 = Token(testToken2.key, testToken2.secret)
+  lazy val token3 = Token(testToken3.key, testToken3.secret)
+  lazy val token4 = Token(testToken4.key, testToken4.secret)
 
   // prepare the OAuth users to login 
   lazy val user1 = Some(consumer, token1)

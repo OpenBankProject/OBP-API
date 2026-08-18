@@ -234,11 +234,8 @@ object DirectLogin extends MdcLoggable {
         case Full(token) => token.isValid match {
           case true =>
             // Only last issued token is considered as a valid one
-            val isNotLastIssuedToken = Token.findAll(
-              By(Token.userForeignKey, token.userForeignKey.get),
-              By(Token.consumerId, token.consumerId.get),
-              By_>(Token.expirationDate, token.expirationDate.get)
-            ).size > 0
+            val isNotLastIssuedToken = Token.findLaterExpiringForUserAndConsumer(
+              token.userForeignKey, token.consumerId, token.expirationDate).size > 0
             if(isNotLastIssuedToken) false else true
           case false => false
         }
@@ -295,11 +292,8 @@ object DirectLogin extends MdcLoggable {
         case Full(token) => token.isValid /*match {
           case true => 
             // Only last issued token is considered as a valid one
-            val isNotLastIssuedToken = Token.findAll(
-              By(Token.userForeignKey, token.userForeignKey.get), 
-              By(Token.consumerId, token.consumerId.get),
-              By_>(Token.expirationDate, token.expirationDate.get)
-            ).size > 0
+            val isNotLastIssuedToken = Token.findLaterExpiringForUserAndConsumer(
+              token.userForeignKey, token.consumerId, token.expirationDate).size > 0
             if(isNotLastIssuedToken) false else true
           case false => false
         }*/
@@ -592,7 +586,7 @@ object DirectLogin extends MdcLoggable {
    */
   def getConsumerFromDirectLoginToken(token: String): Future[Box[Consumer]] = {
     Tokens.tokens.vend.getTokenByKeyFuture(token) map {
-      case Full(t) => t.consumerId.foreign
+      case Full(t) => t.consumer
       case _ => Empty
     } recoverWith {
       case e: Throwable =>

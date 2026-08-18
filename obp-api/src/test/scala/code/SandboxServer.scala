@@ -228,7 +228,7 @@ object SandboxServer {
     }
 
     logger.info(s"[SandboxServer] Sandbox user ready: userId=${resourceUser.userId}")
-    token.key.get
+    token.key
   }
 
   // Tables we explicitly populate in setupSandboxUser, in display order.
