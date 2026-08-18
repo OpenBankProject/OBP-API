@@ -270,6 +270,39 @@ value.flatMap(Option(_)) match {          // Some(null) -> None -> `IS NULL`, as
 ```
 Wrapping at the binding site (`${Option(v)}`) does the same job for a bare `String` parameter.
 
+**Flyway is the only schema authority now, and two things about that are easy to get wrong.**
+`ToSchemify.models` is `Nil`, so Schemifier creates nothing: if Flyway does not run, the database
+has no tables at all. That makes `flyway.enabled` (default **true**) a switch between "the
+application manages the schema" and "you manage it yourself", not between Flyway and Schemifier.
+It bit CI for the whole of PR 91's review: the workflows write `test.default.props` from scratch
+and never mention the prop, while the *local* `test.default.props` is gitignored and had
+`flyway.enabled=true` added by hand — so the local suite reported `ALL SHARDS PASSED` while every
+CI shard aborted in under a minute on `Table "CHATROOM" not found (this database is empty)`.
+Before reporting a suite green, check whether the behaviour depends on a prop, and diff the local
+props against the workflow's Setup-props step; to prove a fix works under CI conditions, remove
+the line locally and re-run.
+
+The second is `baselineOnMigrate`. It stamps a pre-existing schema at `baselineVersion`, which
+Flyway defaults to 1. That was right while V001 was the whole initial schema; the migration is
+per-table now, V001 is the ATM table alone, and every later script does its own `CREATE TABLE`
+*without* `IF NOT EXISTS` (they are Schemifier's exported DDL). Baselining at 1 therefore runs
+V002 against a database that already has the table and the migration fails — i.e. every upgrade,
+since enabling Flyway against a Schemifier-built schema is the only upgrade path. `configure`
+reads the highest version off the classpath and baselines there instead; `MigrationVersion.LATEST`
+cannot be used, Flyway rejects it when writing the baseline row.
+
+**A nullable column must be read through `Option`; the compiler will not tell you.** Doobie's
+`Get` for a non-nullable type throws `NonNullableColumnRead` on a SQL NULL and fails the *whole
+query*, not the row — one legacy row turns a listing into a 500. Mapper never failed a read, and
+its answer depended on the field type: `MappedString`/`MappedDateTime` returned null,
+`MappedBoolean` returned **false** whatever `defaultValue` declared (the getter is
+`data openOr false`; `defaultValue` only seeds a *new* instance), `MappedLong`/`MappedInt`
+returned the declared default. Rows holding NULL are ordinary: Schemifier added fields to
+existing tables with `ALTER TABLE ADD COLUMN` and no backfill. `scripts`-side guard:
+`.github/scripts/check_nullable_column_reads.py` reads each column's nullability from its Flyway
+script and holds it against the store's `Row` type; it runs in both workflows and in
+`run_tests_parallel.sh`.
+
 **Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
 ```sh
 rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \
