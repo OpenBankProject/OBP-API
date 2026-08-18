@@ -12,9 +12,10 @@ import org.scalatest.matchers.should.Matchers
  *    rejects. The mapping is derived from the configured JDBC driver name, which is a string, so
  *    it is worth pinning rather than assuming.
  *
- * 2. It must be off unless asked. During the migration Schemifier is still the authority for the
- *    ~148 tables whose entities remain; a Flyway run that fires by default would create tables
- *    from migration scripts alongside the ones Schemifier owns.
+ * 2. It must be off unless asked. That was written while Schemifier still owned ~148 tables and a
+ *    default-on Flyway would have created tables next to it. Schemifier owns nothing now, so the
+ *    gate no longer protects anything - it only decides whether a deployment gets a schema. It is
+ *    pinned here because flipping it is a deployment decision, not an accident.
  */
 class FlywaySchemaSetupTest extends AnyFlatSpec with Matchers {
 
@@ -38,9 +39,8 @@ class FlywaySchemaSetupTest extends AnyFlatSpec with Matchers {
   }
 
   "runIfEnabled" should "do nothing when flyway.enabled is not set" in {
-    // The test props leave flyway.enabled unset/false, and this must stay a no-op: Schemifier is
-    // still the authority for every table whose entity has not been removed yet. If this ever
-    // starts running migrations by default it will create tables next to Schemifier's.
+    // test.default.props sets flyway.enabled=true, so this exercises the enabled path against a
+    // schema the suite has already migrated: it must be idempotent, not just non-throwing.
     noException should be thrownBy FlywaySchemaSetup.runIfEnabled()
   }
 }
