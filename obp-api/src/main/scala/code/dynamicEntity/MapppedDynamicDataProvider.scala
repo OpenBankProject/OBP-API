@@ -25,12 +25,16 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
     val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
-    saveOrUpdate(bankId, entityName, requestBody, userId, isPersonalEntity, idValue)
+    // Create inserts; it must not fall back to updating whatever row already holds this id. The
+    // id can be supplied by the caller, so an upsert here would overwrite another user's record.
+    writeRecord(bankId, entityName, requestBody, userId, isPersonalEntity, idValue,
+      DynamicData.insert)
   }
   override def update(bankId: Option[String], entityName: String, requestBody: JObject, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
+    // get scopes by user and bank, so reaching the write below means the caller owns the row.
     val dynamicData = get(bankId, entityName, id, userId, isPersonalEntity).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id").asInstanceOf[DynamicData]
-    saveOrUpdate(bankId, entityName, requestBody, userId, isPersonalEntity,
-      dynamicData.dynamicDataId.getOrElse(""))
+    writeRecord(bankId, entityName, requestBody, userId, isPersonalEntity,
+      dynamicData.dynamicDataId.getOrElse(""), DynamicData.updateById)
   }
 
   // Separate method for reference validation - only checks ID and entity name exist
@@ -106,8 +110,9 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       .openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
       .asInstanceOf[DynamicData]
     // Preserve the row's existing owner/personal flag — row-level access changes the data, not provenance.
-    saveOrUpdate(bankId, entityName, requestBody, dynamicData.userId, dynamicData.isPersonalEntity,
-      dynamicData.dynamicDataId.getOrElse(""))
+    // getCommunity has already resolved the row within the bank scope, so this is an update.
+    writeRecord(bankId, entityName, requestBody, dynamicData.userId, dynamicData.isPersonalEntity,
+      dynamicData.dynamicDataId.getOrElse(""), DynamicData.updateById)
   }
 
   override def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean] = {
@@ -124,13 +129,14 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     else DynamicData.findAllImpersonal(bankId, dynamicEntityName).nonEmpty
   }
 
-  private def saveOrUpdate(bankId: Option[String], entityName: String, requestBody: JObject,
-                           userId: Option[String], isPersonalEntity: Boolean,
-                           dynamicDataId: String): Box[DynamicData] =
+  /** The shared half of create and update; `write` is what decides which of the two it is. */
+  private def writeRecord(bankId: Option[String], entityName: String, requestBody: JObject,
+                          userId: Option[String], isPersonalEntity: Boolean,
+                          dynamicDataId: String,
+                          write: (String, String, String, Option[String], Option[String], Boolean) => DynamicData): Box[DynamicData] =
     tryo {
       val dataStr = json.compactRender(requestBody)
-      val saved = DynamicData.upsert(dynamicDataId, entityName, dataStr, bankId, userId,
-        isPersonalEntity)
+      val saved = write(dynamicDataId, entityName, dataStr, bankId, userId, isPersonalEntity)
       // DE_indexing: keep the projection in sync in the same transaction (no-op unless projection enabled+ready).
       code.api.dynamic.entity.projection.ProjectionDualWrite.onSave(bankId, entityName,
         saved.dynamicDataId.getOrElse(""), requestBody)
@@ -253,21 +259,44 @@ object DynamicData {
     one(fr"WHERE dynamicdataid = $id AND dynamicentityname = $entityName AND " ++
       scopedBank(bankId))
 
-  def upsert(dynamicDataId: String, entityName: String, dataJson: String, bankId: Option[String],
+  /**
+   * Creates a record. INSERT only - never an upsert.
+   *
+   * The record id can come from the request body, and it is unique across the whole table rather
+   * than per entity, per bank or per user. An id-keyed upsert on this path would therefore let a
+   * caller who names an existing id overwrite somebody else's row - including its userid and
+   * bankid, which is to say re-own it. Mapper's create path was `DynamicData.create...saveMe()`,
+   * an INSERT, so a duplicate id hit DYNAMICDATA_DYNAMICDATAID and surfaced as a Failure with the
+   * existing row untouched. That is the behaviour kept here: the unique index is the check, and
+   * the caller's `tryo` turns the violation back into a Failure.
+   */
+  def insert(dynamicDataId: String, entityName: String, dataJson: String, bankId: Option[String],
              userId: Option[String], isPersonalEntity: Boolean): DynamicData = {
-    val updated = DoobieUtil.runUpdate(
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO dynamicdata
+            (dynamicdataid, dynamicentityname, datajson, bankid, userid, ispersonalentity)
+            VALUES ($dynamicDataId, ${Option(entityName)}, ${Option(dataJson)}, $bankId, $userId,
+             $isPersonalEntity)"""
+        .update.run)
+    one(fr"WHERE dynamicdataid = $dynamicDataId")
+      .openOrThrowException("the dynamic data just written must be readable")
+  }
+
+  /**
+   * Rewrites an existing record, addressed by id.
+   *
+   * Only the update path may use this, and only after it has resolved the record through `get`,
+   * which scopes the lookup by user and bank - so by the time this runs the caller's right to the
+   * row has been established. It is deliberately not reachable from create.
+   */
+  def updateById(dynamicDataId: String, entityName: String, dataJson: String,
+                 bankId: Option[String], userId: Option[String],
+                 isPersonalEntity: Boolean): DynamicData = {
+    DoobieUtil.runUpdate(
       sql"""UPDATE dynamicdata SET dynamicentityname = ${Option(entityName)},
               datajson = ${Option(dataJson)}, bankid = $bankId, userid = $userId,
               ispersonalentity = $isPersonalEntity
             WHERE dynamicdataid = $dynamicDataId""".update.run)
-    if (updated == 0) {
-      DoobieUtil.runUpdate(
-        sql"""INSERT INTO dynamicdata
-              (dynamicdataid, dynamicentityname, datajson, bankid, userid, ispersonalentity)
-              VALUES ($dynamicDataId, ${Option(entityName)}, ${Option(dataJson)}, $bankId, $userId,
-               $isPersonalEntity)"""
-          .update.run)
-    }
     one(fr"WHERE dynamicdataid = $dynamicDataId")
       .openOrThrowException("the dynamic data just written must be readable")
   }
