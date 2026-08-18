@@ -335,7 +335,16 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDTRANSACTIONIMAGE" -> "MAPPEDTRANSACTIONIMAGE_BANK_ACCOUNT_TRANSACTION_C_VIEW_C",
     "CONNECTOR_TRACE" -> "CONNECTOR_TRACE_DATE_C",
     "CONSENT_ITEM" -> "CONSENT_ITEM_CONSENT_REFERENCE_ID",
-    "CONSENT_ITEM" -> "CONSENT_ITEM_CONSENT_REFERENCE_ID_BANK_ID"
+    "CONSENT_ITEM" -> "CONSENT_ITEM_CONSENT_REFERENCE_ID_BANK_ID",
+    // V118: the rest of what each entity's own dbIndexes list declared. V117 restored the ones
+    // that were visible from reading the early scripts; enumerating the declarations instead
+    // turns up six more, all on tables read per request.
+    "CONNECTOR_TRACE" -> "CONNECTOR_TRACE_CORRELATIONID",
+    "CONNECTOR_TRACE" -> "CONNECTOR_TRACE_CONNECTORNAME",
+    "CONNECTOR_TRACE" -> "CONNECTOR_TRACE_FUNCTIONNAME",
+    "CONNECTOR_TRACE" -> "CONNECTOR_TRACE_USERID",
+    "CONNECTOR_TRACE" -> "CONNECTOR_TRACE_BANKID",
+    "CONSENT_ITEM" -> "CONSENT_ITEM_BANK_ID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
