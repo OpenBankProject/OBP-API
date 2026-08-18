@@ -27,29 +27,18 @@ import java.util.Date
  * one SELECT, which is the same answer without the extra round trips.
  */
 case class BankAccountBalance(
-  balanceIdValue: String,
-  bankIdValue: String,
-  accountIdValue: String,
+  balanceId: BalanceId,
+  bankId: BankId,
+  accountId: AccountId,
   balanceType: String,
+  balanceAmount: BigDecimal,
+  referenceDate: Option[String],
+  lastChangeDateTime: Option[Date],
+  // Storage detail rather than part of the trait: the column holds the amount in the smallest
+  // currency unit, and writes need it back in that form.
   balanceAmountSmallestUnit: Long,
-  currency: String,
-  referenceDateValue: Option[java.sql.Date],
-  updatedAtValue: Date
-) extends BankAccountBalanceTrait with MdcLoggable {
-
-  override def bankId: BankId = BankId(bankIdValue)
-  override def accountId: AccountId = AccountId(accountIdValue)
-  override def balanceId: BalanceId = BalanceId(balanceIdValue)
-  override def balanceAmount: BigDecimal =
-    Helper.smallestCurrencyUnitToBigDecimal(balanceAmountSmallestUnit, currency)
-  override def lastChangeDateTime: Option[Date] = Some(updatedAtValue)
-  override def referenceDate: Option[String] = referenceDateValue match {
-    case Some(d) => Some(d.toString)
-    case None =>
-      logger.warn(s"ReferenceDate is missing for BalanceId=$balanceIdValue, AccountId=$accountIdValue, BankId=$bankIdValue")
-      None
-  }
-}
+  currency: String
+) extends BankAccountBalanceTrait with MdcLoggable
 
 object BankAccountBalance {
 
@@ -65,11 +54,24 @@ object BankAccountBalance {
                 b.referencedate, b.updatedat
          FROM bankaccountbalance b"""
 
-  private type Row = (String, String, String, String, Long, String, Option[java.sql.Date], java.sql.Timestamp)
+  private type Row = (String, String, String, Option[String], Option[Long], String,
+    Option[java.sql.Date], Option[java.sql.Timestamp])
 
   private def fromRow(row: Row): BankAccountBalance = row match {
     case (balanceId, bankId, accountId, balanceType, amount, currency, referenceDate, updatedAt) =>
-      BankAccountBalance(balanceId, bankId, accountId, balanceType, amount, currency, referenceDate, updatedAt)
+      val amountSmallestUnit = amount.getOrElse(0L)
+      BankAccountBalance(
+        balanceId = BalanceId(balanceId),
+        bankId = BankId(bankId),
+        accountId = AccountId(accountId),
+        balanceType = balanceType.orNull,
+        balanceAmount = Helper.smallestCurrencyUnitToBigDecimal(amountSmallestUnit, currency),
+        referenceDate = referenceDate.map(_.toString),
+        // A java.sql.Timestamp put straight into a field typed java.util.Date serializes as {};
+        // convert it.
+        lastChangeDateTime = updatedAt.map(t => new Date(t.getTime)),
+        balanceAmountSmallestUnit = amountSmallestUnit,
+        currency = currency)
   }
 
   private def query(condition: Fragment): List[BankAccountBalance] =
@@ -106,8 +108,17 @@ object BankAccountBalance {
             (balanceid_, bankid_, accountid_, balancetype, balanceamount, createdat, updatedat)
             VALUES ($balanceId, $bankId, $accountId, $balanceType, $amountSmallestUnit, $now, $now)"""
         .update.run)
-    BankAccountBalance(balanceId, bankId, accountId, balanceType, amountSmallestUnit,
-      accountCurrency(accountId), None, now)
+    val currency = accountCurrency(accountId)
+    BankAccountBalance(
+      balanceId = BalanceId(balanceId),
+      bankId = BankId(bankId),
+      accountId = AccountId(accountId),
+      balanceType = balanceType,
+      balanceAmount = Helper.smallestCurrencyUnitToBigDecimal(amountSmallestUnit, currency),
+      referenceDate = None,
+      lastChangeDateTime = Some(new Date(now.getTime)),
+      balanceAmountSmallestUnit = amountSmallestUnit,
+      currency = currency)
   }
 
   def update(balanceId: String, bankId: String, accountId: String, balanceType: String,

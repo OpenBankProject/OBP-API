@@ -42,16 +42,22 @@ object DynamicMessageDoc {
                 inboundavroschema, adapterimplementation, methodbody, lang
          FROM dynamicmessagedoc"""
 
-  private type Row = (String, Option[String], String, String, String, String, String, String,
-    String, String, String, String, String, String)
+  // Read as Option wherever the insert binds Option: a doc stored with a null topic or schema is
+  // SQL NULL, and a bare String mapping would throw NonNullableColumnRead for the whole query.
+  private type Row = (String, Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): DynamicMessageDoc = row match {
     case (dynamicMessageDocId, bankId, process, messageFormat, description, outboundTopic,
           inboundTopic, exampleOutboundMessage, exampleInboundMessage, outboundAvroSchema,
           inboundAvroSchema, adapterImplementation, methodBody, programmingLang) =>
-      DynamicMessageDoc(dynamicMessageDocId, bankId, process, messageFormat, description,
-        outboundTopic, inboundTopic, exampleOutboundMessage, exampleInboundMessage,
-        outboundAvroSchema, inboundAvroSchema, adapterImplementation, methodBody, programmingLang)
+      // orNull, as MappedString did on read.
+      DynamicMessageDoc(dynamicMessageDocId, bankId, process.orNull, messageFormat.orNull,
+        description.orNull, outboundTopic.orNull, inboundTopic.orNull,
+        exampleOutboundMessage.orNull, exampleInboundMessage.orNull, outboundAvroSchema.orNull,
+        inboundAvroSchema.orNull, adapterImplementation.orNull, methodBody.orNull,
+        programmingLang.orNull)
   }
 
   private def query(condition: Fragment): List[DynamicMessageDoc] =

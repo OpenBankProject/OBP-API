@@ -140,14 +140,18 @@ object DynamicEntity {
                 haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess
          FROM dynamicentity"""
 
-  private type Row = (String, String, String, String, Option[String], Boolean, Boolean, Boolean,
-    Boolean, Boolean)
+  // Option wherever the insert binds Option, and for the flags too: Mapper's MappedBoolean read a
+  // NULL column as false rather than throwing, and older rows predate these columns.
+  private type Row = (String, Option[String], Option[String], Option[String], Option[String],
+    Option[Boolean], Option[Boolean], Option[Boolean], Option[Boolean], Option[Boolean])
 
   private def fromRow(row: Row): DynamicEntity = row match {
     case (dynamicEntityId, entityName, metadataJson, userId, bankId, hasPersonalEntity,
           hasPublicAccess, hasCommunityAccess, personalRequiresRole, useRowLevelAccess) =>
-      DynamicEntity(dynamicEntityId, entityName, metadataJson, userId, bankId, hasPersonalEntity,
-        hasPublicAccess, hasCommunityAccess, personalRequiresRole, useRowLevelAccess)
+      DynamicEntity(dynamicEntityId, entityName.orNull, metadataJson.orNull, userId.orNull, bankId,
+        hasPersonalEntity.getOrElse(false), hasPublicAccess.getOrElse(false),
+        hasCommunityAccess.getOrElse(false), personalRequiresRole.getOrElse(false),
+        useRowLevelAccess.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[DynamicEntity] =

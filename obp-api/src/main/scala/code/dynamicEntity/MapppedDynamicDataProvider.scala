@@ -181,11 +181,15 @@ object DynamicData {
     fr"""SELECT dynamicdataid, dynamicentityname, datajson, bankid, userid, ispersonalentity
          FROM dynamicdata"""
 
-  private type Row = (String, String, String, Option[String], Option[String], Boolean)
+  // The name and payload columns are bound through Option on insert, so they are read as Option
+  // too - a bare String mapping throws NonNullableColumnRead on a NULL and fails the whole query.
+  private type Row = (String, Option[String], Option[String], Option[String], Option[String],
+    Option[Boolean])
 
   private def fromRow(row: Row): DynamicData = row match {
     case (dynamicDataId, dynamicEntityName, dataJson, bankId, userId, isPersonalEntity) =>
-      DynamicData(dynamicDataId, dynamicEntityName, dataJson, bankId, userId, isPersonalEntity)
+      DynamicData(dynamicDataId, dynamicEntityName.orNull, dataJson.orNull, bankId, userId,
+        isPersonalEntity.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[DynamicData] =

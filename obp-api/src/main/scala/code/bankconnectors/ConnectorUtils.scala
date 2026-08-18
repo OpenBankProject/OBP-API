@@ -46,12 +46,49 @@ object ConnectorUtils {
     case v => deleteIgnoreFields(v, inBoundClass)
   }
 
+  /**
+   * Reshapes a connector result into the payload type its InBound DTO declares.
+   *
+   * The serialization below is json4s decompose, which writes a case class's CONSTRUCTOR
+   * PARAMETERS and ignores its trait accessors. A row named after its columns - MappedBankAccount's
+   * accountBalance / theAccountId, say - therefore produces JSON that BankAccountCommons cannot
+   * read, and extraction fails with "No usable value for balance" rather than returning a partly
+   * filled object. Converting first, through the same reflective sibling conversion the Converter
+   * companions use, makes the JSON match by construction: toOther reads the trait accessors by the
+   * target's parameter names.
+   *
+   * Anything without a usable sibling - a primitive, a type that is already the DTO's, an abstract
+   * target - is passed through untouched, which is what happened to everything before.
+   */
+  private def toDeclaredPayloadType(obj: Any, inBoundClass: Class[_]): Any = {
+    val dataType: Option[universe.Type] =
+      ReflectUtils.classToType(inBoundClass).members
+        .find(m => m.isMethod && m.name.decodedName.toString == "data")
+        .map(_.asMethod.returnType)
+
+    def convert(value: Any, tp: universe.Type): Any = value match {
+      case null => null
+      case _ if tp.typeSymbol.isAbstract => value
+      case list: List[_] if tp.typeArgs.nonEmpty =>
+        val elementType = tp.typeArgs.head
+        if (elementType.typeSymbol.isAbstract) list
+        else list.map(item => convert(item, elementType))
+      case option: Option[_] if tp.typeArgs.nonEmpty =>
+        option.map(item => convert(item, tp.typeArgs.head))
+      case single =>
+        scala.util.Try(ReflectUtils.toOther[Any](single, tp)).getOrElse(single)
+    }
+
+    dataType.map(tp => convert(obj, tp)).getOrElse(obj)
+  }
+
   private def deleteIgnoreFields(obj: Any, inBoundClass:  Class[_]): Any = {
     implicit val formats: Formats = LocalMappedConnector.formats
     def processIgnoreFields(fields: List[String]): List[String] = fields.collect {
       case x if x.startsWith("data.") => StringUtils.substringAfter(x, "data.")
     }
-    val zson = OptionalFieldSerializer.toIgnoreFieldJson(obj, ReflectUtils.classToType(inBoundClass), processIgnoreFields)
+    val payload = toDeclaredPayloadType(obj, inBoundClass)
+    val zson = OptionalFieldSerializer.toIgnoreFieldJson(payload, ReflectUtils.classToType(inBoundClass), processIgnoreFields)
 
     val jObj: JValue = "data" -> zson
 
