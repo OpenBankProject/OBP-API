@@ -100,14 +100,8 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
   
   
   override def beforeEach() = {
-    //returns true if the model should not be wiped after each test
-    def exclusion(m : MetaMapper[_]) = {
-      m == AuthUser
-    }
-    //drop database tables before
-    ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
-    // loop above does not clear them. Each such table needs its own explicit delete here.
+    // Every table is listed explicitly: no entity is a Lift Mapper any more, so there is no model
+    // loop to clear them. The auth tables are deliberately absent - DefaultUsers manages those.
     // AtmTableResetIsolationTest fails if this is forgotten.
     DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappednarrative".update.run)
@@ -251,10 +245,10 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     //we need to delete the test uses manully here.
-    AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))
-    AuthUser.bulkDelete_!!(By(AuthUser.username, user2Import.user_name))
-    AuthUser.bulkDelete_!!(By(AuthUser.username, differentUsername))
-    AuthUser.bulkDelete_!!(By(AuthUser.username, secondUserName))
+    AuthUser.deleteAllByUsername(user1Import.user_name)
+    AuthUser.deleteAllByUsername(user2Import.user_name)
+    AuthUser.deleteAllByUsername(differentUsername)
+    AuthUser.deleteAllByUsername(secondUserName)
     ResourceUser.deleteAllByName(user1Import.user_name)
     ResourceUser.deleteAllByName(user2Import.user_name)
     ResourceUser.deleteAllByName(differentUsername)
@@ -1018,11 +1012,11 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
 
     //TODO: we shouldn't reference AuthUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
-    val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1Import.user_name))
+    val createdAuthUserBox = AuthUser.findByUsername(user1Import.user_name)
     createdAuthUserBox.isDefined should equal(true)
 
     val createdAuthUser = createdAuthUserBox.openOrThrowException(attemptedToOpenAnEmptyBox)
-    createdAuthUser.password.match_?(user1Import.password) should equal(true)
+    createdAuthUser.testPassword(net.liftweb.common.Full(user1Import.password)) should equal(true)
   }
 
   it should "require accounts to have non-empty ids" in {

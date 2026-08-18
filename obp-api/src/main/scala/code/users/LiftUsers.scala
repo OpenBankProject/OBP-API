@@ -360,7 +360,7 @@ object LiftUsers extends Users with MdcLoggable{
     } yield {
       // A user who never had an AuthUser has no login to keep working, so their username, email and
       // provider id are scrambled too; one who does keeps them, and only the company is scrambled.
-      val scrambled = AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
+      val scrambled = AuthUser.findByResourceUserPrimaryKey(userPrimaryKey.value) match {
         case Empty =>
           u.copy(
             company = Helpers.randomString(16),

@@ -151,15 +151,14 @@ object SandboxServer {
 
   private def setupSandboxUser(): String = {
     // 1. Create AuthUser (needed for DirectLogin password auth)
-    if (AuthUser.find(By(AuthUser.username, sandboxUsername)).isEmpty) {
-      val authUser = AuthUser.create
-        .email(sandboxEmail)
-        .firstName("Sandbox")
-        .lastName("User")
-        .username(sandboxUsername)
-        .password(sandboxPassword)
-        .validated(true)
-        .passwordShouldBeChanged(false)
+    if (AuthUser.findByUsername(sandboxUsername).isEmpty) {
+      val authUser = AuthUser(
+        email = sandboxEmail,
+        firstName = "Sandbox",
+        lastName = "User",
+        username = sandboxUsername,
+        validated = true,
+        passwordShouldBeChanged = false).withPassword(sandboxPassword)
       authUser.save
     }
 

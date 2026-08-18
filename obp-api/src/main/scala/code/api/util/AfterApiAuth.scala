@@ -51,7 +51,7 @@ object AfterApiAuth extends MdcLoggable{
     } yield {
       user match {
         case Full(u) => // There is a user. Apply init actions
-          val authUser: Box[AuthUser] = AuthUser.find(By(AuthUser.user, u.userPrimaryKey.value))
+          val authUser: Box[AuthUser] = AuthUser.findByResourceUserPrimaryKey(u.userPrimaryKey.value)
           innerLoginUserInitAction(authUser)
           (user, cc)
         case userInitActionFailure => // There is no user. Just forward the result.
@@ -114,7 +114,7 @@ object AfterApiAuth extends MdcLoggable{
           val account = LocalMappedConnectorInternal.createSandboxBankAccount(
             bankId = bank.bankId, accountId = AccountId(accountId), accountNumber = label + "-1",
             accountType = accountType, accountLabel =  s"$label",
-            currency = "EUR", initialBalance = 0, accountHolderName = user.username.get,
+            currency = "EUR", initialBalance = 0, accountHolderName = user.username,
             "",
             List.empty
           )
@@ -123,7 +123,7 @@ object AfterApiAuth extends MdcLoggable{
       }
     }
     
-    Users.users.vend.getUserByResourceUserId(user.user.get) match {
+    Users.users.vend.getUserByResourceUserId(user.user) match {
       case Full(resourceUser) =>
         // Create a bank according to the rule: bankid = user.user_id
         val bankId = "user." + resourceUser.userId
@@ -167,7 +167,7 @@ object AfterApiAuth extends MdcLoggable{
             false
         }
       case _ =>
-        logger.warn("AfterApiAuth.sofitInitAction. Cannot find resource user by primary key: " + user.id.get)
+        logger.warn("AfterApiAuth.sofitInitAction. Cannot find resource user by primary key: " + user.id)
         false
     }
   }

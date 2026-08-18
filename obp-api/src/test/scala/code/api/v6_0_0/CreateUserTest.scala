@@ -46,7 +46,7 @@ class CreateUserTest extends V600ServerSetup {
 
   override def afterAll(): Unit = {
     // Clean up test users
-    AuthUser.find(By(AuthUser.username, randomUsername)).map(_.delete_!)
+    AuthUser.findByUsername(randomUsername).map(_.delete_!)
     setPropsValues("authUser.skipEmailValidation" -> "false")
     super.afterAll()
   }
@@ -80,7 +80,7 @@ class CreateUserTest extends V600ServerSetup {
       (json \ "provider").extract[String] should not be empty
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
     Scenario("Successfully create user with long password (>16 chars)", ApiEndpointCreateUser, VersionOfApi) {
@@ -103,7 +103,7 @@ class CreateUserTest extends V600ServerSetup {
       response.code should equal(201)
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
     Scenario("Fail to create user - duplicate username returns OBP-20258", ApiEndpointCreateUser, VersionOfApi) {
@@ -144,7 +144,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should not include("Incorrect json format")
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
     Scenario("Fail to create user - invalid JSON format", ApiEndpointCreateUser, VersionOfApi) {
@@ -460,7 +460,7 @@ class CreateUserTest extends V600ServerSetup {
       (response.body \ "username").extract[String] should equal(uniqueUsername)
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
     Scenario("Create multiple users with different usernames", ApiEndpointCreateUser, VersionOfApi) {
@@ -487,7 +487,7 @@ class CreateUserTest extends V600ServerSetup {
         response.code should equal(201)
         
         // Clean up
-        AuthUser.find(By(AuthUser.username, username)).map(_.delete_!)
+        AuthUser.findByUsername(username).map(_.delete_!)
       }
     }
   }

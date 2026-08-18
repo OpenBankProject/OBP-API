@@ -4426,7 +4426,7 @@ trait APIMethods600
 //
 //            // STEP 4: Create AuthUser object
 //            userCreated <- Future {
-//              code.model.dataAccess.AuthUser.create
+//              code.model.dataAccess.AuthUser()
 //                .firstName(postedData.first_name)
 //                .lastName(postedData.last_name)
 //                .username(postedData.username)

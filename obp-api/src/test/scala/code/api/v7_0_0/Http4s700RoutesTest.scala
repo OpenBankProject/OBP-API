@@ -3345,13 +3345,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       Given("a validated local-provider user")
       val username = "already-validated-" + System.currentTimeMillis()
       val email = s"$username@example.com"
-      val u = code.model.dataAccess.AuthUser.create
-        .username(username)
-        .email(email)
-        .provider(code.api.Constant.localIdentityProvider)
-        .password("Aa1!" + java.util.UUID.randomUUID().toString)
-        .validated(true)
-        .saveMe()
+      val u = code.model.dataAccess.AuthUser(
+        username = username,
+        email = email,
+        provider = code.api.Constant.localIdentityProvider,
+        validated = true).withPassword("Aa1!" + java.util.UUID.randomUUID().toString).saveMe()
       try {
         When("we POST the resend request")
         val body = s"""{"username":"$username","email":"$email"}"""
@@ -3374,13 +3372,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       Given("an unvalidated local-provider user (validation email enabled)")
       val username = "needs-validation-" + System.currentTimeMillis()
       val email = s"$username@example.com"
-      val u = code.model.dataAccess.AuthUser.create
-        .username(username)
-        .email(email)
-        .provider(code.api.Constant.localIdentityProvider)
-        .password("Aa1!" + java.util.UUID.randomUUID().toString)
-        .validated(false)
-        .saveMe()
+      val u = code.model.dataAccess.AuthUser(
+        username = username,
+        email = email,
+        provider = code.api.Constant.localIdentityProvider,
+        validated = false).withPassword("Aa1!" + java.util.UUID.randomUUID().toString).saveMe()
       try {
         When("we POST the resend request")
         val body = s"""{"username":"$username","email":"$email"}"""

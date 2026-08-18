@@ -2247,11 +2247,11 @@ object Http4s510 {
               .map(x => unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404))
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
             isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
-            authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+            authUser = AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value)
           } yield JSONFactory510.createUserWithNamesJSON(
             user,
-            authUser.map(_.firstName.get).getOrElse(""),
-            authUser.map(_.lastName.get).getOrElse(""),
+            authUser.map(_.firstName).getOrElse(""),
+            authUser.map(_.lastName).getOrElse(""),
             entitlements, None, isLocked
           )
         }
@@ -2389,7 +2389,7 @@ object Http4s510 {
           for {
             (user, _) <- NewStyle.function.findByUserId(userId, Some(cc))
             (userValidated, _) <- NewStyle.function.validateUser(user.userPrimaryKey, Some(cc))
-          } yield UserValidatedJson(userValidated.validated.get)
+          } yield UserValidatedJson(userValidated.validated)
         }
     }
     resourceDocs += ResourceDoc(

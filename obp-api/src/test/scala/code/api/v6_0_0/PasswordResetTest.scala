@@ -61,7 +61,7 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       "portal_external_url" -> "https://test-portal.example.com",
       "mail.test.mode" -> "true"
     )
-    AuthUser.bulkDelete_!!(By(AuthUser.username, postJson.username))
+    AuthUser.deleteAllByUsername(postJson.username)
     ResourceUser.deleteAllByProviderId(postJson.username)
   }
 
@@ -123,8 +123,11 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
 
     Scenario("We will call the endpoint with the proper Role " + canCreateResetPasswordUrl, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
-      val authUser: AuthUser = AuthUser.create.email(postJson.email).username(postJson.username).validated(true).saveMe()
-      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+      val authUser: AuthUser = AuthUser(
+        email = postJson.email,
+        username = postJson.username,
+        validated = true).saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user)
       When("We make a request v6.0.0")
       val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val response600 = makePostRequest(request600, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
@@ -143,8 +146,11 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
 
     Scenario("SMTP failure must surface as a 500, not a fake 'sent'", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
-      val authUser: AuthUser = AuthUser.create.email(postJson.email).username(postJson.username).validated(true).saveMe()
-      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+      val authUser: AuthUser = AuthUser(
+        email = postJson.email,
+        username = postJson.username,
+        validated = true).saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user)
       And("SMTP is misconfigured (closed port) with test mode off, so the send must fail")
       setPropsValues(
         "mail.test.mode" -> "false",
@@ -173,8 +179,11 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
       val testUsername = "unvalidated@tesobe.com"
       val testEmail = "unvalidated@tesobe.com"
-      val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(false).saveMe()
-      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = false).saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user)
       When("We make a request v6.0.0 with unvalidated user")
       val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val testJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, testEmail, resourceUser.map(_.userId).getOrElse(""))
@@ -192,8 +201,11 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       val testUsername = "mismatch@tesobe.com"
       val testEmail = "correct@tesobe.com"
       val wrongEmail = "wrong@tesobe.com"
-      val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(true).saveMe()
-      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true).saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user)
       When("We make a request v6.0.0 with mismatched email")
       val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val testJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, wrongEmail, resourceUser.map(_.userId).getOrElse(""))
@@ -227,7 +239,10 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
     Scenario("We will request a password reset for a valid user without authentication", ApiEndpoint2, VersionOfApi) {
       val testUsername = "anonreset@tesobe.com"
       val testEmail = "anonreset@tesobe.com"
-      val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(true).saveMe()
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true).saveMe()
       When("We make an anonymous request to reset password")
       val request600 = (v6_0_0_Request / "users" / "password-reset-url").POST
       val anonJson = JSONFactory600.PostResetPasswordUrlAnonymousJsonV600(testUsername, testEmail)
@@ -256,7 +271,10 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
     Scenario("We will request a password reset with mismatched email - should still return 201", ApiEndpoint2, VersionOfApi) {
       val testUsername = "anonmismatch@tesobe.com"
       val testEmail = "anonmismatch@tesobe.com"
-      val authUser: AuthUser = AuthUser.create.email(testEmail).username(testUsername).validated(true).saveMe()
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true).saveMe()
       When("We make an anonymous request with wrong email")
       val request600 = (v6_0_0_Request / "users" / "password-reset-url").POST
       val anonJson = JSONFactory600.PostResetPasswordUrlAnonymousJsonV600(testUsername, "wrong@tesobe.com")
@@ -286,16 +304,13 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
     Scenario("Successfully reset password with valid JWT token and strong password", ApiEndpoint3, VersionOfApi) {
       val testUsername = "complete@tesobe.com"
       val testEmail = "complete@tesobe.com"
-      val authUser: AuthUser = AuthUser.create
-        .email(testEmail)
-        .username(testUsername)
-        .password(strongPassword)
-        .validated(true)
-        .saveMe()
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true).withPassword(strongPassword).saveMe()
       // Set a known uniqueId and create a JWT containing it
       val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
-      authUser.uniqueId.set(resetUniqueId)
-      authUser.save
+      authUser.copy(uniqueId = resetUniqueId).save
       val jwtToken = createJwtToken(resetUniqueId)
 
       When("We complete the password reset with the JWT token")
@@ -313,21 +328,18 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       response600Again.code should equal(400)
 
       // Clean up
-      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+      AuthUser.findByUsername(testUsername).map(_.delete_!)
     }
 
     Scenario("Fail to reset password with expired JWT token", ApiEndpoint3, VersionOfApi) {
       val testUsername = "expired@tesobe.com"
       val testEmail = "expired@tesobe.com"
-      val authUser: AuthUser = AuthUser.create
-        .email(testEmail)
-        .username(testUsername)
-        .password(strongPassword)
-        .validated(true)
-        .saveMe()
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true).withPassword(strongPassword).saveMe()
       val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
-      authUser.uniqueId.set(resetUniqueId)
-      authUser.save
+      authUser.copy(uniqueId = resetUniqueId).save
       val expiredToken = createExpiredJwtToken(resetUniqueId)
 
       When("We try to complete a password reset with an expired JWT token")
@@ -338,7 +350,7 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       response600.code should equal(400)
 
       // Clean up
-      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+      AuthUser.findByUsername(testUsername).map(_.delete_!)
     }
 
     Scenario("Fail to reset password with invalid token", ApiEndpoint3, VersionOfApi) {
@@ -362,15 +374,12 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
     Scenario("Fail to reset password with weak password", ApiEndpoint3, VersionOfApi) {
       val testUsername = "weakpw@tesobe.com"
       val testEmail = "weakpw@tesobe.com"
-      val authUser: AuthUser = AuthUser.create
-        .email(testEmail)
-        .username(testUsername)
-        .password(strongPassword)
-        .validated(true)
-        .saveMe()
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true).withPassword(strongPassword).saveMe()
       val resetUniqueId = UUID.randomUUID().toString.replace("-", "")
-      authUser.uniqueId.set(resetUniqueId)
-      authUser.save
+      authUser.copy(uniqueId = resetUniqueId).save
       val jwtToken = createJwtToken(resetUniqueId)
 
       When("We try to complete a password reset with a weak password")
@@ -383,7 +392,7 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       response600.body.extract[ErrorMessage].message should include(InvalidStrongPasswordFormat)
 
       // Clean up
-      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+      AuthUser.findByUsername(testUsername).map(_.delete_!)
     }
 
     Scenario("Fail to reset password with invalid JSON", ApiEndpoint3, VersionOfApi) {
@@ -404,13 +413,11 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
       val testUsername = "fullflow@tesobe.com"
       val testEmail = "fullflow@tesobe.com"
-      val authUser: AuthUser = AuthUser.create
-        .email(testEmail)
-        .username(testUsername)
-        .password(strongPassword)
-        .validated(true)
-        .saveMe()
-      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+      val authUser: AuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true).withPassword(strongPassword).saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user)
 
       When("We request a password reset email via the authenticated endpoint")
       val resetUrlRequest = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
@@ -425,10 +432,10 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       ack.to should equal(testEmail)
 
       And("The endpoint rotated the user's uniqueId; we mint a matching JWT to drive the complete step")
-      val rotatedAuthUser = AuthUser.find(By(AuthUser.username, testUsername)).openOrThrowException("user gone after reset request")
+      val rotatedAuthUser = AuthUser.findByUsername(testUsername).openOrThrowException("user gone after reset request")
       val expiryMinutes = code.api.util.APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
       val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-        .subject(rotatedAuthUser.uniqueId.get)
+        .subject(rotatedAuthUser.uniqueId)
         .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
         .issueTime(new java.util.Date())
         .build()
@@ -450,7 +457,7 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
       completeResponseAgain.code should equal(400)
 
       // Clean up
-      AuthUser.find(By(AuthUser.username, testUsername)).map(_.delete_!)
+      AuthUser.findByUsername(testUsername).map(_.delete_!)
     }
   }
 }

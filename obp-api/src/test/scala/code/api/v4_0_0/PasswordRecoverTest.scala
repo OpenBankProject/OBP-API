@@ -49,7 +49,7 @@ class PasswordRecoverTest extends V400ServerSetup {
   override def beforeEach() = {
     wipeTestData()
     super.beforeEach()
-    AuthUser.bulkDelete_!!(By(AuthUser.username, postJson.username))
+    AuthUser.deleteAllByUsername(postJson.username)
     ResourceUser.deleteAllByProviderId(postJson.username)
   } 
 
@@ -90,8 +90,11 @@ class PasswordRecoverTest extends V400ServerSetup {
 
     Scenario("We will call the endpoint with the proper Role " + canCreateResetPasswordUrl , ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
-      val authUser: AuthUser = AuthUser.create.email(postJson.email).username(postJson.username).validated(true).saveMe()
-      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+      val authUser: AuthUser = AuthUser(
+        email = postJson.email,
+        username = postJson.username,
+        validated = true).saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user)
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val response400 = makePostRequest(request400, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))

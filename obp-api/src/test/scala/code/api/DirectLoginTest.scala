@@ -50,30 +50,26 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
   val PASSWORD_DISABLED = randomString(20)
 
   before {
-    if (AuthUser.find(By(AuthUser.username, USERNAME)).isEmpty)
-      AuthUser.create.
-        email(EMAIL).
-        username(USERNAME).
-        password(VALID_PW).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+    if (AuthUser.findByUsername(USERNAME).isEmpty)
+      AuthUser(
+        email = EMAIL,
+        username = USERNAME,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
       Consumers.consumers.vend.createConsumer(
         Some(KEY), Some(SECRET), Some(true), Some("test application"), None, Some("description"), Some("eveline@example.com"), None,None,None,None,None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
 
-    if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
-      AuthUser.create.
-        email(EMAIL_DISABLED).
-        username(USERNAME_DISABLED).
-        password(PASSWORD_DISABLED).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+    if (AuthUser.findByUsername(USERNAME_DISABLED).isEmpty)
+      AuthUser(
+        email = EMAIL_DISABLED,
+        username = USERNAME_DISABLED,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(PASSWORD_DISABLED).saveMe()
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, Some("description"), Some("eveline@example.com"), None, 
@@ -405,16 +401,14 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
         format(username, VALID_PW, KEY))
       
       // Delete the user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!)
+      AuthUser.findAllByUsername(username).map(_.delete_!)
       // Create the user
-      AuthUser.create.
-        email(EMAIL).
-        username(username).
-        password(VALID_PW).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+      AuthUser(
+        email = EMAIL,
+        username = username,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
       When("the header and credentials are good")
       lazy val response = makePostRequestAdditionalHeader(directLoginRequest, "", List(accessControlOriginHeader, header))
@@ -459,16 +453,14 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       
       Given("A user exists but email is not validated")
       // Delete the user if exists
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!)
+      AuthUser.findAllByUsername(username).map(_.delete_!)
       // Create the user with validated = false
-      AuthUser.create.
-        email(email).
-        username(username).
-        password(VALID_PW).
-        validated(false).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+      AuthUser(
+        email = email,
+        username = username,
+        validated = false,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
       When("we try to login with correct credentials but unvalidated email")
       lazy val request = directLoginRequest
@@ -479,7 +471,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.UserEmailNotValidated)
       
       // Clean up: delete the test user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!)
+      AuthUser.findAllByUsername(username).map(_.delete_!)
     }
 
 

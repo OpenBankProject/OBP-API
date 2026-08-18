@@ -1495,7 +1495,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       lastActivityDate: Option[Date],
       recentOperationIds: List[String]
   ): UserInfoDetailJsonV600 = {
-    val authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+    val authUser = AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value)
     UserInfoDetailJsonV600(
       user_id = user.userId,
       email = user.emailAddress,
@@ -1515,9 +1515,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       last_marketing_agreement_signed_date =
         user.lastMarketingAgreementSignedDate,
       is_locked = isLocked,
-      created_date = authUser.map(_.createdAt.get),
-      updated_date = authUser.map(_.updatedAt.get),
-      email_validated = authUser.map(_.validated.get),
+      created_date = authUser.map(_.createdAt),
+      updated_date = authUser.map(_.updatedAt),
+      email_validated = authUser.map(_.validated),
       last_used_locale = user.lastUsedLocale,
       last_activity_date = lastActivityDate,
       recent_operation_ids = recentOperationIds

@@ -151,15 +151,8 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
   protected def wipeTestData(): Unit = {
 
-    //returns true if the model should not be wiped after each test
-    def exclusion(m : MetaMapper[_]) = {
-      m == AuthUser
-    }
-
-    //empty the relational db tables after each test
-    ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
-    // loop above does not clear them. Each such table needs its own explicit delete here.
+    // Every table is listed explicitly: no entity is a Lift Mapper any more, so there is no model
+    // loop to clear them. The auth tables are deliberately absent - DefaultUsers manages those.
     // AtmTableResetIsolationTest fails if this is forgotten.
     DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappednarrative".update.run)

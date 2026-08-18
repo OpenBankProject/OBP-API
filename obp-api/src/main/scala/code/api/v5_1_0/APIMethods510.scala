@@ -2793,7 +2793,7 @@ trait APIMethods510
 //            }
 //            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
 //            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
-//            authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+//            authUser = AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value)
 //          } yield {
 //            (JSONFactory510.createUserWithNamesJSON(
 //              user,

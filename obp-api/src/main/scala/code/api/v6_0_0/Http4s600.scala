@@ -955,21 +955,21 @@ object Http4s600 {
               APIUtil.fullPasswordValidation(postedData.password)
             }
             _ <- Helper.booleanToFuture(DuplicateUsername, 409, Some(cc)) {
-              AuthUser.find(net.liftweb.mapper.By(AuthUser.username, postedData.username)).isEmpty
+              AuthUser.findByUsername(postedData.username).isEmpty
             }
             userCreated <- Future {
-              AuthUser.create
-                .firstName(postedData.first_name).lastName(postedData.last_name)
-                .username(postedData.username).email(postedData.email)
-                .password(postedData.password)
-                .validated(APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false))
+              AuthUser(
+                firstName = postedData.first_name, lastName = postedData.last_name,
+                username = postedData.username, email = postedData.email,
+                validated = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
+              ).withPassword(postedData.password)
             }
-            _ <- Helper.booleanToFuture(InvalidJsonFormat + userCreated.validate.map(_.msg).mkString(";"), 400, Some(cc)) {
-              userCreated.validate.size == 0
+            _ <- Helper.booleanToFuture(InvalidJsonFormat + AuthUser.validate(userCreated).mkString(";"), 400, Some(cc)) {
+              AuthUser.validate(userCreated).size == 0
             }
             savedUser <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { userCreated.saveMe() }
             _ <- Helper.booleanToFuture(s"$UnknownError Error occurred during user creation.", 400, Some(cc)) {
-              userCreated.saved_?
+              savedUser.id > 0
             }
           } yield {
             val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
@@ -979,21 +979,21 @@ object Http4s600 {
               val portalMissing = portalUrlBox.isEmpty
               val senderIsDefault = senderAddress == "noreply@example.com"
               if (portalMissing) {
-                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — public_obp_portal_url (or legacy portal_external_url) is not set. The user will be unable to validate via email. They can use POST /obp/v7.0.0/users/validation-emails to retry once the prop is configured.")
+                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username}' — public_obp_portal_url (or legacy portal_external_url) is not set. The user will be unable to validate via email. They can use POST /obp/v7.0.0/users/validation-emails to retry once the prop is configured.")
               } else if (senderIsDefault) {
-                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address).")
+                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username}' — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address).")
               } else {
                 val portalUrl = portalUrlBox.openOr("")
                 val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
                 val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                  .subject(savedUser.uniqueId.get)
+                  .subject(savedUser.uniqueId)
                   .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
                   .issueTime(new java.util.Date()).build()
                 val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
                 val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
                 val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
                   from = senderAddress,
-                  to = List(savedUser.email.get),
+                  to = List(savedUser.email),
                   bcc = AuthUser.bccEmail.toList,
                   subject = "Sign up confirmation",
                   textContent = Some(s"Welcome! Please validate your account: $emailLink"),
@@ -1001,14 +1001,16 @@ object Http4s600 {
                 ))
                 sendOutcome match {
                   case Right(msgId) =>
-                    logger.info(s"createUser says: validation email sent to '${savedUser.email.get}' messageId=$msgId")
+                    logger.info(s"createUser says: validation email sent to '${savedUser.email}' messageId=$msgId")
                   case Left(e) =>
-                    logger.warn(s"createUser says: validation email send FAILED for user '${savedUser.username.get}' (${savedUser.email.get}): ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}. The user can retry via POST /obp/v7.0.0/users/validation-emails once the SMTP issue is resolved.")
+                    logger.warn(s"createUser says: validation email send FAILED for user '${savedUser.username}' (${savedUser.email}): ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}. The user can retry via POST /obp/v7.0.0/users/validation-emails once the SMTP issue is resolved.")
                 }
               }
             }
             AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
-            JSONFactory200.createUserJSONfromAuthUser(userCreated)
+            // savedUser, not userCreated: the row is immutable, so the id and the ResourceUser key
+            // assigned by the save are only on what saveMe returned.
+            JSONFactory200.createUserJSONfromAuthUser(savedUser)
           }
         }
     }
@@ -1027,11 +1029,11 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.api.v6_0_0.JSONFactory600.PostResetPasswordUrlJsonV600]
             }
             authUserBox <- Future {
-              AuthUser.find(net.liftweb.mapper.By(AuthUser.username, postedData.username))
+              AuthUser.findByUsername(postedData.username)
             }
             authUser <- NewStyle.function.tryons(s"$UnknownError User not found or validation failed", 400, Some(cc)) {
               authUserBox match {
-                case Full(user) if user.validated.get && user.email.get == postedData.email =>
+                case Full(user) if user.validated && user.email == postedData.email =>
                   Users.users.vend.getUserByUserId(postedData.user_id) match {
                     case Full(resourceUser) if resourceUser.name == postedData.username &&
                                                resourceUser.emailAddress == postedData.email => user
@@ -1045,12 +1047,12 @@ object Http4s600 {
               case _ => Future.failed(new Exception(s"$IncompleteServerConfiguration public_obp_portal_url (or legacy portal_external_url) is not set"))
             }
             resetLink <- Future {
-              val user: AuthUser = authUser
-              user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
+              val user: AuthUser = authUser.copy(
+                uniqueId = java.util.UUID.randomUUID().toString.replace("-", ""))
               user.save
               val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
               val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                .subject(user.uniqueId.get)
+                .subject(user.uniqueId)
                 .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
                 .issueTime(new java.util.Date()).build()
               val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
@@ -1061,9 +1063,9 @@ object Http4s600 {
             // cannot be sent, say so instead of reporting "sent".
             _ <- CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
               from = AuthUser.emailFrom,
-              to = List(authUser.email.get),
+              to = List(authUser.email),
               bcc = AuthUser.bccEmail.toList,
-              subject = "Reset your password - " + authUser.username.get,
+              subject = "Reset your password - " + authUser.username,
               textContent = Some(s"Please reset your password: $resetLink"),
               htmlContent = Some(s"<p>Please reset your password: <a href='$resetLink'>$resetLink</a></p>")
             )) match {
@@ -1079,7 +1081,7 @@ object Http4s600 {
             // it would let any caller with canCreateResetPasswordUrl complete a reset
             // without controlling the target mailbox, defeating the email-proves-
             // mailbox-ownership property of the flow. The link goes via email only.
-            JSONFactory600.ResetPasswordEmailSentJsonV600(status = "sent", to = authUser.email.get)
+            JSONFactory600.ResetPasswordEmailSentJsonV600(status = "sent", to = authUser.email)
           }
         }
     }
@@ -4108,16 +4110,16 @@ object Http4s600 {
               authUser.openOrThrowException("User not found")
             }
             _ <- Helper.booleanToFuture(s"$UserAlreadyValidated User email is already validated", cc = Some(cc)) {
-              !user.validated.get
+              !user.validated
             }
             validatedUser <- Future(code.model.dataAccess.AuthUser.validateAndResetToken(user))
             _ <- Future(code.model.dataAccess.AuthUser.grantDefaultEntitlementsToAuthUser(validatedUser))
           } yield JSONFactory600.ValidateUserEmailResponseJsonV600(
-            user_id = ResourceUser.findByPrimaryKey(validatedUser.user.get).map(_.userId).getOrElse(""),
-            email = validatedUser.email.get,
-            username = validatedUser.username.get,
-            provider = validatedUser.provider.get,
-            validated = validatedUser.validated.get,
+            user_id = ResourceUser.findByPrimaryKey(validatedUser.user).map(_.userId).getOrElse(""),
+            email = validatedUser.email,
+            username = validatedUser.username,
+            provider = validatedUser.provider,
+            validated = validatedUser.validated,
             message = "Email validated successfully")
         }
     }
@@ -4156,9 +4158,9 @@ object Http4s600 {
               authUserBox.openOrThrowException("User not found")
             }
           } yield {
-            user.password.set(postedData.new_password)
-            user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
-            user.save
+            user.withPassword(postedData.new_password)
+              .copy(uniqueId = java.util.UUID.randomUUID().toString.replace("-", ""))
+              .save
             JSONFactory600.ResetPasswordCompleteResponseJsonV600("Password has been reset successfully.")
           }
         }
@@ -4175,37 +4177,36 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostResetPasswordUrlAnonymousJsonV600]
             }
           } yield {
-            val authUserBox = code.model.dataAccess.AuthUser.find(
-              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.username, postedData.username),
-              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.provider, Constant.localIdentityProvider))
+            val authUserBox = code.model.dataAccess.AuthUser.findByUsernameAndProvider(
+              postedData.username, Constant.localIdentityProvider)
             val portalUrlBox = APIUtil.getPortalUrl
             val senderAddress = code.model.dataAccess.AuthUser.emailFrom
             val portalMissing = portalUrlBox.isEmpty
             val senderIsDefault = senderAddress == "noreply@example.com"
             (authUserBox, portalMissing, senderIsDefault) match {
-              case (Full(u), false, false) if u.validated.get && u.email.get == postedData.email =>
+              case (Full(found), false, false) if found.validated && found.email == postedData.email =>
                 val portalUrl = portalUrlBox.openOr("")
-                u.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
+                val u = found.copy(uniqueId = java.util.UUID.randomUUID().toString.replace("-", ""))
                 u.save
                 val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
                 val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                  .subject(u.uniqueId.get)
+                  .subject(u.uniqueId)
                   .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
                   .issueTime(new java.util.Date()).build()
                 val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
                 val resetLink = portalUrl + "/reset-password/" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
                 val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
                   from = senderAddress,
-                  to = List(u.email.get),
+                  to = List(u.email),
                   bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
-                  subject = "Reset your password - " + u.username.get,
+                  subject = "Reset your password - " + u.username,
                   textContent = Some(s"Please use the following link to reset your password: $resetLink"),
                   htmlContent = Some(s"<p>Please use the following link to reset your password:</p><p><a href='$resetLink'>$resetLink</a></p>")))
                 sendOutcome match {
                   case Right(msgId) =>
-                    logger.info(s"resetPasswordUrlAnonymous says: reset email sent to '${u.email.get}' messageId=$msgId")
+                    logger.info(s"resetPasswordUrlAnonymous says: reset email sent to '${u.email}' messageId=$msgId")
                   case Left(e) =>
-                    logger.warn(s"resetPasswordUrlAnonymous says: SMTP send failed for user '${u.username.get}': ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}")
+                    logger.warn(s"resetPasswordUrlAnonymous says: SMTP send failed for user '${u.username}': ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}")
                 }
               case (_, true, _) =>
                 logger.warn("resetPasswordUrlAnonymous says: skipped — public_obp_portal_url (or legacy portal_external_url) not set; cannot build reset link. Response returned as if successful (anti-enumeration).")
@@ -4531,8 +4532,8 @@ object Http4s600 {
               if (all.isEmpty) None else Some(all)
             }
             isLocked = code.loginattempts.LoginAttempt.userIsLocked(user.provider, user.name)
-            authUser = code.model.dataAccess.AuthUser.find(
-              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value))
+            authUser = code.model.dataAccess.AuthUser.findByResourceUserPrimaryKey(
+              user.userPrimaryKey.value)
             userMetrics <- Future {
               code.metrics.MappedMetric.findNewestByUserId(userId, 5)
             }
@@ -4540,8 +4541,8 @@ object Http4s600 {
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
           } yield JSONFactory600.createUserInfoJsonV600(
             user,
-            authUser.map(_.firstName.get).getOrElse(""),
-            authUser.map(_.lastName.get).getOrElse(""),
+            authUser.map(_.firstName).getOrElse(""),
+            authUser.map(_.lastName).getOrElse(""),
             entitlements, agreements, isLocked, lastActivityDate, recentOperationIds)
         }
     }

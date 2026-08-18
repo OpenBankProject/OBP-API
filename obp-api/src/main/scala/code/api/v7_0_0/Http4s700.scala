@@ -774,9 +774,8 @@ object Http4s700 {
               if (agreementList.isEmpty) None else Some(agreementList)
             }
             isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
-            authUser = code.model.dataAccess.AuthUser.find(
-              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value)
-            )
+            authUser = code.model.dataAccess.AuthUser.findByResourceUserPrimaryKey(
+              user.userPrimaryKey.value)
             userMetrics <- Future {
               MappedMetric.findNewestByUserId(userId, 5)
             }
@@ -784,8 +783,8 @@ object Http4s700 {
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
           } yield JSONFactory600.createUserInfoJsonV600(
             user,
-            authUser.map(_.firstName.get).getOrElse(""),
-            authUser.map(_.lastName.get).getOrElse(""),
+            authUser.map(_.firstName).getOrElse(""),
+            authUser.map(_.lastName).getOrElse(""),
             entitlements,
             agreements,
             isLocked,
@@ -2057,13 +2056,10 @@ object Http4s700 {
               if (!allowed) {
                 logger.info(s"createValidationEmail says: skipped (rate limit exceeded, count=$count, max=$ResendValidationRateLimit per ${ResendValidationRateLimitWindowSeconds}s)")
               } else {
-                AuthUser.find(
-                  By(AuthUser.username, username),
-                  By(AuthUser.provider, Constant.localIdentityProvider)
-                ) match {
-                  case Full(user) if user.email.get != null
-                                  && user.email.get.toLowerCase == emailLower
-                                  && !user.validated.get =>
+                AuthUser.findByUsernameAndProvider(username, Constant.localIdentityProvider) match {
+                  case Full(user) if user.email != null
+                                  && user.email.toLowerCase == emailLower
+                                  && !user.validated =>
                     val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
                     val senderAddress = AuthUser.emailFrom
                     val portalMissing = portalUrlBox.isEmpty || portalUrlBox.exists(_.trim.isEmpty)
@@ -2076,7 +2072,7 @@ object Http4s700 {
                       val portalUrl = portalUrlBox.openOr("")
                       val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
                         val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                          .subject(user.uniqueId.get)
+                          .subject(user.uniqueId)
                           .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
                           .issueTime(new java.util.Date())
                           .build()
@@ -2084,7 +2080,7 @@ object Http4s700 {
                       val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
                       val outcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
                         from = senderAddress,
-                        to = List(user.email.get),
+                        to = List(user.email),
                         bcc = AuthUser.bccEmail.toList,
                         subject = "Sign up confirmation",
                         textContent = Some(s"Welcome! Please validate your account: $emailLink"),

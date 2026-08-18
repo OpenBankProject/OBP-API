@@ -172,7 +172,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "nonce",
     "token",
     "consumer",
-    "resourceuser"
+    "resourceuser",
+    "authuser"
   )
 
   /**
@@ -308,7 +309,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "CONSUMER" -> "CONSUMER_KEY_C",
     "CONSUMER" -> "CONSUMER_AZP_SUB",
     "RESOURCEUSER" -> "RESOURCEUSER_PROVIDER__PROVIDERID",
-    "RESOURCEUSER" -> "RESOURCEUSER_USERID_UNIQUE"
+    "RESOURCEUSER" -> "RESOURCEUSER_USERID_UNIQUE",
+    "AUTHUSER" -> "AUTHUSER_USERNAME_PROVIDER"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

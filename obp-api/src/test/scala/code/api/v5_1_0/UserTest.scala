@@ -76,10 +76,14 @@ class UserTest extends V510ServerSetup {
       val username = "user.withnames." + UUID.randomUUID.toString.take(8)
       val email = s"$username@example.com"
       val user = UserX.createResourceUser(defaultProvider, Some(username), None, Some(username), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
-      val authUser = AuthUser.create
-        .email(email).username(username).password(randomString(12))
-        .validated(true).firstName("Alice").lastName("Smith")
-        .provider(defaultProvider).user(user.userPrimaryKey.value).saveMe()
+      val authUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Smith",
+        provider = defaultProvider,
+        user = user.userPrimaryKey.value).withPassword(randomString(12)).saveMe()
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" / "provider" / user.provider / "username" / user.name).GET <@(user1)
       val response = makeGetRequest(request)

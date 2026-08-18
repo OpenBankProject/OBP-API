@@ -47,15 +47,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
   override def beforeAll(): Unit = {
     super.beforeAll()
     // Create a test user for credential verification
-    testAuthUser = AuthUser.create
-      .email(testEmail)
-      .username(testUsername)
-      .password(testPassword)
-      .validated(true)
-      .firstName("Test")
-      .lastName("User")
-      .provider(Constant.localIdentityProvider)
-      .saveMe()
+    testAuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(testPassword).saveMe()
   }
 
   override def afterAll(): Unit = {
@@ -240,25 +238,23 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val externalProvider = "external_test_provider"
 
       // Create a local user
-      val localUser = AuthUser.create
-        .email(localEmail)
-        .username(sharedUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Local")
-        .lastName("User")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = localEmail,
+        username = sharedUsername,
+        validated = true,
+        firstName = "Local",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       // Create an external user with the same username (dummy password, as external users have)
-      val externalUser = AuthUser.create
-        .email(sharedUsername + "@external.example.com")
-        .username(sharedUsername)
-        .password(net.liftweb.util.Helpers.randomString(40)) // random dummy password
-        .validated(true)
-        .firstName("External")
-        .lastName("User")
-        .provider(externalProvider)
+      val externalUser = AuthUser(
+        email = sharedUsername + "@external.example.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "External",
+        lastName = "User",
+        provider = externalProvider)
+        .withPassword(net.liftweb.util.Helpers.randomString(40)) // random dummy password
         .saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
@@ -345,47 +341,41 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val erroneousProvider = "https://gogle.com"  // typo in production data
 
       // Create a local user
-      val localUser = AuthUser.create
-        .email(sharedUsername + "@openbankproject.com")
-        .username(sharedUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Alice")
-        .lastName("Local")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = sharedUsername + "@openbankproject.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Local",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       // Create external users with the same username under different providers
       // (as would exist in production when users sign in via different identity providers)
-      val googleUser = AuthUser.create
-        .email(sharedUsername + "@gmail.com")
-        .username(sharedUsername)
-        .password(randomString(40)) // dummy password, as with all external users
-        .validated(true)
-        .firstName("Alice")
-        .lastName("Google")
-        .provider(googleProvider)
+      val googleUser = AuthUser(
+        email = sharedUsername + "@gmail.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Google",
+        provider = googleProvider)
+        .withPassword(randomString(40)) // dummy password, as with all external users
         .saveMe()
 
-      val githubUser = AuthUser.create
-        .email(sharedUsername + "@github.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Alice")
-        .lastName("GitHub")
-        .provider(githubProvider)
-        .saveMe()
+      val githubUser = AuthUser(
+        email = sharedUsername + "@github.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "GitHub",
+        provider = githubProvider).withPassword(randomString(40)).saveMe()
 
-      val erroneousUser = AuthUser.create
-        .email(sharedUsername + "@gogle.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Alice")
-        .lastName("Erroneous")
-        .provider(erroneousProvider)
-        .saveMe()
+      val erroneousUser = AuthUser(
+        email = sharedUsername + "@gogle.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Erroneous",
+        provider = erroneousProvider).withPassword(randomString(40)).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -457,25 +447,21 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val googleProvider = "https://accounts.google.com"
       val githubProvider = "https://github.com/login/oauth"
 
-      val googleUser = AuthUser.create
-        .email(sharedUsername + "@gmail.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Test")
-        .lastName("Google")
-        .provider(googleProvider)
-        .saveMe()
+      val googleUser = AuthUser(
+        email = sharedUsername + "@gmail.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "Google",
+        provider = googleProvider).withPassword(randomString(40)).saveMe()
 
-      val githubUser = AuthUser.create
-        .email(sharedUsername + "@github.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Test")
-        .lastName("GitHub")
-        .provider(githubProvider)
-        .saveMe()
+      val githubUser = AuthUser(
+        email = sharedUsername + "@github.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "GitHub",
+        provider = githubProvider).withPassword(randomString(40)).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -516,25 +502,21 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val localPassword = "LocalPassword123!"
       val googleProvider = "https://accounts.google.com"
 
-      val localUser = AuthUser.create
-        .email(sharedUsername + "@openbankproject.com")
-        .username(sharedUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Test")
-        .lastName("Local")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = sharedUsername + "@openbankproject.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "Local",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
-      val googleUser = AuthUser.create
-        .email(sharedUsername + "@gmail.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Test")
-        .lastName("Google")
-        .provider(googleProvider)
-        .saveMe()
+      val googleUser = AuthUser(
+        email = sharedUsername + "@gmail.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "Google",
+        provider = googleProvider).withPassword(randomString(40)).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -622,15 +604,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val email = username + "@example.com"
 
       // Create a local user
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("EncodedLocal")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "EncodedLocal",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -664,15 +644,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val email = username + "@example.com"
 
       // Create a local user (empty provider is treated as local)
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("SpecialChars")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "SpecialChars",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -705,15 +683,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val email = username + "@example.com"
 
       // Create a local user
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("NonEncoded")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "NonEncoded",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -749,15 +725,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val email = username + "@example.com"
 
       // Create a local user
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("Mismatch")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "Mismatch",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 

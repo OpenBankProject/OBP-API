@@ -45,18 +45,16 @@ class AuthenticationRefactorTest extends AnyFeatureSpec
     validated: Boolean = true
   ): AuthUser = {
     // Clean up any existing user
-    AuthUser.findAll(By(AuthUser.username, username), By(AuthUser.provider, provider)).foreach(_.delete_!)
+    AuthUser.findByUsernameAndProvider(username, provider).foreach(_.delete_!)
     
     // Create new user
-    val user = AuthUser.create
-      .email(s"${randomString(10)}@example.com")
-      .username(username)
-      .password(password)
-      .provider(provider)
-      .validated(validated)
-      .firstName(randomString(10))
-      .lastName(randomString(10))
-      .saveMe()
+    val user = AuthUser(
+        email = s"${randomString(10)}@example.com",
+        username = username,
+        provider = provider,
+        validated = validated,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(password).saveMe()
     
     user
   }
@@ -99,7 +97,7 @@ class AuthenticationRefactorTest extends AnyFeatureSpec
    * @param provider The authentication provider
    */
   def cleanupTestUser(username: String, provider: String = localIdentityProvider): Unit = {
-    AuthUser.findAll(By(AuthUser.username, username), By(AuthUser.provider, provider)).foreach(_.delete_!)
+    AuthUser.findByUsernameAndProvider(username, provider).foreach(_.delete_!)
     LoginAttempt.resetBadLoginAttempts(provider, username)
   }
 
@@ -743,7 +741,7 @@ class AuthenticationRefactorTest extends AnyFeatureSpec
         val user = createUnvalidatedUser(username, password)
         
         // Verify user is not validated
-        user.validated.get shouldBe false
+        user.validated shouldBe false
         
         When("getResourceUserId is called for the unvalidated user")
         val resourceUserIdBox = AuthUser.getResourceUserId(username, password, localIdentityProvider)
@@ -787,7 +785,7 @@ class AuthenticationRefactorTest extends AnyFeatureSpec
         resourceUserIdBox match {
           case Full(id) if id > 0 =>
             // Success - this is what the endpoint expects
-            id shouldBe user.user.get
+            id shouldBe user.user
             succeed
           case other =>
             fail(s"Expected Full(userId > 0), got: $other")

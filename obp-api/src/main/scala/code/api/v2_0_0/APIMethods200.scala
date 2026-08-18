@@ -1340,10 +1340,10 @@ object APIMethods200 {
 //              fullPasswordValidation(postedData.password)
 //            }
 //            _ <- Helper.booleanToFuture(ErrorMessages.DuplicateUsername, 409, cc.callContext) {
-//              AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty
+//              AuthUser.findByUsername(postedData.username).isEmpty
 //            }
 //            userCreated <- Future {
-//              AuthUser.create
+//              AuthUser()
 //                .firstName(postedData.first_name)
 //                .lastName(postedData.last_name)
 //                .username(postedData.username)

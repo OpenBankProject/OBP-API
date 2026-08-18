@@ -597,30 +597,29 @@ class Boot extends MdcLoggable {
     val isPropsNotSetProperly = superAdminUsername==""||superAdminInitalPassword ==""||superAdminEmail==""
 
     //This is the logic to check if an AuthUser exists for the `create sandbox` endpoint, AfterApiAuth, OpenIdConnect ,,,
-    val existingAuthUser = AuthUser.find(By(AuthUser.username, superAdminUsername))
+    val existingAuthUser = AuthUser.findByUsername(superAdminUsername)
 
     if(isPropsNotSetProperly) {
       //Nothing happens, props is not set
     }else if(existingAuthUser.isDefined) {
       logger.error(s"createBootstrapSuperUser- Errors:  Existing AuthUser with username ${superAdminUsername} detected in data import where no ResourceUser was found")
     } else {
-      val authUser = AuthUser.create
-        .email(superAdminEmail)
-        .firstName(superAdminUsername)
-        .lastName(superAdminUsername)
-        .username(superAdminUsername)
-        .password(superAdminInitalPassword)
-        .passwordShouldBeChanged(true)
-        .validated(true)
+      val authUser = AuthUser(
+        email = superAdminEmail,
+        firstName = superAdminUsername,
+        lastName = superAdminUsername,
+        username = superAdminUsername,
+        passwordShouldBeChanged = true,
+        validated = true).withPassword(superAdminInitalPassword)
 
-      val validationErrors = authUser.validate
+      val validationErrors = AuthUser.validate(authUser)
 
       if(!validationErrors.isEmpty)
-        logger.error(s"createBootstrapSuperUser- Errors: ${validationErrors.map(_.msg)}")
+        logger.error(s"createBootstrapSuperUser- Errors: ${validationErrors}")
       else {
         Full(authUser.save) //this will create/update the resourceUser.
 
-        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
+        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username)
 
         val resultBox = userBox.map(user => Entitlement.entitlement.vend.addEntitlement("", user.userId, CanCreateEntitlementAtAnyBank.toString))
 
@@ -708,30 +707,29 @@ class Boot extends MdcLoggable {
 
     val isPropsNotSetProperly = oidcOperatorUsername == "" || oidcOperatorInitialPassword == "" || oidcOperatorEmail == ""
 
-    val existingAuthUser = AuthUser.find(By(AuthUser.username, oidcOperatorUsername))
+    val existingAuthUser = AuthUser.findByUsername(oidcOperatorUsername)
 
     if (isPropsNotSetProperly) {
       //Nothing happens, props is not set
     } else if (existingAuthUser.isDefined) {
       logger.error(s"createBootstrapOidcOperatorUser- Errors: Existing AuthUser with username ${oidcOperatorUsername} detected in data import where no ResourceUser was found")
     } else {
-      val authUser = AuthUser.create
-        .email(oidcOperatorEmail)
-        .firstName(oidcOperatorUsername)
-        .lastName(oidcOperatorUsername)
-        .username(oidcOperatorUsername)
-        .password(oidcOperatorInitialPassword)
-        .passwordShouldBeChanged(false)
-        .validated(true)
+      val authUser = AuthUser(
+        email = oidcOperatorEmail,
+        firstName = oidcOperatorUsername,
+        lastName = oidcOperatorUsername,
+        username = oidcOperatorUsername,
+        passwordShouldBeChanged = false,
+        validated = true).withPassword(oidcOperatorInitialPassword)
 
-      val validationErrors = authUser.validate
+      val validationErrors = AuthUser.validate(authUser)
 
       if (!validationErrors.isEmpty)
-        logger.error(s"createBootstrapOidcOperatorUser- Errors: ${validationErrors.map(_.msg)}")
+        logger.error(s"createBootstrapOidcOperatorUser- Errors: ${validationErrors}")
       else {
         Full(authUser.save)
 
-        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
+        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username)
 
         val oidcOperatorRoles = List(
           CanGetAnyUser,
@@ -824,9 +822,9 @@ class Boot extends MdcLoggable {
 }
 
 object ToSchemify extends MdcLoggable {
-  val models: List[MetaMapper[_]] = List(
-    AuthUser,
-  )
+  // Empty: every table is created by a Flyway script now, none by Schemifier. Kept because the
+  // test reset paths still iterate it, and because a future Mapper entity would go here.
+  val models: List[MetaMapper[_]] = Nil
 
   // start grpc server
   // start grpc server (optional)

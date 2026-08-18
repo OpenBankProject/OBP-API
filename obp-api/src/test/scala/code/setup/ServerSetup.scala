@@ -125,10 +125,9 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
    * before each test class starts.
    *
    * We preserve only the essential OAuth/auth tables (Nonce, Token, Consumer, AuthUser, ResourceUser)
-   * as these are needed for test authentication and are managed by DefaultUsers trait.
-   * Nonce, Token and Consumer are preserved by omission rather than by the exclusion below: they no
-   * longer have a Lift entity, so they are not in ToSchemify.models and the loop never reaches them.
-   * Do not add an explicit delete for them here the way the migrated non-auth tables have one.
+   * as these are needed for test authentication and are managed by DefaultUsers trait. They are
+   * preserved by omission: the deletes below name every other table one by one, and these five are
+   * simply not among them. Do not add one for them.
    */
 
   /**
@@ -136,23 +135,10 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
    * Preserves auth-related tables that are managed separately by DefaultUsers.
    */
   protected def resetDatabaseForTestClass(): Unit = {
-    def exclusion(m: MetaMapper[_]): Boolean = {
-      m == AuthUser
-    }
-
     logger.info(s"[TEST ISOLATION] Resetting database before test class: ${this.getClass.getSimpleName}")
-    ToSchemify.models.filterNot(exclusion).foreach { model =>
-      try {
-        model.bulkDelete_!!()
-      } catch {
-        case e: Exception =>
-          logger.warn(s"[TEST ISOLATION] Failed to clear table for ${model.getClass.getSimpleName}: ${e.getMessage}")
-      }
-    }
 
-    // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
-    // loop above does not clear them. Each such table needs its own explicit delete here.
-    // AtmTableResetIsolationTest fails if this is forgotten.
+    // Every table is listed explicitly: no entity is a Lift Mapper any more, so there is no
+    // model loop to clear them. AtmTableResetIsolationTest fails if one is forgotten.
     //
     // migrationscriptlog is the one deliberate exception: it must NOT be added here. It is
     // migration bookkeeping, not test data. Wiping it makes isExecuted always false, so every

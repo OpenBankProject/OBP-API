@@ -216,15 +216,13 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
     Scenario("External user locking should not lock local user with same username", ApiEndpoint, VersionOfApi) {
       // Lock the external user, then verify the local user is unaffected.
       val localPassword = "LocalPassword123!"
-      val localUser = AuthUser.create
-        .email(externalUsername + "@local.example.com")
-        .username(externalUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Local")
-        .lastName("User")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = externalUsername + "@local.example.com",
+        username = externalUsername,
+        validated = true,
+        firstName = "Local",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -269,15 +267,13 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
     Scenario("External auth failure should not affect local user with same username", ApiEndpoint, VersionOfApi) {
       // Create a local user with the same username as the external user
       val localPassword = "LocalPassword123!"
-      val localUser = AuthUser.create
-        .email(externalUsername + "@local.example.com")
-        .username(externalUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Local")
-        .lastName("User")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = externalUsername + "@local.example.com",
+        username = externalUsername,
+        validated = true,
+        firstName = "Local",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 

@@ -5138,7 +5138,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         exp = "",
         iat = "",
         iss = "",
-        sub = user.username.get,
+        sub = user.username,
         azp = None,
         email = None,
         emailVerified = None,
