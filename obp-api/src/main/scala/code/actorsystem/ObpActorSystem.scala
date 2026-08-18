@@ -9,7 +9,7 @@ import com.typesafe.config.ConfigFactory
 
 object ObpActorSystem extends MdcLoggable {
 
-  val props_hostname = Helper.getHostname
+  val props_hostname = Helper.getHostname()
   // @volatile so the single assignment of each actor system is visible to all reader threads
   // (the JVM memory model does not guarantee visibility of a non-volatile write across threads).
   @volatile var obpActorSystem: ActorSystem = _

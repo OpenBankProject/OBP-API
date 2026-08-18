@@ -353,7 +353,7 @@ object Helper extends Loggable {
     protected def initiate(): Unit = ()
 
     initiate()
-    MDC.put("host" -> getHostname)
+    MDC.put("host" -> getHostname())
   }
 
 
