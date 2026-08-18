@@ -49,7 +49,7 @@ trait DefaultUsers {
     None,
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val consumer = Consumer(testConsumer.key.get, testConsumer.secret.get)
+  lazy val consumer = Consumer(testConsumer.key, testConsumer.secret)
 
   lazy val testConsumer2 = Consumers.consumers.vend.createConsumer(
     key = Some(randomString(40).toLowerCase),
@@ -65,7 +65,7 @@ trait DefaultUsers {
     None,
     None,
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val consumer2 = Consumer(testConsumer2.key.get, testConsumer2.secret.get)
+  lazy val consumer2 = Consumer(testConsumer2.key, testConsumer2.secret)
 
   lazy val testConsumer3 = Consumers.consumers.vend.createConsumer(
     key = Some(randomString(40).toLowerCase),
@@ -81,7 +81,7 @@ trait DefaultUsers {
     None,
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val consumer3 = Consumer(testConsumer3.key.get, testConsumer3.secret.get)
+  lazy val consumer3 = Consumer(testConsumer3.key, testConsumer3.secret)
 
   lazy val testConsumer4 = Consumers.consumers.vend.createConsumer(
     key = Some(randomString(40).toLowerCase),
@@ -97,7 +97,7 @@ trait DefaultUsers {
     None,
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val consumer4 = Consumer(testConsumer4.key.get, testConsumer4.secret.get)
+  lazy val consumer4 = Consumer(testConsumer4.key, testConsumer4.secret)
   
   // create the access token
   val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
@@ -183,7 +183,7 @@ trait DefaultUsers {
   // create the tokens in database, we only need token-key and token-secretAllCases
   lazy val testToken1 = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id.get),
+    Some(testConsumer.id),
     Some(resourceUser1.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
@@ -195,7 +195,7 @@ trait DefaultUsers {
   
   lazy val testToken2 = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer2.id.get),
+    Some(testConsumer2.id),
     Some(resourceUser2.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
@@ -206,7 +206,7 @@ trait DefaultUsers {
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
   lazy val testToken3 = Tokens.tokens.vend.createToken(Access,
-    Some(testConsumer3.id.get),
+    Some(testConsumer3.id),
     Some(resourceUser3.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
@@ -217,7 +217,7 @@ trait DefaultUsers {
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   lazy val testToken4 = Tokens.tokens.vend.createToken(Access,
-    Some(testConsumer4.id.get),
+    Some(testConsumer4.id),
     Some(resourceUser4.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),

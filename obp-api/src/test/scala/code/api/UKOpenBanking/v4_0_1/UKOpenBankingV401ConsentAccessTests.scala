@@ -43,7 +43,7 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
   // auto-vivified pseudo-user keyed on the consumer's client key rather than leaving it Empty. The
   // OAuth1-signed harness cannot mint that token, so build the same shape directly.
   private lazy val pseudoUserOfConsumer: ResourceUser =
-    getOrCreateUser(idGivenByProvider = testConsumer.key.get, name = testConsumer.key.get)
+    getOrCreateUser(idGivenByProvider = testConsumer.key, name = testConsumer.key)
 
   // What applyUKRules puts on cc.user for a request authenticated by the consent itself: a user
   // minted from the consent JWT's `sub`, which is a random UUID per consent. Nothing about it says
@@ -217,7 +217,7 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
       // A consent bound to resourceUser1 and lodged by testConsumer, reached the two ways a TPP can
       // reach it. Both used to be refused with ConsentDoesNotMatchUser.
       val bound = resourceUser1.userId
-      val lodger = testConsumer.consumerId.get
+      val lodger = testConsumer.consumerId
 
       val viaClientCredentials =
         CallContext(user = Full(pseudoUserOfConsumer), consumer = Full(testConsumer))

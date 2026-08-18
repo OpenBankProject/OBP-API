@@ -66,7 +66,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
     Scenario("We will call the Create endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We try to create the User Auth Context Update v3.1.0")
       val bankId = randomBankId
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
@@ -86,7 +86,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
     Scenario("We will call the Answer endpoint with user credentials and wrong challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We try to answer the User Auth Context Update v3.1.0")
       val bankId = randomBankId
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
@@ -114,7 +114,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
     Scenario("We will call the Answer endpoint with user credentials and right challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We try to answer the User Auth Context Update v3.1.0")
       val bankId = randomBankId
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")

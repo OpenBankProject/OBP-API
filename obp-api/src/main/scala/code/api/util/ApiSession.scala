@@ -107,7 +107,7 @@ case class CallContext(
       psu <- this.humanUser
       username <- tryo(Some(psu.name))
       currentResourceUserId <- tryo(Some(psu.userId))
-      consumerId = this.consumer.map(_.consumerId.get).openOr("") // if none, just return ""
+      consumerId = this.consumer.map(_.consumerId).openOr("") // if none, just return ""
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(psu.userId))
@@ -165,9 +165,9 @@ case class CallContext(
       // consentReferenceId below.
       userId = this.humanUser.map(_.userId).toOption,
       userName = this.humanUser.map(_.name).toOption,
-      consumerId = this.consumer.map(_.consumerId.get).toOption,
-      appName = this.consumer.map(_.name.get).toOption,
-      developerEmail = this.consumer.map(_.developerEmail.get).toOption,
+      consumerId = this.consumer.map(_.consumerId).toOption,
+      appName = this.consumer.map(_.name).toOption,
+      developerEmail = this.consumer.map(_.developerEmail).toOption,
       spelling = this.spelling,
       startTime = this.startTime,
       endTime = this.endTime,

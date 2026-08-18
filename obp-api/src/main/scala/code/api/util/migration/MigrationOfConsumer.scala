@@ -16,7 +16,7 @@ object MigrationOfConsumer {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populateNamAndAppType(name: String): Boolean = {
-    DbFunction.tableExists(Consumer) match {
+    DbFunction.tableExistsByName("consumer") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -24,20 +24,16 @@ object MigrationOfConsumer {
 
         val emptyNameConsumers = 
           for {
-            consumer <- Consumer.findAll() if consumer.name.get.isEmpty()
+            consumer <- Consumer.findAll() if consumer.name.isEmpty()
           } yield {
-            consumer
-              .name(Helpers.randomString(10).toLowerCase())
-              .saveMe()
+            Consumer.update(consumer.copy(name = Helpers.randomString(10).toLowerCase()))
           }
 
         val emptyAppTypeConsumers =
           for {
-            consumer <- Consumer.findAll() if consumer.appType.get.isEmpty()
+            consumer <- Consumer.findAll() if consumer.appType.isEmpty()
           } yield {
-            consumer
-              .appType(AppType.Confidential.toString())
-              .saveMe()
+            Consumer.update(consumer.copy(appType = AppType.Confidential.toString()))
           }
         
         val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
@@ -56,34 +52,36 @@ object MigrationOfConsumer {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          s"""consumer table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
   }  
   def populateAzpAndSub(name: String): Boolean = {
-    DbFunction.tableExists(Consumer) match {
+    DbFunction.tableExistsByName("consumer") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
-        val emptyNameConsumers = 
+        // Mapper compared the MappedString field object - not the value it holds - against null,
+        // so neither filter ever matched and this migration has always been a no-op. It is kept
+        // that way deliberately: comparing values instead would make a migration that databases
+        // recorded as run years ago start rewriting azp and sub on them.
+        val comparesTheFieldObject = (_: Consumer) => false
+
+        val emptyNameConsumers =
           for {
-            consumer <- Consumer.findAll() if consumer.azp.equals(null)
+            consumer <- Consumer.findAll() if comparesTheFieldObject(consumer)
           } yield {
-            consumer
-              .azp(APIUtil.generateUUID())
-              .saveMe()
+            Consumer.update(consumer.copy(azp = APIUtil.generateUUID()))
           }
 
         val emptyAppTypeConsumers =
           for {
-            consumer <- Consumer.findAll() if consumer.sub.equals(null)
+            consumer <- Consumer.findAll() if comparesTheFieldObject(consumer)
           } yield {
-            consumer
-              .sub(APIUtil.generateUUID())
-              .saveMe()
+            Consumer.update(consumer.copy(sub = APIUtil.generateUUID()))
           }
         
         val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
@@ -102,7 +100,7 @@ object MigrationOfConsumer {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          s"""consumer table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
@@ -110,7 +108,7 @@ object MigrationOfConsumer {
 
 
   def alterTypeofAud(name: String): Boolean = {
-    DbFunction.tableExists(Consumer) match {
+    DbFunction.tableExistsByName("consumer") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -148,7 +146,7 @@ object MigrationOfConsumer {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          s"""consumer table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

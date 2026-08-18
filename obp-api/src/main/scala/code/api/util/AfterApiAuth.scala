@@ -84,7 +84,7 @@ object AfterApiAuth extends MdcLoggable{
       (user: Box[User], cc) <- res
     } yield {
       cc.map(_.consumer) match {
-        case Some(Full(consumer)) if !consumer.isActive.get => // There is a consumer. Check it.
+        case Some(Full(consumer)) if !consumer.isActive => // There is a consumer. Check it.
           (Failure(ConsumerIsDisabled), cc) // The Consumer is DISABLED.
         case _ => // There is no Consumer. Just forward the result.
           (user, cc)
@@ -100,7 +100,7 @@ object AfterApiAuth extends MdcLoggable{
     for {
       (user, cc) <- userIsLockedOrDeleted
       consumer = cc.flatMap(_.consumer)
-      consumerId = consumer.map(_.consumerId.get).getOrElse("")
+      consumerId = consumer.map(_.consumerId).getOrElse("")
       (rateLimit, _) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, new Date())
     } yield {
       (user, cc.map(_.copy(rateLimiting = Some(rateLimit))))

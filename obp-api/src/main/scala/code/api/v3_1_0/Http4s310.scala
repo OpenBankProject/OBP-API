@@ -521,7 +521,7 @@ object Http4s310 {
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canReadCallLimits, Some(cc))
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
-            rateLimit <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            rateLimit <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
           } yield createCallLimitJson(consumer, rateLimit)
         }
     }
@@ -554,7 +554,7 @@ object Http4s310 {
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetConsumers, Some(cc))
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
-            consumerUser <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
+            consumerUser <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId)
           } yield createConsumerJSON(consumer, consumerUser)
         }
     }
@@ -616,7 +616,7 @@ object Http4s310 {
               req.uri.query.multiParams.toList.flatMap { case (k, vs) => vs.map(v => HTTPParam(k, v)) }
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             consumers <- Consumers.consumers.vend.getConsumersFuture(obpQueryParams, Some(cc))
-            users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
+            users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId))
           } yield createConsumersJson(consumers, users)
         }
     }
@@ -2674,10 +2674,10 @@ object Http4s310 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
             updatedConsumer <- Future {
               Consumers.consumers.vend.updateConsumer(
-                consumer.id.get, None, None, Some(putData.enabled),
+                consumer.id, None, None, Some(putData.enabled),
                 None, None, None, None, None, None, None, None) ?~! "Cannot update Consumer"
             }
-          } yield PutEnabledJSON(updatedConsumer.map(_.isActive.get).getOrElse(false))
+          } yield PutEnabledJSON(updatedConsumer.map(_.isActive).getOrElse(false))
         }
     }
 
@@ -4406,7 +4406,7 @@ object Http4s310 {
             }
             consumerTuple <- consentJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, Some(cc)) map {
-                c => (Some(c.consumerId.get), c.description, Some(c))
+                c => (Some(c.consumerId), c.description, Some(c))
               }
               case None => Future((None, "Any application", None))
             }
@@ -4428,7 +4428,7 @@ object Http4s310 {
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil)) map {
               i => connectorEmptyResponse(i, Some(cc))
             }
-            grantorConsumerId = cc.consumer.toOption.map(_.consumerId.get).getOrElse("Unknown")
+            grantorConsumerId = cc.consumer.toOption.map(_.consumerId).getOrElse("Unknown")
             granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
             shouldSkipConsentSca = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))

@@ -344,9 +344,9 @@ object Http4s600 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, cc.callContext)
-            currentConsumerCallCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            currentConsumerCallCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
             date = new java.util.Date()
-            (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+            (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId, date)
             activeRateLimitsJson = JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, rateLimitIds, date)
             callCountersJson = JSONFactory600.createRedisCallCountersJson(currentConsumerCallCounters)
           } yield {
@@ -1806,12 +1806,12 @@ object Http4s600 {
               }
             }
           } yield {
-            val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
+            val redirectUris = Option(consumer.redirectURL).filter(_.nonEmpty)
               .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList).getOrElse(List.empty)
             GetOidcClientResponseJsonV600(
-              client_id = clientId, client_name = consumer.name.get,
-              consumer_id = consumer.consumerId.get,
-              redirect_uris = redirectUris, enabled = consumer.isActive.get)
+              client_id = clientId, client_name = consumer.name,
+              consumer_id = consumer.consumerId,
+              redirect_uris = redirectUris, enabled = consumer.isActive)
           }
         }
     }
@@ -1828,13 +1828,13 @@ object Http4s600 {
             consumerBox <- Future(code.consumer.Consumers.consumers.vend.getConsumerByConsumerKey(postedData.client_id))
           } yield {
             consumerBox match {
-              case Full(consumer) if consumer.isActive.get && consumer.secret.get == postedData.client_secret =>
-                val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
+              case Full(consumer) if consumer.isActive && consumer.secret == postedData.client_secret =>
+                val redirectUris = Option(consumer.redirectURL).filter(_.nonEmpty)
                   .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
                 VerifyOidcClientResponseJsonV600(
                   valid = true,
                   client_id = Some(postedData.client_id),
-                  consumer_id = Some(consumer.consumerId.get),
+                  consumer_id = Some(consumer.consumerId),
                   redirect_uris = redirectUris)
               case _ => VerifyOidcClientResponseJsonV600(valid = false)
             }
@@ -2660,7 +2660,7 @@ object Http4s600 {
               code.api.cache.RedisMessaging.validateChannelName(channelName)
             }
             published <- Future {
-              val consumerId = cc.consumer match { case Full(c) => c.consumerId.get; case _ => "" }
+              val consumerId = cc.consumer match { case Full(c) => c.consumerId; case _ => "" }
               val messageId = randomUUID().toString
               val sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
               sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
@@ -5293,11 +5293,11 @@ object Http4s600 {
               case Full(c) => Full(c)
               case _ => Empty
             }).map(unboxFullOrFail(_, Some(cc), InvalidConsumerCredentials, 401))
-            counters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            counters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
             date = new java.util.Date()
-            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId, date)
           } yield CurrentConsumerJsonV600(
-            consumer.name.get, consumer.appType.get, consumer.description.get, consumer.consumerId.get,
+            consumer.name, consumer.appType, consumer.description, consumer.consumerId,
             JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, ids, date),
             JSONFactory600.createRedisCallCountersJson(counters))
         }

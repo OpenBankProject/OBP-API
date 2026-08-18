@@ -860,7 +860,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   private lazy val samePsuUnderSecondConsumer = {
     val token = Tokens.tokens.vend.createToken(
       TokenType.Access,
-      Some(testConsumer2.id.get),
+      Some(testConsumer2.id),
       Some(resourceUser1.id.get),
       Some(randomString(40).toLowerCase),
       Some(randomString(40).toLowerCase),

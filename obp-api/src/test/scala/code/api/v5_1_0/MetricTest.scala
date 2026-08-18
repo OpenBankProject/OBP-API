@@ -87,7 +87,7 @@ class MetricTest extends V510ServerSetup {
       MetricBatchWriter.flush()
 
       When("We make a request v5.1.0")
-      val request = (v5_1_0_Request / "management" / "aggregate-metrics").GET<@(user1) <<? List(("include_app_names", testConsumer.name.get))
+      val request = (v5_1_0_Request / "management" / "aggregate-metrics").GET<@(user1) <<? List(("include_app_names", testConsumer.name))
       val response = makeGetRequest(req = request)
       Then("We get successful response")
       response.code should equal(200)
@@ -96,7 +96,7 @@ class MetricTest extends V510ServerSetup {
 
       MetricBatchWriter.flush()
       When("We make a request v5.1.0")
-      val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET<@(user1) <<? List(("include_app_names", s"${testConsumer.name.get},${testConsumer2.name.get}"))
+      val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET<@(user1) <<? List(("include_app_names", s"${testConsumer.name},${testConsumer2.name}"))
       val response2 = makeGetRequest(request2)
       Then("We get successful response")
       response2.code should equal(200)
@@ -107,7 +107,7 @@ class MetricTest extends V510ServerSetup {
       {
         MetricBatchWriter.flush()
         When("We make a request v5.1.0")
-        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("include_app_names", s"${testConsumer.name.get},${testConsumer2.name.get},${testConsumer3.name.get}"))
+        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("include_app_names", s"${testConsumer.name},${testConsumer2.name},${testConsumer3.name}"))
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
@@ -184,7 +184,7 @@ class MetricTest extends V510ServerSetup {
       
       {
         Then("we test the consumer_id params")
-        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer3.consumerId.get}"))
+        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer3.consumerId}"))
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
@@ -195,7 +195,7 @@ class MetricTest extends V510ServerSetup {
 
       {
         Then("we test the consumer_id params")
-        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer2.consumerId.get}"))
+        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("consumer_id", s"${testConsumer2.consumerId}"))
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
@@ -262,7 +262,7 @@ class MetricTest extends V510ServerSetup {
       
       {
         Then("we test the app_name params")
-        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("app_name", s"${testConsumer2.name.get}"))
+        val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(("app_name", s"${testConsumer2.name}"))
         val response2 = makeGetRequest(request2)
         Then("We get successful response")
         response2.code should equal(200)
@@ -345,16 +345,16 @@ class MetricTest extends V510ServerSetup {
       {
         Then("we test all params")
         val params = List(
-          ("consumer_id", s"${testConsumer.consumerId.get}"),
+          ("consumer_id", s"${testConsumer.consumerId}"),
           ("user_id", s"${resourceUser1.userId}"),
           ("anon", "false"),
           ("url", "/obp/v5.1.0/banks"),
-          ("app_name", s"${testConsumer.name.get}"),
+          ("app_name", s"${testConsumer.name}"),
           ("implemented_by_partial_function", "getBanks"),
           ("implemented_in_version", "v5.1.0"),
           ("verb", "GET"),
           ("include_implemented_by_partial_functions", "getBanks,getCurrentUser"),
-          ("include_app_names", s"${testConsumer.name.get},${testConsumer2.name.get},${testConsumer3.name.get}"),
+          ("include_app_names", s"${testConsumer.name},${testConsumer2.name},${testConsumer3.name}"),
           ("include_url_patterns", "%banks%"),
         )
         val request2 = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? params

@@ -2,7 +2,6 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.model.Consumer
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
@@ -49,7 +48,9 @@ object MigrationOfResourceUserIsDeleted {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          // Names the consumer table although the check above is on resourceuser - a copy-paste
+          // in the original that only ever reached a log line. Preserved verbatim.
+          s"""consumer table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

@@ -170,7 +170,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedbankaccount",
     "viewdefinition",
     "nonce",
-    "token"
+    "token",
+    "consumer"
   )
 
   /**
@@ -302,7 +303,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDCONSENT" -> "MAPPEDCONSENT_MCONSENTID",
     "MAPPEDCONSENT" -> "MAPPEDCONSENT_CONSENT_REFERENCE_ID",
     "MAPPEDBANKACCOUNT" -> "MAPPEDBANKACCOUNT_BANK_THEACCOUNTID",
-    "VIEWDEFINITION" -> "VIEWDEFINITION_COMPOSITE_UNIQUE_KEY"
+    "VIEWDEFINITION" -> "VIEWDEFINITION_COMPOSITE_UNIQUE_KEY",
+    "CONSUMER" -> "CONSUMER_KEY_C",
+    "CONSUMER" -> "CONSUMER_AZP_SUB"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

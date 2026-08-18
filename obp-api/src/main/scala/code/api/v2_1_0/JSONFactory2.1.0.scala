@@ -502,16 +502,16 @@ object JSONFactory210{
       case _ => null
     }
 
-    ConsumerJsonV210(consumer_id=c.id.get,
-      app_name=c.name.get,
+    ConsumerJsonV210(consumer_id=c.id,
+      app_name=c.name,
       app_type=c.appType.toString(),
-      description=c.description.get,
-      developer_email=c.developerEmail.get,
-      redirect_url=c.redirectURL.get,
-      created_by_user_id =c.createdByUserId.get,
+      description=c.description,
+      developer_email=c.developerEmail,
+      redirect_url=c.redirectURL,
+      created_by_user_id =c.createdByUserId,
       created_by_user =resourceUserJSON,
-      enabled=c.isActive.get,
-      created=c.createdAt.get
+      enabled=c.isActive,
+      created=c.createdAt
     )
   }
   def createConsumerJSONs(l : List[Consumer]): ConsumersJson = {

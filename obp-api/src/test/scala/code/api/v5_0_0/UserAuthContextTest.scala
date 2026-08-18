@@ -124,7 +124,7 @@ class UserAuthContextTest extends V500ServerSetup {
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
       userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
-      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId ==) shouldBe (true)
     }
 
 
@@ -187,7 +187,7 @@ class UserAuthContextTest extends V500ServerSetup {
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
       userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
-      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId ==) shouldBe (true)
     }
     
     

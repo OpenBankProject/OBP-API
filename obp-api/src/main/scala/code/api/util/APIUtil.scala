@@ -344,14 +344,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def registeredApplication(consumerKey: String): Boolean = {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
-      case Full(application) => application.isActive.get
+      case Full(application) => application.isActive
       case _ => false
     }
   }
 
   def registeredApplicationFuture(consumerKey: String): Future[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerKeyFuture(consumerKey) map {
-      case Full(c) => c.isActive.get
+      case Full(c) => c.isActive
       case _ => false
     }
   }
@@ -459,7 +459,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val requestHeaders: List[HTTPParam] =
       cc.map(_.requestHeaders.filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)).getOrElse(Nil)
     val hashedRequestPayload = HashUtil.Sha256Hash(url + requestHeaders)
-    val consumerId = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
+    val consumerId = cc.map(i => i.consumer.map(_.consumerId).getOrElse("None")).getOrElse("None")
     val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("None")
     val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
     val compositeKey =
@@ -2229,7 +2229,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getConsumerPrimaryKey(callContext: Option[CallContext]): String = {
     callContext match {
       case Some(cc) =>
-        cc.consumer.map(_.id.get.toString).getOrElse("")
+        cc.consumer.map(_.id.toString).getOrElse("")
       case _ =>
         ""
     }
@@ -3941,7 +3941,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val result = getPropsValue("requirePsd2Certificates", "NONE") match {
       case value if value.toUpperCase == "ONLINE" =>
         val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
-        val consumerName = cc.flatMap(_.consumer.map(_.name.get)).getOrElse("")
+        val consumerName = cc.flatMap(_.consumer.map(_.name)).getOrElse("")
         tppCertificateForStandard(cc) match {
           // No usable certificate: fail closed. passesPsd2ServiceProvider maps a Failure to a 401
           // -- this used to throw out of the base64 decode and become a 500.

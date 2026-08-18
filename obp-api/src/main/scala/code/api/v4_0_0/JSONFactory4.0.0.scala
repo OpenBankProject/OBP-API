@@ -1565,19 +1565,19 @@ object JSONFactory400 {
       case _ => null
     }
 
-    ConsumerJson(consumer_id=c.consumerId.get,
-      key=c.key.get,
-      secret=c.secret.get,
-      app_name=c.name.get,
+    ConsumerJson(consumer_id=c.consumerId,
+      key=c.key,
+      secret=c.secret,
+      app_name=c.name,
       app_type=c.appType.toString(),
-      description=c.description.get,
-      developer_email=c.developerEmail.get,
-      redirect_url=c.redirectURL.get,
-      created_by_user_id =c.createdByUserId.get,
+      description=c.description,
+      developer_email=c.developerEmail,
+      redirect_url=c.redirectURL,
+      created_by_user_id =c.createdByUserId,
       created_by_user =resourceUserJSON,
-      enabled=c.isActive.get,
-      created=c.createdAt.get,
-      client_certificate=c.clientCertificate.get
+      enabled=c.isActive,
+      created=c.createdAt,
+      client_certificate=c.clientCertificate
     )
   }
 

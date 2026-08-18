@@ -36,7 +36,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
 
     Scenario("We Get Current FxRate", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "EUR" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -46,7 +46,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
     
     Scenario("We Get Current FxRate with wrong ISO from currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR1" / "EUR" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -57,7 +57,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
 
     Scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "EUR1" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)

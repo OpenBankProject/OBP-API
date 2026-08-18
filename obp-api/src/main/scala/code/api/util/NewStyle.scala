@@ -545,7 +545,7 @@ object NewStyle extends MdcLoggable{
         unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest " +
           s"Current ViewId(${viewId.value})," +
           s"current UserId(${user.userId})"+
-          s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
+          s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId).getOrElse("")).getOrElse("")})"
         )
       }
     }
@@ -626,7 +626,7 @@ object NewStyle extends MdcLoggable{
       Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
         unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId", 404)
       } map {
-        c => c.isActive.get match {
+        c => c.isActive match {
           case true => c
           case false => unboxFullOrFail(Empty, callContext, s"$ConsumerIsDisabled ConsumerId: $consumerId")
         }

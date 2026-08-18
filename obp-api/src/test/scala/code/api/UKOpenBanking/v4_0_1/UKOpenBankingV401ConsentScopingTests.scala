@@ -119,12 +119,12 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
 
   Feature("A UK consent is authoritative for the permissions it declares") {
     Scenario("a consent that did not ask for a permission does not have it", UKConsentScoping) {
-      val wide = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic, ReadBalances))
+      val wide = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic, ReadBalances))
       canRead(ReadAccountsBasic, wide, testConsumer) should equal(true)
       canRead(ReadBalances, wide, testConsumer) should equal(true)
 
       // Same TPP, same PSU, same account -- but this consent never asked for balances.
-      val narrow = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
+      val narrow = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic))
       canRead(ReadAccountsBasic, narrow, testConsumer) should equal(true)
       canRead(ReadBalances, narrow, testConsumer) should equal(false)
     }
@@ -133,11 +133,11 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
 
   Feature("A UK consent is authoritative for the accounts it names") {
     Scenario("a consent does not reach an account it never named", UKConsentScoping) {
-      val both = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic, ReadBalances),
+      val both = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic, ReadBalances),
         accountIds = List(acc, otherAcc))
       canRead(ReadAccountsBasic, both, testConsumer, otherBankIdAccountId) should equal(true)
 
-      val onlyOne = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic, ReadBalances),
+      val onlyOne = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic, ReadBalances),
         accountIds = List(acc))
       canRead(ReadAccountsBasic, onlyOne, testConsumer) should equal(true)
       canRead(ReadAccountsBasic, onlyOne, testConsumer, otherBankIdAccountId) should equal(false)
@@ -145,7 +145,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
     }
 
     Scenario("re-authorising one consent with fewer accounts narrows it", UKConsentScoping) {
-      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+      val consentId = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic),
         accountIds = List(acc, otherAcc))
       canRead(ReadAccountsBasic, consentId, testConsumer, otherBankIdAccountId) should equal(true)
 
@@ -159,9 +159,9 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
 
   Feature("Two live consents held by the same TPP are scoped independently") {
     Scenario("re-authorising the wider consent does not widen the narrower one", UKConsentScoping) {
-      val wide = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+      val wide = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic),
         accountIds = List(acc, otherAcc))
-      val narrow = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+      val narrow = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic),
         accountIds = List(acc))
 
       canRead(ReadAccountsBasic, narrow, testConsumer, otherBankIdAccountId) should equal(false)
@@ -178,8 +178,8 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
 
   Feature("One TPP's UK consent does not rewrite another TPP's access") {
     Scenario("a second consumer authorising a narrower consent leaves the first consumer's access intact", UKConsentScoping) {
-      val first = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic, ReadBalances))
-      val second = authoriseConsentFor(testConsumer2.consumerId.get, List(ReadAccountsBasic))
+      val first = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic, ReadBalances))
+      val second = authoriseConsentFor(testConsumer2.consumerId, List(ReadAccountsBasic))
 
       canRead(ReadBalances, second, testConsumer2) should equal(false)
       canRead(ReadBalances, first, testConsumer) should equal(true)
@@ -193,7 +193,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       // consent ran as the PSU this role would make its declared scope meaningless.
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, FirehoseRole)
 
-      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
+      val consentId = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic))
       val (principal, _) = authenticateWith(consentId, testConsumer)
 
       principal.userId should not equal resourceUser1.userId
@@ -208,7 +208,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
     }
 
     Scenario("account ownership is left alone: the PSU keeps the owner view", UKConsentScoping) {
-      authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
+      authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic))
 
       // owner comes from holding the account, not from any consent. Nothing in the consent flow
       // writes or removes a row for the PSU any more, so it is untouched.
@@ -239,7 +239,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
 
   Feature("A UK consent presented in an access token resolves the same way as one in a header") {
     Scenario("the principal is swapped, the PSU is kept, and the scope is the consent's", UKConsentScoping) {
-      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+      val consentId = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic),
         accountIds = List(acc))
 
       val (principal, callContext) =
@@ -278,7 +278,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
     // refusal has to be decided here, where it is recorded on the CallContext and enforced for every
     // endpoint by ResourceDocMiddleware.
     Scenario("a token whose subject is not the consent's PSU is refused, not swapped", UKConsentScoping) {
-      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+      val consentId = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic),
         accountIds = List(acc))
 
       Given("resourceUser2's session presenting a consent authorised by resourceUser1")
@@ -315,7 +315,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       user = Some(resourceUser1),
       bankId = None,
       accountIds = None,
-      consumerId = Some(testConsumer.consumerId.get),
+      consumerId = Some(testConsumer.consumerId),
       permissions = permissions,
       expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
@@ -458,15 +458,15 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       Consent.checkUKConsentAccess(
         consent.userId, consent.consumerId,
         Consent.actingPsu(cc).map(_.userId),
-        cc.consumer.map(_.consumerId.get),
-        Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))
+        cc.consumer.map(_.consumerId),
+        Consent.isScaFrontEnd(cc.consumer.map(_.consumerId))
       ) should equal(None)
     }
   }
 
   Feature("Revoking a UK consent takes its access away") {
     Scenario("the granted rows are gone, not merely unreachable", UKConsentScoping) {
-      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
+      val consentId = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic))
       val (principal, _) = authenticateWith(consentId, testConsumer)
       Views.views.vend.accessGrantedToUserForConsumer(principal, Constant.ALL_CONSUMERS) should not be empty
 
@@ -487,7 +487,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
     // extract that follows is what throws, and Box.map does not catch. The same trap is already
     // documented on applyUKConsentPrincipalFromToken.
     Scenario("a consent whose stored JWT cannot be read is still revoked, and says so", UKConsentScoping) {
-      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
+      val consentId = authoriseConsentFor(testConsumer.consumerId, List(ReadAccountsBasic))
 
       // Structurally a JWT, and the claims parse as JSON -- they are simply not a ConsentJWT.
       def b64(s: String) = java.util.Base64.getUrlEncoder.withoutPadding.encodeToString(s.getBytes("UTF-8"))

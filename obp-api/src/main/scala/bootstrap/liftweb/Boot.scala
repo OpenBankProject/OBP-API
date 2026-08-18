@@ -791,25 +791,23 @@ class Boot extends MdcLoggable {
   }
 
   // Separate method to create and save the OIDC operator consumer.
-  // Uses Consumer.create directly (not Consumers.consumers.vend.createConsumer)
-  // to avoid S.? calls during Boot (Lift's S scope is not initialized at boot time).
+  // Writes through the store rather than Consumers.consumers.vend.createConsumer so that no
+  // validation runs: this consumer has no developer email, which createConsumer rejects, and the
+  // bootstrap must not depend on a valid one.
   private def saveOidcOperatorConsumer(consumerKey: String, consumerSecret: String): Unit = {
-    // Create consumer directly, skipping validate (which calls S.? and fails during Boot)
-    val c = Consumer.create
-      .key(consumerKey)
-      .secret(consumerSecret)
-      .name("OIDC Operator Consumer")
-    c.isActive(true) // MappedBoolean.apply returns Mapper, must be separate statement
-    c.description("Bootstrap consumer for OBP-OIDC to manage consumers via the API") // MappedText.apply returns Mapper, must be separate statement
-
-    val consumerBox = tryo(c.saveMe())
+    val consumerBox = tryo(Consumer.insert(Consumer.defaults.copy(
+      key = consumerKey,
+      secret = consumerSecret,
+      name = "OIDC Operator Consumer",
+      isActive = true,
+      description = "Bootstrap consumer for OBP-OIDC to manage consumers via the API")))
 
     consumerBox match {
       case Full(consumer) =>
-        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId.get}")
+        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId}")
         val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient)
         scopes.foreach { role =>
-          val resultBox = Scope.scope.vend.addScope("", consumer.id.get.toString, role.toString)
+          val resultBox = Scope.scope.vend.addScope("", consumer.id.toString, role.toString)
           if (resultBox.isEmpty) {
             logger.error(s"createBootstrapOidcOperatorConsumer says: Error granting scope ${role}: ${resultBox}")
           }
@@ -829,7 +827,6 @@ object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
     ResourceUser,
-    Consumer,
   )
 
   // start grpc server

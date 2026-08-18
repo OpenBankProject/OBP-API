@@ -234,6 +234,28 @@ of each identifier whether some row in the domain legitimately lacks it. Binding
 costs nothing when the value is never null; getting it wrong costs a full-suite round trip and a
 stack trace with no OBP frames in it.
 
+**A Mapper field type can carry validation and set-filters that the column does not show.** A
+migration that reads the DDL and the entity's own `object` declarations still misses what the *field
+type* did. `MappedEmail` is the worst offender: it lowercases and trims on every set
+(`setFilter = notNull :: toLower :: trim`) and it validates the address on save — so a column that
+looks like a plain `VARCHAR(100)` was in fact normalised on write and rejected when malformed. The
+entity never mentions either behaviour. `MappedPassword` is the same story on a larger scale: it
+writes two columns and bcrypts on set.
+
+Before rewriting an entity, read the *field type's* source in `lift-persistence`, not just the
+entity: `setFilter`, `validate`, `validations`, `dbColumnCount`. Then reproduce the filter where the
+entity used to assign the field (so the stored value and the validated value are the same one), and
+reproduce the validation in field-declaration order, because `MetaMapper.validate` concatenates
+per-field errors in that order and callers join them into one message tests assert on.
+
+Two ways this went wrong on the consumer table, both caught only by the full suite:
+- `Consumer.validate(row.copy(name = ""))` — blanking a field to skip its uniqueness re-check also
+  tripped its min-length rule, so *every* consumer creation failed with "Application name: must be
+  at least 3 characters". 412 failures in one shard, all from one line, all in test setup
+  (`DefaultUsers.testConsumer`) rather than in anything resembling the changed code.
+- the developer-email validation was simply absent from the rewrite, because `MappedEmail` declares
+  it in the framework rather than in the entity.
+
 **`Option` is not enough on its own: `Some(null)` still throws.** Doobie's `Put` for `Option[A]`
 writes SQL NULL only for `None` — a `Some` is unwrapped and its contents handed to the non-nullable
 `Put`, so `Some(null)` fails exactly like a bare null. This bites when the Option is built from a

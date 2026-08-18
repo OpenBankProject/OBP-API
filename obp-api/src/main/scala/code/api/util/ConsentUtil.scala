@@ -220,7 +220,7 @@ object Consent extends MdcLoggable {
     val consumerBox = Consumers.consumers.vend.getConsumerByConsumerId(consent.aud)
     logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.getConsumerByConsumerId consumerBox:: consumerBox($consumerBox)")
     consumerBox match {
-      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
+      case Full(consumerFromConsent) if consumerFromConsent.isActive == true => // Consumer is active
         val validationMethod = APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_CERTIFICATE")
         if(validationMethod != "CONSUMER_CERTIFICATE" && Props.mode == Props.RunModes.Production) {
           logger.warn(s"consumer_validation_method_for_consent is not set to CONSUMER_CERTIFICATE! The current value is: ${validationMethod}")
@@ -231,7 +231,7 @@ object Consent extends MdcLoggable {
             logger.debug(s"code.api.util.Consent.checkConsumerIsActiveAndMatched.consumerBox.requestHeaderConsumerKey:: requestHeaderConsumerKey($requestHeaderConsumerKey)")
             requestHeaderConsumerKey match {
               case Some(reqHeaderConsumerKey) =>
-                if (reqHeaderConsumerKey == consumerFromConsent.key.get)
+                if (reqHeaderConsumerKey == consumerFromConsent.key)
                   Full(true) // This consent can be used by current application
                 else // This consent can NOT be used by current application
                   Failure(s"${ErrorMessages.ConsentDoesNotMatchConsumer} CONSUMER_KEY_VALUE")
@@ -250,8 +250,8 @@ object Consent extends MdcLoggable {
             // accepting either keeps this strictly more permissive than before — no Consumer that
             // matched previously can stop matching.
             val certificateMatches =
-              CertificateUtil.comparePemX509Certificates(clientCert, consumerFromConsent.clientCertificate.get) ||
-                removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get)
+              CertificateUtil.comparePemX509Certificates(clientCert, consumerFromConsent.clientCertificate) ||
+                removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate)
             if (certificateMatches) {
               logger.debug(s"| Consent.checkConsumerIsActiveAndMatched | certificate matches | true |")
               Full(true) // This consent can be used by current application
@@ -262,7 +262,7 @@ object Consent extends MdcLoggable {
             val tppSignatureCertificate = getHeaderValue(RequestHeader.`TPP-Signature-Certificate`, callContext.requestHeaders)
             logger.debug(s"| Consent.checkConsumerIsActiveAndMatched | tppSignatureCertificate | $tppSignatureCertificate |")
             logger.debug(s"| Consent.checkConsumerIsActiveAndMatched | consumerFromConsent.clientCertificate | ${consumerFromConsent.clientCertificate} |")
-            if (removeBreakLines(tppSignatureCertificate) == removeBreakLines(consumerFromConsent.clientCertificate.get)) {
+            if (removeBreakLines(tppSignatureCertificate) == removeBreakLines(consumerFromConsent.clientCertificate)) {
               logger.debug(s"""| removeBreakLines(tppSignatureCertificate) == removeBreakLines(consumerFromConsent.clientCertificate.get | true |""")
               Full(true) // This consent can be used by current application
             } else { // This consent can NOT be used by current application
@@ -273,7 +273,7 @@ object Consent extends MdcLoggable {
           case _ => // This instance does not specify validation method
             Failure(ErrorMessages.ConsumerValidationMethodForConsentNotDefined)
         }
-      case Full(consumer) if consumer.isActive.get == false => // Consumer is NOT active
+      case Full(consumer) if consumer.isActive == false => // Consumer is NOT active
         Failure(ErrorMessages.ConsumerAtConsentDisabled + " aud: " + consent.aud)
       case _ => // There is NO Consumer
         Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
@@ -281,7 +281,7 @@ object Consent extends MdcLoggable {
   }
 
   private def tppIsConsentHolder(consumerIdFromConsent: String, callContext: CallContext): Boolean = {
-    val consumerIdFromCurrentCall = callContext.consumer.map(_.consumerId.get).orNull
+    val consumerIdFromCurrentCall = callContext.consumer.map(_.consumerId).orNull
     logger.debug(s"consumerIdFromConsent == consumerIdFromCurrentCall ($consumerIdFromConsent == $consumerIdFromCurrentCall)")
     consumerIdFromConsent == consumerIdFromCurrentCall
   }
@@ -294,14 +294,14 @@ object Consent extends MdcLoggable {
       case Full(c) =>
         if (!tppIsConsentHolder(c.consumerId, callContext)) { // Always check TPP first
           val consentConsumerId = c.consumerId
-          val requestConsumerId = callContext.consumer.map(_.consumerId.get).getOrElse("NONE")
+          val requestConsumerId = callContext.consumer.map(_.consumerId).getOrElse("NONE")
           val consumerValidationMethodForConsent = APIUtil.getPropsValue("consumer_validation_method_for_consent").openOr("")
           if(requestConsumerId == "NONE" || consumerValidationMethodForConsent.isEmpty) {
             logger.warn(s"consumer_validation_method_for_consent is empty while request consumer_id=NONE - consent_id=${consent.jti}, aud=${consent.aud}")
           }
           // Get consumer keys for debugging
-          val consentConsumerKey = Consumers.consumers.vend.getConsumerByConsumerId(consentConsumerId).map(_.key.get).getOrElse("Unknown")
-          val requestConsumerKey = callContext.consumer.map(_.key.get).getOrElse("None")
+          val consentConsumerKey = Consumers.consumers.vend.getConsumerByConsumerId(consentConsumerId).map(_.key).getOrElse("Unknown")
+          val requestConsumerKey = callContext.consumer.map(_.key).getOrElse("None")
           val detailedErrorMsg = s"${ErrorMessages.ConsentNotFound} Consumer mismatch: consent has consumer_id='$consentConsumerId' (consumer_key='$consentConsumerKey'), but current request has consumer_id='$requestConsumerId' (consumer_key='$requestConsumerKey')"
           logger.debug(s"ConsentNotFound: TPP/Consumer mismatch. Consent holder consumer_id=$consentConsumerId, Request consumer_id=$requestConsumerId, consent_id=${consent.jti}")
           logger.debug(s"ConsentNotFound: $detailedErrorMsg")
@@ -894,7 +894,7 @@ object Consent extends MdcLoggable {
         } ?~! ErrorMessages.ConsentNotFound
         _ <- checkConsumerIsActiveAndMatchedUK(
           consentJwt,
-          callContext.consumer.map(_.consumerId.get)
+          callContext.consumer.map(_.consumerId)
         )
         // The PSU bound to the consent by updateConsentUser during the authorise ceremony. A
         // consent that was never authorised has no user, and the status gate above already
@@ -1289,7 +1289,7 @@ object Consent extends MdcLoggable {
                        preComputedViews: Option[List[ConsentView]] = None // bypass Doobie view lookup (e.g. for VRP consent where the view was just created in the same transaction)
   ): String = {
 
-    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
+    lazy val currentConsumerId = Consumer.findAllByCreatedByUserId(user.userId).map(_.consumerId).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val timeInSeconds = validFrom match {
       case Some(date) => date.getTime() / 1000
@@ -1847,8 +1847,8 @@ object Consent extends MdcLoggable {
   ): Future[Box[Unit]] = {
     val refusal = checkBerlinGroupConsentAccess(
       consentUserId, consentConsumerId,
-      genuinePsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId.get),
-      isScaFrontEnd(callContext.consumer.map(_.consumerId.get)))
+      genuinePsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId),
+      isScaFrontEnd(callContext.consumer.map(_.consumerId)))
     refusal.foreach { reason =>
       logger.info(
         s"A consent read was refused: $reason. Reported as ${ErrorMessages.ConsentNotFound} so the " +
@@ -2001,7 +2001,7 @@ object Consent extends MdcLoggable {
    * extraction, used by the checks added here.
    */
   def genuinePsu(callContext: CallContext): Option[User] =
-    callContext.user.toOption.filterNot(u => callContext.consumer.map(_.key.get).contains(u.idGivenByProvider))
+    callContext.user.toOption.filterNot(u => callContext.consumer.map(_.key).contains(u.idGivenByProvider))
 
   /**
    * Refuse a Berlin Group consent authorisation unless the PSU claiming it holds every account the
@@ -2106,8 +2106,8 @@ object Consent extends MdcLoggable {
   ): Future[Box[Unit]] = {
     val refusal = checkUKConsentAccess(
       consentUserId, consentConsumerId,
-      actingPsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId.get),
-      isScaFrontEnd(callContext.consumer.map(_.consumerId.get)))
+      actingPsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId),
+      isScaFrontEnd(callContext.consumer.map(_.consumerId)))
     // ConsentNotFound whatever the reason, and the same answer these endpoints give for a consent id
     // that matches nothing at all. A caller who is not entitled to a consent must not be able to
     // tell "there is no such consent" from "that one is not yours", or the endpoint is a way to
@@ -2244,7 +2244,7 @@ object Consent extends MdcLoggable {
   ): String = {
 
     val createdByUserId = user.map(_.userId).getOrElse("None")
-    val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, createdByUserId)).map(_.consumerId.get).headOption.getOrElse("")
+    val currentConsumerId = Consumer.findAllByCreatedByUserId(createdByUserId).map(_.consumerId).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     // No ExpirationDateTime means the consent never expires (UK spec: 0..1, open-ended if absent).
     // Use Long.MaxValue rather than e.g. "now" (the convention createBerlinGroupConsentJWT falls
@@ -2385,16 +2385,16 @@ object Consent extends MdcLoggable {
 
   private def checkConsumerIsActiveAndMatchedUK(consent: ConsentJWT, consumerIdOfLoggedInUser: Option[String]): Box[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
-      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
+      case Full(consumerFromConsent) if consumerFromConsent.isActive == true => // Consumer is active
         consumerIdOfLoggedInUser match {
           case Some(consumerId) =>
-            if (consumerId == consumerFromConsent.consumerId.get)
+            if (consumerId == consumerFromConsent.consumerId)
               Full(true) // This consent can be used by current application
             else // This consent can NOT be used by current application
               Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
           case None => Failure(ErrorMessages.ConsumerNotFound) // Consumer cannot be found by logged in user
         }
-      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == false => // Consumer is NOT active
+      case Full(consumerFromConsent) if consumerFromConsent.isActive == false => // Consumer is NOT active
         Failure(ErrorMessages.ConsumerAtConsentDisabled + " aud: " + consent.aud)
       case _ => // There is NO Consumer
         Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
@@ -2517,7 +2517,7 @@ object Consent extends MdcLoggable {
               case _ if c.userId != calContext.flatMap(_.consenter.toOption).getOrElse(user).userId =>
                 Failure(ErrorMessages.ConsentDoesNotMatchUser)
               case _ =>
-                val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
+                val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId))
                 implicit val dateFormats = CustomJsonFormats.formats
                 val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
                   .map(parse(_).extract[ConsentJWT])

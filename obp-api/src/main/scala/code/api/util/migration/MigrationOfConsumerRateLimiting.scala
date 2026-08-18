@@ -33,23 +33,23 @@ object TableRateLmiting {
           for {
             consumer <- consumers
           } yield {
-            RateLimiting.findAllByConsumerId(consumer.consumerId.get).headOption match {
+            RateLimiting.findAllByConsumerId(consumer.consumerId).headOption match {
               case Some(_) => // Already exist
                 true
               case _ =>
                 RateLimiting.insertWithLimits(
-                  consumerId = consumer.consumerId.get,
+                  consumerId = consumer.consumerId,
                   fromDate = Date.from(oneDayAgo.toInstant()),
                   toDate = Date.from(oneYearInFuture.toInstant()),
                   apiVersion = None,
                   apiName = None,
                   bankId = None,
-                  perSecond = consumer.perSecondCallLimit.get,
-                  perMinute = consumer.perMinuteCallLimit.get,
-                  perHour = consumer.perHourCallLimit.get,
-                  perDay = consumer.perDayCallLimit.get,
-                  perWeek = consumer.perWeekCallLimit.get,
-                  perMonth = consumer.perMonthCallLimit.get)
+                  perSecond = consumer.perSecondCallLimit,
+                  perMinute = consumer.perMinuteCallLimit,
+                  perHour = consumer.perHourCallLimit,
+                  perDay = consumer.perDayCallLimit,
+                  perWeek = consumer.perWeekCallLimit,
+                  perMonth = consumer.perMonthCallLimit)
                 true
             }
           }

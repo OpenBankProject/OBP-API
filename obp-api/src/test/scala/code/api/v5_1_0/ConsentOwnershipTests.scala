@@ -96,7 +96,7 @@ class ConsentOwnershipTests extends V510ServerSetup with PropsReset {
   private lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, Constant.SYSTEM_OWNER_VIEW_ID))
   private lazy val postConsentImplicitJsonV310 = SwaggerDefinitionsJSON.postConsentImplicitJsonV310
     .copy(entitlements = entitlements)
-    .copy(consumer_id = Some(testConsumer.consumerId.get))
+    .copy(consumer_id = Some(testConsumer.consumerId))
     .copy(views = views)
 
   // Lodge an OBP-native consent for resourceUser1 and take it through SCA, so it ends up ACCEPTED

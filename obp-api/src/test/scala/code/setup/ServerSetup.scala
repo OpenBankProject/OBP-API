@@ -126,6 +126,9 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
    *
    * We preserve only the essential OAuth/auth tables (Nonce, Token, Consumer, AuthUser, ResourceUser)
    * as these are needed for test authentication and are managed by DefaultUsers trait.
+   * Nonce, Token and Consumer are preserved by omission rather than by the exclusion below: they no
+   * longer have a Lift entity, so they are not in ToSchemify.models and the loop never reaches them.
+   * Do not add an explicit delete for them here the way the migrated non-auth tables have one.
    */
 
   /**
@@ -134,7 +137,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
    */
   protected def resetDatabaseForTestClass(): Unit = {
     def exclusion(m: MetaMapper[_]): Boolean = {
-      m == Consumer || m == AuthUser || m == ResourceUser
+      m == AuthUser || m == ResourceUser
     }
 
     logger.info(s"[TEST ISOLATION] Resetting database before test class: ${this.getClass.getSimpleName}")

@@ -100,7 +100,7 @@ object Http4sBGv13PIS extends MdcLoggable {
       (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
       initiators = Set(transactionRequest.user_id, transactionRequest.on_behalf_of_user_id).flatten.filter(_.nonEmpty)
       callers = callContext.toSet[CallContext].flatMap(cc => cc.user.toOption.map(_.userId) ++ Consent.actingPsu(cc).map(_.userId))
-      callingConsumer = callContext.flatMap(_.consumer.map(_.consumerId.get))
+      callingConsumer = callContext.flatMap(_.consumer.map(_.consumerId))
       // Read straight off the stored row rather than through the TransactionRequest model: which
       // TPP lodged a payment is this guard's business, not something every REST connector needs on
       // the wire, and that model's shape is a frozen contract.

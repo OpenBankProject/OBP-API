@@ -74,7 +74,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       address = testAccountId1.value), Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
-    .copy(consumer_id=Some(testConsumer.consumerId.get))
+    .copy(consumer_id=Some(testConsumer.consumerId))
     .copy(bank_id=Some(bankId))
     .copy(account_access=accountAccess)
 

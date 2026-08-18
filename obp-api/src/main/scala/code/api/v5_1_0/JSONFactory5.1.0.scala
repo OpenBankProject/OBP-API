@@ -1194,20 +1194,20 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     }
 
     ConsumerJsonV510(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      app_name = c.name.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      app_name = c.name,
       app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url =  if (c.logoUrl == null || c.logoUrl.isEmpty ) null else Some(c.logoUrl)
     )
   }
   def createMyConsumerJSON(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): MyConsumerJsonV510 = {
@@ -1224,21 +1224,21 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     }
 
     MyConsumerJsonV510(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      consumer_secret = c.secret.get,
-      app_name = c.name.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      consumer_secret = c.secret,
+      app_name = c.name,
       app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url =  if (c.logoUrl == null || c.logoUrl.isEmpty ) null else Some(c.logoUrl)
     )
   }
   def createConsumerJsonOnlyForPostResponseV510(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): ConsumerJsonOnlyForPostResponseV510 = {
@@ -1255,21 +1255,21 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     }
 
     ConsumerJsonOnlyForPostResponseV510(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      consumer_secret = c.secret.get,
-      app_name = c.name.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      consumer_secret = c.secret,
+      app_name = c.name,
       app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url =  if (c.logoUrl == null || c.logoUrl.isEmpty ) null else Some(c.logoUrl)
     )
   }
 

@@ -1406,20 +1406,20 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     }
 
     ConsumerJsonV600(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      app_name = c.name.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      app_name = c.name,
       app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url = if (c.logoUrl.get == null || c.logoUrl.get.isEmpty) None else Some(c.logoUrl.get),
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url = if (c.logoUrl == null || c.logoUrl.isEmpty) None else Some(c.logoUrl),
       active_rate_limits = activeRateLimits,
       call_counters = callCounters
     )
@@ -3188,7 +3188,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   def createParticipantJson(p: code.chat.ParticipantTrait): ParticipantJsonV600 = {
     val user = code.users.Users.users.vend.getUserByUserId(p.userId)
     val consumerName = if (p.consumerId.nonEmpty)
-      code.model.Consumer.find(By(code.model.Consumer.consumerId, p.consumerId)).map(_.name.get).getOrElse("")
+      code.model.Consumer.findByConsumerId(p.consumerId).map(_.name).getOrElse("")
     else ""
     ParticipantJsonV600(
       participant_id = p.participantId,
@@ -3215,7 +3215,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     }.toList
     val user = code.users.Users.users.vend.getUserByUserId(msg.senderUserId)
     val consumerAppName = if (msg.senderConsumerId.nonEmpty)
-      code.model.Consumer.find(By(code.model.Consumer.consumerId, msg.senderConsumerId)).map(_.name.get).getOrElse("")
+      code.model.Consumer.findByConsumerId(msg.senderConsumerId).map(_.name).getOrElse("")
     else ""
     ChatMessageJsonV600(
       chat_message_id = msg.chatMessageId,

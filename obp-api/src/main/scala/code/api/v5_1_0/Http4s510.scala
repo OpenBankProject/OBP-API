@@ -465,7 +465,7 @@ object Http4s510 {
       val requestHeaders = cc.requestHeaders
         .filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)
       val hashedRequestPayload = code.api.util.HashUtil.Sha256Hash(cc.url + requestHeaders)
-      val consumerId = cc.consumer.map(_.consumerId.get).getOrElse("None")
+      val consumerId = cc.consumer.map(_.consumerId).getOrElse("None")
       val userId = scala.util.Try(cc.userId).getOrElse("None")
       val compositeKey =
         if (consumerId == "None" && userId == "None") "anonymous"
@@ -745,7 +745,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-            user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
+            user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId)
           } yield createConsumerJSON(consumer, user)
         }
     }
@@ -2821,7 +2821,7 @@ object Http4s510 {
               consumer.createdByUserId.equals(user.userId)
             }
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get,
+              id = consumer.id,
               isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
               redirectURL = Some(postJson.redirect_url),
               callContext = Some(cc))
@@ -2861,7 +2861,7 @@ object Http4s510 {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
+              id = consumer.id, logoURL = Some(postJson.logo_url), callContext = Some(cc))
           } yield JSONFactory510.createConsumerJSON(updatedConsumer)
         }
     }
@@ -2898,7 +2898,7 @@ object Http4s510 {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
+              id = consumer.id, certificate = Some(postJson.certificate), callContext = Some(cc))
           } yield JSONFactory510.createConsumerJSON(updatedConsumer)
         }
     }
@@ -2935,7 +2935,7 @@ object Http4s510 {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
+              id = consumer.id, name = Some(postJson.app_name), callContext = Some(cc))
           } yield JSONFactory510.createConsumerJSON(updatedConsumer)
         }
     }
@@ -4707,7 +4707,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.consumerId == cc.consumer.map(_.consumerId.get).getOrElse("None")
+              consent.consumerId == cc.consumer.map(_.consumerId).getOrElse("None")
             }
           } yield JSONFactory510.getConsentInfoJson(consent)
         }
@@ -4973,7 +4973,7 @@ object Http4s510 {
               .map(i => connectorEmptyResponse(i, callContextOpt))
             consentJWT = Consent.createConsentJWT(
               user, consentJson, createdConsent.secret, createdConsent.consentId,
-              consumerFromRequestBody.map(_.consumerId.get),
+              consumerFromRequestBody.map(_.consumerId),
               consentJson.valid_from,
               consentJson.time_to_live.getOrElse(3600),
               None
@@ -4983,7 +4983,7 @@ object Http4s510 {
             validUntil = Helper.calculateValidTo(consentJson.valid_from, consentJson.time_to_live.getOrElse(3600))
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
-            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
             granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
             shouldSkip = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))

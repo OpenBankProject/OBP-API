@@ -226,7 +226,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       val azp = "__conc_w_azp_" + UUID.randomUUID.toString.take(8)
       val sub = "__conc_w_sub_" + UUID.randomUUID.toString.take(8)
 
-      def consumerCount: Long = Consumer.count(By(Consumer.azp, azp), By(Consumer.sub, sub))
+      def consumerCount: Long = Consumer.countByAzpAndSub(azp, sub)
       val n = 2
 
       When(s"$n threads concurrently getOrCreateConsumer for the same (azp, sub)")

@@ -955,7 +955,7 @@ object Http4s500 {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId) }
               .map(unboxFullOrFail(_, callContextOpt, ConsentRequestNotFound))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.consumerId == cc.consumer.map(_.consumerId.get).getOrElse("None")
+              consent.consumerId == cc.consumer.map(_.consumerId).getOrElse("None")
             }
             tuple <- NewStyle.function.tryons(
               failMsg = Oauth2BadJWTException, 400, callContextOpt) {
@@ -1241,7 +1241,7 @@ object Http4s500 {
             (consumerIdOpt, applicationText) <- calculatedConsumerId match {
               case Some(id) =>
                 NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map { c =>
-                  (Some(c.consumerId.get), c.description)
+                  (Some(c.consumerId), c.description)
                 }
               case None => Future.successful((None, "Any application"))
             }
@@ -1285,7 +1285,7 @@ object Http4s500 {
             validUntil = Helper.calculateValidTo(postConsentBodyCommonJson.valid_from, postConsentBodyCommonJson.time_to_live.getOrElse(3600))
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
-            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
             granteeConsumerId = postConsentBodyCommonJson.consumer_id.getOrElse("Unknown")
             shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))

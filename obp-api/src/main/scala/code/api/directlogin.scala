@@ -447,7 +447,7 @@ object DirectLogin extends MdcLoggable {
   {
     import code.model.TokenType
     val consumerId = consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
-      case Full(consumer) => Some(consumer.id.get)
+      case Full(consumer) => Some(consumer.id)
       case _ => None
     }
     val currentTime = Platform.currentTime

@@ -3513,7 +3513,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      key: String,
                                      value: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] = {
-    val consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
+    val consumerId = callContext.map(_.consumer.map(_.consumerId).getOrElse("")).getOrElse("")
     UserAuthContextProvider.userAuthContextProvider.vend.createUserAuthContext(userId, key, value, consumerId) map {
       (_, callContext)
     }
@@ -3523,7 +3523,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                            key: String,
                                            value: String,
                                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = {
-    val consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
+    val consumerId = callContext.map(_.consumer.map(_.consumerId).getOrElse("")).getOrElse("")
     UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId,consumerId, key, value) map {
       (_, callContext)
     }

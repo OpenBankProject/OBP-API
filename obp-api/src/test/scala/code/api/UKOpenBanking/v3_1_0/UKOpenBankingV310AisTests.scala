@@ -35,7 +35,7 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
       user = None,
       bankId = None,
       accountIds = None,
-      consumerId = Some(testConsumer.consumerId.get),
+      consumerId = Some(testConsumer.consumerId),
       permissions = List("ReadAccountsBasic"),
       expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),

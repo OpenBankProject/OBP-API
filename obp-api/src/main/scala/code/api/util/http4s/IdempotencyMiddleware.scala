@@ -184,7 +184,7 @@ object IdempotencyMiddleware extends MdcLoggable {
   private def scopeFor(req: Request[IO]): String = {
     val ccOpt = req.attributes.lookup(Http4sRequestAttributes.callContextKey)
     val raw = ccOpt
-      .flatMap(_.consumer.map(_.consumerId.get).toOption)
+      .flatMap(_.consumer.map(_.consumerId).toOption)
       .filter(_.nonEmpty)
       .orElse(req.headers.get(AuthorizationHeader).map(_.head.value))
       .getOrElse("anonymous")

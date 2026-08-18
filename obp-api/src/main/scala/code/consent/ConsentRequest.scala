@@ -16,7 +16,7 @@ object MappedConsentRequestProvider extends ConsentRequestProvider {
   override def createConsentRequest(consumer: Option[Consumer], payload: Option[String]): Box[ConsentRequest] =
     // The consumer is genuinely optional and the column is nullable, so an absent one is stored as
     // NULL rather than "". An absent payload is stored as "", which is what Mapper did.
-    tryo(ConsentRequest.insert(consumer.map(_.consumerId.get), payload.getOrElse("")))
+    tryo(ConsentRequest.insert(consumer.map(_.consumerId), payload.getOrElse("")))
 }
 
 /**

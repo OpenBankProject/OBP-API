@@ -63,7 +63,7 @@ case class UserExtended(val user: User) extends MdcLoggable {
     */ 
   final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): Boolean ={
     val viewDefinition = view.asInstanceOf[ViewDefinition]
-    val consumerId = callContext.map(_.consumer.map(_.consumerId.get).toOption).flatten
+    val consumerId = callContext.map(_.consumer.map(_.consumerId).toOption).flatten
     
     val consumerAccountAccess = {
       //If we find the AccountAccess by consumerId, this mean the accountAccess already assigned to some consumers

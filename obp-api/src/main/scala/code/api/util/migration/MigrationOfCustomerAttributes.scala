@@ -58,28 +58,30 @@ object MigrationOfCustomerAttributes {
     }
   }
   def populateAzpAndSub(name: String): Boolean = {
-    DbFunction.tableExists(Consumer) match {
+    DbFunction.tableExistsByName("consumer") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
-        val emptyNameConsumers = 
+        // Mapper compared the MappedString field object - not the value it holds - against null,
+        // so neither filter ever matched and this migration has always been a no-op. It is kept
+        // that way deliberately: comparing values instead would make a migration that databases
+        // recorded as run years ago start rewriting azp and sub on them.
+        val comparesTheFieldObject = (_: Consumer) => false
+
+        val emptyNameConsumers =
           for {
-            consumer <- Consumer.findAll() if consumer.azp.equals(null)
+            consumer <- Consumer.findAll() if comparesTheFieldObject(consumer)
           } yield {
-            consumer
-              .azp(APIUtil.generateUUID())
-              .saveMe()
+            Consumer.update(consumer.copy(azp = APIUtil.generateUUID()))
           }
 
         val emptyAppTypeConsumers =
           for {
-            consumer <- Consumer.findAll() if consumer.sub.equals(null)
+            consumer <- Consumer.findAll() if comparesTheFieldObject(consumer)
           } yield {
-            consumer
-              .sub(APIUtil.generateUUID())
-              .saveMe()
+            Consumer.update(consumer.copy(sub = APIUtil.generateUUID()))
           }
         
         val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
@@ -98,7 +100,7 @@ object MigrationOfCustomerAttributes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          s"""consumer table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

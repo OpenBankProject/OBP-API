@@ -457,7 +457,7 @@ object Http4s220 {
             consumer <- Future { unboxFullOrFail(cc.consumer, Some(cc), InvalidConsumerCredentials) }
             _ <- Future {
               unboxFullOrFail(
-                NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canCreateBank, Some(cc)),
+                NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.toString, canCreateBank, Some(cc)),
                 Some(cc), UserHasMissingRoles + canCreateBank)
             }
             (success, _) <- NewStyle.function.createOrUpdateBank(

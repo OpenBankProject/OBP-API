@@ -179,7 +179,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
       MappedConsent.insert(
         userId = user.userId,
-        consumerId = consumer.map(_.consumerId.get).getOrElse(null),
+        consumerId = consumer.map(_.consumerId).getOrElse(null),
         status = ConsentStatus.INITIATED.toString,
         challenge = challengeAnswerHashed,
         salt = salt,
@@ -205,7 +205,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
     tryo {
       MappedConsent.insert(
         userId = user.map(_.userId).getOrElse(null),
-        consumerId = consumer.map(_.consumerId.get).getOrElse(null),
+        consumerId = consumer.map(_.consumerId).getOrElse(null),
         status = ConsentStatus.received.toString,
         recurringIndicator = recurringIndicator,
         validUntil = validUntil,

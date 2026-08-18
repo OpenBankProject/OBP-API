@@ -193,7 +193,7 @@ object SandboxServer {
     val token = orThrow(
       Tokens.tokens.vend.createToken(
         Access,
-        Some(consumer.id.get),
+        Some(consumer.id),
         Some(resourceUser.id.get),
         Some(randomString(40).toLowerCase),
         Some(randomString(40).toLowerCase),

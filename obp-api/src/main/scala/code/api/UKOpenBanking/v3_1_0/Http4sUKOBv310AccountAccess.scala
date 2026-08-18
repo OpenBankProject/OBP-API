@@ -60,7 +60,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
           // consent's owner (it would permanently block the real PSU's authorise-time
           // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
           createdByUser = cc.user.toOption
-            .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
+            .filterNot(u => cc.consumer.map(_.key).contains(u.idGivenByProvider))
           consentJson <- Future.fromTry(scala.util.Try(
             com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
@@ -85,7 +85,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
               Helper.booleanToFuture(s"$InvalidUKConsentPermissions$reason", 400, Some(cc))(false)
             case None => Future.successful(true)
           }
-          consumerId = cc.consumer.map(_.consumerId.get)
+          consumerId = cc.consumer.map(_.consumerId)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
             createdByUser,

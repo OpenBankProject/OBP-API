@@ -104,7 +104,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
 
     Scenario("Successfully verify valid credentials with consumer scope (no user entitlement)", ApiEndpoint, VersionOfApi) {
       // Add scope to consumer instead of entitlement to user — UserOrApplication should accept this
-      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanVerifyUserCredentials.toString)
+      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.toString, ApiRole.CanVerifyUserCredentials.toString)
 
       When("We verify valid credentials using consumer with scope")
       val postJson = Map(

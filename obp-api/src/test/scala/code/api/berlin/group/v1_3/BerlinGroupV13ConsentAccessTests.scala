@@ -292,7 +292,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // testConsumer2, so it would be refused on the Consumer half first.
   private lazy val secondPsuOfTestConsumerToken = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id.get),
+    Some(testConsumer.id),
     Some(resourceUser2.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),

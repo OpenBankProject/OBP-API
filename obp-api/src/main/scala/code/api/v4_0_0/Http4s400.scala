@@ -2533,12 +2533,12 @@ object Http4s400 {
             }
             _ <- Future {
               NewStyle.function.hasEntitlementAndScope(
-                "", user.userId, callingConsumer.id.get.toString,
+                "", user.userId, callingConsumer.id.toString,
                 canGetEntitlementsForAnyUserAtAnyBank, Some(cc))
             } flatMap { unboxFullAndWrapIntoFuture(_) }
             targetConsumer <- NewStyle.function.getConsumerByConsumerId(uuidOfConsumer, Some(cc))
             scopes <- Future {
-              code.scope.Scope.scope.vend.getScopesByConsumerId(targetConsumer.id.get.toString)
+              code.scope.Scope.scope.vend.getScopesByConsumerId(targetConsumer.id.toString)
             } map { unboxFull(_) }
           } yield code.api.v3_0_0.JSONFactory300.createScopeJSONs(scopes)
         }
@@ -2592,7 +2592,7 @@ object Http4s400 {
             }
             addedEntitlement <- Future {
               code.scope.Scope.scope.vend.addScope(
-                postedData.bank_id, consumer.id.get.toString, postedData.role_name)
+                postedData.bank_id, consumer.id.toString, postedData.role_name)
             } map { unboxFull(_) }
           } yield code.api.v3_0_0.JSONFactory300.createScopeJson(addedEntitlement)
         }

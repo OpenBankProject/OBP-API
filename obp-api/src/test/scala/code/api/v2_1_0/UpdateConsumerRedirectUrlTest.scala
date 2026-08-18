@@ -26,7 +26,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
     Scenario("Try to Update Redirect Url without proper role ") {
 
       When("We make the request Update Redirect Url for a Consumer")
-      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id / "consumer" / "redirect_url" ).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
       Then("We should get a 403")
@@ -49,7 +49,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       hasEntitlement should equal(true)
 
       When("We make the request Update Redirect Url for a Consumer")
-      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user2)
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id / "consumer" / "redirect_url" ).PUT <@ (user2)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
       Then("We should get a 400")
@@ -71,7 +71,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       hasEntitlement should equal(true)
 
       When("We make the request Update Redirect Url for a Consumer")
-      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id / "consumer" / "redirect_url" ).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
       Then("We should get a 200")

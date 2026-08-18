@@ -125,7 +125,7 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
         postJsonBody,
         createdConsent.secret,
         createdConsent.consentId,
-        Some(testConsumer.consumerId.get),
+        Some(testConsumer.consumerId),
         Some(validUntilDate),
         None
       ),
@@ -144,14 +144,14 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   // it issued under testConsumer. Signing with this pair gives the endpoint exactly what a
   // client_credentials TPP gives it — cc.user.idGivenByProvider == cc.consumer.key.
   lazy val pseudoUserOfTestConsumer: ResourceUser =
-    UserX.findByProviderId(provider = defaultProvider, idGivenByProvider = testConsumer.key.get)
+    UserX.findByProviderId(provider = defaultProvider, idGivenByProvider = testConsumer.key)
       .map(_.asInstanceOf[ResourceUser])
       .getOrElse {
         UserX.createResourceUser(
           provider = defaultProvider,
-          providerId = Some(testConsumer.key.get),
+          providerId = Some(testConsumer.key),
           createdByConsentId = None,
-          name = Some(testConsumer.key.get),
+          name = Some(testConsumer.key),
           email = Some("pseudo.user.of.test.consumer@example.com"),
           userId = None,
           company = Some("Tesobe GmbH")
@@ -160,7 +160,7 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
 
   lazy val pseudoUserToken = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id.get),
+    Some(testConsumer.id),
     Some(pseudoUserOfTestConsumer.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
