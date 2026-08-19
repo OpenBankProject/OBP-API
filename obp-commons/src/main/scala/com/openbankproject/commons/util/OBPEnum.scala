@@ -27,20 +27,61 @@ abstract class OBPEnumerationBase[T <: EnumValue](tpe: ru.Type) {
   type Value = T // just keep the same usage with scala enumeration
 
   private val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader) // classloader
-  private val instanceMirror: ru.InstanceMirror = mirror.reflect(this)
 
   private val clazz: Class[_] = mirror.runtimeClass(tpe)
-  private val modules: List[ru.ModuleMirror] = instanceMirror.symbol.toType.decls.filter(_.isPublic).filter(_.isModule)
-    .map(_.asModule)
-    .map(it => mirror.reflectModule(it))
-    .filter(it => clazz.isInstance(it.instance))
-    .toList
 
-  val values: List[T] = modules.map(_.instance.asInstanceOf[T])
+  // Deliberately lazy, not eager: an eager val here runs during OBPEnumerationBase's own
+  // constructor, i.e. while the concrete companion object (e.g. AuthenticationType$) is still in
+  // the middle of its own <clinit> - the JVM has not yet marked the class "initialized". Scala's
+  // runtime reflection, asked to inspect that same not-yet-initialized class from inside its own
+  // construction, silently returns member symbols with every declaration flag - isModule
+  // included - false, so decls.filter(_.isModule) found nothing and the assertion below threw at
+  // <clinit> time for AuthenticationType (obp-api, Scala 3) and reproduced identically for
+  // AttributeType (obp-commons, Scala 2) once isolated, so this is a self-reflection-during-own-
+  // <clinit> problem, not a Scala-3/TASTy one. Deferring to first external access - after the
+  // class is fully initialized - gets decls.filter(_.isModule) back to finding the right symbols.
+  // Order is a separate, narrower caveat: decls preserves source declaration order for a
+  // Scala-2-compiled companion (verified by OBPEnumerationTest, which asserts on it), but not for
+  // a Scala-3-compiled one, where it comes back in some other deterministic (observed:
+  // alphabetical) order instead. AuthenticationType, the only Scala-3-compiled subclass today,
+  // uses values only as an unordered set (filterNot on it, joined into an error message) - if a
+  // future subclass needs withIndex/example/values.head to mean "as declared", that will need a
+  // proper fix here.
+  //
+  // The symbol -> runtime instance step still can't go through mirror.reflectModule(sym).instance
+  // though: for a Scala-3-compiled nested module, ModuleMirror's own name resolution reconstructs
+  // the wrong binary name and reflectModule throws ClassNotFoundException. Do that step by hand
+  // instead - the binary name of a nested object is always "<outer's binary name><simple name>$"
+  // regardless of which Scala version compiled it, and loading it plus reading its MODULE$ field
+  // is the same reliable, version-agnostic mechanism used elsewhere in this class.
+  private lazy val modules: List[Class[_]] = {
+    val instanceMirror = mirror.reflect(this)
+    val outerBinaryName = this.getClass.getName // e.g. "code.api.util.AuthenticationType$"
+    instanceMirror.symbol.toType.decls.filter(_.isPublic).filter(_.isModule)
+      .map(_.asModule)
+      .flatMap { sym =>
+        // A ModuleSymbol's decodedName already carries the trailing "$" (unlike a val/def's), so
+        // strip it before rebuilding the binary name rather than appending a second one.
+        val simpleName = sym.name.decodedName.toString.trim.stripSuffix("$")
+        try Some(Class.forName(s"$outerBinaryName$simpleName$$", false, mirror.classLoader)) catch { case _: Throwable => None }
+      }
+      .toList
+  }
 
-  assert(values.nonEmpty, s"enumeration must at least have one value, please check ${tpe}")
+  lazy val values: List[T] = {
+    val result = modules.flatMap { nestedClass =>
+      try {
+        val instance = nestedClass.getField("MODULE$").get(null)
+        if (clazz.isInstance(instance)) Some(instance.asInstanceOf[T]) else None
+      } catch {
+        case _: NoSuchFieldException => None
+      }
+    }
+    assert(result.nonEmpty, s"enumeration must at least have one value, please check ${tpe}")
+    result
+  }
 
-  val nameToValue: Map[String, T] = values.toMapByKey(_.toString)
+  lazy val nameToValue: Map[String, T] = values.toMapByKey(_.toString)
 
   def withNameOption(name: String): Option[T] = nameToValue.get(name)
   def withIndexOption(index: Int): Option[T] = values.lift(index)
