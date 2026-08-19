@@ -7533,7 +7533,11 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
     result
   }
 
-  private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](process: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
+  // T: TypeTag was never used in this method's body - the downstream call
+  // (GrpcUtils.sendRequest[T]) and everything it in turn calls only
+  // need T: Manifest. Scala 3 does not implement TypeTag synthesis; dropping the unused bound
+  // fixes that without touching the Manifest this method actually relies on.
+  private[this] def sendRequest[T <: InBoundTrait[_]: Manifest](process: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     Helper.convertToReference(outBound)
     GrpcUtils
