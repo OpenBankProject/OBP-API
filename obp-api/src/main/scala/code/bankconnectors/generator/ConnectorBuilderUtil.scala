@@ -70,8 +70,15 @@ object ConnectorBuilderUtil {
   }
 
   val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader)
-  val clazz: ru.ClassSymbol = mirror.typeOf[Connector].typeSymbol.asClass
-  val connectorDecls: MemberScope = mirror.typeOf[Connector].decls
+  // Connector is obp-api's own type, so unlike the JDK/obp-commons cases, its Type can't be
+  // precomputed by the 2.13-compiled obp-commons module - built at runtime instead, same
+  // technique as Connector.scala/InternalConnector.scala.
+  private val connectorType: ru.Type = ReflectUtils.forType("code.bankconnectors.Connector")
+  // code.api.util.CallContext is likewise obp-api's own type.
+  private val optionCallContextType: ru.Type =
+    ru.appliedType(ReflectUtils.forType("scala.Option").typeConstructor, ReflectUtils.forType("code.api.util.CallContext"))
+  val clazz: ru.ClassSymbol = connectorType.typeSymbol.asClass
+  val connectorDecls: MemberScope = connectorType.decls
   val connectorDeclsMethods: Iterable[Symbol] = connectorDecls.filter(symbol => {
     val isMethod = symbol.isMethod && !symbol.asMethod.isVal && !symbol.asMethod.isVar && !symbol.asMethod.isConstructor && !symbol.isProtected
     isMethod})
@@ -95,7 +102,7 @@ object ConnectorBuilderUtil {
   def buildMethods(connectorMethodNames: List[String], connectorCodePath: String, connectorMethodToResponse: String => String,
                    setTopic: Boolean = false, doCache: Boolean = false): Unit = {
 
-     val nameSignature: Iterable[ConnectorMethodGenerator] = ru.typeOf[Connector].decls
+     val nameSignature: Iterable[ConnectorMethodGenerator] = connectorType.decls
       .filter(_.isMethod)
       .filter(it => connectorMethodNames.contains(it.name.toString))
       .map(it => {
@@ -153,7 +160,7 @@ object ConnectorBuilderUtil {
       .replace("accountAttributeType: Value", "accountAttributeType: AccountAttributeType.Value") // scala enum is bad for Reflection
       .replaceFirst("""\btype\b""", "`type`")
 
-    private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString).mkString(", ", ", ", "").replaceFirst("""\btype\b""", "`type`")
+    private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= optionCallContextType).map(_.name.toString).mkString(", ", ", ", "").replaceFirst("""\btype\b""", "`type`")
     private[this] val description = methodName.replaceAll("""(\w)([A-Z])""", "$1 $2").capitalize
 
     private[this] val entityName = methodName.replaceFirst("^[a-z]+(OrUpdate)?", "")
@@ -176,7 +183,7 @@ object ConnectorBuilderUtil {
     var signature = s"$methodName$paramAnResult"
 
     val hasCallContext = tp.paramLists(0)
-      .exists(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
+      .exists(_.asTerm.info =:= optionCallContextType)
 
     /**
      * Get all the parameters name as a String from `typeSignature` object.
@@ -184,7 +191,7 @@ object ConnectorBuilderUtil {
      * , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress
      */
     private[this] val parametersNamesString = tp.paramLists(0)//paramLists will return all the curry parameters set.
-      .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]) // remove the `CallContext` field.
+      .filterNot(_.asTerm.info =:= optionCallContextType) // remove the `CallContext` field.
       .map(_.name.toString)//get all parameters name
       .map(it => if(it =="type") "`type`" else it)//This is special case for `type`, it is the keyword in scala.
       .map(it => if(it == "queryParams") "OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams)" else it)
@@ -199,7 +206,7 @@ object ConnectorBuilderUtil {
     private[this] val cacheMethodName = if(resultType.startsWith("Box[")) "memoizeSyncWithProvider" else "memoizeWithProvider"
 
     private[this] val timeoutFieldName = uncapitalize(methodName.replaceFirst("^[a-z]+", "")) + "TTL"
-    private[this] val cacheTimeout = ReflectUtils.findMethod(ru.typeOf[code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024], timeoutFieldName)(_ => true)
+    private[this] val cacheTimeout = ReflectUtils.findMethod(ReflectUtils.forType("code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024"), timeoutFieldName)(_ => true)
       .map(_.name.toString)
       .getOrElse("accountTTL")
 
@@ -221,7 +228,7 @@ object ConnectorBuilderUtil {
      * limit/offset/from/to quadruple and is about the WIRE message, not the key.
      */
     private[this] val cacheKeyArgsString = tp.paramLists(0)
-      .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
+      .filterNot(_.asTerm.info =:= optionCallContextType)
       .map(_.name.toString)
       .map(it => if (it == "type") "`type`" else it)
       .mkString(", ")

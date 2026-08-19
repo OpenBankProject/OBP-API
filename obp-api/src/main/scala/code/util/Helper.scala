@@ -16,7 +16,7 @@ import org.json4s.Extraction._
 import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId, Transaction, TransactionCore, TransactionId}
-import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
+import com.openbankproject.commons.util.{HelperTypes, ReflectUtils, RequiredFieldValidation, RequiredInfo}
 
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -426,25 +426,25 @@ object Helper extends Loggable {
     //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true`
 
     def isCustomerId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-      ownerType =:= typeOf[CustomerId] ||
-        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= typeOf[String]) ||
-        (ownerType <:< typeOf[Customer] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      ownerType =:= HelperTypes.tCustomerId ||
+        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= HelperTypes.tString) ||
+        (ownerType <:< HelperTypes.tCustomer && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)
     }
 
     def isAccountId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-      ownerType <:< typeOf[AccountId] ||
-        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountBalances] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      ownerType <:< HelperTypes.tAccountId ||
+        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tCoreAccount && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tAccountBalance && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tAccountBalances && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tAccountHeld && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)
     }
 
     def isTransactionId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-      ownerType <:< typeOf[TransactionId] ||
-        (fieldName.equalsIgnoreCase("transactionId") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[TransactionCore] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[Transaction] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      ownerType <:< HelperTypes.tTransactionId ||
+        (fieldName.equalsIgnoreCase("transactionId") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tTransactionCore && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tTransaction && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)
     }
 
     if(APIUtil.getPropsValue("connector","mapped") != "mapped" && APIUtil.getPropsAsBoolValue("implicitly_convert_ids",false)){
