@@ -625,11 +625,23 @@ object ObpCommonsProductDeserializer extends ObpDeSerializer[AnyRef] {
       buildInstance(clazz, jObject)
   }
 
+  // ru.typeOf[optional] needs the Scala 2 compiler to synthesise a TypeTag at this call site,
+  // which Scala 3 (this file's own compiler) does not implement - built at runtime from the
+  // class name instead, same technique used throughout this migration (ReflectUtils.forType).
+  private val optionalAnnotationType = ReflectUtils.forType("com.openbankproject.commons.util.optional")
+
   private def buildInstance(clazz: Class[_], jObject: JObject)(implicit format: Formats): AnyRef = {
     val tp: ru.Type = ReflectUtils.classToType(clazz)
     val params: List[ru.Symbol] = ReflectUtils.getPrimaryConstructor(tp).paramLists.headOption.getOrElse(Nil)
     val args: Seq[Any] = params.map { param =>
-      extractFieldValue(jObject \ param.name.toString.trim, param.info)
+      val jv = jObject \ param.name.toString.trim
+      // @optional (com.openbankproject.commons.util.optional) marks a field the domain genuinely
+      // allows to be absent despite not being Option[T] (e.g. BankCommons.swiftBic: String) - null
+      // is the only sensible value for a missing one. Anything else missing here is a required
+      // field: let extractFieldValue's own Extraction.extract fall-through throw json4s's normal
+      // MappingException for it, the same as a plain (non-Product) required field would get.
+      if (jv == JNothing && param.annotations.exists(_.tree.tpe =:= optionalAnnotationType)) null
+      else extractFieldValue(jv, param.info)
     }
     ReflectUtils.invokeConstructor(tp, args: _*).asInstanceOf[AnyRef]
   }
@@ -658,19 +670,22 @@ object ObpCommonsProductDeserializer extends ObpDeSerializer[AnyRef] {
       case _ =>
         val leafClazz = ReflectUtils.runtimeClass(tp)
         jv match {
-          // mirror JNothingSerializer's tolerance for a missing required primitive field
-          case JNothing if leafClazz == classOf[Boolean] => false
-          case JNothing if leafClazz == classOf[Byte] => 0.toByte
-          case JNothing if leafClazz == classOf[Short] => 0.toShort
-          case JNothing if leafClazz == classOf[Int] => 0
-          case JNothing if leafClazz == classOf[Long] => 0L
-          case JNothing if leafClazz == classOf[Float] => 0.0f
-          case JNothing if leafClazz == classOf[Double] => 0.0d
-          // a missing, non-primitive field (typically one declared with obp-commons's own
-          // @optional annotation, e.g. BankCommons.swiftBic: String, not Option[String]) has no
-          // sensible extractable value - default it to null, mirroring what JNothingSerializer +
-          // the default Reflector already do for such a field elsewhere in this Formats chain.
-          case JNothing if !leafClazz.isPrimitive => null
+          // A missing field is not defaulted here, primitive or not: JNothingSerializer (already
+          // earlier in this same Formats chain, see commonFormats) is the mechanism for
+          // tolerating a missing field, and it exists for schema evolution - a stored/cached JSON
+          // blob that predates a newly-added column. Defaulting missing fields again here widened
+          // that tolerance to genuinely untrusted input: an incoming POST body missing a required
+          // field is supposed to fail extraction with 400 InvalidJsonFormat, and a blanket default
+          // here made CreateViewJson accept a body with only {"name": ...} and no other field as
+          // valid (CustomViewsTest's "invalid JSON" scenario: expected 400, got 201) and made a
+          // Berlin Group payment body missing its amount silently build a null-carrying instance
+          // that later NPEs downstream instead of failing extraction itself
+          // (PaymentInitiationServicePISApiTest's "Wrong Json format Body": expected 400, got 500).
+          // The one legitimate case for a missing field - a domain type explicitly marked
+          // @optional despite not being Option[T], e.g. BankCommons.swiftBic: String - is handled
+          // in buildInstance by checking the constructor param's annotations before ever reaching
+          // here, so this case doesn't need to special-case it. Falling through to
+          // Extraction.extract reproduces json4s's own strict behavior for a missing field.
           case _ => json.Extraction.extract(jv, TypeInfo(leafClazz, None))
         }
     }
