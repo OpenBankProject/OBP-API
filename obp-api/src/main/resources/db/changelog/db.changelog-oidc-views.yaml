@@ -1,0 +1,113 @@
+# The views OBP-OIDC and the Keycloak user-storage provider read.
+#
+# Hand-written, and deliberately only half of what the scripts under src/main/scripts/sql/OIDC do.
+# Those scripts create a database ROLE and GRANT SELECT on these views to it; that half stays
+# manual, because the role name belongs to the deployment (the scripts carry a `:OIDC_USER`
+# placeholder for exactly that reason) and because the GRANT - not the view - is what exposes
+# anything. A view gives its owner no access it did not already have; handing another principal
+# the password hash and salt is a decision for whoever runs the deployment, not a default.
+#
+# Automated because the alternative was worse: a database built from the changelog came up with
+# every table present and OIDC login broken, and nothing in the logs said why. The four views the
+# MigrationOf* scripts create always appeared; only these three did not.
+#
+# The definitions are lifted from those scripts rather than retyped, with one change: the trailing
+# ORDER BY is dropped. A view's ordering is not a guarantee to anything that selects from it, and
+# SQL Server rejects ORDER BY in a view outright - keeping it would make this the one part of the
+# changelog that cannot run on a vendor the changeover exists to support.
+#
+# One further change, forced by H2: the script writes `key_c as key`, and KEY is a reserved word
+# there - CREATE VIEW fails with `expected "identifier"`. The alias is quoted here instead. That is
+# a no-op on Postgres, which folds an unquoted alias to lower case and so already produces a column
+# literally named `key`; it is only H2 that could not parse it. The scripts have carried this since
+# they were written and nobody noticed, because they are only ever run against Postgres.
+#
+# runOnChange so that editing a definition here re-applies it; createView replaces in place.
+databaseChangeLog:
+  - changeSet:
+      id: create-view-v_oidc_users
+      author: obp
+      runOnChange: true
+      comment: >-
+        OBP-OIDC and the Keycloak user-storage provider authenticate against this. It exposes password_pw and password_slt, which is why the GRANT that would hand it to another role is NOT here - see the file header.
+      changes:
+        - createView:
+            viewName: v_oidc_users
+            replaceIfExists: true
+            selectQuery: |-
+              SELECT
+                  ru.userid_ AS user_id,
+                  au.username,
+                  au.firstname,
+                  au.lastname,
+                  au.email,
+                  au.validated,
+                  au.provider,
+                  au.password_pw,
+                  au.password_slt,
+                  au.createdat,
+                  au.updatedat
+              FROM authuser au
+              INNER JOIN resourceuser ru ON au.user_c = ru.id
+              WHERE au.validated = true  -- Only expose validated users to OIDC service
+  - changeSet:
+      id: create-view-v_oidc_clients
+      author: obp
+      runOnChange: true
+      comment: >-
+        The OAuth client registry OBP-OIDC reads, projected from the consumer table.
+      changes:
+        - createView:
+            viewName: v_oidc_clients
+            replaceIfExists: true
+            selectQuery: |-
+              SELECT
+                  consumerid as consumer_id, -- This is really an identifier for management purposes. Its also used to link trusted consumers together.
+                  key_c as "key", -- The key is the OAuth1 identifier for the app.
+                  key_c as client_id, -- The client_id is the OAuth2 identifier for the app.
+                  secret, -- The OAuth1 secret
+                  secret as client_secret, -- The OAuth2 secret
+                  redirecturl as redirect_uris,
+                  'authorization_code,refresh_token' as grant_types,  -- Default OIDC grant types
+                  'openid,profile,email' as scopes,                   -- Default OIDC scopes
+                  name as client_name,
+                  'code' as response_types,
+                  'client_secret_post' as token_endpoint_auth_method,
+                  createdat as created_at,
+                  jwksuri as jwks_uri,
+                  clientcertificate as client_certificate
+              FROM consumer
+              WHERE isactive = true  -- Only expose active consumers to OIDC service
+  - changeSet:
+      id: create-view-v_oidc_admin_clients
+      author: obp
+      runOnChange: true
+      comment: >-
+        The administrative projection of consumer, including inactive ones.
+      changes:
+        - createView:
+            viewName: v_oidc_admin_clients
+            replaceIfExists: true
+            selectQuery: |-
+              SELECT
+              name
+              ,apptype
+              ,description
+              ,developeremail
+              ,sub
+              ,consumerid
+              ,createdat
+              ,updatedat
+              ,secret
+              ,azp
+              ,aud
+              ,iss
+              ,redirecturl
+              ,logourl
+              ,userauthenticationurl
+              ,clientcertificate
+              ,jwksuri
+              ,company
+              ,key_c
+              ,isactive
+              FROM consumer

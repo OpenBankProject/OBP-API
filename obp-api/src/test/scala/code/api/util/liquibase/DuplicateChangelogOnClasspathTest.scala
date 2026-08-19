@@ -86,8 +86,11 @@ class DuplicateChangelogOnClasspathTest extends AnyFlatSpec with Matchers {
     try {
       val st = c.createStatement()
       try {
+        // BASE TABLE only: the changelog also creates the three OIDC views, and a view is not a
+        // table this count is about.
         val rs = st.executeQuery(
           "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PUBLIC' " +
+            "AND table_type = 'BASE TABLE' " +
             "AND table_name NOT IN ('DATABASECHANGELOG', 'DATABASECHANGELOGLOCK')")
         rs.next()
         rs.getLong(1)

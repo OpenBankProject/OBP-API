@@ -371,6 +371,22 @@ concurrent requests. And Postgres truncates identifiers at 63 bytes, so five of 
 arrive shortened; `MigratedTablesExistTest` accepts a name or its truncation for that reason.
 Checked at the time: no two names collide once truncated.
 
+**The test total is the runner's `Surefire audit` line, not the sum of the shard logs.** Each
+shard runs `mvn scalatest:test -pl obp-commons,obp-api`, so its log carries **two** `Run completed`
+summaries - one per module. Summing the last `Tests: succeeded N` per shard therefore drops the
+obp-commons half and undercounts by ~51. The runner already prints the authoritative figure, read
+from the `<testsuite>` roots of both modules' surefire XMLs:
+
+```
+Surefire audit: 3758 tests, 0 failures, 0 errors, 0 skipped/canceled
+```
+
+This matters more than the arithmetic, because the undercount imitates the one symptom that means
+something serious: a test count that moves without a matching change to the test files is the
+`~/.m2` contamination signal above. Measured by hand as 3707 against a parallel checkout's 3760,
+it looked exactly like contamination and was not - the two runs agreed at 3758 once both were read
+off the audit line. Quote that line; never hand-sum the shards.
+
 **Two runners cannot share `~/.m2` while both are running.** `obp-commons` installs to the same
 coordinate for every checkout, and the shards resolve it *at run time* - so another checkout's
 install swaps the jar under a run already in progress, some suites fail to load, and the

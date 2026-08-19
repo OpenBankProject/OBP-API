@@ -92,8 +92,10 @@ class PostgresMigrationTest extends AnyFlatSpec with Matchers {
         // The H2 side of this is MigratedTablesExistTest; the count has to agree with it, or the
         // two vendors have drifted apart. DATABASECHANGELOG and its lock table are Liquibase's own
         // bookkeeping, not schema.
+        // BASE TABLE only: the changelog also creates the three OIDC views.
         val tables = scalar(c,
           "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' " +
+            "AND table_type = 'BASE TABLE' " +
             "AND lower(table_name) NOT IN ('databasechangelog', 'databasechangeloglock')")
         withClue("table count must match the H2 schema: ") {
           tables should equal(146)
@@ -111,6 +113,13 @@ class PostgresMigrationTest extends AnyFlatSpec with Matchers {
             "AND data_type = 'text'")
         withClue("unbounded text columns must be TEXT on Postgres: ") {
           unboundedText should be > 0
+        }
+
+        val oidcViews = scalar(c,
+          "SELECT COUNT(*) FROM information_schema.views WHERE table_schema = 'public' " +
+            "AND table_name IN ('v_oidc_users', 'v_oidc_clients', 'v_oidc_admin_clients')")
+        withClue("the OIDC views must be built on Postgres too - it is the vendor that runs them: ") {
+          oidcViews should equal(3)
         }
 
         val restored = scalar(c,

@@ -15,6 +15,9 @@
 #             Schemifier's exported DDL rather than a hand-written idea of the schema. Regenerate
 #             it with scripts/GenerateChangelog.java + scripts/normalise_generated_changelog.py;
 #             do not hand-edit it.
+#   oidc-views  hand-written. The three views OBP-OIDC and the Keycloak provider read, which no
+#             other mechanism creates - a fresh database used to come up with OIDC login broken and
+#             nothing saying why. Included after the baseline, since they read its tables.
 #   dedup     hand-written. The DELETEs that make the unique indexes creatable, which a snapshot
 #             cannot see and which therefore have to be carried across by hand. Included first, so
 #             each runs before the createIndex it clears the way for.
@@ -51,3 +54,5 @@ databaseChangeLog:
       file: db/changelog/db.changelog-dedup.yaml
   - include:
       file: db/changelog/db.changelog-baseline.yaml
+  - include:
+      file: db/changelog/db.changelog-oidc-views.yaml

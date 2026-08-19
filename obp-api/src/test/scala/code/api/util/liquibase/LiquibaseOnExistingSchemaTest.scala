@@ -58,7 +58,10 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
   }
 
   private def tableCount(name: String): Long = withConnection(name) { c =>
+    // BASE TABLE only: the changelog also creates the three OIDC views, and adoption must not be
+    // judged by a count that moves when a view is added.
     scalar(c, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PUBLIC' " +
+      "AND table_type = 'BASE TABLE' " +
       "AND table_name NOT IN ('DATABASECHANGELOG', 'DATABASECHANGELOGLOCK', " +
       "'flyway_schema_history', 'FLYWAY_SCHEMA_HISTORY')")
   }
