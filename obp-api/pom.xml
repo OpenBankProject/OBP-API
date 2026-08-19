@@ -223,6 +223,20 @@
       <artifactId>scala-library</artifactId>
       <version>${scala2.compiler}</version>
     </dependency>
+    <!-- Pinned explicitly to match ${scala.compiler}: every _3 dependency below pulls in its own
+         scala3-library_3 transitively at whatever version it happened to build against (observed
+         range 3.0.0-3.3.6), and Maven's mediation was picking 3.3.4 - older than the 3.3.8
+         compiler actually compiling this module's sources. A direct dependency here overrides
+         that regardless of tree depth. The mismatch is not just cosmetic: 3.3.4's `lazy val`
+         support (scala.runtime.LazyVals, which changed its locking implementation more than once
+         across 3.3.x) running as the classpath's actual scala3-library against bytecode compiled
+         for 3.3.8 hung every shard indefinitely on startup, silently, well before any of the
+         `lazy val`s this migration added had a chance to log anything. -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala3-library_3</artifactId>
+      <version>${scala.compiler}</version>
+    </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.pekko/pekko-http-core -->
     <dependency>
       <groupId>org.apache.pekko</groupId>
