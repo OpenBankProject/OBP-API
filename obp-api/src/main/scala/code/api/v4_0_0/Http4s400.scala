@@ -1493,7 +1493,11 @@ object Http4s400 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemLevelDynamicEntities, Some(cc))
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities.asInstanceOf[List[DynamicEntityCommons]]
+            // dynamicEntities is List[DynamicEntityT] - the provider trait, not necessarily
+            // DynamicEntityCommons - so this can't be a blind asInstanceOf cast; it goes through
+            // DynamicEntityCommons's own ConverterWithType conversion (same reflection machinery
+            // as ReflectUtils.toOther, fixed for Scala 3 case-class-val sources this session).
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities)
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -1535,7 +1539,11 @@ object Http4s400 {
               List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities), Some(cc))
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bank.bankId.value), false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities.asInstanceOf[List[DynamicEntityCommons]]
+            // dynamicEntities is List[DynamicEntityT] - the provider trait, not necessarily
+            // DynamicEntityCommons - so this can't be a blind asInstanceOf cast; it goes through
+            // DynamicEntityCommons's own ConverterWithType conversion (same reflection machinery
+            // as ReflectUtils.toOther, fixed for Scala 3 case-class-val sources this session).
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities)
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -1576,7 +1584,11 @@ object Http4s400 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(user.userId))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities.asInstanceOf[List[DynamicEntityCommons]]
+            // dynamicEntities is List[DynamicEntityT] - the provider trait, not necessarily
+            // DynamicEntityCommons - so this can't be a blind asInstanceOf cast; it goes through
+            // DynamicEntityCommons's own ConverterWithType conversion (same reflection machinery
+            // as ReflectUtils.toOther, fixed for Scala 3 case-class-val sources this session).
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities)
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
