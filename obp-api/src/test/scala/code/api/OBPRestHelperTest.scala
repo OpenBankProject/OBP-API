@@ -23,8 +23,8 @@ class OBPRestHelperTest extends AnyFlatSpec with Matchers {
   
   // Create a test instance of OBPRestHelper
   private val testHelper = new OBPRestHelper {
-    val version: com.openbankproject.commons.util.ApiVersion = ScannedApiVersion("obp", "OBP", "v4.0.0")
-    val versionStatus: String = "stable"
+    lazy val version: com.openbankproject.commons.util.ApiVersion = ScannedApiVersion("obp", "OBP", "v4.0.0")
+    lazy val versionStatus: String = "stable"
   }
   
   // Helper method to create a ResourceDoc with specific validation settings

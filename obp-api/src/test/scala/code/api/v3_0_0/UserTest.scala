@@ -34,8 +34,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.getUserByUsername))
 
   
-  Feature("Assuring that endpoint Get all Users works as expected - v3.0.0") 
-  {
+  Feature("Assuring that endpoint Get all Users works as expected - v3.0.0") {
 
     Scenario("We try to get all roles without credentials - Get all Users", VersionOfApi, ApiEndpoint1) {
       When("We make the request")
@@ -48,8 +47,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
     }
 
-    Scenario("We try to get all roles with credentials but no roles- Get all Users", VersionOfApi, ApiEndpoint1) 
-    {
+    Scenario("We try to get all roles with credentials but no roles- Get all Users", VersionOfApi, ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v3_0Request / "users").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -60,8 +58,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
     }
   
   
-    Scenario(s"We try to get all roles with credentials with ${ApiRole.canGetAnyUser} roles- Get all Users", VersionOfApi, ApiEndpoint1)
-    {
+    Scenario(s"We try to get all roles with credentials with ${ApiRole.canGetAnyUser} roles- Get all Users", VersionOfApi, ApiEndpoint1) {
       When(s"We first grant the ${ApiRole.canGetAnyUser} to the User1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString())
       
@@ -75,8 +72,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
   }
   
   
-  Feature("Assuring that Get users by email and Get user by USER_ID works as expected - v3.0.0") 
-  {
+  Feature("Assuring that Get users by email and Get user by USER_ID works as expected - v3.0.0") {
 
     Scenario("We try to get user data by email without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint2){
 

@@ -46,7 +46,7 @@ class CacheKeyCallContextTest extends AnyFlatSpec with Matchers {
       .getOrElse(fail("Cannot locate obp-api/src/main/scala - this guard must not pass by failing to look."))
 
   private def scalaFiles(dir: File): Iterator[File] =
-    Option(dir.listFiles()).getOrElse(Array.empty).iterator.flatMap {
+    Option(dir.listFiles()).getOrElse(Array.empty[File]).iterator.flatMap {
       case d if d.isDirectory => scalaFiles(d)
       case f if f.getName.endsWith(".scala") => Iterator.single(f)
       case _ => Iterator.empty

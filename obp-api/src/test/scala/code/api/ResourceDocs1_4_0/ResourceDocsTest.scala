@@ -217,7 +217,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
-      org.scalameta.logger.elem(responseGetObp)
+      println(s"responseGetObp = $responseGetObp")
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
       responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
@@ -492,7 +492,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
-      org.scalameta.logger.elem(responseGetObp)
+      println(s"responseGetObp = $responseGetObp")
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
       responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))

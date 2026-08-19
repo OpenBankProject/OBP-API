@@ -50,8 +50,7 @@ class GetAdapterInfoTest extends V500ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations5_0_0.getAdapterInfo))
 
-  Feature("Get Adapter Info v5.0.0")
-  {
+  Feature("Get Adapter Info v5.0.0") {
     Scenario(s"$AuthenticatedUserIsRequired error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v5.0.0")
       val request310 = (v5_0_0_Request / "adapter").GET

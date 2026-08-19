@@ -293,7 +293,10 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
 
     // Mock a badly behaving connector that returns data that doesn't have license.
     override protected def getBranchFromProvider(bankId: BankId, branchId: BranchId): Option[BranchT] = {
-      branchId match {
+      // matches on bankId, not branchId, to mirror getBranchesFromProvider above - branchId can
+      // never equal a BankId pattern, so this previously always fell through to None; Scala 3's
+      // stricter pattern-type checking catches the mismatch Scala 2 accepted silently.
+      bankId match {
         case BankWithLicense => Some(fakeBranch1)
         case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API should guard
         case _ => None

@@ -49,8 +49,7 @@ class GetAdapterInfoTest extends V300ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations3_0_0.getAdapterInfoForBank))
 
-  Feature("Get Adapter Info v3.1.0")
-  {
+  Feature("Get Adapter Info v3.1.0") {
     Scenario(s"$AuthenticatedUserIsRequired error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_0Request /"banks"/testBankId1.value/ "adapter").GET

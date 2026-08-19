@@ -57,8 +57,7 @@ class TransactionRequestTest extends V510ServerSetup {
   object GetTransactionRequestById extends Tag(nameOf(Implementations5_1_0.getTransactionRequestById))
   object UpdateTransactionRequestStatus extends Tag(nameOf(Implementations5_1_0.updateTransactionRequestStatus))
 
-  Feature("Get Transaction Requests - v5.1.0")
-  {
+  Feature("Get Transaction Requests - v5.1.0") {
     Scenario("We will Get Transaction Requests - user is NOT logged in", GetTransactionRequests, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / testBankId1.value  / "accounts" / testAccountId0.value / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET

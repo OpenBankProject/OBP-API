@@ -35,10 +35,8 @@ import org.scalatest.matchers.should.Matchers
 
 class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
   
-  Feature("test ApiSession.createSessionId method") 
-  {
-    Scenario("update the CallContext Session Id") 
-    {
+  Feature("test ApiSession.createSessionId method") {
+    Scenario("update the CallContext Session Id") {
       val callContext = CallContext() 
       
       val callContextUpdated = ApiSession.createSessionId(Some(callContext))
@@ -47,10 +45,8 @@ class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen wit
     }
   }
   
-  Feature("test ApiSession.updateCallContextSessionId method") 
-  {
-    Scenario("update the CallContext Session Id") 
-    {
+  Feature("test ApiSession.updateCallContextSessionId method") {
+    Scenario("update the CallContext Session Id") {
       val callContext = CallContext() 
       
       val callContextUpdated = ApiSession.updateSessionId(Some(callContext), "12345")
@@ -59,10 +55,8 @@ class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen wit
     }
   }
   
-  Feature("test CallContext toString secure logging masking") 
-  {
-    Scenario("toString should mask sensitive data") 
-    {
+  Feature("test CallContext toString secure logging masking") {
+    Scenario("toString should mask sensitive data") {
       val callContextWithSensitiveData = CallContext(
         directLoginParams = Map("password" -> "supersecret", "client_secret" -> "my_client_secret")
       )

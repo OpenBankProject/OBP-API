@@ -142,8 +142,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
     per_month_call_limit = "1"
   )
 
-  Feature("Rate Limit - " + ApiEndpoint + " - " + VersionOfApi)
-  {
+  Feature("Rate Limit - " + ApiEndpoint + " - " + VersionOfApi) {
 
     Scenario("We will try to set calls limit per minute for a Consumer - unauthorized access", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -330,8 +329,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
     }
   }
 
-  Feature("Rate Limit - " + ApiEndpoint2 + " - " + VersionOfApi)
-  {
+  Feature("Rate Limit - " + ApiEndpoint2 + " - " + VersionOfApi) {
     Scenario("We will try to get calls limit per minute for a Consumer - unauthorized access", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val Some((c, _)) = user1

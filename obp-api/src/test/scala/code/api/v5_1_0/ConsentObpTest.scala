@@ -77,8 +77,7 @@ class ConsentObpTest extends V510ServerSetup {
   val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=Constant.DEFAULT_CONSENT_TTL)
   val timeToLive: Option[Long] = Some(maxTimeToLive + 10)
   
-  Feature(s"test $CreateConsent version $VersionOfApi - Unauthorized access")
-  {
+  Feature(s"test $CreateConsent version $VersionOfApi - Unauthorized access") {
     Scenario("We will call the endpoint without user credentials-IMPLICIT", CreateConsent, VersionOfApi) {
       When("We make a request")
       val request = (v5_1_0_Request / "my" / "consents" / "IMPLICIT" ).POST

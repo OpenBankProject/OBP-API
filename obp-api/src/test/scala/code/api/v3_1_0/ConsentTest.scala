@@ -89,8 +89,7 @@ class ConsentTest extends V310ServerSetup {
   val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=Constant.DEFAULT_CONSENT_TTL)
   val timeToLive: Option[Long] = Some(maxTimeToLive + 10)
   
-  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access")
-  {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request")
       val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "EMAIL" ).POST

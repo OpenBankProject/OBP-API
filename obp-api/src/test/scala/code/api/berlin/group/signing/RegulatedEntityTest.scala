@@ -99,7 +99,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
       validityDays = 30
     )
 
-    customCertData should be a 'success
+    customCertData should be a Symbol("success")
 
     When("I inspect the generated certificate")
     val certData = customCertData.get

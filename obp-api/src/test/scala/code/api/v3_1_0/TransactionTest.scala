@@ -75,8 +75,7 @@ class TransactionTest extends V310ServerSetup {
     value = AmountOfMoneyJsonV121("EUR","1000")
   )
   
-  Feature("Get Transaction by Id - v3.1.0")
-  {
+  Feature("Get Transaction by Id - v3.1.0") {
     Scenario("We will Get Transaction by Id - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val bankId = randomBankId
@@ -104,8 +103,7 @@ class TransactionTest extends V310ServerSetup {
     }
   }
 
-  Feature(s"$ApiEndpoint2")
-  {
+  Feature(s"$ApiEndpoint2") {
     Scenario("We will test saveHistoricalTransaction --user is not Login", ApiEndpoint2, ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions").POST

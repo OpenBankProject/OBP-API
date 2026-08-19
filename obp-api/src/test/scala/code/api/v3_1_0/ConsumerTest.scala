@@ -50,8 +50,7 @@ class ConsumerTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getConsumer))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getConsumersForCurrentUser))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getConsumers))
-  Feature("Get Consumer by CONSUMER_ID - v3.1.0")
-  {
+  Feature("Get Consumer by CONSUMER_ID - v3.1.0") {
     Scenario("We will Get Consumer by CONSUMER_ID without a proper Role " + canGetConsumers, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetConsumers)
       val request310 = (v3_1_0_Request / "management" / "consumers" / "non existing CONSUMER_ID").GET <@(user1)
@@ -74,8 +73,7 @@ class ConsumerTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (errorMessage)
     }
   }
-  Feature("Get Consumers for current user - v3.1.0")
-  {
+  Feature("Get Consumers for current user - v3.1.0") {
     Scenario("We will Get Consumers for current user - NOT logged in", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "users" / "current" / "consumers").GET
@@ -94,8 +92,7 @@ class ConsumerTest extends V310ServerSetup {
       response310.body.extract[ConsumersJsonV310]
     }
   }
-  Feature("Get Consumers - v3.1.0")
-  {
+  Feature("Get Consumers - v3.1.0") {
     Scenario("We will Get Consumers - User NOT logged in", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "consumers").GET

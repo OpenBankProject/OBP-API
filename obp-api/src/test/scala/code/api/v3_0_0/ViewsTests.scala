@@ -358,10 +358,8 @@ class ViewsTests extends V300ServerSetup {
     }
   }
   
-  Feature(s"$ApiEndpoint1 - Get Account access for User. - v3.0.0")
-  {
-    Scenario("we will Get Account access for User.")
-    {
+  Feature(s"$ApiEndpoint1 - Get Account access for User. - v3.0.0") {
+    Scenario("we will Get Account access for User.") {
       Given("Prepare all the parameters:")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)

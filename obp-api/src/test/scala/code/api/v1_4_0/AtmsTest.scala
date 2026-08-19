@@ -163,7 +163,12 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
     // Mock a badly behaving connector that returns data that doesn't have license.
     override protected def getAtmFromProvider(bank: BankId, AtmId: AtmId): Option[AtmT] = {
-      AtmId match {
+      // matches on bank, not the AtmId parameter, to mirror getAtmsFromProvider above - this
+      // parameter is confusingly also named AtmId, shadowing the AtmId type, which is why the
+      // match previously targeted the wrong parameter (it always fell through to None, since
+      // AtmId's type can never equal a BankId pattern; Scala 3's stricter pattern-type checking
+      // catches the mismatch that Scala 2 accepted silently).
+      bank match {
          case `bankWithLicense` => Some(fakeAtm1)
          case `bankWithoutLicense`=> Some(fakeAtm3) // In case the connector returns, the API should guard
         case _ => None

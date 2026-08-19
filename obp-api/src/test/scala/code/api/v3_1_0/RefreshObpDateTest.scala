@@ -47,8 +47,7 @@ class RefreshUserTest extends V310ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.refreshUser))
-  Feature(nameOf(Implementations3_1_0.refreshUser))
-  {
+  Feature(nameOf(Implementations3_1_0.refreshUser)) {
     Scenario(s"The user missing the $CanRefreshUser role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val userId = resourceUser1.userId

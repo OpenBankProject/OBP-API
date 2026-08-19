@@ -135,8 +135,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
   }
 
-  Feature("Get Customer by CUSTOMER_ID v3.1.0 - Authorized access")
-  {
+  Feature("Get Customer by CUSTOMER_ID v3.1.0 - Authorized access") {
     Scenario("We will call the endpoint without the proper Role " + canGetCustomersAtOneBank, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetCustomersAtOneBank)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET <@(user1)

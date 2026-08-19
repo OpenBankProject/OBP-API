@@ -51,8 +51,7 @@ class MeetingsTest extends V310ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getMeeting))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getMeetings))
 
-  Feature("Test Create Meetings, get Meetings - v3.1.0")
-  {
+  Feature("Test Create Meetings, get Meetings - v3.1.0") {
     Scenario("We will Create Meetings  - NOT logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / randomBankId / "meetings" ).POST

@@ -190,7 +190,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   }
 
   private def grantAccountAccess(acountRoutingIbanFrom: BankAccountRoutingRow) = {
-    org.scalameta.logger.elem(Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)))
+    println(s"systemView = ${Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID))}")
     Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)).flatMap(view =>
       // Grant account access
       Views.views.vend.grantAccessToSystemView(acountRoutingIbanFrom.bankId,

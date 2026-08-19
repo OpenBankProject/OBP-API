@@ -125,7 +125,7 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         val response01 = setRateLimiting(user1, callLimitJsonSecond)
         Then("We should get a 200")
         response01.code should equal(200)
-        org.scalameta.logger.elem(response01)
+        println(s"response01 = $response01")
 
         When("We make the first call after update")
         val response02 = getCurrentUserEndpoint(user1)

@@ -55,8 +55,7 @@ class WebhooksTest extends V400ServerSetup {
   val postJsonIncorrectHttpMethod = SwaggerDefinitionsJSON.accountNotificationWebhookPostJson.copy(http_method="GET")
   val postJsonIncorrectHttpProtocol = SwaggerDefinitionsJSON.accountNotificationWebhookPostJson.copy(http_protocol="HTTP/1.0")
 
-  Feature("createBankAccountNotificationWebhook - Unauthorized access")
-  {
+  Feature("createBankAccountNotificationWebhook - Unauthorized access") {
     Scenario(s"We will try to create the web hook without user credentials $ApiEndpoint1", ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v4.0.0")
@@ -81,8 +80,7 @@ class WebhooksTest extends V400ServerSetup {
     
   }
 
-  Feature(s"createSystemAccountNotificationWebhook - Authorized access $ApiEndpoint1")
-  {
+  Feature(s"createSystemAccountNotificationWebhook - Authorized access $ApiEndpoint1") {
     Scenario("We will try to create the web hook without a proper Role " + canCreateSystemAccountNotificationWebhook, ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v4.0.0 without a Role " + canCreateSystemAccountNotificationWebhook)
@@ -135,8 +133,7 @@ class WebhooksTest extends V400ServerSetup {
 
   }
   
-  Feature(s"createBankAccountNotificationWebhook - Authorized access $ApiEndpoint2")
-  {
+  Feature(s"createBankAccountNotificationWebhook - Authorized access $ApiEndpoint2") {
     Scenario("We will try to create the web hook without a proper Role " + canCreateAccountNotificationWebhookAtOneBank, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v4.0.0 without a Role " + canCreateAccountNotificationWebhookAtOneBank)

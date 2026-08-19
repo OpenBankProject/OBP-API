@@ -4882,14 +4882,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val randomNarrative = randomString(20)
       When("the request is sent")
       val postReply = postNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomNarrative, None)
-      org.scalameta.logger.elem(postReply)
+      println(s"postReply = $postReply")
       Then("we should get a 401 code")
       postReply.code should equal (401)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the narrative should not be added")
       val getReply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
-      org.scalameta.logger.elem(getReply)
+      println(s"getReply = $getReply")
       val theNarrativeAfterThePost : TransactionNarrativeJSON = getReply.body.extract[TransactionNarrativeJSON]
       randomNarrative should not equal (theNarrativeAfterThePost.narrative)
     }

@@ -90,25 +90,21 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
     }
   }
   
-  Feature("test APIUtil.getHttpRequestUrlParam method") 
-  {
-    Scenario("no parameters in the URL") 
-    {
+  Feature("test APIUtil.getHttpRequestUrlParam method") {
+    Scenario("no parameters in the URL") {
       val httpRequestUrl= "/obp/v3.1.0/management/metrics/top-consumers"
       val returnValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
       returnValue should be ("")
     }
     
-    Scenario(s"only one `from_date` in URL") 
-    {
+    Scenario(s"only one `from_date` in URL") {
       val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString"
       val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
       startdateValue should be (s"$startDateString")
     }
     
     
-    Scenario(s"Both `from_date` and `to_date` in URL") 
-    {
+    Scenario(s"Both `from_date` and `to_date` in URL") {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
       val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
       startdateValue should be (s"$startDateString")
@@ -118,106 +114,90 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       noneFieldValue should be ("")
     }
     
-    Scenario(s"test some space in the URL, eg: /obp/v3.0.0/management/aggregate-metrics?app_name=API Manager Local Dev ") 
-    {
+    Scenario(s"test some space in the URL, eg: /obp/v3.0.0/management/aggregate-metrics?app_name=API Manager Local Dev ") {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.0.0/management/aggregate-metrics?app_name=API Manager Local Dev "
       val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"app_name")
       startdateValue should be (s"API Manager Local Dev ")
     }
     
     
-    Scenario(s"test the error case, eg: not proper parameter name") 
-    {
+    Scenario(s"test the error case, eg: not proper parameter name") {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
       val noneFieldValue = getHttpRequestUrlParam(httpRequestUrl,"none_field")
       noneFieldValue should be ("")
     }
   } 
   
-  Feature("test APIUtil.getHttpValues method") 
-  {
-    Scenario("test the one value case in HTTPParam , eg: (one name : one value)") 
-    {
+  Feature("test APIUtil.getHttpValues method") {
+    Scenario("test the one value case in HTTPParam , eg: (one name : one value)") {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date",s"$DateWithMsExampleString"))
       val returnValue = getHttpValues(httpParams, "from_date")
       returnValue should be (List(s"$DateWithMsExampleString"))
     }
     
-    Scenario(s"test the many values case in HTTPParam, eg (one name : value1,value2,value3)") 
-    {
+    Scenario(s"test the many values case in HTTPParam, eg (one name : value1,value2,value3)") {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(s"$DateWithMsExampleString",s"$DateWithMsExampleString")))
       val returnValue = getHttpValues(httpParams, "from_date")
       returnValue should be (List(s"$DateWithMsExampleString",s"$DateWithMsExampleString"))
     }
     
     
-    Scenario(s"test the many values case in HTTPParam, eg (exclude_app_names : value1,value2,value3)") 
-    {
+    Scenario(s"test the many values case in HTTPParam, eg (exclude_app_names : value1,value2,value3)") {
       val httpParams: List[HTTPParam] = List(HTTPParam("exclude_app_names", List("value1","value2", "value3")))
       val returnValue = getHttpValues(httpParams, "exclude_app_names")
       returnValue should be (List("value1","value2", "value3"))
     }
     
-    Scenario(s"test error cases, get wrong name ") 
-    {
+    Scenario(s"test error cases, get wrong name ") {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(s"$DateWithMsExampleString",s"$DateWithMsExampleString")))
       val returnValue = getHttpValues(httpParams, "wrongName")
       returnValue should be (Empty)
     }
     
-    Scenario(s"test None case, httpParams == Empty ") 
-    {
+    Scenario(s"test None case, httpParams == Empty ") {
       val httpParams: List[HTTPParam] = List.empty[HTTPParam]
       val returnValue = getHttpValues(httpParams, "wrongName")
       returnValue should be (Empty)
     }
   }
   
-  Feature("test APIUtil.parseObpStandardDate method") 
-  {
-    Scenario(s"test the correct format- DateWithMsFormat") 
-    {
+  Feature("test APIUtil.parseObpStandardDate method") {
+    Scenario(s"test the correct format- DateWithMsFormat") {
       val correctDateFormatString = DateWithMsExampleString
       val returnValue: Box[Date] = parseObpStandardDate(correctDateFormatString)
       returnValue.isDefined should be (true)
       returnValue.openOrThrowException("") should be (DateWithMsFormat.parse(correctDateFormatString))
     }
     
-    Scenario(s"test the correct format- DateWithMsRollbackFormat") 
-    {
+    Scenario(s"test the correct format- DateWithMsRollbackFormat") {
       val correctDateFormatString = DateWithMsRollbackExampleString
       val returnValue: Box[Date] = parseObpStandardDate(correctDateFormatString)
       returnValue should be (Full(DateWithMsRollbackFormat.parse(correctDateFormatString)))
     }
     
     
-    Scenario(s"test the wrong data format") 
-    {
+    Scenario(s"test the wrong data format") {
       val returnValue: Box[Date] = parseObpStandardDate("2001.07-01T00:00:00.000+0000")
       returnValue.isDefined should be (false)
       returnValue.toString contains FilterDateFormatError should be (true)
     }
   }
   
-  Feature("test APIUtil.getSortDirection method") 
-  {
-    Scenario(s"test the correct case: ASC or DESC") 
-    {
+  Feature("test APIUtil.getSortDirection method") {
+    Scenario(s"test the correct case: ASC or DESC") {
       val httpParams: List[HTTPParam] = List(HTTPParam("sort_direction", List("ASC")))
       val returnValue = getSortDirection(httpParams)
       returnValue.isDefined should be (true)
       returnValue.openOrThrowException("") should be (OBPAscending)
     }
     
-    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("sort_direction", List("wrongValue")))
       val returnValue = getSortDirection(httpParams)
       returnValue.toString contains FilterSortDirectionError should be (true)
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam. It will return the default Sort Direction = DESC ") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam. It will return the default Sort Direction = DESC ") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("ASC")))
       val returnValue = getSortDirection(httpParams)
       returnValue should be (Full(OBPDescending))
@@ -234,25 +214,21 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
     }
   }
 
-  Feature("test APIUtil.getFromDate method") 
-  {
-    Scenario(s"test the correct case") 
-    {
+  Feature("test APIUtil.getFromDate method") {
+    Scenario(s"test the correct case") {
       val correctDateFormatString = s"$DateWithMsExampleString"
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(correctDateFormatString)))
       val returnValue = getFromDate(httpParams)
       returnValue should be (Full(OBPFromDate(DateWithMsFormat.parse(correctDateFormatString))))
     }
     
-    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List("wrongValue")))
       val returnValue = getFromDate(httpParams)
       returnValue.toString contains FilterDateFormatError should be (true)
     }
     
-    Scenario("test the wrong case: wrong name (wrongName) in HTTPParam")
-    {
+    Scenario("test the wrong case: wrong name (wrongName) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
       val startTime = OBPFromDate(theEpochTime)
       val returnValue = getFromDate(httpParams)
@@ -263,8 +239,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue.orNull should beWithinTolerance
     }
     
-    Scenario("test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam")
-    {
+    Scenario("test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
       val startTime = OBPFromDate(theEpochTime)
       val returnValue = getFromDate(httpParams)
@@ -286,25 +261,21 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
     }
   }
 
-  Feature("test APIUtil.getToDate method") 
-  {
-    Scenario(s"test the correct case") 
-    {
+  Feature("test APIUtil.getToDate method") {
+    Scenario(s"test the correct case") {
       val correctDateFormatString = s"$DateWithMsExampleString"
       val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List(correctDateFormatString)))
       val returnValue = getToDate(httpParams)
       returnValue should be (Full(OBPToDate(DateWithMsFormat.parse(correctDateFormatString))))
     }
     
-    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List("wrongValue")))
       val returnValue = getToDate(httpParams)
       returnValue.toString contains FilterDateFormatError should be (true)
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
 
       val startTime = OBPToDate(DefaultToDate)
@@ -317,8 +288,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue.orNull should beWithinTolerance
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
 
       val startTime = OBPToDate(DefaultToDate)
@@ -332,18 +302,15 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
     }
   }
   
-  Feature("test APIUtil.getOffset method") 
-  {
-    Scenario(s"test the correct case: offset = 100") 
-    {
+  Feature("test APIUtil.getOffset method") {
+    Scenario(s"test the correct case: offset = 100") {
       val correctValue = "100"
       val httpParams: List[HTTPParam] = List(HTTPParam("offset", List(correctValue)))
       val returnValue = getOffset(httpParams)
       returnValue should be (Full(OBPOffset(100)))
     }
     
-    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("offset", List("wrongValue")))
       val returnValue = getOffset(httpParams)
       returnValue.toString contains FilterOffersetError should be (true)
@@ -353,33 +320,28 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue2.toString contains FilterOffersetError should be (true)
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("100")))
       val returnValue = getOffset(httpParams)
       returnValue should be (OBPOffset(0))
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
       val returnValue = getOffset(httpParams)
       returnValue should be (OBPOffset(0))
     }
   }
   
-  Feature("test APIUtil.getLimit method") 
-  {
-    Scenario(s"test the correct case: limit = 100") 
-    {
+  Feature("test APIUtil.getLimit method") {
+    Scenario(s"test the correct case: limit = 100") {
       val correctValue = "100"
       val httpParams: List[HTTPParam] = List(HTTPParam("limit", List(correctValue)))
       val returnValue = getLimit(httpParams)
       returnValue should be (Full(OBPLimit(100)))
     }
     
-    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("limit", List("wrongValue")))
       val returnValue = getLimit(httpParams)
       returnValue.toString contains FilterLimitError should be (true)
@@ -389,41 +351,35 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue2.toString contains FilterLimitError should be (true)
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("100")))
       val returnValue = getLimit(httpParams)
       returnValue should be (OBPLimit(Constant.Pagination.limit))
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
       val returnValue = getLimit(httpParams)
       returnValue should be (OBPLimit(Constant.Pagination.limit))
     }
   }
   
-  Feature("test APIUtil.getHttpParamValuesByName method") 
-  {
-    Scenario(s"test the correct case, single value = anon") 
-    {
+  Feature("test APIUtil.getHttpParamValuesByName method") {
+    Scenario(s"test the correct case, single value = anon") {
       val correctValue = "true"
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", List(correctValue)))
       val returnValue = getHttpParamValuesByName(httpParams, "anon")
       returnValue should be (Full(OBPAnon(true)))
     }
     
-    Scenario(s"test the correct case, exclude_app_names=API_EXPLOER,SOFIT") 
-    {
+    Scenario(s"test the correct case, exclude_app_names=API_EXPLOER,SOFIT") {
       val correctValue = List("API_EXPLOER","SOFIT")
       val httpParams: List[HTTPParam] = List(HTTPParam("exclude_app_names", correctValue))
       val returnValue = getHttpParamValuesByName(httpParams, "exclude_app_names")
       returnValue should be (Full(OBPExcludeAppNames(correctValue)))
     }
     
-    Scenario(s"test the correct case2, multi values = anon,consumer_id") 
-    {
+    Scenario(s"test the correct case2, multi values = anon,consumer_id") {
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"), HTTPParam("consumer_id", "1"))
       val returnValue = getHttpParamValuesByName(httpParams, "anon")
       returnValue should be (Full(OBPAnon(true)))
@@ -431,34 +387,29 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue1 should be (Full(OBPConsumerId("1")))
     }
     
-    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", List("wrongValue")))
       val returnValue = getHttpParamValuesByName(httpParams, "anon")
       returnValue.toString contains FilterAnonFormatError should be (true)
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("true")))
       val returnValue = getHttpParamValuesByName(httpParams, "anon")
       returnValue should be (Full(OBPEmpty()))
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
       val returnValue = getHttpParamValuesByName(httpParams, "anon")
       returnValue should be (Full(OBPEmpty()))
     }
   }
   
-  Feature("test APIUtil.getHttpParams method") 
-  {
+  Feature("test APIUtil.getHttpParams method") {
     val RetrunDefaultParams = Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
     
-    Scenario(s"test the correct case1: with default parameters") 
-    {
+    Scenario(s"test the correct case1: with default parameters") {
       val ExpectResult = RetrunDefaultParams 
       
       val httpParams: List[HTTPParam] = List(
@@ -469,8 +420,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue should be (ExpectResult)
     }
     
-    Scenario(s"test the correct case2: contains the `anon` ") 
-    {
+    Scenario(s"test the correct case2: contains the `anon` ") {
       val ExpectResult = 
         Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(Constant.Pagination.offset),OBPOrdering(None,OBPDescending)
                   ,OBPFromDate(startDateObject),OBPToDate(endDateObject),
@@ -484,8 +434,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue should be (ExpectResult)
     }
     
-    Scenario(s"test the correct case3: contains the `anon` and `consumer_id` ") 
-    {
+    Scenario(s"test the correct case3: contains the `anon` and `consumer_id` ") {
       val ExpectResult = 
         Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(Constant.Pagination.offset),OBPOrdering(None,OBPDescending),
              OBPFromDate(startDateObject),OBPToDate(endDateObject),
@@ -500,8 +449,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue should be (ExpectResult)
     }
     
-    Scenario(s"test the correct case4: contains all the fields") 
-    {
+    Scenario(s"test the correct case4: contains all the fields") {
       val ExpectResult = 
         Full(List(OBPLimit(Constant.Pagination.limit), OBPOffset(Constant.Pagination.offset), OBPOrdering(None,OBPDescending),
                   OBPFromDate(startDateObject), OBPToDate(endDateObject),
@@ -537,24 +485,21 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
     }
     
     
-    Scenario(s"test the wrong case: values (wrongValue)- limit in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: values (wrongValue)- limit in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("limit", List("wrongValue")))
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterLimitError should be (true)
     }
     
     
-    Scenario(s"test the wrong case: wrong values - anon (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values - anon (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", List("wrongValue")))
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterAnonFormatError should be (true)
     }
     
     
-    Scenario(s"test the wrong case: wrong values-offset(wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values-offset(wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("offset", List("wrongValue")))
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterOffersetError should be (true)
@@ -564,8 +509,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue2.toString contains FilterOffersetError should be (true)
     }
     
-    Scenario(s"test the wrong case: wrong values - duration (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values - duration (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(
         HTTPParam("from_date",List(s"$DefaultFromDateString")),
         HTTPParam("to_date",List(s"$DefaultToDateString")),
@@ -575,8 +519,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue.toString contains FilterDurationFormatError should be (true)
     }
     
-    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(
         HTTPParam("from_date",List(s"$DefaultFromDateString")),
         HTTPParam("to_date",List(s"$DefaultToDateString")),
@@ -586,8 +529,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue should be (RetrunDefaultParams)
     }
     
-    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
-    {
+    Scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") {
       val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List("wrongValue")))
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterDateFormatError should be (true)
@@ -595,12 +537,10 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
     
   }
   
-  Feature("test APIUtil.createHttpParamsByUrl method") 
-  {
+  Feature("test APIUtil.createHttpParamsByUrl method") {
     val RetrunDefaultParams = Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(Constant.Pagination.offset),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
     
-    Scenario(s"test the correct case1: all the params are in the `URL` ") 
-    {
+    Scenario(s"test the correct case1: all the params are in the `URL` ") {
       val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List(s"$DateWithMsExampleString")), 
                                    HTTPParam("to_date",List(s"$DateWithMsExampleString")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
                                    HTTPParam("anon",List("false")), HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), 
@@ -640,16 +580,14 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue should be (ExpectResult)
     }
     
-    Scenario(s"test the correct case2: no parameters in the Url ") 
-    {
+    Scenario(s"test the correct case2: no parameters in the Url ") {
       val ExpectResult = Full(List())
       val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics"
       val returnValue = createHttpParamsByUrl(httpRequestUrl)
       returnValue should be (ExpectResult)
     }
     
-    Scenario(s"test the correct case3: some params are in the `URL` ") 
-    {
+    Scenario(s"test the correct case3: some params are in the `URL` ") {
       val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List(s"$DateWithMsExampleString")), 
                                    HTTPParam("to_date",List(s"$DateWithMsExampleString")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
                                    HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), 
@@ -662,16 +600,14 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       returnValue should be (ExpectResult)
     }
     
-    Scenario(s"test the correct case4: error case None in `=` right side ") 
-    {
+    Scenario(s"test the correct case4: error case None in `=` right side ") {
       val ExpectResult = Full(List())
       val httpRequestUrl = s"/obp/v3.0.0/management/aggregate-metrics?from_date="
       val returnValue = createHttpParamsByUrl(httpRequestUrl)
       returnValue should be (ExpectResult)
     }
     
-    Scenario(s"test the correct case4: include_app_names,include_url_patterns,include_implemented_by_partial_functions") 
-    {
+    Scenario(s"test the correct case4: include_app_names,include_url_patterns,include_implemented_by_partial_functions") {
       val ExpectResult = Full(List(
         HTTPParam("include_app_names",List("API-EXPLORER","API-Manager")),
         HTTPParam("include_url_patterns", List("%25management/metrics%25", "%management/aggregate-metrics%")),

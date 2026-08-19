@@ -57,8 +57,7 @@ class WebhooksTest extends V310ServerSetup {
   val postJson = SwaggerDefinitionsJSON.accountWebhookPostJson
   val postJsonIncorrectTriggerName = SwaggerDefinitionsJSON.accountWebhookPostJson.copy(trigger_name = "I am not a valid trigger name")
 
-  Feature("Create an Account Web Hook v3.1.0 - Unauthorized access")
-  {
+  Feature("Create an Account Web Hook v3.1.0 - Unauthorized access") {
     Scenario("We will try to create the web hook without user credentials", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v3.1.0")
@@ -71,8 +70,7 @@ class WebhooksTest extends V310ServerSetup {
     }
   }
 
-  Feature("Create an Account Web Hook v3.1.0 - Authorized access")
-  {
+  Feature("Create an Account Web Hook v3.1.0 - Authorized access") {
     Scenario("We will try to create the web hook without a proper Role " + canCreateWebhook, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v3.1.0 without a Role " + canCreateWebhook)

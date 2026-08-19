@@ -44,8 +44,7 @@ class ObpApiLoopbackTest extends V310ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getObpConnectorLoopback))
-  Feature(nameOf(Implementations3_1_0.getObpConnectorLoopback))
-  {
+  Feature(nameOf(Implementations3_1_0.getObpConnectorLoopback)) {
     Scenario("Success Test", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "connector" / "loopback").GET

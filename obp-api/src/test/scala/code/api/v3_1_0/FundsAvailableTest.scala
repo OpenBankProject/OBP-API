@@ -73,8 +73,7 @@ class FundsAvailableTest extends V310ServerSetup {
     makePostRequest(request, "")
   }
 
-  Feature("Check available funds v3.1.0 - Unauthorized access")
-  {
+  Feature("Check available funds v3.1.0 - Unauthorized access") {
     Scenario("We will check available without user credentials", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -89,8 +88,7 @@ class FundsAvailableTest extends V310ServerSetup {
     }
   }
 
-  Feature("Check available funds v3.1.0 - Authorized access")
-  {
+  Feature("Check available funds v3.1.0 - Authorized access") {
     Scenario("We will check available funds without params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
