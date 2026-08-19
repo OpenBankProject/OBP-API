@@ -1,9 +1,10 @@
-package com.openbankproject.commons.util
+package code.api.util
 
 import com.openbankproject.commons.model.enums.{SimpleEnum, SimpleEnumCollection}
 import com.openbankproject.commons.model.{JsonFieldReName, ListResult}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
+import com.openbankproject.commons.util.{EnumValue, Functions, JsonAble, OBPEnumeration, ReflectUtils, optional}
 import net.liftweb.common.Box
 import com.openbankproject.commons.util.json
 import org.json4s.JsonAST.JValue
@@ -49,17 +50,10 @@ object JsonSerializers {
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
       MapperSerializer :: JavaMathBigDecimalSerializer :: Nil
 
-  implicit val commonFormats =  CustomFormats ++ serializers
+  implicit val commonFormats: Formats =  CustomFormats ++ serializers
 
   val nullTolerateFormats = commonFormats + JNothingSerializer
 
-}
-
-trait JsonAble {
-  def toJValue(implicit format: Formats): JValue
-}
-object JsonAble {
-  def unapply(jsonAble: JsonAble)(implicit format: Formats): Option[JValue] = Option(jsonAble).map(_.toJValue)
 }
 
 trait ObpSerializer[T] extends Serializer[T] {
@@ -198,6 +192,21 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
   // This field is just a tag to declare current JSON already set field name to camelize, to avoid check field repeatedly
   val resetCamelizeFieldNames = "resetCamelizeFieldNamesIsJustBeTag"
 
+  // optional is Scala-2.13-compiled (obp-commons); ru.typeOf[optional] needs the Scala 2
+  // compiler's TypeTag synthesis at the call site, which Scala 3 does not implement for a
+  // cross-module type. ReflectUtils.forType does the equivalent lookup from a class name string.
+  private val optionalType: ru.Type = ReflectUtils.forType("com.openbankproject.commons.util.optional")
+
+  // ru.typeOf[Long]/[Double]/[Boolean]/... also needs TypeTag synthesis at the call site, which
+  // Scala 3 does not implement even for these standard-library types; forType sidesteps it.
+  private val longType: ru.Type = ReflectUtils.forType("scala.Long")
+  private val intType: ru.Type = ReflectUtils.forType("scala.Int")
+  private val shortType: ru.Type = ReflectUtils.forType("scala.Short")
+  private val byteType: ru.Type = ReflectUtils.forType("scala.Byte")
+  private val doubleType: ru.Type = ReflectUtils.forType("scala.Double")
+  private val floatType: ru.Type = ReflectUtils.forType("scala.Float")
+  private val booleanType: ru.Type = ReflectUtils.forType("scala.Boolean")
+
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), JsonFieldReName] = {
     case (typeInfo @ TypeInfo(entityType, _), json) if isNeedRenameFieldNames(entityType, json) => json match {
       case JObject(fieldList) => {
@@ -215,11 +224,11 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
           JObject(newFields)
         }
 
-        val optionalFields: Map[String, JValue] = getAnnotedFields(entityType, ru.typeOf[optional])
+        val optionalFields: Map[String, JValue] = getAnnotedFields(entityType, optionalType)
           .map{
-            case (name, tp) if(tp <:< ru.typeOf[Long] || tp <:< ru.typeOf[Int] || tp <:< ru.typeOf[Short] || tp <:< ru.typeOf[Byte] || tp <:< ru.typeOf[Int]) => (name, JInt(0))
-            case (name, tp) if(tp <:< ru.typeOf[Double] || tp <:< ru.typeOf[Float]) => (name, JDouble(0))
-            case (name, tp) if(tp <:< ru.typeOf[Boolean]) => (name, JBool(false))
+            case (name, tp) if(tp <:< longType || tp <:< intType || tp <:< shortType || tp <:< byteType) => (name, JInt(0))
+            case (name, tp) if(tp <:< doubleType || tp <:< floatType) => (name, JDouble(0))
+            case (name, tp) if(tp <:< booleanType) => (name, JBool(false))
             case (name, _) => (name, JNull)
           }
 
@@ -249,7 +258,7 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
 
   def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case x: JsonFieldReName => {
-      val ignoreFieldNames = getObjAnnotedFields(x, ru.typeOf[optional])
+      val ignoreFieldNames = getObjAnnotedFields(x, optionalType)
       val renamedJFields = ReflectUtils.getConstructorArgs(x)
         .filter(pair => !ignoreFieldNames.contains(pair._1))
         .map(pair => {
@@ -496,7 +505,10 @@ object MapperSerializer extends ObpSerializer[Mapper[_]] {
   /**
    * `call by name` method names those defined in Mapper trait.
    */
-  val mapperMethods: Set[String] = ru.typeOf[Mapper[_]].decls.filter(it => it.isMethod && it.asMethod.paramLists.isEmpty).map(_.name.decodedName.toString).toSet
+  // Mapper is Scala-2.13-compiled (lift-persistence); ru.typeOf[Mapper[_]] needs the Scala 2
+  // compiler's TypeTag synthesis at the call site, which Scala 3 does not implement for a
+  // cross-module type. ReflectUtils.forType does the equivalent lookup from a class name string.
+  val mapperMethods: Set[String] = ReflectUtils.forType("net.liftweb.mapper.Mapper").decls.filter(it => it.isMethod && it.asMethod.paramLists.isEmpty).map(_.name.decodedName.toString).toSet
 
   private val memo = new Memo[ru.Type, Iterable[ru.MethodSymbol]]
 
@@ -517,7 +529,3 @@ object MapperSerializer extends ObpSerializer[Mapper[_]] {
       json.Extraction.decompose(map)
   }
 }
-
-@scala.annotation.meta.field
-@scala.annotation.meta.param
-class optional extends scala.annotation.StaticAnnotation

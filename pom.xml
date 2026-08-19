@@ -194,16 +194,18 @@
         <version>${lift.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.json4s</groupId>
+        <groupId>io.github.json4s</groupId>
         <artifactId>json4s-native_${scala.version}</artifactId>
-        <!-- 4.1.0-M8 exactly, not 4.0.7: extraction of Scala 3-compiled case classes
-             needs the TASTy/staging-based reflector that only exists in the 4.1 line's
-             _3 build - measured: _3 4.0.7, _2.13 4.0.7 and _2.13 4.1.0-M8 all fail with
-             "Can't find ScalaSig" on a nested case class, _3 4.1.0-M8 (+scala3-staging)
-             round-trips correctly. Bumped ahead of the flip so the 3632 extract call
-             sites are validated by the full suite on 2.13 at the same version the flip
-             will use; the flip itself only swaps the suffix to _3. -->
-        <version>4.1.0-M8</version>
+        <!-- org.json4s:json4s-native_3:4.1.0-M8 (the version this comment used to pin) still
+             throws "Can't find ScalaSig for class ..." extracting a Scala-3-compiled case class,
+             scala3-staging on the classpath or not - measured directly against obp-api's own
+             CallContextLight. The project moved to the io.github.json4s groupId after M8
+             (org.json4s's last publish there is 2024-11-07); 4.1.1 under the new groupId is the
+             first stable (non-milestone) release downstream of that move and is what actually
+             round-trips a Scala-3-compiled case class - measured the same way. Bumped ahead of
+             the flip so the 3632 extract call sites are validated by the full suite on 2.13 at
+             the same version the flip will use; the flip itself only swaps the suffix to _3. -->
+        <version>4.1.1</version>
       </dependency>
       <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
       <dependency>

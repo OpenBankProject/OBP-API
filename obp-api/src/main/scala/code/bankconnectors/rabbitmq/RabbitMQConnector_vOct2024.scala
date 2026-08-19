@@ -38,6 +38,7 @@ import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{Meta, _}
 import net.liftweb.common._
 import org.json4s._
+import org.json4s.JsonDSL._
 import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.StringHelpers
 
@@ -7387,13 +7388,15 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       InBoundOpenCorridorReply(
         inboundAdapterCallContext = OpenCorridorInboundCallContext(correlationId = "1flssoftxq0cr1nssr68u0mioj"),
         status = OpenCorridorReplyStatus(errorCode = "", backendMessages = Nil),
-        data = Extraction.decompose(
-          InBoundOpenCorridorCreditNotificationData(
-            transaction_request_id = "tr-abc-123",
-            verified = true,
-            cbs_reference = Some("CBS-1")
-          )
-        )(DefaultFormats)
+        // Built by hand, not Extraction.decompose(InBoundOpenCorridorCreditNotificationData(...)):
+        // that DTO is Scala-2.13-compiled (obp-commons) with an Option field, and json4s's
+        // Scala-3 quotes-based ScalaSigReader.readField (used to recover a generic field's
+        // erased type argument) can only introspect Scala-3-compiled (TASTy) classes - on a
+        // 2.13-compiled one it throws NoSuchElementException: None.get. See
+        // InBoundOpenCorridorSettlementData's example below for the same fix and the full trace.
+        data = ("transaction_request_id" -> "tr-abc-123") ~
+          ("verified" -> true) ~
+          ("cbs_reference" -> "CBS-1")
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Open Corridor", 1))
@@ -7426,18 +7429,18 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       InBoundOpenCorridorReply(
         inboundAdapterCallContext = OpenCorridorInboundCallContext(correlationId = "1flssoftxq0cr1nssr68u0mioj"),
         status = OpenCorridorReplyStatus(errorCode = "", backendMessages = Nil),
-        data = Extraction.decompose(
-          InBoundOpenCorridorSettlementData(
-            settlement_id = "settle-1",
-            status = "SUBMITTED",
-            tx_id = Some("787e857c1d49735603d283965b010c0c721aa4cdea627ec1ce8be266a5112845"),
-            blockchain = Some("cardano"),
-            asset = Some("ADA"),
-            asset_amount = Some("10.000000"),
-            depth = Some(0L),
-            finality_depth = Some(15L)
-          )
-        )(DefaultFormats)
+        // Built by hand, not Extraction.decompose(InBoundOpenCorridorSettlementData(...)) - see
+        // openCorridorCreditNotificationDoc's example above for why (json4s's Scala-3
+        // ScalaSigReader.readField throws NoSuchElementException: None.get introspecting a
+        // Scala-2.13-compiled DTO's Option fields).
+        data = ("settlement_id" -> "settle-1") ~
+          ("status" -> "SUBMITTED") ~
+          ("tx_id" -> "787e857c1d49735603d283965b010c0c721aa4cdea627ec1ce8be266a5112845") ~
+          ("blockchain" -> "cardano") ~
+          ("asset" -> "ADA") ~
+          ("asset_amount" -> "10.000000") ~
+          ("depth" -> 0L) ~
+          ("finality_depth" -> 15L)
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Open Corridor", 1))

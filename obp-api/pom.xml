@@ -30,9 +30,29 @@
   </properties>
 
   <dependencies>
+    <!-- obp-commons is permanently Scala 2.13 (it is consumed elsewhere too) and pulls in
+         json4s-native_2.13. obp-api's own json4s-native_3 is declared below. Both publish the
+         same org.json4s.reflect.ScalaSigReader class name with a DIFFERENT implementation - the
+         _2.13 jar has the Scala-2 ScalaSig-based reader, the _3 jar has the Scala-3 quotes-based
+         one that can actually read a Scala-3-compiled case class. With both jars on the runtime
+         classpath, whichever one the classloader resolves first wins for every caller including
+         obp-commons's own json4s code, and it consistently picked the _2.13 one - Scala-3
+         extraction failed even for classes obp-commons never touches. Excluding the _2.13
+         variant forces the whole reactor onto _3, betting that obp-commons's already-compiled
+         2.13 bytecode is binary-compatible with the _3 jar's json4s API surface (org.json4s's
+         public types - Formats, Extraction, JValue, etc. - are ordinary JVM signatures, not
+         Scala-version-specific ABI); this is exactly the "verify binary compatibility" step the
+         json4s-scala3-matrix memory flagged as the fallback if json4s's own upgrade wasn't
+         enough on its own, and it wasn't. -->
     <dependency>
       <groupId>com.tesobe</groupId>
       <artifactId>obp-commons</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.github.json4s</groupId>
+          <artifactId>json4s-native_2.13</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Upgraded from 1.4.14 (EOL branch) to 1.5.18. 1.4.x is end-of-life as of
@@ -53,8 +73,23 @@
       <version>${lift.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.json4s</groupId>
+      <groupId>io.github.json4s</groupId>
       <artifactId>json4s-native_${scala.version}</artifactId>
+    </dependency>
+    <!-- json4s-core_3's ScalaSigReader (the Scala-3 variant, core/src/main/scala-3 upstream) reads
+         a Scala-3-compiled case class's constructor via scala.quoted.staging - a real compiler
+         instance built at runtime, not compile-time macros - and throws NoClassDefFoundError on
+         scala.quoted.staging.package$ without this on the classpath. scala3-staging itself pulls
+         in scala3-compiler_3 as a transitive dependency: shipping the compiler at runtime is the
+         actual cost of json4s being able to extract a Scala-3 case class at all, not a mistake.
+         Version fixed to ${scala.compiler} (not left to transitive resolution), for the same
+         reason scala3-library_3 is pinned explicitly below: a staging reflector built against a
+         different compiler version than the one that compiled these classes is exactly the kind
+         of mismatch this pin exists to prevent. -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala3-staging_${scala.version}</artifactId>
+      <version>${scala.compiler}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

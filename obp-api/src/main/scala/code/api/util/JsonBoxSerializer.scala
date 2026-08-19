@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.openbankproject.commons.util
+package code.api.util
 
 import org.json4s._
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
@@ -72,7 +72,7 @@ class JsonBoxSerializer extends Serializer[Box[_]] {
   }
 
   private val typeHoldingFailure = new ParameterizedType {
-    def getActualTypeArguments = Array(classOf[Failure])
+    def getActualTypeArguments: Array[java.lang.reflect.Type] = Array(classOf[Failure])
     def getOwnerType = classOf[Box[Failure]]
     def getRawType = classOf[Box[Failure]]
   }

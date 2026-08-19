@@ -30,7 +30,7 @@ import org.json4s._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
-import com.openbankproject.commons.util.{ReflectUtils, optional}
+import com.openbankproject.commons.util.{ReflectUtils, json, optional}
 import org.json4s.JsonAST.{JObject, JValue}
 import org.json4s.JsonDSL._
 import org.json4s.{Formats, JInt, JString}
@@ -670,7 +670,10 @@ case class CounterpartyLimitTraitCommons(
   maxTotalAmount: BigDecimal,
   maxNumberOfTransactions: Int,
 ) extends CounterpartyLimitTrait {
-  override def toJValue(implicit format: Formats): JValue = {
+  // Signature uses the json.* aliases, not org.json4s directly - see ApiVersion.scala's toJValue
+  // override for why (a ScalaSig-pickled signature naming org.json4s.JsonAST.JValue directly
+  // becomes unreadable once json4s-native_2.13 is off obp-api's classpath).
+  override def toJValue(implicit format: json.Formats): json.JValue = {
     ("counterparty_limit_id", counterpartyLimitId) ~
       ("bank_id", bankId) ~
       ("account_id",accountId) ~
