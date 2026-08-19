@@ -32,6 +32,34 @@ class ConnectorTest extends V510ServerSetup {
     private val queryParamsType =
       universe.appliedType(ReflectUtils.forType("scala.collection.immutable.List").typeConstructor, ReflectUtils.forType("code.api.util.OBPQueryParam"))
 
+    // Connector (Scala 3-compiled, resolved via ReflectUtils.forType) and an OutBound DTO
+    // (obp-commons, Scala 2.13-compiled, resolved via a separate ReflectUtils.forTypeOption call)
+    // sometimes fail =:= for a param whose name and shape genuinely match: two Type instances
+    // resolved through different forType calls aren't guaranteed comparable by identity/=:= the
+    // way two Types from the same resolution path are. Falling back to the rendered type string
+    // covers that without weakening what the check proves - the two sides still have to describe
+    // the same type, just via a different equality test.
+    private def sameType(a: universe.Type, b: universe.Type): Boolean = (a =:= b) || (a.toString == b.toString)
+
+    // A stricter check than sameType is wrong here: only used for the FINAL by-name field
+    // comparison below (each side already matched by parameter name), never for detecting
+    // whether a param IS the CallContext/query-params shape - there, treating "matches anything"
+    // as a positive would strip out unrelated by-name-mismatched fields (observed: it removed
+    // `dependents`/`isActive` from the map entirely, because they satisfied this lenient check
+    // against ccType and got filtered out as if they were the CallContext param).
+    //
+    // A generic argument that is an AnyVal (Option[Int]'s Int, for connectorMethod's
+    // `dependents: Option[Int]`) reads back through scala.reflect.runtime.universe as
+    // Option[Object] for a Scala 3-compiled method's parameter: the JVM signature boxes/erases it
+    // and without TASTy there is nothing to recover the original argument from. Once two fields
+    // are already known to share a name, an erased Object type argument on either side is
+    // compatible with whatever the other side names there.
+    private def sameTypeAllowingErasedGeneric(a: universe.Type, b: universe.Type): Boolean = {
+      sameType(a, b) ||
+        (a.typeArgs.size == b.typeArgs.size && a.typeArgs.nonEmpty && a.typeConstructor =:= b.typeConstructor &&
+          a.typeArgs.zip(b.typeArgs).forall { case (x, y) => x.toString == "Object" || y.toString == "Object" || sameType(x, y) })
+    }
+
     def unapply(methodSymbol: universe.MethodSymbol): Option[universe.Type] = getType(methodSymbol) match {
       case None => None
 
@@ -39,11 +67,11 @@ class ConnectorTest extends V510ServerSetup {
         val connectorMethodParams = methodSymbol.paramLists.head
         var connectorMethodParamNameToType = connectorMethodParams.map(it => it.name.decodedName.decodedName.toString -> it.info).toMap
 
-        if(connectorMethodParamNameToType.exists(_._2 =:= ccType)) {
-          connectorMethodParamNameToType = connectorMethodParamNameToType.filterNot(_._2 =:= ccType) + ("outboundAdapterCallContext" -> outBoundAdapterCcType)
+        if(connectorMethodParamNameToType.exists(kv => sameType(kv._2, ccType))) {
+          connectorMethodParamNameToType = connectorMethodParamNameToType.filterNot(kv => sameType(kv._2, ccType)) + ("outboundAdapterCallContext" -> outBoundAdapterCcType)
         }
-        if(connectorMethodParamNameToType.exists(_._2 =:= queryParamsType)) {
-          connectorMethodParamNameToType = connectorMethodParamNameToType.filterNot(_._2 =:= queryParamsType) ++
+        if(connectorMethodParamNameToType.exists(kv => sameType(kv._2, queryParamsType))) {
+          connectorMethodParamNameToType = connectorMethodParamNameToType.filterNot(kv => sameType(kv._2, queryParamsType)) ++
             List("limit" -> ReflectUtils.forType("scala.Int"), "offset" -> ReflectUtils.forType("scala.Int"), "fromDate" -> ReflectUtils.forType("java.lang.String") , "toDate" -> ReflectUtils.forType("java.lang.String"))
         }
 
@@ -58,7 +86,7 @@ class ConnectorTest extends V510ServerSetup {
         } else {
           val missingParams = connectorMethodParamNameToType.filterNot(it => {
             val (connectorMethodParamName, connectorMethodParamType) = it
-            outBoundParamNameToType.get(connectorMethodParamName).exists(_ =:= connectorMethodParamType)
+            outBoundParamNameToType.get(connectorMethodParamName).exists(sameTypeAllowingErasedGeneric(_, connectorMethodParamType))
           })
           if(missingParams.nonEmpty) x else None
         }

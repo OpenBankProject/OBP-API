@@ -155,6 +155,20 @@ trait Connector extends MdcLoggable {
    *  3. no override
    *  4. is not $default$
    */
+  // Connector declares eight protected implicit def conversions (boxToTuple, tupleToBoxTuple,
+  // tupleToBox, futureReturnTypeToOBPReturnType, OBPReturnTypeToFutureReturnType,
+  // OBPReturnTypeToTupleBox, OBPReturnTypeToBoxTuple, OBPReturnTypeToBox) that exist to adapt
+  // between OBPReturnType and Box/Future shapes, not to be dynamic-dispatch connector methods.
+  // Both isPublic (they're protected) and isImplicit (they're `implicit def`) are source-level
+  // information Scala 2.13's scala.reflect.runtime.universe cannot recover from a Scala
+  // 3-compiled trait - tried both, neither excluded them - so they otherwise pass every filter
+  // below. Named explicitly, same as InternalConnector.knownConnectorVals.
+  private val connectorAdapterMethods = Set(
+    "boxToTuple", "tupleToBoxTuple", "tupleToBox", "futureReturnTypeToOBPReturnType",
+    "OBPReturnTypeToFutureReturnType", "OBPReturnTypeToTupleBox", "OBPReturnTypeToBoxTuple",
+    "OBPReturnTypeToBox"
+  )
+
   protected lazy val connectorMethods: Map[String, MethodSymbol] = {
     // typeOf[Connector] needs the Scala 2 compiler to synthesise a TypeTag for Connector - this
     // very trait - which Scala 3 does not implement. Built from the class name at runtime instead
@@ -170,7 +184,16 @@ trait Connector extends MdcLoggable {
           if method.overrides.isEmpty &&
             method.paramLists.nonEmpty &&
             method.paramLists.head.nonEmpty &&
-            !name.contains("$default$") => kv
+            !name.contains("$default$") &&
+            // Same synthetic-setter leak as implementedMethods below, but this filter runs
+            // directly against Connector's own decls rather than a concrete subtype's members -
+            // a trait-level protected val's setter is declared on Connector itself, so it needs
+            // excluding here too, not only where implementedMethods unions this map in. The
+            // decoded name renders the compiler's internal "$" as "_setter_$xyz_=" for most
+            // vals but "_setter_@xyz_=" for a couple of them - matching the bare "_setter_"
+            // substring covers both instead of chasing each decoding variant.
+            !name.contains("_setter_") &&
+            !connectorAdapterMethods.contains(name) => kv
       }.toMap
     result
   }
@@ -190,7 +213,17 @@ trait Connector extends MdcLoggable {
             method.paramLists.nonEmpty &&
             method.paramLists.head.nonEmpty &&
             method.owner != ReflectUtils.forType("code.bankconnectors.Connector") &&
-            !name.contains("$default$") => kv
+            !name.contains("$default$") &&
+            // Scala 3 compiles a trait's own protected val (bankTTL, banksTTL, ...) into a
+            // synthetic cross-module setter named "code$bankconnectors$Connector$_setter_$xyz_=",
+            // and isPublic on that symbol reads incorrectly through Scala 2.13's
+            // scala.reflect.runtime.universe (the same cross-compiler gap fixed elsewhere this
+            // migration for isVal/isVar) - so it otherwise passes every filter above and gets
+            // counted as a connector method missing its callContext parameter. The "_setter_$"
+            // marker is a stable Scala compiler naming convention, not implementation detail this
+            // code invented, so filtering on it is safe regardless of which reflection flags are
+            // trustworthy for this symbol.
+            !name.contains("_setter_") => kv
         }.toMap
     connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
