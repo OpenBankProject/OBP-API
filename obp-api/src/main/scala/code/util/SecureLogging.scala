@@ -15,6 +15,21 @@ import scala.collection.mutable
  */
 object SecureLogging {
 
+  // sensitivePatterns' own initializer calls APIUtil.getPropsAsBoolValue below, which is the
+  // first touch of APIUtil$ on this thread and so triggers APIUtil$'s class init - which
+  // eagerly evaluates publicAppUrlDefaults, which calls getPropsValue, which logs a debug
+  // message, which (every log call in MdcLoggable routes through maskSensitive) calls back into
+  // maskSensitive -> sensitivePatterns, on the very same thread, before the first call has
+  // returned. Scala 2's lazy val used a reentrant `synchronized` block, so the recursive call
+  // silently passed through; Scala 3's LazyVals uses a CountDownLatch, which is not reentrant,
+  // so the same thread deadlocks waiting on a latch only it could count down. This flag detects
+  // that specific bootstrap window and returns the message unmasked rather than recursing - it
+  // can only be set during sensitivePatterns' one-time computation, and everything logged in
+  // that window is APIUtil/SecureLogging's own prop-driven startup, not request data.
+  private val computingSensitivePatterns = new ThreadLocal[Boolean] {
+    override def initialValue(): Boolean = false
+  }
+
   /**
    * Conditional inclusion helper using APIUtil.getPropsAsBoolValue
    */
@@ -42,6 +57,8 @@ object SecureLogging {
    * When adding new categories here, also update that shared list.
    */
   private lazy val sensitivePatterns: List[(Pattern, Matcher => String)] = {
+    computingSensitivePatterns.set(true)
+    try {
     val patterns = Seq(
       // OAuth2 / API secrets
       conditionalPattern("securelogging_mask_secret") {
@@ -128,6 +145,9 @@ object SecureLogging {
     )
 
     patterns.flatten.toList
+    } finally {
+      computingSensitivePatterns.set(false)
+    }
   }
 
   // ===== Pattern cache for custom usage =====
@@ -142,6 +162,7 @@ object SecureLogging {
   def maskSensitive(msg: AnyRef): String = {
     val msgString = Option(msg).map(_.toString).getOrElse("")
     if (msgString.isEmpty) return msgString
+    if (computingSensitivePatterns.get()) return msgString
 
     sensitivePatterns.foldLeft(msgString) { case (acc, (pattern, replaceFn)) =>
       val matcher = pattern.matcher(acc)
