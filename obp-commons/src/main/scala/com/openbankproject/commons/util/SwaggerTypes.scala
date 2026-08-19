@@ -3,7 +3,6 @@ package com.openbankproject.commons.util
 import java.math.{BigDecimal => JBigDecimal}
 import java.util.Date
 import java.lang.{Boolean => XBoolean, Double => XDouble, Float => XFloat, Integer => XInt, Long => XLong, String => XString}
-import org.json4s.JsonAST.{JArray, JBool, JDouble, JInt, JObject, JString, JValue}
 
 import scala.reflect.runtime.universe._
 
@@ -35,53 +34,81 @@ import scala.reflect.runtime.universe._
  *
  * Generated from `SwaggerJSONFactory.scala`'s own type-literal call sites; do not hand-edit
  * individual entries without checking they still match a call site - regenerate instead.
+ *
+ * The json4s AST types (JObject/JArray/JValue/JBool/JString/JInt/JDouble) are a further wrinkle on
+ * top of the Scala-2-vs-3 TypeTag-synthesis split documented above: `typeOf[JObject]` doesn't just
+ * need the *compiler* synthesizing a TypeTag, it needs `scala.reflect.runtime.universe` to resolve
+ * `org.json4s.JsonAST.JObject`'s own type symbol - and json4s-native_2.13 is deliberately excluded
+ * from obp-api's classpath (see obp-api/pom.xml), leaving only the Scala-3-compiled json4s-native_3
+ * jar, which the 2.13 reflection library that builds this TypeTag can't read (no TASTy support).
+ * `typeOf[JObject]` throws `ScalaReflectionException: type JObject in org.json4s.JsonAST not
+ * found`. `ReflectUtils.forType` sidesteps it: it resolves a class by name via the classloader
+ * (`mirror.staticClass`), which needs no ScalaSig/TASTy reading at all, only the class being
+ * loadable - true regardless of which compiler produced it. The generic composites built from a
+ * json4s leaf type (`Option[JValue]`, `Coll[JBool]`, `Option[Coll[JString]]`, ...) are then
+ * assembled at runtime with `ru.appliedType`, which needs the same thing `forType` provides (a
+ * `Type` value for each argument) rather than compile-time reification of the whole composite.
  */
 object SwaggerTypes {
 
   type Coll[T] = IterableOnce[T]
 
-  val tJObject: Type = typeOf[JObject]
-  val tJArray: Type = typeOf[JArray]
+  private def optionOf(t: Type): Type = appliedType(typeOf[Option[_]].typeConstructor, List(t))
+  private def collOf(t: Type): Type = appliedType(typeOf[IterableOnce[_]].typeConstructor, List(t))
+
+  // org.json4s.JsonAST is a legacy compatibility object re-exporting these as type aliases; the
+  // classes themselves live directly under org.json4s (confirmed against the json4s-ast_3 jar),
+  // and forType needs the class's own binary location, not the alias's.
+  private val jObjectT: Type = ReflectUtils.forType("org.json4s.JObject")
+  private val jArrayT: Type = ReflectUtils.forType("org.json4s.JArray")
+  private val jValueT: Type = ReflectUtils.forType("org.json4s.JValue")
+  private val jBoolT: Type = ReflectUtils.forType("org.json4s.JBool")
+  private val jStringT: Type = ReflectUtils.forType("org.json4s.JString")
+  private val jIntT: Type = ReflectUtils.forType("org.json4s.JInt")
+  private val jDoubleT: Type = ReflectUtils.forType("org.json4s.JDouble")
+
+  val tJObject: Type = jObjectT
+  val tJArray: Type = jArrayT
   val tOptionWildcard: Type = typeOf[Option[_]]
-  val tJValue: Type = typeOf[JValue]
-  val tOptionJValue: Type = typeOf[Option[JValue]]
-  val tCollJValue: Type = typeOf[Coll[JValue]]
-  val tOptionCollJValue: Type = typeOf[Option[Coll[JValue]]]
+  val tJValue: Type = jValueT
+  val tOptionJValue: Type = optionOf(jValueT)
+  val tCollJValue: Type = collOf(jValueT)
+  val tOptionCollJValue: Type = optionOf(tCollJValue)
   val tBoolean: Type = typeOf[Boolean]
-  val tJBool: Type = typeOf[JBool]
+  val tJBool: Type = jBoolT
   val tXBoolean: Type = typeOf[XBoolean]
   val tOptionBoolean: Type = typeOf[Option[Boolean]]
-  val tOptionJBool: Type = typeOf[Option[JBool]]
+  val tOptionJBool: Type = optionOf(jBoolT)
   val tOptionXBoolean: Type = typeOf[Option[XBoolean]]
   val tCollBoolean: Type = typeOf[Coll[Boolean]]
-  val tCollJBool: Type = typeOf[Coll[JBool]]
+  val tCollJBool: Type = collOf(jBoolT)
   val tCollXBoolean: Type = typeOf[Coll[XBoolean]]
   val tOptionCollBoolean: Type = typeOf[Option[Coll[Boolean]]]
-  val tOptionCollJBool: Type = typeOf[Option[Coll[JBool]]]
+  val tOptionCollJBool: Type = optionOf(tCollJBool)
   val tOptionCollXBoolean: Type = typeOf[Option[Coll[XBoolean]]]
   val tString: Type = typeOf[String]
-  val tJString: Type = typeOf[JString]
+  val tJString: Type = jStringT
   val tXString: Type = typeOf[XString]
   val tOptionString: Type = typeOf[Option[String]]
-  val tOptionJString: Type = typeOf[Option[JString]]
+  val tOptionJString: Type = optionOf(jStringT)
   val tOptionXString: Type = typeOf[Option[XString]]
   val tCollString: Type = typeOf[Coll[String]]
-  val tCollJString: Type = typeOf[Coll[JString]]
+  val tCollJString: Type = collOf(jStringT)
   val tCollXString: Type = typeOf[Coll[XString]]
   val tOptionCollString: Type = typeOf[Option[Coll[String]]]
-  val tOptionCollJString: Type = typeOf[Option[Coll[JString]]]
+  val tOptionCollJString: Type = optionOf(tCollJString)
   val tOptionCollXString: Type = typeOf[Option[Coll[XString]]]
   val tInt: Type = typeOf[Int]
-  val tJInt: Type = typeOf[JInt]
+  val tJInt: Type = jIntT
   val tXInt: Type = typeOf[XInt]
   val tOptionInt: Type = typeOf[Option[Int]]
-  val tOptionJInt: Type = typeOf[Option[JInt]]
+  val tOptionJInt: Type = optionOf(jIntT)
   val tOptionXInt: Type = typeOf[Option[XInt]]
   val tCollInt: Type = typeOf[Coll[Int]]
-  val tCollJInt: Type = typeOf[Coll[JInt]]
+  val tCollJInt: Type = collOf(jIntT)
   val tCollXInt: Type = typeOf[Coll[XInt]]
   val tOptionCollInt: Type = typeOf[Option[Coll[Int]]]
-  val tOptionCollJInt: Type = typeOf[Option[Coll[JInt]]]
+  val tOptionCollJInt: Type = optionOf(tCollJInt)
   val tOptionCollXInt: Type = typeOf[Option[Coll[XInt]]]
   val tLong: Type = typeOf[Long]
   val tXLong: Type = typeOf[XLong]
@@ -100,16 +127,16 @@ object SwaggerTypes {
   val tOptionCollFloat: Type = typeOf[Option[Coll[Float]]]
   val tOptionCollXFloat: Type = typeOf[Option[Coll[XFloat]]]
   val tDouble: Type = typeOf[Double]
-  val tJDouble: Type = typeOf[JDouble]
+  val tJDouble: Type = jDoubleT
   val tXDouble: Type = typeOf[XDouble]
   val tOptionDouble: Type = typeOf[Option[Double]]
-  val tOptionJDouble: Type = typeOf[Option[JDouble]]
+  val tOptionJDouble: Type = optionOf(jDoubleT)
   val tOptionXDouble: Type = typeOf[Option[XDouble]]
   val tCollDouble: Type = typeOf[Coll[Double]]
-  val tCollJDouble: Type = typeOf[Coll[JDouble]]
+  val tCollJDouble: Type = collOf(jDoubleT)
   val tCollXDouble: Type = typeOf[Coll[XDouble]]
   val tOptionCollDouble: Type = typeOf[Option[Coll[Double]]]
-  val tOptionCollJDouble: Type = typeOf[Option[Coll[JDouble]]]
+  val tOptionCollJDouble: Type = optionOf(tCollJDouble)
   val tOptionCollXDouble: Type = typeOf[Option[Coll[XDouble]]]
   val tBigDecimal: Type = typeOf[BigDecimal]
   val tJBigDecimal: Type = typeOf[JBigDecimal]

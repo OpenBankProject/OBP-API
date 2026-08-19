@@ -103,20 +103,22 @@ abstract class OBPEnumerationWithType[T <: EnumValue](tpe: ru.Type) extends OBPE
 object OBPEnumeration {
   private def getEnumContainer(tp: Type): OBPEnumeration[_] = {
     require(tp <:< typeOf[EnumValue], s"parameter must be sub-type of ${typeOf[EnumValue]}")
-
     val mirror = ru.runtimeMirror(this.getClass.getClassLoader)
-    val anyImplementation: ru.Symbol = tp.typeSymbol.asClass.knownDirectSubclasses.head
-    val enumContainer: ru.ModuleSymbol = anyImplementation.owner.asClass.module.asModule
-    mirror.reflectModule(enumContainer).instance.asInstanceOf[OBPEnumeration[_]]
+    getEnumContainer(mirror.runtimeClass(tp).asInstanceOf[Class[EnumValue]])
   }
 
+  // knownDirectSubclasses.head - walking from any one known subclass (an enum value object) back
+  // up to its owner (the companion object holding it) - is another knownDirectSubclasses call
+  // reading Scala's own declaration metadata (see OBPEnumerationBase's values, which hit the
+  // identical gap): scala.reflect.runtime.universe has no TASTy reader, so a Scala-3-compiled
+  // sealed trait (e.g. TransactionRequestStatus) reports zero known subclasses and .head throws
+  // NoSuchElementException. This function doesn't actually need any subclass, only the companion
+  // itself - and a companion object's binary name is always "<trait's binary name>$", regardless
+  // of which Scala version compiled it (same technique OBPEnumerationBase.modules uses).
   private def getEnumContainer[T <: EnumValue](clazz: Class[T]): OBPEnumeration[T] = {
     require(clazz != classOf[EnumValue], s"parameter must be sub-class of ${classOf[EnumValue]}")
-
-    val mirror = ru.runtimeMirror(this.getClass.getClassLoader)
-    val anyImplementation = mirror.classSymbol(clazz).knownDirectSubclasses.head
-    val enumContainer = anyImplementation.owner.asClass.module.asModule
-    mirror.reflectModule(enumContainer).instance.asInstanceOf[OBPEnumeration[T]]
+    val companionClass = Class.forName(clazz.getName + "$", false, clazz.getClassLoader)
+    companionClass.getField("MODULE$").get(null).asInstanceOf[OBPEnumeration[T]]
   }
 
   def getValuesByType(tp: Type): List[EnumValue] = getEnumContainer(tp).values.map(_.asInstanceOf[EnumValue])
@@ -125,7 +127,17 @@ object OBPEnumeration {
 
   def getValuesByInstance[T <: EnumValue](instance: T): List[T] = {
     val clazz = instance.getClass
-    val enumType = clazz.getInterfaces.headOption.getOrElse(clazz.getSuperclass)
+    // Not just clazz.getInterfaces.headOption: for a Scala-3-compiled enum value, EnumValue
+    // itself can be the first interface JVM-side (interface linearization order isn't the same
+    // between Scala 2 and Scala 3), so blindly taking index 0 sometimes returns EnumValue rather
+    // than the intermediate sealed trait (e.g. TransactionRequestStatus) - getEnumContainer then
+    // rejects it outright ("parameter must be sub-class of interface EnumValue", since it
+    // literally *is* EnumValue). Find the interface that extends EnumValue without being it.
+    val enumValueClass = classOf[EnumValue]
+    val enumType = clazz.getInterfaces
+      .find(i => i != enumValueClass && enumValueClass.isAssignableFrom(i))
+      .orElse(clazz.getInterfaces.headOption)
+      .getOrElse(clazz.getSuperclass)
     getValuesByClass(enumType.asInstanceOf[Class[T]])
   }
 

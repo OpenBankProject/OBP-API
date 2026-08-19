@@ -80,14 +80,23 @@ object ReflectUtils {
       // TASTy for Scala 3). scala.reflect.runtime.universe - the Scala 2.13 reflection library
       // obp-commons is pinned to - has no TASTy reader, so all three come back false for every
       // member of a Scala-3-compiled class; only the bytecode-level shape (a zero-arg method with
-      // a return type) survives. The extra clause recovers that shape. It also matches a case
-      // class's synthetic zero-arg methods (toString, hashCode, productArity, ...), so this
-      // function is only safe on a target whose zero-arg methods are all real fields - true for
-      // the plain objects getFieldsNameToValue scans (ApiRole/ApiTag/ExampleValue), not for an
-      // arbitrary case-class instance (see JSONFactory1_4_0.scala, which reads those via
-      // scala.Product instead).
+      // a return type) survives. The extra clause recovers that shape.
+      //
+      // Restricted to it.owner == tp.typeSymbol (declared directly on the target's own class,
+      // not inherited) rather than trying to exclude bad owners by name one at a time: a zero-arg
+      // method can be inherited from java.lang.Object (notify/wait - reflectMethod on those
+      // outside a synchronized block throws IllegalMonitorStateException), from scala.Any
+      // (asInstanceOf/isInstanceOf - compiler-magic, reflectMethod refuses to invoke them at
+      // all), or even from a JDK-internal interface an unrelated object's runtime class happens
+      // to implement (hit via JSONFactory1_4_0's unfiltered fallback branch on values it doesn't
+      // otherwise know how to schema - a java.lang.reflect.InaccessibleObjectException on some
+      // jdk.internal.constant.* method). None of that is ever something a genuine val/lazy val/
+      // case-class field owns; requiring same-class ownership excludes all of it at once, and
+      // every actual caller's target (ExampleValue/ApiRole/ApiTag's own lazy vals, a case class's
+      // own constructor-derived accessors) declares its members directly, never by inheritance.
       .withFilter(it => it.isLazy || it.isVal || it.isVar ||
-        (it.isMethod && !it.asMethod.isConstructor && it.asMethod.paramLists.forall(_.isEmpty)))
+        (it.isMethod && !it.asMethod.isConstructor && it.asMethod.paramLists.forall(_.isEmpty) &&
+          it.owner == tp.typeSymbol))
       .withFilter(predicate)
       .map(it => {
         val fieldName = it.name.decodedName.toString.trim
