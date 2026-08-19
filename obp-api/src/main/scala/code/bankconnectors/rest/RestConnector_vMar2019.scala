@@ -45,7 +45,7 @@ import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{Meta, _}
-import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
+import com.openbankproject.commons.util.{JsonUtils, ReflectUtils, RestConnectorTypes}
 import net.liftweb.common._
 import com.openbankproject.commons.util.json
 import org.json4s.Extraction.decompose
@@ -7296,7 +7296,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       .foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${urlValueConverter(pair._2)}")) + queryParams.getOrElse("")
   }
 
-  private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
+  private[this] def sendRequest[T <: InBoundTrait[_]: Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     Helper.convertToReference(outBound)
     val methodRouting = MethodRoutingHolder.methodRouting
@@ -7348,7 +7348,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       .map(_.utf8String)
   }
 
-  private[this] def extractEntity[T: TypeTag: Manifest](responseEntity: ResponseEntity, inBoundMapping: Box[JObject]): Future[Box[T]] = {
+  private[this] def extractEntity[T: Manifest](responseEntity: ResponseEntity, inBoundMapping: Box[JObject]): Future[Box[T]] = {
     this.extractBody(responseEntity)
       .map({
         case null => Empty
@@ -7404,17 +7404,17 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
     //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true`
 
     def isCustomerId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-        ownerType =:= typeOf[CustomerId] ||
-        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= typeOf[String]) ||
-        (ownerType <:< typeOf[Customer] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+        ownerType =:= RestConnectorTypes.tCustomerId ||
+        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= RestConnectorTypes.tString) ||
+        (ownerType <:< RestConnectorTypes.tCustomer && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)
       }
 
     def isAccountId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-        ownerType <:< typeOf[AccountId] ||
-        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+        ownerType <:< RestConnectorTypes.tAccountId ||
+        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= RestConnectorTypes.tString)||
+        (ownerType <:< RestConnectorTypes.tCoreAccount && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)||
+        (ownerType <:< RestConnectorTypes.tAccountBalance && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)||
+        (ownerType <:< RestConnectorTypes.tAccountHeld && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)
       }
 
     if(APIUtil.getPropsValue("connector","mapped") != "mapped" && APIUtil.getPropsAsBoolValue("implicitly_convert_ids",false)){
