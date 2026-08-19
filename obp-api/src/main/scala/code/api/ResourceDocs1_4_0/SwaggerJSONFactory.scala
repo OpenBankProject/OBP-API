@@ -5,7 +5,7 @@ import java.util.{Date, Objects}
 import code.api.util.APIUtil.{HTTPParam, EmptyBody, JArrayBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import com.openbankproject.commons.util.{ApiVersion, EnumValue, JsonAble, JsonUtils, OBPEnumeration, ReflectUtils, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersion, EnumValue, JsonAble, JsonUtils, OBPEnumeration, ReflectUtils, ScannedApiVersion, SwaggerTypes}
 import org.json4s.JsonAST.JValue
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
@@ -164,7 +164,7 @@ object SwaggerJSONFactory extends MdcLoggable {
   case class JObjectSchemaJson(jObject: JObject) extends ResponseObjectSchemaJson with JsonAble {
 
     override def toJValue(implicit format: Formats): json.JValue = {
-      val schema = buildSwaggerSchema(typeOf[JObject], jObject)
+      val schema = buildSwaggerSchema(SwaggerTypes.tJObject, jObject)
       try {
         json.parse(schema)
       } catch {
@@ -178,7 +178,7 @@ object SwaggerJSONFactory extends MdcLoggable {
   case class JArraySchemaJson(jArray: JArray) extends ResponseObjectSchemaJson with JsonAble {
 
     override def toJValue(implicit format: Formats): json.JValue = {
-      val schema = buildSwaggerSchema(typeOf[JArray], jArray)
+      val schema = buildSwaggerSchema(SwaggerTypes.tJArray, jArray)
       try {
         json.parse(schema)
       } catch {
@@ -658,7 +658,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     //Collect all mandatory fields and make an appropriate string
     // eg return :  "required": ["id","name","bank","banks"],
     val required = nameToType
-      .filterNot(_._2 <:< typeOf[Option[_]])
+      .filterNot(_._2 <:< SwaggerTypes.tOptionWildcard)
       .map(_._1)
       .map(convertParamName)
       .map(it => s""" "$it" """)
@@ -694,14 +694,14 @@ object SwaggerJSONFactory extends MdcLoggable {
   }
 
   private def buildSwaggerSchema(paramType: Type, exampleValue: Any): String = {
-    def isTypeOf[T: TypeTag]: Boolean = {
-      val tpe2 = typeTag[T].tpe
-      paramType <:< tpe2
-    }
+    // Scala 3 cannot synthesise a TypeTag for a generic type parameter (see SwaggerTypes'
+    // docstring), so these take the runtime Type as an ordinary value instead of as a
+    // TypeTag-context-bound type parameter. Call sites pass a SwaggerTypes.tXxx constant.
+    def isTypeOf(t: Type): Boolean = paramType <:< t
 
-    def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
+    def isOneOfType(t: Type, d: Type): Boolean = isTypeOf(t) || isTypeOf(d)
 
-    def isAnyOfType[T: TypeTag, D: TypeTag, E: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D] || isTypeOf[E]
+    def isAnyOfType(t: Type, d: Type, e: Type): Boolean = isTypeOf(t) || isTypeOf(d) || isTypeOf(e)
 
     // enum all values to Array structure string: ["red", "green", "other"]
     def enumsToString(enumTp: Type) = {
@@ -714,20 +714,20 @@ object SwaggerJSONFactory extends MdcLoggable {
       }
 
     paramType match {
-      case _ if isTypeOf[EnumValue]                    => s""" {"type":"string","enum": [${enumsToString(paramType)}]}"""
-      case _ if isTypeOf[Option[EnumValue]]            => s""" {"type":"string","enum": [${enumsToString(paramType)}]}"""
-      case _ if isTypeOf[Coll[EnumValue]]             => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
-      case _ if isTypeOf[Option[Coll[EnumValue]]]     => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
+      case _ if isTypeOf(SwaggerTypes.tEnumValue)                    => s""" {"type":"string","enum": [${enumsToString(paramType)}]}"""
+      case _ if isTypeOf(SwaggerTypes.tOptionEnumValue)            => s""" {"type":"string","enum": [${enumsToString(paramType)}]}"""
+      case _ if isTypeOf(SwaggerTypes.tCollEnumValue)             => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
+      case _ if isTypeOf(SwaggerTypes.tOptionCollEnumValue)     => s""" {"type":"array", "items":{"type":"string","enum": [${enumsToString(paramType)}]}}"""
 
       //Boolean - 4 kinds
-      case _ if isAnyOfType[Boolean, JBool, XBoolean]                                         => s""" {"type":"boolean" $example}"""
+      case _ if isAnyOfType(SwaggerTypes.tBoolean, SwaggerTypes.tJBool, SwaggerTypes.tXBoolean)                                         => s""" {"type":"boolean" $example}"""
       case _ if exampleValue.isInstanceOf[Boolean]                                            => s""" {"type":"boolean" $example}""" //TODO. Here need to be enhanced.
-      case _ if isAnyOfType[Option[Boolean], Option[JBool], Option[XBoolean]]                 => s""" {"type":"boolean" $example}"""
-      case _ if isAnyOfType[Coll[Boolean], Coll[JBool], Coll[XBoolean]]                       => s""" {"type":"array", "items":{"type": "boolean"}}"""
-      case _ if isAnyOfType[Option[Coll[Boolean]],Option[Coll[JBool]],Option[Coll[XBoolean]]] => s""" {"type":"array", "items":{"type": "boolean"}}"""
+      case _ if isAnyOfType(SwaggerTypes.tOptionBoolean, SwaggerTypes.tOptionJBool, SwaggerTypes.tOptionXBoolean)                 => s""" {"type":"boolean" $example}"""
+      case _ if isAnyOfType(SwaggerTypes.tCollBoolean, SwaggerTypes.tCollJBool, SwaggerTypes.tCollXBoolean)                       => s""" {"type":"array", "items":{"type": "boolean"}}"""
+      case _ if isAnyOfType(SwaggerTypes.tOptionCollBoolean, SwaggerTypes.tOptionCollJBool, SwaggerTypes.tOptionCollXBoolean) => s""" {"type":"array", "items":{"type": "boolean"}}"""
 
       //String
-      case t if isAnyOfType[String, JString, XString] || isEnumeration(t)                                                  => s""" {"type":"string" $example}"""
+      case t if isAnyOfType(SwaggerTypes.tString, SwaggerTypes.tJString, SwaggerTypes.tXString) || isEnumeration(t)                                                  => s""" {"type":"string" $example}"""
       // Option before Coll, as every other scalar block here already has it. Coll is IterableOnce,
       // which 2.13's Option implements and 2.12's did not, so Coll[String] answers true for
       // Option[String] and this was the one block whose order let that through - publishing every
@@ -735,51 +735,51 @@ object SwaggerJSONFactory extends MdcLoggable {
       //
       // Only the type test moves. These cases each carry a second, independent clause testing for
       // an enumeration, and those are ordered among themselves: isNestEnumeration digs to the
-      // innermost type argument, so Option[List[Colour]] satisfies isNestEnumeration[Option[_]]
-      // exactly as well as isNestEnumeration[Option[List[_]]], and only the latter is right for it.
+      // innermost type argument, so Option[List[Colour]] satisfies isNestEnumeration for Option[_]
+      // exactly as well as for Option[List[_]], and only the latter is right for it.
       // Carrying the Option[_] enumeration clause up here with the type test made every optional
       // list of enumerations a string. It stays below, after the list forms have had their turn.
-      case t if isAnyOfType[Option[String], Option[JString], Option[XString]]                                            => s""" {"type":"string" $example}"""
-      case t if isAnyOfType[Coll[String], Coll[JString], Coll[XString]] || isNestEnumeration[List[_]](t)                         => s""" {"type":"array", "items":{"type": "string"}}"""
-      case t if isAnyOfType[Option[Coll[String]], Option[Coll[JString]], Option[Coll[XString]]] || isNestEnumeration[Option[List[_]]](t) => s""" {"type":"array", "items":{"type": "string"}}"""
-      case t if isNestEnumeration[Option[_]](t)                                                                          => s""" {"type":"string" $example}"""
+      case t if isAnyOfType(SwaggerTypes.tOptionString, SwaggerTypes.tOptionJString, SwaggerTypes.tOptionXString)                                            => s""" {"type":"string" $example}"""
+      case t if isAnyOfType(SwaggerTypes.tCollString, SwaggerTypes.tCollJString, SwaggerTypes.tCollXString) || isNestEnumeration(SwaggerTypes.tListWildcard, t)                         => s""" {"type":"array", "items":{"type": "string"}}"""
+      case t if isAnyOfType(SwaggerTypes.tOptionCollString, SwaggerTypes.tOptionCollJString, SwaggerTypes.tOptionCollXString) || isNestEnumeration(SwaggerTypes.tOptionListWildcard, t) => s""" {"type":"array", "items":{"type": "string"}}"""
+      case t if isNestEnumeration(SwaggerTypes.tOptionWildcard, t)                                                                          => s""" {"type":"string" $example}"""
 
       //Int
-      case _ if isAnyOfType[Int, JInt, XInt]                                           => s""" {"type":"integer", "format":"int32" $example}"""
-      case _ if isAnyOfType[Option[Int], Option[JInt], Option[XInt]]                   => s""" {"type":"integer", "format":"int32" $example}"""
-      case _ if isAnyOfType[Coll[Int], Coll[JInt], Coll[XInt]]                         => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-      case _ if isAnyOfType[Option[Coll[Int]], Option[Coll[JInt]], Option[Coll[XInt]]] => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isAnyOfType(SwaggerTypes.tInt, SwaggerTypes.tJInt, SwaggerTypes.tXInt)                                           => s""" {"type":"integer", "format":"int32" $example}"""
+      case _ if isAnyOfType(SwaggerTypes.tOptionInt, SwaggerTypes.tOptionJInt, SwaggerTypes.tOptionXInt)                   => s""" {"type":"integer", "format":"int32" $example}"""
+      case _ if isAnyOfType(SwaggerTypes.tCollInt, SwaggerTypes.tCollJInt, SwaggerTypes.tCollXInt)                         => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isAnyOfType(SwaggerTypes.tOptionCollInt, SwaggerTypes.tOptionCollJInt, SwaggerTypes.tOptionCollXInt) => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
       //Long
-      case _ if isOneOfType[Long, XLong]                             => s""" {"type":"integer", "format":"int64" $example}"""
-      case _ if isOneOfType[Option[Long], Option[XLong]]             => s""" {"type":"integer", "format":"int64" $example}"""
-      case _ if isOneOfType[Coll[Long], Coll[XLong]]                 => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-      case _ if isOneOfType[Option[Coll[Long]], Option[Coll[XLong]]] => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isOneOfType(SwaggerTypes.tLong, SwaggerTypes.tXLong)                             => s""" {"type":"integer", "format":"int64" $example}"""
+      case _ if isOneOfType(SwaggerTypes.tOptionLong, SwaggerTypes.tOptionXLong)             => s""" {"type":"integer", "format":"int64" $example}"""
+      case _ if isOneOfType(SwaggerTypes.tCollLong, SwaggerTypes.tCollXLong)                 => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+      case _ if isOneOfType(SwaggerTypes.tOptionCollLong, SwaggerTypes.tOptionCollXLong) => s""" {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
       //Float
-      case _ if isOneOfType[Float, XFloat]                             => s""" {"type":"number", "format":"float" $example}"""
-      case _ if isOneOfType[Option[Float], Option[XFloat]]             => s""" {"type":"number", "format":"float" $example}"""
-      case _ if isOneOfType[Coll[Float], Coll[XFloat]]                 => s""" {"type":"array", "items":{"type": "float"}}"""
-      case _ if isOneOfType[Option[Coll[Float]], Option[Coll[XFloat]]] => s""" {"type":"array", "items":{"type": "float"}}"""
+      case _ if isOneOfType(SwaggerTypes.tFloat, SwaggerTypes.tXFloat)                             => s""" {"type":"number", "format":"float" $example}"""
+      case _ if isOneOfType(SwaggerTypes.tOptionFloat, SwaggerTypes.tOptionXFloat)             => s""" {"type":"number", "format":"float" $example}"""
+      case _ if isOneOfType(SwaggerTypes.tCollFloat, SwaggerTypes.tCollXFloat)                 => s""" {"type":"array", "items":{"type": "float"}}"""
+      case _ if isOneOfType(SwaggerTypes.tOptionCollFloat, SwaggerTypes.tOptionCollXFloat) => s""" {"type":"array", "items":{"type": "float"}}"""
       //Double
-      case _ if isAnyOfType[Double, JDouble, XDouble]                                           => s""" {"type":"number", "format":"double" $example}"""
-      case _ if isAnyOfType[Option[Double], Option[JDouble], Option[XDouble]]                   => s""" {"type":"number", "format":"double" $example}"""
-      case _ if isAnyOfType[Coll[Double], Coll[JDouble], Coll[XDouble]]                         => s""" {"type":"array", "items":{"type": "double"}}"""
-      case _ if isAnyOfType[Option[Coll[Double]], Option[Coll[JDouble]], Option[Coll[XDouble]]] => s""" {"type":"array", "items":{"type": "double"}}"""
+      case _ if isAnyOfType(SwaggerTypes.tDouble, SwaggerTypes.tJDouble, SwaggerTypes.tXDouble)                                           => s""" {"type":"number", "format":"double" $example}"""
+      case _ if isAnyOfType(SwaggerTypes.tOptionDouble, SwaggerTypes.tOptionJDouble, SwaggerTypes.tOptionXDouble)                   => s""" {"type":"number", "format":"double" $example}"""
+      case _ if isAnyOfType(SwaggerTypes.tCollDouble, SwaggerTypes.tCollJDouble, SwaggerTypes.tCollXDouble)                         => s""" {"type":"array", "items":{"type": "double"}}"""
+      case _ if isAnyOfType(SwaggerTypes.tOptionCollDouble, SwaggerTypes.tOptionCollJDouble, SwaggerTypes.tOptionCollXDouble) => s""" {"type":"array", "items":{"type": "double"}}"""
       //BigDecimal
-      case _ if isOneOfType[BigDecimal, JBigDecimal]                             => s""" {"type":"string", "format":"double" $example}"""
-      case _ if isOneOfType[Option[BigDecimal], Option[JBigDecimal]]             => s""" {"type":"string", "format":"double" $example}"""
-      case _ if isOneOfType[Coll[BigDecimal], Coll[JBigDecimal]]                 => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
-      case _ if isOneOfType[Option[Coll[BigDecimal]], Option[Coll[JBigDecimal]]] => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
+      case _ if isOneOfType(SwaggerTypes.tBigDecimal, SwaggerTypes.tJBigDecimal)                             => s""" {"type":"string", "format":"double" $example}"""
+      case _ if isOneOfType(SwaggerTypes.tOptionBigDecimal, SwaggerTypes.tOptionJBigDecimal)             => s""" {"type":"string", "format":"double" $example}"""
+      case _ if isOneOfType(SwaggerTypes.tCollBigDecimal, SwaggerTypes.tCollJBigDecimal)                 => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
+      case _ if isOneOfType(SwaggerTypes.tOptionCollBigDecimal, SwaggerTypes.tOptionCollJBigDecimal) => s""" {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
       //Date
-      case _ if isOneOfType[Date, Option[Date]]                   => {
+      case _ if isOneOfType(SwaggerTypes.tDate, SwaggerTypes.tOptionDate)                   => {
         val valueBox = tryo {s"""${APIUtil.DateWithSecondsFormat.format(exampleValue)}"""}
-        if(valueBox.isEmpty) logger.debug(s"isOneOfType[Date, Option[Date]]- Current Example Value is: $paramType - $exampleValue")
+        if(valueBox.isEmpty) logger.debug(s"Date/Option[Date] field - current example value is: $paramType - $exampleValue")
         val value = valueBox.getOrElse(APIUtil.DateWithSecondsExampleString)
         s""" {"type":"string", "format":"date","example":"$value"}"""
       }
-      case _ if isOneOfType[Coll[Date], Option[Coll[Date]]]       => s""" {"type":"array", "items":{"type":"string", "format":"date"}}"""
+      case _ if isOneOfType(SwaggerTypes.tCollDate, SwaggerTypes.tOptionCollDate)       => s""" {"type":"array", "items":{"type":"string", "format":"date"}}"""
 
       //List or Array Option data.
-      case t if isOneOfType[Coll[Option[_]], Array[Option[_]]]  =>
+      case t if isOneOfType(SwaggerTypes.tCollOptionWildcard, SwaggerTypes.tArrayOptionWildcard)  =>
         val tp = ReflectUtils.getNestTypeArg(t, 0, 0)
         val value = exampleValue match {
           case v: Array[_] => v.headOption.flatMap(_.asInstanceOf[Option[_]]).orNull
@@ -789,7 +789,7 @@ object SwaggerJSONFactory extends MdcLoggable {
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
 
       // Option List or Array data
-      case t if isOneOfType[Option[Coll[_]], Option[Array[_]]] =>
+      case t if isOneOfType(SwaggerTypes.tOptionCollWildcard, SwaggerTypes.tOptionArrayWildcard) =>
         val tp = ReflectUtils.getNestTypeArg(t, 0, 0)
         val value = exampleValue match {
           case Some(v: Array[_]) if v.nonEmpty => v.head
@@ -804,7 +804,7 @@ object SwaggerJSONFactory extends MdcLoggable {
       // without this guard every Option the cases above did not name by type - an Option of a case
       // class, of a JValue - is published as an array of it. Option[Coll[_]] is already handled
       // above, so what this excludes falls to the Option case below, which unwraps and recurses.
-      case t if isOneOfType[Coll[_], Array[_]] && !isTypeOf[Option[_]]  =>
+      case t if isOneOfType(SwaggerTypes.tCollWildcard, SwaggerTypes.tArrayWildcard) && !isTypeOf(SwaggerTypes.tOptionWildcard)  =>
         val tp = ReflectUtils.getNestTypeArg(t, 0)
         val value = exampleValue match {
           case v: Array[_] => v.head
@@ -814,7 +814,7 @@ object SwaggerJSONFactory extends MdcLoggable {
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
 
       //Option data
-      case t if isTypeOf[Option[_]]               =>
+      case t if isTypeOf(SwaggerTypes.tOptionWildcard)               =>
         val tp = ReflectUtils.getNestTypeArg(t, 0)
         val value = exampleValue match {
           case Some(v) => v
@@ -826,7 +826,7 @@ object SwaggerJSONFactory extends MdcLoggable {
       //JValue type
       case _ if exampleValue == JNull || exampleValue == JNothing => throw new RuntimeException("Example should neither be JNothing nor JNull")
 
-      case _ if isTypeOf[JArray]                   =>
+      case _ if isTypeOf(SwaggerTypes.tJArray)                   =>
         exampleValue match {
           case JArray(v ::_) => s""" {"type": "array", "items":${buildSwaggerSchema(JsonUtils.getType(v), v)} }"""
           case _ => s""" {"type": "array","items": {}}""" //if array is empty, we can not know the type here.
@@ -835,7 +835,7 @@ object SwaggerJSONFactory extends MdcLoggable {
 //            throw new RuntimeException("JArray type should not be empty.")
         }
 
-      case _ if isTypeOf[JObject]         =>
+      case _ if isTypeOf(SwaggerTypes.tJObject)         =>
         val JObject(jFields) = exampleValue
         val allFields = for {
           JField(name, v) <- jFields
@@ -849,7 +849,7 @@ object SwaggerJSONFactory extends MdcLoggable {
           s""" {"type":"object", "properties": { ${allFields.mkString(",")} }, "required": $requiredFields }"""
         }
 
-      case _ if isTypeOf[JValue] =>
+      case _ if isTypeOf(SwaggerTypes.tJValue) =>
         // The guard here used to be `Objects.nonNull(exampleValue)`, which returns a Boolean and
         // discards it - it never stopped anything, and a null example reached JsonUtils.getType,
         // whose own requireNonNull then threw. The collection branches above hand null down
@@ -868,49 +868,49 @@ object SwaggerJSONFactory extends MdcLoggable {
     * all not swagger ref type
     */
   private[this] val noneRefTypes = List(
-    typeOf[JValue]
-    , typeOf[Option[JValue]]
-    , typeOf[Coll[JValue]]
-    , typeOf[Option[Coll[JValue]]]
+    SwaggerTypes.tJValue
+    , SwaggerTypes.tOptionJValue
+    , SwaggerTypes.tCollJValue
+    , SwaggerTypes.tOptionCollJValue
 
     //Boolean - 4 kinds
-    , typeOf[Boolean], typeOf[JBool], typeOf[XBoolean]
-    , typeOf[Option[Boolean]], typeOf[ Option[JBool]], typeOf[ Option[XBoolean]]
-    , typeOf[Coll[Boolean]], typeOf[ Coll[JBool]], typeOf[ Coll[XBoolean]]
-    , typeOf[Option[Coll[Boolean]]], typeOf[Option[Coll[JBool]]], typeOf[Option[Coll[XBoolean]]]
+    , SwaggerTypes.tBoolean, SwaggerTypes.tJBool, SwaggerTypes.tXBoolean
+    , SwaggerTypes.tOptionBoolean, SwaggerTypes.tOptionJBool, SwaggerTypes.tOptionXBoolean
+    , SwaggerTypes.tCollBoolean, SwaggerTypes.tCollJBool, SwaggerTypes.tCollXBoolean
+    , SwaggerTypes.tOptionCollBoolean, SwaggerTypes.tOptionCollJBool, SwaggerTypes.tOptionCollXBoolean
     //String
-    , typeOf[String], typeOf[JString], typeOf[XString]
-    , typeOf[Option[String]], typeOf[Option[JString]], typeOf[Option[XString]]
-    , typeOf[Coll[String]], typeOf[Coll[JString]], typeOf[Coll[XString]]
-    , typeOf[Option[Coll[String]]], typeOf[Option[Coll[JString]]] , typeOf[Option[Coll[XString]]]
+    , SwaggerTypes.tString, SwaggerTypes.tJString, SwaggerTypes.tXString
+    , SwaggerTypes.tOptionString, SwaggerTypes.tOptionJString, SwaggerTypes.tOptionXString
+    , SwaggerTypes.tCollString, SwaggerTypes.tCollJString, SwaggerTypes.tCollXString
+    , SwaggerTypes.tOptionCollString, SwaggerTypes.tOptionCollJString , SwaggerTypes.tOptionCollXString
     //Int
-    , typeOf[Int], typeOf[JInt], typeOf[XInt]
-    , typeOf[Option[Int]], typeOf[ Option[JInt]], typeOf[ Option[XInt]]
-    , typeOf[Coll[Int]], typeOf[ Coll[JInt]], typeOf[ Coll[XInt]]
-    , typeOf[Option[Coll[Int]]], typeOf[ Option[Coll[JInt]]], typeOf[ Option[Coll[XInt]]]
+    , SwaggerTypes.tInt, SwaggerTypes.tJInt, SwaggerTypes.tXInt
+    , SwaggerTypes.tOptionInt, SwaggerTypes.tOptionJInt, SwaggerTypes.tOptionXInt
+    , SwaggerTypes.tCollInt, SwaggerTypes.tCollJInt, SwaggerTypes.tCollXInt
+    , SwaggerTypes.tOptionCollInt, SwaggerTypes.tOptionCollJInt, SwaggerTypes.tOptionCollXInt
     //Long
-    , typeOf[Long], typeOf[XLong]
-    , typeOf[Option[Long]], typeOf[ Option[XLong]]
-    , typeOf[Coll[Long]], typeOf[ Coll[XLong]]
-    , typeOf[Option[Coll[Long]]], typeOf[ Option[Coll[XLong]]]
+    , SwaggerTypes.tLong, SwaggerTypes.tXLong
+    , SwaggerTypes.tOptionLong, SwaggerTypes.tOptionXLong
+    , SwaggerTypes.tCollLong, SwaggerTypes.tCollXLong
+    , SwaggerTypes.tOptionCollLong, SwaggerTypes.tOptionCollXLong
     //Float
-    , typeOf[Float], typeOf[XFloat]
-    , typeOf[Option[Float]], typeOf[ Option[XFloat]]
-    , typeOf[Coll[Float]], typeOf[ Coll[XFloat]]
-    , typeOf[Option[Coll[Float]]], typeOf[ Option[Coll[XFloat]]]
+    , SwaggerTypes.tFloat, SwaggerTypes.tXFloat
+    , SwaggerTypes.tOptionFloat, SwaggerTypes.tOptionXFloat
+    , SwaggerTypes.tCollFloat, SwaggerTypes.tCollXFloat
+    , SwaggerTypes.tOptionCollFloat, SwaggerTypes.tOptionCollXFloat
     //Double
-    , typeOf[Double], typeOf[JDouble], typeOf[XDouble]
-    , typeOf[Option[Double]], typeOf[ Option[JDouble]], typeOf[ Option[XDouble]]
-    , typeOf[Coll[Double]], typeOf[ Coll[JDouble]], typeOf[ Coll[XDouble]]
-    , typeOf[Option[Coll[Double]]], typeOf[ Option[Coll[JDouble]]], typeOf[ Option[Coll[XDouble]]]
+    , SwaggerTypes.tDouble, SwaggerTypes.tJDouble, SwaggerTypes.tXDouble
+    , SwaggerTypes.tOptionDouble, SwaggerTypes.tOptionJDouble, SwaggerTypes.tOptionXDouble
+    , SwaggerTypes.tCollDouble, SwaggerTypes.tCollJDouble, SwaggerTypes.tCollXDouble
+    , SwaggerTypes.tOptionCollDouble, SwaggerTypes.tOptionCollJDouble, SwaggerTypes.tOptionCollXDouble
     //BigDecimal
-    , typeOf[BigDecimal], typeOf[JBigDecimal]
-    , typeOf[Option[BigDecimal]], typeOf[ Option[JBigDecimal]]
-    , typeOf[Coll[BigDecimal]], typeOf[ Coll[JBigDecimal]]
-    , typeOf[Option[Coll[BigDecimal]]], typeOf[ Option[Coll[JBigDecimal]]]
+    , SwaggerTypes.tBigDecimal, SwaggerTypes.tJBigDecimal
+    , SwaggerTypes.tOptionBigDecimal, SwaggerTypes.tOptionJBigDecimal
+    , SwaggerTypes.tCollBigDecimal, SwaggerTypes.tCollJBigDecimal
+    , SwaggerTypes.tOptionCollBigDecimal, SwaggerTypes.tOptionCollJBigDecimal
     //Date
-    , typeOf[Date], typeOf[Option[Date]]
-    , typeOf[Coll[Date]], typeOf[ Option[Coll[Date]]]
+    , SwaggerTypes.tDate, SwaggerTypes.tOptionDate
+    , SwaggerTypes.tCollDate, SwaggerTypes.tOptionCollDate
   )
 
   /**
@@ -1121,9 +1121,12 @@ object SwaggerJSONFactory extends MdcLoggable {
 
   private def isEnumeration(tp: Type) = tp.typeSymbol.isClass && tp.typeSymbol.asClass.fullName == "scala.Enumeration.Value"
 
-  private def isNestEnumeration[T: TypeTag](tp: Type) = {
+  // enumType takes the place of the old T: TypeTag context bound - see SwaggerTypes' docstring
+  // for why Scala 3 cannot synthesise one for a generic type parameter here. Call sites pass a
+  // SwaggerTypes.tXxx constant, e.g. isNestEnumeration(SwaggerTypes.tOptionWildcard, tp).
+  private def isNestEnumeration(enumType: Type, tp: Type): Boolean = {
     def isNestEnum = isEnumeration(ReflectUtils.getNestFirstTypeArg(tp))
-    implicitly[TypeTag[T]].tpe match {
+    enumType match {
       case t if(tp <:< t && isNestEnum) => true
       case _ => false
     }
