@@ -1200,13 +1200,17 @@ object Http4s310 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetMethodRoutings, Some(cc))
             methodRoutings <- NewStyle.function.getMethodRoutingsByMethodName(methodNameParam)
           } yield {
-            val definedMethodRoutings = methodRoutings.sortWith(_.methodName < _.methodName)
-            // MethodRoutingProvider only ever constructs MethodRoutingCommons; the trait typing
-            // here is purely the exposed provider-interface abstraction.
-            val listCommons: List[code.methodrouting.MethodRoutingCommons] = (activeParam match {
+            // getMethodRoutingsByMethodName returns List[MethodRoutingT] - the provider's own row
+            // type (MappedMethodRoutingProvider.MethodRouting, post-Doobie-migration), not
+            // MethodRoutingCommons - so the elements have to be converted, not cast; a blind
+            // asInstanceOf threw ClassCastException at runtime.
+            val definedMethodRoutings: List[code.methodrouting.MethodRoutingCommons] =
+              code.methodrouting.MethodRoutingCommons.toCommonsList(methodRoutings)
+                .sortWith(_.methodName < _.methodName)
+            val listCommons: List[code.methodrouting.MethodRoutingCommons] = activeParam match {
               case Some("true") => (definedMethodRoutings ++ getDefaultMethodRoutings).sortWith(_.methodName < _.methodName)
               case _ => definedMethodRoutings
-            }).asInstanceOf[List[code.methodrouting.MethodRoutingCommons]]
+            }
             ListResult("method_routings", listCommons.map(_.toJson))
           }
         }
@@ -1349,7 +1353,10 @@ object Http4s310 {
           } yield {
             val views: List[View] = Views.views.vend.assignedViewsForAccount(
               BankIdAccountId(card.account.bankId, card.account.accountId))
-            val commonsData: List[CardAttributeCommons] = cardAttributes.asInstanceOf[List[CardAttributeCommons]]
+            // cardAttributes is List[CardAttribute] - could be DoobieCardAttributeProvider's own
+            // row type, not necessarily CardAttributeCommons - so it is converted, not cast; a
+            // blind asInstanceOf threw ClassCastException whenever the concrete row type differed.
+            val commonsData: List[CardAttributeCommons] = CardAttributeCommons.toCommonsList(cardAttributes)
             createPhysicalCardWithAttributesJson(card, commonsData, user, views)
           }
         }
@@ -1839,7 +1846,11 @@ object Http4s310 {
               } else implicitWebUiProps.distinct
             } else List.empty[WebUiPropsCommons]
           } yield {
-            val listCommons: List[WebUiPropsCommons] = (explicitWebUiProps ++ implicitWebUiPropsRemovedDuplicated).asInstanceOf[List[WebUiPropsCommons]]
+            // explicitWebUiProps is List[WebUiPropsT] - the provider's own row type, not
+            // necessarily WebUiPropsCommons - so it is converted, not cast; a blind asInstanceOf
+            // threw ClassCastException whenever the concrete row type differed.
+            val listCommons: List[WebUiPropsCommons] =
+              WebUiPropsCommons.toCommonsList(explicitWebUiProps) ++ implicitWebUiPropsRemovedDuplicated
             ListResult("webui_props", listCommons)
           }
         }

@@ -3766,7 +3766,10 @@ object Http4s400 {
       for {
         (endpointMappings, _) <- NewStyle.function.getEndpointMappings(bankId, Some(cc))
       } yield {
-        val listCommons: List[EndpointMappingCommons] = endpointMappings.asInstanceOf[List[EndpointMappingCommons]]
+        // endpointMappings is List[EndpointMappingT] - the provider's own row type, not
+        // necessarily EndpointMappingCommons - so the elements are converted, not cast; a blind
+        // asInstanceOf threw ClassCastException whenever the concrete row type differed.
+        val listCommons: List[EndpointMappingCommons] = EndpointMappingCommons.toCommonsList(endpointMappings)
         com.openbankproject.commons.model.ListResult("endpoint-mappings", listCommons.map(_.toJson))
       }
 
