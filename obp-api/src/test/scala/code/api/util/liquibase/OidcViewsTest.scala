@@ -14,6 +14,11 @@ import org.scalatest.matchers.should.Matchers
  * the MigrationOf* scripts create (v_consent, v_metric, v_account_access_with_views,
  * v_fast_firehose_accounts) always appeared; these three never did.
  *
+ * They are created in a SECOND Liquibase pass, after the legacy MigrationOf* scripts: those still
+ * run `ALTER TABLE consumer ALTER COLUMN aud TYPE text`, and Postgres refuses to alter a column a
+ * view depends on, which aborts the boot. H2 does not enforce that - which is why this test cannot
+ * catch the ordering itself, and a real Postgres start had to.
+ *
  * Only the CREATE VIEW half is automated. The scripts also create a database ROLE and GRANT SELECT
  * to it, and that is deliberately left out: the role name is the deployment's to choose (the
  * scripts use a `:OIDC_USER` placeholder for exactly that reason), and the grant - not the view -
@@ -45,7 +50,11 @@ class OidcViewsTest extends AnyFlatSpec with Matchers {
       val st = c.createStatement(); try st.execute("DROP ALL OBJECTS") finally st.close()
     }
     try {
+      // Boot's order: the schema first, then - after the legacy data migrations, which this test
+      // has none of - the OIDC views. Asserting after bringUpToDate alone would say the opposite
+      // of what is wanted, since those views are deliberately held back from that pass.
       LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
+      LiquibaseSchemaSetup.createOidcViews(dataSourceFor(db))
 
       withConnection(db) { c =>
         val st = c.createStatement()

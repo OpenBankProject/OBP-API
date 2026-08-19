@@ -214,6 +214,12 @@ class Boot extends MdcLoggable {
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
 
+    // The OIDC views come last, after the legacy migrations have finished reshaping the columns
+    // they read. Creating them with the rest of the schema aborts the boot on Postgres, which
+    // refuses `ALTER TABLE consumer ALTER COLUMN aud TYPE text` while a view depends on that
+    // column. H2 does not enforce it, so only a real Postgres start shows this.
+    code.api.util.liquibase.LiquibaseSchemaSetup.createOidcViews(APIUtil.vendor.HikariDatasource.ds)
+
     // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, bill, utility, etc.).
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()

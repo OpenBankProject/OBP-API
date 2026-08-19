@@ -22,12 +22,29 @@
 # literally named `key`; it is only H2 that could not parse it. The scripts have carried this since
 # they were written and nobody noticed, because they are only ever run against Postgres.
 #
+# These carry `contextFilter: oidc-views` and are therefore NOT created by the main schema pass.
+# They have to be created AFTER the legacy MigrationOf* scripts run, not before, because those
+# scripts still reshape the columns the views select: `ALTER TABLE consumer ALTER COLUMN aud TYPE
+# text` is refused outright by Postgres while a view depends on that column -
+#
+#     ERROR: cannot alter type of a column used by a view or rule
+#     Detail: rule _RETURN on view v_oidc_admin_clients depends on column "aud"
+#
+# which stops the boot. H2 does not enforce this, so the whole test suite is blind to it; it was
+# found by starting the application against a fresh Postgres database. The four views those scripts
+# create for themselves (v_consent, v_metric, ...) never hit it because they are created by the
+# same mechanism that does the altering, after it.
+#
+# So Boot runs the schema twice: everything except this context first, then this context after
+# Migration.database.executeScripts. See LiquibaseSchemaSetup.createOidcViews.
+#
 # runOnChange so that editing a definition here re-applies it; createView replaces in place.
 databaseChangeLog:
   - changeSet:
       id: create-view-v_oidc_users
       author: obp
       runOnChange: true
+      contextFilter: oidc-views
       comment: >-
         OBP-OIDC and the Keycloak user-storage provider authenticate against this. It exposes password_pw and password_slt, which is why the GRANT that would hand it to another role is NOT here - see the file header.
       changes:
@@ -54,6 +71,7 @@ databaseChangeLog:
       id: create-view-v_oidc_clients
       author: obp
       runOnChange: true
+      contextFilter: oidc-views
       comment: >-
         The OAuth client registry OBP-OIDC reads, projected from the consumer table.
       changes:
@@ -82,6 +100,7 @@ databaseChangeLog:
       id: create-view-v_oidc_admin_clients
       author: obp
       runOnChange: true
+      contextFilter: oidc-views
       comment: >-
         The administrative projection of consumer, including inactive ones.
       changes:

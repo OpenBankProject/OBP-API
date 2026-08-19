@@ -2,7 +2,7 @@ package code.api.util.liquibase
 
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
-import liquibase.{GlobalConfiguration, Liquibase, Scope}
+import liquibase.{Contexts, GlobalConfiguration, LabelExpression, Liquibase, Scope}
 import liquibase.database.DatabaseFactory
 import liquibase.database.jvm.JdbcConnection
 import liquibase.exception.LockException
@@ -188,6 +188,37 @@ object LiquibaseSchemaSetup extends MdcLoggable {
     false
   }
 
+  /**
+   * The context holding the views that must be created after the legacy data migrations.
+   *
+   * Everything else is created by `bringUpToDate`, which runs first in Boot. These three cannot be:
+   * `MigrationOfConsumerAudFieldType` issues `ALTER TABLE consumer ALTER COLUMN aud TYPE text`, and
+   * Postgres refuses to alter a column a view depends on -
+   *
+   *     ERROR: cannot alter type of a column used by a view or rule
+   *     Detail: rule _RETURN on view v_oidc_admin_clients depends on column "aud"
+   *
+   * - which aborts the boot. H2 does not enforce that, so the suite cannot see it; it took starting
+   * the application against a fresh Postgres database to find. The four views the legacy scripts
+   * create for themselves never hit it, because the mechanism that alters the column is the one
+   * that creates them, afterwards.
+   */
+  private val oidcViewsContext = "oidc-views"
+
+  /**
+   * Create the OIDC views. Called from Boot AFTER Migration.database.executeScripts, for the
+   * ordering reason on `oidcViewsContext`.
+   */
+  def createOidcViews(dataSource: javax.sql.DataSource): Unit = {
+    if (APIUtil.getPropsAsBoolValue("liquibase.enabled", enabledByDefault)) {
+      val liquibase = configure(dataSource)
+      try withDuplicatesAllowed {
+        liquibase.update(new Contexts(oidcViewsContext), new LabelExpression())
+        logger.info("Liquibase: OIDC views are up to date")
+      } finally liquibase.close()
+    }
+  }
+
   def bringUpToDate(
     dataSource: javax.sql.DataSource,
     classLoader: ClassLoader = getClass.getClassLoader
@@ -204,12 +235,15 @@ object LiquibaseSchemaSetup extends MdcLoggable {
 
     val liquibase = configure(dataSource, classLoader)
     try withDuplicatesAllowed {
+      // Everything except the OIDC views, which have to wait for the legacy data migrations.
+      val everythingElse = new Contexts(s"!$oidcViewsContext")
+      val noLabels = new LabelExpression()
       if (needsAdoption) {
         logger.info("Liquibase: the database already has tables and no DATABASECHANGELOG - " +
           "recording the changelog as applied rather than rebuilding the schema")
-        liquibase.changeLogSync("")
+        liquibase.changeLogSync(everythingElse, noLabels)
       }
-      liquibase.update("")
+      liquibase.update(everythingElse, noLabels)
       logger.info("Liquibase: schema is up to date")
     } catch {
       case e: Exception if causedByLockException(e) =>

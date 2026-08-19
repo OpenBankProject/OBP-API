@@ -85,7 +85,10 @@ class PostgresMigrationTest extends AnyFlatSpec with Matchers {
       execute(admin, s"CREATE DATABASE $databaseName")
     }
     try {
+      // Both passes, in Boot's order. The OIDC views are held back from the first one so the legacy
+      // migrations can still alter the columns they read - see LiquibaseSchemaSetup.createOidcViews.
       LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(databaseName))
+      LiquibaseSchemaSetup.createOidcViews(dataSourceFor(databaseName))
 
       val c = dataSourceFor(databaseName).getConnection
       try {
