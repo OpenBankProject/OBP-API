@@ -128,7 +128,7 @@ class ModeratedTransactionMetadata(
       tagList <- Box(tags) ?~ { s"$NoViewPermission can_delete_tag. " }
       tag <- Box(tagList.find(tag => tag.id_ == tagId)) ?~ {"Tag with id " + tagId + "not found for this transaction"}
       deleteFunc <- if(tag.postedBy == user||view.allowed_actions.exists(_ == CAN_DELETE_TAG))
-    	               Box(deleteTag) ?~ "Deleting tags not permitted for this view"
+                       Box(deleteTag) ?~ "Deleting tags not permitted for this view"
                     else
                       Failure("deleting tags not permitted for the current user")
       tagIsDeleted <- deleteFunc(tagId)
@@ -145,7 +145,7 @@ class ModeratedTransactionMetadata(
       imageList <- Box(images) ?~ { s"$NoViewPermission can_delete_image." }
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
       deleteFunc <- if(image.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_IMAGE))
-    	                Box(deleteImage) ?~ "Deleting images not permitted for this view"
+                        Box(deleteImage) ?~ "Deleting images not permitted for this view"
                     else
                       Failure("Deleting images not permitted for the current user")
     } yield {
@@ -234,8 +234,8 @@ class ModeratedBankAccount(
     ("owners" -> ownersJson(owners.getOrElse(Set()))) ~
     ("type" -> accountType.getOrElse("")) ~
     ("balance" ->
-    	("currency" -> currency.getOrElse("")) ~
-    	("amount" -> balance)) ~
+        ("currency" -> currency.getOrElse("")) ~
+        ("amount" -> balance)) ~
     ("IBAN" -> iban.getOrElse("")) ~
     ("date_opened" -> "")
   }
@@ -245,19 +245,19 @@ object ModeratedBankAccount {
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def bankJson(holderName: String, isAlias : String, number: String,
-      	kind: String, bankIBAN: String, bankNatIdent: String,
-      	bankName: String) : JObject = {
+        kind: String, bankIBAN: String, bankNatIdent: String,
+        bankName: String) : JObject = {
     ("holder" ->
       (
-    	 ("name" -> holderName) ~
-    	 ("alias"-> isAlias)
+         ("name" -> holderName) ~
+         ("alias"-> isAlias)
       ))~
     ("number" -> number) ~
     ("kind" -> kind) ~
     ("bank" ->
-    	("IBAN" -> bankIBAN) ~
-    	("national_identifier" -> bankNatIdent) ~
-    	("name" -> bankName))
+        ("IBAN" -> bankIBAN) ~
+        ("national_identifier" -> bankNatIdent) ~
+        ("name" -> bankName))
   }
 
   import scala.language.implicitConversions

@@ -21,9 +21,10 @@ trait EnumValue{
   override def toString: String = this.getClass.getSimpleName.replaceFirst("\\$$", "")
 }
 
-abstract class OBPEnumeration[T <: EnumValue: ru.TypeTag] { // trait not support context bounded type
+// Shared by OBPEnumeration and OBPEnumerationWithType: everything about walking the enclosing
+// object's nested modules only needs tpe as a plain value, never the TypeTag itself.
+abstract class OBPEnumerationBase[T <: EnumValue](tpe: ru.Type) {
   type Value = T // just keep the same usage with scala enumeration
-  private val tpe: ru.Type = typeTag[T].tpe
 
   private val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader) // classloader
   private val instanceMirror: ru.InstanceMirror = mirror.reflect(this)
@@ -48,6 +49,15 @@ abstract class OBPEnumeration[T <: EnumValue: ru.TypeTag] { // trait not support
   def withIndex(index: Int): T = values.lift(index).get
   def example: T = values.head
 }
+
+abstract class OBPEnumeration[T <: EnumValue: ru.TypeTag] extends OBPEnumerationBase[T](typeTag[T].tpe) // trait not support context bounded type
+
+// Same as OBPEnumeration, but for obp-api's one subclass (AuthenticationType) rather than the many
+// declared here: T's Type is a constructor parameter instead of a TypeTag context bound, because
+// typeTag[T] needs the Scala 2 compiler's TypeTag synthesis at the `extends` clause itself, and
+// obp-api compiles under Scala 3. The subclass passes ReflectUtils.forType("fully.qualified.T")
+// instead - a pure string-based class lookup needing no compiler synthesis.
+abstract class OBPEnumerationWithType[T <: EnumValue](tpe: ru.Type) extends OBPEnumerationBase[T](tpe)
 
 object OBPEnumeration {
   private def getEnumContainer(tp: Type): OBPEnumeration[_] = {

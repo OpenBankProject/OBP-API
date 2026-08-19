@@ -3008,17 +3008,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @param emptyBoxErrorCode Error code in case of Empty Box
    * @return
    */
-  def getFullBoxOrFail[T](box: Box[T], cc: Option[CallContext], emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): Box[T] = {
+  def getFullBoxOrFail[T](box: Box[T], cc: Option[CallContext], emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400): Box[T] = {
     fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
   }
 
-  def unboxFullOrFail[T](box: Box[T], cc: Option[CallContext], emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): T = {
+  def unboxFullOrFail[T](box: Box[T], cc: Option[CallContext], emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400): T = {
     unboxFull {
       fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
     }
   }
 
-  def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext])(implicit m: Manifest[T]): T = {
+  def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext]): T = {
     unboxFullOrFail(box, cc, s"$InvalidConnectorResponse ${nameOf(connectorEmptyResponse _)}" , 400)
   }
 
@@ -3215,13 +3215,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def unboxFullAndWrapIntoFuture[T](box: Box[T])(implicit m: Manifest[T]) : Future[T] = {
+  def unboxFullAndWrapIntoFuture[T](box: Box[T]) : Future[T] = {
     Future {
       unboxFull(fullBoxOrException(box))
     }
   }
 
-  def unboxFull[T](box: Box[T])(implicit m: Manifest[T]) : T = {
+  // None of unboxFull / unboxFullAndWrapIntoFuture / unboxFullOrFail / connectorEmptyResponse /
+  // getFullBoxOrFail ever used their implicit Manifest[T] - unboxFull's body is a plain pattern
+  // match, and the others only existed to hand their own Manifest[T] down to unboxFull's implicit
+  // scope. That mattered under Scala 2, where Empty (typed Box[Nothing]) makes T resolve to
+  // Nothing and the compiler still synthesises a Manifest[Nothing]; Scala 3 refuses to, which
+  // surfaces as "No Manifest available for Nothing" at every unboxFullOrFail(Empty, ...) call
+  // site. Dropping the unused parameter removes the requirement rather than the type it failed on.
+  def unboxFull[T](box: Box[T]) : T = {
     box match {
       case Full(value) =>
         value
@@ -4022,7 +4029,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   def getMaskedPrimaryAccountNumber(accountNumber: String): String = {
-    val (first, second) = accountNumber.splitAt(accountNumber.size/2)
+    // written out rather than accountNumber.splitAt(n): one of the wildcard-imported Lift/
+    // commons.util helper objects provides a same-named extension whose argument type Scala 3
+    // now prefers over the stdlib String#splitAt(Int) this line actually wants.
+    val splitPoint = accountNumber.size / 2
+    val (first, second) = (accountNumber.substring(0, splitPoint), accountNumber.substring(splitPoint))
     if(first.length >=3 && second.length>=3)
       first.substring(0, first.size - 3) + "***" + "***" + second.substring(3)
     else if (first.length >=3 && second.length< 3)

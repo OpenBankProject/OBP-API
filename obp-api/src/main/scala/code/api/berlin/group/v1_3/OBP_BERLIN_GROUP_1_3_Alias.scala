@@ -50,7 +50,7 @@ object OBP_BERLIN_GROUP_1_3_Alias extends OBPRestHelper with MdcLoggable with Sc
   override val apiVersion: ScannedApiVersion =
     ScannedApiVersion(berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.last)
 
-  val versionStatus: String = ApiVersionStatus.DRAFT.toString
+  lazy val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sBGv13Alias.resourceDocs
 }

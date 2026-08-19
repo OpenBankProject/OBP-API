@@ -27,8 +27,7 @@ object MigrationOfFastFireHoseView {
               case value if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>""  //TODO: do not support mssql server yet.
               case _ =>
-                ()=>
-              """
+                () => """
                 |CREATE VIEW v_fast_firehose_accounts AS select
                 |    mappedbankaccount.theaccountid as account_id,
                 |    mappedbankaccount.bank as bank_id,

@@ -321,18 +321,16 @@ class Boot extends MdcLoggable {
 //    }
 
     if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
-      DB.addLogFunc
-     {
-       case (log, duration) =>
-       {
+      // Written as a Function2 literal with explicit parameter types rather than the original
+      // `case (log, duration) =>` shorthand: Scala 3 could not infer the expected function type
+      // for that shorthand at this call site.
+      DB.addLogFunc((log: net.liftweb.db.DBLog, duration: Long) => {
          logger.debug("Total query time : %d ms".format(duration))
-         log.allEntries.foreach
-         {
-           case DBLogEntry(stmt, duration) =>
-             logger.debug("The query :  %s in %d ms".format(stmt, duration))
+         log.allEntries.foreach {
+           case DBLogEntry(stmt, entryDuration) =>
+             logger.debug("The query :  %s in %d ms".format(stmt, entryDuration))
          }
-       }
-     }
+     })
     }
 
     // start RabbitMq Adapter(using mapped connector as mockded CBS)

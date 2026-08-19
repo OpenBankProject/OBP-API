@@ -559,7 +559,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // (Superset of upstream's specifiedUrl-only fix in 17faa09ac.)
     val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology-requestUrl:${resourceDocUpdatedTags.requestUrl}-specifiedUrl:${resourceDocUpdatedTags.specifiedUrl.getOrElse("")}".intern()
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
-      val fieldsDescription =
+      val fieldsDescription: String =
         if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
           || resourceDocUpdatedTags.tags.toString.contains("Dynamic-Endpoint")
           || resourceDocUpdatedTags.roles.toString.contains("DynamicEntity")
@@ -582,52 +582,52 @@ object JSONFactory1_4_0 extends MdcLoggable{
           urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
         }
 
-        val resourceDocDescription = I18NUtil.ResourceDocTranslation.translate(
-          I18NResourceDocField.DESCRIPTION,
-          resourceDocUpdatedTags.operationId,
-          locale,
-          resourceDocUpdatedTags.description.stripMargin.trim
-        )
-        val description = resourceDocDescription ++ fieldsDescription
-        val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
-        val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
+      val resourceDocDescription = I18NUtil.ResourceDocTranslation.translate(
+        I18NResourceDocField.DESCRIPTION,
+        resourceDocUpdatedTags.operationId,
+        locale,
+        resourceDocUpdatedTags.description.stripMargin.trim
+      )
+      val description = resourceDocDescription ++ fieldsDescription
+      val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
+      val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
 
-       val technology =
-         if (includeTechnology) {
-           Some(if (resourceDocUpdatedTags.http4sPartialFunction.isDefined) Constant.TECHNOLOGY_HTTP4S else Constant.TECHNOLOGY_LIFTWEB)
-         } else {
-           None
-         }
+      val technology =
+        if (includeTechnology) {
+          Some(if (resourceDocUpdatedTags.http4sPartialFunction.isDefined) Constant.TECHNOLOGY_HTTP4S else Constant.TECHNOLOGY_LIFTWEB)
+        } else {
+          None
+        }
 
-       val resourceDoc = ResourceDocJson(
-          operation_id = resourceDocUpdatedTags.operationId,
-          request_verb = resourceDocUpdatedTags.requestVerb,
-          request_url = resourceDocUpdatedTags.requestUrl,
-          summary = translatedSummary,
-          // Strip the margin character (|) and line breaks and convert from markdown to html
-          description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
-          description_markdown = description,
-          example_request_body = resourceDocUpdatedTags.exampleRequestBody,
-          success_response_body = resourceDocUpdatedTags.successResponseBody,
-          error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
-          implemented_by = ImplementedByJson(
-            version = resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion,
-            function = resourceDocUpdatedTags.partialFunctionName,
-            technology = technology
-          ), // was resourceDocUpdatedTags.implementedInApiVersion.noV
-          tags = resourceDocUpdatedTags.tags.map(i => i.tag),
-          typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
-          typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
-          roles = resourceDocUpdatedTags.roles,
-          is_featured = resourceDocUpdatedTags.isFeatured,
-          special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
-          specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
-          connector_methods = resourceDocUpdatedTags.connectorMethods,
-          created_by_bank_id = if (isVersion4OrHigher) resourceDocUpdatedTags.createdByBankId else None // only for V400 we show the bankId
-        )
+      val resourceDoc = ResourceDocJson(
+         operation_id = resourceDocUpdatedTags.operationId,
+         request_verb = resourceDocUpdatedTags.requestVerb,
+         request_url = resourceDocUpdatedTags.requestUrl,
+         summary = translatedSummary,
+         // Strip the margin character (|) and line breaks and convert from markdown to html
+         description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
+         description_markdown = description,
+         example_request_body = resourceDocUpdatedTags.exampleRequestBody,
+         success_response_body = resourceDocUpdatedTags.successResponseBody,
+         error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
+         implemented_by = ImplementedByJson(
+           version = resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion,
+           function = resourceDocUpdatedTags.partialFunctionName,
+           technology = technology
+         ), // was resourceDocUpdatedTags.implementedInApiVersion.noV
+         tags = resourceDocUpdatedTags.tags.map(i => i.tag),
+         typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
+         typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
+         roles = resourceDocUpdatedTags.roles,
+         is_featured = resourceDocUpdatedTags.isFeatured,
+         special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
+         specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
+         connector_methods = resourceDocUpdatedTags.connectorMethods,
+         created_by_bank_id = if (isVersion4OrHigher) resourceDocUpdatedTags.createdByBankId else None // only for V400 we show the bankId
+       )
 
-        logger.trace(s"createLocalisedResourceDocJsonCached value is $resourceDoc")
-        resourceDoc
+      logger.trace(s"createLocalisedResourceDocJsonCached value is $resourceDoc")
+      resourceDoc
     }}
   
   

@@ -65,7 +65,7 @@ object MigrationOfUserAuthContext {
       s"""Deleted all redundant rows in the table mappeduserauthcontext
          |""".stripMargin
     saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
-    org.scalameta.logger.elem(comment)
+    println(s"comment = $comment")
     isSuccessful
   }
 }

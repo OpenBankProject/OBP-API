@@ -294,7 +294,7 @@ object Http4s600 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(user.userId))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.asInstanceOf[List[DynamicEntityCommons]]
             JSONFactory600.createMyDynamicEntitiesJson(listCommons)
           }
         }
@@ -308,7 +308,7 @@ object Http4s600 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName).asInstanceOf[List[DynamicEntityCommons]]
             val entitiesWithCounts = listCommons.map { entity =>
               val recordCount = DynamicData.countImpersonal(entity.bankId, entity.entityName)
               (entity, recordCount)
@@ -326,7 +326,7 @@ object Http4s600 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bankIdStr), false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName).asInstanceOf[List[DynamicEntityCommons]]
             val entitiesWithCounts = listCommons.map { entity =>
               val recordCount = DynamicData.countImpersonal(Some(bankIdStr), entity.entityName)
               (entity, recordCount)
@@ -1994,7 +1994,7 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "personal-dynamic-entities" / "available" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(NewStyle.function.getDynamicEntities(None, true))
-            .map(all => JSONFactory600.createMyDynamicEntitiesJson(all.filter(_.hasPersonalEntity)))
+            .map(all => JSONFactory600.createMyDynamicEntitiesJson(all.filter(_.hasPersonalEntity).asInstanceOf[List[DynamicEntityCommons]]))
         }
     }
 

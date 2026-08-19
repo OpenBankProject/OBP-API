@@ -2767,8 +2767,7 @@ object NewStyle extends MdcLoggable{
         legalName: String,
         mobileNumber: String,
         email: String,
-        faceImage:
-          CustomerFaceImageTrait,
+        faceImage: CustomerFaceImageTrait,
         dateOfBirth: Date,
         relationshipStatus: String,
         dependents: Int,
@@ -2816,8 +2815,7 @@ object NewStyle extends MdcLoggable{
         customerNumber: String,
         mobileNumber: String,
         email: String,
-        faceImage:
-          CustomerFaceImageTrait,
+        faceImage: CustomerFaceImageTrait,
         dateOfBirth: Date,
         relationshipStatus: String,
         dependents: Int,
@@ -3092,14 +3090,14 @@ object NewStyle extends MdcLoggable{
     }
     def checkMethodRoutingAlreadyExists(methodRouting: MethodRoutingT, callContext:Option[CallContext]): OBPReturnType[Boolean] = Future {
       val methodRoutingCommons: MethodRoutingCommons = {
-        val commons: MethodRoutingCommons = methodRouting
+        val commons: MethodRoutingCommons = MethodRoutingCommons.toCommons(methodRouting)
         commons.copy(methodRoutingId = None, parameters = commons.parameters.sortBy(_.key))
       }
 
       val exists: Boolean =
         this.getMethodRoutings(Some(methodRouting.methodName), Option(methodRouting.isBankIdExactMatch), methodRouting.bankIdPattern)
           .exists {v =>
-              val commons: MethodRoutingCommons = v
+              val commons: MethodRoutingCommons = MethodRoutingCommons.toCommons(v)
               methodRoutingCommons == commons.copy(methodRoutingId = None, parameters = commons.parameters.sortBy(_.key))
           }
 

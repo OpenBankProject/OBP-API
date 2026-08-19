@@ -2709,7 +2709,7 @@ object ExampleValue {
   /**
    * all ConnectorField type example name map value
    */
-  lazy val exampleNameToValue: Map[String, ConnectorField] = ReflectUtils.getFieldsNameToValue[ConnectorField](this)
+  lazy val exampleNameToValue: Map[String, ConnectorField] = ReflectUtils.getFieldsNameToValue[ConnectorField](this, ReflectUtils.forType("code.api.util.ConnectorField"))
 }
 
 

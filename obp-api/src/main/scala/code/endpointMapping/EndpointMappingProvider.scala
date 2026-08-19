@@ -4,9 +4,9 @@ package code.endpointMapping
 
 import org.json4s._
 import code.dynamicEntity.DynamicEntity
-import com.openbankproject.commons.model.{Converter, JsonFieldReName}
+import com.openbankproject.commons.model.{Converter, ConverterWithType, JsonFieldReName}
 import net.liftweb.common.Box
-import com.openbankproject.commons.util.json
+import com.openbankproject.commons.util.{json, ReflectUtils}
 import org.json4s.Formats
 import org.json4s.JsonAST.{JArray, JField, JNull, JObject, JString, JValue}
 import net.liftweb.util.SimpleInjector
@@ -48,7 +48,7 @@ case class EndpointMappingCommons(
   }
 }
 
-object EndpointMappingCommons extends Converter[EndpointMappingT, EndpointMappingCommons]
+object EndpointMappingCommons extends ConverterWithType[EndpointMappingT, EndpointMappingCommons](ReflectUtils.forType("code.endpointMapping.EndpointMappingCommons"))
 
 trait EndpointMappingProvider {
   def getById(bankId: Option[String], endpointMappingId: String): Box[EndpointMappingT]

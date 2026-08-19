@@ -50,9 +50,9 @@ object OBPAPI5_1_0 extends OBPRestHelper
   with MdcLoggable
   with VersionedOBPApis{
 
-  val version : ApiVersion = ApiVersion.v5_1_0
+  lazy val version : ApiVersion = ApiVersion.v5_1_0
 
-  val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
+  lazy val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
 
   // Re-export so tests that import OBPAPI5_1_0.Implementations5_1_0 still compile
   // after APIMethods510 was replaced with an empty stub.

@@ -183,7 +183,7 @@ object ApiTag {
     */
   def apply(tagSymbol: String): ResourceDocTag =  this.tagNameSymbolMapTag.getOrElseUpdate(tagSymbol, ResourceDocTag(tagSymbol))
 
-  private lazy val staticTags: Map[String, ResourceDocTag] = ReflectUtils.getFieldsNameToValue[ResourceDocTag](this)
+  private lazy val staticTags: Map[String, ResourceDocTag] = ReflectUtils.getFieldsNameToValue[ResourceDocTag](this, ReflectUtils.forType("code.api.util.ApiTag.ResourceDocTag"))
 
   val staticTagNames: Set[String] = staticTags.values.map(_.displayTag).toSet
   /**

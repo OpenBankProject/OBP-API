@@ -1283,7 +1283,7 @@ def restoreSomeSessions(): Unit = {
             resetLink
           case _ => ""
         }
-        case _ => ""
+      case _ => ""
     }
   }
 

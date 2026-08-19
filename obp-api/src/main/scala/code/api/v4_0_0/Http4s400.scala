@@ -1493,7 +1493,7 @@ object Http4s400 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemLevelDynamicEntities, Some(cc))
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.asInstanceOf[List[DynamicEntityCommons]]
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -1535,7 +1535,7 @@ object Http4s400 {
               List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities), Some(cc))
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bank.bankId.value), false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.asInstanceOf[List[DynamicEntityCommons]]
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -1576,7 +1576,7 @@ object Http4s400 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(user.userId))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            val listCommons: List[DynamicEntityCommons] = dynamicEntities.asInstanceOf[List[DynamicEntityCommons]]
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -3754,7 +3754,7 @@ object Http4s400 {
       for {
         (endpointMappings, _) <- NewStyle.function.getEndpointMappings(bankId, Some(cc))
       } yield {
-        val listCommons: List[EndpointMappingCommons] = endpointMappings
+        val listCommons: List[EndpointMappingCommons] = endpointMappings.asInstanceOf[List[EndpointMappingCommons]]
         com.openbankproject.commons.model.ListResult("endpoint-mappings", listCommons.map(_.toJson))
       }
 

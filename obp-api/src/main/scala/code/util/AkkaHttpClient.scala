@@ -36,7 +36,7 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
   def prepareHttpRequest(
     uri: String, 
     method: HttpMethod, 
-    httpProtocol: HttpProtocol = HttpProtocol("HTTP/1.1"), 
+    httpProtocol: HttpProtocol = HttpProtocols.`HTTP/1.1`, 
     entityJsonString: String = ""
   ): HttpRequest = {
     val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, entityJsonString)

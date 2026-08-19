@@ -19,6 +19,12 @@ import net.liftweb.mapper.Schemifier
 import java.util.Date
 import scala.concurrent.Future
 
+// Every InBound* DTO's `data` field is declared as List[XCommons] (the concrete case class),
+// while LocalMappedConnector's methods return List[X] (the connector trait). Scala 2 accepted
+// `data = response` as-is throughout this file; Scala 3's inference does not widen/narrow this on
+// its own, and it never actually needs to - LocalMappedConnector's mapped/Doobie stores only ever
+// construct the XCommons case class, so the trait typing is purely the exposed connector-interface
+// abstraction. The casts below make that existing runtime fact explicit rather than changing it.
 class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
 
   private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
@@ -47,7 +53,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[BankCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBanks(
             inboundAdapterCallContext = InboundAdapterCallContext(
@@ -242,7 +248,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ChallengeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundCreateChallengesC2(          
           
@@ -263,7 +269,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ChallengeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundCreateChallengesC3(          
           
@@ -410,7 +416,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ChallengeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetChallengesByTransactionRequestId(          
           
@@ -431,7 +437,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ChallengeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetChallengesByConsentId(          
           
@@ -452,7 +458,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ChallengeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetChallengesByBasketId(          
           
@@ -515,7 +521,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[BankCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBanks(          
           
@@ -536,7 +542,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[InboundAccountCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBankAccountsForUser(          
           
@@ -599,7 +605,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[BankAccountCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBankAccounts(          
           
@@ -851,7 +857,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[CounterpartyTraitCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetCounterparties(          
           
@@ -1397,7 +1403,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ProductCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetProducts(          
           
@@ -1460,7 +1466,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[BranchTCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBranches(          
           
@@ -1502,7 +1508,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[AtmTCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetAtms(          
           
@@ -1628,7 +1634,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[TransactionRequestTypeChargeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetTransactionRequestTypeCharges(          
           
@@ -1775,7 +1781,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[CustomerCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetCustomersByUserId(          
           
@@ -1838,7 +1844,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[CustomerAddressCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetCustomerAddress(          
           
@@ -1943,7 +1949,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[TaxResidenceCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetTaxResidence(          
           
@@ -1985,7 +1991,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[CustomerCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetCustomers(          
           
@@ -2006,7 +2012,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[CustomerCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetCustomersByCustomerPhoneNumber(          
           
@@ -2153,7 +2159,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[UserAuthContextCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetUserAuthContexts(          
           
@@ -2195,7 +2201,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[BankAttributeTraitCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBankAttributesByBank(          
           
@@ -2237,7 +2243,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ProductAttributeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetProductAttributesByBankAndCode(          
           
@@ -2384,7 +2390,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[AccountAttributeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundCreateAccountAttributes(          
           
@@ -2405,7 +2411,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[AccountAttributeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetAccountAttributesByAccount(          
           
@@ -2426,7 +2432,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[CustomerAttributeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetCustomerAttributes(          
           
@@ -2510,7 +2516,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[TransactionAttributeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetTransactionAttributes(          
           
@@ -2594,7 +2600,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[CardAttributeCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetCardAttributesFromProvider(          
           
@@ -2636,7 +2642,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[AccountApplicationCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetAllAccountApplication(          
           
@@ -2699,7 +2705,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ProductCollectionCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetOrCreateProductCollection(          
           
@@ -2720,7 +2726,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ProductCollectionCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetProductCollection(          
           
@@ -2741,7 +2747,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ProductCollectionItemCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetOrCreateProductCollectionItem(          
           
@@ -2762,7 +2768,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[ProductCollectionItemCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetProductCollectionItem(          
           
@@ -2825,7 +2831,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[MeetingCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetMeetings(          
           
@@ -2951,7 +2957,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[KycCheckCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetKycChecks(          
           
@@ -2972,7 +2978,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[KycDocumentCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetKycDocuments(          
           
@@ -2993,7 +2999,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[KycMediaCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetKycMedias(          
           
@@ -3014,7 +3020,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[KycStatusCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetKycStatuses(          
           
@@ -3119,7 +3125,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[RegulatedEntityTraitCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetRegulatedEntities(          
           
@@ -3161,7 +3167,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[BankAccountBalanceTraitCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBankAccountBalancesByAccountId(          
           
@@ -3182,7 +3188,7 @@ class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
             correlationId = outBound.outboundAdapterCallContext.correlationId
           ),
           status = Status("", Nil),
-          data = response
+          data = response.asInstanceOf[List[BankAccountBalanceTraitCommons]]
         )).recoverWith {
           case e: Exception => Future(InBoundGetBankAccountsBalancesByAccountIds(          
           

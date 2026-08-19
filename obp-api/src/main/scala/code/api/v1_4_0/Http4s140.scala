@@ -79,7 +79,7 @@ object Http4s140 {
           for {
             ucls <- Future { UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(user.userId) }
             matchingUcl <- Future {
-              ucls.find(x => CustomerX.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bank.bankId.value)
+              ucls.find(x => CustomerX.customerProvider.vend.getBankIdByCustomerId(x.customerId).exists(_ == bank.bankId.value))
                 .getOrElse(throw new RuntimeException(UserCustomerLinksNotFoundForUser))
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(matchingUcl.customerId, Some(cc))

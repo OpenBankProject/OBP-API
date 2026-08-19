@@ -27,6 +27,10 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
 
   override def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T] = {
     val cacheKey = (bankId.toString+transform.toString()).intern()
+    // Scala 3's Manifest support does not compose Manifest[List[T]] from an in-scope Manifest[T]
+    // the way Scala 2 did implicitly - Manifest.classType is a plain factory method (not implicit
+    // derivation), so it still works to build it explicitly.
+    implicit val listManifest: Manifest[List[T]] = Manifest.classType(classOf[List[_]].asInstanceOf[Class[List[T]]], manifest[T])
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(getDynamicResourceDocTTL.seconds){
       DynamicResourceDoc.findAll(bankId)
         .map(doc => transform(DynamicResourceDoc.getJsonDynamicResourceDoc(doc)))

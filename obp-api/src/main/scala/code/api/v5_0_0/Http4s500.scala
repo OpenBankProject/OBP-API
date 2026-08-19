@@ -15,7 +15,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.newstyle.ViewNewStyle
-import code.api.util.{APIUtil, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
+import code.api.util.{APIUtil, CallContext, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{JSONFactory310, PostConsentBodyCommonJson, PostConsentViewJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
@@ -280,7 +280,7 @@ object Http4s500 {
     val createSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "system-views" =>
         EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           val bodyString = cc.httpBody.getOrElse("")
           for {
             createViewJson <- NewStyle.function.tryons(
@@ -330,7 +330,7 @@ object Http4s500 {
     val getSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           for {
             view <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
           } yield JSONFactory500.createViewJsonV500(view)
@@ -366,7 +366,7 @@ object Http4s500 {
     val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           val bodyString = cc.httpBody.getOrElse("")
           for {
             updateJson <- NewStyle.function.tryons(
@@ -409,7 +409,7 @@ object Http4s500 {
     val deleteSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           for {
             _ <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
             result <- ViewNewStyle.deleteSystemView(ViewId(viewId), Some(cc))

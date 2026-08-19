@@ -826,7 +826,7 @@ object JSONFactory300{
       else
         ""
 
-      BasicViewJson(
+    BasicViewJson(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       is_public = view.isPublic

@@ -14,6 +14,21 @@
   <packaging>jar</packaging>
   <name>Open Bank Project API</name>
 
+  <!-- obp-api compiles under Scala 3; obp-commons stays permanently on 2.13 (see its own pom).
+       Overriding scala.version/scala.compiler here means every ${scala.version}/${scala.compiler}
+       reference inherited from the root pom's dependencyManagement and plugin config resolves to
+       the _3 line for this module specifically - Maven properties resolve per-module, so
+       obp-commons (which does not override them) keeps resolving the same references to 2.13.
+       scala2.version/scala2.compiler name the 2.13 line explicitly, for the handful of
+       dependencies that have no Scala 3 build and must stay on 2.13 regardless of which compiler
+       compiles this module's own sources. -->
+  <properties>
+    <scala.version>3</scala.version>
+    <scala.compiler>3.3.8</scala.compiler>
+    <scala2.version>2.13</scala2.version>
+    <scala2.compiler>2.13.18</scala2.compiler>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>com.tesobe</groupId>
@@ -28,9 +43,14 @@
       <artifactId>logback-classic</artifactId>
       <version>1.5.18</version>
     </dependency>
+    <!-- No Scala 3 build exists (see docs/scala3-lift-mapper-blocker.md) - pinned to the 2.13
+         line explicitly, both artifactId suffix and version, since the root pom's
+         dependencyManagement entry for this coordinate is keyed to ${scala.version} (= 3 here)
+         and would otherwise not match this _2.13 artifactId at all. -->
     <dependency>
       <groupId>com.github.OpenBankProject.lift-persistence</groupId>
-      <artifactId>lift-persistence_${scala.version}</artifactId>
+      <artifactId>lift-persistence_${scala2.version}</artifactId>
+      <version>${lift.version}</version>
     </dependency>
     <dependency>
       <groupId>org.json4s</groupId>
@@ -171,9 +191,11 @@
          original com.sksamuel line stopped publishing past 8.11.5. Package
          names stayed `com.sksamuel.elastic4s.*` so source imports are
          unchanged. -->
+    <!-- No Scala 3 build - pinned to the 2.13 line explicitly (see the lift-persistence
+         comment above for why ${scala.version} alone is not enough here). -->
     <dependency>
       <groupId>nl.gn0s1s</groupId>
-      <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
+      <artifactId>elastic4s-client-esjava_${scala2.version}</artifactId>
       <version>8.19.1</version>
     </dependency>
     <!-- Pin elasticsearch-rest-client to the version elastic4s 8.19.1 expects.
@@ -184,17 +206,22 @@
       <artifactId>elasticsearch-rest-client</artifactId>
       <version>8.19.12</version>
     </dependency>
-    <!-- for LiftConsole -->
+    <!-- DynamicUtil compiles dynamic-endpoint source strings at runtime using this jar as an
+         embedded compiler - a runtime library, not the plugin that compiles this module's own
+         .scala files, so it stays pinned to 2.13 independent of whichever compiler
+         scala-maven-plugin uses for obp-api itself. It compiles 2.13-syntax source strings;
+         letting it follow the module to ${scala.compiler} (3.3.8) would silently start
+         requiring Scala 3 syntax in every dynamic endpoint's source, breaking existing ones. -->
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-compiler</artifactId>
-      <version>${scala.compiler}</version>
+      <version>${scala2.compiler}</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
-      <version>${scala.compiler}</version>
+      <version>${scala2.compiler}</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.pekko/pekko-http-core -->
     <dependency>
@@ -217,14 +244,15 @@
       <artifactId>commons-compress</artifactId>
       <version>1.26.0</version>
     </dependency>
+    <!-- No Scala 3 build for either - pinned to the 2.13 line explicitly. -->
     <dependency>
       <groupId>com.twitter</groupId>
-      <artifactId>chill_${scala.version}</artifactId>
+      <artifactId>chill_${scala2.version}</artifactId>
       <version>0.9.5</version>
     </dependency>
     <dependency>
       <groupId>com.twitter</groupId>
-      <artifactId>chill-bijection_${scala.version}</artifactId>
+      <artifactId>chill-bijection_${scala2.version}</artifactId>
       <version>0.9.5</version>
     </dependency>
     <!-- scalacache (redis + guava) was removed: dead upstream (no Scala 3 release since a
@@ -438,11 +466,12 @@
     </dependency>
     <!-- scala-collection-compat provides scala.jdk.CollectionConverters on Scala 2.12
          (used by code.util.ClassScanUtils). Previously supplied transitively by the
-         JDBC library that was removed during the Doobie migration; declared explicitly now. -->
+         JDBC library that was removed during the Doobie migration; declared explicitly now.
+         2.12.0, not 2.1.2: the _3 line only starts at 2.12.0. -->
     <dependency>
       <groupId>org.scala-lang.modules</groupId>
       <artifactId>scala-collection-compat_${scala.version}</artifactId>
-      <version>2.1.2</version>
+      <version>2.12.0</version>
     </dependency>
 
     <dependency>
@@ -719,21 +748,14 @@
               <arg>-feature</arg>
               <!-- This module declares its own <args>, which replaces rather than extends the
                    parent pom's list - so anything the parent sets and this module needs has to
-                   be repeated here. That is why -Ymacro-annotations is below rather than
-                   inherited. -->
-              <!-- Replaces the paradise compiler plugin; enables macro annotations on 2.13. -->
-              <arg>-Ymacro-annotations</arg>
-              <!-- Scala 3 outpost, same technique the root pom used with -Xsource:2.13 before
-                   the 2.13 flip: report constructs whose meaning changes (or that disappear)
-                   under Scala 3 while still compiling on 2.13. Only this module gets the flag;
-                   obp-commons stays on 2.13 permanently and must not accrue Scala 3 churn. -->
-              <arg>-Xsource:3</arg>
-              <!-- Auto-application (`m` where the method is declared `def m()`) is a hard error
-                   in Scala 3, not a warning, so it is debt that has to be paid before the flip
-                   rather than after it. Raising it here means a new one fails the build on 2.13
-                   instead of surfacing as a compile error in the flip. Scoped to this module for
-                   the same reason -Xsource:3 is. -->
-              <arg>-Wconf:msg=Auto-application:e</arg>
+                   be repeated here. -->
+              <!-- -Ymacro-annotations (paradise-replacement, 2.13-only) and -Xsource:3 (the
+                   Scala 3 preview outpost used while still compiling on 2.13) are both gone:
+                   this module now compiles under an actual Scala 3 compiler, so simulating
+                   Scala 3's rules is no longer this flag's job - it is the compiler's. Same
+                   reasoning removed -Wconf:msg=Auto-application:e - auto-application is already
+                   a hard error under a real Scala 3 compiler, not merely a raised warning. -->
+              <arg>-source:3.3</arg>
             </args>
           </configuration>
         </plugin>

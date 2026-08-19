@@ -128,7 +128,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         user.name,
         callContext
       ) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold - ${nameOf(Connector.connector.vend.getChallengeThreshold _)}", 400), i._2)
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold - getChallengeThreshold", 400), i._2)
       }
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)

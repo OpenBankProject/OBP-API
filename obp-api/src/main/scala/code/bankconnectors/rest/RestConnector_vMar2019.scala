@@ -7124,7 +7124,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       }
 
     val jsonToSend = if(jValue == JNothing) "" else compactRender(jValue)
-    val request = prepareHttpRequest(paramUrl, method, HttpProtocol("HTTP/1.1"), jsonToSend).withHeaders(buildHeaders(paramUrl,jsonToSend,callContext))
+    val request = prepareHttpRequest(paramUrl, method, HttpProtocols.`HTTP/1.1`, jsonToSend).withHeaders(buildHeaders(paramUrl,jsonToSend,callContext))
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
 
@@ -7310,7 +7310,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
         compactRender(builtJson)
       case _ => org.json4s.native.Serialization.write(outBound)
     }
-    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(buildHeaders(url, outBoundJson, callContext))
+    val request = prepareHttpRequest(url, method, HttpProtocols.`HTTP/1.1`, outBoundJson).withHeaders(buildHeaders(url, outBoundJson, callContext))
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
     responseFuture.map {

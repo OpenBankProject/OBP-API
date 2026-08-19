@@ -18,7 +18,10 @@ import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper.Mapper
 import net.liftweb.util.Helpers._
 
-case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
+// Saveable.value is a lazy val (Scala 3 does not allow a strict val to override an abstract
+// lazy val); the constructor param is renamed so it does not clash with the member it feeds.
+case class MappedSaveable[T <: Mapper[_]](valueParam : T) extends Saveable[T] {
+  lazy val value: T = valueParam
   def save() = value.save
 }
 
@@ -78,7 +81,8 @@ case class SaveableProduct(bankId: String, code: String, name: String, category:
 
 // ATM persistence goes through the active AtmsProvider (Doobie): the sandbox import must not
 // write the row with Mapper while every read of it comes back through the provider.
-case class SaveableAtm(value : AtmT) extends Saveable[AtmT] {
+case class SaveableAtm(valueParam : AtmT) extends Saveable[AtmT] {
+  lazy val value: AtmT = valueParam
   def save() = Atms.atmsProvider.vend.createOrUpdateAtm(value)
 }
 
@@ -103,7 +107,8 @@ case class CrmEventCreateParams(
   override def scheduledDate: java.util.Date = new java.util.Date(0L)
   override def result: String = ""
 }
-case class SaveableCrmEvent(value : CrmEventCreateParams) extends Saveable[CrmEventCreateParams] {
+case class SaveableCrmEvent(valueParam : CrmEventCreateParams) extends Saveable[CrmEventCreateParams] {
+  lazy val value: CrmEventCreateParams = valueParam
   def save() = DoobieCrmEventProvider.createEvent(
     bankId = value.bankIdValue,
     crmEventId = value.crmEventIdValue,

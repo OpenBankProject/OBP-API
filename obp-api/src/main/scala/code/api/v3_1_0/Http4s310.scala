@@ -1201,10 +1201,12 @@ object Http4s310 {
             methodRoutings <- NewStyle.function.getMethodRoutingsByMethodName(methodNameParam)
           } yield {
             val definedMethodRoutings = methodRoutings.sortWith(_.methodName < _.methodName)
-            val listCommons: List[code.methodrouting.MethodRoutingCommons] = activeParam match {
+            // MethodRoutingProvider only ever constructs MethodRoutingCommons; the trait typing
+            // here is purely the exposed provider-interface abstraction.
+            val listCommons: List[code.methodrouting.MethodRoutingCommons] = (activeParam match {
               case Some("true") => (definedMethodRoutings ++ getDefaultMethodRoutings).sortWith(_.methodName < _.methodName)
               case _ => definedMethodRoutings
-            }
+            }).asInstanceOf[List[code.methodrouting.MethodRoutingCommons]]
             ListResult("method_routings", listCommons.map(_.toJson))
           }
         }
@@ -1347,7 +1349,7 @@ object Http4s310 {
           } yield {
             val views: List[View] = Views.views.vend.assignedViewsForAccount(
               BankIdAccountId(card.account.bankId, card.account.accountId))
-            val commonsData: List[CardAttributeCommons] = cardAttributes
+            val commonsData: List[CardAttributeCommons] = cardAttributes.asInstanceOf[List[CardAttributeCommons]]
             createPhysicalCardWithAttributesJson(card, commonsData, user, views)
           }
         }
@@ -1837,7 +1839,7 @@ object Http4s310 {
               } else implicitWebUiProps.distinct
             } else List.empty[WebUiPropsCommons]
           } yield {
-            val listCommons: List[WebUiPropsCommons] = explicitWebUiProps ++ implicitWebUiPropsRemovedDuplicated
+            val listCommons: List[WebUiPropsCommons] = (explicitWebUiProps ++ implicitWebUiPropsRemovedDuplicated).asInstanceOf[List[WebUiPropsCommons]]
             ListResult("webui_props", listCommons)
           }
         }

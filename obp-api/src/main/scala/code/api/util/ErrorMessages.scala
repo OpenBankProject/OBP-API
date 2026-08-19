@@ -1154,9 +1154,13 @@ object ErrorMessages {
     import scala.meta._
     val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
-    val listOfMessaegeNumbers = source.collect {
+    // scalameta 4.13.6 (_3) moved Tree#collect from a plain method to the standalone
+    // scala.meta.contrib.TreeOps.collect function - the extension available via
+    // scala.meta.contrib._ only provides collectFirst/descendants/ancestors, not collect.
+    import scala.meta.contrib.TreeOps
+    val listOfMessaegeNumbers = TreeOps.collect(source) {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
-        obj.collect {
+        TreeOps.collect(obj) {
           case v: Defn.Val if v.rhs.syntax.startsWith(""""OBP-""") =>
             val messageNumber = v.rhs.syntax.split(":")
             messageNumber(0)

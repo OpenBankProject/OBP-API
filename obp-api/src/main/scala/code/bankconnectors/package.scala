@@ -455,16 +455,22 @@ package object bankconnectors extends MdcLoggable {
 
   }
 
-  private def validate[T: Manifest](originValue: AnyRef,
+  // Neither method ever used its T - a call-site type argument was never supplied anywhere in the
+  // codebase, so it was always inferred, and with nothing in either signature constraining it,
+  // inference had nothing to pin it to. Scala 2 quietly resolved that to Nothing and moved on;
+  // Scala 3 refuses to synthesise a Manifest[Nothing] for an unconstrained inference and hard
+  // errors instead. Dropping the dead parameter removes the inference rather than fixing what it
+  // resolved to.
+  private def validate(originValue: AnyRef,
                                          validateType: Type,
                                          any: Any,
                                          apiVersion: ApiVersion,
                                          cc: Option[CallContext] = None,
                                          resultIsBox: Boolean = true): AnyRef =
-    validateMultiple[T](originValue, apiVersion, cc, resultIsBox)(any -> validateType)
+    validateMultiple(originValue, apiVersion, cc, resultIsBox)(any -> validateType)
 
 
-  private def validateMultiple[T: Manifest](originValue: AnyRef,
+  private def validateMultiple(originValue: AnyRef,
                                          apiVersion: ApiVersion,
                                          cc: Option[CallContext] = None,
                                          resultIsBox: Boolean = true)(valueAndType: (Any, Type)*): AnyRef = {

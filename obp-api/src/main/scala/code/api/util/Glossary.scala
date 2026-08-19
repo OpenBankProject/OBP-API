@@ -34,7 +34,7 @@ object Glossary extends MdcLoggable  {
                  |
                  |<br></br>
                  |""".stripMargin
-                case None => "glossary-item-not-found"
+            case None => "glossary-item-not-found"
         }
         //logger.debug(s"getGlossaryItem says the text to return is $something")
         something
@@ -5050,7 +5050,7 @@ object Glossary extends MdcLoggable  {
       case "file" =>
         val glossaryPath = new File(URLDecoder.decode(resourceUrl.getPath, StandardCharsets.UTF_8.name()))
         if (glossaryPath.exists && glossaryPath.isDirectory) {
-          Option(glossaryPath.listFiles()).getOrElse(Array.empty)
+          Option(glossaryPath.listFiles()).getOrElse(Array.empty[File])
             .filter(f => f.isFile && f.getName.endsWith(".md"))
             .map { f =>
               val src = scala.io.Source.fromFile(f)

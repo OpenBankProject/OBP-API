@@ -36,7 +36,12 @@ object OBPDataImport extends SimpleInjector {
 }
 
 trait Saveable[T] {
-  val value : T
+  // lazy: Scala 3 does not allow a lazy val to override an abstract strict val (even directly,
+  // not just through trait linearization), and SaveableBranch/SaveableProduct/SaveableBank/
+  // SaveableTransaction/SaveableBankAccount all implement this member with `lazy val value = ...`.
+  // A strict val (case-class constructor params, as MappedSaveable/SaveableAtm/SaveableCrmEvent
+  // use) still satisfies an abstract lazy val, so this widens the contract without breaking them.
+  lazy val value : T
   def save() : Unit
 }
 

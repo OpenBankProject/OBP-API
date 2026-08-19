@@ -94,7 +94,11 @@ object ErrorResponseConverter {
    */
   def toHttp4sResponse(error: Throwable, callContext: CallContext): IO[Response[IO]] = {
     error match {
-      case e: APIFailureNewStyle => apiFailureToResponse(e, callContext)
+      // APIFailureNewStyle is a plain case class (not a Throwable subtype) - callers never throw
+      // it directly, they throw new Exception(<its JSON encoding>) (see
+      // APIUtil.fullBoxOrException), which the case _ branch below recovers via
+      // tryExtractApiFailureFromExceptionMessage. This case could never match; Scala 3's stricter
+      // reachability checking (unlike Scala 2's) treats that as a hard error rather than a warning.
       case JsonResponseException(jsonResponse) =>
         // Force-Error / JSON-schema validation (APIUtil.afterAuthenticateInterceptResult, applied
         // inside the auth/session-context chain) and dynamic-resource-doc permission errors

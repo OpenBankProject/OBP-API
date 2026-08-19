@@ -152,7 +152,7 @@ object fx extends MdcLoggable {
   
 
   def main (args: Array[String]): Unit = {
-    org.scalameta.logger.elem(exchangeRate("USD", "EUR", None, None))
+    logger.debug(s"exchangeRate(USD, EUR, None, None) = ${exchangeRate("USD", "EUR", None, None)}")
   }
 
 }

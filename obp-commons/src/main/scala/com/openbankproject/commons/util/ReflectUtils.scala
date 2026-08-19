@@ -96,8 +96,10 @@ object ReflectUtils {
    * @tparam T field type
    * @return
    */
-  def getFieldsNameToValue[T: TypeTag](obj: AnyRef): Map[String, T] = {
-    val tpe = typeTag[T].tpe
+  // Callers pass T's Type explicitly rather than via a TypeTag context bound: T is frequently an
+  // obp-api type (e.g. ApiRole, ResourceDocTag), and typeTag[T] needs the Scala 2 compiler's
+  // TypeTag synthesis at the call site, which Scala 3 does not implement.
+  def getFieldsNameToValue[T](obj: AnyRef, tpe: ru.Type): Map[String, T] = {
     getFieldValues(obj){it =>
     if(it.isMethod) {
         it.asMethod.returnType <:< tpe
@@ -699,8 +701,6 @@ object ReflectUtils {
     mirrorClass.reflectConstructor(constructor).apply(seq :_*).asInstanceOf[T]
   }
 
-  def toOther[T: TypeTag](t: Any): T = toOther[T](t, typeTag[T].tpe)
-
   def toOther[T](t: Any, typeName: String): T = {
     val tp: ru.Type = mirror.staticClass(typeName).toType
     toOther[T](t, tp)
@@ -759,30 +759,6 @@ object ReflectUtils {
     }
   }
 
-
-  /**
-    * convert a group of object to it's siblings
-    * @param items will do convert
-    * @tparam T expected type
-    * @return expected values
-    */
-  def toOthers[T: TypeTag](items: List[_]): List[T] = items.map(toOther[T](_))
-
-  // the follow four currying function is for implicit usage, to convert trait type to commons case class
-  // `D <% T` was view-bound syntax; it desugars to exactly the implicit parameter written out here.
-  def toSibling[T, D: TypeTag](implicit ev: D => T): T => D = (t: T) => toOther[D](t)
-
-
-  def toSiblings[T, D: TypeTag](implicit ev: D => T): List[T] => List[D] = (items: List[T]) => toOthers[D](items)
-
-
-  def toSiblingBox[T, D: TypeTag](implicit ev: D => T): Box[T] => Box[D] = (box: Box[T]) => box.map(toOther[D](_))
-
-  def toSiblingsBox[T, D: TypeTag](implicit ev: D => T): Box[List[T]] => Box[List[D]] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
-
-  def toSiblingOption[T, D: TypeTag](implicit ev: D => T): Option[T] => Option[D] = (option: Option[T]) => option.map(toOther[D](_))
-
-  def toSiblingsOption[T, D: TypeTag](implicit ev: D => T): Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
 
   /**
    * get the value by the field name, see the usage :

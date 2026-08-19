@@ -88,7 +88,7 @@ trait EthereumConnector_vSept2025 extends Connector with MdcLoggable {
     }
 
     for {
-      request <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to build HTTP request", 500, callContext) {prepareHttpRequest(rpcUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocol("HTTP/1.1"), payload)
+      request <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to build HTTP request", 500, callContext) {prepareHttpRequest(rpcUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocols.`HTTP/1.1`, payload)
       }
 
       response <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to call Ethereum RPC", 500, callContext) {

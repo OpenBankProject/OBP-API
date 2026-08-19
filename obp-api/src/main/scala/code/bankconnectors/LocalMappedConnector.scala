@@ -2133,20 +2133,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       doubleEntryTransaction.creditTransactionBankId.value,
       doubleEntryTransaction.creditTransactionAccountId.value,
       doubleEntryTransaction.creditTransactionId.value))
-  ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+  ).map(doubleEntryTransaction => (DoubleEntryTransaction.toCommonsBox(doubleEntryTransaction), callContext))
   }
 
   override def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId,
                                               callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
     Future(
       DoubleEntryBookTransaction.findByLeg(bankId.value, accountId.value, transactionId.value)
-    ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+    ).map(doubleEntryTransaction => (DoubleEntryTransaction.toCommonsBox(doubleEntryTransaction), callContext))
   }
   override def getBalancingTransaction(transactionId: TransactionId,
                                        callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
     Future(
       DoubleEntryBookTransaction.findByTransactionId(transactionId.value)
-    ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+    ).map(doubleEntryTransaction => (DoubleEntryTransaction.toCommonsBox(doubleEntryTransaction), callContext))
   }
 
   override def makePaymentV400(transactionRequest: TransactionRequest,
@@ -4011,7 +4011,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                              bankId: String,
                                              callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] =
     ProductCollectionItems.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map { it =>
-      val data: Box[List[ProductCollectionItemsTree]] = it.map(boxValue => boxValue.map(it => ProductCollectionItemsTree(it._1, it._2, it._3)))
+      val data: Box[List[ProductCollectionItemsTree]] = it.map(boxValue => boxValue.map(it => ProductCollectionItemsTree(it._1, it._2, it._3.asInstanceOf[List[ProductAttributeCommons]])))
       (data, callContext)
     }
 

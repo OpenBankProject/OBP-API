@@ -248,10 +248,11 @@ object Helper extends Loggable {
     }
 
     var candidatePort = -1
-    do {
+    var found = false
+    while (!found) {
       candidatePort = findRandomPort()
+      found = isPortAvailable(candidatePort)
     }
-    while (!isPortAvailable(candidatePort))
     candidatePort
   }
 

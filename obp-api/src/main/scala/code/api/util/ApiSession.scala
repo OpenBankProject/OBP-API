@@ -15,7 +15,7 @@ import code.util.Helper.MdcLoggable
 import code.util.SecureLogging
 import code.views.Views
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
+import com.openbankproject.commons.util.{EnumValue, OBPEnumerationWithType, ReflectUtils}
 import net.liftweb.common.{Box, Empty}
 import org.json4s.JsonAST.JValue
 import net.liftweb.util.Helpers
@@ -250,7 +250,7 @@ case class CallContext(
 }
 
 sealed trait AuthenticationType extends EnumValue
-object AuthenticationType extends OBPEnumeration[AuthenticationType]{
+object AuthenticationType extends OBPEnumerationWithType[AuthenticationType](ReflectUtils.forType("code.api.util.AuthenticationType")){
   object DirectLogin extends AuthenticationType
   object GatewayLogin extends AuthenticationType
   object DAuth extends AuthenticationType
