@@ -707,16 +707,22 @@ object ReflectUtils {
     val paramNames = constructor.paramLists(0).map(_.name.toString)
     val mirrorObj = mirror.reflect(t)
     val info = mirrorObj.symbol.info
-    val methodSymbols = paramNames.map(name => {
+    // A same-named source member that isn't a call-by-name method is usually a plain val/var
+    // (case class constructor params reflect that way), not the mismatched "attributes" field
+    // the previous code always fell back to for any non-method symbol - that fallback threw
+    // ScalaReflectionException: <none> is not a method as soon as a source field it was pointed
+    // at was a val rather than a def. Kept as the last resort, for whatever original case (some
+    // dynamic/attribute-bag source shape) actually needed it.
+    val seq = paramNames.map(name => {
       val nameSymbol = info.decl(ru.TermName(name))
-      if(nameSymbol.isMethod) {
-        nameSymbol.asMethod
+      if (nameSymbol.isMethod) {
+        mirrorObj.reflectMethod(nameSymbol.asMethod)()
+      } else if (nameSymbol.isTerm && (nameSymbol.asTerm.isVal || nameSymbol.asTerm.isVar)) {
+        mirrorObj.reflectField(nameSymbol.asTerm).get
       } else {
-        info.member(ru.TermName("attributes")).asMethod
+        mirrorObj.reflectMethod(info.member(ru.TermName("attributes")).asMethod)()
       }
     })
-    val methodMirrors: Seq[ru.MethodMirror] = methodSymbols.map(mirrorObj.reflectMethod(_))
-    val seq = methodMirrors.map(_())
 
     mirrorClass.reflectConstructor(constructor).apply(seq :_*).asInstanceOf[T]
   }
