@@ -16,15 +16,21 @@ import org.scalatest.matchers.should.Matchers
 class ConnectorTest extends V510ServerSetup {
   object ConnectorTestTag extends Tag(NameOf.nameOfType[ConnectorTest])
 
-  private val connectorType = universe.typeOf[Connector]
+  // Connector/CallContext/OBPQueryParam are obp-api's own types, so unlike stdlib types, their
+  // Type can't be precomputed by the 2.13-compiled obp-commons module - built at runtime
+  // instead via ReflectUtils.forType (+ appliedType for the parameterized ones), same
+  // technique as ConnectorUtils.scala/ConnectorEndpoints.scala.
+  private val connectorType = ReflectUtils.forType("code.bankconnectors.Connector")
 
   object WrongOutBoundType {
     private def getType(connectorMethod: universe.Symbol): Option[universe.Type] =
       ReflectUtils.forTypeOption(s"com.openbankproject.commons.dto.OutBound${connectorMethod.name.decodedName.toString.capitalize}")
 
-    private val ccType = universe.typeOf[Option[CallContext]]
-    private val outBoundAdapterCcType = universe.typeOf[OutboundAdapterCallContext]
-    private val queryParamsType = universe.typeOf[List[OBPQueryParam]]
+    private val ccType =
+      universe.appliedType(ReflectUtils.forType("scala.Option").typeConstructor, ReflectUtils.forType("code.api.util.CallContext"))
+    private val outBoundAdapterCcType = ReflectUtils.forType("com.openbankproject.commons.model.OutboundAdapterCallContext")
+    private val queryParamsType =
+      universe.appliedType(ReflectUtils.forType("scala.collection.immutable.List").typeConstructor, ReflectUtils.forType("code.api.util.OBPQueryParam"))
 
     def unapply(methodSymbol: universe.MethodSymbol): Option[universe.Type] = getType(methodSymbol) match {
       case None => None
@@ -38,7 +44,7 @@ class ConnectorTest extends V510ServerSetup {
         }
         if(connectorMethodParamNameToType.exists(_._2 =:= queryParamsType)) {
           connectorMethodParamNameToType = connectorMethodParamNameToType.filterNot(_._2 =:= queryParamsType) ++
-            List("limit" -> universe.typeOf[Int], "offset" -> universe.typeOf[Int], "fromDate" -> universe.typeOf[String] , "toDate" -> universe.typeOf[String])
+            List("limit" -> ReflectUtils.forType("scala.Int"), "offset" -> ReflectUtils.forType("scala.Int"), "fromDate" -> ReflectUtils.forType("java.lang.String") , "toDate" -> ReflectUtils.forType("java.lang.String"))
         }
 
         val Some(outBoundConstructor:universe.MethodSymbol) = outBoundType.decls.find(_.isConstructor)

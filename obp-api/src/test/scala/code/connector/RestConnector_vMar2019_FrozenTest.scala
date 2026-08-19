@@ -96,7 +96,10 @@ object RestConnector_vMar2019_FrozenUtil {
   val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
   val persistFilePath = new URI(s"${basePath}/src/test/scala/code/connector/RestConnector_vMar2019_frozen_meta_data").getPath
 
-  val connectorMethodNames: List[String] = typeOf[RestConnector_vMar2019].decls
+  // RestConnector_vMar2019 is obp-api's own type, so its Type can't be precomputed by the
+  // 2.13-compiled obp-commons module - built at runtime via ReflectUtils.forType instead, same
+  // technique as Connector.scala/InternalConnector.scala.
+  val connectorMethodNames: List[String] = ReflectUtils.forType("code.bankconnectors.rest.RestConnector_vMar2019").decls
     .filter(_.isMethod)
     .map(_.asMethod)
     .filter(_.overrides.nonEmpty)
