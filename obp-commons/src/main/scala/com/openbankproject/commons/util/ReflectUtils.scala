@@ -76,12 +76,23 @@ object ReflectUtils {
       .withFilter(_.isTerm)
       .map(_.asTerm)
       .withFilter(!_.isImplicit)
-      .withFilter(it => it.isLazy || it.isVal || it.isVar)
+      // isLazy/isVal/isVar answer from Scala's own declaration metadata (ScalaSig for Scala 2,
+      // TASTy for Scala 3). scala.reflect.runtime.universe - the Scala 2.13 reflection library
+      // obp-commons is pinned to - has no TASTy reader, so all three come back false for every
+      // member of a Scala-3-compiled class; only the bytecode-level shape (a zero-arg method with
+      // a return type) survives. The extra clause recovers that shape. It also matches a case
+      // class's synthetic zero-arg methods (toString, hashCode, productArity, ...), so this
+      // function is only safe on a target whose zero-arg methods are all real fields - true for
+      // the plain objects getFieldsNameToValue scans (ApiRole/ApiTag/ExampleValue), not for an
+      // arbitrary case-class instance (see JSONFactory1_4_0.scala, which reads those via
+      // scala.Product instead).
+      .withFilter(it => it.isLazy || it.isVal || it.isVar ||
+        (it.isMethod && !it.asMethod.isConstructor && it.asMethod.paramLists.forall(_.isEmpty)))
       .withFilter(predicate)
       .map(it => {
         val fieldName = it.name.decodedName.toString.trim
-        if(it.isLazy) {
-          // get lazy value
+        if(it.isLazy || (it.isMethod && !it.isVal && !it.isVar)) {
+          // get lazy value, or invoke the zero-arg-method-shaped accessor recovered above
           fieldName -> instanceMirror.reflectMethod(it.asMethod)()
         } else {
           fieldName -> instanceMirror.reflectField(it).get

@@ -836,6 +836,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
       // not reflected over for the same reason a List is not: what reflection yields is the
       // collection's own machinery, not API fields.
       case _: Iterable[_] => Map.empty
+      // A case class is read through scala.Product rather than through ReflectUtils: Product's
+      // productElementNames/productIterator are plain method calls, unaffected by which Scala
+      // version compiled the class. ReflectUtils reflects via scala.reflect.runtime.universe,
+      // whose isVal/isVar/isLazy checks come back false for every member of a Scala-3-compiled
+      // class (that reflection library has no TASTy support), and widening it to accept any
+      // zero-arg method instead would also sweep in a case class's own synthetic zero-arg
+      // methods (toString, hashCode, productArity, productPrefix, ...) as bogus schema fields.
+      case p: scala.Product => p.productElementNames.zip(p.productIterator).toMap
       case _ => ReflectUtils.getFieldValues(extractedEntity.asInstanceOf[AnyRef])()
     }
 
