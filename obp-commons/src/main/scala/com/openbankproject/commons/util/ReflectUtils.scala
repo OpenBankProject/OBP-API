@@ -413,19 +413,28 @@ object ReflectUtils {
     val tp = objMirror.symbol.toType
     methodNames
       .map(methodName => tp.member(ru.TermName(methodName)))
-      .map { methodSymbol=>
-          assume(methodSymbol.isMethod, s"${methodSymbol.name} is not method in Object ${obj}")
-          val method = methodSymbol.asMethod
+      .map { symbol =>
+        // The docstring always promised "call by name methods OR val values", but the code only
+        // ever handled the method shape - the Lift Mapper entities this was written for exposed
+        // every column as a call-by-name accessor def. Post-Mapper-to-Doobie migration, an entity
+        // like MappedBankAccount is a plain case class, so its fields (e.g. accountPrimaryKey)
+        // are ordinary constructor vals: isMethod is correctly false for them (confirmed via an
+        // isolated diagnostic, not a Scala-3-reflection gap like the isVal/isVar/isLazy ones
+        // elsewhere in this file), and the old method-only assumption threw on every one of them.
+        if (symbol.isMethod) {
+          val method = symbol.asMethod
           val callByNameMethod = method.alternatives.find(it => it.asMethod.paramLists == Nil).map(_.asMethod)
-          assume(callByNameMethod.isDefined, s"there is no call by name method or val of name ${methodSymbol.name} in Object ${obj}")
-
-          callByNameMethod.get
+          assume(callByNameMethod.isDefined, s"there is no call by name method or val of name ${symbol.name} in Object ${obj}")
+          val resolved = callByNameMethod.get
+          resolved.name.toString -> objMirror.reflectMethod(resolved).apply()
+        } else if (symbol.isTerm && (symbol.asTerm.isVal || symbol.asTerm.isVar)) {
+          symbol.name.toString.trim -> objMirror.reflectField(symbol.asTerm).get
+        } else {
+          assume(false, s"${symbol.name} is not a call by name method or val in Object ${obj}")
+          throw new IllegalStateException("unreachable: assume(false, ...) always throws")
         }
-      .map {method =>
-        val paramName = method.name.toString
-        val paramValue =objMirror.reflectMethod(method).apply()
-        (paramName, paramValue)
-      } .toMap
+      }
+      .toMap
   }
 
   /**
