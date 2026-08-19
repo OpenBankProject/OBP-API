@@ -411,8 +411,6 @@
       <artifactId>doobie-hikari_${scala.version}</artifactId>
       <version>1.0.0-RC4</version>
     </dependency>
-    <!-- Schema authority for tables whose Lift entity has been removed. Coexists with
-         Schemifier during the Mapper -> Doobie migration, gated by flyway.enabled. -->
     <!-- Liquibase owns the schema. It replaced Flyway because it generates each vendor's DDL from
          one changelog, which is what OBP needs: the bank's data source decides the database, and
          Flyway's model is one hand-written SQL set per vendor - it had h2 and postgres, and
