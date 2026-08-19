@@ -40,7 +40,6 @@ import code.loginattempts.LoginAttempt
 import code.model.ModeratedBankAccountCore
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.UserAgreement
-import net.liftweb.mapper.By
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{
   AmountOfMoneyJsonV121,

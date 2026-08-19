@@ -17,7 +17,6 @@ import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
 import org.json4s.jvalue2monadic

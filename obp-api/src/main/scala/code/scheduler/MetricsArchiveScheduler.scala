@@ -8,7 +8,6 @@ import code.api.util.APIUtil.generateUUID
 import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun, MetricsArchiveRunTrait, MetricsProps}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{Ascending, By, By_<=, By_>=, MaxRows, OrderBy}
 
 import scala.concurrent.duration._
 

@@ -12,7 +12,6 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers
 
 import scala.collection.immutable

@@ -6,7 +6,6 @@ import code.transactionChallenge.MappedChallengeProvider
 import com.openbankproject.commons.model.enums.AccountAccessRequestStatus
 import com.openbankproject.commons.model.ProductCode
 import net.liftweb.common.{Failure, Full}
-import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.UUID

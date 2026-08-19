@@ -39,7 +39,6 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
 import net.liftweb.common.{Empty, Full}
 import org.json4s.JsonDSL._
-import net.liftweb.mapper.MetaMapper
 import org.scalatest._
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.should.Matchers

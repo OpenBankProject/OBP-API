@@ -6,7 +6,6 @@ import code.context.MappedUserAuthContextUpdateProvider
 import doobie.implicits._
 import doobie.implicits.javasql._
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.{Date, UUID}

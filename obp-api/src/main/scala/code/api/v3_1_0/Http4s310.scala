@@ -48,7 +48,6 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Full}
 import org.json4s.Formats
-import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props}
 import org.apache.commons.lang3.StringUtils
 

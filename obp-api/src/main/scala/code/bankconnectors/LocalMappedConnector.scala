@@ -77,7 +77,6 @@ import com.twilio.rest.api.v2010.account.Message
 import net.liftweb.common._
 import com.openbankproject.commons.util.json
 import org.json4s.{JArray, JBool, JObject, JValue}
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import org.mindrot.jbcrypt.BCrypt

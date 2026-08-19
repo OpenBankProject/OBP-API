@@ -7,7 +7,6 @@ import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, Us
 import doobie._
 import doobie.implicits._
 import net.liftweb.common._
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
 /**

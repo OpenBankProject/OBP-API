@@ -17,7 +17,6 @@ import deletion.DeletionUtil.databaseAtomicTask
 import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object DeleteCustomerCascade {

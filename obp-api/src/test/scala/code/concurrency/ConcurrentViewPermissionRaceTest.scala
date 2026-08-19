@@ -30,7 +30,6 @@ import code.api.Constant.ALL_CONSUMERS
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import com.openbankproject.commons.model.{AccountId, BankId, ViewId}
-import net.liftweb.mapper.By
 
 import java.util.UUID
 

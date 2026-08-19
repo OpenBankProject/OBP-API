@@ -11,7 +11,6 @@ import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.List

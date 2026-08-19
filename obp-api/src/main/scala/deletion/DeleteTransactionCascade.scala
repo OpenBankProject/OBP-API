@@ -13,7 +13,6 @@ import code.transactionattribute.DoobieTransactionAttributeProvider
 import code.transactionrequests.MappedTransactionRequestProvider
 import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}

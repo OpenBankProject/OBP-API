@@ -41,7 +41,6 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common._
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Helpers
 import org.apache.commons.lang3.StringUtils

@@ -10,7 +10,6 @@ import code.setup.{DefaultUsers, PropsReset, ServerSetup}
 import code.views.MapperViews
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.InboundAccountCommons
-import net.liftweb.mapper.By
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

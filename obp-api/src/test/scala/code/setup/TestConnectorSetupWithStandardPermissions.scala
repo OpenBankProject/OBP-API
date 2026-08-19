@@ -12,7 +12,6 @@ import code.views.system.{ViewDefinition, ViewPermission}
 import code.views.{MapperViews, Views}
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Failure, Full, ParamFailure}
-import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
 import code.api.util.DoobieUtil
 import doobie.implicits._

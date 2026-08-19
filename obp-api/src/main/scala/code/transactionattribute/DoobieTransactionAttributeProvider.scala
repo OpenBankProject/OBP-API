@@ -9,7 +9,6 @@ import doobie._
 import doobie.Fragments
 import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future

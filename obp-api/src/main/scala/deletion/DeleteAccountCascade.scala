@@ -16,7 +16,6 @@ import deletion.DeletionUtil.databaseAtomicTask
 import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
-import net.liftweb.mapper.{By, ByList}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import scala.collection.immutable.List

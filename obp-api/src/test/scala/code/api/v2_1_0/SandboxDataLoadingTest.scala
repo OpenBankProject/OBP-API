@@ -64,7 +64,6 @@ import org.json4s.native.Serialization.write
 import org.json4s.{JField, _}
 import org.json4s.jvalue2monadic
 import com.openbankproject.commons.util.JsonAliases._
-import net.liftweb.mapper.{By, MetaMapper}
 import org.scalatest.BeforeAndAfterEach
 import code.model._
 import code.model.dataAccess._

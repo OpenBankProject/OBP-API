@@ -8,7 +8,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import doobie._
 import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future

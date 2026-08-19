@@ -12,7 +12,6 @@ import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import net.liftweb.common._
-import net.liftweb.mapper._
 import net.liftweb.util.StringHelpers
 
 import scala.concurrent.Future

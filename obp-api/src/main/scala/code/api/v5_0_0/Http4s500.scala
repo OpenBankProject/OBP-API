@@ -52,7 +52,6 @@ import com.openbankproject.commons.util.json
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
 import com.openbankproject.commons.util.JsonAliases.compactRender
-import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 import org.http4s.{HttpRoutes, MediaType, Method, Request, Response, Status, Uri}
 import org.http4s.dsl.io._

@@ -87,7 +87,6 @@ import org.json4s.JsonAST.{JField, JNothing, JObject, JString, JValue}
 import org.json4s.ParserUtil.ParseException
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import org.apache.commons.io.IOUtils

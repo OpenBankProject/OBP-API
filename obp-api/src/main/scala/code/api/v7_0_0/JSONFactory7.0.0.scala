@@ -15,7 +15,6 @@ import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRo
 import com.openbankproject.commons.util.ApiVersion
 import java.util.Date
 import net.liftweb.common.Full
-import net.liftweb.mapper.{Ascending, By, By_<=, Descending, MaxRows, OrderBy}
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -7,7 +7,6 @@ import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.setup.{ServerSetup, TestPasswordConfig}
 import code.users.Users
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.{BeforeAndAfter, GivenWhenThen}
 import org.scalatest.featurespec.AnyFeatureSpec

@@ -16,7 +16,6 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import  com.openbankproject.commons.model.enums._
 import net.liftweb.common.Box
-import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._
 import org.iban4j
 

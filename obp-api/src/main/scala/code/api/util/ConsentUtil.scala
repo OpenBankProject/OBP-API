@@ -37,7 +37,6 @@ import net.liftweb.common._
 import org.json4s.ParserUtil.ParseException
 import org.json4s.{Extraction, MappingException}
 import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
-import net.liftweb.mapper.By
 import net.liftweb.util.Props
 
 import java.text.SimpleDateFormat

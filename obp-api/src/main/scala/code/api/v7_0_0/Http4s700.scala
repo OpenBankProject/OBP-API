@@ -50,7 +50,6 @@ import code.users.UserAgreementProvider
 import net.liftweb.common.Full
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
-import net.liftweb.mapper.{By, ByList, Descending, MaxRows, OrderBy}
 import org.http4s._
 import org.http4s.dsl.io._
 import org.typelevel.ci.CIString

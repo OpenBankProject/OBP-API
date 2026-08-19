@@ -37,7 +37,6 @@ import org.json4s.JsonAST.JValue
 import org.json4s.native.Serialization.write
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.StringHelpers
 

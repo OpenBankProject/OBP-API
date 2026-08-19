@@ -30,7 +30,6 @@ import code.entitlement.MappedEntitlement
 import code.model.dataAccess.MappedBankAccount
 import code.setup.{APIResponse, DefaultUsers, OBPReq, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{AccountId, BankId}
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 import java.util.concurrent.{CyclicBarrier, Executors, TimeUnit}

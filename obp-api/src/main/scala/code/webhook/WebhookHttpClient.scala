@@ -6,7 +6,6 @@ import code.api.util.{ApiTrigger, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import code.webhook.WebhookActor.{AccountNotificationWebhookRequest, WebhookRequest, WebhookRequestTrait}
 import org.json4s.Extraction
-import net.liftweb.mapper.By
 import okhttp3.{MediaType, Request, RequestBody}
 import code.webhook.OkHttpWebhookClient._
 

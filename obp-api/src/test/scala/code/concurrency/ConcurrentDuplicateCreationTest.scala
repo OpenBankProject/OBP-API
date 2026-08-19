@@ -41,7 +41,6 @@ import code.usercustomerlinks.DoobieUserCustomerLinkProvider
 import com.openbankproject.commons.model.{AccountId, BankIdAccountId}
 import doobie.implicits._
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 
 import java.util.{Date, UUID}
 import scala.util.Failure

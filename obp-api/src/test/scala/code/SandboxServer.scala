@@ -16,7 +16,6 @@ import code.token.Tokens
 import code.users.Users
 import com.comcast.ip4s._
 import net.liftweb.common.{Empty, Failure, Full, Logger}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.http4s.ember.server.EmberServerBuilder
