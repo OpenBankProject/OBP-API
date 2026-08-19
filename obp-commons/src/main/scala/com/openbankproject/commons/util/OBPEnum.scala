@@ -101,7 +101,7 @@ abstract class OBPEnumeration[T <: EnumValue: ru.TypeTag] extends OBPEnumeration
 abstract class OBPEnumerationWithType[T <: EnumValue](tpe: ru.Type) extends OBPEnumerationBase[T](tpe)
 
 object OBPEnumeration {
-  private def getEnumContainer(tp: Type): OBPEnumeration[_] = {
+  private def getEnumContainer(tp: Type): OBPEnumerationBase[_] = {
     require(tp <:< typeOf[EnumValue], s"parameter must be sub-type of ${typeOf[EnumValue]}")
     val mirror = ru.runtimeMirror(this.getClass.getClassLoader)
     getEnumContainer(mirror.runtimeClass(tp).asInstanceOf[Class[EnumValue]])
@@ -115,10 +115,17 @@ object OBPEnumeration {
   // NoSuchElementException. This function doesn't actually need any subclass, only the companion
   // itself - and a companion object's binary name is always "<trait's binary name>$", regardless
   // of which Scala version compiled it (same technique OBPEnumerationBase.modules uses).
-  private def getEnumContainer[T <: EnumValue](clazz: Class[T]): OBPEnumeration[T] = {
+  //
+  // Returns OBPEnumerationBase[T], not OBPEnumeration[T]: OBPEnumerationWithType[T] (obp-api's
+  // AuthenticationType, Scala 3) is a sibling of OBPEnumeration[T], not a subtype of it - both
+  // just extend OBPEnumerationBase - so a hardcoded OBPEnumeration[T] return type here made the
+  // final .asInstanceOf throw ClassCastException for AuthenticationType specifically. Every
+  // caller below only ever uses values/withNameOption/withIndexOption/example, all declared on
+  // the shared base, so nothing downstream needed the narrower type in the first place.
+  private def getEnumContainer[T <: EnumValue](clazz: Class[T]): OBPEnumerationBase[T] = {
     require(clazz != classOf[EnumValue], s"parameter must be sub-class of ${classOf[EnumValue]}")
     val companionClass = Class.forName(clazz.getName + "$", false, clazz.getClassLoader)
-    companionClass.getField("MODULE$").get(null).asInstanceOf[OBPEnumeration[T]]
+    companionClass.getField("MODULE$").get(null).asInstanceOf[OBPEnumerationBase[T]]
   }
 
   def getValuesByType(tp: Type): List[EnumValue] = getEnumContainer(tp).values.map(_.asInstanceOf[EnumValue])

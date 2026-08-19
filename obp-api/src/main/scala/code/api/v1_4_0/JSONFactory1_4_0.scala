@@ -844,7 +844,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
       // zero-arg method instead would also sweep in a case class's own synthetic zero-arg
       // methods (toString, hashCode, productArity, productPrefix, ...) as bogus schema fields.
       case p: scala.Product => p.productElementNames.zip(p.productIterator).toMap
-      case _ => ReflectUtils.getFieldValues(extractedEntity.asInstanceOf[AnyRef])()
+      // Only reflect over the entity when it's genuinely one of our own types: this branch is
+      // unfiltered (predicate = _ => true), and letting it reflect over an arbitrary non-OBP
+      // AnyRef found java.lang.Object.notify() (IllegalMonitorStateException outside a
+      // synchronized block), scala.Any.asInstanceOf (reflectMethod refuses to invoke a generic
+      // method), and a java.util.stream.ReferencePipeline's own zero-arg methods - none of which
+      // are ever schema-relevant fields. A JDK type has no business here in the first place.
+      case entity: AnyRef if ReflectUtils.isObpObject(entity) => ReflectUtils.getFieldValues(entity)()
+      case _ => Map.empty
     }
 
     val convertParamName = (name: String) =>  extractedEntity match {
