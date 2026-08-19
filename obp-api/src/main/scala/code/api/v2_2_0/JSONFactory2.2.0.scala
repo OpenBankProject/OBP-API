@@ -647,7 +647,10 @@ object JSONFactory220 {
 
   def createConsumerJSON(c: Consumer): ConsumerJson = {
 
-    val resourceUserJSON =  Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+    // consumer.createdbyuserid is nullable and reads back as null, as MappedString did. This
+    // used to call .toString() on the Mapper FIELD, whose toString maps null to "" - now it
+    // is a raw String, so the same call threw. "" reproduces the old lookup, which found none.
+    val resourceUserJSON =  Users.users.vend.getUserByUserId(Option(c.createdByUserId).getOrElse("")) match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
         email = resourceUser.emailAddress,
@@ -662,7 +665,10 @@ object JSONFactory220 {
       key=c.key,
       secret=c.secret,
       app_name=c.name,
-      app_type=c.appType.toString(),
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type=Option(c.appType).getOrElse(""),
       description=c.description,
       developer_email=c.developerEmail,
       redirect_url=c.redirectURL,

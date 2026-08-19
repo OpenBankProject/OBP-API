@@ -880,7 +880,10 @@ object JSONFactory310{
 
     code.api.v3_1_0.ConsumerJsonV310(consumer_id=c.consumerId,
       app_name=c.name,
-      app_type=c.appType.toString(),
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type=Option(c.appType).getOrElse(""),
       description=c.description,
       developer_email=c.developerEmail,
       redirect_url=c.redirectURL,

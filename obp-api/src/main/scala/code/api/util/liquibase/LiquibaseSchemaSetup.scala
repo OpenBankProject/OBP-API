@@ -2,7 +2,7 @@ package code.api.util.liquibase
 
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
-import liquibase.Liquibase
+import liquibase.{GlobalConfiguration, Liquibase, Scope}
 import liquibase.database.DatabaseFactory
 import liquibase.database.jvm.JdbcConnection
 import liquibase.exception.LockException
@@ -51,17 +51,54 @@ object LiquibaseSchemaSetup extends MdcLoggable {
   val enabledByDefault: Boolean = true
 
   /**
+   * Run `body` with a duplicate changelog on the classpath treated as a warning, not an error.
+   *
+   * The duplicate is not contrived - it is the startup OBP-STARTUP-GUIDE.md documents:
+   *
+   *     java -cp "obp-api/src/main/resources:obp-api/target/obp-api.jar" bootstrap.http4s.Http4sServer
+   *
+   * The source directory goes first deliberately, so a locally edited default.props takes effect
+   * without rebuilding the jar (Lift's Props does not read `-D` flags reliably, so the classpath is
+   * the mechanism). The jar also contains everything under src/main/resources, so every resource is
+   * there twice. That was harmless under Flyway; Liquibase's parser refuses it outright with
+   * "Found 2 files with the path ...", which turns the documented start into a boot failure.
+   *
+   * The refusal guards against two genuinely DIFFERENT files answering to one path. Here they are
+   * the same file reached two ways, and the classpath order already says which is meant - the
+   * source directory, which is the copy that start exists to prefer.
+   *
+   * The cost is worth naming: if the jar is stale relative to src, the warning is the only sign
+   * that two versions existed. That is the same trap as the stale target/classes copy in CLAUDE.md,
+   * and the same answer - rebuild, or delete the copy you do not mean.
+   *
+   * Scoped rather than set as a system property, so nothing outside this call is affected.
+   */
+  private def withDuplicatesAllowed[A](body: => A): A = {
+    val settings = new java.util.HashMap[String, Object]()
+    settings.put(
+      GlobalConfiguration.DUPLICATE_FILE_MODE.getKey,
+      GlobalConfiguration.DuplicateFileMode.WARN)
+    Scope.child(settings, new Scope.ScopedRunnerWithReturn[A] { def run(): A = body })
+  }
+
+  /**
    * The Liquibase instance, with the DataSource passed in so a test can run the real configuration
    * against a database it built itself rather than reproducing the configuration alongside it.
    *
    * The caller owns the connection: Liquibase wraps it and closes it through `close()`, so this
    * hands back both and lets the caller decide the lifetime.
+   *
+   * The ClassLoader is a parameter only so DuplicateChangelogOnClasspathTest can hand in one that
+   * really does hold the changelog twice; every caller uses the default.
    */
-  private[liquibase] def configure(dataSource: javax.sql.DataSource): Liquibase = {
+  def configure(
+    dataSource: javax.sql.DataSource,
+    classLoader: ClassLoader = getClass.getClassLoader
+  ): Liquibase = {
     val connection = dataSource.getConnection
     val database = DatabaseFactory.getInstance
       .findCorrectDatabaseImplementation(new JdbcConnection(connection))
-    new Liquibase(changeLogPath, new ClassLoaderResourceAccessor(getClass.getClassLoader), database)
+    new Liquibase(changeLogPath, new ClassLoaderResourceAccessor(classLoader), database)
   }
 
   /**
@@ -151,7 +188,10 @@ object LiquibaseSchemaSetup extends MdcLoggable {
     false
   }
 
-  def bringUpToDate(dataSource: javax.sql.DataSource): Unit = {
+  def bringUpToDate(
+    dataSource: javax.sql.DataSource,
+    classLoader: ClassLoader = getClass.getClassLoader
+  ): Unit = {
     val needsAdoption = {
       val c = dataSource.getConnection
       try {
@@ -162,8 +202,8 @@ object LiquibaseSchemaSetup extends MdcLoggable {
       } finally c.close()
     }
 
-    val liquibase = configure(dataSource)
-    try {
+    val liquibase = configure(dataSource, classLoader)
+    try withDuplicatesAllowed {
       if (needsAdoption) {
         logger.info("Liquibase: the database already has tables and no DATABASECHANGELOG - " +
           "recording the changelog as applied rather than rebuilding the schema")
