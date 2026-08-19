@@ -1,6 +1,6 @@
 package code.setup
 
-import code.api.util.APIUtil
+import code.api.util.DBUtil
 
 /**
  * Refuses to let the test suite run against anything but a throwaway database.
@@ -50,8 +50,25 @@ object DisposableDatabaseGuard {
     case _                      => s"url '$url'"
   }
 
+  /**
+   * The url the application will actually connect to, which is not the same as the prop's value.
+   *
+   * An unset db.url is not a url, but it is not a danger either - the application falls back to an
+   * in-memory H2, which is the most disposable configuration there is. Reading the prop directly
+   * and refusing the empty string is what CI actually did: the workflows write test.default.props
+   * from scratch and set no db.url at all, so every shard died in TestServer's initializer with
+   * "refusing to run the test suite against url ''", while every local run stayed green off a
+   * props file that happens to set one. The same shape as the flyway.enabled default - the code's
+   * fallback IS the CI configuration.
+   *
+   * Resolved through DBUtil.dbUrl, the same call the application makes, rather than reproduced
+   * here: a second copy of the fallback could drift and have the guard judging a database the
+   * application is not going to use.
+   */
+  def resolvedDbUrl: String = DBUtil.dbUrl
+
   def assertDisposable(): Unit = {
-    val url = APIUtil.getPropsValue("db.url").openOr("")
+    val url = resolvedDbUrl
     if (!isDisposable(url)) {
       // stderr and stdout: whichever the runner captures, this has to be the thing that is read.
       val message =

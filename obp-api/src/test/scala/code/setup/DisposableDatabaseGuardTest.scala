@@ -65,6 +65,30 @@ class DisposableDatabaseGuardTest extends AnyFlatSpec with Matchers {
     isDisposable("jdbc:postgresql://localhost:5432/") should equal(false)
   }
 
+  "an absent db.url" should "resolve to the in-memory default the application itself uses" in {
+    // The guard reads db.url and refuses anything that is not disposable, and an unset prop is
+    // not a url - but it is not a danger either: the application falls back to an in-memory H2,
+    // so an unset db.url is the safest configuration there is.
+    //
+    // Reading it as an empty string and refusing that is what CI actually did. The workflows write
+    // test.default.props from scratch and set no db.url at all, so every shard died in
+    // TestServer's initializer with "refusing to run the test suite against url ''", while every
+    // local run stayed green off a props file that happens to set one. Same shape as the
+    // flyway.enabled default: the code's fallback IS the CI configuration.
+    //
+    // Resolved through DBUtil.dbUrl rather than reproduced here, so the guard cannot decide the
+    // suite is pointed somewhere the application is not.
+    DisposableDatabaseGuard.resolvedDbUrl should startWith("jdbc:")
+    withClue(s"the resolved url must be disposable: ${DisposableDatabaseGuard.resolvedDbUrl} ") {
+      isDisposable(DisposableDatabaseGuard.resolvedDbUrl) should equal(true)
+    }
+  }
+
+  it should "be disposable when nothing is configured at all" in {
+    // The CI case, asserted directly against the constant the application falls back to.
+    isDisposable(code.api.Constant.h2DatabaseDefaultUrlValue) should equal(true)
+  }
+
   it should "name the database in the rejection message, so the message is actionable" in {
     DisposableDatabaseGuard.describe("jdbc:postgresql://localhost:5432/obp-mapped") should
       include("obp-mapped")
