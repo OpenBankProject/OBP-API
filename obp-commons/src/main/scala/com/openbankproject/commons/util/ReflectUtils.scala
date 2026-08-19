@@ -487,7 +487,13 @@ object ReflectUtils {
 
   def invokeConstructor(tp: ru.Type)(fn: (Seq[ru.Type]) => Seq[Any]): Any = {
     val classMirror = mirror.reflectClass(tp.typeSymbol.asClass)
-    val constructor = tp.decl(ru.termNames.CONSTRUCTOR).asMethod
+    // tp.decl(CONSTRUCTOR).asMethod throws ScalaReflectionException when the class declares more
+    // than one constructor (e.g. a case class with an auxiliary `def this(...)` for backward
+    // compatibility, such as BankCommons) - decl returns an overloaded symbol in that case, which
+    // .asMethod refuses to treat as a single method. getPrimaryConstructor already does the right
+    // thing (picks .alternatives.head, the primary constructor) - reuse it instead of re-deriving
+    // the constructor symbol here.
+    val constructor = getPrimaryConstructor(tp)
     val paramTypes: Seq[ru.Type] = constructor.paramLists.headOption.getOrElse(Nil).map(_.info.typeSymbol.asType.toType)
     val params: Seq[Any] = fn.apply(paramTypes)
     classMirror.reflectConstructor(constructor).apply(params :_*)
@@ -534,6 +540,14 @@ object ReflectUtils {
 
 
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
+
+  /**
+   * get the java.lang.Class that backs a scala-reflect Type, e.g. the class for `Option[Boolean]`'s
+   * type argument `Boolean` is `scala.Boolean` (JVM primitive `boolean`). Used to build a json4s
+   * `TypeInfo` from a scala-reflect-derived type when the JVM's own generic signature can't be
+   * trusted (see ObpCommonsProductDeserializer in JsonSerializers.scala).
+   */
+  def runtimeClass(tp: ru.Type): Class[_] = mirror.runtimeClass(tp)
 
   def forType(className: String): ru.Type = mirror.staticClass(className).toType
 

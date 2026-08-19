@@ -49,7 +49,7 @@ object JsonSerializers {
       FiledRenameSerializer :: EnumValueSerializer ::
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
       MapperSerializer :: JavaMathBigDecimalSerializer ::
-      ObpCommonsProductSerializer :: Nil
+      ObpCommonsProductSerializer :: ObpCommonsProductDeserializer :: Nil
 
   implicit val commonFormats: Formats =  CustomFormats ++ serializers
 
@@ -563,5 +563,116 @@ object ObpCommonsProductSerializer extends ObpSerializer[Product] {
   override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
     case x: Product if x.getClass.getName.startsWith(ObpCommonsPackagePrefix) =>
       json.Extraction.decompose(ReflectUtils.getConstructorArgs(x))
+  }
+}
+
+/**
+ * Deserializes JSON into any obp-commons (Scala-2.13-compiled) concrete case class by reading its
+ * constructor parameter names/types through ReflectUtils (scala.reflect.runtime.universe) and
+ * building the instance directly, instead of letting json4s's default Reflector-based extraction
+ * walk the class.
+ *
+ * This is the extract-direction counterpart of ObpCommonsProductSerializer above, needed for the
+ * identical reason: json4s's default Reflector-based extraction calls
+ * org.json4s.reflect.ScalaSigReader.readField (via scala.quoted.staging, i.e. a Scala 3 compiler
+ * run) whenever a constructor parameter's generic type argument is erased to java.lang.Object on
+ * the classfile - which happens for an Option[T] field where T is a primitive value type (Boolean,
+ * Int, Long, ...; e.g. User.isDeleted: Option[Boolean]). readField can only recover the erased type
+ * argument by reading TASTy, and a Scala-2.13-compiled class has none, so it always throws
+ * NoSuchElementException: None.get for such a field. Confirmed by reproducing
+ * code.connector.MessageDocTest: extracting an example OutBoundGetAccountsHeld JSON crashes while
+ * building its nested `user: User` field - AbstractTypeDeserializer (above) correctly resolves the
+ * abstract `User` to the concrete `UserCommons`, but the default Reflector-based extraction of
+ * UserCommons itself then hits readField on UserCommons.isDeleted.
+ *
+ * Unlike the JVM's own generic signature (which erases Option[Boolean]'s type argument to Object),
+ * scala.reflect.runtime.universe reads a Scala-2.13-compiled class's ScalaSig directly and returns
+ * the real type argument (confirmed empirically: ReflectUtils.getPrimaryConstructor on UserCommons
+ * reports `isDeleted`'s type as `Option[Boolean]`, not `Option[Object]`) - so building the instance
+ * field-by-field via ReflectUtils sidesteps the gap entirely, the same way
+ * ObpCommonsProductSerializer's getConstructorArgs sidesteps it for decompose.
+ *
+ * Container types (Option/List/Map) are unwrapped by hand, recursing into
+ * `extractFieldValue` for each element/value with its own scala-reflect-derived type; a leaf value
+ * is extracted by asking json4s to extract into the type's runtime Class directly
+ * (`Extraction.extract(jv, TypeInfo(leafClazz, None))`), which re-enters the full Formats chain -
+ * so a nested obp-commons class recurses back into this same deserializer (or, if the nested type
+ * is itself abstract, into AbstractTypeDeserializer first, which then recurses into this
+ * deserializer once it has resolved the concrete class), and a plain type (String, BigDecimal,
+ * Date, ...) is handled by json4s's own existing extraction, unaffected by any of this.
+ *
+ * Deliberately scoped to the com.openbankproject.commons package only (obp-commons, always
+ * Scala-2.13-compiled) - NOT the code.* package (obp-api, Scala 3-compiled), mirroring
+ * ObpCommonsProductSerializer's scoping for the same reason: reflecting a Scala-3-compiled class
+ * via scala.reflect.runtime.universe has its own, unrelated set of gaps this deserializer must not
+ * be exposed to.
+ */
+object ObpCommonsProductDeserializer extends ObpDeSerializer[AnyRef] {
+  private val ObpCommonsPackagePrefix = "com.openbankproject.commons."
+  private val enumValueClass = classOf[EnumValue]
+
+  private val OptionTypeName = "scala.Option"
+  private val ListTypeName = "scala.collection.immutable.List"
+  private val MapTypeName = "scala.collection.immutable.Map"
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), AnyRef] = {
+    case (TypeInfo(clazz, _), jObject: JObject)
+        if !Modifier.isAbstract(clazz.getModifiers)
+        && clazz.getName.startsWith(ObpCommonsPackagePrefix)
+        && classOf[Product].isAssignableFrom(clazz)
+        && !enumValueClass.isAssignableFrom(clazz)
+        && ReflectUtils.classToType(clazz).typeSymbol.asClass.isCaseClass =>
+      buildInstance(clazz, jObject)
+  }
+
+  private def buildInstance(clazz: Class[_], jObject: JObject)(implicit format: Formats): AnyRef = {
+    val tp: ru.Type = ReflectUtils.classToType(clazz)
+    val params: List[ru.Symbol] = ReflectUtils.getPrimaryConstructor(tp).paramLists.headOption.getOrElse(Nil)
+    val args: Seq[Any] = params.map { param =>
+      extractFieldValue(jObject \ param.name.toString.trim, param.info)
+    }
+    ReflectUtils.invokeConstructor(tp, args: _*).asInstanceOf[AnyRef]
+  }
+
+  private def extractFieldValue(jv: JValue, tp: ru.Type)(implicit format: Formats): Any = {
+    tp.typeSymbol.fullName match {
+      case OptionTypeName =>
+        jv match {
+          case JNothing | JNull => None
+          case x => Some(extractFieldValue(x, tp.typeArgs.head))
+        }
+      case ListTypeName =>
+        jv match {
+          case JArray(items) => items.map(it => extractFieldValue(it, tp.typeArgs.head))
+          case JNothing | JNull => Nil
+          case x => throw new MappingException(s"Can't convert $x to $tp")
+        }
+      case MapTypeName =>
+        jv match {
+          case JObject(fields) =>
+            val valueType = tp.typeArgs(1)
+            fields.map { case JField(name, value) => name -> extractFieldValue(value, valueType) }.toMap
+          case JNothing | JNull => Map.empty[String, Any]
+          case x => throw new MappingException(s"Can't convert $x to $tp")
+        }
+      case _ =>
+        val leafClazz = ReflectUtils.runtimeClass(tp)
+        jv match {
+          // mirror JNothingSerializer's tolerance for a missing required primitive field
+          case JNothing if leafClazz == classOf[Boolean] => false
+          case JNothing if leafClazz == classOf[Byte] => 0.toByte
+          case JNothing if leafClazz == classOf[Short] => 0.toShort
+          case JNothing if leafClazz == classOf[Int] => 0
+          case JNothing if leafClazz == classOf[Long] => 0L
+          case JNothing if leafClazz == classOf[Float] => 0.0f
+          case JNothing if leafClazz == classOf[Double] => 0.0d
+          // a missing, non-primitive field (typically one declared with obp-commons's own
+          // @optional annotation, e.g. BankCommons.swiftBic: String, not Option[String]) has no
+          // sensible extractable value - default it to null, mirroring what JNothingSerializer +
+          // the default Reflector already do for such a field elsewhere in this Formats chain.
+          case JNothing if !leafClazz.isPrimitive => null
+          case _ => json.Extraction.extract(jv, TypeInfo(leafClazz, None))
+        }
+    }
   }
 }
