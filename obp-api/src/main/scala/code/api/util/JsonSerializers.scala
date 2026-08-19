@@ -48,7 +48,8 @@ object JsonSerializers {
       BigDecimalSerializer :: StringDeserializer ::
       FiledRenameSerializer :: EnumValueSerializer ::
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
-      MapperSerializer :: JavaMathBigDecimalSerializer :: Nil
+      MapperSerializer :: JavaMathBigDecimalSerializer ::
+      ObpCommonsProductSerializer :: Nil
 
   implicit val commonFormats: Formats =  CustomFormats ++ serializers
 
@@ -527,5 +528,40 @@ object MapperSerializer extends ObpSerializer[Mapper[_]] {
         methodName -> value
       }).toMap
       json.Extraction.decompose(map)
+  }
+}
+
+/**
+ * Serializes any obp-commons (Scala-2.13-compiled) case class by reading its constructor arguments
+ * through ReflectUtils (scala.reflect.runtime.universe) instead of letting json4s's default
+ * Reflector build a field descriptor for it.
+ *
+ * json4s's default Reflector-based decompose calls org.json4s.reflect.ScalaSigReader.readField (via
+ * scala.quoted.staging, i.e. it launches a Scala 3 compiler run) whenever a field's generic type
+ * argument is erased to java.lang.Object on the classfile - which is what happens for an
+ * Option[T]/similar field where T is a primitive value type (Boolean, Int, Long, ...; e.g.
+ * ViewSpecification.is_firehose: Option[Boolean] or User.isDeleted: Option[Boolean]). readField can
+ * only recover the erased type argument by reading TASTy, and a Scala-2.13-compiled class has none,
+ * so it always throws NoSuchElementException: None.get for such a field - not only when the
+ * offending type is decomposed directly, but recursively, whenever it is reached as a nested field
+ * while decomposing some other obp-commons value (e.g. every OutBound message embeds
+ * OutboundAdapterCallContext -> User, and User.isDeleted is exactly this shape). ReflectUtils reads
+ * Scala-2.13-compiled classes with their own compiler's reflection, which has no such gap, so this
+ * sidesteps the problem instead of special-casing individual fields or types. It intercepts every
+ * obp-commons Product uniformly (mirroring MapperSerializer's approach above for Mapper[_]) so the
+ * fix also covers nested/nested-again nulls automatically, since Extraction.decompose re-consults
+ * the same Formats for every field value it recurses into.
+ *
+ * Deliberately scoped to the com.openbankproject.commons package only (obp-commons, always
+ * Scala-2.13-compiled) - NOT the code.* package (obp-api, Scala 3-compiled), where reflecting via
+ * scala.reflect.runtime.universe has its own, unrelated set of gaps (isVal/isVar/isLazy etc.) that
+ * this serializer must not be exposed to.
+ */
+object ObpCommonsProductSerializer extends ObpSerializer[Product] {
+  private val ObpCommonsPackagePrefix = "com.openbankproject.commons."
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
+    case x: Product if x.getClass.getName.startsWith(ObpCommonsPackagePrefix) =>
+      json.Extraction.decompose(ReflectUtils.getConstructorArgs(x))
   }
 }
