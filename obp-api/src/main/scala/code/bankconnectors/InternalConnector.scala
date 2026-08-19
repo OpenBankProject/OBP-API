@@ -267,9 +267,21 @@ object InternalConnector {
   // typeOf[Connector] needs the Scala 2 compiler to synthesise a TypeTag for Connector, which
   // Scala 3 does not implement; ReflectUtils.forType builds the same Type at runtime from the
   // class name instead, needing no synthesis under either compiler.
+  //
+  // isVal/isVar are unreliable here and the filter below cannot rely on them alone: they read
+  // from ScalaSig, which only a Scala 2-compiled class carries, and Connector is now Scala
+  // 3-compiled (TASTy). A val getter and a genuine zero-arg def compile to the identical JVM
+  // shape (an interface accessor method), so nothing overridable/isPublic/isMethod can tell them
+  // apart either - the distinction is source-level information a Scala 2 reader simply cannot
+  // recover from a Scala 3 classfile. Connector declares exactly two public vals directly in its
+  // trait body (`implicit val formats`, `val messageDocs`) - both named explicitly here rather
+  // than left to a flag that silently stopped working.
+  private val knownConnectorVals = Set("formats", "messageDocs")
+
   private lazy val methodNameToSymbols: Map[String, MethodSymbol] =
     ReflectUtils.forType("code.bankconnectors.Connector").decls.collect {
-    case t: TermSymbol if t.isMethod && t.isPublic && !t.isConstructor && !t.isVal && !t.isVar =>
+    case t: TermSymbol if t.isMethod && t.isPublic && !t.isConstructor && !t.isVal && !t.isVar
+      && !knownConnectorVals.contains(t.name.decodedName.toString.trim) =>
       val methodName = t.name.decodedName.toString.trim
       val method = t.asMethod
       methodName -> method
