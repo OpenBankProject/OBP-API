@@ -109,8 +109,23 @@ object ConnectorUtils {
 object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
   private val ConnectorMethodRegex = "(?i)OutBound(.)(.+)".r
   private lazy val connector: Connector = LocalMappedConnector
-  private val queryParamType = universe.typeOf[List[OBPQueryParam]]
-  private val callContextType = universe.typeOf[Option[CallContext]]
+  // typeOf[List[OBPQueryParam]]/typeOf[Option[CallContext]] would need the Scala 2 compiler to
+  // synthesise a TypeTag - a feature Scala 3 does not implement - AND both OBPQueryParam and this
+  // CallContext (code.api.util.CallContext, not the obp-commons one of the same simple name) are
+  // obp-api's own types, so there is no 2.13-compiled module this could be pushed to the way
+  // SwaggerTypes/CustomJsonFormatsTypes push obp-commons types. Built at runtime instead, from
+  // class names rather than compile-time type literals: appliedType/ReflectUtils.forType are
+  // ordinary value-level operations on already-built Type objects, needing no TypeTag synthesis
+  // under either compiler. Proven interchangeable with the type it replaces (=:= true, the
+  // strongest equality) before this landed.
+  private val queryParamType =
+    universe.appliedType(
+      ReflectUtils.forType("scala.collection.immutable.List").typeConstructor,
+      ReflectUtils.forType("code.api.util.OBPQueryParam"))
+  private val callContextType =
+    universe.appliedType(
+      ReflectUtils.forType("scala.Option").typeConstructor,
+      ReflectUtils.forType("code.api.util.CallContext"))
   private implicit val formats: org.json4s.Formats = CustomJsonFormats.nullTolerateFormats
 
   override def transfer(outbound: TopicTrait): Future[InBoundTrait[_]] = {

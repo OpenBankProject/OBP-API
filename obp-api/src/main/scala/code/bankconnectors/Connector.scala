@@ -156,7 +156,11 @@ trait Connector extends MdcLoggable {
    *  4. is not $default$
    */
   protected lazy val connectorMethods: Map[String, MethodSymbol] = {
-    val tp = typeOf[Connector]
+    // typeOf[Connector] needs the Scala 2 compiler to synthesise a TypeTag for Connector - this
+    // very trait - which Scala 3 does not implement. Built from the class name at runtime instead
+    // (ReflectUtils.forType is an ordinary value-level lookup, no synthesis involved), the same
+    // fix as the identical typeOf[Connector] a few lines below in implementedMethods.
+    val tp = ReflectUtils.forType("code.bankconnectors.Connector")
     val result = tp.decls
       .withFilter(_.isPublic)
       .withFilter(_.isMethod)
@@ -185,7 +189,7 @@ trait Connector extends MdcLoggable {
             if method.overrides.nonEmpty &&
             method.paramLists.nonEmpty &&
             method.paramLists.head.nonEmpty &&
-            method.owner != typeOf[Connector] &&
+            method.owner != ReflectUtils.forType("code.bankconnectors.Connector") &&
             !name.contains("$default$") => kv
         }.toMap
     connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.

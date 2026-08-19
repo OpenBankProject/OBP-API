@@ -264,7 +264,11 @@ object InternalConnector {
     dynamicMethods
   }
 
-  private lazy val methodNameToSymbols: Map[String, MethodSymbol] = typeOf[Connector].decls.collect {
+  // typeOf[Connector] needs the Scala 2 compiler to synthesise a TypeTag for Connector, which
+  // Scala 3 does not implement; ReflectUtils.forType builds the same Type at runtime from the
+  // class name instead, needing no synthesis under either compiler.
+  private lazy val methodNameToSymbols: Map[String, MethodSymbol] =
+    ReflectUtils.forType("code.bankconnectors.Connector").decls.collect {
     case t: TermSymbol if t.isMethod && t.isPublic && !t.isConstructor && !t.isVal && !t.isVar =>
       val methodName = t.name.decodedName.toString.trim
       val method = t.asMethod
