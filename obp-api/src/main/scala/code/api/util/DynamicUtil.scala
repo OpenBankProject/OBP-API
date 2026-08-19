@@ -4,7 +4,7 @@ import org.json4s._
 import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
-import code.api.util.dynamiccompiler.{DynamicCompileFailure, DynamicScalaCompiler, ToolBoxScalaCompiler}
+import code.api.util.dynamiccompiler.{DotcScalaCompiler, DynamicCompileFailure, DynamicScalaCompiler}
 import cats.effect.IO
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
@@ -44,7 +44,7 @@ object DynamicUtil extends MdcLoggable{
 
   // The Scala-source compiler, behind an interface so the Scala 3 flip swaps the
   // implementation (Scala 3 has no ToolBox) without touching any caller.
-  private val scalaCompiler: DynamicScalaCompiler = ToolBoxScalaCompiler
+  private val scalaCompiler: DynamicScalaCompiler = DotcScalaCompiler
 
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
 
