@@ -25,16 +25,26 @@ import org.scalatest.matchers.should.Matchers
  * BigDecimal in the same injection - which none of the existing Swagger tests catch, because none
  * asserts the JSON shape of one of these six types specifically. These do.
  */
-class SwaggerScalarFieldTypeTest extends AnyFlatSpec with Matchers {
+// Declared at file scope, not nested inside the test class: SwaggerJSONFactory.translateEntity
+// reflects on the value's runtime type via scala.reflect.runtime.universe, which for a nested
+// case class also has to resolve the enclosing class - here that would be a ScalaTest suite
+// (AnyFlatSpec/Matchers/Assertions), and walking that unrelated third-party hierarchy throws
+// (observed: AssertionError on org.scalatest.Assertions$UseDefaultAssertions$, and separately
+// "illegal cyclic inheritance involving class SwaggerScalarFieldTypeTest" for the other fields -
+// the same class of scala-reflect symbol-table limitation as the CyclicReference fix in
+// RestConnector_vMar2019_FrozenTest, just reached via a nested-case-class's outer pointer instead
+// of a connector type's base classes). A file-scope case class has no such enclosing class to
+// resolve.
+case class Scalars(
+  anInt: Int,
+  aLong: Long,
+  aFloat: Float,
+  aDouble: Double,
+  aBigDecimal: BigDecimal,
+  aDate: Date
+)
 
-  case class Scalars(
-    anInt: Int,
-    aLong: Long,
-    aFloat: Float,
-    aDouble: Double,
-    aBigDecimal: BigDecimal,
-    aDate: Date
-  )
+class SwaggerScalarFieldTypeTest extends AnyFlatSpec with Matchers {
 
   private val scalars = Scalars(1, 2L, 3.0f, 4.0, BigDecimal(5), new Date())
 
