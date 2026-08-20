@@ -34,6 +34,16 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
 
   Feature(s"The CURD endpoints") {
 
+    // No test previously covered GET /my/entitlements at all under this version - added while
+    // investigating a peer-reported 401 (attributed to a ResourceDocMatcher no-match) from a
+    // real-process OIDC end-to-end script; this suite gets 200 for both this OAuth1 path and
+    // the DirectLogin-token path (see DirectLoginTest), so the 401 was not reproduced here.
+    Scenario("get my entitlements - authenticated user", VersionOfApi) {
+      val request = (v3_0Request / "my" / "entitlements").GET <@ (user1)
+      val response = makeGetRequest(request)
+      response.code should equal(200)
+    }
+
     Scenario("create entitlement request - anonymous user.", VersionOfApi, ApiEndpoint1) {
 
       When("We make a request v3.0.0")

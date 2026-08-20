@@ -272,6 +272,15 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       responseCurrentUserNewStyle.code should equal(200)
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
+
+      // /obp/v3.0.0/my/entitlements had no test coverage at all under DirectLogin token auth -
+      // added while investigating a peer-reported 401 from a real-process OIDC end-to-end
+      // script, which this suite could not reproduce.
+      When("when we use the token to get my entitlements - v3.0.0")
+      val requestMyEntitlements = baseRequest / "obp" / "v3.0.0" / "my" / "entitlements"
+      val responseMyEntitlements = makeGetRequest(requestMyEntitlements, validHeadersWithToken)
+      And("We should get a 200")
+      responseMyEntitlements.code should equal(200)
       
       When("when we use the token to get current user and it should work - Old Style")
       val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
