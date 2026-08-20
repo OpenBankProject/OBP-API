@@ -203,6 +203,10 @@ trait Connector extends MdcLoggable {
    */
   protected lazy val implementedMethods: Map[String, MethodSymbol] = {
     val tp = ReflectUtils.getType(this)
+    // Hoisted out of the .collect predicate (was re-resolving "code.bankconnectors.Connector" via
+    // mirror.staticClass once per candidate member of tp) - same hoist connectorMethods above
+    // already does for its own copy of this lookup.
+    val connectorTp = ReflectUtils.forType("code.bankconnectors.Connector")
     val result = tp.members
         .withFilter(_.isPublic)
         .withFilter(_.isMethod)
@@ -212,7 +216,7 @@ trait Connector extends MdcLoggable {
             if method.overrides.nonEmpty &&
             method.paramLists.nonEmpty &&
             method.paramLists.head.nonEmpty &&
-            method.owner != ReflectUtils.forType("code.bankconnectors.Connector") &&
+            method.owner != connectorTp &&
             !name.contains("$default$") &&
             // Scala 3 compiles a trait's own protected val (bankTTL, banksTTL, ...) into a
             // synthetic cross-module setter named "code$bankconnectors$Connector$_setter_$xyz_=",
