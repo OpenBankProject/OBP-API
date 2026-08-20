@@ -72,6 +72,28 @@ object ReflectUtils {
   def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
     val instanceMirror = mirror.reflect(obj)
     val tp: ru.Type = instanceMirror.symbol.info
+    // Scala 3's LazyVals compiles `lazy val x` to a backing field named `x$lzy1` (verified via
+    // javap), not `x` - so a plain isVal/isVar/isLazy-style name match against getDeclaredFields
+    // would miss every lazy val. Accept either spelling.
+    //
+    // runtimeClass(tp) can itself fail - e.g. for a path-dependent inner class, `tp` resolves to
+    // a refinement type mirror.runtimeClass has no single java.lang.Class for, and throws
+    // NoClassDefFoundError (a LinkageError - NOT caught by NonFatal, which treats LinkageError as
+    // fatal) rather than returning one. That is a shape this function never used to touch (the
+    // pre-fix code never called runtimeClass at all), so falling through uncaught would make
+    // getFieldValues newly crash on inputs it used to handle. Fall back to the old permissive
+    // behaviour - treat the candidate as field-backed - rather than letting a disambiguation aid
+    // break the thing it is meant to refine.
+    // runtimeClass(tp) itself, not instanceMirror.symbol.toType: `tp` is `.info`, the class
+    // symbol's own ClassInfoType (a template - parents + decls), and mirror.runtimeClass can't
+    // resolve that back to a java.lang.Class the way it resolves an ordinary TypeRef; `.toType`
+    // (as getType(obj) elsewhere in this file uses) is the reference form runtimeClass expects.
+    lazy val declaredFieldNames: Option[Set[String]] =
+      try Some(runtimeClass(instanceMirror.symbol.toType).getDeclaredFields.map(_.getName).toSet) catch { case _: Throwable => None }
+    def isFieldBacked(name: String): Boolean = declaredFieldNames match {
+      case Some(names) => names.contains(name) || names.exists(_.startsWith(s"$name$$lzy"))
+      case None => true
+    }
     (tp.members ++ tp.decls).toSet
       .withFilter(_.isTerm)
       .map(_.asTerm)
@@ -94,9 +116,15 @@ object ReflectUtils {
       // case-class field owns; requiring same-class ownership excludes all of it at once, and
       // every actual caller's target (ExampleValue/ApiRole/ApiTag's own lazy vals, a case class's
       // own constructor-derived accessors) declares its members directly, never by inheritance.
+      //
+      // Same-class ownership alone still can't tell a val-accessor from an ordinary zero-arg def
+      // declared directly on the class (both compile to that identical shape); isFieldBacked
+      // closes that gap with the one signal that does survive - whether a matching backing field
+      // actually exists - so a genuine helper method (e.g. a custom toString) isn't reported as
+      // a schema field just because it happens to take no arguments.
       .withFilter(it => it.isLazy || it.isVal || it.isVar ||
         (it.isMethod && !it.asMethod.isConstructor && it.asMethod.paramLists.forall(_.isEmpty) &&
-          it.owner == tp.typeSymbol))
+          it.owner == tp.typeSymbol && isFieldBacked(it.name.decodedName.toString.trim)))
       .withFilter(predicate)
       .map(it => {
         val fieldName = it.name.decodedName.toString.trim
@@ -650,10 +678,20 @@ object ReflectUtils {
     if (alternatives.size <= 1) alternatives.head
     else {
       val declaredFieldNames = runtimeClass(tp).getDeclaredFields.map(_.getName).toSet
-      alternatives.find { ctor =>
+      val candidates = alternatives.filter { ctor =>
         val paramNames = ctor.paramLists.headOption.getOrElse(Nil).map(_.name.decodedName.toString.trim)
         paramNames.nonEmpty && paramNames.forall(declaredFieldNames.contains)
-      }.getOrElse(alternatives.head)
+      }
+      // More than one candidate is possible when an auxiliary constructor's parameters are a
+      // strict subset of another candidate's - e.g. BankCommons has a 9-field primary
+      // constructor and a 7-field auxiliary one whose names are all real fields too, so both
+      // pass the filter above. `.find` (first match) then depended on `alternatives`' order,
+      // which this whole fix exists because that order is not guaranteed. The primary
+      // constructor's parameters are exactly the case class's fields, so it can only be the
+      // candidate with the most parameters - an auxiliary constructor's parameters are
+      // necessarily a subset of the primary's, never a superset. maxByOption breaks the tie on
+      // content instead of position, so it agrees regardless of how `alternatives` orders them.
+      candidates.maxByOption(_.paramLists.headOption.getOrElse(Nil).size).getOrElse(alternatives.head)
     }
   }
 
@@ -758,7 +796,11 @@ object ReflectUtils {
     if(expectType.typeSymbol.isAbstract) {
       throw new IllegalArgumentException(s"expected type is abstract: $expectType")
     }
-    val constructor: ru.MethodSymbol = expectType.decl(ru.termNames.CONSTRUCTOR).alternatives(0).asMethod
+    // getPrimaryConstructor, not a raw alternatives(0) pick - see its own doc for why: a type
+    // with more than one constructor (e.g. BankCommons, whose 7-param auxiliary constructor's
+    // names are all real fields too) has no guaranteed order to `alternatives`, so picking by
+    // position silently returns the wrong constructor depending on the JVM/environment.
+    val constructor: ru.MethodSymbol = getPrimaryConstructor(expectType)
     val mirrorClass: ru.ClassMirror = mirror.reflectClass(expectType.typeSymbol.asClass)
 
     val paramNames = constructor.paramLists(0).map(_.name.toString)
