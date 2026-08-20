@@ -157,12 +157,12 @@ object SecureLogging {
 
   // Used only inside the computingSensitivePatterns window (see above): plain vals, no props
   // lookup, so applying them can't recurse back into APIUtil/sensitivePatterns and deadlock.
-  // Not the full configurable pattern set - just the categories most likely to appear in a
-  // live credential during this window (password, secret, token, an api/private/secret/access
-  // key, Authorization header, jdbc URL) - so the bootstrap window degrades to a narrower mask
-  // instead of no mask at all. Regex find() matches anywhere in the string, not just at a word
-  // boundary, so "token" also catches access_token/refresh_token/id_token without a separate
-  // pattern per variant.
+  // Not the full configurable pattern set - just the categories most likely to appear in a live
+  // credential during this window (password, secret, token, a handful of "*_key" prefixes - see
+  // the key pattern's own comment below for exactly which - Authorization header, jdbc URL) - so
+  // the bootstrap window degrades to a narrower mask instead of no mask at all. Regex find()
+  // matches anywhere in the string, not just at a word boundary, so "token" also catches
+  // access_token/refresh_token/id_token without a separate pattern per variant.
   //
   // The key pattern requires an api_/private_/secret_/access_/encryption_/consumer_ prefix
   // rather than a bare "key", unlike sensitivePatterns' own (props-gated, opt-outable) "key"
