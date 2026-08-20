@@ -59,8 +59,13 @@ class ConnectorTest extends V510ServerSetup {
     // artifact, so if the other side is e.g. String or a case class, that is a real mismatch this
     // check should still catch rather than wave through just because one side stringifies as
     // Object.
-    private val anyValTypeNames = Set("Int", "Boolean", "Long", "Double", "Float", "Short", "Byte", "Char")
-    private def isKnownAnyVal(tp: universe.Type): Boolean = anyValTypeNames.contains(tp.typeSymbol.name.decodedName.toString)
+    // Structural, not a name list: covers the 8 built-in AnyVal primitives (Int/Boolean/...) AND
+    // any custom AnyVal-derived value class the same way, rather than only the ones named here -
+    // ReflectUtils.forType, not universe.typeOf[AnyVal] directly, for the same reason every other
+    // Type in this file is built that way: this file compiles under Scala 3, which does not
+    // implement the Scala 2 compiler's TypeTag synthesis a direct typeOf[AnyVal] call would need.
+    private val anyValType = ReflectUtils.forType("scala.AnyVal")
+    private def isKnownAnyVal(tp: universe.Type): Boolean = tp <:< anyValType
     private def sameTypeAllowingErasedGeneric(a: universe.Type, b: universe.Type): Boolean = {
       sameType(a, b) ||
         (a.typeArgs.size == b.typeArgs.size && a.typeArgs.nonEmpty && a.typeConstructor =:= b.typeConstructor &&
