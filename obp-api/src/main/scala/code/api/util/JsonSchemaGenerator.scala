@@ -74,7 +74,7 @@ object JsonSchemaGenerator {
       case t if t =:= JsonSchemaGeneratorTypes.tFloat =>
         ("type" -> "number") ~ ("format" -> "float")
         
-      case t if t =:= JsonSchemaGeneratorTypes.tBigDecimal || t =:= JsonSchemaGeneratorTypes.tBigDecimal =>
+      case t if t =:= JsonSchemaGeneratorTypes.tBigDecimal =>
         ("type" -> "number")
         
       case t if t =:= JsonSchemaGeneratorTypes.tBoolean =>
@@ -87,7 +87,7 @@ object JsonSchemaGenerator {
         val innerType = t.typeArgs.head
         typeToJsonSchema(innerType)
         
-      case t if t <:< JsonSchemaGeneratorTypes.tListWildcard || t <:< JsonSchemaGeneratorTypes.tSeqWildcard || t <:< JsonSchemaGeneratorTypes.tListWildcard =>
+      case t if t <:< JsonSchemaGeneratorTypes.tListWildcard || t <:< JsonSchemaGeneratorTypes.tSeqWildcard =>
         val itemType = t.typeArgs.head
         ("type" -> "array") ~ ("items" -> typeToJsonSchema(itemType))
         
