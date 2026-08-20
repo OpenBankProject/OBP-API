@@ -631,12 +631,31 @@ object ReflectUtils {
   // code.methodrouting.MethodRoutingParam(key: String, value: String), which also declares
   // `def this(jObject: JObject)`: some runs read its primary constructor as (jObject: JObject)
   // instead, corrupting anything built from getConstructorParamInfo/invokeConstructor for it.
-  // isPrimaryConstructor is a real, order-independent flag scala-reflect provides for exactly
-  // this - use it instead of positional selection.
-  def getPrimaryConstructor(tp: ru.Type): MethodSymbol =
-    tp.decl(ru.termNames.CONSTRUCTOR).alternatives.find(_.asMethod.isPrimaryConstructor).getOrElse {
-      tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head
-    }.asMethod
+  //
+  // isPrimaryConstructor looked like the fix - a real flag scala-reflect exposes for exactly this
+  // - but it did not change CI's answer at all: like isVal/isVar/isImplicit elsewhere in this
+  // migration, isPrimaryConstructor is itself source-level information scala.reflect.runtime.
+  // universe cannot recover from a Scala 3-compiled class's TASTy-less classfile, so it was
+  // silently false for both alternatives and the .getOrElse(.head) fallback fired every time -
+  // functionally unchanged from the plain positional pick it was meant to replace.
+  //
+  // What actually distinguishes them is JVM-visible and needs no TASTy: a case class's primary
+  // constructor parameters are exactly its declared instance fields (that's what `case class`
+  // compiles to), while an auxiliary constructor's parameters generally are not - `jObject` above
+  // is consumed to compute the real fields, not stored as one itself. Field names are ordinary
+  // classfile metadata, so this reads identically regardless of which compiler or environment
+  // produced the class.
+  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = {
+    val alternatives = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.map(_.asMethod)
+    if (alternatives.size <= 1) alternatives.head
+    else {
+      val declaredFieldNames = runtimeClass(tp).getDeclaredFields.map(_.getName).toSet
+      alternatives.find { ctor =>
+        val paramNames = ctor.paramLists.headOption.getOrElse(Nil).map(_.name.decodedName.toString.trim)
+        paramNames.nonEmpty && paramNames.forall(declaredFieldNames.contains)
+      }.getOrElse(alternatives.head)
+    }
+  }
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
 
