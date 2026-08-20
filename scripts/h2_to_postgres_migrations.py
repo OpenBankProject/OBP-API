@@ -44,7 +44,12 @@ def translate(sql: str) -> str:
         for line in sql.split('\n'))
 
 if __name__ == '__main__':
-    src, dst = Path(sys.argv[1]), Path(sys.argv[2])
+    # .resolve() collapses any ".."/symlink segments in the CLI-supplied paths into their
+    # real, absolute form before either is used - this script's whole point is translating
+    # between two directories the caller names on the command line, so the fix here is not to
+    # constrain src/dst to some fixed root, only to make sure what gets opened is the path
+    # that was actually meant, not one still carrying unresolved traversal segments.
+    src, dst = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     dst.mkdir(parents=True, exist_ok=True)
     n = 0
     for f in sorted(src.glob('*.sql')):

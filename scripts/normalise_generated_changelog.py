@@ -32,6 +32,7 @@ grep before concluding the generator had dropped them.
 """
 import re
 import sys
+from pathlib import Path
 
 # Postgres's catalogue spelling -> the portable name the scripts actually used.
 TYPE_RENAMES = {
@@ -86,7 +87,11 @@ def stable_ids(lines):
 def main():
     if len(sys.argv) != 3:
         raise SystemExit(f"usage: {sys.argv[0]} <generated.yaml> <out.yaml>")
-    src, dst = sys.argv[1], sys.argv[2]
+    # .resolve() collapses any ".."/symlink segments in the CLI-supplied paths before either
+    # is opened - src/dst are meant to be whatever generated.yaml/out.yaml the caller names, so
+    # the fix is making sure the path actually opened is the one meant, not constraining them
+    # to some fixed root.
+    src, dst = str(Path(sys.argv[1]).resolve()), str(Path(sys.argv[2]).resolve())
     lines = open(src).readlines()
 
     lines = stable_ids(lines)
