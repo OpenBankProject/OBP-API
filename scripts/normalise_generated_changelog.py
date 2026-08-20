@@ -91,8 +91,14 @@ def main():
     # is opened - src/dst are meant to be whatever generated.yaml/out.yaml the caller names, so
     # the fix is making sure the path actually opened is the one meant, not constraining them
     # to some fixed root.
+    #
+    # SonarCloud still flags the two opens below even after .resolve() - its pattern wants
+    # src/dst constrained inside some fixed base directory, which doesn't fit this script: both
+    # ARE the caller-chosen locations, by design, for every invocation (see the usage message
+    # above). Constraining them to a fixed root would break the tool's actual job. NOSONAR on
+    # the two flagged lines, not a code change.
     src, dst = str(Path(sys.argv[1]).resolve()), str(Path(sys.argv[2]).resolve())
-    lines = open(src).readlines()
+    lines = open(src).readlines()  # NOSONAR - src is the caller-chosen input file by design, not attacker input
 
     lines = stable_ids(lines)
 
@@ -111,7 +117,7 @@ def main():
                 raise SystemExit(f"duplicate changeset id after renaming: {m.group(1)}")
             seen.add(m.group(1))
 
-    open(dst, "w").writelines(out)
+    open(dst, "w").writelines(out)  # NOSONAR - dst is the caller-chosen output file by design, not attacker input
     print(f"{len(seen)} changesets written to {dst}")
 
 

@@ -49,10 +49,17 @@ if __name__ == '__main__':
     # between two directories the caller names on the command line, so the fix here is not to
     # constrain src/dst to some fixed root, only to make sure what gets opened is the path
     # that was actually meant, not one still carrying unresolved traversal segments.
+    #
+    # SonarCloud still flags dst.mkdir/write_text below (rule id not surfaced by the check, but
+    # the message is the generic "validate the constructed path before accessing the file
+    # system" one) even after .resolve() - its pattern wants src/dst constrained inside some
+    # fixed base directory, which does not fit this script: dst IS the caller-chosen output
+    # location, by design, for every invocation. Constraining it to a fixed root would break
+    # the tool's actual job. NOSONAR on the two flagged lines, not a code change.
     src, dst = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
-    dst.mkdir(parents=True, exist_ok=True)
+    dst.mkdir(parents=True, exist_ok=True)  # NOSONAR - dst is the caller-chosen output dir by design, not attacker input
     n = 0
     for f in sorted(src.glob('*.sql')):
-        (dst / f.name).write_text(translate(f.read_text()))
+        (dst / f.name).write_text(translate(f.read_text()))  # NOSONAR - same as above; dst is the caller-chosen output dir by design
         n += 1
     print(f'translated {n} script(s) -> {dst}')
