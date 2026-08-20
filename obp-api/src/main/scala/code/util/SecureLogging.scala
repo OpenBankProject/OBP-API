@@ -164,18 +164,27 @@ object SecureLogging {
   // boundary, so "token" also catches access_token/refresh_token/id_token without a separate
   // pattern per variant.
   //
-  // The key pattern requires an api_/private_/secret_/access_/encryption_ prefix rather than a
-  // bare "key", unlike sensitivePatterns' own (props-gated, opt-outable) "key" pattern above:
-  // that bare form also matches "cache key: ..."/"primary key: ..." debug lines that carry no
-  // credential (MappedMetrics.getAllAggregateMetricsBox logs exactly this shape), and this list
-  // is neither configurable nor limited to messages that are actually credential-shaped the way
-  // the full sensitivePatterns list's toggles let an operator scope it - a false-positive
-  // redaction here silently destroys debug output with no way to turn it back on.
+  // The key pattern requires an api_/private_/secret_/access_/encryption_/consumer_ prefix
+  // rather than a bare "key", unlike sensitivePatterns' own (props-gated, opt-outable) "key"
+  // pattern above: that bare form also matches "cache key: ..."/"primary key: ..." debug lines
+  // that carry no credential (MappedMetrics.getAllAggregateMetricsBox logs exactly this shape),
+  // and this list is neither configurable nor limited to messages that are actually
+  // credential-shaped the way the full sensitivePatterns list's toggles let an operator scope
+  // it - a false-positive redaction here silently destroys debug output with no way to turn it
+  // back on.
+  //
+  // This prefix list is a known-common-case enumeration, not a closed/exhaustive one - "*_key"
+  // credential vocabulary in this codebase is open-ended (grep turned up public_key/session_key
+  // too, but neither has a confirmed log call site the way consumer_key does at
+  // ConsentUtil.scala's "consumer_key='$consentConsumerKey'" debug line, so they were left out
+  // rather than added speculatively). If a future log statement logs another "*_key"-shaped
+  // credential during this window, add its prefix here rather than assuming the list already
+  // covers it.
   private val bootstrapPatterns: List[(Pattern, Matcher => String)] = List(
     (Pattern.compile("(?i)(password[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
     (Pattern.compile("(?i)(secret[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
     (Pattern.compile("(?i)(token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
-    (Pattern.compile("(?i)((?:api|private|secret|access|encryption)_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)((?:api|private|secret|access|encryption|consumer)_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
     (Pattern.compile("(?i)(Authorization:\\s*Bearer\\s+)([^\\s,&]+)"), staticReplacement("$1***")),
     (Pattern.compile("(?i)(jdbc:[^\\s]+://[^:]+:)([^@\\s]+)(@)"), staticReplacement("$1***$3"))
   )

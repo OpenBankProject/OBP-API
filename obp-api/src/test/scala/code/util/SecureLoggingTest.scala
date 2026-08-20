@@ -56,13 +56,20 @@ class SecureLoggingTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "still mask an api_key during the sensitivePatterns bootstrap window" in {
-    SecureLogging.computingSensitivePatterns.set(true)
-    try {
-      val masked = SecureLogging.maskSensitive("api_key=sk_live_hunter2")
-      masked should not include "sk_live_hunter2"
-    } finally {
-      SecureLogging.computingSensitivePatterns.set(false)
+  /**
+   * Each prefix bootstrapPatterns' key pattern actually alternates on, checked individually -
+   * a future edit that drops or typos one of the five would otherwise compile and pass the full
+   * suite silently, since no single prefix's coverage depended on any of the others.
+   */
+  for (prefix <- List("api", "private", "secret", "access", "encryption", "consumer")) {
+    it should s"still mask a ${prefix}_key during the sensitivePatterns bootstrap window" in {
+      SecureLogging.computingSensitivePatterns.set(true)
+      try {
+        val masked = SecureLogging.maskSensitive(s"${prefix}_key=sk_live_hunter2")
+        masked should not include "sk_live_hunter2"
+      } finally {
+        SecureLogging.computingSensitivePatterns.set(false)
+      }
     }
   }
 
