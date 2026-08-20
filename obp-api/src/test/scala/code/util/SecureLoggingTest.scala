@@ -39,4 +39,30 @@ class SecureLoggingTest extends AnyFlatSpec with Matchers {
       SecureLogging.computingSensitivePatterns.set(false)
     }
   }
+
+  /**
+   * bootstrapPatterns' first cut covered password/secret/token/jdbc only - a live Authorization
+   * header or API key logged during the same window (the guard is not scoped to any particular
+   * message source, see the comment above) passed through unmasked, since none of those four
+   * categories match "Authorization: Bearer ..." or "api_key=...".
+   */
+  it should "still mask an Authorization bearer token during the sensitivePatterns bootstrap window" in {
+    SecureLogging.computingSensitivePatterns.set(true)
+    try {
+      val masked = SecureLogging.maskSensitive("Authorization: Bearer eyJhbGciOiSECRETVALUE")
+      masked should not include "eyJhbGciOiSECRETVALUE"
+    } finally {
+      SecureLogging.computingSensitivePatterns.set(false)
+    }
+  }
+
+  it should "still mask an api_key during the sensitivePatterns bootstrap window" in {
+    SecureLogging.computingSensitivePatterns.set(true)
+    try {
+      val masked = SecureLogging.maskSensitive("api_key=sk_live_hunter2")
+      masked should not include "sk_live_hunter2"
+    } finally {
+      SecureLogging.computingSensitivePatterns.set(false)
+    }
+  }
 }

@@ -158,12 +158,18 @@ object SecureLogging {
   // Used only inside the computingSensitivePatterns window (see above): plain vals, no props
   // lookup, so applying them can't recurse back into APIUtil/sensitivePatterns and deadlock.
   // Not the full configurable pattern set - just the categories most likely to appear in a
-  // credential (password, secret, token, jdbc URL) - so the bootstrap window degrades to a
-  // narrower mask instead of no mask at all.
+  // live credential during this window (password, secret, token, key, Authorization header,
+  // jdbc URL) - so the bootstrap window degrades to a narrower mask instead of no mask at all.
+  // Regex find() matches anywhere in the string, not just at a word boundary, so "token" also
+  // catches access_token/refresh_token/id_token, and "key" also catches api_key/private_key,
+  // the same way sensitivePatterns' own separate per-variant patterns above do not need
+  // matching by exact key name either.
   private val bootstrapPatterns: List[(Pattern, Matcher => String)] = List(
     (Pattern.compile("(?i)(password[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
     (Pattern.compile("(?i)(secret[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
     (Pattern.compile("(?i)(token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(Authorization:\\s*Bearer\\s+)([^\\s,&]+)"), staticReplacement("$1***")),
     (Pattern.compile("(?i)(jdbc:[^\\s]+://[^:]+:)([^@\\s]+)(@)"), staticReplacement("$1***$3"))
   )
 
