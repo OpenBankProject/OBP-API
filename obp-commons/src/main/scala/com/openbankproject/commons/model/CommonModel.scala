@@ -43,21 +43,11 @@ import scala.reflect.runtime.universe._
 
 
 // `D <% T` was view-bound syntax; it desugars to exactly the implicit constructor parameter
-// written out here, so subclasses need the same implicit D => T they already needed.
-abstract class Converter[T, D: TypeTag](implicit ev: D => T){
-  //this method declared as common method to avoid conflict with Predf#$confirms
-  implicit def toCommons(t: T): D = ReflectUtils.toOther[D](t, typeTag[D].tpe)
-
-  implicit val toCommonsList: List[T] => List[D] = (items: List[T]) => items.map(toCommons)
-
-  implicit val toCommonsBox: Box[T] => Box[D] = (box: Box[T]) => box.map(toCommons)
-
-  implicit val toCommonsBoxList: Box[List[T]] => Box[List[D]] = (boxItems: Box[List[T]]) => boxItems.map(toCommonsList)
-
-  implicit val toCommonsOption: Option[T] => Option[D] = (option: Option[T]) => option.map(toCommons)
-
-  implicit val toCommonsOptionList: Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toCommonsList)
-}
+// written out here, so subclasses need the same implicit D => T they already needed. Everything
+// else Converter needs - toCommons and the four implicit collection-shaped conversions built on
+// it - is identical to ConverterWithType once dType is fixed to typeTag[D].tpe, so it inherits
+// them rather than redeclaring them (same pattern as OBPEnumeration/OBPEnumerationBase below).
+abstract class Converter[T, D: TypeTag](implicit ev: D => T) extends ConverterWithType[T, D](typeTag[D].tpe)
 
 // Same as Converter, but for the handful of subclasses declared in obp-api rather than here: D's
 // Type is a constructor parameter instead of a TypeTag context bound, because typeTag[D] needs the
