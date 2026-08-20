@@ -54,7 +54,7 @@ databaseChangeLog:
             selectQuery: |-
               SELECT
                   ru.userid_ AS user_id,
-                  au.username,
+                  au.username::text,
                   au.firstname,
                   au.lastname,
                   au.email,

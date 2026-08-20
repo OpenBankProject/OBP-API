@@ -143,4 +143,81 @@ class PostgresMigrationTest extends AnyFlatSpec with Matchers {
       }
     }
   }
+
+  /**
+   * The scenario a hand-written pre-Liquibase view leaves behind: `v_oidc_users.username` frozen
+   * as `text` at whatever type `authuser.username` was when the SQL script under
+   * src/main/scripts/sql/OIDC ran against it - which on a real, long-lived deployment need not be
+   * the `varchar(100)` the current baseline declares for that column. Postgres freezes a view's
+   * column types at creation time and refuses to change them on `CREATE OR REPLACE VIEW`:
+   *
+   *     ERROR: cannot change data type of view column "username" from text to character varying(100)
+   *
+   * so a changeset whose SELECT reads `authuser.username` unchanged fails on exactly the databases
+   * upgrading from that legacy script, and only those - a fresh install never has the frozen view
+   * to conflict with, which is why the scenario above didn't catch it. This constructs that state
+   * directly (create the legacy-shaped view by hand, matching what the real script produced) rather
+   * than trying to reproduce the history that led there, since the state - not its origin - is what
+   * `createOidcViews` has to tolerate.
+   */
+  "createOidcViews" should "replace a legacy-shaped v_oidc_users view without a type-mismatch error" in {
+    assume(postgresReachable,
+      s"no Postgres at $adminUrl - skipping (set OBP_TEST_POSTGRES_URL to run this)")
+
+    val db = "obp_suite_oidc_legacy_view_upgrade"
+    withClue(s"refusing to CREATE/DROP a database that is not disposable: $db ") {
+      code.setup.DisposableDatabaseGuard.isDisposable(
+        s"jdbc:postgresql://localhost:5432/$db") should equal(true)
+    }
+
+    withAdmin { admin =>
+      execute(admin, s"DROP DATABASE IF EXISTS $db")
+      execute(admin, s"CREATE DATABASE $db")
+    }
+    try {
+      // Everything except the OIDC views - authuser.username lands as varchar(100), per the
+      // current baseline.
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
+
+      // The state the legacy SQL script left on a real deployment: a v_oidc_users view whose
+      // username column is text, regardless of what authuser.username's type is now.
+      val c = dataSourceFor(db).getConnection
+      try {
+        execute(c,
+          """CREATE VIEW v_oidc_users AS
+            |SELECT
+            |    ru.userid_ AS user_id,
+            |    au.username::text AS username,
+            |    au.firstname,
+            |    au.lastname,
+            |    au.email,
+            |    au.validated,
+            |    au.provider,
+            |    au.password_pw,
+            |    au.password_slt,
+            |    au.createdat,
+            |    au.updatedat
+            |FROM authuser au
+            |INNER JOIN resourceuser ru ON au.user_c = ru.id
+            |WHERE au.validated = true""".stripMargin)
+
+        val usernameType = scalar(c,
+          "SELECT CASE WHEN data_type = 'text' THEN 1 ELSE 0 END FROM information_schema.columns " +
+            "WHERE table_name = 'v_oidc_users' AND column_name = 'username'")
+        withClue("the fixture must have built the legacy-shaped view (username as text): ") {
+          usernameType should equal(1)
+        }
+      } finally c.close()
+
+      // The upgrade: applying the oidc-views changeset for the first time against a database
+      // that already has this view, shaped the way the legacy script left it. Must not throw.
+      noException should be thrownBy LiquibaseSchemaSetup.createOidcViews(dataSourceFor(db))
+    } finally {
+      withAdmin { admin =>
+        execute(admin, "SELECT pg_terminate_backend(pid) FROM pg_stat_activity " +
+          s"WHERE datname = '$db' AND pid <> pg_backend_pid()")
+        execute(admin, s"DROP DATABASE IF EXISTS $db")
+      }
+    }
+  }
 }
