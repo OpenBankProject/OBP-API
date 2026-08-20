@@ -678,20 +678,27 @@ object ReflectUtils {
     if (alternatives.size <= 1) alternatives.head
     else {
       val declaredFieldNames = runtimeClass(tp).getDeclaredFields.map(_.getName).toSet
-      val candidates = alternatives.filter { ctor =>
-        val paramNames = ctor.paramLists.headOption.getOrElse(Nil).map(_.name.decodedName.toString.trim)
-        paramNames.nonEmpty && paramNames.forall(declaredFieldNames.contains)
-      }
+      def paramNames(ctor: MethodSymbol): Set[String] =
+        ctor.paramLists.headOption.getOrElse(Nil).map(_.name.decodedName.toString.trim).toSet
+      val candidates = alternatives.filter(ctor => paramNames(ctor).nonEmpty && paramNames(ctor).subsetOf(declaredFieldNames))
       // More than one candidate is possible when an auxiliary constructor's parameters are a
       // strict subset of another candidate's - e.g. BankCommons has a 9-field primary
       // constructor and a 7-field auxiliary one whose names are all real fields too, so both
       // pass the filter above. `.find` (first match) then depended on `alternatives`' order,
-      // which this whole fix exists because that order is not guaranteed. The primary
-      // constructor's parameters are exactly the case class's fields, so it can only be the
-      // candidate with the most parameters - an auxiliary constructor's parameters are
-      // necessarily a subset of the primary's, never a superset. maxByOption breaks the tie on
-      // content instead of position, so it agrees regardless of how `alternatives` orders them.
-      candidates.maxByOption(_.paramLists.headOption.getOrElse(Nil).size).getOrElse(alternatives.head)
+      // which this whole fix exists because that order is not guaranteed.
+      //
+      // The primary constructor's parameters are exactly the case class's declared fields - not
+      // merely the most of them among the candidates. Selecting by exact set equality rather
+      // than by size means a class with no fields beyond its primary constructor's own (the
+      // common case, true for BankCommons) has AT MOST ONE candidate that can ever match this -
+      // two same-size auxiliary constructors, an ordering-dependent tie a size-only comparison
+      // would have to break arbitrarily, can never satisfy it, since neither individually spans
+      // every declared field. Only when the class has fields beyond any constructor's own (an
+      // extra body-declared val) can no candidate match exactly; size is the closest fallback
+      // signal for that narrower case, so it stays as a fallback rather than being replaced by it.
+      candidates.find(ctor => paramNames(ctor) == declaredFieldNames)
+        .orElse(candidates.maxByOption(ctor => paramNames(ctor).size))
+        .getOrElse(alternatives.head)
     }
   }
 
