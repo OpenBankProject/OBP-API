@@ -696,6 +696,16 @@ object ReflectUtils {
       // every declared field. Only when the class has fields beyond any constructor's own (an
       // extra body-declared val) can no candidate match exactly; size is the closest fallback
       // signal for that narrower case, so it stays as a fallback rather than being replaced by it.
+      //
+      // Known residual gap: this compares parameter NAMES only, not types or order. Two
+      // constructors whose parameter names are both exactly declaredFieldNames but differ in
+      // type or position (a legal overload - e.g. `def this(a: String, b: Int) = this(b, a)`
+      // alongside a primary `(a: Int, b: String)`) would both satisfy `==` here, so `.find`
+      // would again depend on `alternatives`' order for that specific shape. No class in this
+      // codebase does this (it is an unusual way to write an auxiliary constructor), and closing
+      // it would mean comparing parameter types too - itself cross-compiler reflection this
+      // migration keeps finding gaps in - so it is left as a known limitation rather than an
+      // unverified fix, not silently assumed away.
       candidates.find(ctor => paramNames(ctor) == declaredFieldNames)
         .orElse(candidates.maxByOption(ctor => paramNames(ctor).size))
         .getOrElse(alternatives.head)
