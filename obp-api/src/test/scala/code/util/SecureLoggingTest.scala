@@ -65,4 +65,22 @@ class SecureLoggingTest extends AnyFlatSpec with Matchers {
       SecureLogging.computingSensitivePatterns.set(false)
     }
   }
+
+  /**
+   * A bare "key" pattern (rather than one requiring an api_/private_/secret_/access_/
+   * encryption_ prefix) also matches non-credential debug lines like
+   * MappedMetrics.getAllAggregateMetricsBox's "cache key: ...". bootstrapPatterns is neither
+   * configurable nor scoped the way sensitivePatterns' toggles let an operator turn a specific
+   * category off, so a false-positive match here silently destroys debug output during the
+   * bootstrap window with no way to recover it - regression for the value surviving intact.
+   */
+  it should "not mask a non-credential 'cache key' debug line during the sensitivePatterns bootstrap window" in {
+    SecureLogging.computingSensitivePatterns.set(true)
+    try {
+      val masked = SecureLogging.maskSensitive("getAllAggregateMetricsBox cache key: (foo,bar), TTL: 60 seconds")
+      masked should include("(foo,bar)")
+    } finally {
+      SecureLogging.computingSensitivePatterns.set(false)
+    }
+  }
 }
