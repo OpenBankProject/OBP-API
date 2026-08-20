@@ -560,9 +560,19 @@ object MapperSerializer extends ObpSerializer[Mapper[_]] {
 object ObpCommonsProductSerializer extends ObpSerializer[Product] {
   private val ObpCommonsPackagePrefix = "com.openbankproject.commons."
 
+  // A class's constructor parameter names are fixed once the class is - getConstructorArgs
+  // re-derived them (Type lookup + getPrimaryConstructor's full alternatives scan) on every
+  // single call, for every obp-commons Product this Formats chain serializes. Cache by Class,
+  // same approach as MapperSerializer.callByNameMethods above; only the per-instance values still
+  // have to be re-read per call.
+  private val paramNamesMemo = new Memo[Class[_], List[String]]
+
   override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
     case x: Product if x.getClass.getName.startsWith(ObpCommonsPackagePrefix) =>
-      json.Extraction.decompose(ReflectUtils.getConstructorArgs(x))
+      val paramNames = paramNamesMemo.memoize(x.getClass) {
+        ReflectUtils.getPrimaryConstructor(ReflectUtils.classToType(x.getClass)).paramLists.headOption.getOrElse(Nil).map(_.name.toString)
+      }
+      json.Extraction.decompose(ReflectUtils.getCallByNameValues(x, paramNames: _*))
   }
 }
 
@@ -630,9 +640,17 @@ object ObpCommonsProductDeserializer extends ObpDeSerializer[AnyRef] {
   // class name instead, same technique used throughout this migration (ReflectUtils.forType).
   private val optionalAnnotationType = ReflectUtils.forType("com.openbankproject.commons.util.optional")
 
+  // Type + constructor param list are fixed once clazz is; buildInstance re-derived them (a
+  // classToType lookup + getPrimaryConstructor's full alternatives scan) on every single JSON
+  // object extracted, for every obp-commons case class this Formats chain deserializes. Cache by
+  // Class, same approach as ObpCommonsProductSerializer.paramNamesMemo above.
+  private val constructorInfoMemo = new Memo[Class[_], (ru.Type, List[ru.Symbol])]
+
   private def buildInstance(clazz: Class[_], jObject: JObject)(implicit format: Formats): AnyRef = {
-    val tp: ru.Type = ReflectUtils.classToType(clazz)
-    val params: List[ru.Symbol] = ReflectUtils.getPrimaryConstructor(tp).paramLists.headOption.getOrElse(Nil)
+    val (tp, params) = constructorInfoMemo.memoize(clazz) {
+      val t = ReflectUtils.classToType(clazz)
+      (t, ReflectUtils.getPrimaryConstructor(t).paramLists.headOption.getOrElse(Nil))
+    }
     val args: Seq[Any] = params.map { param =>
       val jv = jObject \ param.name.toString.trim
       // @optional (com.openbankproject.commons.util.optional) marks a field the domain genuinely
