@@ -52,12 +52,23 @@ class ConnectorTest extends V510ServerSetup {
     // `dependents: Option[Int]`) reads back through scala.reflect.runtime.universe as
     // Option[Object] for a Scala 3-compiled method's parameter: the JVM signature boxes/erases it
     // and without TASTy there is nothing to recover the original argument from. Once two fields
-    // are already known to share a name, an erased Object type argument on either side is
-    // compatible with whatever the other side names there.
+    // are already known to share a name, an erased Object type argument is compatible with
+    // whatever AnyVal the other side names there - that much genuinely can't be distinguished
+    // further without TASTy (Int vs Boolean vs Long all erase identically). It is NOT compatible
+    // with an arbitrary reference type: Object-erasure is documented as an AnyVal-specific boxing
+    // artifact, so if the other side is e.g. String or a case class, that is a real mismatch this
+    // check should still catch rather than wave through just because one side stringifies as
+    // Object.
+    private val anyValTypeNames = Set("Int", "Boolean", "Long", "Double", "Float", "Short", "Byte", "Char")
+    private def isKnownAnyVal(tp: universe.Type): Boolean = anyValTypeNames.contains(tp.typeSymbol.name.decodedName.toString)
     private def sameTypeAllowingErasedGeneric(a: universe.Type, b: universe.Type): Boolean = {
       sameType(a, b) ||
         (a.typeArgs.size == b.typeArgs.size && a.typeArgs.nonEmpty && a.typeConstructor =:= b.typeConstructor &&
-          a.typeArgs.zip(b.typeArgs).forall { case (x, y) => x.toString == "Object" || y.toString == "Object" || sameType(x, y) })
+          a.typeArgs.zip(b.typeArgs).forall { case (x, y) =>
+            sameType(x, y) ||
+              (x.toString == "Object" && isKnownAnyVal(y)) ||
+              (y.toString == "Object" && isKnownAnyVal(x))
+          })
     }
 
     def unapply(methodSymbol: universe.MethodSymbol): Option[universe.Type] = getType(methodSymbol) match {
