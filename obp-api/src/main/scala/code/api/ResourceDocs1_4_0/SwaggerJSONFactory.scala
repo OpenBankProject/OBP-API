@@ -921,6 +921,26 @@ object SwaggerJSONFactory extends MdcLoggable {
   private[this] def isSwaggerRefType(tp: Type): Boolean = ! noneRefTypes.exists(tp <:< _)
 
   /**
+    * A handful of Scala 3-compiled third-party classes on the classpath (observed: cats-effect's
+    * `Par` trait, whose abstract type member `ParallelF` has no runtime companion class) trip
+    * scala.reflect.runtime's classfile fallback with `AssertionError: no symbol could be loaded
+    * from class ...$ParallelF$` - not because the entity's own type is unreflectable, but because
+    * resolving its *owner chain* (e.g. the enclosing Http4sXXX.ImplementationsX_Y_Z object, whose
+    * signature transitively references IO's companion) walks into that dependency. Any case class
+    * nested in such an object hits this identically, so it can't be worked around per-entity;
+    * treat it as "can't reflect this one" and keep going rather than 400ing the whole document.
+    */
+  private[this] def safeGetType(obj: Any): Option[universe.Type] = {
+    // NonFatal covers AssertionError too - it excludes only VirtualMachineError, ThreadDeath,
+    // InterruptedException, LinkageError and ControlThrowable, none of which this can throw.
+    try Some(ReflectUtils.getType(obj)) catch {
+      case scala.util.control.NonFatal(e) =>
+        logger.warn(s"SwaggerJSONFactory: could not reflect the type of ${obj.getClass.getName}, excluding it from Swagger schema generation: ${e.getMessage}")
+        None
+    }
+  }
+
+  /**
     * get all nested swagger ref type objects
     * @param entities to do extract objects list
     * @return  a list of include original list and nested objects
@@ -928,7 +948,7 @@ object SwaggerJSONFactory extends MdcLoggable {
   private def getAllEntities(entities: List[AnyRef]) = {
     val notNullEntities = entities.filter(null.!=)
     val notSupportYetEntity = entities.filter(_.getClass.getSimpleName.equals(NotSupportedYet.getClass.getSimpleName.replace("$","")))
-    val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
+    val existsEntityTypes: Set[universe.Type] = notNullEntities.flatMap(safeGetType).toSet
 
     (notSupportYetEntity ::: notNullEntities ::: notNullEntities.flatMap(getNestedRefEntities(_, existsEntityTypes)))
       .distinctBy(_.getClass)
@@ -952,24 +972,27 @@ object SwaggerJSONFactory extends MdcLoggable {
       case Full(v) => getNestedRefEntities(v, excludeTypes)
       case coll: Coll[_] => coll.toList.flatMap(getNestedRefEntities(_, excludeTypes))
       case v if(! ReflectUtils.isObpObject(v) && !obj.isInstanceOf[HTTPParam]) => Nil
-      case _ => {
-        val entityType = ReflectUtils.getType(obj)
-        val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
-        // if exclude current obj, the result list tail will be Nil
-        val resultTail = if(excludeTypes.exists(entityType.=:=)) Nil else List(obj)
+      case _ => safeGetType(obj) match {
+        // Can't reflect this entity's own type (see safeGetType) - it still belongs in the
+        // definitions list, but its fields can't be walked, so surface it as a leaf.
+        case None => List(obj)
+        case Some(entityType) =>
+          val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
+          // if exclude current obj, the result list tail will be Nil
+          val resultTail = if(excludeTypes.exists(entityType.=:=)) Nil else List(obj)
 
-        val refValues: List[Any] = constructorParamList
-          .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_.=:=(it.info)))
-          .map(it => {
-            val paramName = it.name.toString
-            val value = ReflectUtils.invokeMethod(obj, paramName)
-            if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
-              throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
-            }
-            value
-          }).filterNot(it => it == null || it == Nil || it == None || it.isInstanceOf[EmptyBox])
+          val refValues: List[Any] = constructorParamList
+            .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_.=:=(it.info)))
+            .map(it => {
+              val paramName = it.name.toString
+              val value = ReflectUtils.invokeMethod(obj, paramName)
+              if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
+                throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
+              }
+              value
+            }).filterNot(it => it == null || it == Nil || it == None || it.isInstanceOf[EmptyBox])
 
-        refValues.flatMap(getNestedRefEntities(_, excludeTypes)) ::: resultTail
+          refValues.flatMap(getNestedRefEntities(_, excludeTypes)) ::: resultTail
       }
     }
 

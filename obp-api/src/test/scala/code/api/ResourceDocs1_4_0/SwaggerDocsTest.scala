@@ -83,6 +83,18 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       errors.isEmpty should be (true)
     }
     
+    Scenario(s"We will test ${ApiEndpoint1.name} Api - v7.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV5_1Request / "resource-docs" / "v7.0.0" / "swagger").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      responseGetObp.code should equal(200)
+      val swaggerJsonString = json.compactRender(responseGetObp.body)
+      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
+      val errors = validatedSwaggerResult._1
+      if (!errors.isEmpty) logger.info(s"Here is the wrong swagger json:    $swaggerJsonString")
+      errors.isEmpty should be (true)
+    }
+
     Scenario(s"We will test ${ApiEndpoint1.name} Api - v4.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "swagger").GET
       val responseGetObp = makeGetRequest(requestGetObp)
