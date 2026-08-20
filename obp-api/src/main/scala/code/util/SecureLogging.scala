@@ -17,16 +17,21 @@ object SecureLogging {
 
   // sensitivePatterns' own initializer calls APIUtil.getPropsAsBoolValue below, which is the
   // first touch of APIUtil$ on this thread and so triggers APIUtil$'s class init - which
-  // eagerly evaluates publicAppUrlDefaults, which calls getPropsValue, which logs a debug
-  // message, which (every log call in MdcLoggable routes through maskSensitive) calls back into
+  // eagerly evaluates every APIUtil val, not just publicAppUrlDefaults (e.g. `vendor = new
+  // CustomDBVendor(..., getPropsValue("db.password"))`), and some of those calls getPropsValue,
+  // which logs a debug message when a prop is sourced from a sys-env var - a normal deployment
+  // pattern for db.password. Every log call in MdcLoggable routes through maskSensitive, which
+  // needs sensitivePatterns to mask anything, so this calls back into
   // maskSensitive -> sensitivePatterns, on the very same thread, before the first call has
   // returned. Scala 2's lazy val used a reentrant `synchronized` block, so the recursive call
   // silently passed through; Scala 3's LazyVals uses a CountDownLatch, which is not reentrant,
   // so the same thread deadlocks waiting on a latch only it could count down. This flag detects
-  // that specific bootstrap window and returns the message unmasked rather than recursing - it
-  // can only be set during sensitivePatterns' one-time computation, and everything logged in
-  // that window is APIUtil/SecureLogging's own prop-driven startup, not request data.
-  private val computingSensitivePatterns = new ThreadLocal[Boolean] {
+  // that specific bootstrap window and applies bootstrapPatterns instead of recursing - not
+  // "return unmasked", because the window is not limited to SecureLogging/APIUtil's own
+  // messages: it is the whole APIUtil$ class-init cascade, on whatever thread first happens to
+  // touch it, which can be a request thread just as easily as a startup thread, and can carry a
+  // credential (db.password, db.url) through a log line that would otherwise be masked.
+  private[util] val computingSensitivePatterns = new ThreadLocal[Boolean] {
     override def initialValue(): Boolean = false
   }
 
@@ -150,6 +155,18 @@ object SecureLogging {
     }
   }
 
+  // Used only inside the computingSensitivePatterns window (see above): plain vals, no props
+  // lookup, so applying them can't recurse back into APIUtil/sensitivePatterns and deadlock.
+  // Not the full configurable pattern set - just the categories most likely to appear in a
+  // credential (password, secret, token, jdbc URL) - so the bootstrap window degrades to a
+  // narrower mask instead of no mask at all.
+  private val bootstrapPatterns: List[(Pattern, Matcher => String)] = List(
+    (Pattern.compile("(?i)(password[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(secret[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(jdbc:[^\\s]+://[^:]+:)([^@\\s]+)(@)"), staticReplacement("$1***$3"))
+  )
+
   // ===== Pattern cache for custom usage =====
   // Thread-safe: maskWithCustomPattern is called concurrently from many request threads. A plain
   // mutable.Map.getOrElseUpdate is not atomic and can corrupt the map during a concurrent resize.
@@ -159,12 +176,8 @@ object SecureLogging {
     customPatternCache.getOrElseUpdate(regex, Pattern.compile(regex, Pattern.CASE_INSENSITIVE))
 
   // ===== Masking Logic =====
-  def maskSensitive(msg: AnyRef): String = {
-    val msgString = Option(msg).map(_.toString).getOrElse("")
-    if (msgString.isEmpty) return msgString
-    if (computingSensitivePatterns.get()) return msgString
-
-    sensitivePatterns.foldLeft(msgString) { case (acc, (pattern, replaceFn)) =>
+  private def applyPatterns(msgString: String, patterns: List[(Pattern, Matcher => String)]): String = {
+    patterns.foldLeft(msgString) { case (acc, (pattern, replaceFn)) =>
       val matcher = pattern.matcher(acc)
       val sb = new StringBuffer()
       while (matcher.find()) {
@@ -181,6 +194,14 @@ object SecureLogging {
       matcher.appendTail(sb)
       sb.toString
     }
+  }
+
+  def maskSensitive(msg: AnyRef): String = {
+    val msgString = Option(msg).map(_.toString).getOrElse("")
+    if (msgString.isEmpty) return msgString
+    if (computingSensitivePatterns.get()) return applyPatterns(msgString, bootstrapPatterns)
+
+    applyPatterns(msgString, sensitivePatterns)
   }
 
   def maskSensitive(msg: String): String = maskSensitive(msg.asInstanceOf[AnyRef])
