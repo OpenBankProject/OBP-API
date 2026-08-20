@@ -621,7 +621,22 @@ object ReflectUtils {
     }
   }
 
-  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
+  // .alternatives lists every overloaded constructor (primary and auxiliary, e.g. a class with a
+  // convenience `def this(...)` alongside its case-class-generated one) in no order the language
+  // spec guarantees - .head silently picked whichever came first, and for a Scala 3-compiled class
+  // that order is not reliably source-declaration order (the reflect universe reading Scala 3
+  // decls doesn't preserve it - see OBPEnumerationBase.modules elsewhere in this codebase for the
+  // same observation). That let getPrimaryConstructor pick an auxiliary constructor over the real
+  // primary one non-deterministically across JVM runs - reproduced for
+  // code.methodrouting.MethodRoutingParam(key: String, value: String), which also declares
+  // `def this(jObject: JObject)`: some runs read its primary constructor as (jObject: JObject)
+  // instead, corrupting anything built from getConstructorParamInfo/invokeConstructor for it.
+  // isPrimaryConstructor is a real, order-independent flag scala-reflect provides for exactly
+  // this - use it instead of positional selection.
+  def getPrimaryConstructor(tp: ru.Type): MethodSymbol =
+    tp.decl(ru.termNames.CONSTRUCTOR).alternatives.find(_.asMethod.isPrimaryConstructor).getOrElse {
+      tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head
+    }.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
 
