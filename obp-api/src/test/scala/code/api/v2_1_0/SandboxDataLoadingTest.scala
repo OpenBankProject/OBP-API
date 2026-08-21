@@ -1229,6 +1229,33 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc2.id), None).isDefined should equal(true)
   }
 
+  it should "allow the same IBAN to be reused at a different bank" in {
+    // An IBAN is unique per bank (DoobieBankAccountRoutingQueries's own unique index is
+    // (bankId, scheme, address), and existingIbans below looks an IBAN up per-bank via
+    // getBankAccountByRoutingLegacy(Some(bankId), ...)), not globally - two different sandbox
+    // banks reusing the same IBAN in their own address space is legitimate, and the shipped
+    // example_import.json fixture does exactly this (bank Y's accounts mirror bank X's IBANs).
+    val users = standardUsers
+    val banks = standardBanks
+
+    def getResponse(accountJsons : List[JValue]) = {
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
+      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil, Nil, Nil, Nil)
+      postImportJson(json)
+    }
+
+    val acc1 = account1AtBank1
+    val accAtOtherBank = account1AtBank2
+
+    val acc1Json = Extraction.decompose(acc1)
+    val sameIbanAtOtherBankJson = replaceField(Extraction.decompose(accAtOtherBank), "IBAN", acc1.IBAN)
+
+    getResponse(List(acc1Json, sameIbanAtOtherBankJson)).code should equal(SUCCESS)
+
+    Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc1.id), None).isDefined should equal(true)
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtOtherBank.bank), AccountId(accAtOtherBank.id), None).isDefined should equal(true)
+  }
+
   it should "not allow an account to be created with an existing IBAN" in {
     val banks = standardBanks.map(Extraction.decompose)
     val users = standardUsers.map(Extraction.decompose)
