@@ -6848,6 +6848,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -6917,6 +6918,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -6986,6 +6988,9 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7046,6 +7051,9 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7112,6 +7120,9 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(

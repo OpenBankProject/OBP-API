@@ -1553,10 +1553,13 @@ object Http4s700 {
         address = "0xdestination",
         status = "pending",
         tx_hash = None,
-        confirmations = None,
+        // An Option[<value type>] left at None publishes as a $ref to a definition that does not
+        // exist - see refineErasedTypeArgument in SwaggerJSONFactory. The example value is what the
+        // field's documented type is derived from, so it has to be present.
+        confirmations = Some(3),
         required_confirmations = 12,
-        nonce = None,
-        gas_used = None,
+        nonce = Some(42L),
+        gas_used = Some(21000L),
         error_message = None,
         user_id = "user-abc-123",
         consent_id = None,
@@ -1830,13 +1833,6 @@ object Http4s700 {
     // the DoS surface to "spam yourself", and the role gate (canCreateTestEmail)
     // restricts it further to trusted operators.
 
-    case class TestEmailResponseJsonV700(
-      to: String,
-      from: String,
-      subject: String,
-      message_id: String
-    )
-
     val createTestEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "self-test-emails" =>
         EndpointHelpers.executeFutureCreated(req) {
@@ -1888,7 +1884,7 @@ object Http4s700 {
                 val (errMsg, status) = classifySmtpException(e)
                 Helper.booleanToFuture(errMsg, status, Some(cc)) { false }.map(_ => "")
             }
-          } yield TestEmailResponseJsonV700(
+          } yield JSONFactory700.TestEmailResponseJsonV700(
             to = toAddress,
             from = fromAddress,
             subject = subject,
@@ -1960,7 +1956,7 @@ object Http4s700 {
         |appended after `Detail:` so the operator can diagnose without server logs.
         |""".stripMargin,
       EmptyBody,
-      TestEmailResponseJsonV700(
+      JSONFactory700.TestEmailResponseJsonV700(
         to = "alice@example.com",
         from = "noreply@openbankproject.com",
         subject = "OBP test email from openbankproject.com",

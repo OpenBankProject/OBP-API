@@ -301,6 +301,21 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     created_at: String            // ISO 8601
   )
 
+  // Declared here rather than inside Http4s700.Implementations7_0_0, where it used to live.
+  // SwaggerJSONFactory reflects on every example body, and reflecting a class nested in that object
+  // has to resolve its owner chain - which references IO, whose companion walks into cats-effect's
+  // `Par` trait and its abstract type member `ParallelF`, a Scala 3 shape scala-reflect's classfile
+  // fallback cannot load: `AssertionError: no symbol could be loaded from class
+  // cats.effect.kernel.Par$ParallelF$`. Whether that surfaced depended on symbol-table caching, so
+  // it broke the v7.0.0 swagger document only on some initialisation orders. The definition's
+  // published name is the class's own simple name, so moving it changes nothing in the document.
+  case class TestEmailResponseJsonV700(
+    to: String,
+    from: String,
+    subject: String,
+    message_id: String
+  )
+
   case class WithdrawalJson(
     withdrawal_id: String,
     account_id: String,

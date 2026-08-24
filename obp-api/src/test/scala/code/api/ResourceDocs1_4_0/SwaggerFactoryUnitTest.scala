@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import org.json4s._
+import org.json4s.native.JsonMethods.parse
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_4_0.V140ServerSetup
 import code.api.v2_1_0.OBPAPI2_1_0
@@ -11,6 +12,7 @@ import code.api.v4_0_0.OBPAPI4_0_0
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
+import code.api.v7_0_0.Http4s700
 import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer
@@ -85,15 +87,25 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
     "Test all V300, V220 and V210, exampleRequestBodies and successResponseBodies and all the case classes in SwaggerDefinitionsJSON"
   ) {
     Scenario("Test all the case classes") {
-      val resourceDocList: ArrayBuffer[ResourceDoc] = ArrayBuffer.empty
-      OBPAPI6_0_0.allResourceDocs ++
-        OBPAPI5_1_0.allResourceDocs ++
-        OBPAPI5_0_0.allResourceDocs ++
-        OBPAPI4_0_0.allResourceDocs ++
-        OBPAPI3_1_0.allResourceDocs ++
-        OBPAPI3_0_0.allResourceDocs ++
-        OBPAPI2_2_0.allResourceDocs ++
-        OBPAPI2_1_0.allResourceDocs
+      // The concatenation used to be written as a bare expression with `resourceDocList` left as
+      // the empty buffer it was initialised to, so every assertion below ran over an empty list and
+      // could not fail. Bind it.
+      val resourceDocList: ArrayBuffer[ResourceDoc] =
+        // allResourceDocs, not resourceDocs: the latter is an ArrayBuffer filled by
+        // Implementations7_0_0's body, and touching Http4s700 alone does not initialise that
+        // nested object - so `resourceDocs` reads empty unless some other suite happened to
+        // serve a v7 request first. allResourceDocs forces it (see its own comment).
+        Http4s700.allResourceDocs ++
+          OBPAPI6_0_0.allResourceDocs ++
+          OBPAPI5_1_0.allResourceDocs ++
+          OBPAPI5_0_0.allResourceDocs ++
+          OBPAPI4_0_0.allResourceDocs ++
+          OBPAPI3_1_0.allResourceDocs ++
+          OBPAPI3_0_0.allResourceDocs ++
+          OBPAPI2_2_0.allResourceDocs ++
+          OBPAPI2_1_0.allResourceDocs
+
+      resourceDocList.size should be > 500
 
       // Translate every entity(JSON Case Class) in a list to appropriate swagger format
       val listOfExampleRequestBodyDefinition =
@@ -127,6 +139,82 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
       allStrings.toString() should not include ("definitions/scala.Some")
 
       logger.debug(allStrings)
+    }
+
+    Scenario("No published property is a $ref to a boxed primitive or to Object") {
+      // Those names are never definitions - nothing here publishes a definition called `Long` or
+      // `Object` - so such a property is a dangling reference: a generated client resolves it to
+      // nothing, and the field's real type is gone from the document.
+      //
+      // It is the exact shape a field takes when buildSwaggerSchema cannot tell what type it is,
+      // and under Scala 3 that happens by default rather than by accident. scala-reflect reads
+      // ScalaSig, an attribute only Scala 2 classes carry; on a Scala 3 class it falls back to the
+      // class file's Java generic signature, where a value type cannot be a type argument -
+      // `Option[Long]` is emitted as `scala.Option<java.lang.Object>`. refineErasedTypeArgument
+      // recovers the type from the example value, which leaves exactly one hole: a field whose
+      // example is None carries no value to recover it from, and lands back on
+      // {"$ref":"#/definitions/Object"}.
+      //
+      // So this doubles as the check that every Option-of-a-value-type field reachable from a
+      // resource doc's example bodies actually has an example. That is not a documentation nicety
+      // here; it is what the field's published type is derived from.
+      val resourceDocList: ArrayBuffer[ResourceDoc] =
+        // allResourceDocs, not resourceDocs: the latter is an ArrayBuffer filled by
+        // Implementations7_0_0's body, and touching Http4s700 alone does not initialise that
+        // nested object - so `resourceDocs` reads empty unless some other suite happened to
+        // serve a v7 request first. allResourceDocs forces it (see its own comment).
+        Http4s700.allResourceDocs ++
+          OBPAPI6_0_0.allResourceDocs ++
+          OBPAPI5_1_0.allResourceDocs ++
+          OBPAPI5_0_0.allResourceDocs ++
+          OBPAPI4_0_0.allResourceDocs ++
+          OBPAPI3_1_0.allResourceDocs ++
+          OBPAPI3_0_0.allResourceDocs ++
+          OBPAPI2_2_0.allResourceDocs ++
+          OBPAPI2_1_0.allResourceDocs
+
+      resourceDocList.size should be > 500
+
+      val notDefinitions =
+        Set("Object", "Boolean", "Integer", "Long", "Float", "Double", "Short", "Byte", "Character")
+
+      def refsIn(schema: JValue): List[String] = schema match {
+        case JObject(fields) =>
+          fields.flatMap {
+            case ("$ref", JString(target)) => List(target.substring(target.lastIndexOf('/') + 1))
+            case (_, v) => refsIn(v)
+          }
+        case _ => Nil
+      }
+
+      def danglingRefsOf(entity: AnyRef): List[String] = {
+        // translateEntity returns a definitions *fragment* - `"EntityName":{...}` - not a
+        // document, so it has to be wrapped before it will parse.
+        parse(s"{${SwaggerJSONFactory.translateEntity(entity)}}") match {
+          case JObject(List((definitionName, JObject(body)))) =>
+            val properties =
+              body.collectFirst { case ("properties", JObject(props)) => props }.getOrElse(Nil)
+            properties.flatMap { case (fieldName, schema) =>
+              refsIn(schema).filter(notDefinitions).map(bad => s"$definitionName.$fieldName -> $$ref:$bad")
+            }
+          case _ => Nil
+        }
+      }
+
+      val offenders = resourceDocList.toList
+        .flatMap(d => List(d.exampleRequestBody, d.successResponseBody))
+        .collect { case b: AnyRef if b != null => b }
+        .flatMap(danglingRefsOf)
+        .distinct
+        .sorted
+
+      withClue(
+        s"${offenders.size} field(s) publish a dangling $$ref. A field of an erased type (an Option " +
+        "of a value type, or a collection of one) takes its published type from its example value, " +
+        "so an offender here almost always means that field's example is None or absent - give it a " +
+        s"real value:\n${offenders.mkString("\n")}\n") {
+        offenders shouldBe empty
+      }
     }
   }
 

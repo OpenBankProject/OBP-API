@@ -693,7 +693,11 @@ object SwaggerJSONFactory extends MdcLoggable {
     definition
   }
 
-  private def buildSwaggerSchema(paramType: Type, exampleValue: Any): String = {
+  private def buildSwaggerSchema(declaredType: Type, exampleValue: Any): String = {
+    // A type argument that erased to java.lang.Object carries no information, so recover it from
+    // the example value before dispatching. See refineErasedTypeArgument.
+    val paramType: Type = refineErasedTypeArgument(declaredType, exampleValue)
+
     // Scala 3 cannot synthesise a TypeTag for a generic type parameter (see SwaggerTypes'
     // docstring), so these take the runtime Type as an ordinary value instead of as a
     // TypeTag-context-bound type parameter. Call sites pass a SwaggerTypes.tXxx constant.
@@ -863,6 +867,47 @@ object SwaggerJSONFactory extends MdcLoggable {
       case t                                                    => s""" {"$$ref":"#/definitions/${getRefEntityName(t, exampleValue)}"}"""
     }
   }
+
+  /**
+   * The Scala type of a type argument that the class file erased to `java.lang.Object`, recovered
+   * from the example value.
+   *
+   * `buildSwaggerSchema` decides a field's shape by comparing its runtime `Type` against constants
+   * such as `SwaggerTypes.tLong`, and that runtime `Type` comes from `scala-reflect`, which reads
+   * ScalaSig - an attribute only Scala 2 classes carry. On a Scala 3-compiled class it falls back
+   * to the class file's Java generic signature, and there a *value type* cannot be a type argument:
+   * `Option[Long]` is emitted as `scala.Option<java.lang.Object>` (`javap -v` on any of these
+   * confirms it). Reference types are unaffected - `Option[String]` keeps `<java.lang.String>` -
+   * which is why this is specifically about `Option[Boolean]`, `Option[Int]`, `Option[Long]`,
+   * `Option[Float]` and `Option[Double]`, and about the same value types nested in a collection.
+   *
+   * Without this, the "Option data" case unwraps `Option[Object]` and recurses with the element
+   * type `java.lang.Object`, which matches none of the scalar cases and falls all the way through
+   * to the final `case t => {"$$ref": ...}` - publishing `{"$$ref":"#/definitions/Long"}` where the
+   * contract says `{"type":"integer","format":"int64"}`, and a `$$ref` to a definition that does not
+   * exist in the document at that. Measured on the whole published surface: 68 definitions across
+   * eight API versions.
+   *
+   * The example value is the only runtime source of the erased type, and it is one this generator
+   * already relies on everywhere else (`getRefEntityName` picks the entity type off the value by
+   * the same reasoning, and a Boolean case just below already had an ad-hoc `isInstanceOf` rescue
+   * for exactly this). It cannot help when the example is `None`/absent - there is no value to
+   * inspect - so the example values themselves have to be present; `SwaggerNoDanglingRefTest`
+   * fails on any field where they are not, rather than leaving it to be noticed downstream.
+   *
+   * Only the value types SwaggerTypes actually names are mapped. Anything else is left alone, so a
+   * genuinely `Object`-typed field keeps behaving exactly as before.
+   */
+  private[this] def refineErasedTypeArgument(tp: Type, exampleValue: Any): Type =
+    if (tp.typeSymbol.fullName != "java.lang.Object") tp
+    else exampleValue match {
+      case _: java.lang.Boolean => SwaggerTypes.tBoolean
+      case _: java.lang.Integer => SwaggerTypes.tInt
+      case _: java.lang.Long    => SwaggerTypes.tLong
+      case _: java.lang.Float   => SwaggerTypes.tFloat
+      case _: java.lang.Double  => SwaggerTypes.tDouble
+      case _                    => tp
+    }
 
   /**
     * all not swagger ref type

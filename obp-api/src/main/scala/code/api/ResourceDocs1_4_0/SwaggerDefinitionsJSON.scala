@@ -361,6 +361,10 @@ object SwaggerDefinitionsJSON {
   lazy val updateViewJsonV300 = UpdateViewJsonV300(
     description = "this is for family",
     is_public = true,
+    // An Option[Boolean] left at its None default publishes as a $ref to a definition that does not
+    // exist - see refineErasedTypeArgument in SwaggerJSONFactory. The value is what the field's
+    // documented type is derived from, so it has to be present.
+    is_firehose = Some(false),
     metadata_view = SYSTEM_OWNER_VIEW_ID,
     which_alias_to_use = "family",
     hide_metadata_if_alias_used = true,
@@ -3314,6 +3318,7 @@ object SwaggerDefinitionsJSON {
     description = "description",
     metadata_view = SYSTEM_OWNER_VIEW_ID,
     is_public = true,
+    is_firehose = Some(false),
     is_system = true,
     alias = "No",
     hide_metadata_if_alias_used = true,
@@ -3680,6 +3685,7 @@ object SwaggerDefinitionsJSON {
     description = "description",
     metadata_view = SYSTEM_OWNER_VIEW_ID,
     is_public = true,
+    is_firehose = Some(false),
     is_system = true,
     alias = "No",
     hide_metadata_if_alias_used = true,
