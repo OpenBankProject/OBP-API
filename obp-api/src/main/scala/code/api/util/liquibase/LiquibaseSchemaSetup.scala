@@ -102,43 +102,6 @@ object LiquibaseSchemaSetup extends MdcLoggable {
   }
 
   /**
-   * Bring the database to the changelog, whatever state it starts in.
-   *
-   * `update`, and nothing else. Every changeset in the baseline carries its own existence
-   * precondition - `not tableExists` / `not indexExists`, `onFail: MARK_RAN` - so each one decides
-   * for itself whether the object it creates is already there. That makes one code path right for
-   * every state a database can be in when the application boots:
-   *
-   *   empty                          nothing exists, so every changeset runs.
-   *   tables, no DATABASECHANGELOG   an existing deployment, whose schema was built by Schemifier
-   *                                  or by the Flyway scripts - neither of which leaves a Liquibase
-   *                                  record. Each changeset finds its object and records itself
-   *                                  without running. What is genuinely absent is created.
-   *   tables and DATABASECHANGELOG   the normal case, and a boot interrupted at any point in any of
-   *                                  the above: the record says what has run, the preconditions
-   *                                  cover whatever the record does not.
-   *
-   * It used to decide between `update` and `changeLogSync` by looking at whether DATABASECHANGELOG
-   * existed. That was wrong in both directions.
-   *
-   * A blanket `changeLogSync` marks the whole changelog applied on the strength of the tables being
-   * there - including the de-duplications and the unique indexes they clear the way for. Schemifier
-   * never created those indexes; that is why V057 and V116 existed. So the databases that needed
-   * them were exactly the ones that recorded them as done without building them, and were handed
-   * back with their duplicate rows and no constraint.
-   *
-   * And a sync writes DATABASECHANGELOG row by row, committing as it goes, so a start killed during
-   * one leaves the table present and short of its rows. The next start saw a DATABASECHANGELOG,
-   * concluded the database was already adopted, and ran a plain `update` over objects that were
-   * already there - `MigrationFailedException ... Index "METRIC_CONSUMERID" already exists`, on
-   * that start and on every one after it. Both are covered by LiquibaseOnExistingSchemaTest.
-   *
-   * What this still does not cover is a schema that differs from the baseline in a way no
-   * precondition looks at - a table that exists with the wrong columns. That was equally true of
-   * changeLogSync and of Flyway's baselineOnMigrate before it; the difference is that the failure
-   * is now per-object rather than whole-changelog.
-   */
-  /**
    * Whether a LockException is anywhere in this exception's cause chain.
    *
    * Matched on the chain rather than on the exception itself because `update` runs the change
@@ -191,6 +154,43 @@ object LiquibaseSchemaSetup extends MdcLoggable {
     }
   }
 
+  /**
+   * Bring the database to the changelog, whatever state it starts in.
+   *
+   * `update`, and nothing else. Every changeset in the baseline carries its own existence
+   * precondition - `not tableExists` / `not indexExists`, `onFail: MARK_RAN` - so each one decides
+   * for itself whether the object it creates is already there. That makes one code path right for
+   * every state a database can be in when the application boots:
+   *
+   *   empty                          nothing exists, so every changeset runs.
+   *   tables, no DATABASECHANGELOG   an existing deployment, whose schema was built by Schemifier
+   *                                  or by the Flyway scripts - neither of which leaves a Liquibase
+   *                                  record. Each changeset finds its object and records itself
+   *                                  without running. What is genuinely absent is created.
+   *   tables and DATABASECHANGELOG   the normal case, and a boot interrupted at any point in any of
+   *                                  the above: the record says what has run, the preconditions
+   *                                  cover whatever the record does not.
+   *
+   * It used to decide between `update` and `changeLogSync` by looking at whether DATABASECHANGELOG
+   * existed. That was wrong in both directions.
+   *
+   * A blanket `changeLogSync` marks the whole changelog applied on the strength of the tables being
+   * there - including the de-duplications and the unique indexes they clear the way for. Schemifier
+   * never created those indexes; that is why V057 and V116 existed. So the databases that needed
+   * them were exactly the ones that recorded them as done without building them, and were handed
+   * back with their duplicate rows and no constraint.
+   *
+   * And a sync writes DATABASECHANGELOG row by row, committing as it goes, so a start killed during
+   * one leaves the table present and short of its rows. The next start saw a DATABASECHANGELOG,
+   * concluded the database was already adopted, and ran a plain `update` over objects that were
+   * already there - `MigrationFailedException ... Index "METRIC_CONSUMERID" already exists`, on
+   * that start and on every one after it. Both are covered by LiquibaseOnExistingSchemaTest.
+   *
+   * What this still does not cover is a schema that differs from the baseline in a way no
+   * precondition looks at - a table that exists with the wrong columns. That was equally true of
+   * changeLogSync and of Flyway's baselineOnMigrate before it; the difference is that the failure
+   * is now per-object rather than whole-changelog.
+   */
   def bringUpToDate(
     dataSource: javax.sql.DataSource,
     classLoader: ClassLoader = getClass.getClassLoader
