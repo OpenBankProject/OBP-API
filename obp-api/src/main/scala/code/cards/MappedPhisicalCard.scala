@@ -97,10 +97,23 @@ object MappedPhysicalCard {
          FROM mappedphysicalcard"""
 
   // Split in two because Scala tuples stop at 22 elements and this table has 24 columns to read.
-  private type RowHead = (String, String, String, String, String, String, String,
-    java.sql.Timestamp, java.sql.Timestamp, Boolean, Boolean, Boolean)
-  private type RowTail = (String, String, String, Long, Option[java.sql.Timestamp], Option[String],
-    Option[java.sql.Timestamp], Option[java.sql.Timestamp], String, String, String, Long)
+  //
+  // Only `id` is NOT NULL on this table. mcvv/mbrand in particular were added to the model years
+  // after the table existed, and Schemifier added them with no backfill, so every card written
+  // before that release holds SQL NULL there; maccount is a MappedLongForeignKey, which writes NULL
+  // whenever it is undefined. Binding those bare made doobie raise NonNullableColumnRead and fail
+  // the whole listing, so each column is read as Option and collapsed the way its Mapper field read
+  // a NULL: MappedString -> null, MappedBoolean -> false, MappedLongForeignKey -> 0L,
+  // MappedDateTime -> null. The four raw strings backing accessors that dereference them
+  // (networks/allows/cvv/brand) collapse to "" instead, which is what those accessors already
+  // treat as "empty" - `allows` guards with Option(allowsRaw) - so a NULL column stays a listing
+  // that renders rather than an NPE one field later.
+  private type RowHead = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[Boolean], Option[Boolean], Option[Boolean])
+  private type RowTail = (Option[String], Option[String], Option[String], Option[Long],
+    Option[java.sql.Timestamp], Option[String], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[String], Option[String], Option[String], Long)
   private type Row = (RowHead, RowTail)
 
   private def fromRow(row: Row): MappedPhysicalCard = row match {
@@ -108,10 +121,14 @@ object MappedPhysicalCard {
            validFrom, expires, enabled, cancelled, onHotList),
           (technology, networks, allows, accountKey, replacementDate, replacementReason, collected,
            posted, customerId, cvv, brand, cardKey)) =>
-      MappedPhysicalCard(cardId, bankId, bankCardNumber, cardType, nameOnCard, issueNumber,
-        serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks,
-        allows, accountKey, replacementDate.map(d => d: Date), replacementReason,
-        collected.map(d => d: Date), posted.map(d => d: Date), customerId, cvv, brand, cardKey)
+      MappedPhysicalCard(cardId.orNull, bankId.orNull, bankCardNumber.orNull, cardType.orNull,
+        nameOnCard.orNull, issueNumber.orNull, serialNumber.orNull,
+        validFrom.map(d => d: Date).orNull, expires.map(d => d: Date).orNull,
+        enabled.getOrElse(false), cancelled.getOrElse(false), onHotList.getOrElse(false),
+        technology.orNull, networks.getOrElse(""), allows.getOrElse(""),
+        accountKey.getOrElse(0L), replacementDate.map(d => d: Date), replacementReason,
+        collected.map(d => d: Date), posted.map(d => d: Date), customerId.orNull,
+        cvv.getOrElse(""), brand.getOrElse(""), cardKey)
   }
 
   private def query(condition: Fragment): List[MappedPhysicalCard] =

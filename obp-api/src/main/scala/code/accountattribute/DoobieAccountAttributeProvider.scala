@@ -46,16 +46,24 @@ case class AccountAttributeRow(
  */
 object DoobieAccountAttributeProvider extends AccountAttributeProvider {
 
-  private def rowOf(r: (String, String, String, String, String, String, String, String)): AccountAttributeRow =
+  // Only `id` is NOT NULL on this table. mproductinstancecode in particular was added to the model
+  // long after the table existed, and Schemifier added it with no backfill, so every row written
+  // before that release holds SQL NULL there. Binding bare made doobie raise NonNullableColumnRead
+  // and fail the whole listing; each column is collapsed the way its MappedString read a NULL.
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String])
+
+  private def rowOf(r: Row): AccountAttributeRow =
     AccountAttributeRow(
-      bankId = BankId(r._1),
-      accountId = AccountId(r._2),
-      productCode = ProductCode(r._3),
-      accountAttributeId = r._4,
-      attributeType = AccountAttributeType.withName(r._5),
-      name = r._6,
-      value = r._7,
-      productInstanceCode = Some(r._8)
+      bankId = BankId(r._1.orNull),
+      accountId = AccountId(r._2.orNull),
+      productCode = ProductCode(r._3.orNull),
+      accountAttributeId = r._4.orNull,
+      attributeType = AccountAttributeType.withName(r._5.orNull),
+      name = r._6.orNull,
+      value = r._7.orNull,
+      // Already an Option field: a NULL column is None, not Some(null) as the bare bind produced.
+      productInstanceCode = r._8
     )
 
   private val selectCols: Fragment =
@@ -66,7 +74,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE maccountid = ${accountId.value} AND mcode = ${productCode.value}")
-          .query[(String, String, String, String, String, String, String, String)].to[List]
+          .query[Row].to[List]
       ).map(rowOf)
     }
 
@@ -74,7 +82,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE mbankidid = ${bankId.value} AND maccountid = ${accountId.value}")
-          .query[(String, String, String, String, String, String, String, String)].to[List]
+          .query[Row].to[List]
       ).map(rowOf)
     }
 
@@ -88,7 +96,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
       .filter(_.canBeSeenOnViews.exists(_ == viewId.value))
     val accountAttributes = DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mbankidid = ${bankId.value} AND maccountid = ${accountId.value}")
-        .query[(String, String, String, String, String, String, String, String)].to[List]
+        .query[Row].to[List]
     ).map(rowOf)
     val filteredAccountAttributes = for {
       definition <- attributeDefinitions
@@ -112,7 +120,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
       val inFrag = Fragments.in(fr"maccountid", cats.data.NonEmptyList.fromListUnsafe(accountIds))
       val accountAttributes = DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE " ++ inFrag)
-          .query[(String, String, String, String, String, String, String, String)].to[List]
+          .query[Row].to[List]
       ).map(rowOf).filter { item =>
         accounts.exists(acc => (acc.bankId.value, acc.accountId.value) == (item.bankId.value, item.accountId.value))
       }
@@ -128,7 +136,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
   override def getAccountAttributeById(accountAttributeId: String): Future[Box[AccountAttribute]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE maccountattributeid = $accountAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, String, String, String)].option
+        .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -150,7 +158,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE maccountattributeid = $id LIMIT 1")
-            .query[(String, String, String, String, String, String, String, String)].option
+            .query[Row].option
         ) match {
           case Some(_) =>
             tryo {
@@ -242,7 +250,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
   def getAccountAttributesByBankSync(bankId: String): List[AccountAttributeRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mbankidid = $bankId")
-        .query[(String, String, String, String, String, String, String, String)].to[List]
+        .query[Row].to[List]
     ).map(rowOf)
 
   /** Direct query used by deletion.DeleteAccountCascade.delete. */

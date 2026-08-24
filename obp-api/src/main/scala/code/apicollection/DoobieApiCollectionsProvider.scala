@@ -37,8 +37,15 @@ case class ApiCollectionRow(
  */
 object DoobieApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvider {
 
-  private def rowOf(r: (String, String, String, Boolean, String)): ApiCollectionRow =
-    ApiCollectionRow(r._1, r._2, r._3, r._4, r._5)
+  // Only `id` is NOT NULL on this table. `description` in particular was added to the model months
+  // after the table existed, and Schemifier added it with no backfill, so collections created in
+  // that window hold SQL NULL there. Binding bare made doobie raise NonNullableColumnRead and fail
+  // the whole listing; each column is collapsed the way its Mapper field read a NULL
+  // (MappedString -> null, MappedBoolean -> false).
+  private type Row = (Option[String], Option[String], Option[String], Option[Boolean], Option[String])
+
+  private def rowOf(r: Row): ApiCollectionRow =
+    ApiCollectionRow(r._1.orNull, r._2.orNull, r._3.orNull, r._4.getOrElse(false), r._5.orNull)
 
   private val selectCols: Fragment =
     fr"SELECT apicollectionid, userid, apicollectionname, issharable, description FROM apicollection"
@@ -64,7 +71,7 @@ object DoobieApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
   override def getApiCollectionById(apiCollectionId: String): Box[ApiCollectionTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE apicollectionid = $apiCollectionId LIMIT 1")
-        .query[(String, String, String, Boolean, String)].option
+        .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -94,14 +101,14 @@ object DoobieApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
   ): Box[ApiCollectionTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE userid = $userId AND apicollectionname = $apiCollectionName LIMIT 1")
-        .query[(String, String, String, Boolean, String)].option
+        .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
     }
 
   override def getAllApiCollections(): List[ApiCollectionTrait] =
-    DoobieUtil.runQuery(selectCols.query[(String, String, String, Boolean, String)].to[List]).map(rowOf)
+    DoobieUtil.runQuery(selectCols.query[Row].to[List]).map(rowOf)
 
   override def deleteApiCollectionById(apiCollectionId: String): Box[Boolean] =
     getApiCollectionById(apiCollectionId) match {
@@ -115,6 +122,6 @@ object DoobieApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
 
   override def getApiCollectionsByUserId(userId: String): List[ApiCollectionTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE userid = $userId").query[(String, String, String, Boolean, String)].to[List]
+      (selectCols ++ fr"WHERE userid = $userId").query[Row].to[List]
     ).map(rowOf)
 }

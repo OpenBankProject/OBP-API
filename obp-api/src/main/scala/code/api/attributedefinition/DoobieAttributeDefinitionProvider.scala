@@ -63,6 +63,12 @@ object AttributeDefinition {
         isActive = isActive.getOrElse(false))
   }
 
+  /** All definitions in one category, across every bank. */
+  def findAllByCategory(category: String): List[AttributeDefinition] =
+    DoobieUtil.runQuery(
+      (selectColumns ++ fr"WHERE category = $category").query[Row].to[List]
+    ).map(fromRow)
+
   /** All definitions for one bank in one category. */
   def findAllByBankIdAndCategory(bankId: String, category: String): List[AttributeDefinition] =
     DoobieUtil.runQuery(
@@ -161,16 +167,6 @@ object DoobieAttributeDefinitionProvider extends AttributeDefinitionProviderTrai
   }
 
   override def getAttributeDefinition(category: AttributeCategory.Value): Future[Box[List[AttributeDefinition]]] = Future {
-    Full(DoobieUtil.runQuery(
-      (fr"""SELECT attributedefinitionid, bankid, name, category, typeofvalue, description, alias,
-                   canbeseenonviews, isactive
-            FROM attributedefinition WHERE category = ${category.toString}""")
-        .query[(String, String, String, String, String, String, String, String, Boolean)].to[List]
-    ).map { case (attributeDefinitionId, bankId, name, cat, typeOfValue, description, alias, canBeSeenOnViews, isActive) =>
-      AttributeDefinition(
-        attributeDefinitionId, BankIdCommonModel(bankId), name,
-        AttributeCategory.withName(cat), AttributeType.withName(typeOfValue),
-        description, alias, canBeSeenOnViews.split(";").toList, isActive)
-    })
+    Full(AttributeDefinition.findAllByCategory(category.toString))
   }
 }

@@ -29,13 +29,19 @@ case class CustomerAccountLinkRow(
  */
 object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
 
-  private def rowOf(r: (String, String, String, String, String)): CustomerAccountLinkRow =
+  // Only `id` is NOT NULL on this table. `bankid` in particular was added to the model two months
+  // after the table existed, and Schemifier added it with no backfill, so links created in that
+  // window hold SQL NULL there. Binding bare made doobie raise NonNullableColumnRead and fail the
+  // whole listing; each column is collapsed the way its MappedString read a NULL.
+  private type Row = (Option[String], Option[String], Option[String], Option[String], Option[String])
+
+  private def rowOf(r: Row): CustomerAccountLinkRow =
     CustomerAccountLinkRow(
-      customerAccountLinkId = r._1,
-      customerId = r._2,
-      bankId = r._3,
-      accountId = r._4,
-      relationshipType = r._5
+      customerAccountLinkId = r._1.orNull,
+      customerId = r._2.orNull,
+      bankId = r._3.orNull,
+      accountId = r._4.orNull,
+      relationshipType = r._5.orNull
     )
 
   private val selectCols: Fragment =
@@ -56,7 +62,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
   override def getOrCreateCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE customerid = $customerId AND bankid = $bankId AND accountid = $accountId LIMIT 1")
-        .query[(String, String, String, String, String)].option
+        .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Full(insert(customerId, bankId, accountId, relationshipType))
@@ -65,7 +71,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
   override def getCustomerAccountLinkByCustomerId(customerId: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE customerid = $customerId LIMIT 1")
-        .query[(String, String, String, String, String)].option
+        .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -75,7 +81,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
     tryo {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE bankid = $bankId AND accountid = $accountId")
-          .query[(String, String, String, String, String)].to[List]
+          .query[Row].to[List]
       ).map(rowOf)
     }
 
@@ -83,7 +89,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
     tryo {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE customerid = $customerId")
-          .query[(String, String, String, String, String)].to[List]
+          .query[Row].to[List]
       ).map(rowOf)
     }
 
@@ -91,14 +97,14 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
     tryo {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE bankid = $bankId AND accountid = $accountId")
-          .query[(String, String, String, String, String)].to[List]
+          .query[Row].to[List]
       ).map(rowOf)
     }
 
   override def getCustomerAccountLinkById(customerAccountLinkId: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE customeraccountlinkid = $customerAccountLinkId LIMIT 1")
-        .query[(String, String, String, String, String)].option
+        .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -107,7 +113,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
   override def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE customeraccountlinkid = $customerAccountLinkId LIMIT 1")
-        .query[(String, String, String, String, String)].option
+        .query[Row].option
     ) match {
       case Some(r) =>
         tryo {
@@ -121,7 +127,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
 
   override def getCustomerAccountLinks: Box[List[CustomerAccountLinkTrait]] =
     tryo {
-      DoobieUtil.runQuery(selectCols.query[(String, String, String, String, String)].to[List]).map(rowOf)
+      DoobieUtil.runQuery(selectCols.query[Row].to[List]).map(rowOf)
     }
 
   override def bulkDeleteCustomerAccountLinks(): Boolean = {
@@ -133,7 +139,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
   def findByAccountIdSync(accountId: String): List[CustomerAccountLinkRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE accountid = $accountId")
-        .query[(String, String, String, String, String)].to[List]
+        .query[Row].to[List]
     ).map(rowOf)
 
   /** Direct query used by deletion.DeleteCustomerCascade.delete. */

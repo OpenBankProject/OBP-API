@@ -43,22 +43,30 @@ case class CrmEventRow(
  */
 object DoobieCrmEventProvider extends CrmEventProvider {
 
-  private def rowOf(r: (String, String, Long, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp, String)): CrmEventRow =
+  // Every column except the primary key is nullable, and the sandbox importer deliberately leaves
+  // mUserId, mScheduledDate and mResult unset ("Note: We are not saving API User, Result or
+  // Scheduled Date" in LocalMappedConnectorDataImport), so rows written before this store existed
+  // hold SQL NULL there. Binding them bare made doobie raise NonNullableColumnRead and fail the
+  // whole listing. Each column is collapsed the way its Mapper field read a NULL:
+  // MappedLongForeignKey -> 0L, MappedString/MappedDateTime -> null.
+  private def rowOf(r: Row): CrmEventRow =
     CrmEventRow(
-      crmEventId = CrmEventId(r._1),
-      bankId = BankId(r._2),
-      userIdPrimaryKey = r._3,
-      customerName = r._4,
-      customerNumber = r._5,
-      category = r._6,
-      detail = r._7,
-      channel = r._8,
-      scheduledDate = new Date(r._9.getTime),
-      actualDate = new Date(r._10.getTime),
-      result = r._11
+      crmEventId = CrmEventId(r._1.orNull),
+      bankId = BankId(r._2.orNull),
+      userIdPrimaryKey = r._3.getOrElse(0L),
+      customerName = r._4.orNull,
+      customerNumber = r._5.orNull,
+      category = r._6.orNull,
+      detail = r._7.orNull,
+      channel = r._8.orNull,
+      scheduledDate = r._9.map(t => new Date(t.getTime)).orNull,
+      actualDate = r._10.map(t => new Date(t.getTime)).orNull,
+      result = r._11.orNull
     )
 
-  private type Row = (String, String, Long, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp, String)
+  private type Row = (Option[String], Option[String], Option[Long], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[String])
 
   private val selectCols: Fragment =
     fr"""SELECT mcrmeventid, mbankid, muserid, mcustomername, mcustomernumber, mcategory, mdetail, mchannel, mscheduleddate, mactualdate, mresult
