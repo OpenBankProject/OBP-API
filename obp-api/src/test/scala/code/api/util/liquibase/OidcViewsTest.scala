@@ -10,9 +10,16 @@ import org.scalatest.matchers.should.Matchers
  *
  * They were the one part of the schema a fresh deployment did not get: created by hand-run scripts
  * under src/main/scripts/sql/OIDC rather than by anything the application does, so a new database
- * came up with every table present and OIDC login broken, with nothing saying why. The four views
- * the MigrationOf* scripts create (v_consent, v_metric, v_account_access_with_views,
- * v_fast_firehose_accounts) always appeared; these three never did.
+ * came up with every table present and OIDC login broken, with nothing saying why.
+ *
+ * This file used to add that the four views the MigrationOf* scripts create (v_consent, v_metric,
+ * v_account_access_with_views, v_fast_firehose_accounts) "always appeared". They always appeared
+ * HERE: ServerSetup forces migration_scripts.execute_all=true, so the test environment always runs
+ * the scripts that create them. A deployment made from the shipped props template runs neither
+ * (migration_scripts.enabled and .execute_all both default false), and got no v_consent and no
+ * v_account_access_with_views - which the request paths select from. Those two are now in the
+ * changelog as well, held by AppViewsTest; v_metric and v_fast_firehose_accounts are not read by
+ * any request path and are still left to the scripts.
  *
  * They are created in a SECOND Liquibase pass, after the legacy MigrationOf* scripts: those still
  * run `ALTER TABLE consumer ALTER COLUMN aud TYPE text`, and Postgres refuses to alter a column a
