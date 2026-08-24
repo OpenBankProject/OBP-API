@@ -34,12 +34,42 @@ CAST = re.compile(r"asInstanceOf\[List\[\s*([A-Za-z0-9_.]*Commons)\s*\]\]")
 
 
 def code_of(line):
-    """The line with any comment removed - the pattern is about code, and the comment explaining
-    why the pattern is banned necessarily contains it."""
+    """The line with comment content removed - the pattern is about code, and the comment
+    explaining why the pattern is banned necessarily contains it.
+
+    String-aware: a `//` inside a string literal ("http://...") must not truncate the line, or a
+    cast written after such a literal is never seen. Block-comment interiors (` * ...`) are dropped
+    wholesale; a `/*` opener keeps what precedes it. Line-local by design - a cast inside a
+    multi-line block comment would be flagged, which errs on the side the lint should err on.
+    """
     stripped = line.lstrip()
-    if stripped.startswith("//") or stripped.startswith("*") or stripped.startswith("/*"):
+    if stripped.startswith("*") or stripped.startswith("/*"):
         return ""
-    return line.split("//", 1)[0]
+    out = []
+    in_string = False
+    i, n = 0, len(line)
+    while i < n:
+        c = line[i]
+        if in_string:
+            if c == "\\" and i + 1 < n:
+                out.append("  ")
+                i += 2
+                continue
+            if c == '"':
+                in_string = False
+            out.append(c)
+            i += 1
+            continue
+        if c == '"':
+            in_string = True
+            out.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and line[i + 1] in "/*":
+            break
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 def main():
