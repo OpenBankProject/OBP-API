@@ -3,6 +3,7 @@ package code.api.ResourceDocs1_4_0
 import org.json4s._
 import org.json4s.native.JsonMethods.parse
 import code.api.util.APIUtil.ResourceDoc
+import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.V140ServerSetup
 import code.api.v2_1_0.OBPAPI2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0
@@ -187,26 +188,31 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
         case _ => Nil
       }
 
-      def danglingRefsOf(entity: AnyRef): List[String] = {
-        // translateEntity returns a definitions *fragment* - `"EntityName":{...}` - not a
-        // document, so it has to be wrapped before it will parse.
-        parse(s"{${SwaggerJSONFactory.translateEntity(entity)}}") match {
-          case JObject(List((definitionName, JObject(body)))) =>
-            val properties =
-              body.collectFirst { case ("properties", JObject(props)) => props }.getOrElse(Nil)
-            properties.flatMap { case (fieldName, schema) =>
-              refsIn(schema).filter(notDefinitions).map(bad => s"$definitionName.$fieldName -> $$ref:$bad")
-            }
-          case _ => Nil
+      // Built the way the server builds it (Http4sResourceDocs' swagger branch), not by calling
+      // translateEntity per example body. Most definitions are reached only as the target of a
+      // $ref from another one - AllConsentJsonV510 is published because ConsentsJsonV510 holds a
+      // list of it, never as a body in its own right - and a per-body walk translates only the
+      // bodies, so it cannot see them. loadDefinitions does the nested walk, so this is the whole
+      // published surface rather than its top layer.
+      val resourceDocJsonList =
+        JSONFactory1_4_0.createResourceDocsJson(resourceDocList.toList, isVersion4OrHigher = true, None).resource_docs
+      val definitions =
+        SwaggerJSONFactory.loadDefinitions(resourceDocJsonList, SwaggerDefinitionsJSON.allFields) \\ "definitions" match {
+          case JObject(defs) => defs
+          case other => fail(s"expected a definitions object, got: ${other.getClass.getSimpleName}")
         }
-      }
 
-      val offenders = resourceDocList.toList
-        .flatMap(d => List(d.exampleRequestBody, d.successResponseBody))
-        .collect { case b: AnyRef if b != null => b }
-        .flatMap(danglingRefsOf)
-        .distinct
-        .sorted
+      definitions.size should be > 100
+
+      val offenders = definitions.flatMap {
+        case (definitionName, JObject(body)) =>
+          val properties =
+            body.collectFirst { case ("properties", JObject(props)) => props }.getOrElse(Nil)
+          properties.flatMap { case (fieldName, schema) =>
+            refsIn(schema).filter(notDefinitions).map(bad => s"$definitionName.$fieldName -> $$ref:$bad")
+          }
+        case _ => Nil
+      }.distinct.sorted
 
       withClue(
         s"${offenders.size} field(s) publish a dangling $$ref. A field of an erased type (an Option " +

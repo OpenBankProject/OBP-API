@@ -4632,6 +4632,11 @@ object SwaggerDefinitionsJSON {
     api_standard = "Berlin Group",
     api_version = "v1.3",
     jwt_payload = Some(consentJWT),
+    // An Option[Int] left at its None default publishes as a $ref to a definition that does not
+    // exist - see refineErasedTypeArgument in SwaggerJSONFactory. The value is what the field's
+    // documented type is derived from, so it has to be present.
+    frequency_per_day = Some(4),
+    remaining_requests = Some(3),
     note = """Tue, 15 Jul 2025 19:16:22
              ||---> Changed status from received to rejected for consent ID: 398""".stripMargin
   )
