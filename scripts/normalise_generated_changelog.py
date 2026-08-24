@@ -84,6 +84,55 @@ def stable_ids(lines):
     return out
 
 
+def existence_preconditions(lines):
+    """Give each changeset the precondition that lets it decide whether its object is already there.
+
+    `not tableExists` / `not indexExists` with `onFail: MARK_RAN`, so a changeset whose object
+    exists records itself without running. That is what lets `bringUpToDate` be a plain `update`
+    for a fresh database, for one an existing deployment brings with tables and no Liquibase
+    record, and for one left half-way by a start that was killed - see LiquibaseSchemaSetup.
+
+    Preconditions are not part of a changeset's checksum (ChangeSet.generateCheckSum reads only
+    the changes and the sql visitors), so adding them to changesets a deployment has already run
+    does not invalidate anything.
+
+    Runs after stable_ids, so the id already names the kind, and the object's own name is read from
+    the change body rather than from that derived slug.
+    """
+    out = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        m = re.match(r"^(\s*)id: create-(table|index)-(\S+)$", line)
+        if not m:
+            i += 1
+            continue
+        indent, kind = m.group(1), m.group(2)
+        if not re.match(r"^\s*author: ", lines[i + 1]):
+            raise SystemExit(f"expected an author line after {line!r}")
+        out.append(lines[i + 1])
+        body = "".join(lines[i:i + 400]).split("\n- changeSet:")[0]
+        table = re.search(r"^\s*tableName: (\S+)$", body, re.M)
+        if table is None:
+            raise SystemExit(f"no tableName in the changeset at {line!r}")
+        out.append(f"{indent}preConditions:\n")
+        out.append(f"{indent}  - onFail: MARK_RAN\n")
+        out.append(f"{indent}  - not:\n")
+        if kind == "table":
+            out.append(f"{indent}      - tableExists:\n")
+            out.append(f"{indent}          tableName: {table.group(1)}\n")
+        else:
+            index = re.search(r"^\s*indexName: (\S+)$", body, re.M)
+            if index is None:
+                raise SystemExit(f"no indexName in the changeset at {line!r}")
+            out.append(f"{indent}      - indexExists:\n")
+            out.append(f"{indent}          indexName: {index.group(1)}\n")
+            out.append(f"{indent}          tableName: {table.group(1)}\n")
+        i += 2
+    return out
+
+
 def main():
     if len(sys.argv) != 3:
         raise SystemExit(f"usage: {sys.argv[0]} <generated.yaml> <out.yaml>")
@@ -101,6 +150,7 @@ def main():
     lines = open(src).readlines()  # NOSONAR - src is the caller-chosen input file by design, not attacker input
 
     lines = stable_ids(lines)
+    lines = existence_preconditions(lines)
 
     out = []
     for line in lines:

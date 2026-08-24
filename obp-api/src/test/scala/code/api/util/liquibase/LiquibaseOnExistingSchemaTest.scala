@@ -114,6 +114,106 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
     } finally withConnection(db)(execute(_, "DROP ALL OBJECTS"))
   }
 
+  /**
+   * A copy of `from`, in a database Liquibase has not touched in this JVM.
+   *
+   * It has to be a database it has not touched, because Liquibase keeps the list of applied
+   * changesets per database inside the process: after a run against one, a later run against the
+   * same one answers from that list rather than from DATABASECHANGELOG. A fixture that edits the
+   * table behind its back is then invisible - `update` reports "Database is up to date" and does
+   * nothing, in a JVM where the same edit against a fresh process aborts the boot. Copying the
+   * schema into a database with no history in this JVM is what makes an in-suite test see what a
+   * restarted application would.
+   */
+  private def cloneSchema(from: String, to: String): Unit = {
+    val script = java.io.File.createTempFile(s"liquibase-clone-$to-", ".sql")
+    try {
+      withConnection(from)(execute(_, s"SCRIPT TO '${script.getAbsolutePath}'"))
+      withConnection(to)(execute(_, "DROP ALL OBJECTS"))
+      withConnection(to)(execute(_, s"RUNSCRIPT FROM '${script.getAbsolutePath}'"))
+    } finally script.delete()
+  }
+
+  "a database whose adoption was interrupted" should "be adopted the rest of the way" in {
+    val source = "liquibase_interrupted_adoption_source"
+    val db = "liquibase_interrupted_adoption"
+    try {
+      // An adoption writes DATABASECHANGELOG row by row and commits as it goes, so a start killed
+      // during one leaves the table present and short of its rows. That is a different state from
+      // an interrupted `update`: there the missing changesets have not run, here their objects are
+      // already in the database, put there by whatever built it before Liquibase arrived.
+      withConnection(source)(execute(_, "DROP ALL OBJECTS"))
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(source))
+      cloneSchema(source, db)
+
+      val fullyAdopted = appliedChangesets(db)
+      withConnection(db)(execute(_,
+        "DELETE FROM DATABASECHANGELOG WHERE ID IN " +
+        "(SELECT ID FROM DATABASECHANGELOG ORDER BY ORDEREXECUTED DESC LIMIT 50)"))
+      withClue("the fixture must have left the record short, neither emptied nor complete: ") {
+        appliedChangesets(db) should (be > 0L and be < fullyAdopted)
+      }
+
+      // The decision used to key off DATABASECHANGELOG merely existing, so a half-written one sent
+      // the next start down the plain-`update` path - which tried to create objects that were
+      // already there and aborted the boot. Verified against a real restart before it was fixed:
+      // `MigrationFailedException ... create-index-metric_consumerid`, on every subsequent start.
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
+
+      withClue("the tables must be left alone: ") {
+        tableCount(db) should equal(146L)
+      }
+      withClue("the record must be complete again, so the next boot is a no-op: ") {
+        appliedChangesets(db) should equal(fullyAdopted)
+      }
+    } finally {
+      withConnection(db)(execute(_, "DROP ALL OBJECTS"))
+      withConnection(source)(execute(_, "DROP ALL OBJECTS"))
+    }
+  }
+
+  "adopting a schema that is missing a unique index" should "build the index rather than record it as done" in {
+    val source = "liquibase_missing_index_source"
+    val db = "liquibase_missing_index"
+    try {
+      // The state the de-duplication changesets exist for. Schemifier never created these unique
+      // indexes - that is why V057 and V116 had to add them - so a database reaching this build
+      // from Schemifier has the tables, holds duplicate rows, and has no index. Recording the whole
+      // changelog as applied hands it back unchanged: the changesets that would de-duplicate it and
+      // build the index are marked done without either happening, so the databases that need them
+      // are exactly the ones that skip them.
+      withConnection(source)(execute(_, "DROP ALL OBJECTS"))
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(source))
+      cloneSchema(source, db)
+
+      withConnection(db) { c =>
+        execute(c, "DROP TABLE DATABASECHANGELOG")
+        execute(c, "DROP TABLE DATABASECHANGELOGLOCK")
+        execute(c, "DROP INDEX accountidmapping_maccountplaintextreference")
+        execute(c, "INSERT INTO accountidmapping (id, maccountid, maccountplaintextreference) VALUES (1, 'a1', 'ref-1')")
+        execute(c, "INSERT INTO accountidmapping (id, maccountid, maccountplaintextreference) VALUES (2, 'a2', 'ref-1')")
+      }
+      withClue("the fixture must start with the duplicates it is about: ") {
+        withConnection(db)(scalar(_, "SELECT COUNT(*) FROM accountidmapping")) should equal(2L)
+      }
+
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
+
+      withClue("the duplicate must be collapsed, keeping the lowest id: ") {
+        withConnection(db)(scalar(_, "SELECT COUNT(*) FROM accountidmapping")) should equal(1L)
+        withConnection(db)(scalar(_, "SELECT id FROM accountidmapping")) should equal(1L)
+      }
+      withClue("the unique index the de-duplication clears the way for must exist: ") {
+        withConnection(db)(scalar(_,
+          "SELECT COUNT(*) FROM information_schema.indexes WHERE table_schema = 'PUBLIC' " +
+          "AND UPPER(index_name) = 'ACCOUNTIDMAPPING_MACCOUNTPLAINTEXTREFERENCE'")) should equal(1L)
+      }
+    } finally {
+      withConnection(db)(execute(_, "DROP ALL OBJECTS"))
+      withConnection(source)(execute(_, "DROP ALL OBJECTS"))
+    }
+  }
+
   "a database left half-built by an interrupted boot" should "be finished on the next start" in {
     val db = "liquibase_upgrade_interrupted"
     withConnection(db)(execute(_, "DROP ALL OBJECTS"))

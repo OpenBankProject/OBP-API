@@ -54,6 +54,9 @@ jobs:
       - name: Lint — a Commons list is converted, never cast
         run: python3 .github/scripts/check_no_blind_commons_casts.py
 
+      - name: Lint — every baseline changeset carries its existence precondition
+        run: python3 .github/scripts/check_changelog_preconditions.py
+
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them

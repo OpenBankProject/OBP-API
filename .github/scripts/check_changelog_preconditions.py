@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Every baseline changeset must decide for itself whether its object is already there.
+
+`LiquibaseSchemaSetup.bringUpToDate` is a plain `update`, for every state a database can be in when
+the application boots - empty, or brought by an existing deployment with tables and no Liquibase
+record, or left half-way by a start that was killed. What makes one code path right for all three is
+that each changeset in the baseline carries `not tableExists` / `not indexExists` with
+`onFail: MARK_RAN`: it records itself without running when its object exists, and runs when it does
+not.
+
+Take those away and both of the failures they replaced come back. A blanket `changeLogSync` marks
+the de-duplications and the unique indexes they clear the way for as applied on the strength of the
+tables being present - and Schemifier never created those indexes, which is why V057 and V116
+existed, so the databases that needed them were exactly the ones that skipped them. And a sync
+commits row by row, so a start killed during one leaves a partial DATABASECHANGELOG that sent the
+next start into a plain `update` over objects that already existed:
+`MigrationFailedException ... Index "METRIC_CONSUMERID" already exists`, on that start and every one
+after it.
+
+The baseline is generated (scripts/GenerateChangelog.java) and normalised
+(scripts/normalise_generated_changelog.py, which inserts these). A regeneration that lost the
+insertion step would produce a changelog that looks right, passes every fresh-database test in the
+suite, and breaks only on the upgrades this exists to serve - so the invariant is checked here
+rather than left to be noticed later.
+
+Preconditions are not part of a changeset's checksum - ChangeSet.generateCheckSum reads only the
+changes and the sql visitors - so this costs nothing on databases that have already run them.
+"""
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+BASELINE = ROOT / "obp-api/src/main/resources/db/changelog/db.changelog-baseline.yaml"
+
+
+def changesets(text):
+    """Each changeset as (id, body), split on the top-level `- changeSet:` marker."""
+    parts = re.split(r"(?m)^- changeSet:\n", text)[1:]
+    for body in parts:
+        m = re.search(r"^\s*id: (\S+)$", body, re.M)
+        yield (m.group(1) if m else "<unnamed>"), body
+
+
+def main():
+    if not BASELINE.exists():
+        print(f"check_changelog_preconditions: {BASELINE} not found", file=sys.stderr)
+        return 1
+
+    text = BASELINE.read_text()
+    problems = []
+    checked = 0
+
+    for cs_id, body in changesets(text):
+        checked += 1
+        creates_table = "- createTable:" in body
+        creates_index = "- createIndex:" in body
+        if not (creates_table or creates_index):
+            problems.append(f"{cs_id}: neither createTable nor createIndex - this check does not "
+                            f"know what precondition it needs; teach it, do not skip it")
+            continue
+
+        if "preConditions:" not in body:
+            problems.append(f"{cs_id}: no preConditions block")
+            continue
+        if "onFail: MARK_RAN" not in body:
+            problems.append(f"{cs_id}: precondition does not say onFail: MARK_RAN")
+        if not re.search(r"^\s*- not:$", body, re.M):
+            problems.append(f"{cs_id}: precondition is not negated - it must fire when the object "
+                            f"is ABSENT")
+
+        table = re.search(r"^\s*tableName: (\S+)$", body, re.M)
+        if creates_index:
+            index = re.search(r"^\s*indexName: (\S+)$", body, re.M)
+            if not re.search(r"^\s*- indexExists:$", body, re.M):
+                problems.append(f"{cs_id}: createIndex needs an indexExists precondition")
+            elif index is None:
+                problems.append(f"{cs_id}: createIndex has no indexName to check")
+            elif body.count(f"indexName: {index.group(1)}") < 2:
+                problems.append(f"{cs_id}: the precondition names an index other than "
+                                f"{index.group(1)}")
+        else:
+            if not re.search(r"^\s*- tableExists:$", body, re.M):
+                problems.append(f"{cs_id}: createTable needs a tableExists precondition")
+            elif table is None:
+                problems.append(f"{cs_id}: createTable has no tableName to check")
+            elif body.count(f"tableName: {table.group(1)}") < 2:
+                problems.append(f"{cs_id}: the precondition names a table other than "
+                                f"{table.group(1)}")
+
+    print(f"check_changelog_preconditions: {checked} baseline changeset(s) checked, "
+          f"{len(problems)} without a usable existence precondition")
+    if problems:
+        print("", file=sys.stderr)
+        for p in problems[:40]:
+            print(f"  {p}", file=sys.stderr)
+        if len(problems) > 40:
+            print(f"  ... and {len(problems) - 40} more", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Each baseline changeset needs `preConditions: [onFail: MARK_RAN, not: "
+              "[tableExists|indexExists: <the object it creates>]]`. "
+              "scripts/normalise_generated_changelog.py inserts them; if the changelog was "
+              "regenerated without it, re-run the normaliser rather than adding them by hand.",
+              file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

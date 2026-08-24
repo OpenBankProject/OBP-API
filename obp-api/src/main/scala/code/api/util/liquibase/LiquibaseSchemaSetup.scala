@@ -102,69 +102,41 @@ object LiquibaseSchemaSetup extends MdcLoggable {
   }
 
   /**
-   * Schemas every database keeps its own catalogue in. Never the application's.
-   *
-   * Only a fallback: the schema is normally read off the connection. It matters when a driver
-   * returns null from getSchema, because the alternative - searching every schema - counts the
-   * database's own catalogue as application tables. On H2 that alone is enough to make an empty
-   * database look populated.
-   */
-  private val systemSchemas =
-    Set("information_schema", "sys", "system", "pg_catalog", "sysibm", "mysql",
-      "performance_schema")
-
-  /**
-   * The lowercased names of the application's tables, read through JDBC metadata.
-   *
-   * JDBC metadata rather than information_schema because Oracle has no information_schema, and a
-   * vendor nobody here runs still working is the entire point of the changeover.
-   *
-   * Scoped to the connection's own schema, which is not a detail. Searching all schemas returns
-   * the database's catalogue too - H2 reports its INFORMATION_SCHEMA tables - so a genuinely empty
-   * database looks populated, `bringUpToDate` takes it for an existing deployment, and
-   * changelogSync marks all 410 changesets applied against a database with no tables in it. The
-   * application then starts against an empty schema with nothing left that would ever build it.
-   * That is not hypothetical: it is what this did before LiquibaseOnExistingSchemaTest's
-   * empty-database scenario caught it.
-   */
-  private def existingTableNames(connection: java.sql.Connection): Set[String] = {
-    val schema = Option(connection.getSchema).filter(_.nonEmpty)
-    val rs = connection.getMetaData.getTables(null, schema.orNull, "%", Array("TABLE"))
-    try {
-      val names = Set.newBuilder[String]
-      while (rs.next()) {
-        val table = Option(rs.getString("TABLE_NAME"))
-        val inSystemSchema = schema.isEmpty &&
-          Option(rs.getString("TABLE_SCHEM")).exists(s => systemSchemas.contains(s.toLowerCase))
-        if (!inSystemSchema) table.foreach(n => names += n.toLowerCase)
-      }
-      names.result()
-    } finally rs.close()
-  }
-
-  /**
    * Bring the database to the changelog, whatever state it starts in.
    *
-   * Three states are possible when the application boots, and the choice between them has to be
-   * made here: a deployment upgrading in place has no opportunity to run a command first.
+   * `update`, and nothing else. Every changeset in the baseline carries its own existence
+   * precondition - `not tableExists` / `not indexExists`, `onFail: MARK_RAN` - so each one decides
+   * for itself whether the object it creates is already there. That makes one code path right for
+   * every state a database can be in when the application boots:
    *
-   *   empty                      every changeset runs. A fresh deployment, and every CI run.
+   *   empty                          nothing exists, so every changeset runs.
    *   tables, no DATABASECHANGELOG   an existing deployment, whose schema was built by Schemifier
-   *                              or by the Flyway scripts - neither of which leaves a Liquibase
-   *                              record. `update` alone would run the baseline's createTable over
-   *                              tables that already exist and fail on the first one, so the
-   *                              changesets are marked applied without being run, and only what
-   *                              comes after is executed. This is Liquibase's changelogSync, and
-   *                              it is the counterpart of Flyway's baselineOnMigrate.
-   *   tables and DATABASECHANGELOG   the normal case, including a boot interrupted part-way:
-   *                              Liquibase records each changeset as it applies it, so the rest
-   *                              simply run on the next start.
+   *                                  or by the Flyway scripts - neither of which leaves a Liquibase
+   *                                  record. Each changeset finds its object and records itself
+   *                                  without running. What is genuinely absent is created.
+   *   tables and DATABASECHANGELOG   the normal case, and a boot interrupted at any point in any of
+   *                                  the above: the record says what has run, the preconditions
+   *                                  cover whatever the record does not.
    *
-   * Adoption assumes the existing schema matches the baseline, exactly as baselineOnMigrate did.
-   * It is the same assumption for the same reason - the alternative is refusing to start - and it
-   * holds because the baseline is generated from a database the Flyway scripts built. What it does
-   * NOT cover is a schema that is older than the baseline in some way nothing recorded; that was
-   * equally true of baselining at the highest script version.
+   * It used to decide between `update` and `changeLogSync` by looking at whether DATABASECHANGELOG
+   * existed. That was wrong in both directions.
+   *
+   * A blanket `changeLogSync` marks the whole changelog applied on the strength of the tables being
+   * there - including the de-duplications and the unique indexes they clear the way for. Schemifier
+   * never created those indexes; that is why V057 and V116 existed. So the databases that needed
+   * them were exactly the ones that recorded them as done without building them, and were handed
+   * back with their duplicate rows and no constraint.
+   *
+   * And a sync writes DATABASECHANGELOG row by row, committing as it goes, so a start killed during
+   * one leaves the table present and short of its rows. The next start saw a DATABASECHANGELOG,
+   * concluded the database was already adopted, and ran a plain `update` over objects that were
+   * already there - `MigrationFailedException ... Index "METRIC_CONSUMERID" already exists`, on
+   * that start and on every one after it. Both are covered by LiquibaseOnExistingSchemaTest.
+   *
+   * What this still does not cover is a schema that differs from the baseline in a way no
+   * precondition looks at - a table that exists with the wrong columns. That was equally true of
+   * changeLogSync and of Flyway's baselineOnMigrate before it; the difference is that the failure
+   * is now per-object rather than whole-changelog.
    */
   /**
    * Whether a LockException is anywhere in this exception's cause chain.
@@ -223,26 +195,11 @@ object LiquibaseSchemaSetup extends MdcLoggable {
     dataSource: javax.sql.DataSource,
     classLoader: ClassLoader = getClass.getClassLoader
   ): Unit = {
-    val needsAdoption = {
-      val c = dataSource.getConnection
-      try {
-        val tables = existingTableNames(c)
-        val bookkeeping =
-          Set("databasechangelog", "databasechangeloglock", "flyway_schema_history")
-        (tables -- bookkeeping).nonEmpty && !tables.contains("databasechangelog")
-      } finally c.close()
-    }
-
     val liquibase = configure(dataSource, classLoader)
     try withDuplicatesAllowed {
       // Everything except the OIDC views, which have to wait for the legacy data migrations.
       val everythingElse = new Contexts(s"!$oidcViewsContext")
       val noLabels = new LabelExpression()
-      if (needsAdoption) {
-        logger.info("Liquibase: the database already has tables and no DATABASECHANGELOG - " +
-          "recording the changelog as applied rather than rebuilding the schema")
-        liquibase.changeLogSync(everythingElse, noLabels)
-      }
       liquibase.update(everythingElse, noLabels)
       logger.info("Liquibase: schema is up to date")
     } catch {

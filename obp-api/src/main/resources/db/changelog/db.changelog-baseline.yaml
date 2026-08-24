@@ -2,6 +2,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedatm
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedatm
     changes:
     - createTable:
         columns:
@@ -167,6 +172,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-producttag
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: producttag
     changes:
     - createTable:
         columns:
@@ -191,6 +201,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-jsonschemavalidation
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: jsonschemavalidation
     changes:
     - createTable:
         columns:
@@ -212,6 +227,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtransactiontype
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtransactiontype
     changes:
     - createTable:
         columns:
@@ -254,6 +274,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-etag
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: etag
     changes:
     - createTable:
         columns:
@@ -278,6 +303,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-authenticationtypevalidation
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: authenticationtypevalidation
     changes:
     - createTable:
         columns:
@@ -299,6 +329,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-userlocks
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: userlocks
     changes:
     - createTable:
         columns:
@@ -323,6 +358,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-connectormethod
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: connectormethod
     changes:
     - createTable:
         columns:
@@ -350,6 +390,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-apicollectionendpoint
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: apicollectionendpoint
     changes:
     - createTable:
         columns:
@@ -380,6 +425,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-featuredapicollection
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: featuredapicollection
     changes:
     - createTable:
         columns:
@@ -410,6 +460,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-consentauthcontext
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: consentauthcontext
     changes:
     - createTable:
         columns:
@@ -443,6 +498,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappeduserauthcontext
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappeduserauthcontext
     changes:
     - createTable:
         columns:
@@ -479,6 +539,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-userinitaction
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: userinitaction
     changes:
     - createTable:
         columns:
@@ -512,6 +577,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-accountidmapping
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: accountidmapping
     changes:
     - createTable:
         columns:
@@ -539,6 +609,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-transactionidmapping
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: transactionidmapping
     changes:
     - createTable:
         columns:
@@ -566,6 +641,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcustomeridmapping
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcustomeridmapping
     changes:
     - createTable:
         columns:
@@ -599,6 +679,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedbankaccountdata
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedbankaccountdata
     changes:
     - createTable:
         columns:
@@ -629,6 +714,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-apicollection
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: apicollection
     changes:
     - createTable:
         columns:
@@ -665,6 +755,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedbadloginattempt
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedbadloginattempt
     changes:
     - createTable:
         columns:
@@ -694,6 +789,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-bankaccountrouting
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: bankaccountrouting
     changes:
     - createTable:
         columns:
@@ -727,6 +827,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedfxrate
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedfxrate
     changes:
     - createTable:
         columns:
@@ -760,6 +865,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-migrationscriptlog
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: migrationscriptlog
     changes:
     - createTable:
         columns:
@@ -802,6 +912,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-apiproductattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: apiproductattribute
     changes:
     - createTable:
         columns:
@@ -844,6 +959,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcardattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcardattribute
     changes:
     - createTable:
         columns:
@@ -877,6 +997,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-atmattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: atmattribute
     changes:
     - createTable:
         columns:
@@ -913,6 +1038,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-bankattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: bankattribute
     changes:
     - createTable:
         columns:
@@ -946,6 +1076,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-counterpartyattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: counterpartyattribute
     changes:
     - createTable:
         columns:
@@ -979,6 +1114,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-regulatedentityattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: regulatedentityattribute
     changes:
     - createTable:
         columns:
@@ -1012,6 +1152,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedproductattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedproductattribute
     changes:
     - createTable:
         columns:
@@ -1048,6 +1193,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcustomerattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcustomerattribute
     changes:
     - createTable:
         columns:
@@ -1081,6 +1231,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedaccountattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedaccountattribute
     changes:
     - createTable:
         columns:
@@ -1120,6 +1275,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtransactionattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtransactionattribute
     changes:
     - createTable:
         columns:
@@ -1153,6 +1313,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-transactionrequestattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: transactionrequestattribute
     changes:
     - createTable:
         columns:
@@ -1189,6 +1354,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtaxresidence
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtaxresidence
     changes:
     - createTable:
         columns:
@@ -1222,6 +1392,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-customerlink
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: customerlink
     changes:
     - createTable:
         columns:
@@ -1261,6 +1436,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-counterpartylimit
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: counterpartylimit
     changes:
     - createTable:
         columns:
@@ -1329,6 +1509,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-customeraccountlink
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: customeraccountlink
     changes:
     - createTable:
         columns:
@@ -1365,6 +1550,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedusercustomerlink
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedusercustomerlink
     changes:
     - createTable:
         columns:
@@ -1401,6 +1591,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcrmevent
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcrmevent
     changes:
     - createTable:
         columns:
@@ -1455,6 +1650,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappeduserrefreshes
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappeduserrefreshes
     changes:
     - createTable:
         columns:
@@ -1479,6 +1679,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-payeelookup
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: payeelookup
     changes:
     - createTable:
         columns:
@@ -1539,6 +1744,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-metricsarchiverun
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: metricsarchiverun
     changes:
     - createTable:
         columns:
@@ -1581,6 +1791,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-open_corridor_fee_accrual
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: open_corridor_fee_accrual
     changes:
     - createTable:
         columns:
@@ -1617,6 +1832,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-utilitypaymentcallback
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: utilitypaymentcallback
     changes:
     - createTable:
         columns:
@@ -1671,6 +1891,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-webuiprops
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: webuiprops
     changes:
     - createTable:
         columns:
@@ -1695,6 +1920,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-groupofroles
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: groupofroles
     changes:
     - createTable:
         columns:
@@ -1734,6 +1964,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-organisation
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: organisation
     changes:
     - createTable:
         columns:
@@ -1776,6 +2011,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-attributedefinition
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: attributedefinition
     changes:
     - createTable:
         columns:
@@ -1824,6 +2064,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-jobscheduler
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: jobscheduler
     changes:
     - createTable:
         columns:
@@ -1854,6 +2099,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-endpointtag
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: endpointtag
     changes:
     - createTable:
         columns:
@@ -1887,6 +2137,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-apiproduct
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: apiproduct
     changes:
     - createTable:
         columns:
@@ -1965,6 +2220,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-amqp_bank_broker
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: amqp_bank_broker
     changes:
     - createTable:
         columns:
@@ -2007,6 +2267,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-productfee
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: productfee
     changes:
     - createTable:
         columns:
@@ -2052,6 +2317,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-message_outbox
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: message_outbox
     changes:
     - createTable:
         columns:
@@ -2106,6 +2376,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-useragreement
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: useragreement
     changes:
     - createTable:
         columns:
@@ -2145,6 +2420,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-userinvitation
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: userinvitation
     changes:
     - createTable:
         columns:
@@ -2196,6 +2476,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-methodrouting
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: methodrouting
     changes:
     - createTable:
         columns:
@@ -2229,6 +2514,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-accountaccessrequest
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: accountaccessrequest
     changes:
     - createTable:
         columns:
@@ -2283,6 +2573,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-bulkpayment
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: bulkpayment
     changes:
     - createTable:
         columns:
@@ -2331,6 +2626,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-bulkbatchreference
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: bulkbatchreference
     changes:
     - createTable:
         columns:
@@ -2358,6 +2658,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedkycstatus
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedkycstatus
     changes:
     - createTable:
         columns:
@@ -2397,6 +2702,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedkycmedia
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedkycmedia
     changes:
     - createTable:
         columns:
@@ -2445,6 +2755,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedkyccheck
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedkyccheck
     changes:
     - createTable:
         columns:
@@ -2499,6 +2814,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedkycdocument
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedkycdocument
     changes:
     - createTable:
         columns:
@@ -2550,6 +2870,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedsocialmedia
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedsocialmedia
     changes:
     - createTable:
         columns:
@@ -2592,6 +2917,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-chatroom
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: chatroom
     changes:
     - createTable:
         columns:
@@ -2646,6 +2976,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-chatmessage
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: chatmessage
     changes:
     - createTable:
         columns:
@@ -2697,6 +3032,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-participant
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: participant
     changes:
     - createTable:
         columns:
@@ -2739,6 +3079,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-reaction
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: reaction
     changes:
     - createTable:
         columns:
@@ -2772,6 +3117,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedproductcollection
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedproductcollection
     changes:
     - createTable:
         columns:
@@ -2799,6 +3149,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedproductcollectionitem
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedproductcollectionitem
     changes:
     - createTable:
         columns:
@@ -2826,6 +3181,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-directdebit
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: directdebit
     changes:
     - createTable:
         columns:
@@ -2880,6 +3240,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedaccountwebhook
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedaccountwebhook
     changes:
     - createTable:
         columns:
@@ -2928,6 +3293,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-bankaccountnotificationwebhook
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: bankaccountnotificationwebhook
     changes:
     - createTable:
         columns:
@@ -2970,6 +3340,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-systemaccountnotificationwebhook
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: systemaccountnotificationwebhook
     changes:
     - createTable:
         columns:
@@ -3009,6 +3384,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedscope
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedscope
     changes:
     - createTable:
         columns:
@@ -3042,6 +3422,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedaccountapplication
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedaccountapplication
     changes:
     - createTable:
         columns:
@@ -3078,6 +3463,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcustomeraddress
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcustomeraddress
     changes:
     - createTable:
         columns:
@@ -3135,6 +3525,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedentitlementrequest
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedentitlementrequest
     changes:
     - createTable:
         columns:
@@ -3168,6 +3563,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcustomerdependant
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcustomerdependant
     changes:
     - createTable:
         columns:
@@ -3189,6 +3589,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcounterpartybespoke
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcounterpartybespoke
     changes:
     - createTable:
         columns:
@@ -3213,6 +3618,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-expectedchallengeanswer
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: expectedchallengeanswer
     changes:
     - createTable:
         columns:
@@ -3282,6 +3692,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-userattribute
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: userattribute
     changes:
     - createTable:
         columns:
@@ -3321,6 +3736,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-regulatedentity
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: regulatedentity
     changes:
     - createTable:
         columns:
@@ -3372,6 +3792,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-routingscheme
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: routingscheme
     changes:
     - createTable:
         columns:
@@ -3423,6 +3848,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-banksupportedroutingscheme
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: banksupportedroutingscheme
     changes:
     - createTable:
         columns:
@@ -3450,6 +3880,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-abacrule
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: abacrule
     changes:
     - createTable:
         columns:
@@ -3495,6 +3930,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-endpointmapping
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: endpointmapping
     changes:
     - createTable:
         columns:
@@ -3525,6 +3965,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-dynamicentityindex
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: dynamicentityindex
     changes:
     - createTable:
         columns:
@@ -3579,6 +4024,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedmeeting
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedmeeting
     changes:
     - createTable:
         columns:
@@ -3639,6 +4089,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedmeetinginvitee
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedmeetinginvitee
     changes:
     - createTable:
         columns:
@@ -3669,6 +4124,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcustomermessage
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcustomermessage
     changes:
     - createTable:
         columns:
@@ -3714,6 +4174,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedphysicalcard
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedphysicalcard
     changes:
     - createTable:
         columns:
@@ -3798,6 +4263,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-pinreset
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: pinreset
     changes:
     - createTable:
         columns:
@@ -3822,6 +4292,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-doubleentrybooktransaction
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: doubleentrybooktransaction
     changes:
     - createTable:
         columns:
@@ -3870,6 +4345,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-dynamicendpoint
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: dynamicendpoint
     changes:
     - createTable:
         columns:
@@ -3903,6 +4383,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedconnectormetric
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedconnectormetric
     changes:
     - createTable:
         columns:
@@ -3942,6 +4427,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedentitlement
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedentitlement
     changes:
     - createTable:
         columns:
@@ -3990,6 +4480,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-ratelimiting
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: ratelimiting
     changes:
     - createTable:
         columns:
@@ -4050,6 +4545,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedproduct
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedproduct
     changes:
     - createTable:
         columns:
@@ -4104,6 +4604,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedbranch
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedbranch
     changes:
     - createTable:
         columns:
@@ -4278,6 +4783,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mapperaccountholders
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mapperaccountholders
     changes:
     - createTable:
         columns:
@@ -4305,6 +4815,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-dynamicmessagedoc
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: dynamicmessagedoc
     changes:
     - createTable:
         columns:
@@ -4362,6 +4877,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-dynamicresourcedoc
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: dynamicresourcedoc
     changes:
     - createTable:
         columns:
@@ -4416,6 +4936,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-dynamicdataaccess
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: dynamicdataaccess
     changes:
     - createTable:
         columns:
@@ -4458,6 +4983,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-dynamicentity
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: dynamicentity
     changes:
     - createTable:
         columns:
@@ -4509,6 +5039,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-dynamicdata
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: dynamicdata
     changes:
     - createTable:
         columns:
@@ -4542,6 +5077,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-viewpermission
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: viewpermission
     changes:
     - createTable:
         columns:
@@ -4578,6 +5118,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-accountaccess
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: accountaccess
     changes:
     - createTable:
         columns:
@@ -4617,6 +5162,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mandate
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mandate
     changes:
     - createTable:
         columns:
@@ -4677,6 +5227,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mandateprovision
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mandateprovision
     changes:
     - createTable:
         columns:
@@ -4737,6 +5292,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-signatorypanel
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: signatorypanel
     changes:
     - createTable:
         columns:
@@ -4773,6 +5333,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-signingbasket
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: signingbasket
     changes:
     - createTable:
         columns:
@@ -4794,6 +5359,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-signingbasketpayment
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: signingbasketpayment
     changes:
     - createTable:
         columns:
@@ -4815,6 +5385,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-signingbasketconsent
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: signingbasketconsent
     changes:
     - createTable:
         columns:
@@ -4836,6 +5411,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-consentrequest
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: consentrequest
     changes:
     - createTable:
         columns:
@@ -4866,6 +5446,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcounterparty
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcounterparty
     changes:
     - createTable:
         columns:
@@ -4938,6 +5523,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcounterpartymetadata
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcounterpartymetadata
     changes:
     - createTable:
         columns:
@@ -4995,6 +5585,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcounterpartywheretag
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcounterpartywheretag
     changes:
     - createTable:
         columns:
@@ -5028,6 +5623,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedbank
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedbank
     changes:
     - createTable:
         columns:
@@ -5079,6 +5679,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtransaction
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtransaction
     changes:
     - createTable:
         columns:
@@ -5184,6 +5789,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtransactionrequest
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtransactionrequest
     changes:
     - createTable:
         columns:
@@ -5343,6 +5953,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcustomer
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcustomer
     changes:
     - createTable:
         columns:
@@ -5442,6 +6057,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-metric
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: metric
     changes:
     - createTable:
         columns:
@@ -5519,6 +6139,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-metricarchive
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: metricarchive
     changes:
     - createTable:
         columns:
@@ -5599,6 +6224,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedconsent
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedconsent
     changes:
     - createTable:
         columns:
@@ -5698,6 +6328,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedbankaccount
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedbankaccount
     changes:
     - createTable:
         columns:
@@ -5764,6 +6399,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-viewdefinition
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: viewdefinition
     changes:
     - createTable:
         columns:
@@ -5830,6 +6470,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-token
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: token
     changes:
     - createTable:
         columns:
@@ -5878,6 +6523,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-consumer
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: consumer
     changes:
     - createTable:
         columns:
@@ -5974,6 +6624,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-resourceuser
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: resourceuser
     changes:
     - createTable:
         columns:
@@ -6028,6 +6683,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-authuser
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: authuser
     changes:
     - createTable:
         columns:
@@ -6091,6 +6751,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedcomment
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedcomment
     changes:
     - createTable:
         columns:
@@ -6139,6 +6804,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtag
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtag
     changes:
     - createTable:
         columns:
@@ -6184,6 +6854,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtransactionimage
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtransactionimage
     changes:
     - createTable:
         columns:
@@ -6232,6 +6907,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-consent_item
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: consent_item
     changes:
     - createTable:
         columns:
@@ -6268,6 +6948,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappednarrative
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappednarrative
     changes:
     - createTable:
         columns:
@@ -6301,6 +6986,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedwheretag
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedwheretag
     changes:
     - createTable:
         columns:
@@ -6346,6 +7036,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-connector_trace
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: connector_trace
     changes:
     - createTable:
         columns:
@@ -6397,6 +7092,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappedtransactionrequesttypecharge
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappedtransactionrequesttypecharge
     changes:
     - createTable:
         columns:
@@ -6433,6 +7133,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-mappeduserauthcontextupdate
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: mappeduserauthcontextupdate
     changes:
     - createTable:
         columns:
@@ -6475,6 +7180,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-nonce
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: nonce
     changes:
     - createTable:
         columns:
@@ -6502,6 +7212,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-openidconnecttoken
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: openidconnecttoken
     changes:
     - createTable:
         columns:
@@ -6544,6 +7259,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-standingorder
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: standingorder
     changes:
     - createTable:
         columns:
@@ -6610,6 +7330,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-transactionrequestreasons
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: transactionrequestreasons
     changes:
     - createTable:
         columns:
@@ -6652,6 +7377,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedatm_mbankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedatm_mbankid
+              tableName: mappedatm
     changes:
     - createIndex:
         columns:
@@ -6662,6 +7393,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedatm_mbankid_matmid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedatm_mbankid_matmid
+              tableName: mappedatm
     changes:
     - createIndex:
         columns:
@@ -6675,6 +7412,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-producttag_bankid_productcode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: producttag_bankid_productcode
+              tableName: producttag
     changes:
     - createIndex:
         columns:
@@ -6687,6 +7430,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-producttag_bankid_productcode_tag
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: producttag_bankid_productcode_tag
+              tableName: producttag
     changes:
     - createIndex:
         columns:
@@ -6702,6 +7451,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-jsonschemavalidation_operationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: jsonschemavalidation_operationid
+              tableName: jsonschemavalidation
     changes:
     - createIndex:
         columns:
@@ -6713,6 +7468,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransactiontype_mtransactiontypeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransactiontype_mtransactiontypeid
+              tableName: mappedtransactiontype
     changes:
     - createIndex:
         columns:
@@ -6724,6 +7485,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransactiontype_mbankid_mshortcode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransactiontype_mbankid_mshortcode
+              tableName: mappedtransactiontype
     changes:
     - createIndex:
         columns:
@@ -6737,6 +7504,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-etag_etagresource
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: etag_etagresource
+              tableName: etag
     changes:
     - createIndex:
         columns:
@@ -6748,6 +7521,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-authenticationtypevalidation_operationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: authenticationtypevalidation_operationid
+              tableName: authenticationtypevalidation
     changes:
     - createIndex:
         columns:
@@ -6759,6 +7538,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-userlocks_userid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: userlocks_userid
+              tableName: userlocks
     changes:
     - createIndex:
         columns:
@@ -6770,6 +7555,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connectormethod_connectormethodid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connectormethod_connectormethodid
+              tableName: connectormethod
     changes:
     - createIndex:
         columns:
@@ -6781,6 +7572,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connectormethod_methodname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connectormethod_methodname
+              tableName: connectormethod
     changes:
     - createIndex:
         columns:
@@ -6792,6 +7589,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apicollectionendpoint_apicollectionendpointid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apicollectionendpoint_apicollectionendpointid
+              tableName: apicollectionendpoint
     changes:
     - createIndex:
         columns:
@@ -6803,6 +7606,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apicollectionendpoint_apicollectionid_operationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apicollectionendpoint_apicollectionid_operationid
+              tableName: apicollectionendpoint
     changes:
     - createIndex:
         columns:
@@ -6816,6 +7625,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-featuredapicollection_featuredapicollectionid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: featuredapicollection_featuredapicollectionid
+              tableName: featuredapicollection
     changes:
     - createIndex:
         columns:
@@ -6827,6 +7642,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-featuredapicollection_apicollectionid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: featuredapicollection_apicollectionid
+              tableName: featuredapicollection
     changes:
     - createIndex:
         columns:
@@ -6838,6 +7659,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consentauthcontext_consentid_key_c_createdat
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consentauthcontext_consentid_key_c_createdat
+              tableName: consentauthcontext
     changes:
     - createIndex:
         columns:
@@ -6853,6 +7680,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappeduserauthcontext_muserid_mkey_createdat
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappeduserauthcontext_muserid_mkey_createdat
+              tableName: mappeduserauthcontext
     changes:
     - createIndex:
         columns:
@@ -6868,6 +7701,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-userinitaction_userid_actionname_actionvalue
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: userinitaction_userid_actionname_actionvalue
+              tableName: userinitaction
     changes:
     - createIndex:
         columns:
@@ -6883,6 +7722,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountidmapping_maccountid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountidmapping_maccountid
+              tableName: accountidmapping
     changes:
     - createIndex:
         columns:
@@ -6894,6 +7739,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountidmapping_maccountplaintextreference
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountidmapping_maccountplaintextreference
+              tableName: accountidmapping
     changes:
     - createIndex:
         columns:
@@ -6905,6 +7756,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-transactionidmapping_transactionid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: transactionidmapping_transactionid
+              tableName: transactionidmapping
     changes:
     - createIndex:
         columns:
@@ -6916,6 +7773,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-transactionidmapping_transactionplaintextreference
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: transactionidmapping_transactionplaintextreference
+              tableName: transactionidmapping
     changes:
     - createIndex:
         columns:
@@ -6927,6 +7790,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomeridmapping_mcustomerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomeridmapping_mcustomerid
+              tableName: mappedcustomeridmapping
     changes:
     - createIndex:
         columns:
@@ -6938,6 +7807,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomeridmapping_mcustomerplaintextreference
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomeridmapping_mcustomerplaintextreference
+              tableName: mappedcustomeridmapping
     changes:
     - createIndex:
         columns:
@@ -6949,6 +7824,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedbankaccountdata_bankid_accountid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedbankaccountdata_bankid_accountid
+              tableName: mappedbankaccountdata
     changes:
     - createIndex:
         columns:
@@ -6962,6 +7843,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apicollection_apicollectionid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apicollection_apicollectionid
+              tableName: apicollection
     changes:
     - createIndex:
         columns:
@@ -6973,6 +7860,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apicollection_userid_apicollectionname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apicollection_userid_apicollectionname
+              tableName: apicollection
     changes:
     - createIndex:
         columns:
@@ -6986,6 +7879,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedbadloginattempt_provider_musername
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedbadloginattempt_provider_musername
+              tableName: mappedbadloginattempt
     changes:
     - createIndex:
         columns:
@@ -6999,6 +7898,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-bankaccountrouting_bankid_accountid_accountroutingscheme
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: bankaccountrouting_bankid_accountid_accountroutingscheme
+              tableName: bankaccountrouting
     changes:
     - createIndex:
         columns:
@@ -7014,6 +7919,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-bankaccountrouting_bankid_accountroutingscheme_accountroutingad
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: bankaccountrouting_bankid_accountroutingscheme_accountroutingad
+              tableName: bankaccountrouting
     changes:
     - createIndex:
         columns:
@@ -7029,6 +7940,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedfxrate_mfromcurrencycode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedfxrate_mfromcurrencycode
+              tableName: mappedfxrate
     changes:
     - createIndex:
         columns:
@@ -7039,6 +7956,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedfxrate_mtocurrencycode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedfxrate_mtocurrencycode
+              tableName: mappedfxrate
     changes:
     - createIndex:
         columns:
@@ -7049,6 +7972,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-migrationscriptlog_name_issuccessful
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: migrationscriptlog_name_issuccessful
+              tableName: migrationscriptlog
     changes:
     - createIndex:
         columns:
@@ -7062,6 +7991,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apiproductattribute_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apiproductattribute_bankid
+              tableName: apiproductattribute
     changes:
     - createIndex:
         columns:
@@ -7072,6 +8007,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apiproductattribute_apiproductattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apiproductattribute_apiproductattributeid
+              tableName: apiproductattribute
     changes:
     - createIndex:
         columns:
@@ -7083,6 +8024,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcardattribute_mcardid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcardattribute_mcardid
+              tableName: mappedcardattribute
     changes:
     - createIndex:
         columns:
@@ -7093,6 +8040,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcardattribute_mcardattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcardattribute_mcardattributeid
+              tableName: mappedcardattribute
     changes:
     - createIndex:
         columns:
@@ -7103,6 +8056,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-atmattribute_bankid_atmid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: atmattribute_bankid_atmid
+              tableName: atmattribute
     changes:
     - createIndex:
         columns:
@@ -7115,6 +8074,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-bankattribute_bankid_
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: bankattribute_bankid_
+              tableName: bankattribute
     changes:
     - createIndex:
         columns:
@@ -7125,6 +8090,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-counterpartyattribute_counterpartyid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: counterpartyattribute_counterpartyid
+              tableName: counterpartyattribute
     changes:
     - createIndex:
         columns:
@@ -7135,6 +8106,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-regulatedentityattribute_regulatedentityid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: regulatedentityattribute_regulatedentityid
+              tableName: regulatedentityattribute
     changes:
     - createIndex:
         columns:
@@ -7145,6 +8122,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedproductattribute_mbankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedproductattribute_mbankid
+              tableName: mappedproductattribute
     changes:
     - createIndex:
         columns:
@@ -7155,6 +8138,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedproductattribute_mproductattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedproductattribute_mproductattributeid
+              tableName: mappedproductattribute
     changes:
     - createIndex:
         columns:
@@ -7165,6 +8154,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomerattribute_mcustomerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomerattribute_mcustomerid
+              tableName: mappedcustomerattribute
     changes:
     - createIndex:
         columns:
@@ -7175,6 +8170,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomerattribute_mcustomerattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomerattribute_mcustomerattributeid
+              tableName: mappedcustomerattribute
     changes:
     - createIndex:
         columns:
@@ -7185,6 +8186,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedaccountattribute_maccountid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedaccountattribute_maccountid
+              tableName: mappedaccountattribute
     changes:
     - createIndex:
         columns:
@@ -7195,6 +8202,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedaccountattribute_maccountattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedaccountattribute_maccountattributeid
+              tableName: mappedaccountattribute
     changes:
     - createIndex:
         columns:
@@ -7205,6 +8218,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransactionattribute_mtransactionid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransactionattribute_mtransactionid
+              tableName: mappedtransactionattribute
     changes:
     - createIndex:
         columns:
@@ -7215,6 +8234,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransactionattribute_mtransactionattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransactionattribute_mtransactionattributeid
+              tableName: mappedtransactionattribute
     changes:
     - createIndex:
         columns:
@@ -7225,6 +8250,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-transactionrequestattribute_transactionrequestid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: transactionrequestattribute_transactionrequestid
+              tableName: transactionrequestattribute
     changes:
     - createIndex:
         columns:
@@ -7235,6 +8266,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-transactionrequestattribute_transactionrequestattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: transactionrequestattribute_transactionrequestattributeid
+              tableName: transactionrequestattribute
     changes:
     - createIndex:
         columns:
@@ -7245,6 +8282,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtaxresidence_mcustomerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtaxresidence_mcustomerid
+              tableName: mappedtaxresidence
     changes:
     - createIndex:
         columns:
@@ -7255,6 +8298,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtaxresidence_mcustomerid_mdomain_mtaxnumber
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtaxresidence_mcustomerid_mdomain_mtaxnumber
+              tableName: mappedtaxresidence
     changes:
     - createIndex:
         columns:
@@ -7270,6 +8319,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-customerlink_customerlinkid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: customerlink_customerlinkid
+              tableName: customerlink
     changes:
     - createIndex:
         columns:
@@ -7281,6 +8336,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-customerlink_customerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: customerlink_customerid
+              tableName: customerlink
     changes:
     - createIndex:
         columns:
@@ -7291,6 +8352,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-customerlink_othercustomerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: customerlink_othercustomerid
+              tableName: customerlink
     changes:
     - createIndex:
         columns:
@@ -7301,6 +8368,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-counterpartylimit_counterpartylimitid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: counterpartylimit_counterpartylimitid
+              tableName: counterpartylimit
     changes:
     - createIndex:
         columns:
@@ -7312,6 +8385,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-counterpartylimit_bankid_accountid_viewid_counterpartyid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: counterpartylimit_bankid_accountid_viewid_counterpartyid
+              tableName: counterpartylimit
     changes:
     - createIndex:
         columns:
@@ -7329,6 +8408,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-customeraccountlink_customeraccountlinkid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: customeraccountlink_customeraccountlinkid
+              tableName: customeraccountlink
     changes:
     - createIndex:
         columns:
@@ -7340,6 +8425,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-customeraccountlink_accountid_customerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: customeraccountlink_accountid_customerid
+              tableName: customeraccountlink
     changes:
     - createIndex:
         columns:
@@ -7353,6 +8444,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedusercustomerlink_musercustomerlinkid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedusercustomerlink_musercustomerlinkid
+              tableName: mappedusercustomerlink
     changes:
     - createIndex:
         columns:
@@ -7364,6 +8461,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedusercustomerlink_muserid_mcustomerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedusercustomerlink_muserid_mcustomerid
+              tableName: mappedusercustomerlink
     changes:
     - createIndex:
         columns:
@@ -7377,6 +8480,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcrmevent_muserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcrmevent_muserid
+              tableName: mappedcrmevent
     changes:
     - createIndex:
         columns:
@@ -7387,6 +8496,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcrmevent_mcrmeventid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcrmevent_mcrmeventid
+              tableName: mappedcrmevent
     changes:
     - createIndex:
         columns:
@@ -7398,6 +8513,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcrmevent_mbankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcrmevent_mbankid
+              tableName: mappedcrmevent
     changes:
     - createIndex:
         columns:
@@ -7408,6 +8529,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappeduserrefreshes_muserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappeduserrefreshes_muserid
+              tableName: mappeduserrefreshes
     changes:
     - createIndex:
         columns:
@@ -7419,6 +8546,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-payeelookup_lookupid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: payeelookup_lookupid
+              tableName: payeelookup
     changes:
     - createIndex:
         columns:
@@ -7430,6 +8563,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-payeelookup_expiresat
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: payeelookup_expiresat
+              tableName: payeelookup
     changes:
     - createIndex:
         columns:
@@ -7440,6 +8579,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricsarchiverun_runid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricsarchiverun_runid
+              tableName: metricsarchiverun
     changes:
     - createIndex:
         columns:
@@ -7451,6 +8596,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricsarchiverun_startedat
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricsarchiverun_startedat
+              tableName: metricsarchiverun
     changes:
     - createIndex:
         columns:
@@ -7461,6 +8612,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-open_corridor_fee_accrual_transaction_request_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: open_corridor_fee_accrual_transaction_request_id
+              tableName: open_corridor_fee_accrual
     changes:
     - createIndex:
         columns:
@@ -7472,6 +8629,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-open_corridor_fee_accrual_debtor_bank_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: open_corridor_fee_accrual_debtor_bank_id
+              tableName: open_corridor_fee_accrual
     changes:
     - createIndex:
         columns:
@@ -7482,6 +8645,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-open_corridor_fee_accrual_fee_settlement_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: open_corridor_fee_accrual_fee_settlement_id
+              tableName: open_corridor_fee_accrual
     changes:
     - createIndex:
         columns:
@@ -7492,6 +8661,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-utilitypaymentcallback_callbackid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: utilitypaymentcallback_callbackid
+              tableName: utilitypaymentcallback
     changes:
     - createIndex:
         columns:
@@ -7503,6 +8678,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-utilitypaymentcallback_transactionrequestid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: utilitypaymentcallback_transactionrequestid
+              tableName: utilitypaymentcallback
     changes:
     - createIndex:
         columns:
@@ -7513,6 +8694,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-webuiprops_webuipropsid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: webuiprops_webuipropsid
+              tableName: webuiprops
     changes:
     - createIndex:
         columns:
@@ -7524,6 +8711,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-webuiprops_name
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: webuiprops_name
+              tableName: webuiprops
     changes:
     - createIndex:
         columns:
@@ -7535,6 +8728,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-groupofroles_groupid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: groupofroles_groupid
+              tableName: groupofroles
     changes:
     - createIndex:
         columns:
@@ -7545,6 +8744,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-groupofroles_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: groupofroles_bankid
+              tableName: groupofroles
     changes:
     - createIndex:
         columns:
@@ -7555,6 +8760,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-organisation_organisationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: organisation_organisationid
+              tableName: organisation
     changes:
     - createIndex:
         columns:
@@ -7566,6 +8777,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-attributedefinition_bankid_name_category
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: attributedefinition_bankid_name_category
+              tableName: attributedefinition
     changes:
     - createIndex:
         columns:
@@ -7581,6 +8798,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-jobscheduler_jobid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: jobscheduler_jobid
+              tableName: jobscheduler
     changes:
     - createIndex:
         columns:
@@ -7592,6 +8815,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-endpointtag_endpointtagid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: endpointtag_endpointtagid
+              tableName: endpointtag
     changes:
     - createIndex:
         columns:
@@ -7603,6 +8832,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apiproduct_bankid_apiproductcode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apiproduct_bankid_apiproductcode
+              tableName: apiproduct
     changes:
     - createIndex:
         columns:
@@ -7616,6 +8851,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-apiproduct_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: apiproduct_bankid
+              tableName: apiproduct
     changes:
     - createIndex:
         columns:
@@ -7626,6 +8867,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-amqp_bank_broker_bank_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: amqp_bank_broker_bank_id
+              tableName: amqp_bank_broker
     changes:
     - createIndex:
         columns:
@@ -7637,6 +8884,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-productfee_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: productfee_bankid
+              tableName: productfee
     changes:
     - createIndex:
         columns:
@@ -7647,6 +8900,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-productfee_productfeeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: productfee_productfeeid
+              tableName: productfee
     changes:
     - createIndex:
         columns:
@@ -7657,6 +8916,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-message_outbox_status
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: message_outbox_status
+              tableName: message_outbox
     changes:
     - createIndex:
         columns:
@@ -7667,6 +8932,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-message_outbox_subject_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: message_outbox_subject_id
+              tableName: message_outbox
     changes:
     - createIndex:
         columns:
@@ -7677,6 +8948,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-message_outbox_outbox_type
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: message_outbox_outbox_type
+              tableName: message_outbox
     changes:
     - createIndex:
         columns:
@@ -7687,6 +8964,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-useragreement_useragreementid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: useragreement_useragreementid
+              tableName: useragreement
     changes:
     - createIndex:
         columns:
@@ -7698,6 +8981,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-userinvitation_userinvitationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: userinvitation_userinvitationid
+              tableName: userinvitation
     changes:
     - createIndex:
         columns:
@@ -7709,6 +8998,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-methodrouting_methodroutingid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: methodrouting_methodroutingid
+              tableName: methodrouting
     changes:
     - createIndex:
         columns:
@@ -7720,6 +9015,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccessrequest_accountaccessrequestid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountaccessrequest_accountaccessrequestid
+              tableName: accountaccessrequest
     changes:
     - createIndex:
         columns:
@@ -7730,6 +9031,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccessrequest_bankid_accountid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountaccessrequest_bankid_accountid
+              tableName: accountaccessrequest
     changes:
     - createIndex:
         columns:
@@ -7742,6 +9049,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccessrequest_requestoruserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountaccessrequest_requestoruserid
+              tableName: accountaccessrequest
     changes:
     - createIndex:
         columns:
@@ -7752,6 +9065,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccessrequest_status
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountaccessrequest_status
+              tableName: accountaccessrequest
     changes:
     - createIndex:
         columns:
@@ -7762,6 +9081,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-bulkpayment_transactionrequestid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: bulkpayment_transactionrequestid
+              tableName: bulkpayment
     changes:
     - createIndex:
         columns:
@@ -7772,6 +9097,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-bulkpayment_transactionrequestid_itemindex
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: bulkpayment_transactionrequestid_itemindex
+              tableName: bulkpayment
     changes:
     - createIndex:
         columns:
@@ -7785,6 +9116,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-bulkbatchreference_frombankid_fromaccountid_batchreference
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: bulkbatchreference_frombankid_fromaccountid_batchreference
+              tableName: bulkbatchreference
     changes:
     - createIndex:
         columns:
@@ -7800,6 +9137,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedkycstatus_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedkycstatus_user_c
+              tableName: mappedkycstatus
     changes:
     - createIndex:
         columns:
@@ -7810,6 +9153,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedkycmedia_mid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedkycmedia_mid
+              tableName: mappedkycmedia
     changes:
     - createIndex:
         columns:
@@ -7821,6 +9170,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedkyccheck_mid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedkyccheck_mid
+              tableName: mappedkyccheck
     changes:
     - createIndex:
         columns:
@@ -7832,6 +9187,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedkyccheck_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedkyccheck_user_c
+              tableName: mappedkyccheck
     changes:
     - createIndex:
         columns:
@@ -7842,6 +9203,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedkycdocument_mid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedkycdocument_mid
+              tableName: mappedkycdocument
     changes:
     - createIndex:
         columns:
@@ -7853,6 +9220,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedkycdocument_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedkycdocument_user_c
+              tableName: mappedkycdocument
     changes:
     - createIndex:
         columns:
@@ -7863,6 +9236,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedsocialmedia_mcustomernumber
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedsocialmedia_mcustomernumber
+              tableName: mappedsocialmedia
     changes:
     - createIndex:
         columns:
@@ -7874,6 +9253,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedsocialmedia_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedsocialmedia_user_c
+              tableName: mappedsocialmedia
     changes:
     - createIndex:
         columns:
@@ -7884,6 +9269,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-chatroom_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: chatroom_bankid
+              tableName: chatroom
     changes:
     - createIndex:
         columns:
@@ -7894,6 +9285,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-chatroom_bankid_name
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: chatroom_bankid_name
+              tableName: chatroom
     changes:
     - createIndex:
         columns:
@@ -7907,6 +9304,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-chatroom_chatroomid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: chatroom_chatroomid
+              tableName: chatroom
     changes:
     - createIndex:
         columns:
@@ -7918,6 +9321,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-chatmessage_chatmessageid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: chatmessage_chatmessageid
+              tableName: chatmessage
     changes:
     - createIndex:
         columns:
@@ -7929,6 +9338,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-chatmessage_chatroomid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: chatmessage_chatroomid
+              tableName: chatmessage
     changes:
     - createIndex:
         columns:
@@ -7939,6 +9354,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-chatmessage_senderuserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: chatmessage_senderuserid
+              tableName: chatmessage
     changes:
     - createIndex:
         columns:
@@ -7949,6 +9370,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-chatmessage_threadid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: chatmessage_threadid
+              tableName: chatmessage
     changes:
     - createIndex:
         columns:
@@ -7959,6 +9386,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-participant_chatroomid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: participant_chatroomid
+              tableName: participant
     changes:
     - createIndex:
         columns:
@@ -7969,6 +9402,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-participant_chatroomid_userid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: participant_chatroomid_userid
+              tableName: participant
     changes:
     - createIndex:
         columns:
@@ -7982,6 +9421,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-participant_participantid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: participant_participantid
+              tableName: participant
     changes:
     - createIndex:
         columns:
@@ -7993,6 +9438,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-participant_userid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: participant_userid
+              tableName: participant
     changes:
     - createIndex:
         columns:
@@ -8003,6 +9454,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-reaction_chatmessageid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: reaction_chatmessageid
+              tableName: reaction
     changes:
     - createIndex:
         columns:
@@ -8013,6 +9470,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-reaction_chatmessageid_userid_emoji
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: reaction_chatmessageid_userid_emoji
+              tableName: reaction
     changes:
     - createIndex:
         columns:
@@ -8028,6 +9491,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-reaction_reactionid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: reaction_reactionid
+              tableName: reaction
     changes:
     - createIndex:
         columns:
@@ -8039,6 +9508,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedproductcollection_mcollectioncode_mproductcode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedproductcollection_mcollectioncode_mproductcode
+              tableName: mappedproductcollection
     changes:
     - createIndex:
         columns:
@@ -8052,6 +9527,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedproductcollectionitem_mcollectioncode_mmemberproductcode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedproductcollectionitem_mcollectioncode_mmemberproductcode
+              tableName: mappedproductcollectionitem
     changes:
     - createIndex:
         columns:
@@ -8065,6 +9546,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-directdebit_bankid_accountid_customerid_counterpartyid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: directdebit_bankid_accountid_customerid_counterpartyid
+              tableName: directdebit
     changes:
     - createIndex:
         columns:
@@ -8082,6 +9569,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedaccountwebhook_maccountwebhookid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedaccountwebhook_maccountwebhookid
+              tableName: mappedaccountwebhook
     changes:
     - createIndex:
         columns:
@@ -8093,6 +9586,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-bankaccountnotificationwebhook_webhookid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: bankaccountnotificationwebhook_webhookid
+              tableName: bankaccountnotificationwebhook
     changes:
     - createIndex:
         columns:
@@ -8104,6 +9603,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-systemaccountnotificationwebhook_webhookid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: systemaccountnotificationwebhook_webhookid
+              tableName: systemaccountnotificationwebhook
     changes:
     - createIndex:
         columns:
@@ -8115,6 +9620,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedscope_mscopeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedscope_mscopeid
+              tableName: mappedscope
     changes:
     - createIndex:
         columns:
@@ -8126,6 +9637,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedaccountapplication_maccountapplicationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedaccountapplication_maccountapplicationid
+              tableName: mappedaccountapplication
     changes:
     - createIndex:
         columns:
@@ -8137,6 +9654,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomeraddress_mcustomeraddressid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomeraddress_mcustomeraddressid
+              tableName: mappedcustomeraddress
     changes:
     - createIndex:
         columns:
@@ -8148,6 +9671,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomeraddress_mcustomerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomeraddress_mcustomerid
+              tableName: mappedcustomeraddress
     changes:
     - createIndex:
         columns:
@@ -8158,6 +9687,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedentitlementrequest_mentitlementrequestid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedentitlementrequest_mentitlementrequestid
+              tableName: mappedentitlementrequest
     changes:
     - createIndex:
         columns:
@@ -8169,6 +9704,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomerdependant_mcustomer
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomerdependant_mcustomer
+              tableName: mappedcustomerdependant
     changes:
     - createIndex:
         columns:
@@ -8179,6 +9720,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcounterpartybespoke_mcounterparty
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcounterpartybespoke_mcounterparty
+              tableName: mappedcounterpartybespoke
     changes:
     - createIndex:
         columns:
@@ -8189,6 +9736,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-expectedchallengeanswer_challengeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: expectedchallengeanswer_challengeid
+              tableName: expectedchallengeanswer
     changes:
     - createIndex:
         columns:
@@ -8200,6 +9753,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-userattribute_userattributeid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: userattribute_userattributeid
+              tableName: userattribute
     changes:
     - createIndex:
         columns:
@@ -8210,6 +9769,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-regulatedentity_certificateauthoritycaownerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: regulatedentity_certificateauthoritycaownerid
+              tableName: regulatedentity
     changes:
     - createIndex:
         columns:
@@ -8220,6 +9785,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-routingscheme_scheme
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: routingscheme_scheme
+              tableName: routingscheme
     changes:
     - createIndex:
         columns:
@@ -8231,6 +9802,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-banksupportedroutingscheme_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: banksupportedroutingscheme_bankid
+              tableName: banksupportedroutingscheme
     changes:
     - createIndex:
         columns:
@@ -8241,6 +9818,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-banksupportedroutingscheme_bankid_scheme
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: banksupportedroutingscheme_bankid_scheme
+              tableName: banksupportedroutingscheme
     changes:
     - createIndex:
         columns:
@@ -8254,6 +9837,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-abacrule_abacruleid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: abacrule_abacruleid
+              tableName: abacrule
     changes:
     - createIndex:
         columns:
@@ -8264,6 +9853,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-abacrule_createdbyuserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: abacrule_createdbyuserid
+              tableName: abacrule
     changes:
     - createIndex:
         columns:
@@ -8274,6 +9869,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-abacrule_rulename
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: abacrule_rulename
+              tableName: abacrule
     changes:
     - createIndex:
         columns:
@@ -8284,6 +9885,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-endpointmapping_endpointmappingid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: endpointmapping_endpointmappingid
+              tableName: endpointmapping
     changes:
     - createIndex:
         columns:
@@ -8295,6 +9902,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-endpointmapping_operationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: endpointmapping_operationid
+              tableName: endpointmapping
     changes:
     - createIndex:
         columns:
@@ -8306,6 +9919,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicentityindex_entityname_bankid_fieldname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicentityindex_entityname_bankid_fieldname
+              tableName: dynamicentityindex
     changes:
     - createIndex:
         columns:
@@ -8320,6 +9939,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedmeeting_mcustomeruserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedmeeting_mcustomeruserid
+              tableName: mappedmeeting
     changes:
     - createIndex:
         columns:
@@ -8330,6 +9955,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedmeeting_mmeetingid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedmeeting_mmeetingid
+              tableName: mappedmeeting
     changes:
     - createIndex:
         columns:
@@ -8341,6 +9972,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedmeeting_mstaffuserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedmeeting_mstaffuserid
+              tableName: mappedmeeting
     changes:
     - createIndex:
         columns:
@@ -8351,6 +9988,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedmeetinginvitee_mmappedmeeting
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedmeetinginvitee_mmappedmeeting
+              tableName: mappedmeetinginvitee
     changes:
     - createIndex:
         columns:
@@ -8361,6 +10004,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomermessage_customer
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomermessage_customer
+              tableName: mappedcustomermessage
     changes:
     - createIndex:
         columns:
@@ -8371,6 +10020,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomermessage_mmessageid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomermessage_mmessageid
+              tableName: mappedcustomermessage
     changes:
     - createIndex:
         columns:
@@ -8382,6 +10037,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomermessage_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomermessage_user_c
+              tableName: mappedcustomermessage
     changes:
     - createIndex:
         columns:
@@ -8392,6 +10053,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedphysicalcard_maccount
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedphysicalcard_maccount
+              tableName: mappedphysicalcard
     changes:
     - createIndex:
         columns:
@@ -8402,6 +10069,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedphysicalcard_mbankid_mbankcardnumber_missuenumber
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedphysicalcard_mbankid_mbankcardnumber_missuenumber
+              tableName: mappedphysicalcard
     changes:
     - createIndex:
         columns:
@@ -8417,6 +10090,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-pinreset_card
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: pinreset_card
+              tableName: pinreset
     changes:
     - createIndex:
         columns:
@@ -8427,6 +10106,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-doubleentrybooktransaction_credittransactionbankid_credittransa
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: doubleentrybooktransaction_credittransactionbankid_credittransa
+              tableName: doubleentrybooktransaction
     changes:
     - createIndex:
         columns:
@@ -8442,6 +10127,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-doubleentrybooktransaction_debittransactionbankid_debittransact
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: doubleentrybooktransaction_debittransactionbankid_debittransact
+              tableName: doubleentrybooktransaction
     changes:
     - createIndex:
         columns:
@@ -8457,6 +10148,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicendpoint_dynamicendpointid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicendpoint_dynamicendpointid
+              tableName: dynamicendpoint
     changes:
     - createIndex:
         columns:
@@ -8468,6 +10165,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconnectormetric_connectorname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconnectormetric_connectorname
+              tableName: mappedconnectormetric
     changes:
     - createIndex:
         columns:
@@ -8478,6 +10181,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconnectormetric_correlationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconnectormetric_correlationid
+              tableName: mappedconnectormetric
     changes:
     - createIndex:
         columns:
@@ -8488,6 +10197,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconnectormetric_date_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconnectormetric_date_c
+              tableName: mappedconnectormetric
     changes:
     - createIndex:
         columns:
@@ -8498,6 +10213,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconnectormetric_functionname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconnectormetric_functionname
+              tableName: mappedconnectormetric
     changes:
     - createIndex:
         columns:
@@ -8508,6 +10229,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconnectormetric_issuccessful
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconnectormetric_issuccessful
+              tableName: mappedconnectormetric
     changes:
     - createIndex:
         columns:
@@ -8518,6 +10245,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedentitlement_mbankid_muserid_mrolename
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedentitlement_mbankid_muserid_mrolename
+              tableName: mappedentitlement
     changes:
     - createIndex:
         columns:
@@ -8533,6 +10266,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedentitlement_mentitlementid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedentitlement_mentitlementid
+              tableName: mappedentitlement
     changes:
     - createIndex:
         columns:
@@ -8544,6 +10283,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-ratelimiting_ratelimitingid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: ratelimiting_ratelimitingid
+              tableName: ratelimiting
     changes:
     - createIndex:
         columns:
@@ -8555,6 +10300,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedproduct_mbankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedproduct_mbankid
+              tableName: mappedproduct
     changes:
     - createIndex:
         columns:
@@ -8565,6 +10316,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedproduct_mbankid_mcode
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedproduct_mbankid_mcode
+              tableName: mappedproduct
     changes:
     - createIndex:
         columns:
@@ -8578,6 +10335,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedbranch_mbankid_mbranchid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedbranch_mbankid_mbranchid
+              tableName: mappedbranch
     changes:
     - createIndex:
         columns:
@@ -8591,6 +10354,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedbranch_mbankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedbranch_mbankid
+              tableName: mappedbranch
     changes:
     - createIndex:
         columns:
@@ -8601,6 +10370,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mapperaccountholders_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mapperaccountholders_user_c
+              tableName: mapperaccountholders
     changes:
     - createIndex:
         columns:
@@ -8611,6 +10386,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mapperaccountholders_user_c_accountbankpermalink_accountpermali
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mapperaccountholders_user_c_accountbankpermalink_accountpermali
+              tableName: mapperaccountholders
     changes:
     - createIndex:
         columns:
@@ -8626,6 +10407,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicmessagedoc_dynamicmessagedocid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicmessagedoc_dynamicmessagedocid
+              tableName: dynamicmessagedoc
     changes:
     - createIndex:
         columns:
@@ -8637,6 +10424,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicmessagedoc_process
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicmessagedoc_process
+              tableName: dynamicmessagedoc
     changes:
     - createIndex:
         columns:
@@ -8648,6 +10441,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicresourcedoc_dynamicresourcedocid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicresourcedoc_dynamicresourcedocid
+              tableName: dynamicresourcedoc
     changes:
     - createIndex:
         columns:
@@ -8659,6 +10458,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicresourcedoc_requesturl_requestverb
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicresourcedoc_requesturl_requestverb
+              tableName: dynamicresourcedoc
     changes:
     - createIndex:
         columns:
@@ -8672,6 +10477,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicdataaccess_dynamicdataid_userid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicdataaccess_dynamicdataid_userid
+              tableName: dynamicdataaccess
     changes:
     - createIndex:
         columns:
@@ -8685,6 +10496,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicdataaccess_userid_entityname_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicdataaccess_userid_entityname_bankid
+              tableName: dynamicdataaccess
     changes:
     - createIndex:
         columns:
@@ -8699,6 +10516,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicdataaccess_dynamicdataid_grantedby
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicdataaccess_dynamicdataid_grantedby
+              tableName: dynamicdataaccess
     changes:
     - createIndex:
         columns:
@@ -8711,6 +10534,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicentity_dynamicentityid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicentity_dynamicentityid
+              tableName: dynamicentity
     changes:
     - createIndex:
         columns:
@@ -8722,6 +10551,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-dynamicdata_dynamicdataid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: dynamicdata_dynamicdataid
+              tableName: dynamicdata
     changes:
     - createIndex:
         columns:
@@ -8733,6 +10568,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewpermission_bank_id_account_id_view_id_permission
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: viewpermission_bank_id_account_id_view_id_permission
+              tableName: viewpermission
     changes:
     - createIndex:
         columns:
@@ -8750,6 +10591,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccess_user_fk
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountaccess_user_fk
+              tableName: accountaccess
     changes:
     - createIndex:
         columns:
@@ -8760,6 +10607,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccess_view_fk
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountaccess_view_fk
+              tableName: accountaccess
     changes:
     - createIndex:
         columns:
@@ -8770,6 +10623,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccess_bank_id_account_id_view_id_user_fk_consumer_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: accountaccess_bank_id_account_id_view_id_user_fk_consumer_id
+              tableName: accountaccess
     changes:
     - createIndex:
         columns:
@@ -8789,6 +10648,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mandate_mandateid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mandate_mandateid
+              tableName: mandate
     changes:
     - createIndex:
         columns:
@@ -8800,6 +10665,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mandate_bankid_accountid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mandate_bankid_accountid
+              tableName: mandate
     changes:
     - createIndex:
         columns:
@@ -8812,6 +10683,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mandate_customerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mandate_customerid
+              tableName: mandate
     changes:
     - createIndex:
         columns:
@@ -8822,6 +10699,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mandate_mandatereference
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mandate_mandatereference
+              tableName: mandate
     changes:
     - createIndex:
         columns:
@@ -8832,6 +10715,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mandateprovision_provisionid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mandateprovision_provisionid
+              tableName: mandateprovision
     changes:
     - createIndex:
         columns:
@@ -8843,6 +10732,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mandateprovision_mandateid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mandateprovision_mandateid
+              tableName: mandateprovision
     changes:
     - createIndex:
         columns:
@@ -8853,6 +10748,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-signatorypanel_panelid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: signatorypanel_panelid
+              tableName: signatorypanel
     changes:
     - createIndex:
         columns:
@@ -8864,6 +10765,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-signatorypanel_mandateid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: signatorypanel_mandateid
+              tableName: signatorypanel
     changes:
     - createIndex:
         columns:
@@ -8874,6 +10781,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-signingbasket_basketid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: signingbasket_basketid
+              tableName: signingbasket
     changes:
     - createIndex:
         columns:
@@ -8884,6 +10797,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-signingbasketpayment_basketid_paymentid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: signingbasketpayment_basketid_paymentid
+              tableName: signingbasketpayment
     changes:
     - createIndex:
         columns:
@@ -8896,6 +10815,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-signingbasketconsent_basketid_consentid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: signingbasketconsent_basketid_consentid
+              tableName: signingbasketconsent
     changes:
     - createIndex:
         columns:
@@ -8908,6 +10833,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consentrequest_consentrequestid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consentrequest_consentrequestid
+              tableName: consentrequest
     changes:
     - createIndex:
         columns:
@@ -8919,6 +10850,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcounterparty_mcounterpartyid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcounterparty_mcounterpartyid
+              tableName: mappedcounterparty
     changes:
     - createIndex:
         columns:
@@ -8930,6 +10867,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcounterparty_mname_mthisbankid_mthisaccountid_mthisviewid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcounterparty_mname_mthisbankid_mthisaccountid_mthisviewid
+              tableName: mappedcounterparty
     changes:
     - createIndex:
         columns:
@@ -8947,6 +10890,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcounterpartymetadata_corporatelocation
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcounterpartymetadata_corporatelocation
+              tableName: mappedcounterpartymetadata
     changes:
     - createIndex:
         columns:
@@ -8957,6 +10906,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcounterpartymetadata_physicallocation
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcounterpartymetadata_physicallocation
+              tableName: mappedcounterpartymetadata
     changes:
     - createIndex:
         columns:
@@ -8967,6 +10922,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcounterpartymetadata_counterpartyid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcounterpartymetadata_counterpartyid
+              tableName: mappedcounterpartymetadata
     changes:
     - createIndex:
         columns:
@@ -8978,6 +10939,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcounterpartywheretag_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcounterpartywheretag_user_c
+              tableName: mappedcounterpartywheretag
     changes:
     - createIndex:
         columns:
@@ -8988,6 +10955,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedbank_permalink
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedbank_permalink
+              tableName: mappedbank
     changes:
     - createIndex:
         columns:
@@ -8998,6 +10971,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedbank_createdbyuserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedbank_createdbyuserid
+              tableName: mappedbank
     changes:
     - createIndex:
         columns:
@@ -9008,6 +10987,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransaction_transactionid_bank_account
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransaction_transactionid_bank_account
+              tableName: mappedtransaction
     changes:
     - createIndex:
         columns:
@@ -9023,6 +11008,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransaction_bank_account
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransaction_bank_account
+              tableName: mappedtransaction
     changes:
     - createIndex:
         columns:
@@ -9035,6 +11026,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransactionrequest_mtransactionrequestid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransactionrequest_mtransactionrequestid
+              tableName: mappedtransactionrequest
     changes:
     - createIndex:
         columns:
@@ -9046,6 +11043,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomer_mcustomerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomer_mcustomerid
+              tableName: mappedcustomer
     changes:
     - createIndex:
         columns:
@@ -9057,6 +11060,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcustomer_mbank_mnumber
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcustomer_mbank_mnumber
+              tableName: mappedcustomer
     changes:
     - createIndex:
         columns:
@@ -9070,6 +11079,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metric_date_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metric_date_c
+              tableName: metric
     changes:
     - createIndex:
         columns:
@@ -9080,6 +11095,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metric_consumerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metric_consumerid
+              tableName: metric
     changes:
     - createIndex:
         columns:
@@ -9090,6 +11111,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metric_consent_reference_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metric_consent_reference_id
+              tableName: metric
     changes:
     - createIndex:
         columns:
@@ -9100,6 +11127,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_userid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_userid
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9110,6 +11143,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_consumerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_consumerid
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9120,6 +11159,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_url
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_url
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9130,6 +11175,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_date_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_date_c
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9140,6 +11191,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_username
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_username
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9150,6 +11207,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_appname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_appname
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9160,6 +11223,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_developeremail
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_developeremail
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9170,6 +11239,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_consent_reference_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: metricarchive_consent_reference_id
+              tableName: metricarchive
     changes:
     - createIndex:
         columns:
@@ -9180,6 +11255,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconsent_mconsentid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconsent_mconsentid
+              tableName: mappedconsent
     changes:
     - createIndex:
         columns:
@@ -9191,6 +11272,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconsent_consent_reference_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconsent_consent_reference_id
+              tableName: mappedconsent
     changes:
     - createIndex:
         columns:
@@ -9202,6 +11289,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconsent_muserid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconsent_muserid
+              tableName: mappedconsent
     changes:
     - createIndex:
         columns:
@@ -9212,6 +11305,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedconsent_muserid_createdat
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedconsent_muserid_createdat
+              tableName: mappedconsent
     changes:
     - createIndex:
         columns:
@@ -9224,6 +11323,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedbankaccount_bank_theaccountid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedbankaccount_bank_theaccountid
+              tableName: mappedbankaccount
     changes:
     - createIndex:
         columns:
@@ -9237,6 +11342,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewdefinition_composite_unique_key
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: viewdefinition_composite_unique_key
+              tableName: viewdefinition
     changes:
     - createIndex:
         columns:
@@ -9248,6 +11359,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewdefinition_issystem_
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: viewdefinition_issystem_
+              tableName: viewdefinition
     changes:
     - createIndex:
         columns:
@@ -9258,6 +11375,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewdefinition_ispublic_
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: viewdefinition_ispublic_
+              tableName: viewdefinition
     changes:
     - createIndex:
         columns:
@@ -9268,6 +11391,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewdefinition_isfirehose_
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: viewdefinition_isfirehose_
+              tableName: viewdefinition
     changes:
     - createIndex:
         columns:
@@ -9278,6 +11407,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewdefinition_issystem__view_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: viewdefinition_issystem__view_id
+              tableName: viewdefinition
     changes:
     - createIndex:
         columns:
@@ -9290,6 +11425,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewdefinition_bank_id_account_id_view_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: viewdefinition_bank_id_account_id_view_id
+              tableName: viewdefinition
     changes:
     - createIndex:
         columns:
@@ -9304,6 +11445,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-token_userforeignkey
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: token_userforeignkey
+              tableName: token
     changes:
     - createIndex:
         columns:
@@ -9314,6 +11461,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-token_consumerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: token_consumerid
+              tableName: token
     changes:
     - createIndex:
         columns:
@@ -9324,6 +11477,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consumer_name
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consumer_name
+              tableName: consumer
     changes:
     - createIndex:
         columns:
@@ -9334,6 +11493,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consumer_key_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consumer_key_c
+              tableName: consumer
     changes:
     - createIndex:
         columns:
@@ -9345,6 +11510,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consumer_azp_sub
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consumer_azp_sub
+              tableName: consumer
     changes:
     - createIndex:
         columns:
@@ -9358,6 +11529,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-resourceuser_provider__providerid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: resourceuser_provider__providerid
+              tableName: resourceuser
     changes:
     - createIndex:
         columns:
@@ -9371,6 +11548,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-resourceuser_userid_unique
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: resourceuser_userid_unique
+              tableName: resourceuser
     changes:
     - createIndex:
         columns:
@@ -9382,6 +11565,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-authuser_uniqueid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: authuser_uniqueid
+              tableName: authuser
     changes:
     - createIndex:
         columns:
@@ -9392,6 +11581,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-authuser_user_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: authuser_user_c
+              tableName: authuser
     changes:
     - createIndex:
         columns:
@@ -9402,6 +11597,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-authuser_username_provider
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: authuser_username_provider
+              tableName: authuser
     changes:
     - createIndex:
         columns:
@@ -9415,6 +11616,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcomment_apiid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcomment_apiid
+              tableName: mappedcomment
     changes:
     - createIndex:
         columns:
@@ -9426,6 +11633,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedcomment_view_c_bank_account_transaction_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedcomment_view_c_bank_account_transaction_c
+              tableName: mappedcomment
     changes:
     - createIndex:
         columns:
@@ -9442,6 +11655,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtag_tagid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtag_tagid
+              tableName: mappedtag
     changes:
     - createIndex:
         columns:
@@ -9453,6 +11672,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtag_bank_account_transaction_c_view_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtag_bank_account_transaction_c_view_c
+              tableName: mappedtag
     changes:
     - createIndex:
         columns:
@@ -9469,6 +11694,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransactionimage_imageid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransactionimage_imageid
+              tableName: mappedtransactionimage
     changes:
     - createIndex:
         columns:
@@ -9480,6 +11711,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedtransactionimage_bank_account_transaction_c_view_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedtransactionimage_bank_account_transaction_c_view_c
+              tableName: mappedtransactionimage
     changes:
     - createIndex:
         columns:
@@ -9496,6 +11733,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consent_item_consent_item_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consent_item_consent_item_id
+              tableName: consent_item
     changes:
     - createIndex:
         columns:
@@ -9507,6 +11750,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consent_item_consent_reference_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consent_item_consent_reference_id
+              tableName: consent_item
     changes:
     - createIndex:
         columns:
@@ -9517,6 +11766,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consent_item_consent_reference_id_bank_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consent_item_consent_reference_id_bank_id
+              tableName: consent_item
     changes:
     - createIndex:
         columns:
@@ -9529,6 +11784,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-consent_item_bank_id
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: consent_item_bank_id
+              tableName: consent_item
     changes:
     - createIndex:
         columns:
@@ -9539,6 +11800,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappednarrative_bank_account_transaction_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappednarrative_bank_account_transaction_c
+              tableName: mappednarrative
     changes:
     - createIndex:
         columns:
@@ -9553,6 +11820,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappedwheretag_bank_account_transaction_c_view_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: mappedwheretag_bank_account_transaction_c_view_c
+              tableName: mappedwheretag
     changes:
     - createIndex:
         columns:
@@ -9569,6 +11842,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connector_trace_date_c
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connector_trace_date_c
+              tableName: connector_trace
     changes:
     - createIndex:
         columns:
@@ -9579,6 +11858,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connector_trace_correlationid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connector_trace_correlationid
+              tableName: connector_trace
     changes:
     - createIndex:
         columns:
@@ -9589,6 +11874,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connector_trace_connectorname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connector_trace_connectorname
+              tableName: connector_trace
     changes:
     - createIndex:
         columns:
@@ -9599,6 +11890,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connector_trace_functionname
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connector_trace_functionname
+              tableName: connector_trace
     changes:
     - createIndex:
         columns:
@@ -9609,6 +11906,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connector_trace_userid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connector_trace_userid
+              tableName: connector_trace
     changes:
     - createIndex:
         columns:
@@ -9619,6 +11922,12 @@ databaseChangeLog:
 - changeSet:
     id: create-index-connector_trace_bankid
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - indexExists:
+              indexName: connector_trace_bankid
+              tableName: connector_trace
     changes:
     - createIndex:
         columns:
@@ -9629,6 +11938,11 @@ databaseChangeLog:
 - changeSet:
     id: create-table-bankaccountbalance
     author: obp
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+          - tableExists:
+              tableName: bankaccountbalance
     changes:
     - createTable:
         columns:
