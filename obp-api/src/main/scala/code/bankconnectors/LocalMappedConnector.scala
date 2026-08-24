@@ -4011,7 +4011,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                              bankId: String,
                                              callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] =
     ProductCollectionItems.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map { it =>
-      val data: Box[List[ProductCollectionItemsTree]] = it.map(boxValue => boxValue.map(it => ProductCollectionItemsTree(it._1, it._2, it._3.asInstanceOf[List[ProductAttributeCommons]])))
+      // it._3 is List[ProductAttribute] straight off DoobieProductAttributeProvider, whose rows are
+      // ProductAttributeRow - not ProductAttributeCommons. Casting compiles and checks nothing;
+      // it defers a ClassCastException to whoever reads the tree's attributes at the Commons type.
+      val data: Box[List[ProductCollectionItemsTree]] = it.map(boxValue => boxValue.map(it =>
+        ProductCollectionItemsTree(it._1, it._2, ProductAttributeCommons.toCommonsList(it._3))))
       (data, callContext)
     }
 

@@ -49,6 +49,9 @@ jobs:
       - name: Lint — the changelog still carries the scripts' data migrations
         run: python3 .github/scripts/check_changelog_data_migrations.py
 
+      - name: Lint — a Commons list is converted, never cast
+        run: python3 .github/scripts/check_no_blind_commons_casts.py
+
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them
