@@ -57,7 +57,12 @@ case class MappedPhysicalCard(
   private[cards] val cardKey: Long
 ) extends PhysicalCardTrait {
 
-  override def networks: List[String] = networksRaw.split(",").toList
+  // Null-safe rather than null-collapsed, and the two are not the same answer. A NULL column - what
+  // every row written before mnetworks was backfilled holds - means no networks were recorded, so
+  // it reads as Nil. A column holding "" is a client that actually sent [""], and `"".split(",")`
+  // is `Array("")`, so it reads back as it was sent. Collapsing NULL to "" upstream would merge the
+  // two and silently change what an existing client gets back.
+  override def networks: List[String] = Option(networksRaw).map(_.split(",").toList).getOrElse(Nil)
 
   override def allows: List[CardActionType] = Option(allowsRaw) match {
     case Some(x) if !x.isEmpty => x.split(",").toList.map(CardActionType.valueOf)
@@ -82,9 +87,14 @@ case class MappedPhysicalCard(
 
   override def posted: Option[CardPostedInfo] = postedDate.map(CardPostedInfo.apply)
 
-  override def cvv: Option[String] = Some(cvvRaw)
+  // Option, not Some: mcvv and mbrand were added to the model years after the table existed and
+  // Schemifier added them with no backfill, so every row written before that release holds SQL NULL.
+  // `Some(null)`, which is what the old `Some(cvvRaw)` produced there, says the card has a CVV and
+  // then hands out a null; None says what the column says. An actually-empty string still reads
+  // back as Some("") - only the absent case changes.
+  override def cvv: Option[String] = Option(cvvRaw)
 
-  override def brand: Option[String] = Some(brandRaw)
+  override def brand: Option[String] = Option(brandRaw)
 }
 
 object MappedPhysicalCard {
@@ -104,10 +114,12 @@ object MappedPhysicalCard {
   // whenever it is undefined. Binding those bare made doobie raise NonNullableColumnRead and fail
   // the whole listing, so each column is read as Option and collapsed the way its Mapper field read
   // a NULL: MappedString -> null, MappedBoolean -> false, MappedLongForeignKey -> 0L,
-  // MappedDateTime -> null. The four raw strings backing accessors that dereference them
-  // (networks/allows/cvv/brand) collapse to "" instead, which is what those accessors already
-  // treat as "empty" - `allows` guards with Option(allowsRaw) - so a NULL column stays a listing
-  // that renders rather than an NPE one field later.
+  // MappedDateTime -> null.
+  //
+  // The four raw strings behind networks/allows/cvv/brand stay null rather than becoming "": their
+  // accessors are null-safe, and the two values mean different things. "" is a client that sent an
+  // empty value and must get it back unchanged; NULL is a column that was never written, and reads
+  // as Nil / None. Collapsing here would merge them.
   private type RowHead = (Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String], Option[java.sql.Timestamp],
     Option[java.sql.Timestamp], Option[Boolean], Option[Boolean], Option[Boolean])
@@ -125,10 +137,10 @@ object MappedPhysicalCard {
         nameOnCard.orNull, issueNumber.orNull, serialNumber.orNull,
         validFrom.map(d => d: Date).orNull, expires.map(d => d: Date).orNull,
         enabled.getOrElse(false), cancelled.getOrElse(false), onHotList.getOrElse(false),
-        technology.orNull, networks.getOrElse(""), allows.getOrElse(""),
+        technology.orNull, networks.orNull, allows.orNull,
         accountKey.getOrElse(0L), replacementDate.map(d => d: Date), replacementReason,
         collected.map(d => d: Date), posted.map(d => d: Date), customerId.orNull,
-        cvv.getOrElse(""), brand.getOrElse(""), cardKey)
+        cvv.orNull, brand.orNull, cardKey)
   }
 
   private def query(condition: Fragment): List[MappedPhysicalCard] =

@@ -129,9 +129,15 @@ class NullableColumnReadTest extends ServerSetup {
       // MappedBoolean read a NULL column as false, and MappedLongForeignKey as 0L.
       cards.head.enabled should equal(false)
       cards.head.accountKey should equal(0L)
-      // The accessors over the raw strings must still work rather than dereferencing a null.
-      cards.head.networks should equal(List(""))
-      cards.head.allows should equal(List())
+      // The accessors over the raw strings must still work rather than dereferencing a null - and
+      // must say "none" rather than "one empty one". `"".split(",")` is `Array("")`, so a networks
+      // accessor without the emptiness guard its sibling `allows` has publishes `[""]`.
+      cards.head.networks should equal(Nil)
+      cards.head.allows should equal(Nil)
+      // mcvv/mbrand hold SQL NULL on every row written before they were added to the model. Some("")
+      // would say the card has an empty CVV; the column says it has none.
+      cards.head.cvv should equal(None)
+      cards.head.brand should equal(None)
     }
   }
 }
