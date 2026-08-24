@@ -181,7 +181,8 @@ jobs:
               code.api.gateWayloginTest
               code.api.OBPRestHelperTest
               code.api.AliveCheckRoutesTest
-              code.api.Http4sOpenIdConnect
+              code.api.OAuth2
+              code.api.SIWETest
               code.entitlement
               code.bankaccountcreation
               code.bankconnectors

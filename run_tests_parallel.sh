@@ -208,7 +208,8 @@ code.customer,code.errormessages"
 # Shard 4 base — auth/login/connector/util plus any packages not in shards 1-3
 S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0,\
 code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
-code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
+code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.api.AliveCheckRoutesTest,\
+code.api.OAuth2,code.api.SIWETest,code.util,code.connector"
 
 # ── Catch-all: every package not named by any shard, appended to the last one ────
 #    (same logic as CI's shard-8 catch-all — a new package is never silently skipped)
@@ -258,7 +259,8 @@ code.customer,code.errormessages"
 S5_6="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0"
 
 S6_6_BASE="code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
-code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
+code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.api.AliveCheckRoutesTest,\
+code.api.OAuth2,code.api.SIWETest,code.util,code.connector"
 
 S6_6="${S6_6_BASE}$(catch_all_extras "Shard 6" "$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3_6" | tr ',' ' ') $(echo "$S4_6" | tr ',' ' ') $(echo "$S5_6" | tr ',' ' ') $(echo "$S6_6_BASE" | tr ',' ' ')")"
 
