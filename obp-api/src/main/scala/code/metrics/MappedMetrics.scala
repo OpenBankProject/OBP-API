@@ -217,6 +217,51 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   
 
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  /**
+   * The filter set a metrics read applies, taken from the request's query parameters.
+   *
+   * One extractor for all three reads. They used to carry a copy each of the same twenty
+   * `queryParams.collect` lines and the same MetricsQueryFilters construction, differing only in
+   * which fields they bothered to fill - three near-identical blocks that had to be kept in step by
+   * hand, and that a filter added to one would silently miss in the others.
+   *
+   * The include* fields are read by buildFilterConditions only when isNewVersion is true, so passing
+   * them from a caller that runs the exclude* branch is inert; they are filled unconditionally
+   * rather than per-caller for that reason.
+   *
+   * withCorrelationId is a parameter and not simply always-on because it is a real behavioural
+   * difference, not an oversight: the aggregate query has always filtered on correlation id, and
+   * top-consumers has not - its old SQL extracted the value into a local and then never referenced
+   * it. Defaulting it on here would quietly add a filter to top-consumers.
+   */
+  private def filtersFrom(
+    queryParams: List[OBPQueryParam],
+    withCorrelationId: Boolean
+  ): MetricsQueryFilters =
+    MetricsQueryFilters(
+      consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption,
+      userId = queryParams.collect { case OBPUserId(value) => value }.headOption,
+      url = queryParams.collect { case OBPUrl(value) => value }.headOption,
+      appName = queryParams.collect { case OBPAppName(value) => value }.headOption,
+      implementedByPartialFunction =
+        queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption,
+      implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption,
+      verb = queryParams.collect { case OBPVerb(value) => value }.headOption,
+      anon = queryParams.collect { case OBPAnon(value) => value }.headOption,
+      correlationId =
+        if (withCorrelationId) queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+        else None,
+      httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption,
+      excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption,
+      includeAppNames = queryParams.collect { case OBPIncludeAppNames(value) => value }.headOption,
+      excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption,
+      includeUrlPatterns = queryParams.collect { case OBPIncludeUrlPatterns(value) => value }.headOption,
+      excludeImplementedByPartialFunctions =
+        queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption,
+      includeImplementedByPartialFunctions =
+        queryParams.collect { case OBPIncludeImplementedByPartialFunctions(value) => value }.headOption
+    )
+
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Box[List[AggregateMetrics]] = {
     logger.info(s"getAllAggregateMetricsBox called with ${queryParams.length} query params, isNewVersion=$isNewVersion")
     val cacheKey = ("code.metrics.MappedMetrics", "getAllAggregateMetricsBox", List(queryParams, isNewVersion).mkString("_"))
@@ -227,48 +272,11 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val startTime = System.currentTimeMillis()
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
-      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
-      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
-      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
-      val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
-      val includeAppNames = queryParams.collect { case OBPIncludeAppNames(value) => value }.headOption
-      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
-      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
-      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
-      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
-      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
-      val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
-      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
-      val includeUrlPatterns = queryParams.collect { case OBPIncludeUrlPatterns(value) => value }.headOption
-      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
-      val includeImplementedByPartialFunctions = queryParams.collect { case OBPIncludeImplementedByPartialFunctions(value) => value }.headOption
 
-      // Route to the parameter-binding Doobie query instead of splicing the filter values into the
-      // SQL string through sqlFriendly. getTopApisFuture in this object was already switched to
-      // DoobieMetricsQueries; getAllAggregateMetricsBox and getTopConsumersFuture were left on the
-      // DBUtil.runQuery string path, where a value like `' OR '1'='1` closed the quote and turned
-      // `appname = '...'` into an always-true disjunction, nullifying the filter over the whole
-      // table. buildFilterConditions binds every operand. See MetricsSqlInjectionTest.
-      val filters = MetricsQueryFilters(
-        consumerId = consumerId,
-        userId = userId,
-        url = url,
-        appName = appName,
-        implementedByPartialFunction = implementedByPartialFunction,
-        implementedInVersion = implementedInVersion,
-        verb = verb,
-        anon = anon,
-        correlationId = correlationId,
-        httpStatusCode = httpStatusCode,
-        excludeAppNames = excludeAppNames,
-        includeAppNames = includeAppNames,
-        excludeUrlPatterns = excludeUrlPatterns,
-        includeUrlPatterns = includeUrlPatterns,
-        excludeImplementedByPartialFunctions = excludeImplementedByPartialFunctions,
-        includeImplementedByPartialFunctions = includeImplementedByPartialFunctions
-      )
+      // Bind the filter values instead of splicing them into the SQL string, which is what
+      // sqlFriendly did: a value like `' OR '1'='1` closed the quote and turned `appname = '...'`
+      // into an always-true disjunction over the whole table. See MetricsSqlInjectionTest.
+      val filters = filtersFrom(queryParams, withCorrelationId = true)
       val result = DoobieMetricsQueries.getAggregateMetrics(fromDate.get, toDate.get, filters, isNewVersion)
       val elapsedTime = System.currentTimeMillis() - startTime
       logger.info(s"getAllAggregateMetricsBox - Query completed in ${elapsedTime}ms")
@@ -294,38 +302,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     {
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
-      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
-      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
-      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
-      val excludeAppNames: Option[List[String]] = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
-      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
-      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
-      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
-      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
-      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
-      val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
-      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
-      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
       val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(10)
-
-      // Build MetricsQueryFilters for Doobie
-      val filters = MetricsQueryFilters(
-        consumerId = consumerId,
-        userId = userId,
-        url = url,
-        appName = appName,
-        implementedByPartialFunction = implementedByPartialFunction,
-        implementedInVersion = implementedInVersion,
-        verb = verb,
-        anon = anon,
-        correlationId = correlationId,
-        httpStatusCode = httpStatusCode,
-        excludeAppNames = excludeAppNames,
-        excludeUrlPatterns = excludeUrlPatterns,
-        excludeImplementedByPartialFunctions = excludeImplementedByPartialFunctions
-      )
+      val filters = filtersFrom(queryParams, withCorrelationId = true)
 
       val result: Box[List[TopApi]] = tryo {
         logger.debug(s"getTopApisFuture using Doobie with filters: $filters, limit: $limit")
@@ -348,39 +326,11 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
-      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
-      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
-      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
-      val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
-      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
-      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
-      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
-      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
-      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
-      val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
-      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
-      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
       val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(500)
 
-      // Route to the parameter-binding Doobie query; see getAllAggregateMetricsBox above for why the
-      // sqlFriendly string path this replaces is an injection sink. buildTopConsumersQuery keeps the
-      // same metric-consumer join, GROUP BY and exclude* filter set. MetricsSqlInjectionTest.
-      val filters = MetricsQueryFilters(
-        consumerId = consumerId,
-        userId = userId,
-        url = url,
-        appName = appName,
-        implementedByPartialFunction = implementedByPartialFunction,
-        implementedInVersion = implementedInVersion,
-        verb = verb,
-        anon = anon,
-        httpStatusCode = httpStatusCode,
-        excludeAppNames = excludeAppNames,
-        excludeUrlPatterns = excludeUrlPatterns,
-        excludeImplementedByPartialFunctions = excludeImplementedByPartialFunctions
-      )
+      // withCorrelationId = false: the SQL this replaced extracted a correlation id and never used
+      // it, so filtering on it here would be a new behaviour, not a restored one.
+      val filters = filtersFrom(queryParams, withCorrelationId = false)
       val result = DoobieMetricsQueries.getTopConsumers(fromDate.get, toDate.get, limit, filters)
       tryo(result)
     }
