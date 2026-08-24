@@ -8,10 +8,20 @@ COPY /obp-api/target/lib /app/lib
 COPY /obp-api/target/obp-api.jar /app/obp-api.jar
 WORKDIR /app
 USER obp
+# -cp, not -jar. The dependencies live in /app/lib and reach an ordinary classloader either way,
+# via the jar manifest's Class-Path - but a manifest Class-Path never appears in the
+# `java.class.path` system property, and under `-jar` that property is the single jar and nothing
+# else. Two things read it directly to build a compiler classpath at runtime: our own
+# DotcScalaCompiler (dynamic endpoints, dynamic connector methods, ABAC rules) and, inside json4s,
+# the ScalaSigReader that resolves Scala 3 case-class field types. Both then fail with
+# "Could not find package scala from compiler core libraries" / an unhandled staging-compiler
+# error, on a server that otherwise boots and looks healthy. Reproduced on this image: with -jar,
+# POST /obp/v2.1.0/sandbox/data-import returned 500 from the staging compiler; with the -cp form
+# below and nothing else changed, 201.
 ENTRYPOINT ["java", \
   "--add-opens", "java.base/java.lang=ALL-UNNAMED", \
   "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED", \
   "--add-opens", "java.base/java.io=ALL-UNNAMED", \
   "--add-opens", "java.base/java.util=ALL-UNNAMED", \
   "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED", \
-  "-jar", "/app/obp-api.jar"]
+  "-cp", "/app/obp-api.jar:/app/lib/*", "bootstrap.http4s.Http4sServer"]
