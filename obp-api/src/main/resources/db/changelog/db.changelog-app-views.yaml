@@ -29,7 +29,25 @@
 # main pass. LiquibaseSchemaSetup runs the main pass with `!oidc-views` and this pass with
 # `oidc-views`; see its `createOidcViews`, called from Boot after the migrations.
 #
-# runOnChange so that editing a definition here re-applies it; createView replaces in place.
+# runOnChange so that editing a definition here re-applies it.
+#
+# DROP first, then create - NOT `replaceIfExists`. Postgres implements CREATE OR REPLACE VIEW as a
+# replacement that must keep the existing output column list byte-identical in name, order AND
+# type, and refuses otherwise:
+#
+#     ERROR: cannot change data type of view column "bank_id"
+#            from character varying to character varying(255)
+#
+# which aborts the changeset and therefore the boot. That is not hypothetical: every deployment
+# that ever ran MigrationOfAccountAccessWithViewsView already has this view, built when
+# accountaccess.bank_id resolved to an unbounded varchar, while the same column off the baseline
+# changelog is varchar(255). So the replace form works on a fresh database and breaks exactly the
+# upgrades this file exists to serve. Caught by run-suite2, which boots against a clone of the live
+# database; every fresh-database test in the suite passes either way, which is why this needs
+# saying here rather than being left to the next person to rediscover.
+#
+# No CASCADE on the DROP: nothing selects from these two views today, and if something ever does,
+# failing loudly is better than silently taking the dependent with it.
 databaseChangeLog:
   - changeSet:
       id: create-view-v_consent
@@ -39,9 +57,10 @@ databaseChangeLog:
       comment: >-
         Read by DoobieConsentQueries. Renames mappedconsent's Mapper-era column names to the ones the consent queries select.
       changes:
+        - sql:
+            sql: DROP VIEW IF EXISTS v_consent
         - createView:
             viewName: v_consent
-            replaceIfExists: true
             selectQuery: |-
               SELECT
                   consent_reference_id              AS consent_reference_id,
@@ -71,9 +90,10 @@ databaseChangeLog:
       comment: >-
         Read by DoobieAccountAccessViewQueries. Joins each account-access row to its user and to the view definition it names - system views match on view_id alone, custom views additionally on bank and account.
       changes:
+        - sql:
+            sql: DROP VIEW IF EXISTS v_account_access_with_views
         - createView:
             viewName: v_account_access_with_views
-            replaceIfExists: true
             selectQuery: |-
               SELECT
                   aa.id              AS account_access_id,
