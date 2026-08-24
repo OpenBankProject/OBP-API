@@ -25,9 +25,11 @@ import org.scalatest.matchers.should.Matchers
  *   - the unique indexes restored late in the migration being present here too.
  *
  * It builds a database of its own, migrates it, checks it, and drops it. That needs a reachable
- * Postgres, which CI does not have, so it cancels itself when there is none rather than failing:
- * a developer with Postgres running gets the check, everyone else gets a skip. Point it somewhere
- * else with OBP_TEST_POSTGRES_URL / _USER / _PASSWORD.
+ * Postgres. Where one is not required it cancels itself rather than failing, so a developer without
+ * Postgres running still gets a green suite; where OBP_TEST_POSTGRES_REQUIRED=true - CI, which now
+ * runs a Postgres service container - a missing one is a failure, because a cancelled test reports
+ * as a pass and this check being silently absent is the exact state it exists to prevent. See
+ * PostgresTestTarget. Point it somewhere else with OBP_TEST_POSTGRES_URL / _USER / _PASSWORD.
  */
 class PostgresMigrationTest extends AnyFlatSpec with Matchers {
 
@@ -70,8 +72,7 @@ class PostgresMigrationTest extends AnyFlatSpec with Matchers {
   }
 
   "the changelog" should "build a usable schema on Postgres" in {
-    assume(postgresReachable,
-      s"no Postgres at $adminUrl - skipping (set OBP_TEST_POSTGRES_URL to run this)")
+    PostgresTestTarget.requireReachable(postgresReachable, adminUrl)
 
     // Defence in depth. databaseName is a literal today, so this cannot fire - but a CREATE
     // DATABASE / DROP DATABASE pair is worth guarding against whatever it becomes later.
@@ -161,8 +162,7 @@ class PostgresMigrationTest extends AnyFlatSpec with Matchers {
    * `createOidcViews` has to tolerate.
    */
   "createOidcViews" should "replace a legacy-shaped v_oidc_users view without a type-mismatch error" in {
-    assume(postgresReachable,
-      s"no Postgres at $adminUrl - skipping (set OBP_TEST_POSTGRES_URL to run this)")
+    PostgresTestTarget.requireReachable(postgresReachable, adminUrl)
 
     val db = "obp_suite_oidc_legacy_view_upgrade"
     withClue(s"refusing to CREATE/DROP a database that is not disposable: $db ") {

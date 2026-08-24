@@ -212,6 +212,24 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # PostgresMigrationTest is the only thing that exercises the Postgres DDL, and it used to
+      # cancel itself here for want of a server - a cancelled test reports as a pass, so the
+      # Postgres half of the schema was never checked in CI at all. The service makes it run;
+      # OBP_TEST_POSTGRES_REQUIRED below makes its absence a failure rather than a silent skip.
+      # Only the shard that owns code.api.util runs the test, and the flag is inert on the rest.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -312,6 +330,12 @@ jobs:
           echo allow_user_generated_scala_code=true >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
+        env:
+          OBP_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/postgres
+          OBP_TEST_POSTGRES_USER: postgres
+          OBP_TEST_POSTGRES_PASSWORD: postgres
+          # Turns PostgresMigrationTest's self-cancellation into a failure - see PostgresTestTarget.
+          OBP_TEST_POSTGRES_REQUIRED: "true"
         run: |
           # wildcardSuites requires comma-separated package prefixes (-w per entry).
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
