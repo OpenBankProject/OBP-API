@@ -26,14 +26,22 @@ import org.scalatest.matchers.should.Matchers
  */
 class FrozenTypePrecisionTest extends AnyFlatSpec with Matchers {
 
-  "the frozen type fixture" should "record no field as an erased Option[Object]" in {
+  "the frozen type fixture" should "record no field at an erased Object type" in {
     val textPath = Paths.get(FrozenMetaDataText.textPathOf(FrozenClassUtil.persistFilePath))
     assume(Files.exists(textPath), s"fixture not rendered yet: $textPath")
 
     val erased = new String(Files.readAllBytes(textPath), StandardCharsets.UTF_8)
       .linesIterator
       .filter(_.startsWith("field\t"))
-      .filter(l => l.endsWith("\tOption[Object]") || l.endsWith("\tObject"))
+      // `Object` anywhere in the recorded type, not only as `Option[Object]`: a value type erases
+      // the same way inside any generic, so `List[Long]` is read off a Scala 3 class file as
+      // `List[Object]` and would slip past a filter that only names the Option shape. There is no
+      // such field today - which is exactly when a guard is cheap to widen.
+      .filter(l => {
+        val recorded = l.substring(l.lastIndexOf('\t') + 1)
+        recorded == "Object" || recorded.contains("[Object]") || recorded.contains("[Object,") ||
+          recorded.contains(", Object]")
+      })
       .toList
 
     withClue(

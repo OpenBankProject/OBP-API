@@ -93,10 +93,25 @@ object FrozenClassUtil extends Loggable{
     */
   private def erasedTypeRefinements(roots: List[Any]): Map[(String, String), String] = {
     val out = scala.collection.mutable.Map.empty[(String, String), String]
-    val seen = scala.collection.mutable.Set.empty[Class[_]]
+    val recorded = scala.collection.mutable.Set.empty[Class[_]]
+    // Identity-based, because termination is per OBJECT: gating the walk per class lets the first
+    // instance of a class decide whether anything below it is ever visited (if that one holds None
+    // where a later instance holds Some(nested), the nested type is never reached), while gating
+    // nothing turns a cyclic example graph - constructible, since these are lazy vals - into a
+    // stack overflow. Visiting each object once terminates on both and skips no subtree.
+    val visited = java.util.Collections.newSetFromMap(
+      new java.util.IdentityHashMap[AnyRef, java.lang.Boolean]())
+
+    // Erasure is detected structurally, not by comparing declared.toString against one rendering:
+    // scala-reflect prints the same type as `Option[Object]` or `Option[java.lang.Object]`
+    // depending on how the symbol was resolved, and a string match on one spelling silently
+    // matches nothing when it prints the other.
+    def isErasedOption(declared: Type): Boolean =
+      declared.typeSymbol.fullName == "scala.Option" &&
+        declared.typeArgs.headOption.exists(_.typeSymbol.fullName == "java.lang.Object")
 
     def refinedName(declared: Type, value: Any): Option[String] =
-      if (declared.toString != "Option[Object]") None
+      if (!isErasedOption(declared)) None
       else value match {
         case Some(_: java.lang.Boolean) => Some("Option[Boolean]")
         case Some(_: java.lang.Integer) => Some("Option[Int]")
@@ -110,18 +125,24 @@ object FrozenClassUtil extends Loggable{
       case null => ()
       case Some(inner) => walk(inner)
       case None => ()
+      // A Map iterates as pairs, and a pair matches no other case - without this, nothing inside
+      // any Map-typed field is ever visited.
+      case (_, v) => walk(v)
       case items: Iterable[_] => items.foreach(walk)
       case obj: AnyRef if ReflectUtils.isObpObject(obj) =>
-        // Once per class, not once per instance: the fields are a property of the class, and an
-        // API's example bodies hold the same one many times over.
-        if (seen.add(obj.getClass)) {
+        if (visited.add(obj)) {
           val tp = ReflectUtils.getType(obj)
           val className = tp.typeSymbol.asClass.fullName
+          // Recording stays once-per-class - the fields are a property of the class - but gates
+          // only the `out +=`, never the recursion.
+          val record = recorded.add(obj.getClass)
           val declaredTypes = ReflectUtils.getConstructorParamInfo(tp)
           val values = ReflectUtils.getConstructorArgs(obj)
           declaredTypes.foreach { case (fieldName, declared) =>
             values.get(fieldName).foreach { fieldValue =>
-              refinedName(declared, fieldValue).foreach(name => out += ((className, fieldName) -> name))
+              if (record) {
+                refinedName(declared, fieldValue).foreach(name => out += ((className, fieldName) -> name))
+              }
               walk(fieldValue)
             }
           }
