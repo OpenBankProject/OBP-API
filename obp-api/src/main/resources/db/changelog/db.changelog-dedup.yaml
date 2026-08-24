@@ -15,6 +15,30 @@
 # the baseline is about to create it. On a database that already holds rows, the precondition
 # passes and the duplicates go before the index is attempted.
 #
+# The last two carry no `dbms` and are written differently for it. Boot used to de-duplicate
+# mappedentitlement and
+# mapperaccountholders itself, through Migration.database.deduplicateBeforeUniqueIndexSchemify(),
+# on the stated grounds that it had to happen before schemifyAll() issued their CREATE UNIQUE INDEX.
+# Neither half of that holds any more - ToSchemify.models is Nil, so schemifyAll() issues nothing,
+# and the index comes from Liquibase, which Boot runs fourteen lines earlier. So it ran after the
+# index it existed to make creatable. It also named a table that does not exist
+# (`mapperaccountholder`, for `mapperaccountholders`, and `user_` for `user_c`), and its first act
+# is a table-existence probe, so that half returned silently and had never run at all.
+#
+# What it did get right is that it ran on every vendor OBP ships a driver for, and it was written
+# that way deliberately: the `NOT IN (SELECT MIN ...)` form the eight above use names the table
+# being deleted from inside its own subquery, which MySQL/MariaDB reject with ERROR 1093, and that
+# is why those eight are h2/postgresql only. Restricting these two the same way would have taken
+# MySQL coverage away rather than left it missing - and with each baseline changeset now carrying
+# `not indexExists`, the CREATE UNIQUE INDEX actually runs there, so losing the de-duplication turns
+# a working boot into a failing one. So they keep the portable form the Scala did: ROW_NUMBER() in a
+# derived table (`(...) tmp`, no AS - Oracle-safe), which is materialised and so sidesteps 1093, and
+# whose window function PostgreSQL, H2 2.x, MySQL 8+/MariaDB 10.2+, SQL Server and Oracle all have.
+#
+# They do NOT copy the Scala's NULL handling. It partitioned on the raw columns, and PARTITION BY
+# groups NULLs together where a unique index keeps them apart - so it deleted rows that could never
+# have violated the index. These leave NULL keys alone, like the eight above.
+#
 # dbms is h2,postgresql because that is what this SQL is valid on and what has been verified.
 # MySQL rejects a DELETE whose subquery reads the table being deleted from (error 1093), so it
 # needs the join-against-a-derived-table form; whoever adds MySQL adds those changesets here with
@@ -184,3 +208,52 @@ databaseChangeLog:
                 AND id NOT IN (
                   SELECT MIN(id) FROM consent_item WHERE consent_item_id IS NOT NULL GROUP BY consent_item_id
                 )
+  - changeSet:
+      id: dedup-mappedentitlement
+      author: obp
+      comment: >-
+        Collapses duplicates on mappedentitlement's (mbankid, muserid, mrolename) natural key before
+        its unique index is created, keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: mappedentitlement
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |-
+              DELETE FROM mappedentitlement WHERE id IN (
+                SELECT id FROM (
+                  SELECT id, ROW_NUMBER() OVER (
+                           PARTITION BY mbankid, muserid, mrolename ORDER BY id ASC) AS rn
+                  FROM mappedentitlement
+                  WHERE mbankid IS NOT NULL
+                    AND muserid IS NOT NULL
+                    AND mrolename IS NOT NULL
+                ) tmp WHERE rn > 1
+              )
+  - changeSet:
+      id: dedup-mapperaccountholders
+      author: obp
+      comment: >-
+        Collapses duplicates on mapperaccountholders' (user_c, accountbankpermalink,
+        accountpermalink) natural key before its unique index is created, keeping the lowest id.
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: mapperaccountholders
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |-
+              DELETE FROM mapperaccountholders WHERE id IN (
+                SELECT id FROM (
+                  SELECT id, ROW_NUMBER() OVER (
+                           PARTITION BY user_c, accountbankpermalink, accountpermalink
+                           ORDER BY id ASC) AS rn
+                  FROM mapperaccountholders
+                  WHERE user_c IS NOT NULL
+                    AND accountbankpermalink IS NOT NULL
+                    AND accountpermalink IS NOT NULL
+                ) tmp WHERE rn > 1
+              )

@@ -1937,7 +1937,11 @@ securelogging_mask_email=true
 # Liquibase owns the whole schema. Every Lift Mapper entity is gone, so Schemifier creates nothing
 # and Liquibase is the only thing that builds tables. Default true - setting this to false does not
 # hand the schema back to Schemifier, it leaves the database with whatever tables it already had.
-# Turn it off only if you run the migrations yourself, outside the application.
+# Turn it off only if you run the migrations yourself, outside the application - ALL of them: the
+# changelog also carries data repairs (db.changelog-dedup.yaml collapses natural-key duplicates so
+# the unique indexes can build), and with this off nothing else runs them. Boot used to de-duplicate
+# mappedentitlement and mapperaccountholders itself on every start; that moved into the changelog,
+# so a deployment that turns Liquibase off takes those over too.
 #
 # One changelog covers every vendor: the DDL is generated per database from
 # db/changelog/db.changelog-master.yaml, so there is no per-vendor script set to add. h2 and

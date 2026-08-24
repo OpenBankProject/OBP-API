@@ -214,6 +214,63 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
     }
   }
 
+  "adopting a schema whose natural-key duplicates were never collapsed" should "collapse them and build the unique index" in {
+    val source = "liquibase_entitlement_dup_source"
+    val db = "liquibase_entitlement_dup"
+    try {
+      // mappedentitlement and mapperaccountholders carry a unique index on a natural key, and the
+      // rows that violate it are exactly what an existing deployment brings. The changelog's
+      // de-duplications did not cover these two: Boot called
+      // Migration.database.deduplicateBeforeUniqueIndexSchemify() for them instead, on the stated
+      // grounds that it had to happen before schemifyAll() issued the CREATE UNIQUE INDEX. Neither
+      // half of that holds any more - ToSchemify.models is Nil, so schemifyAll() issues nothing,
+      // and the index comes from Liquibase, which Boot runs FOURTEEN LINES EARLIER. So the
+      // de-duplication ran after the index it was there to make creatable.
+      //
+      // It also named the wrong table: `mapperaccountholder`, where the table is
+      // `mapperaccountholders`, and `user_` where the column is `user_c`. tableExistsByName said
+      // no and the call returned silently, so that half had never run at all.
+      withConnection(source)(execute(_, "DROP ALL OBJECTS"))
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(source))
+      cloneSchema(source, db)
+
+      withConnection(db) { c =>
+        execute(c, "DROP TABLE DATABASECHANGELOG")
+        execute(c, "DROP TABLE DATABASECHANGELOGLOCK")
+        execute(c, "DROP INDEX mappedentitlement_mbankid_muserid_mrolename")
+        execute(c, "DROP INDEX mapperaccountholders_user_c_accountbankpermalink_accountpermali")
+        execute(c, "INSERT INTO mappedentitlement (id, mbankid, muserid, mrolename, mentitlementid) " +
+                   "VALUES (1, 'gh.29.uk', 'u-1', 'CanGetAnyUser', 'e-1')")
+        execute(c, "INSERT INTO mappedentitlement (id, mbankid, muserid, mrolename, mentitlementid) " +
+                   "VALUES (2, 'gh.29.uk', 'u-1', 'CanGetAnyUser', 'e-2')")
+        execute(c, "INSERT INTO mapperaccountholders (id, user_c, accountbankpermalink, accountpermalink) " +
+                   "VALUES (1, 10, 'gh.29.uk', 'acc-1')")
+        execute(c, "INSERT INTO mapperaccountholders (id, user_c, accountbankpermalink, accountpermalink) " +
+                   "VALUES (2, 10, 'gh.29.uk', 'acc-1')")
+      }
+
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
+
+      withClue("the duplicate entitlement must be collapsed, keeping the lowest id: ") {
+        withConnection(db)(scalar(_, "SELECT COUNT(*) FROM mappedentitlement")) should equal(1L)
+        withConnection(db)(scalar(_, "SELECT id FROM mappedentitlement")) should equal(1L)
+      }
+      withClue("the duplicate account holder must be collapsed, keeping the lowest id: ") {
+        withConnection(db)(scalar(_, "SELECT COUNT(*) FROM mapperaccountholders")) should equal(1L)
+        withConnection(db)(scalar(_, "SELECT id FROM mapperaccountholders")) should equal(1L)
+      }
+      withClue("both unique indexes must exist afterwards: ") {
+        withConnection(db)(scalar(_,
+          "SELECT COUNT(*) FROM information_schema.indexes WHERE table_schema = 'PUBLIC' " +
+          "AND UPPER(index_name) IN ('MAPPEDENTITLEMENT_MBANKID_MUSERID_MROLENAME', " +
+          "'MAPPERACCOUNTHOLDERS_USER_C_ACCOUNTBANKPERMALINK_ACCOUNTPERMALI')")) should equal(2L)
+      }
+    } finally {
+      withConnection(db)(execute(_, "DROP ALL OBJECTS"))
+      withConnection(source)(execute(_, "DROP ALL OBJECTS"))
+    }
+  }
+
   "a database left half-built by an interrupted boot" should "be finished on the next start" in {
     val db = "liquibase_upgrade_interrupted"
     withConnection(db)(execute(_, "DROP ALL OBJECTS"))

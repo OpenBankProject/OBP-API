@@ -179,19 +179,11 @@ class Boot extends MdcLoggable {
     // with an error that points at the reader rather than at the schema.
     code.api.util.liquibase.LiquibaseSchemaSetup.runIfEnabled()
 
-    // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholder /
-    // mappedentitlement BEFORE schemifyAll() issues their CREATE UNIQUE INDEX (declared in
-    // MapperAccountHolders / MappedEntitlement dbIndexes). On a long-lived DB that still holds
-    // duplicates the index DDL would otherwise abort boot.
-    //
-    // This MUST stay here and must NOT be moved into Migration.database.executeScripts:
-    //  - both executeScripts passes below run AFTER schemifyAll() (the index is already created
-    //    by then — the "executed before Schemifier" comment on the true-pass is historical), and
-    //  - executeScripts is gated by migration_scripts.* props (off in tests), whereas Schemifier —
-    //    and therefore this dedup — must run ungated in every environment, incl. the H2 test DB.
-    // The method self-guards (skips when the table is absent or has no duplicates), so running it
-    // on every boot is a cheap no-op on fresh/clean/test databases.
-    Migration.database.deduplicateBeforeUniqueIndexSchemify()
+    // The natural-key de-duplication that used to sit here is in the changelog now
+    // (db.changelog-dedup.yaml, dedup-mappedentitlement / dedup-mapperaccountholders). It was here
+    // to run before schemifyAll() issued their CREATE UNIQUE INDEX; schemifyAll() issues nothing
+    // any more - ToSchemify.models is Nil - and the index comes from the Liquibase call above, so
+    // this position was already after the thing it existed to precede.
     schemifyAll()
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)

@@ -29,6 +29,12 @@ ROOT = Path(__file__).resolve().parents[2]
 CHANGELOG_DIR = ROOT / "obp-api/src/main/resources/db/changelog"
 
 EXPECTED = [
+    # Boot's own de-duplication, moved into the changelog: it ran after the index it existed to
+    # precede, and named a table that does not exist. Unlike the eight below these carry no dbms
+    # restriction, so they use the ROW_NUMBER() derived-table form MySQL's ERROR 1093 permits -
+    # see the changelog file's header.
+    "delete from mappedentitlement where id in ( select id from ( select id, row_number() over ( partition by mbankid, muserid, mrolename order by id asc) as rn from mappedentitlement where mbankid is not null and muserid is not null and mrolename is not null ) tmp where rn > 1 )",
+    "delete from mapperaccountholders where id in ( select id from ( select id, row_number() over ( partition by user_c, accountbankpermalink, accountpermalink order by id asc) as rn from mapperaccountholders where user_c is not null and accountbankpermalink is not null and accountpermalink is not null ) tmp where rn > 1 )",
     # V057: accountidmapping
     "delete from accountidmapping where maccountplaintextreference is not null and id not in ( select min(id) from accountidmapping where maccountplaintextreference is not null group by maccountplaintextreference )",
     # V057: mappedcustomeridmapping
