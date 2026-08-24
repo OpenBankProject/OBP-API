@@ -71,8 +71,13 @@ To run the API using the http4s server, use the `obp-api` module from the projec
 
 ```sh
 MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true && \
-java -jar obp-api/target/obp-api.jar
+java -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 ```
+
+Launch with `-cp`, not `java -jar`: a jar manifest's `Class-Path` never reaches the
+`java.class.path` system property, which both the dynamic-code compiler and json4s's Scala 3
+field-type reader use to build a runtime compiler classpath. Under `-jar` the server boots and
+looks healthy, then fails on sandbox data import and every dynamic-code path.
 
 The http4s server binds to `hostname` / `dev.port` as configured in your props file (defaults are `127.0.0.1` and `8080`).
 
