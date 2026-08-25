@@ -5894,6 +5894,14 @@ object Glossary extends MdcLoggable  {
 				 |└──────────────────┘          └────────────────────────┘            └──────────────┘
 				 |```
 				 |
+				 |## Architecture diagram
+				 |
+				 |The full picture — Portal/API Explorer, Opey, external MCP clients (Claude Code, Claude Desktop, IDE agents), OBP-OIDC, the numbered consent flow, and OBP-API down to the core banking systems:
+				 |
+				 |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+				 |
+				 |The editable master is a Lucidchart document linked from the [OBP-MCP README](https://github.com/OpenBankProject/OBP-MCP#architecture).
+				 |
 				 |## Three-step discovery + call (no RAG, no vector DB)
 				 |
 				 |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
@@ -5953,6 +5961,10 @@ object Glossary extends MdcLoggable  {
 				 |## Opey is an agent. OBP-MCP is its tool surface.
 				 |
 				 |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
+				 |
+				 |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+				 |
+				 |Besides the MCP path shown above, Opey makes some direct HTTP calls to OBP-API for its own infrastructure (session validation via `/users/current`, admin DirectLogin operations, persisting LangGraph checkpoints as dynamic entities, and health probes) — see the architecture section of the [Opey README](https://github.com/OpenBankProject/OBP-Opey-II#architecture-how-opey-reaches-the-obp-api) for the detail diagram.
 				 |
 				 |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
 				 |
