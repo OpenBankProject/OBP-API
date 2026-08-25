@@ -391,11 +391,28 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         Failure(ErrorMessages.UnknownError)
     }
   }
+  /**
+   * Whether the SCA challenge answer must actually be verified.
+   *
+   * `consents.sca.enabled=false` makes checkAnswer accept any answer - which is the point of the
+   * switch, for local development where nobody can receive an OTP. What it must not do is apply in
+   * production: there, "SCA off" means anyone who reaches the endpoint with a consent id in
+   * INITIATED state can move it to ACCEPTED with an arbitrary string, and the only thing that ever
+   * said so was a boot-time warning nobody has to read.
+   *
+   * So the switch keeps working exactly as before outside production, and is ignored in it. Split
+   * out as a pure function because run mode cannot be changed from a test, so this is the only
+   * seam the decision can be asserted through - see ConsentScaEnforcementTest.
+   */
+  private[consent] def scaVerificationRequired(scaEnabledProp: Boolean, isProduction: Boolean): Boolean =
+    isProduction || scaEnabledProp
+
   override def checkAnswer(consentId: String, challengeAnswer: String): Box[MappedConsent] = {
     def isAnswerCorrect(expectedAnswerHashed: String, answer: String, salt: String) = {
       val challengeAnswerHashed = BCrypt.hashpw(answer, salt).substring(0, 44)
       val scaEnabled = APIUtil.getPropsAsBoolValue("consents.sca.enabled", true)
-      if(scaEnabled) {
+      val isProduction = net.liftweb.util.Props.mode == net.liftweb.util.Props.RunModes.Production
+      if (scaVerificationRequired(scaEnabled, isProduction)) {
         expectedAnswerHashed == challengeAnswerHashed
       } else {
         true
