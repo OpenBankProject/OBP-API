@@ -529,9 +529,15 @@ if [[ "$SF_FAIL" != "0" ]] || [[ "$SF_ERR" != "0" ]] || [[ "$SF_BROKEN" != "0" ]
     OVERALL_RC=1
 fi
 # Zero-test floor: -DfailIfNoTests=false means a broken wildcardSuites filter runs nothing
-# and "passes". The suite has ~2900 tests; a total far below that means shards ran
-# near-empty — fail instead of reporting a hollow green.
-if [[ "${SF_TOTAL:-0}" -lt 2000 ]]; then
+# and "passes". A total far below the real one means shards ran near-empty — fail instead of
+# reporting a hollow green.
+#
+# 3200 is 90% of the 3571 measured on develop-obp (2026-08-25, --shards=4). The previous
+# figure, 2000, was set against a suite the header called "~2900" and had drifted far enough
+# that a run losing a fifth of its tests would still have passed it. Re-measure and re-set
+# both numbers when the suite grows: a floor that is only half the real count is barely a
+# floor at all.
+if [[ "${SF_TOTAL:-0}" -lt 3200 ]]; then
     echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 2000 floor) — filter/discovery regression?"
     OVERALL_RC=1
 fi

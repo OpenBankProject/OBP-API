@@ -25,6 +25,9 @@ jobs:
   # --------------------------------------------------------------------------
   compile:
     runs-on: ubuntu-latest
+    # The test job has carried a timeout since it was written; compile and report never did,
+    # so a hung Maven resolve blocks the build until GitHub's own 6-hour ceiling.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -302,6 +305,17 @@ jobs:
           echo allow_user_generated_scala_code=true >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
+        env:
+          # This job has declared a redis service since it was written, but nothing ever failed
+          # when the service was absent: ConcurrentRateLimiterRaceTest and
+          # MethodRoutingCacheInvalidationTest each `assume` a reachable Redis and cancel
+          # otherwise, and a cancelled test reports as a pass. Dropping the services: block, or
+          # a container that never became healthy, would have taken the rate-limiter and
+          # cache-invalidation races out of the run without changing a single report.
+          #
+          # RedisTestTarget turns that cancellation into a failure wherever this is set.
+          # Developers leave it unset and keep the skip.
+          OBP_TEST_REDIS_REQUIRED: "true"
         run: |
           # wildcardSuites requires comma-separated package prefixes (-w per entry).
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
@@ -453,6 +467,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: always()
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 

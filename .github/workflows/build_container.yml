@@ -27,6 +27,9 @@ jobs:
   # --------------------------------------------------------------------------
   compile:
     runs-on: ubuntu-latest
+    # The test job has carried a timeout since it was written; compile and report never did,
+    # so a hung Maven resolve blocks the build until GitHub's own 6-hour ceiling.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -460,6 +463,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: always()
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
