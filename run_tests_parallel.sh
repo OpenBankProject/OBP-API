@@ -76,9 +76,15 @@ fi
 # Multiple checkouts starting this script simultaneously race on that write and can
 # corrupt each other's JARs (torn ZipFile).  We use an atomic mkdir lock to serialise
 # ~/.m2 writes across processes.  The lock is released immediately after the install
-# and cleaned up on exit (including crashes) via the EXIT trap.
+# and cleaned up on exit (including crashes) via an ownership-checked EXIT trap.
+# This checkout's absolute path, used to keep the orphan reaper below to test JVMs from here.
+CHECKOUT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OBC_LOCK="/tmp/obp-commons-m2-install.lock"
-trap 'rm -rf "$OBC_LOCK"' EXIT
+# Armed here, and ownership-checked: it removes the directory only when the pid recorded inside is
+# this process. Armed unconditionally it would delete a lock another run holds - while waiting for
+# one, or in the instant after releasing ours and before a disarm. Armed only after the mkdir it
+# would miss a signal in between. Checking the pid is what makes both ends safe.
+trap '[[ "$(cat "$OBC_LOCK/pid" 2>/dev/null)" == "$$" ]] && rm -rf "$OBC_LOCK"' EXIT
 
 SHARDS=4
 for arg in "$@"; do
@@ -231,7 +237,7 @@ run_shard() {
     OBP_HOSTNAME="http://localhost:${port}" \
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
-    OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
+    OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
@@ -260,6 +266,36 @@ run_shard() {
         echo "[Shard $n] ❌ BUILD FAILURE — see $log"
     fi
     return $rc
+}
+
+# scalatest-maven-plugin runs with forkMode=once, so a shard is two JVMs: mvn, and the test JVM it
+# forks. Pekko's non-daemon threads keep that fork alive after the tests finish; mvn exits anyway,
+# the fork is reparented and nothing has owned it since. The `timeout` above never sees this - it
+# fires only when mvn itself overruns, and on the ordinary path mvn returns 0.
+#
+# Left alone they accumulate: five were found alive six to ten hours after their runs, one of them
+# holding port 8080, where it answered a verification probe with a build eight commits old and no
+# error anywhere. Matching on both -Drun.mode=test (the plugin's own argLine) and this checkout's
+# basedir keeps this to test JVMs from this worktree - a dev server started by hand has no
+# run.mode=test, and another checkout has another basedir.
+# Called once, after every shard has been waited on - never from run_shard. The shards run in
+# parallel and share this matcher, so reaping from inside one of them would kill the test JVMs the
+# others are still using.
+reap_orphaned_test_jvms() {
+    local pids pid
+    # These select what to kill, so neither half may treat a dot as "any character". grep takes -F.
+    # pgrep has no fixed-string option - its pattern is an extended regex either way, which
+    # `pgrep -f "sleep 3.0"` matching a running `sleep 300` demonstrates - so the dots are escaped.
+    pids=$(pgrep -f -- "-Drun\.mode=test" 2>/dev/null | while read -r pid; do
+        ps -o command= -p "$pid" 2>/dev/null | grep -qF -- "$CHECKOUT_ROOT" && echo "$pid"
+    done)
+    [[ -z "$pids" ]] && return 0
+    echo "Reaping orphaned test JVM(s) left by this run: $(echo $pids | tr '\n' ' ')"
+    # shellcheck disable=SC2086
+    kill $pids 2>/dev/null
+    sleep 3
+    for pid in $pids; do kill -9 "$pid" 2>/dev/null; done
+    return 0
 }
 
 START=$(date +%s)
@@ -291,10 +327,50 @@ echo ""
 # The obp-commons install holds OBC_LOCK (see top) so concurrent checkouts don't
 # race on the shared ~/.m2 write.  The subsequent test-compile writes only to this
 # checkout's own target/ and is safe to run in parallel across checkouts.
-echo "Pre-compile 1/2: install obp-commons -> ~/.m2 ..."
-until mkdir "$OBC_LOCK" 2>/dev/null; do sleep 2; done
+echo "Pre-compile 1/2: install obp-parent + obp-commons -> ~/.m2 ..."
+# The lock records its holder's PID so a run killed before it could clean up does not wedge every
+# later one. Two ways it can be stale: the recorded PID is gone, or there is no PID at all - the
+# holder died between the mkdir and the write below, which is the case that used to be unreclaimable.
+# The second gets a grace period, since a live holder is only momentarily in that state. Every path
+# through the loop sleeps and advances the counter, so a removal that does not take cannot spin.
+OBC_LOCK_WAITED=0
+OBC_LOCK_NO_PID_GRACE=30
+until mkdir "$OBC_LOCK" 2>/dev/null; do
+  OBC_LOCK_PID="$(cat "$OBC_LOCK/pid" 2>/dev/null || true)"
+  OBC_LOCK_STALE=""
+  if [[ -n "$OBC_LOCK_PID" ]]; then
+    # ps -p, not kill -0: kill -0 fails with EPERM for a live process owned by another user as
+    # well as with ESRCH for one that is gone, so it reads somebody else's running build as dead.
+    ps -p "$OBC_LOCK_PID" >/dev/null 2>&1 || OBC_LOCK_STALE="held by dead PID $OBC_LOCK_PID"
+  elif (( OBC_LOCK_WAITED >= OBC_LOCK_NO_PID_GRACE )); then
+    OBC_LOCK_STALE="has recorded no holder for ${OBC_LOCK_NO_PID_GRACE}s"
+  fi
+
+  if [[ -n "$OBC_LOCK_STALE" ]]; then
+    echo "  Lock $OBC_LOCK_STALE; removing it."
+    rm -rf "$OBC_LOCK" 2>/dev/null || true
+    if [[ -d "$OBC_LOCK" ]]; then
+      echo "Cannot remove stale $OBC_LOCK - check its owner and permissions." >&2
+      exit 1
+    fi
+  fi
+
+  if (( OBC_LOCK_WAITED >= 600 )); then
+    echo "Timed out after 10m waiting for $OBC_LOCK (held by PID ${OBC_LOCK_PID:-unknown})." >&2
+    exit 1
+  fi
+  sleep 2
+  OBC_LOCK_WAITED=$(( OBC_LOCK_WAITED + 2 ))
+done
+echo $$ > "$OBC_LOCK/pid"
+# -am so the parent pom is installed alongside obp-commons. Installing the module alone leaves
+# whatever obp-parent is already in ~/.m2, and obp-api resolves its dependencies through that pom -
+# scala.version, lift.version and the rest live there. A stale parent therefore pulls _2.12
+# artifacts onto the classpath next to a freshly built obp-commons, and because com.tesobe:obp-commons
+# carries no Scala suffix nothing detects the mismatch: the build succeeds and the tests die at run
+# time with ClassNotFoundException: scala.Serializable.
 MAVEN_OPTS="$MVN_OPTS" \
-  mvn install -DskipTests -pl obp-commons -q > test-results/parallel/precompile.log 2>&1
+  mvn install -DskipTests -pl obp-commons -am -q > test-results/parallel/precompile.log 2>&1
 PRECOMPILE_RC=$?
 rm -rf "$OBC_LOCK"
 if [[ $PRECOMPILE_RC -eq 0 ]]; then
@@ -469,6 +545,12 @@ if [[ "$HAVE_PY3" = "1" ]] && ls "$REPORTS_DIR"/*.xml >/dev/null 2>&1; then
     python3 .github/scripts/test_speed_report.py "$REPORTS_DIR" 2>/dev/null \
         || echo "  (speed report skipped)"
 fi
+
+# Reaped here, not straight after the shards: every shard has been waited on since then, but both
+# the surefire audit and the speed report read those XMLs above, and this script already treats a
+# report truncated by a JVM killed mid-write as a broken suite. Killing before either read could
+# manufacture exactly that failure. By this line nothing left alive can change the verdict.
+reap_orphaned_test_jvms
 
 # Final verdict LAST so `tail -N` always captures it, plus a machine-readable file
 # that survives any piping of stdout (`./run.sh | tail` reports tail's exit code).

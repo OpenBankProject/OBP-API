@@ -10,7 +10,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 
 object Comments extends SimpleInjector {
 
-  val comments = new Inject(buildOne _) {}
+  val comments = new Inject(() => buildOne) {}
 
   def buildOne: Comments = MappedComments
   

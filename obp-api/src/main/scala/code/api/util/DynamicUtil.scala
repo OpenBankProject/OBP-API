@@ -385,7 +385,11 @@ object DynamicUtil extends MdcLoggable{
     val allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
 
     val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
-    val scalaCodeDependencies = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map(").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)"
+    // `Map[String, String](` rather than `Map(`: the props default is an empty list, and a bare
+    // `Map()` leaves its type parameters undetermined, so the trailing .toMap cannot prove the
+    // elements are pairs and the reflective compilation fails. The .toMap itself is needed because
+    // mapValues returns a view rather than a Map.
+    val scalaCodeDependencies = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map[String, String](").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
     val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
     
     /**

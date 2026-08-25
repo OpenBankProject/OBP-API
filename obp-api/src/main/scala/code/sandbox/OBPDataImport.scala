@@ -29,7 +29,7 @@ import scala.collection.immutable.List
 
 object OBPDataImport extends SimpleInjector {
 
-  val importer =  new Inject(buildOne _) {}
+  val importer =  new Inject(() => buildOne) {}
 
   def buildOne : OBPDataImport = LocalMappedConnectorDataImport
 

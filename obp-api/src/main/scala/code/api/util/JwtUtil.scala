@@ -134,7 +134,7 @@ object JwtUtil extends MdcLoggable {
     try {
       val signedJWT = SignedJWT.parse(jwtToken)
       // claims extraction...
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       signedJWT.getJWTClaimsSet.getAudience().asScala.toList
     } catch {
       case e: Exception =>

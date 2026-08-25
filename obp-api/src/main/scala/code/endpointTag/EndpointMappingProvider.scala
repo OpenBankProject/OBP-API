@@ -11,7 +11,7 @@ import net.liftweb.util.SimpleInjector
 
 object EndpointTagProvider extends SimpleInjector {
 
-  val endpointTagProvider = new Inject(buildOne _) {}
+  val endpointTagProvider = new Inject(() => buildOne) {}
 
   def buildOne: MappedEndpointTagProvider.type = MappedEndpointTagProvider
 }

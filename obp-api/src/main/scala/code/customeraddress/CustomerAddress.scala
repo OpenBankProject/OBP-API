@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 object CustomerAddressX extends SimpleInjector {
 
-  val address = new Inject(buildOne _) {}
+  val address = new Inject(() => buildOne) {}
 
   def buildOne: CustomerAddressProvider = MappedCustomerAddressProvider
   

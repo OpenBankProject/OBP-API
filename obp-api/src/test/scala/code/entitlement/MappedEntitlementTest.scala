@@ -15,7 +15,7 @@ class MappedEntitlementTest extends ServerSetup {
 
   def createEntitlement(bankId: String, userId: String, roleName: String) = Entitlement.entitlement.vend.addEntitlement(bankId, userId, roleName)
 
-  private def delete() {
+  private def delete(): Unit = {
     val found = Entitlement.entitlement.vend.getEntitlements.openOr(List())
     found.foreach {
       d => {

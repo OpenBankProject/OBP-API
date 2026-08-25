@@ -14,7 +14,7 @@ import org.apache.commons.lang3.StringUtils
 
 object AuthenticationTypeValidationProvider extends SimpleInjector {
 
-  val validationProvider = new Inject(buildOne _) {}
+  val validationProvider = new Inject(() => buildOne) {}
 
   def buildOne: MappedAuthTypeValidationProvider.type = MappedAuthTypeValidationProvider
 }

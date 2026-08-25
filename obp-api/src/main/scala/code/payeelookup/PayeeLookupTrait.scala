@@ -4,7 +4,7 @@ import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 object PayeeLookups extends SimpleInjector {
-  val payeeLookup = new Inject(buildOne _) {}
+  val payeeLookup = new Inject(() => buildOne) {}
 
   def buildOne: PayeeLookupProvider = MappedPayeeLookupProvider
 }

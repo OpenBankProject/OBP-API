@@ -33,11 +33,11 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
     "Many data here", //description,
     AmountOfMoneyJsonV121("EUR", "0"))
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
     MappedTransactionType.bulkDelete_!!()
   }

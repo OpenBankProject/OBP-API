@@ -12,7 +12,7 @@ import redis.clients.jedis.{Jedis, Pipeline}
 
 import java.util.concurrent.{Executors, ScheduledThreadPoolExecutor, TimeUnit}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 

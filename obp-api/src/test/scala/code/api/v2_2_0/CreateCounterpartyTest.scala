@@ -13,11 +13,11 @@ import org.json4s.native.Serialization.write
 
 class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
   
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
   }
 

@@ -50,7 +50,7 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
         throw new Error(entity.validate.map(_.msg.toString()).mkString(";"))
       }
       paymentIds.getOrElse(Nil).map { paymentId =>
-        MappedSigningBasketPayment.create.BasketId(entity.basketId).PaymentId(paymentId)saveMe()
+        MappedSigningBasketPayment.create.BasketId(entity.basketId).PaymentId(paymentId).saveMe()
       }
       consentIds.getOrElse(Nil).map { consentId =>
         MappedSigningBasketConsent.create.BasketId(entity.basketId).ConsentId(consentId).saveMe()

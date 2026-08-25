@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 object AgentX extends SimpleInjector {
 
-  val agentProvider = new Inject(buildOne _) {}
+  val agentProvider = new Inject(() => buildOne) {}
 
   def buildOne: AgentProvider = MappedAgentProvider
 

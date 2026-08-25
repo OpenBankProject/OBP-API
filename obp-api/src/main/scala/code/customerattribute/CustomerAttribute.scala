@@ -15,7 +15,7 @@ import scala.concurrent.Future
 
 object CustomerAttributeX extends SimpleInjector {
 
-  val customerAttributeProvider = new Inject(buildOne _) {}
+  val customerAttributeProvider = new Inject(() => buildOne) {}
 
   def buildOne: CustomerAttributeProvider = MappedCustomerAttributeProvider
 

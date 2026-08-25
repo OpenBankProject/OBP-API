@@ -86,13 +86,13 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
   /*
   So we can test the API layer, rather than the connector, use a mock connector.
    */
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
     //use the mock connector
     Products.productsProvider.default.set(mockConnector)
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
     //reset the default connector
     Products.productsProvider.default.set(Products.buildOne)

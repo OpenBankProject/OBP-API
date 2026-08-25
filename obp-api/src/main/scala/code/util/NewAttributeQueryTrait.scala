@@ -47,11 +47,11 @@ trait NewAttributeQueryTrait {
       // Group by parentId and filter
       val parentIdToAttributes: Map[String, List[(String, String, String)]] = results.groupBy(_._1)
 
-      val parentIdToNameValues: Map[String, Map[String, String]] = parentIdToAttributes.mapValues(rows => {
-        rows.map { case (_, name, value) =>
+      val parentIdToNameValues: Map[String, Map[String, String]] = parentIdToAttributes.map { case (parentId, rows) =>
+        parentId -> rows.map { case (_, name, value) =>
           name -> value
         }.toMap
-      })
+      }
 
       for {
         (parentId, attributes: Map[String, String]) <- parentIdToNameValues.toList

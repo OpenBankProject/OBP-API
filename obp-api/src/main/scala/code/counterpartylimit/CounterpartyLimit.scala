@@ -6,7 +6,7 @@ import net.liftweb.common.Box
 import scala.concurrent.Future
 
 object CounterpartyLimitProvider extends SimpleInjector {
-  val counterpartyLimit = new Inject(buildOne _) {}
+  val counterpartyLimit = new Inject(() => buildOne) {}
   def buildOne: CounterpartyLimitProviderTrait =  MappedCounterpartyLimitProvider
 }
 

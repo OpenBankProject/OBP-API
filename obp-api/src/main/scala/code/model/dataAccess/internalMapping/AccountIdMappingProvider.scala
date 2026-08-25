@@ -7,7 +7,7 @@ import net.liftweb.util.SimpleInjector
 
 object AccountIdMappingProvider extends SimpleInjector {
 
-  val accountIdMappingProvider = new Inject(buildOne _) {}
+  val accountIdMappingProvider = new Inject(() => buildOne) {}
 
   def buildOne: AccountIdMappingProvider = MappedAccountIdMappingProvider
 

@@ -14,7 +14,7 @@ import scala.concurrent.Future
 
 object TransactionAttributeX extends SimpleInjector {
 
-  val transactionAttributeProvider = new Inject(buildOne _) {}
+  val transactionAttributeProvider = new Inject(() => buildOne) {}
 
   def buildOne: TransactionAttributeProvider = MappedTransactionAttributeProvider
 

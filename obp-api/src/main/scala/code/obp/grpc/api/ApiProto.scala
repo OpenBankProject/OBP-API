@@ -10,7 +10,7 @@ object ApiProto extends _root_.scalapb.GeneratedFileObject {
     com.google.protobuf.empty.EmptyProto,
     com.google.protobuf.timestamp.TimestampProto
   )
-  lazy val messagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq(
+  lazy val messagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq(
     code.obp.grpc.api.BanksJson400Grpc,
     code.obp.grpc.api.AccountsJSONGrpc,
     code.obp.grpc.api.AccountJSONGrpc,
@@ -142,7 +142,7 @@ object ApiProto extends _root_.scalapb.GeneratedFileObject {
     _root_.scalapb.descriptors.FileDescriptor.buildFrom(scalaProto, dependencies.map(_.scalaDescriptor))
   }
   lazy val javaDescriptor: com.google.protobuf.Descriptors.FileDescriptor = {
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     val javaProto = com.google.protobuf.DescriptorProtos.FileDescriptorProto.parseFrom(ProtoBytes)
     // Filter ObpService to expose only getBanks. The other methods
     // (getPrivateAccountsAtOneBank, getBankAccountsBalances,

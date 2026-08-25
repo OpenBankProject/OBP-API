@@ -8,7 +8,7 @@ import scala.concurrent.Future
 
 object Entitlement extends SimpleInjector {
 
-  val entitlement = new Inject(buildOne _) {}
+  val entitlement = new Inject(() => buildOne) {}
 
   def buildOne: EntitlementProvider = MappedEntitlementsProvider
 

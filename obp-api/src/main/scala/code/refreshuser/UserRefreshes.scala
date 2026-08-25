@@ -5,7 +5,7 @@ import net.liftweb.util.SimpleInjector
 
 object UserRefreshes extends SimpleInjector {
 
-  val UserRefreshes = new Inject(buildOne _) {}
+  val UserRefreshes = new Inject(() => buildOne) {}
 
   def buildOne: UserRefreshesProvider = MappedUserRefreshesProvider
 }

@@ -36,7 +36,11 @@ import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
-import com.openbankproject.commons.model._
+// ErrorMessage is excluded: this file is in package code.api.v1_2_1, which defines its
+// own ErrorMessage, and that one shadows the wildcard-imported commons class. Both are
+// case class ErrorMessage(code: Int, message: String), so resolution never changed the
+// behaviour here - the exclusion just states which one the extract calls below mean.
+import com.openbankproject.commons.model.{ErrorMessage => _, _}
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.Helpers._
@@ -1791,7 +1795,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.code should equal (200)
       val permissions = reply.body.extract[PermissionsJSON]
 
-      def stringNotEmpty(s : String) {
+      def stringNotEmpty(s : String): Unit = {
         s should not equal null
         s should not equal ""
       }

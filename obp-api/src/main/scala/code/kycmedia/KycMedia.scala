@@ -9,7 +9,7 @@ import net.liftweb.common.Box
 
 object KycMedias extends SimpleInjector {
 
-  val kycMediaProvider = new Inject(buildOne _) {}
+  val kycMediaProvider = new Inject(() => buildOne) {}
 
   def buildOne: KycMediaProvider = MappedKycMediasProvider
 

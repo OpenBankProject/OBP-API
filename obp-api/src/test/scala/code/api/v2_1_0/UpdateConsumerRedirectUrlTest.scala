@@ -11,11 +11,11 @@ import org.json4s.native.Serialization.write
 
 class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
   }
 

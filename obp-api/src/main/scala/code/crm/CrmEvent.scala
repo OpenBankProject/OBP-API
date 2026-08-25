@@ -33,7 +33,7 @@ object CrmEvent extends util.SimpleInjector {
     def actualDate: Date
     def result: String}
 
-  val crmEventProvider = new Inject(buildOne _) {}
+  val crmEventProvider = new Inject(() => buildOne) {}
 
   def buildOne: CrmEventProvider = MappedCrmEventProvider
 

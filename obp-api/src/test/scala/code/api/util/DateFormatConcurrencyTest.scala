@@ -6,7 +6,7 @@ import java.util.concurrent.{CountDownLatch, Executors, TimeUnit}
 import net.liftweb.common.Full
 import org.scalatest.{FlatSpec, Matchers}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * SimpleDateFormat is not thread-safe: parse and format both mutate the internal Calendar,

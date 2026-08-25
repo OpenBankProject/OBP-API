@@ -10,7 +10,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 
 object WhereTags  extends SimpleInjector {
 
-  val whereTags = new Inject(buildOne _) {}
+  val whereTags = new Inject(() => buildOne) {}
 
   def buildOne: WhereTags = MapperWhereTags
 

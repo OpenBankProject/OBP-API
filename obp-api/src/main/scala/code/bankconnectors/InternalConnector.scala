@@ -9,9 +9,7 @@ import scala.concurrent.Future
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Failure}
-import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
-
-import java.lang.reflect.Method
+import java.lang.reflect.{InvocationHandler, Method}
 import code.api.util.{CallContext, DynamicUtil}
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.text.StringEscapeUtils
@@ -27,10 +25,7 @@ import scala.reflect.runtime.universe.{MethodSymbol, TermSymbol, typeOf}
 object InternalConnector {
 
   lazy val instance: Connector = {
-    val enhancer: Enhancer = new Enhancer()
-    enhancer.setSuperclass(classOf[Connector])
-    enhancer.setCallback(intercept)
-    enhancer.create().asInstanceOf[Connector]
+    ConnectorProxy.create(intercept)
   }
 
   //this object is a empty Connector implementation, just for supply default args
@@ -39,17 +34,39 @@ object InternalConnector {
     // in this object, you must make sure this object is empty.
   }
 
-  private val intercept:MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
-    val methodName = method.getName
-    if(methodName == nameOf(connector.callableMethods)) {
-      this.callableMethods
-    } else if (methodName.contains("$default$")) {
-      method.invoke(connector, args:_*)
-    } else {
-      val function = getFunction(methodName)
-      DynamicUtil.executeFunction(methodName, function, args)
+  private val intercept: InvocationHandler = new InvocationHandler {
+    override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
+      val methodName = method.getName
+      if(methodName == nameOf(connector.callableMethods)) {
+        InternalConnector.this.callableMethods
+      // isInheritedMember is subsumed by isDynamicallyImplementable today, and asked anyway: the
+      // second is derived from methodNameToSignature, a map built for rendering signatures whose
+      // exclusion of inherited members is a side effect of how it is filtered rather than something
+      // it promises. Naming the rule directly is what keeps this from depending on that accident.
+      } else if (methodName.contains("$default$") || ConnectorProxy.isInheritedMember(method)
+                 || !isDynamicallyImplementable(methodName)) {
+        // Anything outside the Connector API goes to the empty Connector object, which implements
+        // it for real. Connector extends Helper.MdcLoggable, so the interface also carries logger,
+        // clazzName and initiate; dynamic code never defines those, and sending them down the
+        // lookup-and-compile path threw IllegalStateException - which is what happened to anything
+        // that logged or interpolated this proxy. The $default$ accessors take the same route.
+        method.invoke(connector, args:_*)
+      } else {
+        val function = getFunction(methodName)
+        DynamicUtil.executeFunction(methodName, function, args)
+      }
     }
   }
+
+  /**
+   * Whether dynamic code can supply this method at all. It is the key set of methodNameToSignature,
+   * named separately because the handler asks a different question of it than its builder answers:
+   * that map is decls filtered by `!t.isVal && !t.isVar`, so on top of ConnectorProxy's inherited
+   * members it also excludes Connector's own vals - messageDocs among them. Everything it excludes
+   * is answered by the empty stub, which for a val means the stub's own instance.
+   */
+  private def isDynamicallyImplementable(methodName: String): Boolean =
+    methodNameToSignature.contains(methodName)
 
   private def getFunction(methodName: String) = {
     ConnectorMethodProvider.provider.vend.getByMethodNameWithCache(methodName) map {
@@ -259,7 +276,14 @@ object InternalConnector {
     case (methodName, methodSymbol) =>
       val signature = methodSymbol.typeSignature.toString
       val returnType = methodSymbol.returnType.toString
-      val methodSignature = StringUtils.substringBeforeLast(signature, returnType) + ":" + returnType
+      // Strip any colon the parameter part already ends with before adding one back. 2.12 rendered
+      // a method type as "(params)ReturnType" and 2.13 renders it as "(params): ReturnType", so
+      // appending unconditionally produced "(params): : ReturnType" - which the runtime compiler
+      // rejected with "identifier expected but ':' found", failing every dynamic connector method.
+      val paramsPart = StringUtils.substringBeforeLast(signature, returnType).trim.stripSuffix(":")
+      // No space after the colon: the boxRegx/futureRegx/obpReturnTypeRegx patterns above match
+      // ")\\s*:" immediately followed by the type name.
+      val methodSignature = s"$paramsPart:$returnType"
       methodName -> methodSignature
   }
 }

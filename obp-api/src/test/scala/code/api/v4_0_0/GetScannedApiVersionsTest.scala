@@ -35,7 +35,7 @@ import com.openbankproject.commons.model.ListResult
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.scalatest.Tag
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
 
   /**

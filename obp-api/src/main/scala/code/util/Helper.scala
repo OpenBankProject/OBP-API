@@ -110,7 +110,9 @@ object Helper extends Loggable {
     }
   }
 
-  val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
+  // final: 2.13 requires an annotation argument to be a compile-time constant, and only a
+  // final val of a literal qualifies. It is used as @deprecated(deprecatedJsonGenerationMessage).
+  final val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
 
   /**
    * Converts a number representing the smallest unit of a currency into a big decimal formatted according to the rules of

@@ -22,6 +22,7 @@ import org.json4s.JsonDSL._
 import org.json4s.{Extraction, JArray}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
  * OBP gRPC server — serves banking RPCs (ObpService) and chat streaming RPCs (ChatStreamService).
@@ -38,20 +39,70 @@ object ObpGrpcServer {
   val port = APIUtil.getPropsAsIntValue("grpc.server.port", 50051)
 }
 
-class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { self =>
+// The port is a constructor parameter defaulting to the configured one, so a test can pass 0 and
+// let the OS choose. Shards run as parallel JVMs, and two of them starting this server on the same
+// port aborts one run with a BindException. Read boundPort afterwards - asking for a free port,
+// closing it, then binding leaves a window for another process to take it.
+class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServer.port) extends MdcLoggable { self =>
   private[this] var server: Server = null
+  // Recorded at start rather than read back off the server: stop() nulls the field, and for a
+  // server given port 0 the constructor argument it would fall back to is 0. @volatile because
+  // start() runs on one thread and callers read this from another.
+  @volatile private[this] var actualPort: Int = port
+  // Which of the process-wide buses this instance actually started. Each is an object holding one
+  // subscriber connection, start() is a no-op once it is running, and stop() was not - so a second
+  // server's stop() closed the connection the first one was still serving from.
+  // @volatile for the same reason as actualPort: stop() also runs on the JVM's shutdown-hook
+  // thread, which never synchronised with the thread that ran start().
+  @volatile private[this] var startedChatBus = false
+  @volatile private[this] var startedLogCacheBus = false
+  @volatile private[this] var startedMetricsBus = false
+  @volatile private[this] var shutdownHook: scala.sys.ShutdownHookThread = null
+
   def start(): Unit = {
+    // A second start() on the same instance would recompute the ownership flags against buses it
+    // had already started - reading them as someone else's - overwrite `server`, leaking the first
+    // one with its port still bound, and overwrite shutdownHook, orphaning the first with no
+    // reference left to remove it. Guarded rather than made to restart: the buses guard the same
+    // way, and nothing here has a use for a second server on one instance.
+    if (server != null) {
+      logger.warn(s"gRPC server is already started on port $actualPort; ignoring this start()")
+      return
+    }
+
+    // The guard above keys off `server`, which is set last, so a start that fails partway - a
+    // BindException is the ordinary case - leaves it null and lets a retry back in. Without the
+    // rollback below, that retry would find the buses this instance started already running,
+    // record them as somebody else's, and leave them up for the life of the process.
+    try startInternal() catch {
+      case NonFatal(e) =>
+        // Suppressed rather than swallowed or thrown in its place: a failure while tearing down
+        // must not replace the start failure that is the reason anyone is reading this.
+        try stop() catch { case NonFatal(cleanupFailure) => e.addSuppressed(cleanupFailure) }
+        throw e
+    }
+  }
+
+  private def startInternal(): Unit = {
+    // Ownership is read after each start() rather than before: a disabled bus makes start() a
+    // no-op, and "was not running beforehand" alone would claim one this instance never started.
 
     // Start chat event bus for Redis pub/sub streaming
+    val chatWasRunning = code.chat.ChatEventBus.isRunning
     code.chat.ChatEventBus.start()
+    startedChatBus = !chatWasRunning && code.chat.ChatEventBus.isRunning
 
     // Start log cache event bus (no-op if grpc.log_cache_stream.enabled=false)
+    val logCacheWasRunning = code.logcache.LogCacheEventBus.isRunning
     code.logcache.LogCacheEventBus.start()
+    startedLogCacheBus = !logCacheWasRunning && code.logcache.LogCacheEventBus.isRunning
 
     // Start metrics event bus (no-op if grpc.metrics_stream.enabled=false)
+    val metricsWasRunning = code.metricsstream.MetricsEventBus.isRunning
     code.metricsstream.MetricsEventBus.start()
+    startedMetricsBus = !metricsWasRunning && code.metricsstream.MetricsEventBus.isRunning
 
-    val baseBuilder = ServerBuilder.forPort(ObpGrpcServer.port)
+    val baseBuilder = ServerBuilder.forPort(port)
       .addService(ObpServiceGrpc.bindService(ObpServiceImpl, executionContext))
       .addService(code.obp.grpc.chat.api.ChatStreamServiceGrpc.bindService(
         code.obp.grpc.chat.ChatStreamServiceImpl, executionContext))
@@ -71,21 +122,32 @@ class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { se
        else withLogCache)
       .asInstanceOf[ServerBuilder[_]]
     server = serverBuilder.build.start;
-    logger.info("Server started, listening on " + ObpGrpcServer.port)
-    sys.addShutdownHook {
+    actualPort = server.getPort
+    logger.info("Server started, listening on " + actualPort)
+    // Kept so stop() can take it down again: without that, every server ever started leaves a hook
+    // behind, and each one calls stop() on an instance that has usually stopped already.
+    shutdownHook = sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
       System.err.println("*** server shut down")
     }
   }
 
+  /** The port actually bound, which differs from the requested one when 0 was asked for. */
+  def boundPort: Int = actualPort
+
   def stop(): Unit = {
-    code.chat.ChatEventBus.stop()
-    code.logcache.LogCacheEventBus.stop()
-    code.metricsstream.MetricsEventBus.stop()
+    if (startedChatBus) { code.chat.ChatEventBus.stop(); startedChatBus = false }
+    if (startedLogCacheBus) { code.logcache.LogCacheEventBus.stop(); startedLogCacheBus = false }
+    if (startedMetricsBus) { code.metricsstream.MetricsEventBus.stop(); startedMetricsBus = false }
     if (server != null) {
       server.shutdown()
       server = null
+    }
+    if (shutdownHook != null) {
+      // remove() throws once the JVM is already shutting down, which is exactly when the hook runs.
+      try shutdownHook.remove() catch { case _: IllegalStateException => () }
+      shutdownHook = null
     }
   }
 
@@ -106,9 +168,16 @@ class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { se
           val (bankList, _) = it
           val json40: BanksJson400 = JSONFactory400.createBanksJson(bankList)
           val grpcBanks: List[BankJson400Grpc] = json40.banks.map(bank => {
-            val BankJson400(id, short_name, full_name, logo, website, bank_routings, None) = bank
-            val bankRoutingGrpcs = bank_routings.map(routings => BankRoutingJsonV121Grpc(routings.scheme, routings.address))
-            BankJson400Grpc(id, short_name, full_name, logo, website, bankRoutingGrpcs)
+            // This used to destructure with `val BankJson400(..., None) = bank`, a refutable
+            // pattern in a val definition: any bank whose attributes are Some - Some(List())
+            // included - threw a MatchError, which the client saw as INTERNAL. The attributes are
+            // not carried over the wire anyway, so read the fields instead of matching on them.
+            val bankRoutingGrpcs = bank.bank_routings.map(routings => BankRoutingJsonV121Grpc(routings.scheme, routings.address))
+            // protobuf string fields reject null, and logo and website are both nullable here.
+            def orEmpty(value: String): String = Option(value).getOrElse("")
+            BankJson400Grpc(
+              bank.id, bank.short_name, bank.full_name,
+              orEmpty(bank.logo), orEmpty(bank.website), bankRoutingGrpcs)
           })
           BanksJson400Grpc(grpcBanks)
         })

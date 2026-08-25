@@ -1170,7 +1170,7 @@ object ErrorMessages {
     }
     val list = listOfMessaegeNumbers.flatten
     val duplicatedMessageNumbers = list
-      .groupBy(x => x).mapValues(x => x.length) // Compute the number of occurrences of each message number
+      .groupBy(x => x).map { case (n, occurrences) => n -> occurrences.length } // Compute the number of occurrences of each message number
       .toList.filter(_._2 > 1) // Make a list with numbers which have more than 1 occurrences
     duplicatedMessageNumbers
   }

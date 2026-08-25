@@ -77,7 +77,7 @@ class AccountTagTest extends V400ServerSetup {
       val responseGet = makeGetRequest(requestGet)
       responseGet.code should equal(200)
       val tags = responseGet.body.extract[AccountTagsJSON].tags
-      tags.exists(_.value == accountTag.value) equals true
+      tags.exists(_.value == accountTag.value) should equal(true)
       val tagId = tags.map(_.id).headOption.getOrElse("")
 
       val requestDelete = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags" / tagId).DELETE <@ (user1)

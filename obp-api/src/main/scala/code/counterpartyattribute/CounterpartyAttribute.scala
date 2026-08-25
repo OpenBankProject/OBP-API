@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 object CounterpartyAttributeX extends SimpleInjector {
 
-  val counterpartyAttributeProvider = new Inject(buildOne _) {}
+  val counterpartyAttributeProvider = new Inject(() => buildOne) {}
 
   def buildOne: CounterpartyAttributeProviderTrait = CounterpartyAttributeProvider
 

@@ -90,7 +90,7 @@ import code.api.util.DoobieUtil
 import java.util.Date
 import java.util.UUID.randomUUID
 import scala.collection.immutable.{List, Nil}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -1045,7 +1045,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
 
       val allCurrencies = accountsBalances.map(_.balance.currency)
-      val mostCommonCurrency = if (allCurrencies.isEmpty) "EUR" else allCurrencies.groupBy(identity).mapValues(_.size).maxBy(_._2)._1
+      val mostCommonCurrency = if (allCurrencies.isEmpty) "EUR" else allCurrencies.groupBy(identity).map { case (currency, occurrences) => currency -> occurrences.size }.maxBy(_._2)._1
 
       val allCommonCurrencyBalances = for {
         accountBalance <- accountsBalances

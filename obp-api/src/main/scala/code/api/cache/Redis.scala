@@ -6,10 +6,10 @@ import code.api.Constant
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
-import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
-import scalacache.{Flags, ScalaCache}
+import scalacache.memoization.{cacheKeyExclude, memoizeF, memoizeSync}
+import scalacache.{Cache, Flags}
 import scalacache.redis.RedisCache
-import scalacache.serialization.Codec
+import scalacache.serialization.{Codec, FailedToDecode}
 import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
 
 import java.net.URI
@@ -197,7 +197,7 @@ object Redis extends MdcLoggable {
         }else if (method ==JedisMethod.GET) {
           jedisConnection.head.get(key)
         } else if (method == JedisMethod.SCAN) {
-          import scala.collection.JavaConverters._
+          import scala.jdk.CollectionConverters._
           jedisConnection.head.keys(key).asScala.mkString(",")
         } else if(method ==JedisMethod.SET && value.isDefined){
           if (ttlSeconds.isDefined) {//if set ttl, call `setex` method to set the expired seconds.
@@ -313,45 +313,59 @@ object Redis extends MdcLoggable {
   // optionally SSL-configured connection. The RedisCache(url, port) overload builds its own
   // JedisPool internally with no password and no SSL, so with `requirepass` enabled it fails
   // with NOAUTH while the jedisPool-based paths keep working.
-  implicit val scalaCache = ScalaCache(RedisCache(jedisPool))
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
 
-  implicit def anyToByte[T](implicit m: Manifest[T]) = new Codec[T, Array[Byte]] {
+  // scalacache 0.28 types its Cache by the value type, while these wrappers are generic in A. One
+  // instance still serves them all: RedisCache carries no per-type state, its value type is erased,
+  // and the codec below ignores the Manifest it takes, so every A would get an identical wrapper -
+  // building one per call only put two allocations in front of every cache read on the request
+  // path. RedisCache is a thin wrapper over the pool built above and opens nothing of its own, so
+  // the pool, its authentication and its SSL configuration stay shared.
+  private val sharedCache: Cache[Any] = RedisCache[Any](jedisPool)
+  private def cacheFor[A]: Cache[A] = sharedCache.asInstanceOf[Cache[A]]
+
+  implicit def anyToByte[T](implicit m: Manifest[T]): Codec[T] = new Codec[T] {
 
     import com.twitter.chill.KryoInjection
 
-    def serialize(value: T): Array[Byte] = {
+    def encode(value: T): Array[Byte] = {
       logger.debug("KryoInjection started")
       val bytes: Array[Byte] = KryoInjection(value)
       logger.debug("KryoInjection finished")
       bytes
     }
 
-    def deserialize(data: Array[Byte]): T = {
+    def decode(data: Array[Byte]): Codec.DecodingResult[T] = {
       import scala.util.{Failure, Success}
-      val tryDecode: scala.util.Try[Any] = KryoInjection.invert(data)
-      tryDecode match {
-        case Success(v) => v.asInstanceOf[T]
+      KryoInjection.invert(data) match {
+        case Success(v) => Right(v.asInstanceOf[T])
         case Failure(e) =>
-          // Deserialization failed: corrupt bytes, a class-shape change across a redeploy,
-          // Kryo registration drift, etc. Returning a sentinel value cast to T poisons the
-          // cache - scalacache treats it as a HIT and hands e.g. a String to a caller
-          // expecting List[MethodRoutingT], throwing ClassCastException for the whole TTL.
-          // Rethrow instead: scalacache.TypedApi._caching treats a failed read as a cache
-          // miss, recomputes from the source block, and repopulates the key with a fresh,
-          // valid serialization (self-healing).
-          logger.error("Redis cache deserialization failed; treating as a cache miss and recomputing.", e)
-          throw e
+          // Decoding failed: corrupt bytes, a class-shape change across a redeploy, Kryo
+          // registration drift. Never answer with a sentinel value cast to T - scalacache would
+          // treat that as a HIT and hand e.g. a String to a caller expecting List[MethodRoutingT],
+          // throwing ClassCastException for the whole TTL.
+          //
+          // Reporting the failure is what makes the cache self-heal, though the mechanism moved in
+          // 0.28: the codec returns Left instead of throwing, RedisCacheBase.doGet raises it, and
+          // AbstractCache._caching - the path memoize takes - wraps the read in handleNonFatal and
+          // substitutes None. So a failed decode is still a miss: the source block runs and the key
+          // is rewritten with a valid serialisation. RedisDeserializeMissTest pins this.
+          logger.error("Redis cache decoding failed; treating as a cache miss and recomputing.", e)
+          Left(FailedToDecode(e))
       }
     }
   }
 
   def memoizeSyncWithRedis[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => A)(implicit @cacheKeyExclude m: Manifest[A]): A = {
-    memoizeSync(ttl)(f)
+    import scalacache.modes.sync._
+    implicit val cache: Cache[A] = cacheFor[A]
+    memoizeSync(Some(ttl))(f)
   }
 
   def memoizeWithRedis[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => Future[A])(implicit @cacheKeyExclude m: Manifest[A]): Future[A] = {
-    memoize(ttl)(f)
+    import scalacache.modes.scalaFuture._
+    implicit val cache: Cache[A] = cacheFor[A]
+    memoizeF(Some(ttl))(f)
   }
 
 
@@ -368,7 +382,7 @@ object Redis extends MdcLoggable {
       jedisConnection = Some(jedisPool.getResource())
       val jedis = jedisConnection.get
 
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       val keys = jedis.keys(pattern)
       keys.asScala.toList
 

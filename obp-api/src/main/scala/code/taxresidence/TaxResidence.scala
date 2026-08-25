@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 object TaxResidenceX extends SimpleInjector {
 
-  val taxResidence = new Inject(buildOne _) {}
+  val taxResidence = new Inject(() => buildOne) {}
 
   def buildOne: TaxResidenceProvider = MappedTaxResidenceProvider
   

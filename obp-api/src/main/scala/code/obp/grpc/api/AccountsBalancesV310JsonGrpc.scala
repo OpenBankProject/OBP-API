@@ -93,7 +93,7 @@ final case class AccountsBalancesV310JsonGrpc(
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PRepeated(accounts.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 1 => _root_.scalapb.descriptors.PRepeated(accounts.iterator.map(_.toPMessage).toVector)
         case 2 => overallBalance.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 3 => _root_.scalapb.descriptors.PString(overallBalanceDate)
       }
@@ -133,7 +133,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
     }
     __out
   }
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_]](
+  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
     _root_.code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AmountOfMoneyGrpc,
     _root_.code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountRoutingGrpc,
     _root_.code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountBalanceV310Grpc
@@ -243,7 +243,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.javaDescriptor.getNestedTypes.get(0)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.scalaDescriptor.nestedMessages(0)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AmountOfMoneyGrpc(
     )
@@ -357,7 +357,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.javaDescriptor.getNestedTypes.get(1)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.scalaDescriptor.nestedMessages(1)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountRoutingGrpc(
     )
@@ -492,7 +492,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
           case 1 => _root_.scalapb.descriptors.PString(id)
           case 2 => _root_.scalapb.descriptors.PString(label)
           case 3 => _root_.scalapb.descriptors.PString(bankId)
-          case 4 => _root_.scalapb.descriptors.PRepeated(accountRoutings.map(_.toPMessage)(_root_.scala.collection.breakOut))
+          case 4 => _root_.scalapb.descriptors.PRepeated(accountRoutings.iterator.map(_.toPMessage).toVector)
           case 5 => balance.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         }
       }
@@ -535,7 +535,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
       }
       __out
     }
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountBalanceV310Grpc(
     )

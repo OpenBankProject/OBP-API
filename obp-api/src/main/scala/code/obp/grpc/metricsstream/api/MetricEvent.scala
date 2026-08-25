@@ -265,7 +265,7 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
   def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = MetricsStreamProto.javaDescriptor.getMessageTypes.get(1)
   def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = throw new UnsupportedOperationException("scalaDescriptor not available")
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.metricsstream.api.MetricEvent()
   implicit class MetricEventLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.metricsstream.api.MetricEvent]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.metricsstream.api.MetricEvent](_l) {

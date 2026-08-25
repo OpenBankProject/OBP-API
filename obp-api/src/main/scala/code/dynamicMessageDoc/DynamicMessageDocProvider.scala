@@ -11,7 +11,7 @@ import scala.collection.immutable.List
 
 object DynamicMessageDocProvider extends SimpleInjector {
 
-  val provider = new Inject(buildOne _) {}
+  val provider = new Inject(() => buildOne) {}
 
   def buildOne: MappedDynamicMessageDocProvider.type = MappedDynamicMessageDocProvider
 }

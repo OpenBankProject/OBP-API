@@ -12,7 +12,7 @@ import code.model.Consumer
 import scala.collection.immutable.List
 
 object Consents extends SimpleInjector {
-  val consentProvider = new Inject(buildOne _) {}
+  val consentProvider = new Inject(() => buildOne) {}
   def buildOne: ConsentProvider = MappedConsentProvider
 }
 
