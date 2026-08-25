@@ -7096,7 +7096,7 @@ object Http4s400 {
         "Get My Api Collection Endpoint",
         s"""Get Api Collection Endpoint By API_COLLECTION_NAME and OPERATION_ID.
         |
-        |${userAuthenticationMessage(false)}
+        |${userAuthenticationMessage(true)}
         |""".stripMargin,
         EmptyBody,
         apiCollectionEndpointJson400,
@@ -7114,7 +7114,7 @@ object Http4s400 {
         "Get Api Collection Endpoints",
         s"""Get Api Collection Endpoints By API_COLLECTION_ID.
         |
-        |${userAuthenticationMessage(false)}
+        |${userAuthenticationMessage(true)}
         |""".stripMargin,
         EmptyBody,
         apiCollectionEndpointsJson400,

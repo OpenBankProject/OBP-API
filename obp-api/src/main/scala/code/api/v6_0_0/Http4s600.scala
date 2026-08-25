@@ -8773,7 +8773,7 @@ object Http4s600 {
         |
         |9 user_id (if null ignore)
         |
-        |Authentication is Required.
+        |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
         EmptyBody,
@@ -9868,7 +9868,7 @@ object Http4s600 {
         |
         |Optional query parameter `tag` — filter to products that have the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive.
         |
-        |${userAuthenticationMessage(!getApiProductsIsPublic)}""".stripMargin,
+        |${userAuthenticationMessage(true)}""".stripMargin,
         EmptyBody,
         apiProductsJsonV600,
         List(UnknownError),
@@ -9886,7 +9886,7 @@ object Http4s600 {
         |
         |Optional query parameter `tag` — filter to products that carry the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive. Repeat `tag=` to require multiple tags.
         |
-        |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+        |${userAuthenticationMessage(true)}""".stripMargin,
         EmptyBody,
         productsJsonV600,
         List(UnknownError),
@@ -13341,7 +13341,7 @@ object Http4s600 {
         |Properties with sensitive keys or values (containing ${APIUtil.sensitiveKeywords.mkString(", ")})
         |are excluded from the response entirely.
         |
-        |Authentication is Required.
+        |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
         EmptyBody,

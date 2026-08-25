@@ -3,7 +3,7 @@ package code.api.sweep
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{ApplicationNotIdentified, AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.util.http4s.Http4sApp
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
 import fs2.Stream
@@ -113,11 +113,40 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
     else None
   }
 
+  /**
+   * A doc that asks for no USER may still ask for an APPLICATION, and that is not a defect.
+   *
+   * OBP has three ways to refuse an anonymous caller, and this check originally modelled one:
+   *
+   *   OBP-20001  User not logged in            -- user authentication
+   *   OBP-20200  The application cannot be identified -- consumer/application authentication
+   *   OBP-20311  The Request is not signed     -- JWS request signing
+   *
+   * `EndpointCatalog.needsAuthentication` reproduces the middleware's predicate, which reads
+   * only errorResponseBodies and roles -- both about the user. So an endpoint that requires a
+   * consumer is classified "public" here and then fails this assertion for doing exactly what
+   * its doc says. Measured on createConsentRequest, getConsentRequest and
+   * createVRPConsentRequest: all three answer OBP-20200, and the last one spells it out in its
+   * own description -- "Client, Consumer or Application Authentication is mandatory for this
+   * endpoint". Their docs were right; this check was wrong.
+   *
+   * So a 401 is only a violation when it is the USER one. An application-auth 401 is reported
+   * as an observation instead of a failure -- named, not silently swallowed, because the doc
+   * still has no machine-readable way to say "needs an application" unless someone sets
+   * authMode, and a reader of resource-docs cannot tell.
+   */
   private def checkPublicIsNot401(doc: ResourceDoc): Option[String] = {
-    val (code, _) = call(doc.requestVerb, EndpointCatalog.concretePath(doc), Map.empty)
-    if (code == 401)
-      Some(s"${describe(doc)} -- declares no authentication requirement yet answered 401 anonymously")
-    else None
+    val (code, json) = call(doc.requestVerb, EndpointCatalog.concretePath(doc), Map.empty)
+    val msg = messageOf(json)
+    if (code != 401) None
+    else if (msg.startsWith(ApplicationNotIdentified.take(9))) {
+      info(s"${describe(doc)} -- declares no user authentication and requires an APPLICATION " +
+           s"instead ($msg). The doc is accurate about the user; consider authMode = " +
+           s"ApplicationOnly so resource-docs can say so too.")
+      None
+    } else
+      Some(s"${describe(doc)} -- declares no authentication requirement yet answered 401 " +
+           s"anonymously with '$msg'")
   }
 
   private def checkNoRoleIs403(doc: ResourceDoc): Option[String] = {
