@@ -924,6 +924,7 @@ object ErrorMessages {
   val UnderConstructionError = "OBP-50018: Under Construction Error."
   val DatabaseConnectionClosedError = "OBP-50019: Cannot connect to the OBP database."
   val DynamicCodeExecutionDisabled = "OBP-50020: User-generated dynamic code execution is disabled on this API instance. Set allow_user_generated_scala_code=true to enable."
+  val DynamicCodeExecutionUnsandboxed = "OBP-50021: User-generated dynamic code execution is enabled, but this JVM cannot enforce the sandbox (SecurityManager was removed in JDK 24, JEP 486), so dynamic code runs with unrestricted file, network and reflection access. Set allow_user_generated_scala_code_without_sandbox=true to accept that risk explicitly, or run on a JVM where the sandbox can be installed."
 
 
   // Connector Data Exceptions (OBP-502XX)

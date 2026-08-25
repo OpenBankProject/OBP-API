@@ -331,6 +331,10 @@ jobs:
           # ConnectorMethodTest, AbacRuleTests, DynamicResourceDocTest, DynamicMessageDocTest
           # and DynamicCodeKillSwitchTest's ON scenarios can still compile/execute dynamic code.
           echo allow_user_generated_scala_code=true >> obp-api/src/main/resources/props/test.default.props
+          # The runners are on a JDK with no SecurityManager (JEP 486), so the sandbox enforces
+          # nothing and compileScalaCode refuses without this second, explicit acceptance. CI is
+          # the case that switch is written for: knowingly unsandboxed, on throwaway data.
+          echo allow_user_generated_scala_code_without_sandbox=true >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
         env:

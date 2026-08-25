@@ -60,6 +60,22 @@ object DynamicUtil extends MdcLoggable{
   type DynamicFunction = (Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]
 
   /**
+   * True when Sandbox can actually enforce a permission set.
+   *
+   * JEP 486 removed SecurityManager in JDK 24, so `System.setSecurityManager` throws and
+   * `AccessController.doPrivileged` degrades to a pass-through - Sandbox.runInSandbox then restricts
+   * nothing at all. Read at the call rather than cached, because Sandbox installs the manager in its
+   * own initialiser and this must reflect whatever actually ended up installed.
+   */
+  private def sandboxCanEnforce: Boolean = System.getSecurityManager != null
+
+  /**
+   * True when the operator has explicitly accepted running user code with no enforceable sandbox.
+   */
+  private def unsandboxedExecutionAccepted: Boolean =
+    APIUtil.getPropsAsBoolValue("allow_user_generated_scala_code_without_sandbox", false)
+
+  /**
    * Compile scala code
    * toolBox have bug that first compile fail, second or later compile success.
    * @param code
@@ -68,6 +84,14 @@ object DynamicUtil extends MdcLoggable{
   def compileScalaCode[T](code: String): Box[T] = {
     if (!dynamicCodeExecutionEnabled)
       return Failure(ErrorMessages.DynamicCodeExecutionDisabled)
+    // Second consent, only on a runtime where the sandbox is inert. `allow_user_generated_scala_code`
+    // was turned on when Sandbox.runInSandbox still restricted file, network and reflection access;
+    // on JDK 24+ it restricts nothing, so the same switch now means something much larger than it
+    // did when it was set. Refusing to compile - rather than refusing to boot - keeps the failure
+    // scoped to the feature that lost its isolation, and leaves a deployment that means it one
+    // deliberate edit away from working. Default deployments are unaffected: the feature is off.
+    if (!sandboxCanEnforce && !unsandboxedExecutionAccepted)
+      return Failure(ErrorMessages.DynamicCodeExecutionUnsandboxed)
     compileScalaCodeUnchecked[T](code)
   }
 

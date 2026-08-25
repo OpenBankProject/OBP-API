@@ -334,6 +334,10 @@ run_shard() {
     # fallback, so DynamicUtilTest / ConnectorMethodTest / AbacRuleTests /
     # DynamicResourceDocTest / DynamicMessageDocTest / DynamicCodeKillSwitchTest's ON
     # scenarios need this set explicitly or they fail locally with OBP-50020.
+    # OBP_ALLOW_USER_GENERATED_SCALA_CODE_WITHOUT_SANDBOX is the second acceptance the same
+    # code path now requires: SecurityManager is gone on this JDK (JEP 486), so the sandbox
+    # enforces nothing and compileScalaCode refuses with OBP-50021 unless the operator says
+    # so a second time. The suite is exactly that case - knowingly unsandboxed, throwaway data.
     # -pl obp-commons,obp-api mirrors CI: obp-commons' own util suites run on whichever
     # shard's filter matches com.openbankproject.* (the shard-4 catch-all); on every other
     # shard the filter matches nothing in obp-commons -> 0 tests there.
@@ -359,6 +363,7 @@ run_shard() {
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
+    OBP_ALLOW_USER_GENERATED_SCALA_CODE_WITHOUT_SANDBOX="true" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     env "${db_env[@]}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \

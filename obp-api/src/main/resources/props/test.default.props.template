@@ -178,6 +178,13 @@ hikari.maximumPoolSize=20
 # DynamicCodeKillSwitchTest's ON scenarios can compile/execute dynamic code locally.
 allow_user_generated_scala_code=true
 
+# The suite runs on a JDK where SecurityManager has been removed (JEP 486), so the sandbox
+# below enforces nothing and compileScalaCode refuses to run without this second, explicit
+# acceptance. The test environment is exactly the case the second switch is written for:
+# knowingly unsandboxed, on throwaway data. Without this line the whole dynamic-code tier
+# fails with OBP-50021.
+allow_user_generated_scala_code_without_sandbox=true
+
 # Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox.
 # Mirrors default.props / production.default.props. Required so dynamic resource-doc bodies can do
 # JSON extraction (reflection) and read OBP props (getenv); without it the sandbox denies these and
