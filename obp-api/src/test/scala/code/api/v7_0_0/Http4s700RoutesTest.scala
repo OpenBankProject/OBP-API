@@ -2218,6 +2218,96 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     case _ => fail("Expected JSON object")
   }
 
+  // ─── Dynamic-code provenance (v7.0.0 read-only) ──────────────────────────────
+  feature("Http4s700 dynamic-code provenance endpoints") {
+
+    scenario("Dynamic Resource Docs: 401 unauth, 403 no role, 200 with role exposes provenance", Http4s700RoutesTag) {
+      Given("A dynamic resource doc seeded with resourceUser1 as creator")
+      val seeded = code.dynamicResourceDoc.DynamicResourceDocProvider.provider.vend.create(
+        None,
+        code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+          dynamicResourceDocId = None, bankId = None,
+          partialFunctionName = "provenanceV7Test", requestUrl = "/provenance_v7/PV_ID"),
+        Some(resourceUser1.userId)
+      ).openOrThrowException("seed dynamic resource doc")
+      val docId = seeded.dynamicResourceDocId.getOrElse(fail("seeded id"))
+      val expectedHash = code.api.util.APIUtil.sha256Hex(seeded.decodedMethodBody)
+
+      When("Unauthenticated GET of the list")
+      val (unauthCode, _, _) = makeHttpRequest("/obp/v7.0.0/management/dynamic-resource-docs")
+      Then("401")
+      unauthCode shouldBe 401
+
+      When("Authenticated but without the role")
+      val (forbiddenCode, forbiddenJson, _) = makeHttpRequest(
+        "/obp/v7.0.0/management/dynamic-resource-docs", Map("DirectLogin" -> s"token=${token2.value}"))
+      Then("403 naming the required role")
+      forbiddenCode shouldBe 403
+      messageOf(forbiddenJson) should include(code.api.util.ApiRole.canGetAllDynamicResourceDocs.toString)
+
+      When("Authenticated with the getAll role")
+      addEntitlement("", resourceUser1.userId, code.api.util.ApiRole.canGetAllDynamicResourceDocs.toString)
+      val (okCode, okJson, _) = makeHttpRequest(
+        "/obp/v7.0.0/management/dynamic-resource-docs", Map("DirectLogin" -> s"token=${token1.value}"))
+      Then("200 and the seeded doc carries provenance (creator + method_body hash), not on the frozen v4 doc object")
+      okCode shouldBe 200
+      val item = (okJson \ "dynamic_resource_docs") match {
+        case JArray(items) => items.find(i => (i \ "dynamic_resource_doc" \ "dynamic_resource_doc_id") == JString(docId))
+          .getOrElse(fail("seeded doc not in list"))
+        case _ => fail("dynamic_resource_docs should be an array")
+      }
+      (item \ "provenance" \ "created_by_user_id") shouldBe JString(resourceUser1.userId)
+      (item \ "provenance" \ "method_body_hash") shouldBe JString(expectedHash)
+
+      When("GET by id with the get role")
+      addEntitlement("", resourceUser1.userId, code.api.util.ApiRole.canGetDynamicResourceDoc.toString)
+      val (byIdCode, byIdJson, _) = makeHttpRequest(
+        s"/obp/v7.0.0/management/dynamic-resource-docs/$docId", Map("DirectLogin" -> s"token=${token1.value}"))
+      Then("200 with provenance and the unchanged v4 doc shape nested under dynamic_resource_doc")
+      byIdCode shouldBe 200
+      (byIdJson \ "dynamic_resource_doc" \ "dynamic_resource_doc_id") shouldBe JString(docId)
+      (byIdJson \ "provenance" \ "created_by_user_id") shouldBe JString(resourceUser1.userId)
+      (byIdJson \ "provenance" \ "method_body_hash") shouldBe JString(expectedHash)
+    }
+
+    scenario("Connector Methods: GET by id exposes provenance", Http4s700RoutesTag) {
+      val seeded = code.connectormethod.ConnectorMethodProvider.provider.vend.create(
+        code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.jsonScalaConnectorMethod.copy(
+          connectorMethodId = None, methodName = "getBanks"),
+        Some(resourceUser1.userId)
+      ).openOrThrowException("seed connector method")
+      val id = seeded.connectorMethodId.getOrElse(fail("seeded id"))
+      val expectedHash = code.api.util.APIUtil.sha256Hex(seeded.decodedMethodBody)
+
+      addEntitlement("", resourceUser1.userId, code.api.util.ApiRole.canGetConnectorMethod.toString)
+      val (code200, json, _) = makeHttpRequest(
+        s"/obp/v7.0.0/management/connector-methods/$id", Map("DirectLogin" -> s"token=${token1.value}"))
+      code200 shouldBe 200
+      (json \ "connector_method" \ "connector_method_id") shouldBe JString(id)
+      (json \ "provenance" \ "created_by_user_id") shouldBe JString(resourceUser1.userId)
+      (json \ "provenance" \ "method_body_hash") shouldBe JString(expectedHash)
+    }
+
+    scenario("Dynamic Message Docs: GET by id exposes provenance", Http4s700RoutesTag) {
+      val seeded = code.dynamicMessageDoc.DynamicMessageDocProvider.provider.vend.create(
+        None,
+        code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.jsonDynamicMessageDoc.copy(
+          dynamicMessageDocId = None, bankId = None, process = "obp.provenanceV7Process"),
+        Some(resourceUser1.userId)
+      ).openOrThrowException("seed dynamic message doc")
+      val id = seeded.dynamicMessageDocId.getOrElse(fail("seeded id"))
+      val expectedHash = code.api.util.APIUtil.sha256Hex(seeded.decodedMethodBody)
+
+      addEntitlement("", resourceUser1.userId, code.api.util.ApiRole.canGetDynamicMessageDoc.toString)
+      val (code200, json, _) = makeHttpRequest(
+        s"/obp/v7.0.0/management/dynamic-message-docs/$id", Map("DirectLogin" -> s"token=${token1.value}"))
+      code200 shouldBe 200
+      (json \ "dynamic_message_doc" \ "dynamic_message_doc_id") shouldBe JString(id)
+      (json \ "provenance" \ "created_by_user_id") shouldBe JString(resourceUser1.userId)
+      (json \ "provenance" \ "method_body_hash") shouldBe JString(expectedHash)
+    }
+  }
+
   feature("Http4s700 attachOpenCorridorPromise (promise report-back) endpoint") {
 
     scenario("Reject unauthenticated POST", Http4s700RoutesTag) {

@@ -11,6 +11,10 @@ import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProp
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.api.v3_1_0.{AccountAttributeResponseJson, JSONFactory310}
+import code.dynamicResourceDoc.{DynamicResourceDoc, JsonDynamicResourceDoc}
+import code.connectormethod.{ConnectorMethod, JsonConnectorMethod}
+import code.dynamicMessageDoc.{DynamicMessageDoc, JsonDynamicMessageDoc}
+import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankAccount, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
 import com.openbankproject.commons.util.ApiVersion
 import java.util.Date
@@ -20,6 +24,52 @@ import net.liftweb.mapper.{Ascending, By, By_<=, Descending, MaxRows, OrderBy}
 import scala.concurrent.{ExecutionContext, Future}
 
 object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
+
+  // ─── Provenance for runtime-compiled dynamic code (v7.0.0 read-only exposure) ───
+  // The v4.0.0 create/update endpoints capture who created / last updated a piece of runtime
+  // code and a SHA-256 of its (decoded) method body into DB columns, but the v4 response shape
+  // is frozen (STABLE) and does not carry them. These v7 GET endpoints expose that provenance,
+  // wrapping the unchanged v4 resource JSON alongside a `provenance` object.
+  case class ProvenanceJsonV700(
+    created_by_user_id: Option[String],
+    updated_by_user_id: Option[String],
+    method_body_hash: Option[String],
+    created_at: Option[String],
+    updated_at: Option[String]
+  )
+  case class DynamicResourceDocProvenanceJsonV700(dynamic_resource_doc: JsonDynamicResourceDoc, provenance: ProvenanceJsonV700)
+  case class DynamicResourceDocsProvenanceJsonV700(dynamic_resource_docs: List[DynamicResourceDocProvenanceJsonV700])
+  case class ConnectorMethodProvenanceJsonV700(connector_method: JsonConnectorMethod, provenance: ProvenanceJsonV700)
+  case class ConnectorMethodsProvenanceJsonV700(connector_methods: List[ConnectorMethodProvenanceJsonV700])
+  case class DynamicMessageDocProvenanceJsonV700(dynamic_message_doc: JsonDynamicMessageDoc, provenance: ProvenanceJsonV700)
+  case class DynamicMessageDocsProvenanceJsonV700(dynamic_message_docs: List[DynamicMessageDocProvenanceJsonV700])
+
+  private def blankToNone(s: String): Option[String] = Option(s).filter(StringUtils.isNotBlank)
+  private def formatDateOpt(d: Date): Option[String] = Option(d).map(APIUtil.formatDate)
+
+  def createDynamicResourceDocProvenanceJsonV700(entity: DynamicResourceDoc): DynamicResourceDocProvenanceJsonV700 =
+    DynamicResourceDocProvenanceJsonV700(
+      DynamicResourceDoc.getJsonDynamicResourceDoc(entity),
+      ProvenanceJsonV700(
+        blankToNone(entity.CreatedByUserId.get), blankToNone(entity.UpdatedByUserId.get),
+        blankToNone(entity.MethodBodyHash.get), formatDateOpt(entity.createdAt.get), formatDateOpt(entity.updatedAt.get))
+    )
+
+  def createConnectorMethodProvenanceJsonV700(entity: ConnectorMethod): ConnectorMethodProvenanceJsonV700 =
+    ConnectorMethodProvenanceJsonV700(
+      ConnectorMethod.getJsonConnectorMethod(entity),
+      ProvenanceJsonV700(
+        blankToNone(entity.CreatedByUserId.get), blankToNone(entity.UpdatedByUserId.get),
+        blankToNone(entity.MethodBodyHash.get), formatDateOpt(entity.createdAt.get), formatDateOpt(entity.updatedAt.get))
+    )
+
+  def createDynamicMessageDocProvenanceJsonV700(entity: DynamicMessageDoc): DynamicMessageDocProvenanceJsonV700 =
+    DynamicMessageDocProvenanceJsonV700(
+      DynamicMessageDoc.getJsonDynamicMessageDoc(entity),
+      ProvenanceJsonV700(
+        blankToNone(entity.CreatedByUserId.get), blankToNone(entity.UpdatedByUserId.get),
+        blankToNone(entity.MethodBodyHash.get), formatDateOpt(entity.createdAt.get), formatDateOpt(entity.updatedAt.get))
+    )
 
   case class ErrorMessageEntryJsonV700(code: String, name: String, message: String)
 

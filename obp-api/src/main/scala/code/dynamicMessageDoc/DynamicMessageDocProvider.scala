@@ -41,8 +41,8 @@ trait DynamicMessageDocProvider {
   def getByProcess(bankId: Option[String], process: String): Box[JsonDynamicMessageDoc]
   def getAll(bankId: Option[String]): List[JsonDynamicMessageDoc]
 
-  def create(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]
-  def update(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]
+  def create(bankId: Option[String], entity: JsonDynamicMessageDoc, createdByUserId: Option[String]): Box[JsonDynamicMessageDoc]
+  def update(bankId: Option[String], entity: JsonDynamicMessageDoc, updatedByUserId: Option[String]): Box[JsonDynamicMessageDoc]
   def deleteById(bankId: Option[String], dynamicMessageDocId: String): Box[Boolean]
 
 }

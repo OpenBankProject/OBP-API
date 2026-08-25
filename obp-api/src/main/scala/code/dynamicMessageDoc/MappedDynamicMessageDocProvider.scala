@@ -53,7 +53,7 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
       }}
   }
 
-  override def create(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]= {
+  override def create(bankId: Option[String], entity: JsonDynamicMessageDoc, createdByUserId: Option[String]): Box[JsonDynamicMessageDoc]= {
     tryo {
       DynamicMessageDoc.create
         .BankId(bankId.getOrElse(null))
@@ -70,12 +70,15 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
         .AdapterImplementation(entity.adapterImplementation)
         .MethodBody(entity.methodBody)
         .Lang(entity.programmingLang)
+        // provenance is set here from the authenticated user + computed hash, not from `entity`
+        .CreatedByUserId(createdByUserId.getOrElse(null))
+        .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
         .saveMe()
     }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
   }
 
 
-  override def update(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc] = {
+  override def update(bankId: Option[String], entity: JsonDynamicMessageDoc, updatedByUserId: Option[String]): Box[JsonDynamicMessageDoc] = {
     val dynamicMessageDocBox = if(bankId.isDefined){
       DynamicMessageDoc.find(
         By(DynamicMessageDoc.DynamicMessageDocId, entity.dynamicMessageDocId.getOrElse("")),
@@ -102,6 +105,9 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
             .AdapterImplementation(entity.adapterImplementation)
             .MethodBody(entity.methodBody)
             .Lang(entity.programmingLang)
+            // CreatedByUserId is left untouched; record who last changed the code + refresh the hash
+            .UpdatedByUserId(updatedByUserId.getOrElse(null))
+            .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
             .saveMe()
         }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
       case _ => Empty
