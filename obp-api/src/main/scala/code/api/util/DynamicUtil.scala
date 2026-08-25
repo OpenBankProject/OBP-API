@@ -1,7 +1,6 @@
 package code.api.util
 
 import org.json4s._
-import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
 import code.api.util.dynamiccompiler.{DotcScalaCompiler, DynamicCompileFailure, DynamicScalaCompiler}
@@ -48,8 +47,24 @@ object DynamicUtil extends MdcLoggable{
 
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
 
+  /**
+   * A javassist pool scoped to one classloader.
+   *
+   * This used to hand back `ClassPool.getDefault` - a process-wide singleton - after appending a
+   * LoaderClassPath for the caller's loader, so every distinct classloader added another search
+   * path to the one shared pool and none was ever removed. Harmless while the only caller was the
+   * `show_used_connector_methods` diagnostic (off by default, so this ran approximately never);
+   * not harmless once the dependency scan runs for real, because dynamic compilation mints a fresh
+   * classloader per snippet. The pool then accumulates a path per snippet, each pinning a
+   * classloader whose temp output directory is gone, and every later lookup searches all of them
+   * in turn - which is also what the `MEMORY_USER` notes on the callers were worried about.
+   *
+   * `new ClassPool(true)` starts from the system path, exactly as `getDefault` does, so lookups
+   * resolve the same way; it is just not shared. Still memoized per classloader, so a repeated
+   * scan against the same loader reuses its pool and its parsed CtClasses.
+   */
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
-    val cp = ClassPool.getDefault
+    val cp = new ClassPool(true)
     cp.appendClassPath(new LoaderClassPath(classLoader))
     cp
   }
@@ -178,13 +193,28 @@ object DynamicUtil extends MdcLoggable{
   }
 
   /**
-   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+   * The methods a dynamically compiled class calls, read out of its bytecode.
+   *
+   * Both callers feed the result to `Validation.validateDependency` - the gate that refuses
+   * user-supplied Scala which calls a restricted type. Neither reports it to anyone.
+   *
+   * This used to open with `if (SHOW_USED_CONNECTOR_METHODS) ... else Nil`, and that was simply the
+   * wrong gate: `show_used_connector_methods` is a diagnostic prop controlling whether a response
+   * tells the caller which connector methods an endpoint used, and it defaults to false. So an
+   * operator who switched the security validation on with `dynamic_code_compile_validate_enable`
+   * got a validation that inspected an empty list and passed every restricted call - and could not
+   * have fixed it by setting the diagnostic prop either, because SHOW_USED_CONNECTOR_METHODS is a
+   * `final val` on Constant, read once at class initialisation and frozen for the life of the JVM.
+   * DynamicCodeDependencyScanTest fails if the scan goes quiet again.
+   *
+   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap.
+   * That cost is why a gate looked reasonable here; it is paid only when dynamic code is compiled,
+   * which is already behind `allow_user_generated_scala_code` (default off).
    * @param clazz
    * @param predicate
    * @return
    */
-  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = 
-  if (SHOW_USED_CONNECTOR_METHODS) {
+  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = {
     val className = clazz.getTypeName
     val listBuffer = new ListBuffer[(String, String, String)]()
     val classPool = getClassPool(clazz.getClassLoader)
@@ -204,8 +234,6 @@ object DynamicUtil extends MdcLoggable{
     }
 
     listBuffer.distinct.toList
-  } else {
-    Nil
   }
 
   trait Sandbox {

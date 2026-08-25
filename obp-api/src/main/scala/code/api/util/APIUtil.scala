@@ -4343,8 +4343,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case x => NewStyle.function.getCounterpartyByCounterpartyId(x, _)
   }
 
+  // Not ClassPool.getDefault: see DynamicUtil.getClassPool for why the process-wide pool must not
+  // be the one the dependency scan appends to.
   private val classPool = {
-    val pool = ClassPool.getDefault
+    val pool = new ClassPool(true)
     // avoid error when call with JDK 1.8:
     // javassist.NotFoundException: code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
     pool.appendClassPath(new LoaderClassPath(Thread.currentThread.getContextClassLoader))
@@ -4354,7 +4356,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private def getClassPool(classLoader: ClassLoader) = {
     import scala.concurrent.duration._
     Caching.memoizeSyncWithImMemory(Some(classLoader.toString()))(DurationInt(30).days) {
-      val classPool: ClassPool = ClassPool.getDefault
+      val classPool: ClassPool = new ClassPool(true)
       classPool.appendClassPath(new LoaderClassPath(classLoader))
       classPool
     }
@@ -4388,44 +4390,53 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * signature is `Ljava/lang/Object;)`
    * 
    * than the return value may be (getUserAndSessionContextFuture, ***,***),(map,***,***), (getOrElse,***,***) ......
-   */ 
+   *
+   * Not gated on SHOW_USED_CONNECTOR_METHODS, deliberately.
+   *
+   * This reads a method's bytecode and reports what it calls. Of its three callers, two are in
+   * DynamicUtil.getDynamicCodeDependentMethods and feed Validation.validateDependency - the gate
+   * that refuses user-supplied Scala calling a restricted type - and only the third,
+   * getDependentConnectorMethods, is the diagnostic that `show_used_connector_methods` exists for.
+   * That one carries the flag itself.
+   *
+   * With the flag here as well, the security validation was handed an empty list on any deployment
+   * that had not turned the diagnostic on - i.e. the default, since the prop defaults to false and
+   * SHOW_USED_CONNECTOR_METHODS is a `final val` frozen at class initialisation. The operator
+   * switched validation on, it ran, and it passed everything. DynamicCodeDependencyScanTest covers
+   * it.
+   */
   def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
-    if (SHOW_USED_CONNECTOR_METHODS) {
-      val methods = ListBuffer[(String, String, String)]()
-      //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
-      //eg:  className == code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
-      //     ctClass == javassist.CtClassType@77e1b84c[public final class code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$..........
-      val ctClass = classPool.get(className)
-      //eg:methodName = isDefinedAt, sinature =(Lnet/liftweb/http/Req;)Z
-      // method => javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]
-      val method = ctClass.getMethod(methodName, signature)
+    val methods = ListBuffer[(String, String, String)]()
+    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+    //eg:  className == code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
+    //     ctClass == javassist.CtClassType@77e1b84c[public final class code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$..........
+    val ctClass = classPool.get(className)
+    //eg:methodName = isDefinedAt, sinature =(Lnet/liftweb/http/Req;)Z
+    // method => javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]
+    val method = ctClass.getMethod(methodName, signature)
 
-      //this exprEditor will read the method body line by, if it is a methodCall, we will add it into ListBuffer
-      // eg, the following 3 methods all call the `isDefinedAt`, then add all of them into the ListBuffer
-      //1 = {Tuple3@11566} (scala.Option,isEmpty,()Z)
-      //2 = {Tuple3@11567} (scala.Option,get,()Ljava/lang/Object;)
-      //3 = {Tuple3@11568} (scala.Tuple2,_1,()Ljava/lang/Object;)
+    //this exprEditor will read the method body line by, if it is a methodCall, we will add it into ListBuffer
+    // eg, the following 3 methods all call the `isDefinedAt`, then add all of them into the ListBuffer
+    //1 = {Tuple3@11566} (scala.Option,isEmpty,()Z)
+    //2 = {Tuple3@11567} (scala.Option,get,()Ljava/lang/Object;)
+    //3 = {Tuple3@11568} (scala.Tuple2,_1,()Ljava/lang/Object;)
      // The ExprEditor allows you to define how the method's bytecode should be modified. 
-      // You can use methods like insertBefore, insertAfter, replace, etc., to add, modify, 
-      // or replace instructions within the method.
-      val exprEditor = new ExprEditor() {
-        @throws[CannotCompileException]
-        override def edit(m: MethodCall): Unit = { //it will be called whenever this method is used..
-          val tuple = (m.getClassName, m.getMethodName, m.getSignature)
-          methods += tuple
-        }
+    // You can use methods like insertBefore, insertAfter, replace, etc., to add, modify, 
+    // or replace instructions within the method.
+    val exprEditor = new ExprEditor() {
+      @throws[CannotCompileException]
+      override def edit(m: MethodCall): Unit = { //it will be called whenever this method is used..
+        val tuple = (m.getClassName, m.getMethodName, m.getSignature)
+        methods += tuple
       }
-
-      // The instrument method in Javassist is used to instrument or modify the bytecode of a method. 
-      // This means you can dynamically insert, replace, or modify instructions in a method during runtime.
-      // just need to define your own expreEditor class
-      method.instrument(exprEditor)
-      
-      methods.toList.distinct
-      
-    } else {
-      Nil
     }
+
+    // The instrument method in Javassist is used to instrument or modify the bytecode of a method. 
+    // This means you can dynamically insert, replace, or modify instructions in a method during runtime.
+    // just need to define your own expreEditor class
+    method.instrument(exprEditor)
+    
+    methods.toList.distinct
   }
 
   /**
