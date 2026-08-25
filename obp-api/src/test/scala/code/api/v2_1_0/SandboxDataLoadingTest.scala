@@ -1229,6 +1229,55 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc2.id), None).isDefined should equal(true)
   }
 
+  /**
+   * The shipped fixtures are what a new deployment imports, and nothing else in the suite touches
+   * them: they appear in the codebase only as a documentation link in a ResourceDoc description.
+   * That is how seven 27-character strings with a failing mod-97 - shared across two banks, each
+   * encoding a third - shipped as "IBAN"s and stayed until a fresh-database run tripped over them.
+   * Importing them here means the fixtures are held to the same rules as any other input.
+   */
+  private def loadShippedFixture(path: String): String = {
+    // Not a classpath resource: these live under src/main/scala, so they are not copied to
+    // target/classes. Read from the source tree instead, tolerating either working directory -
+    // the module (how the suite runs) or the repository root.
+    val candidates = List(
+      new java.io.File(s"src/main/scala/$path"),
+      new java.io.File(s"obp-api/src/main/scala/$path"))
+    val file = candidates.find(_.isFile).getOrElse(
+      throw new java.io.FileNotFoundException(
+        s"shipped fixture not found from ${new java.io.File(".").getAbsolutePath}: " +
+        candidates.map(_.getPath).mkString(", ")))
+    val source = scala.io.Source.fromFile(file, "UTF-8")
+    try source.mkString finally source.close()
+  }
+
+  // Only the current fixture. 2016-04-28/example_import.json is NOT covered, and deliberately so:
+  // it is rejected by this endpoint with OBP-50005 today. Established as pre-existing, not caused
+  // by the IBAN regeneration - the pre-change file fails identically - and not an ordering
+  // artifact, since it fails the same way when it is the only fixture imported. Its schema matches
+  // the current one field for field, so the cause is something else and finding it is a separate
+  // job from the one this test exists for. Asserting a success that cannot happen would leave a
+  // permanently red test; asserting the failure would freeze a defect as expected behaviour.
+  private val shippedFixtures = List(
+    "code/api/sandbox/example_data/example_import.json")
+
+  for (fixture <- shippedFixtures) {
+    it should s"import the shipped fixture $fixture" in {
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
+      val body = loadShippedFixture(fixture)
+
+      withClue(s"the fixture must be readable and non-empty: ") {
+        body.trim.nonEmpty should equal(true)
+      }
+
+      val response = postImportJson(body)
+
+      withClue(s"$fixture was rejected by the import it is shipped for: ${response.body} ") {
+        response.code should equal(SUCCESS)
+      }
+    }
+  }
+
   it should "reject the same IBAN at a different bank" in {
     // An IBAN is globally unique by construction - ISO 13616 encodes the institution in the
     // string - so two banks sharing one is not a legitimate address space, it is bad data. The
