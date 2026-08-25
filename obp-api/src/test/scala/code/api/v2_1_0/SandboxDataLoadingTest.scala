@@ -1082,6 +1082,53 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc2.id), None).isDefined should equal(true)
   }
 
+  it should "not allow two accounts at DIFFERENT banks to share an IBAN either" in {
+    // The global-uniqueness half of the rule, which had no test at all.
+    //
+    // An IBAN is globally unique by ISO 13616 -- the bank identifier is encoded INSIDE the
+    // string, so two banks cannot legitimately hold the same one. OBP does not merely assume
+    // that; it depends on it. LocalMappedConnector.getBankAccountByRoutingLegacy, called with
+    // no bankId, refuses outright when a routing address matches more than one account:
+    //
+    //     if (routing.size > 1) { // Routing MUST be unique
+    //       Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
+    //
+    // and that is the lookup PAYMENT DESTINATIONS resolve through -- BulkPaymentHandler and
+    // three v7.0.0 transaction paths all call it with bankId = None. So letting a duplicate in
+    // at import time does not create a working account: it creates one that any global-routing
+    // payment then fails on, far from the import that caused it.
+    //
+    // Rejecting at import is therefore the correct behaviour, and this test exists so nobody
+    // "fixes" the duplicate check by scoping it per bank to make a broken fixture load.
+    val users = standardUsers
+    val banks = standardBanks
+
+    def getResponse(accountJsons : List[JValue]) = {
+      BankAccountRouting.bulkDelete_!!()
+      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil, Nil, Nil, Nil)
+      postImportJson(json)
+    }
+
+    val accAtBank1 = account1AtBank1
+    val accAtBank2 = account1AtBank2
+
+    val bank1Json = Extraction.decompose(accAtBank1)
+    // Same IBAN, different bank. Nothing else changed.
+    val bank2SameIbanJson = replaceField(Extraction.decompose(accAtBank2), "IBAN", accAtBank1.IBAN)
+
+    getResponse(List(bank1Json, bank2SameIbanJson)).code should equal(FAILED)
+
+    // And nothing partially imported.
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank1.bank), AccountId(accAtBank1.id), None).isDefined should equal(false)
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank2.bank), AccountId(accAtBank2.id), None).isDefined should equal(false)
+
+    // The same two accounts import fine once their IBANs differ -- proving the rejection above
+    // was about the IBAN collision and not about anything else in the payload.
+    getResponse(List(bank1Json, Extraction.decompose(accAtBank2))).code should equal(SUCCESS)
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank1.bank), AccountId(accAtBank1.id), None).isDefined should equal(true)
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank2.bank), AccountId(accAtBank2.id), None).isDefined should equal(true)
+  }
+
   it should "not allow an account to be created with an existing IBAN" in {
     val banks = standardBanks.map(Extraction.decompose)
     val users = standardUsers.map(Extraction.decompose)
