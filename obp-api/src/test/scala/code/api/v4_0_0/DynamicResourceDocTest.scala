@@ -42,6 +42,8 @@ import org.json4s.JArray
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
+import java.net.{URLDecoder, URLEncoder}
+
 
 class DynamicResourceDocTest extends V400ServerSetup {
 
@@ -328,6 +330,58 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val resp200 = makePostRequest(callUrl.POST <@ (user1), body)
       resp200.code should equal(200)
       json.compactRender(resp200.body) should include("_from_path")
+    }
+
+    // Regression guard for DynamicEndpointCodeGenerator.buildTemplate: the template served by
+    // POST /management/dynamic-resource-docs/endpoint-code must emit the NATIVE contract
+    // (Request[IO] / IO[Response[IO]] / callContext.httpBody / errorResponse), so the documented
+    // workflow — copy the generated process body into a dynamic resource doc's method_body —
+    // yields code that compiles and serves. The template previously emitted the retired Lift
+    // contract (Box[JsonResponse], request.json, errorJsonResponse), which no longer compiles.
+    scenario("The generated endpoint-code template compiles and serves as a dynamic resource doc method body", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+
+      When("We generate the endpoint code template for a POST endpoint with example bodies")
+      val fragment = SwaggerDefinitionsJSON.jsonResourceDocFragment.copy(
+        requestVerb = "POST",
+        requestUrl = "/template_gen_user/TEMPLATE_USER_ID"
+      )
+      val codeReq = (v4_0_0_Request / "management" / "dynamic-resource-docs" / "endpoint-code").POST <@ (user1)
+      val codeResp = makePostRequest(codeReq, write(fragment))
+      codeResp.code should equal(201)
+      val template = URLDecoder.decode((codeResp.body \ "code").values.toString, "UTF-8")
+
+      Then("the template declares the native process signature, not the retired Lift one")
+      template should include("override protected def process(callContext: CallContext, request: Request[IO], pathParams: Map[String, String]): IO[Response[IO]]")
+      template should include("callContext.httpBody")
+      template should include("errorResponse(")
+      template should not include "Box[JsonResponse]"
+      template should not include "request.json"
+      template should not include "errorJsonResponse"
+      template should not include "getPathParams(callContext, request)"
+
+      Then("the process body sliced from the template compiles as a dynamic resource doc method body (201)")
+      val marker = "IO[Response[IO]] = {"
+      val processBody = template.substring(template.indexOf(marker) + marker.length, template.lastIndexOf("}"))
+      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val doc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+        dynamicResourceDocId = None,
+        bankId = None,
+        roles = "",
+        partialFunctionName = "generatedTemplateTest",
+        requestUrl = "/template_gen_user/TEMPLATE_USER_ID",
+        methodBody = URLEncoder.encode(processBody, "UTF-8"),
+        exampleRequestBody = fragment.exampleRequestBody,
+        successResponseBody = fragment.successResponseBody
+      )
+      makePostRequest(createReq, write(doc)).code should equal(201)
+
+      Then("calling the served endpoint with a valid body returns 200 (the template's placeholder business logic)")
+      val callReq = (dynamicEndpoint_Request / "dynamic-resource-doc" / "template_gen_user" / "user-1").POST <@ (user1)
+      makePostRequest(callReq, """{"name":"Jhon","age":12,"hobby":["coding"]}""").code should equal(200)
+
+      Then("calling without a body returns 400 via the template's errorResponse early-exit")
+      makePostRequest(callReq, "").code should equal(400)
     }
   }
 
