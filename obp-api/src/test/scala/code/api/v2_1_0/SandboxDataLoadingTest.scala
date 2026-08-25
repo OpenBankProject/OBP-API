@@ -1229,12 +1229,17 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc2.id), None).isDefined should equal(true)
   }
 
-  it should "allow the same IBAN to be reused at a different bank" in {
-    // An IBAN is unique per bank (DoobieBankAccountRoutingQueries's own unique index is
-    // (bankId, scheme, address), and existingIbans below looks an IBAN up per-bank via
-    // getBankAccountByRoutingLegacy(Some(bankId), ...)), not globally - two different sandbox
-    // banks reusing the same IBAN in their own address space is legitimate, and the shipped
-    // example_import.json fixture does exactly this (bank Y's accounts mirror bank X's IBANs).
+  it should "reject the same IBAN at a different bank" in {
+    // An IBAN is globally unique by construction - ISO 13616 encodes the institution in the
+    // string - so two banks sharing one is not a legitimate address space, it is bad data. The
+    // connector depends on that: the payment path resolves a target account by routing with no
+    // bank context (BulkPaymentHandler:135, three Http4s700 transaction-request endpoints,
+    // getBankAccountByIban), and getBankAccountByRouting fails any lookup matching more than one
+    // row. Accepting a duplicate at import would produce an account that fails every such
+    // payment, reporting AccountRoutingNotUnique far from the cause. The unique index on
+    // (bankId, scheme, address) does not license the opposite reading: that is a storage
+    // constraint, and a per-bank index cannot authorise duplicates when a bank-less lookup
+    // exists.
     val users = standardUsers
     val banks = standardBanks
 
@@ -1250,10 +1255,12 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     val acc1Json = Extraction.decompose(acc1)
     val sameIbanAtOtherBankJson = replaceField(Extraction.decompose(accAtOtherBank), "IBAN", acc1.IBAN)
 
-    getResponse(List(acc1Json, sameIbanAtOtherBankJson)).code should equal(SUCCESS)
+    getResponse(List(acc1Json, sameIbanAtOtherBankJson)).code should equal(FAILED)
 
-    Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc1.id), None).isDefined should equal(true)
-    Connector.connector.vend.getBankAccountLegacy(BankId(accAtOtherBank.bank), AccountId(accAtOtherBank.id), None).isDefined should equal(true)
+    withClue("neither account may be created - the import is rejected whole: ") {
+      Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc1.id), None).isDefined should equal(false)
+      Connector.connector.vend.getBankAccountLegacy(BankId(accAtOtherBank.bank), AccountId(accAtOtherBank.id), None).isDefined should equal(false)
+    }
   }
 
   it should "not allow an account to be created with an existing IBAN" in {

@@ -322,7 +322,6 @@ trait OBPDataImport extends MdcLoggable {
 
     case class AccountIdentifier(id : String, bank : String)
     case class AccountNumberForBank(number : String, bank : String)
-    case class AccountIbanForBank(iban : String, bank : String)
     val ids = data.accounts.map(acc => AccountIdentifier(acc.id, acc.bank))
     val duplicateIds = ids diff ids.distinct
 
@@ -333,12 +332,16 @@ trait OBPDataImport extends MdcLoggable {
       Connector.connector.vend.getBankAccountLegacy(BankId(acc.bank), AccountId(acc.id), None).map(_._1)
     })
 
-    // Scoped by bank, like duplicateNumbers above: an IBAN is unique per bank, not globally.
-    // DoobieBankAccountRoutingQueries's own unique index is (bankId, scheme, address), and
-    // existingIbans below looks an IBAN up per-bank too (getBankAccountByRoutingLegacy(Some(bankId), ...));
-    // a bank-unscoped check here rejected two different sandbox banks that legitimately reuse
-    // the same IBAN in their own address space, which the shipped example_import.json fixture does.
-    val ibans = data.accounts.map(acc => AccountIbanForBank(acc.IBAN, acc.bank))
+    // Deliberately NOT scoped by bank, unlike duplicateNumbers above. An IBAN identifies a bank
+    // globally - the institution is encoded in the string (ISO 13616) - so two banks cannot hold
+    // one. More concretely, this instance depends on it: the payment path resolves a target
+    // account by routing with no bank context, and LocalMappedConnector.getBankAccountByRouting
+    // fails a lookup that matches more than one row ("Routing MUST be unique", 849-852). Callers
+    // that pass bankId = None include BulkPaymentHandler:135, three Http4s700 transaction-request
+    // endpoints, getBankAccountByIban, and the to-account resolution in the connector itself.
+    // Admitting a duplicate here therefore does not produce a usable account; it produces one
+    // that fails every global-routing payment, with the error arriving far from the cause.
+    val ibans = data.accounts.map(_.IBAN)
     val duplicateIbans = ibans diff ibans.distinct
     val existingIbans = data.accounts.flatMap(acc => {
       Connector.connector.vend.getBankAccountByRoutingLegacy(Some(BankId(acc.bank)), AccountRoutingScheme.IBAN.toString, acc.IBAN, None).map(_._1)
@@ -359,8 +362,8 @@ trait OBPDataImport extends MdcLoggable {
       val existingAccountAndBankIds = existing.map(e => (s"(account id: ${e.accountId.value} bank id: ${e.bankId.value})").mkString(","))
       Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
     } else if(duplicateIbans.nonEmpty) {
-      val duplicateMsg = duplicateIbans.map(d => s"(bank id ${d.bank}, iban: ${d.iban})").mkString(",")
-      Failure(s"Error: accounts at the same bank may not share an iban: $duplicateMsg")
+      val duplicateMsg = duplicateIbans.map(iban => s"(iban $iban)").mkString(",")
+      Failure(s"Error: accounts cannot share an iban: $duplicateMsg")
     } else if(existingIbans.nonEmpty) {
       val existingAccountIban = existingIbans.map(e =>
         (s"(iban: ${e.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).getOrElse("")})").mkString(","))

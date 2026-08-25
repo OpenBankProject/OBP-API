@@ -64,7 +64,7 @@
       "currency":"GBP",
       "amount":"8084.32"
     },
-    "IBAN":"BA12 1234 5123 4513 7599 6969 977",
+    "IBAN":"BA893990000000000100",
     "owners":["robert.xuk.x@example.com"],
     "generate_public_view":false,
     "generate_accountants_view":true,
@@ -79,7 +79,7 @@
       "currency":"GBP",
       "amount":"8084.32"
     },
-    "IBAN":"BA12 1234 5123 4513 7599 6969 977",
+    "IBAN":"BA384990000000000100",
     "owners":["robert.yuk.y@example.com"],
     "generate_public_view":false,
     "generate_accountants_view":true,
