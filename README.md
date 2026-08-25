@@ -407,6 +407,56 @@ server_mode=apis
 
 **For portal/UI functionality:** Deploy the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) application.
 
+## Dynamic Scala Code on JDK 24 and Later (Upgrade Note)
+
+**Affects only deployments that have `allow_user_generated_scala_code=true`.** If that property is
+absent or false - the default everywhere, including test and dev - nothing changes.
+
+`allow_user_generated_scala_code` was switched on when `Sandbox.runInSandbox` still restricted the
+file, network and reflection access of user-supplied Scala. JEP 486 removed SecurityManager in JDK
+24, so `System.setSecurityManager` throws and `AccessController.doPrivileged` is a pass-through:
+the sandbox restricts nothing, and that one property now means "run arbitrary user-supplied Scala
+with the full rights of the JVM". `dynamic_code_sandbox_enable` and
+`dynamic_code_sandbox_permissions` have no effect on such a JVM either.
+
+### What Changed
+
+On a JVM where no SecurityManager is installed, compiling user-supplied Scala is refused unless the
+operator accepts the unsandboxed risk a second time. Affected endpoints return:
+
+```
+OBP-50021: User-generated dynamic code execution is enabled, but this JVM cannot enforce the
+sandbox (SecurityManager was removed in JDK 24, JEP 486), so dynamic code runs with unrestricted
+file, network and reflection access.
+```
+
+Refusing to compile rather than refusing to boot keeps the failure scoped to the feature that lost
+its isolation; the rest of the API is unaffected.
+
+### Migration
+
+Two options. Either run on a JVM where the sandbox can still be installed, or state explicitly that
+running user code with no confinement is acceptable on this instance.
+
+**Before** (worked on JDK 23 and earlier, fails with OBP-50021 on JDK 24+):
+
+```properties
+allow_user_generated_scala_code=true
+```
+
+**After:**
+
+```properties
+allow_user_generated_scala_code=true
+# Required on JDK 24+: the sandbox cannot be installed, so dynamic code runs with the full
+# rights of the JVM. Set this only where that is genuinely acceptable.
+allow_user_generated_scala_code_without_sandbox=true
+```
+
+**Do not set the second property on an instance reachable by untrusted callers.** The feature
+compiles and runs Scala supplied over the API; with no enforceable sandbox, that is equivalent to
+granting those callers the privileges of the OBP-API process.
+
 ## Using Akka remote storage
 
 Most internal OBP model data access now occurs over Akka. This is so the machine that has JDBC access to the OBP database can be physically separated from the OBP API layer. In this configuration we run two instances of OBP-API on two different machines and they communicate over Akka. Please see README.Akka.md for instructions.
