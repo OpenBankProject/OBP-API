@@ -73,16 +73,35 @@ databaseChangeLog:
                 -- saw the HTTP login refuse it while the same credentials kept working through
                 -- OIDC. The script this view was lifted from carries a TODO saying exactly that.
                 --
-                -- This covers the explicit lock (a userlocks row, which is what
-                -- UserLocksProvider.lockUser writes and what the two admin lock endpoints call).
-                -- It deliberately does NOT cover the other half of LoginAttempts.userIsLocked -
-                -- badloginattempt.mbadattemptssincelastsuccessorreset exceeding the
-                -- `max.bad.login.attempts` prop - because a view cannot read a prop, and hardcoding
-                -- the default (5) would silently disagree with any deployment that configured
-                -- another value. Nothing writes userlocks when that counter overflows, so the two
-                -- are genuinely independent and only this half is expressible here.
+                -- This is the explicit lock: a userlocks row, which is what
+                -- UserLocksProvider.lockUser writes and what the two admin lock endpoints call.
                 AND NOT EXISTS (
                   SELECT 1 FROM userlocks ul WHERE ul.userid = ru.userid_
+                )
+                -- ...and the other half of LoginAttempts.userIsLocked, which is an OR of two
+                -- independent conditions: nothing writes userlocks when the attempt counter
+                -- overflows, so leaving this one out left a locked-out account authenticable
+                -- through OIDC and Keycloak.
+                --
+                -- A view cannot read a prop, and a hardcoded 5 would silently disagree with any
+                -- deployment that configured another value. It does not have to: this view is not
+                -- static. createOidcViews runs on every boot (Boot.scala) and this changeset is
+                -- runOnChange, and Liquibase substitutes changelog parameters before it computes
+                -- the checksum - so changing max.bad.login.attempts changes the checksum and the
+                -- view is rewritten on the next start. LiquibaseSchemaSetup.configure supplies the
+                -- value, already parsed to an integer, so props stay the single source of truth.
+                --
+                -- Strictly greater, not >=, because that is what userIsLocked does; the view must
+                -- not be stricter than the HTTP path. Keyed on resourceuser's provider_/name_,
+                -- the pair every userIsLocked(user.provider, user.name) call site passes and the
+                -- pair DoobieUserQueries joins this table on. NOT EXISTS rather than a join
+                -- because (provider, musername) carries no uniqueness constraint and a join would
+                -- duplicate user rows.
+                AND NOT EXISTS (
+                  SELECT 1 FROM mappedbadloginattempt bla
+                  WHERE bla.provider = ru.provider_
+                    AND bla.musername = ru.name_
+                    AND bla.mbadattemptssincelastsuccessorreset > ${maxBadLoginAttempts}
                 )
   - changeSet:
       id: create-view-v_oidc_clients

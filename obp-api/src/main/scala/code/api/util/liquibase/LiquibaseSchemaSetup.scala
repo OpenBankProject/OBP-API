@@ -1,6 +1,7 @@
 package code.api.util.liquibase
 
 import code.api.util.APIUtil
+import code.loginattempts.LoginAttempt
 import code.util.Helper.MdcLoggable
 import liquibase.{Contexts, GlobalConfiguration, LabelExpression, Liquibase, Scope}
 import liquibase.database.DatabaseFactory
@@ -91,6 +92,34 @@ object LiquibaseSchemaSetup extends MdcLoggable {
    * The ClassLoader is a parameter only so DuplicateChangelogOnClasspathTest can hand in one that
    * really does hold the changelog twice; every caller uses the default.
    */
+  /**
+   * The value `v_oidc_users` compares the bad-login counter against.
+   *
+   * Read from the same place LoginAttempt reads it, so the view and the HTTP login path cannot
+   * disagree about when an account is locked out. Parsed to an Int rather than passed through as
+   * the raw prop string for two reasons: it is substituted into DDL, so a string would let a
+   * malformed prop become SQL; and a value that cannot be a number is a misconfiguration worth
+   * naming here rather than discovering as a NumberFormatException on the next login.
+   *
+   * A misconfigured value falls back to the prop's own declared default instead of failing the
+   * boot. It is not the drift the hardcoding argument was about - there is no configured value to
+   * honour in that case - and refusing to start would take down a deployment that today only
+   * breaks when somebody logs in.
+   */
+  private[liquibase] def maxBadLoginAttempts: Int = {
+    val configured = LoginAttempt.maxBadLoginAttempts
+    configured.trim.toIntOption match {
+      case Some(value) => value
+      case None =>
+        logger.error(s"max.bad.login.attempts is not a number ('$configured'); v_oidc_users will " +
+          s"use the default $defaultMaxBadLoginAttempts. LoginAttempt.userIsLocked will throw on " +
+          s"this value, so fix the prop.")
+        defaultMaxBadLoginAttempts
+    }
+  }
+
+  private val defaultMaxBadLoginAttempts = 5
+
   def configure(
     dataSource: javax.sql.DataSource,
     classLoader: ClassLoader = getClass.getClassLoader
@@ -98,7 +127,12 @@ object LiquibaseSchemaSetup extends MdcLoggable {
     val connection = dataSource.getConnection
     val database = DatabaseFactory.getInstance
       .findCorrectDatabaseImplementation(new JdbcConnection(connection))
-    new Liquibase(changeLogPath, new ClassLoaderResourceAccessor(classLoader), database)
+    val liquibase = new Liquibase(changeLogPath, new ClassLoaderResourceAccessor(classLoader), database)
+    // Set here rather than in createOidcViews because parameter substitution happens when the
+    // changelog is parsed, and every path parses the whole master changelog - including
+    // bringUpToDate, which only filters the oidc-views context out at execution time.
+    liquibase.setChangeLogParameter("maxBadLoginAttempts", maxBadLoginAttempts)
+    liquibase
   }
 
   /**
