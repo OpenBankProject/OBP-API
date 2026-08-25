@@ -54,7 +54,7 @@ databaseChangeLog:
             selectQuery: |-
               SELECT
                   ru.userid_ AS user_id,
-                  au.username::text,
+                  au.username::text AS username,
                   au.firstname,
                   au.lastname,
                   au.email,
@@ -67,6 +67,23 @@ databaseChangeLog:
               FROM authuser au
               INNER JOIN resourceuser ru ON au.user_c = ru.id
               WHERE au.validated = true  -- Only expose validated users to OIDC service
+                -- ...and not locked. OBP-OIDC and the Keycloak provider read this view directly
+                -- over JDBC and never call verify-credentials, so a gate that lives only in the
+                -- HTTP path is not applied on their route at all: an operator who locks an account
+                -- saw the HTTP login refuse it while the same credentials kept working through
+                -- OIDC. The script this view was lifted from carries a TODO saying exactly that.
+                --
+                -- This covers the explicit lock (a userlocks row, which is what
+                -- UserLocksProvider.lockUser writes and what the two admin lock endpoints call).
+                -- It deliberately does NOT cover the other half of LoginAttempts.userIsLocked -
+                -- badloginattempt.mbadattemptssincelastsuccessorreset exceeding the
+                -- `max.bad.login.attempts` prop - because a view cannot read a prop, and hardcoding
+                -- the default (5) would silently disagree with any deployment that configured
+                -- another value. Nothing writes userlocks when that counter overflows, so the two
+                -- are genuinely independent and only this half is expressible here.
+                AND NOT EXISTS (
+                  SELECT 1 FROM userlocks ul WHERE ul.userid = ru.userid_
+                )
   - changeSet:
       id: create-view-v_oidc_clients
       author: obp
