@@ -4316,14 +4316,17 @@ object NewStyle extends MdcLoggable{
 
     def createJsonDynamicResourceDoc(bankId: Option[String], dynamicResourceDoc: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(bankId, dynamicResourceDoc)
+        // provenance is taken from the authenticated CallContext user, never from the request body
+        val createdByUserId = callContext.flatMap(_.user).map(_.userId)
+        val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(bankId, dynamicResourceDoc, createdByUserId)
         val errorMsg = s"$UnknownError Can not create Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
     def updateJsonDynamicResourceDoc(bankId: Option[String], entity: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(bankId, entity: JsonDynamicResourceDoc)
+        val updatedByUserId = callContext.flatMap(_.user).map(_.userId)
+        val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(bankId, entity, updatedByUserId)
         val errorMsg = s"$UnknownError Can not update Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }

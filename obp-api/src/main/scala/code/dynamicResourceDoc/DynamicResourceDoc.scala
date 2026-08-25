@@ -1,6 +1,7 @@
 package code.dynamicResourceDoc
 
 import org.json4s._
+import code.api.util.APIUtil
 import code.util.UUIDString
 import com.openbankproject.commons.util.json
 import net.liftweb.mapper._
@@ -8,7 +9,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 
-class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
+class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK with CreatedUpdated {
 
   override def getSingleton = DynamicResourceDoc
 
@@ -18,13 +19,19 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
   object RequestVerb extends MappedString(this, 255)
   object RequestUrl extends MappedString(this, 255)
   object Summary extends MappedString(this, 255)
-  object Description extends MappedString(this, 255) 
+  object Description extends MappedString(this, 255)
   object ExampleRequestBody extends MappedString(this, 255)
   object SuccessResponseBody extends MappedString(this, 255)
-  object ErrorResponseBodies extends MappedString(this, 255) 
+  object ErrorResponseBodies extends MappedString(this, 255)
   object Tags extends MappedString(this, 255)
   object Roles extends MappedString(this, 255)
   object MethodBody extends MappedText(this)
+  // Provenance: who created / last updated this runtime-compiled endpoint, and a SHA-256 of the
+  // (decoded) method body so tampering / drift is detectable. Set server-side from the CallContext
+  // user — never from the request body. createdAt / updatedAt come from the CreatedUpdated trait.
+  object CreatedByUserId extends MappedString(this, 255)
+  object UpdatedByUserId extends MappedString(this, 255)
+  object MethodBodyHash extends MappedString(this, 64)
 
 }
 
@@ -44,7 +51,12 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     successResponseBody = Option(dynamicResourceDoc.SuccessResponseBody.get).filter(StringUtils.isNotBlank).map(json.parse),
     errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
     tags = dynamicResourceDoc.Tags.get,
-    roles = dynamicResourceDoc.Roles.get
+    roles = dynamicResourceDoc.Roles.get,
+    createdByUserId = Option(dynamicResourceDoc.CreatedByUserId.get).filter(StringUtils.isNotBlank),
+    updatedByUserId = Option(dynamicResourceDoc.UpdatedByUserId.get).filter(StringUtils.isNotBlank),
+    methodBodyHash = Option(dynamicResourceDoc.MethodBodyHash.get).filter(StringUtils.isNotBlank),
+    createdAt = Option(dynamicResourceDoc.createdAt.get).map(APIUtil.formatDate),
+    updatedAt = Option(dynamicResourceDoc.updatedAt.get).map(APIUtil.formatDate)
   )
 }
 

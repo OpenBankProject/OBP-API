@@ -63,7 +63,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       }
   }
 
-  override def create(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]=
+  override def create(bankId: Option[String], entity: JsonDynamicResourceDoc, createdByUserId: Option[String]): Box[JsonDynamicResourceDoc]=
     tryo {
       val requestBody = entity.exampleRequestBody.map(json.compactRender(_)).orNull
       val responseBody = entity.successResponseBody.map(json.compactRender(_)).orNull
@@ -82,11 +82,14 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       .Tags(entity.tags)
       .Roles(entity.roles)
       .MethodBody(entity.methodBody)
+      // provenance is set here from the authenticated user + computed hash, not from `entity`
+      .CreatedByUserId(createdByUserId.getOrElse(null))
+      .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
       .saveMe()
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
 
-  override def update(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc] = {
+  override def update(bankId: Option[String], entity: JsonDynamicResourceDoc, updatedByUserId: Option[String]): Box[JsonDynamicResourceDoc] = {
     DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, entity.dynamicResourceDocId.getOrElse(""))) match {
       case Full(v) =>
         tryo {
@@ -104,6 +107,9 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
             .Tags(entity.tags)
             .Roles(entity.roles)
             .MethodBody(entity.methodBody)
+            // CreatedByUserId is left untouched; record who last changed the code + refresh the hash
+            .UpdatedByUserId(updatedByUserId.getOrElse(null))
+            .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
             .saveMe()
         }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
       case _ => Empty

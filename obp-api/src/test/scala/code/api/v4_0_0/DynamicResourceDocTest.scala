@@ -385,4 +385,51 @@ class DynamicResourceDocTest extends V400ServerSetup {
     }
   }
 
+  feature("Provenance is captured on runtime-compiled dynamic resource docs") {
+
+    scenario("Create records created_by_user_id, a method_body hash and created_at; update records updater and refreshes the hash", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canUpdateDynamicResourceDoc.toString)
+
+      When("We create a dynamic resource doc, claiming a forged created_by_user_id in the request body")
+      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val posted = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+        dynamicResourceDocId = None,
+        bankId = None,
+        partialFunctionName = "provenanceTest",
+        requestUrl = "/provenance_test_user/MY_USER_ID",
+        createdByUserId = Some("forged-user-id"),      // must be ignored
+        methodBodyHash = Some("forged-hash")           // must be ignored
+      )
+      val createResp = makePostRequest(createReq, write(posted))
+      createResp.code should equal(201)
+      val created = createResp.body.extract[JsonDynamicResourceDoc]
+
+      Then("created_by_user_id is the authenticated user, not the forged value")
+      created.createdByUserId should be(Some(resourceUser1.userId))
+      created.updatedByUserId should (be(None) or be(Some("")))
+
+      And("method_body_hash is the server-computed SHA-256 of the decoded method body, not the forged value")
+      val expectedHash = code.api.util.APIUtil.sha256Hex(posted.decodedMethodBody)
+      created.methodBodyHash should be(Some(expectedHash))
+      created.createdAt.isDefined should be(true)
+
+      When("We update the doc with a changed method body")
+      val changedMethodBody = URLEncoder.encode(
+        URLDecoder.decode(posted.methodBody, "UTF-8") + "\n    // a change\n", "UTF-8")
+      val updateReq = (v4_0_0_Request / "management" / "dynamic-resource-docs" / created.dynamicResourceDocId.getOrElse("")).PUT <@ (user1)
+      val updateResp = makePutRequest(updateReq,
+        write(posted.copy(dynamicResourceDocId = created.dynamicResourceDocId, methodBody = changedMethodBody)))
+      updateResp.code should equal(200)
+      val updated = updateResp.body.extract[JsonDynamicResourceDoc]
+
+      Then("created_by_user_id is preserved, updated_by_user_id is recorded, and the hash reflects the new body")
+      updated.createdByUserId should be(Some(resourceUser1.userId))
+      updated.updatedByUserId should be(Some(resourceUser1.userId))
+      updated.methodBodyHash should be(Some(code.api.util.APIUtil.sha256Hex(
+        URLDecoder.decode(changedMethodBody, "UTF-8"))))
+      updated.methodBodyHash shouldNot be(created.methodBodyHash)
+    }
+  }
+
 }
