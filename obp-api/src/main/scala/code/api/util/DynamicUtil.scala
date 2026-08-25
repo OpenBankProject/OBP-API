@@ -360,6 +360,26 @@ object DynamicUtil extends MdcLoggable{
 
   object Validation {
 
+    /**
+     * Turn the `dynamic_code_compile_validate_dependencies` props value into the Scala source
+     * that, once compiled, yields the whitelist.
+     *
+     * A named function rather than an inline expression so a test can drive the real thing.
+     * DynamicUtilTest used to hold a character-for-character copy of it, which meant the two
+     * could diverge with the test still green -- the copy was only kept in step here because
+     * whoever edited one happened to see the other. This is the only compile that happens
+     * reflectively at boot, so nothing at compile time would have caught the divergence either.
+     *
+     * `Map[String, String](` rather than `Map(`: the props default is an empty list, and a bare
+     * `Map()` leaves its type parameters undetermined, so the trailing `.toMap` cannot prove the
+     * elements are pairs and the reflective compilation fails. The `.toMap` is itself needed
+     * because `mapValues` returns a view rather than a Map on 2.13.
+     */
+    def dependenciesScalaCode(dependenciesString: String): String =
+      s"${DynamicUtil.importStatements}" +
+        dependenciesString.replaceFirst("\\[", "Map[String, String](").dropRight(1) +
+        ").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
+
     val dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
     val scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
     val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
@@ -385,11 +405,7 @@ object DynamicUtil extends MdcLoggable{
     val allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
 
     val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
-    // `Map[String, String](` rather than `Map(`: the props default is an empty list, and a bare
-    // `Map()` leaves its type parameters undetermined, so the trailing .toMap cannot prove the
-    // elements are pairs and the reflective compilation fails. The .toMap itself is needed because
-    // mapValues returns a view rather than a Map.
-    val scalaCodeDependencies = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map[String, String](").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
+    val scalaCodeDependencies = dependenciesScalaCode(dependenciesString)
     val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
     
     /**
