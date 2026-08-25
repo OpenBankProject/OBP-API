@@ -6500,9 +6500,24 @@ object SwaggerDefinitionsJSON {
   
   lazy val notSupportedYet = NotSupportedYet()
 
+  /**
+   * The nested example entities SwaggerJSONFactory turns into definitions.
+   *
+   * Restricted to OBP entities rather than "anything non-null": the consumer is
+   * `SwaggerJSONFactory.translateEntity`, which reads an entity's constructor arguments, so it
+   * only has meaning for a case class. Several members here are plain values - a PEM certificate
+   * string among them - and handing those to it throws.
+   *
+   * That mismatch was invisible while `ReflectUtils.getValues` could not see this object's members
+   * at all (Scala 3 declaration metadata lives in TASTy, which scala-reflect cannot read; every
+   * member of this object is a lazy val, so the collector returned an empty list and everything
+   * downstream mapped over nothing). Fixing the collector made the mismatch reachable for the
+   * first time. SwaggerFactoryUnitTest now asserts a floor on the size so it cannot fall back to
+   * empty unnoticed.
+   */
   lazy val allFields: Seq[AnyRef] ={
     lazy val allFieldsThisFile = ReflectUtils.getValues(this, List(nameOf(allFields)))
-                            .filter(it => it != null && it.isInstanceOf[AnyRef])
+                            .filter(ReflectUtils.isObpObject)
                             .map(_.asInstanceOf[AnyRef])
     allFieldsThisFile //++ JSONFactoryCustom300.allFields ++ SandboxData.allFields 
   }

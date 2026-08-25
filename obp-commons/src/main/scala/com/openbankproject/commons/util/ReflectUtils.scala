@@ -312,16 +312,66 @@ object ReflectUtils {
     * @param includeVar whether include var values
     * @return map of val or var name to value
     */
+  /**
+   * Every val/var of `obj`, by name.
+   *
+   * `isVal`/`isVar` alone are not enough. They answer from Scala's own declaration metadata -
+   * ScalaSig for Scala 2, TASTy for Scala 3 - and scala.reflect.runtime.universe, the Scala 2.13
+   * reflection library this module is pinned to, has no TASTy reader: for a Scala-3-compiled class
+   * both come back false for every member. This function then returned an empty map, and the
+   * `allFields` collectors built on it (SwaggerDefinitionsJSON, MessageDocsSwaggerDefinitions,
+   * JSONFactoryCustom300, SandboxData in OBPDataImport) each collected nothing - silently, since
+   * an empty list is a legal result and nothing asserted otherwise. SwaggerDefinitionsJSON declares
+   * 777 lazy vals and produced 0.
+   *
+   * The recovery is the same one getFieldValues already uses, shared here rather than copied: what
+   * does survive into bytecode is the shape - a zero-arg method declared on this very class, with a
+   * backing field of the same name (or `name$lzy…`, which is how Scala 3 spells a lazy val's
+   * field). `isFieldBacked` is what separates such an accessor from an ordinary zero-arg def.
+   *
+   * `includeVar = false` cannot filter Scala 3 vars for the same reason `isVar` fails there; on
+   * Scala 2 it behaves as before. Documented rather than silently approximated.
+   */
   def getNameToValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true): Map[String, Any] = {
     obj match {
       case null => Map.empty[String, Any]
-      case _ => getType(obj).decls
-        .filter(_.isTerm)
-        .map(_.asTerm)
-        .filterNot(it => excludes.contains(it.name.toString))
-        .filter(it => it.isVal || (includeVar && it.isVar))
-        .map(it => (it.name.toString.trim, invokeMethod(obj, it.getter.asMethod)))
-        .toMap
+      case _ =>
+        val tp = getType(obj)
+        val isFieldBacked = fieldBackedPredicate(obj, tp)
+        tp.decls
+          .filter(_.isTerm)
+          .map(_.asTerm)
+          .filterNot(it => excludes.contains(it.name.decodedName.toString.trim))
+          .filter(it => it.isVal || (includeVar && it.isVar) ||
+            (it.isMethod && !it.asMethod.isConstructor && it.asMethod.paramLists.forall(_.isEmpty) &&
+              it.owner == tp.typeSymbol && isFieldBacked(it.name.decodedName.toString.trim)))
+          .map(it => {
+            val name = it.name.decodedName.toString.trim
+            // getter is NoSymbol for the zero-arg-method shape recovered above - it IS the getter.
+            val accessor = if (it.isMethod) it.asMethod else it.getter.asMethod
+            (name, invokeMethod(obj, accessor))
+          })
+          .toMap
+    }
+  }
+
+  /**
+   * Whether a name has a real backing field on `obj`'s runtime class - the one signal that a
+   * val/lazy val leaves in bytecode and an ordinary def does not.
+   *
+   * Scala 3's LazyVals compiles `lazy val x` to a field named `x$lzy1`, so both spellings count.
+   * When the runtime class cannot be resolved at all (a path-dependent inner class resolves to a
+   * refinement type, and mirror.runtimeClass throws NoClassDefFoundError - a LinkageError, which
+   * NonFatal does not catch), fall back to admitting the candidate: this predicate exists to
+   * refine a selection, and must not make its callers fail on inputs they used to handle.
+   */
+  private def fieldBackedPredicate(obj: AnyRef, tp: ru.Type): String => Boolean = {
+    lazy val declaredFieldNames: Option[Set[String]] =
+      try Some(runtimeClass(mirror.reflect(obj).symbol.toType).getDeclaredFields.map(_.getName).toSet)
+      catch { case _: Throwable => None }
+    name => declaredFieldNames match {
+      case Some(names) => names.contains(name) || names.exists(_.startsWith(s"$name$$lzy"))
+      case None => true
     }
   }
   /**

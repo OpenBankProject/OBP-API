@@ -121,6 +121,18 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
             SwaggerJSONFactory.translateEntity(e.successResponseBody)
           }
 
+      // Guard before use, not decoration: allFields is collected reflectively, and when
+      // ReflectUtils could not see a Scala-3-compiled object's members it returned an empty list.
+      // Every scenario that maps over it then passed by doing nothing, so the definitions it is
+      // meant to contribute went missing without a single red test. The number is deliberately a
+      // floor well under the ~777 members declared, not an exact count: this must fail when the
+      // collector breaks, not every time someone adds a field.
+      withClue("SwaggerDefinitionsJSON.allFields is empty or nearly so - the reflective collector " +
+        "is not seeing the object's members, and every check that maps over it is passing " +
+        "vacuously: ") {
+        SwaggerDefinitionsJSON.allFields.size should be >= 100
+      }
+
       val listNestedMissingDefinition: List[String] =
         SwaggerDefinitionsJSON.allFields
           .map(SwaggerJSONFactory.translateEntity)
