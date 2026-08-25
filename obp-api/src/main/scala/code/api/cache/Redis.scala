@@ -7,7 +7,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
 import scalacache.memoization.{cacheKeyExclude, memoizeF, memoizeSync}
-import scalacache.{Cache, Flags}
+import scalacache.{Cache, CacheConfig, DefaultCacheKeyBuilder, Flags}
 import scalacache.redis.RedisCache
 import scalacache.serialization.{Codec, FailedToDecode}
 import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
@@ -321,6 +321,50 @@ object Redis extends MdcLoggable {
   // building one per call only put two allocations in front of every cache read on the request
   // path. RedisCache is a thin wrapper over the pool built above and opens nothing of its own, so
   // the pool, its authentication and its SSL configuration stay shared.
+  /**
+   * The serialization identity these cached bytes were produced under.
+   *
+   * Cache entries are Kryo-encoded, and what Kryo produces depends on the Scala library and the
+   * chill build that encoded it. Two OBP-API versions compiled against different ones therefore
+   * write mutually unreadable bytes into the same keys -- and "unreadable" is the optimistic
+   * case. Measured across the 2.12 -> 2.13 migration: an EMPTY `List`, written by chill 0.9.3,
+   * decodes under 0.9.5 into a `scala.collection.immutable.Queue`. That decode SUCCEEDS. It is
+   * only at the call site, whose signature says `List`, that it fails --
+   *
+   *     class scala.collection.immutable.Queue cannot be cast to
+   *     class scala.collection.immutable.List
+   *
+   * -- so the caller gets a 500 rather than a cache miss, and gets it for the whole TTL, because
+   * a failed read does not evict the entry. Reproduced on `GET /management/dynamic-message-docs`
+   * and `GET /management/connector-methods`: 200 on 2.12, 500 on 2.13 reading 2.12's entry, and
+   * fine in either version on its own. That is a rolling upgrade, or any upgrade against a warm
+   * Redis.
+   *
+   * The migration note anticipated the risk and described the consequence as a cold cache. For
+   * values that fail to decode that is exactly right. This handles the ones that do not fail.
+   *
+   * Namespacing the key is the fix rather than casting defensively at each call site: there are
+   * eight `List`-returning memoized methods today, the same drift can hit any other type, and no
+   * amount of care at the call sites can make bytes already in Redis readable. Entries written by
+   * another version simply stop being addressable and age out on their own TTL.
+   *
+   * The Scala binary version is the axis that moved here and is the one derived automatically.
+   * `obp.cache.serialization.version` is for the case it does not cover -- a dependency upgrade
+   * that changes the encoding without changing the Scala version, which is what chill 0.9.3 to
+   * 0.9.5 would have been on its own. Bump it in that situation; the cost is one cold cache.
+   */
+  private val serializationNamespace: String = {
+    val scalaBinary = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
+    val manual = APIUtil.getPropsValue("obp.cache.serialization.version", "1")
+    s"obpser$manual-scala$scalaBinary"
+  }
+
+  // Prefixing happens here, in the key builder, rather than at the call sites: scalacache derives
+  // the rest of the key from the enclosing method and its arguments, and every caller goes through
+  // it. `memoizeSync` and `memoizeF` both read this same implicit config.
+  implicit val cacheConfig: CacheConfig =
+    CacheConfig(cacheKeyBuilder = DefaultCacheKeyBuilder(keyPrefix = Some(serializationNamespace)))
+
   private val sharedCache: Cache[Any] = RedisCache[Any](jedisPool)
   private def cacheFor[A]: Cache[A] = sharedCache.asInstanceOf[Cache[A]]
 
