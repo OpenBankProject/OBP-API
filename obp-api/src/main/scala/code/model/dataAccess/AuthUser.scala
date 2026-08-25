@@ -403,6 +403,32 @@ import net.liftweb.util.Helpers._
   def findAllWithoutProvider(): List[AuthUser] =
     query(fr"WHERE provider IS NULL OR provider = ''")
 
+  /**
+   * What MappedEmail's setFilter did on every set - `notNull :: toLower :: trim`.
+   *
+   * The Lift entity declared this column as MappedEmail, so the normalisation lived in the field
+   * type and the entity never mentioned it; carrying the column across as a plain String dropped it
+   * silently, and `" Bob@Example.COM "` began persisting verbatim. ResourceUser's half of the same
+   * migration kept it (ResourceUser.normalizeEmail), so the two copies of one user's address had
+   * been disagreeing about case and whitespace. Reused rather than re-implemented so they cannot
+   * drift apart again. AuthUserEmailNormalisationTest covers insert and update.
+   */
+  private def normalisedEmail(row: AuthUser): String = ResourceUser.normalizeEmail(row.email)
+
+  /**
+   * The resourceuser FK as a bindable parameter.
+   *
+   * `user_c` is a nullable BIGINT and an AuthUser that has not been linked yet is a legitimate row,
+   * so the unlinked case has to bind SQL NULL. Written inline in the interpolator - as
+   * `${if (row.user > 0L) Some(row.user) else None}` - it was not bound as a parameter at all: the
+   * database rejected the statement with a syntax error at that position, and because it is one
+   * statement the whole insert failed, not just the FK column. Naming the value in a method with a
+   * declared `Option[Long]` result is what makes it bind. AuthUserUnboundInsertTest covers it: it
+   * fails with the syntax error on the inline form and passes on this one.
+   */
+  private def userFk(row: AuthUser): Option[Long] =
+    if (row.user > 0L) Some(row.user) else None
+
   def insert(row: AuthUser): AuthUser = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     val id = DoobieUtil.runUpdate(
@@ -410,13 +436,16 @@ import net.liftweb.util.Helpers._
             (firstname, lastname, email, username, password_pw, password_slt, provider, uniqueid,
              superuser, validated, passwordshouldbechanged, locale, timezone, user_c,
              createdat, updatedat)
-            VALUES (${opt(row.firstName)}, ${opt(row.lastName)}, ${opt(row.email)},
+            VALUES (${opt(row.firstName)}, ${opt(row.lastName)}, ${opt(normalisedEmail(row))},
              ${opt(row.username)}, ${opt(row.passwordPw)}, ${opt(row.passwordSlt)},
              ${opt(row.provider)}, ${opt(row.uniqueId)}, ${row.superUser}, ${row.validated},
              ${row.passwordShouldBeChanged}, ${opt(row.locale)}, ${opt(row.timezone)},
-             ${if (row.user > 0L) Some(row.user) else None}, $now, $now)"""
+             ${userFk(row)}, $now, $now)"""
         .update.withUniqueGeneratedKeys[Long]("id"))
-    row.copy(id = id, createdAt = new java.util.Date(now.getTime), updatedAt = new java.util.Date(now.getTime))
+    // email carries the normalised value too, not just the row in the database: returning the
+    // caller's raw string would hand back an object that disagrees with what was just stored.
+    row.copy(id = id, email = normalisedEmail(row),
+      createdAt = new java.util.Date(now.getTime), updatedAt = new java.util.Date(now.getTime))
   }
 
   def update(row: AuthUser): AuthUser = {
@@ -424,16 +453,16 @@ import net.liftweb.util.Helpers._
     DoobieUtil.runUpdate(
       sql"""UPDATE authuser
             SET firstname = ${opt(row.firstName)}, lastname = ${opt(row.lastName)},
-                email = ${opt(row.email)}, username = ${opt(row.username)},
+                email = ${opt(normalisedEmail(row))}, username = ${opt(row.username)},
                 password_pw = ${opt(row.passwordPw)}, password_slt = ${opt(row.passwordSlt)},
                 provider = ${opt(row.provider)}, uniqueid = ${opt(row.uniqueId)},
                 superuser = ${row.superUser}, validated = ${row.validated},
                 passwordshouldbechanged = ${row.passwordShouldBeChanged},
                 locale = ${opt(row.locale)}, timezone = ${opt(row.timezone)},
-                user_c = ${if (row.user > 0L) Some(row.user) else None}, updatedat = $now
+                user_c = ${userFk(row)}, updatedat = $now
             WHERE id = ${row.id}"""
         .update.run)
-    row.copy(updatedAt = new java.util.Date(now.getTime))
+    row.copy(email = normalisedEmail(row), updatedAt = new java.util.Date(now.getTime))
   }
 
   def delete(id: Long): Boolean =
