@@ -10,6 +10,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.{APIUtil, NewStyle}
 import code.api.v1_2_1.{JSONFactory, SuccessMessage}
 import code.atms.Atms
@@ -475,7 +476,7 @@ object Http4s140 {
         .orElse(addCustomer.run(req))
     }
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── path-rewriting bridge: /obp/v1.4.0/… → /obp/v1.3.0/… ──────────────
     // Delegates to Http4s130 so all inherited v1.3.0 and v1.2.1 endpoints are

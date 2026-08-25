@@ -17,6 +17,7 @@ import code.api.util.CertificateUtil
 import code.api.util.{ApiTrigger, Consent, Glossary, SecureRandomUtil}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.{BalanceNewStyle, ViewNewStyle}
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle, OBPBankId, RateLimitingUtil}
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
@@ -5118,7 +5119,7 @@ object Http4s310 {
         .orElse(getObpConnectorLoopback.run(req))
     }
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── path-rewriting bridge: /obp/v3.1.0/… → /obp/v3.0.0/… ──────────────
 

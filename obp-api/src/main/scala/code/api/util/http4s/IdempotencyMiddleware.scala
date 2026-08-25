@@ -44,9 +44,22 @@ import java.util.Base64
  * Resilience: any Redis error is logged and the request is allowed to proceed
  * unchanged — the middleware never blocks traffic on cache outages.
  *
- * The middleware should be installed INSIDE ResourceDocMiddleware so the
- * CallContext (and therefore the consumer id) is populated before the scope
- * key is computed.
+ * ── Where it may be installed ──
+ *
+ * INSIDE ResourceDocMiddleware, on every version's route tree. Both halves matter.
+ *
+ * Inside, because the scope key and the request-body hash both come from the CallContext, and
+ * ResourceDocMiddleware is what populates it. Mounted outside, `bodyFromCallContextOrEmpty`
+ * returns "" for every request, so two DIFFERENT payloads sent under one key hash identically --
+ * the conflict check below silently stops working and the second caller receives the first
+ * caller's response. On a payment endpoint that is the difference between "your retry was
+ * deduplicated" and "your second, different payment returned someone else's receipt".
+ *
+ * On every tree, because Http4sApp composes the versions with `.orElse` and a tree signals "not
+ * mine" by returning OptionT.none. This middleware therefore has to pass a miss through
+ * unchanged; an earlier version answered 404 in that case, which terminated the chain -- measured
+ * on POST /obp/v3.1.0/management/method_routings, which answered 201 without an Idempotency-Key
+ * and 404 with one. IdempotencyMiddlewareTest pins both properties.
  */
 object IdempotencyMiddleware extends MdcLoggable {
 
@@ -81,6 +94,8 @@ object IdempotencyMiddleware extends MdcLoggable {
       } else {
         val key = keyOpt.get
         if (!isValidKey(key)) {
+          // A malformed header is a client error whatever the path resolves to, so this
+          // one deliberately does NOT fall through.
           OptionT.liftF(invalidKeyResponse(key))
         } else {
           val scope        = scopeFor(req)
@@ -88,7 +103,17 @@ object IdempotencyMiddleware extends MdcLoggable {
           val responseKey  = ResponseKeyPrefix + scope + ":" + key
           val lockKey      = LockKeyPrefix + scope + ":" + key
 
-          OptionT.liftF(handle(req, routes, responseKey, lockKey, bodyHash))
+          // OptionT, not OptionT.liftF: a route MISS has to stay a miss.
+          //
+          // Every version's routes are one link in a fallthrough chain -- Http4sApp composes them
+          // with `.orElse`, and `OptionT.none` is how a tree says "not mine, try the next one".
+          // Wrapping with liftF made this middleware answer 404 on behalf of a tree that simply
+          // did not serve the path, which terminated the chain: measured on
+          // `POST /obp/v3.1.0/management/method_routings`, the request answered 201 without an
+          // Idempotency-Key and 404 with one, because the first tree it passed through swallowed
+          // the miss. So the middleware could only ever be installed on the last link. Preserving
+          // the miss is what makes it safe to install on all of them.
+          OptionT(handle(req, routes, responseKey, lockKey, bodyHash))
         }
       }
     }
@@ -99,16 +124,16 @@ object IdempotencyMiddleware extends MdcLoggable {
     responseKey: String,
     lockKey: String,
     requestBodyHash: String
-  ): IO[Response[IO]] = {
+  ): IO[Option[Response[IO]]] = {
     IO.blocking(readResponseKey(responseKey)).attempt.flatMap {
       case Right(Some(envelope)) =>
         if (envelope.requestBodyHash == requestBodyHash) {
-          IO.pure(rebuildResponse(envelope, replay = true))
+          IO.pure(Some(rebuildResponse(envelope, replay = true)))
         } else {
           conflictResponse(
             "Idempotency-Key replayed with a different request body. " +
             "Use a fresh key for a different request."
-          )
+          ).map(Some(_))
         }
 
       case Right(None) =>
@@ -118,7 +143,7 @@ object IdempotencyMiddleware extends MdcLoggable {
           case Right(false) =>
             conflictResponse(
               "Idempotent operation already in flight for this Idempotency-Key."
-            )
+            ).map(Some(_))
           case Left(t) =>
             logger.warn(s"Idempotency lock unavailable (Redis): ${t.getMessage}")
             runRoutes(req, routes)
@@ -136,41 +161,48 @@ object IdempotencyMiddleware extends MdcLoggable {
     responseKey: String,
     lockKey: String,
     requestBodyHash: String
-  ): IO[Response[IO]] = {
-    runRoutes(req, routes).flatMap { resp =>
-      // Drain body so we can both cache and re-emit it.
-      resp.body.compile.toVector.flatMap { vec =>
-        val bodyBytes = vec.toArray
-        val rebuilt   = resp.withBodyStream(fs2.Stream.emits(bodyBytes).covary[IO])
+  ): IO[Option[Response[IO]]] = {
+    runRoutes(req, routes).flatMap {
+      // The lock was taken before the routes ran, so a miss has to give it back -- otherwise a
+      // path this tree does not serve would hold the key locked for its full 60s TTL and a
+      // genuine request carrying that key would be refused with 409.
+      case None => IO.blocking(deleteKey(lockKey)).attempt.as(None)
+      case Some(resp) =>
+        // Drain body so we can both cache and re-emit it.
+        resp.body.compile.toVector.flatMap { vec =>
+          val bodyBytes = vec.toArray
+          val rebuilt   = resp.withBodyStream(fs2.Stream.emits(bodyBytes).covary[IO])
 
-        val storeOrReleaseLock: IO[Unit] =
-          if (resp.status.code >= 500) {
-            // Don't cache transient failures; release the lock so client can retry.
-            IO.blocking(deleteKey(lockKey)).attempt.map(_ => ())
-          } else {
-            val envelope = Envelope(
-              status          = resp.status.code,
-              contentType     = resp.headers.get(CIString("Content-Type")).map(_.head.value),
-              bodyB64         = Base64.getEncoder.encodeToString(bodyBytes),
-              requestBodyHash = requestBodyHash
-            )
-            IO.blocking {
-              writeResponseKey(responseKey, envelope)
-              deleteKey(lockKey)
-            }.attempt.map { e =>
-              e.left.foreach(t =>
-                logger.warn(s"Failed to cache idempotent response: ${t.getMessage}")
+          val storeOrReleaseLock: IO[Unit] =
+            if (resp.status.code >= 500) {
+              // Don't cache transient failures; release the lock so client can retry.
+              IO.blocking(deleteKey(lockKey)).attempt.map(_ => ())
+            } else {
+              val envelope = Envelope(
+                status          = resp.status.code,
+                contentType     = resp.headers.get(CIString("Content-Type")).map(_.head.value),
+                bodyB64         = Base64.getEncoder.encodeToString(bodyBytes),
+                requestBodyHash = requestBodyHash
               )
-              ()
+              IO.blocking {
+                writeResponseKey(responseKey, envelope)
+                deleteKey(lockKey)
+              }.attempt.map { e =>
+                e.left.foreach(t =>
+                  logger.warn(s"Failed to cache idempotent response: ${t.getMessage}")
+                )
+                ()
+              }
             }
-          }
-        storeOrReleaseLock.as(rebuilt)
-      }
+          storeOrReleaseLock.as(Some(rebuilt))
+        }
     }
   }
 
-  private def runRoutes(req: Request[IO], routes: HttpRoutes[IO]): IO[Response[IO]] =
-    routes.run(req).getOrElseF(IO.pure(Response[IO](Status.NotFound)))
+  // `.value`, not `getOrElseF(404)` -- see the comment on the OptionT in `apply`. Converting a
+  // miss into a 404 here is what terminated the version fallthrough chain.
+  private def runRoutes(req: Request[IO], routes: HttpRoutes[IO]): IO[Option[Response[IO]]] =
+    routes.run(req).value
 
   // ── Validation ─────────────────────────────────────────────────────────
 

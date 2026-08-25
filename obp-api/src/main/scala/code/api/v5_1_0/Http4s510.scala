@@ -13,7 +13,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.{ResourceDocMiddleware, ResourceDocMatcher}
+import code.api.util.http4s.{IdempotencyMiddleware, ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle, ViewNewStyle}
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
@@ -5326,7 +5326,7 @@ object Http4s510 {
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
 
     // ─── path-rewriting bridge: /obp/v5.1.0/… → /obp/v5.0.0/… ─────────────
     lazy val v510ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>

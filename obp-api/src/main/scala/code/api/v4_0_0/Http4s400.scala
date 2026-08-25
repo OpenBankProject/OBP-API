@@ -35,6 +35,7 @@ import code.api.v1_4_0.JSONFactory1_4_0
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v4_0_0.JSONFactory400._
 import code.DynamicData.DynamicData
@@ -11097,7 +11098,7 @@ object Http4s400 {
         .orElse(createUserInvitation.run(req))
     }
 
-    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── nameOf-compatibility aliases ────────────────────────────────────────
     // These vals have no Lift counterpart in Http4s400 but are referenced by

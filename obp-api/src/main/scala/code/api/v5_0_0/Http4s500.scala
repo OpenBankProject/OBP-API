@@ -14,6 +14,7 @@ import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
 import code.api.v2_1_0.JSONFactory210
@@ -2353,7 +2354,7 @@ object Http4s500 {
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
 
     // ─── path-rewriting bridge: /obp/v5.0.0/… → /obp/v4.0.0/… ─────────────
     // Cascades inherited (v1.2.1–v4.0.0) endpoints through the http4s versions

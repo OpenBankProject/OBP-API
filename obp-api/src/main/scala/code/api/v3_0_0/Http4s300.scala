@@ -15,6 +15,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_2_1.JSONFactory
@@ -2303,7 +2304,7 @@ object Http4s300 {
         .orElse(bankById.run(req))
     }
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── path-rewriting bridge: /obp/v3.0.0/… → /obp/v2.2.0/… ──────────────
 

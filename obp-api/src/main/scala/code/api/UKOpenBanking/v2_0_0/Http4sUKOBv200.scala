@@ -4,6 +4,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiVersion
 import org.http4s._
@@ -33,5 +34,5 @@ object Http4sUKOBv200 extends MdcLoggable {
     Http4sUKOBv200AIS.routes(req)
   }
 
-  val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+  val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
 }

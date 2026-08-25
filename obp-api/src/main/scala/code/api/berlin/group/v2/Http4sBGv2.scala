@@ -5,6 +5,7 @@ import cats.effect._
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.util.Helper.MdcLoggable
 import org.http4s._
 
@@ -27,5 +28,5 @@ object Http4sBGv2 extends MdcLoggable {
       .orElse(Http4sBGv2PIIS.routes(req))
   }
 
-  val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+  val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
 }
