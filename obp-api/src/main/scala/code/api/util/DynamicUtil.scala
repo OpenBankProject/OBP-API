@@ -62,6 +62,24 @@ object DynamicUtil extends MdcLoggable{
    * `new ClassPool(true)` starts from the system path, exactly as `getDefault` does, so lookups
    * resolve the same way; it is just not shared. Still memoized per classloader, so a repeated
    * scan against the same loader reuses its pool and its parsed CtClasses.
+   *
+   * Retraction, recorded here because 125950aa2's message got it wrong: that commit presented the
+   * shared pool as the proven cause of two failures seen at the time - DynamicUtilTest and
+   * InternalConnectorTest reporting `missing reference, looking for JValue/T in package object
+   * json4s` - and said so was "verified by isolation". It was not the cause. Those failures were a
+   * cross-checkout `~/.m2` overwrite: another checkout's `mvn install` replacing
+   * com.tesobe:obp-commons, which carries no Scala suffix, so nothing detects the mismatch. The
+   * error named it four lines below the line that gets read - "A signature in
+   * ~/.m2/.../obp-commons-1.10.1.jar refers to JValue/T in package object org.json4s.package which
+   * is not available" - and fingerprinting the jar during a later run caught the swap live. The
+   * isolation experiment was confounded: a green run only meant `~/.m2` happened to be right that
+   * time. With the repository isolated (`-Dmaven.repo.local`), the suite is 3870/0 on H2 and
+   * Postgres with this scoping in place and no other change.
+   *
+   * The scoping below stands on its own regardless: a process-wide singleton that grows a search
+   * path per classloader and never releases one is a hazard under forkMode=once, where a single
+   * JVM runs a whole shard. Fixing the right thing and explaining it wrongly are different
+   * mistakes; only the explanation is retracted.
    */
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
     val cp = new ClassPool(true)
