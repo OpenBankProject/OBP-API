@@ -240,7 +240,8 @@ object InternalConnector {
 
   private def callableMethods: Map[String, MethodSymbol] = {
     val dynamicMethods: Map[String, MethodSymbol] = ConnectorMethodProvider.provider.vend.getAll().map {
-      case JsonConnectorMethod(_, methodName, _, _) =>
+      case v: JsonConnectorMethod =>
+        val methodName = v.methodName
         methodName -> Box(methodNameToSymbols.get(methodName)).openOrThrowException(s"method name $methodName does not exist in the Connector")
     }.toMap
 

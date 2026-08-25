@@ -385,50 +385,46 @@ class DynamicResourceDocTest extends V400ServerSetup {
     }
   }
 
+  // Provenance is captured server-side into the DB columns but intentionally NOT surfaced in the
+  // v4.0.0 (STABLE) response JSON — the v4 shape is frozen, so we assert against the stored entity,
+  // not the response. (Exposure of these fields is planned for a new, v7, endpoint version.)
   feature("Provenance is captured on runtime-compiled dynamic resource docs") {
 
-    scenario("Create records created_by_user_id, a method_body hash and created_at; update records updater and refreshes the hash", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    scenario("Create stores created_by_user_id + method_body hash; update records the updater and refreshes the hash", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canUpdateDynamicResourceDoc.toString)
 
-      When("We create a dynamic resource doc, claiming a forged created_by_user_id in the request body")
+      When("We create a dynamic resource doc")
       val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
       val posted = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
         dynamicResourceDocId = None,
         bankId = None,
         partialFunctionName = "provenanceTest",
-        requestUrl = "/provenance_test_user/MY_USER_ID",
-        createdByUserId = Some("forged-user-id"),      // must be ignored
-        methodBodyHash = Some("forged-hash")           // must be ignored
+        requestUrl = "/provenance_test_user/MY_USER_ID"
       )
       val createResp = makePostRequest(createReq, write(posted))
       createResp.code should equal(201)
-      val created = createResp.body.extract[JsonDynamicResourceDoc]
+      val docId = (createResp.body \ "dynamic_resource_doc_id").values.toString
 
-      Then("created_by_user_id is the authenticated user, not the forged value")
-      created.createdByUserId should be(Some(resourceUser1.userId))
-      created.updatedByUserId should (be(None) or be(Some("")))
-
-      And("method_body_hash is the server-computed SHA-256 of the decoded method body, not the forged value")
-      val expectedHash = code.api.util.APIUtil.sha256Hex(posted.decodedMethodBody)
-      created.methodBodyHash should be(Some(expectedHash))
-      created.createdAt.isDefined should be(true)
+      Then("the stored row records the authenticated caller and the server-computed SHA-256 of the decoded body")
+      def storedRow = code.dynamicResourceDoc.DynamicResourceDoc
+        .find(net.liftweb.mapper.By(code.dynamicResourceDoc.DynamicResourceDoc.DynamicResourceDocId, docId))
+        .openOrThrowException("stored dynamic resource doc not found")
+      storedRow.CreatedByUserId.get should be(resourceUser1.userId)
+      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(posted.decodedMethodBody))
 
       When("We update the doc with a changed method body")
       val changedMethodBody = URLEncoder.encode(
         URLDecoder.decode(posted.methodBody, "UTF-8") + "\n    // a change\n", "UTF-8")
-      val updateReq = (v4_0_0_Request / "management" / "dynamic-resource-docs" / created.dynamicResourceDocId.getOrElse("")).PUT <@ (user1)
+      val updateReq = (v4_0_0_Request / "management" / "dynamic-resource-docs" / docId).PUT <@ (user1)
       val updateResp = makePutRequest(updateReq,
-        write(posted.copy(dynamicResourceDocId = created.dynamicResourceDocId, methodBody = changedMethodBody)))
+        write(posted.copy(dynamicResourceDocId = Some(docId), methodBody = changedMethodBody)))
       updateResp.code should equal(200)
-      val updated = updateResp.body.extract[JsonDynamicResourceDoc]
 
       Then("created_by_user_id is preserved, updated_by_user_id is recorded, and the hash reflects the new body")
-      updated.createdByUserId should be(Some(resourceUser1.userId))
-      updated.updatedByUserId should be(Some(resourceUser1.userId))
-      updated.methodBodyHash should be(Some(code.api.util.APIUtil.sha256Hex(
-        URLDecoder.decode(changedMethodBody, "UTF-8"))))
-      updated.methodBodyHash shouldNot be(created.methodBodyHash)
+      storedRow.CreatedByUserId.get should be(resourceUser1.userId)
+      storedRow.UpdatedByUserId.get should be(resourceUser1.userId)
+      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(URLDecoder.decode(changedMethodBody, "UTF-8")))
     }
   }
 

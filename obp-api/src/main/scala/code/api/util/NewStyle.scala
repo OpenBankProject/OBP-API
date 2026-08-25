@@ -4272,14 +4272,17 @@ object NewStyle extends MdcLoggable{
 
     def createJsonConnectorMethod(connectorMethod: JsonConnectorMethod, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
       Future {
-        val newInternalConnector = ConnectorMethodProvider.provider.vend.create(connectorMethod)
+        // provenance is taken from the authenticated CallContext user, never from the request body
+        val createdByUserId = callContext.flatMap(_.user).map(_.userId)
+        val newInternalConnector = ConnectorMethodProvider.provider.vend.create(connectorMethod, createdByUserId)
         val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
     def updateJsonConnectorMethod(connectorMethodId: String, connectorMethodBody: String, programmingLang: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
       Future {
-        val updatedConnectorMethod = ConnectorMethodProvider.provider.vend.update(connectorMethodId, connectorMethodBody, programmingLang)
+        val updatedByUserId = callContext.flatMap(_.user).map(_.userId)
+        val updatedConnectorMethod = ConnectorMethodProvider.provider.vend.update(connectorMethodId, connectorMethodBody, programmingLang, updatedByUserId)
         val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
@@ -4357,14 +4360,17 @@ object NewStyle extends MdcLoggable{
 
     def createJsonDynamicMessageDoc(bankId: Option[String], dynamicMessageDoc: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(bankId, dynamicMessageDoc)
+        // provenance is taken from the authenticated CallContext user, never from the request body
+        val createdByUserId = callContext.flatMap(_.user).map(_.userId)
+        val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(bankId, dynamicMessageDoc, createdByUserId)
         val errorMsg = s"$UnknownError Can not create Dynamic Message Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
     def updateJsonDynamicMessageDoc(bankId: Option[String], entity: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(bankId: Option[String], entity: JsonDynamicMessageDoc)
+        val updatedByUserId = callContext.flatMap(_.user).map(_.userId)
+        val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(bankId, entity, updatedByUserId)
         val errorMsg = s"$UnknownError Can not update Dynamic Message Doc  in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }

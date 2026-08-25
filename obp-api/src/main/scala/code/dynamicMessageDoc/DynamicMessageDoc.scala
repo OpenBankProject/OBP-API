@@ -4,26 +4,33 @@ import org.json4s._
 import code.util.UUIDString
 import com.openbankproject.commons.util.json
 import net.liftweb.mapper._
+
 import scala.collection.immutable.List
 
-class DynamicMessageDoc extends LongKeyedMapper[DynamicMessageDoc] with IdPK {
+class DynamicMessageDoc extends LongKeyedMapper[DynamicMessageDoc] with IdPK with CreatedUpdated {
 
   override def getSingleton = DynamicMessageDoc
 
   object BankId extends MappedString(this, 255)
-  object DynamicMessageDocId extends UUIDString(this)     
-  object Process extends MappedString(this, 255)   
-  object MessageFormat extends MappedString(this, 255)   
-  object Description extends MappedString(this, 255)   
-  object OutboundTopic extends MappedString(this, 255)   
-  object InboundTopic extends MappedString(this, 255)   
-  object ExampleOutboundMessage extends MappedText(this)  
-  object ExampleInboundMessage extends MappedText(this)   
+  object DynamicMessageDocId extends UUIDString(this)
+  object Process extends MappedString(this, 255)
+  object MessageFormat extends MappedString(this, 255)
+  object Description extends MappedString(this, 255)
+  object OutboundTopic extends MappedString(this, 255)
+  object InboundTopic extends MappedString(this, 255)
+  object ExampleOutboundMessage extends MappedText(this)
+  object ExampleInboundMessage extends MappedText(this)
   object OutboundAvroSchema extends MappedText(this)
-  object InboundAvroSchema extends MappedText(this)   
-  object AdapterImplementation  extends MappedString(this, 255)   
+  object InboundAvroSchema extends MappedText(this)
+  object AdapterImplementation  extends MappedString(this, 255)
   object MethodBody  extends MappedText(this)
   object Lang  extends MappedString(this, 50)
+  // Provenance for this runtime-compiled connector function: who created / last updated it and a
+  // SHA-256 of the (decoded) method body. Set server-side from the CallContext user, never the
+  // request body. createdAt / updatedAt come from the CreatedUpdated trait.
+  object CreatedByUserId extends MappedString(this, 255)
+  object UpdatedByUserId extends MappedString(this, 255)
+  object MethodBodyHash extends MappedString(this, 64)
 }
 
 

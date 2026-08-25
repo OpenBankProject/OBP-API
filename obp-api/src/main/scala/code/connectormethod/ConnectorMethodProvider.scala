@@ -29,8 +29,8 @@ trait ConnectorMethodProvider {
 
   def getAll(): List[JsonConnectorMethod]
 
-  def create(entity: JsonConnectorMethod): Box[JsonConnectorMethod]
-  def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String): Box[JsonConnectorMethod]
+  def create(entity: JsonConnectorMethod, createdByUserId: Option[String]): Box[JsonConnectorMethod]
+  def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String, updatedByUserId: Option[String]): Box[JsonConnectorMethod]
   def deleteById(connectorMethodId: String): Box[Boolean]
 
 }

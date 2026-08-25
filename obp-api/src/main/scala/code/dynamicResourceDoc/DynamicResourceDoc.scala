@@ -1,7 +1,6 @@
 package code.dynamicResourceDoc
 
 import org.json4s._
-import code.api.util.APIUtil
 import code.util.UUIDString
 import com.openbankproject.commons.util.json
 import net.liftweb.mapper._
@@ -51,12 +50,7 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     successResponseBody = Option(dynamicResourceDoc.SuccessResponseBody.get).filter(StringUtils.isNotBlank).map(json.parse),
     errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
     tags = dynamicResourceDoc.Tags.get,
-    roles = dynamicResourceDoc.Roles.get,
-    createdByUserId = Option(dynamicResourceDoc.CreatedByUserId.get).filter(StringUtils.isNotBlank),
-    updatedByUserId = Option(dynamicResourceDoc.UpdatedByUserId.get).filter(StringUtils.isNotBlank),
-    methodBodyHash = Option(dynamicResourceDoc.MethodBodyHash.get).filter(StringUtils.isNotBlank),
-    createdAt = Option(dynamicResourceDoc.createdAt.get).map(APIUtil.formatDate),
-    updatedAt = Option(dynamicResourceDoc.updatedAt.get).map(APIUtil.formatDate)
+    roles = dynamicResourceDoc.Roles.get
   )
 }
 

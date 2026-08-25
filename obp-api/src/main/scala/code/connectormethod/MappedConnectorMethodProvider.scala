@@ -17,17 +17,15 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
     if(Props.testMode) 0
     else APIUtil.getPropsValue(s"connectorMethod.cache.ttl.seconds", "40").toInt
   }
-  private def getLang(connectorMethod: ConnectorMethod): String = Option(connectorMethod.Lang.get).getOrElse("Scala")
-
   override def getById(connectorMethodId: String): Box[JsonConnectorMethod] = ConnectorMethod
     .find(By(ConnectorMethod.ConnectorMethodId, connectorMethodId))
-    .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
+    .map(ConnectorMethod.getJsonConnectorMethod)
 
   override def getByMethodNameWithoutCache(methodName: String): Box[JsonConnectorMethod] = {
     ConnectorMethod.find(By(ConnectorMethod.MethodName, methodName))
-      .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
+      .map(ConnectorMethod.getJsonConnectorMethod)
   }
-  
+
   override def getByMethodNameWithCache(methodName: String): Box[JsonConnectorMethod] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
@@ -40,27 +38,35 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL.second) {
         ConnectorMethod.findAll()
-          .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
+          .map(ConnectorMethod.getJsonConnectorMethod)
       }}
   }
 
-  override def create(entity: JsonConnectorMethod): Box[JsonConnectorMethod]=
+  override def create(entity: JsonConnectorMethod, createdByUserId: Option[String]): Box[JsonConnectorMethod]=
     tryo {
       ConnectorMethod.create
       .ConnectorMethodId(APIUtil.generateUUID())
       .MethodName(entity.methodName)
       .MethodBody(entity.methodBody)
       .Lang(entity.programmingLang)
+      // provenance is set here from the authenticated user + computed hash, not from `entity`
+      .CreatedByUserId(createdByUserId.getOrElse(null))
+      .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
       .saveMe()
-    }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
+    }.map(ConnectorMethod.getJsonConnectorMethod)
 
 
-  override def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String): Box[JsonConnectorMethod] = {
+  override def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String, updatedByUserId: Option[String]): Box[JsonConnectorMethod] = {
     ConnectorMethod.find(By(ConnectorMethod.ConnectorMethodId, connectorMethodId)) match {
       case Full(v) =>
         tryo {
-          v.MethodBody(connectorMethodBody).Lang(programmingLang).saveMe()
-        }.map(it => JsonConnectorMethod(Some(connectorMethodId), it.MethodName.get, it.MethodBody.get, getLang(it)))
+          v.MethodBody(connectorMethodBody)
+            .Lang(programmingLang)
+            // CreatedByUserId is left untouched; record who last changed the code + refresh the hash
+            .UpdatedByUserId(updatedByUserId.getOrElse(null))
+            .MethodBodyHash(APIUtil.sha256Hex(java.net.URLDecoder.decode(connectorMethodBody, "UTF-8")))
+            .saveMe()
+        }.map(ConnectorMethod.getJsonConnectorMethod)
       case _ => Empty
     }
   }

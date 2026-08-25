@@ -33,15 +33,7 @@ case class JsonDynamicResourceDoc(
    successResponseBody: Option[JValue],
    errorResponseBodies: String,
    tags: String,
-   roles: String,
-   // Read-only provenance, populated server-side on the way out. Any value a caller supplies for
-   // these on create/update is ignored (see MappedDynamicResourceDocProvider) — provenance is taken
-   // from the authenticated CallContext user and computed hash, never trusted from the request body.
-   createdByUserId: Option[String] = None,
-   updatedByUserId: Option[String] = None,
-   methodBodyHash: Option[String] = None,
-   createdAt: Option[String] = None,
-   updatedAt: Option[String] = None
+   roles: String
 ) extends JsonFieldReName {
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }
