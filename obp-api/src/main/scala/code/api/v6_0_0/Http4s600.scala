@@ -13354,7 +13354,11 @@ object Http4s600 {
         http4sPartialFunction = Some(getConfigProps)
       )
       // Intentional drift from Lift's APIMethods600.scala source-of-truth:
-      // description reworded to mention "config" explicitly (searchability), post-migration.
+      // description reworded to mention "config" explicitly (searchability), post-migration, and
+      // corrected to state the key list is a fixed code-defined set rather than an open scan of the
+      // configuration (getAppDiscoveryPairs reads getConfigPropsPairs, whose keys come from
+      // registeredDefaults — i.e. only props read in code with a default, in practice the
+      // APIUtil.publicAppUrlDefaults set — never the raw props file / env).
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getAppDirectory),
@@ -13367,10 +13371,17 @@ object Http4s600 {
         |Sandbox Populator, OIDC, Keycloak, Hola, MCP, Opey) and agents can use to discover
         |endpoints in the OBP ecosystem.
         |
-        |Any config props starting with public_ and ending with _url are included automatically.
+        |The list of keys is a **fixed set defined in the OBP-API code** — it is not an open scan of
+        |the configuration. Only the known public app URL props listed below are returned; an
+        |operator-added `public_..._url` prop that is not in this list is NOT automatically included.
+        |
+        |Each value can be supplied either as an environment variable (for example
+        |`OBP_PUBLIC_OBP_MCP_URL`, the usual style for container / Kubernetes deployments) or as a
+        |props-file entry (for example `public_obp_mcp_url`, the usual style for bare-metal installs).
         |
         |Known public app URL props:
-        |${APIUtil.publicAppUrlPropNames.mkString(", ")}
+        |
+        |${APIUtil.publicAppUrlPropNames.map(name => s"* `$name`").mkString("\n")}
         |
         |Empty (unconfigured) values are excluded from the response.
         |
