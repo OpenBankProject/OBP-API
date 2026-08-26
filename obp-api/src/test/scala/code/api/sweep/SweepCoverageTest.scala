@@ -92,12 +92,16 @@ class SweepCoverageTest extends ServerSetupWithTestData {
     }
 
     scenario("the failure sweep covers the same set the auth sweep does", SweepCoverage) {
-      // FailureSweepTest and AuthSweepTest read the same catalog through the same skipReason,
-      // so their scopes are equal by construction. Asserted anyway: if either ever grows a
-      // filter of its own, the two sweeps drift apart silently and the endpoints that fall
-      // between them are covered by neither. This is the cheapest possible guard against that.
-      val authScope    = catalog.filter(EndpointCatalog.skipReason(_).isEmpty).map(_.operationId).toSet
-      val failureScope = catalog.filter(EndpointCatalog.skipReason(_).isEmpty).map(_.operationId).toSet
+      // Read each sweep's OWN scope rather than re-deriving a copy here: today both are
+      // `EndpointCatalog.all.filter(EndpointCatalog.skipReason(_).isEmpty)`, so two independently
+      // hand-typed copies of that expression would be equal by construction and this scenario
+      // would pass even after a real future divergence -- one sweep grows a filter of its own,
+      // the endpoints that fall between the two are covered by neither, and nothing here would
+      // notice. Reading AuthSweepTest.scope / FailureSweepTest.scope means there is exactly one
+      // definition of each sweep's coverage, so a change to either is automatically reflected
+      // on both sides of this comparison.
+      val authScope    = AuthSweepTest.scope.map(_.operationId).toSet
+      val failureScope = FailureSweepTest.scope.map(_.operationId).toSet
 
       val onlyAuth    = authScope -- failureScope
       val onlyFailure = failureScope -- authScope

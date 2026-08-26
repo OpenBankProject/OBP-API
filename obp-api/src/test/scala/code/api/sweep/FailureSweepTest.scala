@@ -55,6 +55,17 @@ import com.openbankproject.commons.util.JsonAliases.parse
  * owns it; asserting it twice, from a place with no baseline to compare against, would produce
  * failures every time a message was reworded.
  */
+object FailureSweepTest {
+
+  /**
+   * The single definition of what this sweep covers. Exposed so SweepCoverageTest's drift check
+   * reads this directly instead of re-deriving its own copy of the same filter -- two copies of
+   * one expression are equal by construction and can never catch this sweep's own filtering
+   * changing independently of AuthSweepTest's.
+   */
+  def scope: List[ResourceDoc] = EndpointCatalog.all.filter(EndpointCatalog.skipReason(_).isEmpty)
+}
+
 class FailureSweepTest extends ServerSetupWithTestData with DefaultUsers {
 
   object FailureSweep extends Tag("FailureSweep")
@@ -144,8 +155,7 @@ class FailureSweepTest extends ServerSetupWithTestData with DefaultUsers {
       "as correct")
   )
 
-  private lazy val inScope: List[ResourceDoc] =
-    EndpointCatalog.all.filter(EndpointCatalog.skipReason(_).isEmpty)
+  private lazy val inScope: List[ResourceDoc] = FailureSweepTest.scope
 
   private def check(doc: ResourceDoc, headers: Map[String, String],
                     ents: Map[String, String]): Option[String] = {

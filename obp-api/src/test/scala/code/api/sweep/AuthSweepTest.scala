@@ -47,6 +47,17 @@ import com.openbankproject.commons.util.JsonAliases.parse
  * scenario-per-endpoint layout would have given is preserved in that list — each line names the
  * operationId, the verb, the URL, the expectation and what actually came back.
  */
+object AuthSweepTest {
+
+  /**
+   * The single definition of what this sweep covers. Exposed so SweepCoverageTest's drift check
+   * reads this directly instead of re-deriving its own copy of the same filter -- two copies of
+   * one expression are equal by construction and can never catch this sweep's own filtering
+   * changing independently of FailureSweepTest's.
+   */
+  def scope: List[ResourceDoc] = EndpointCatalog.all.filter(EndpointCatalog.skipReason(_).isEmpty)
+}
+
 class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
 
   object AuthSweep extends Tag("AuthSweep")
@@ -208,9 +219,7 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
   // ── the sweep, one scenario per version ─────────────────────────────────────
 
   private lazy val byVersion: Map[String, List[ResourceDoc]] =
-    EndpointCatalog.all
-      .filter(EndpointCatalog.skipReason(_).isEmpty)
-      .groupBy(_.implementedInApiVersion.toString)
+    AuthSweepTest.scope.groupBy(_.implementedInApiVersion.toString)
 
   feature("Every reachable endpoint enforces the authentication its ResourceDoc declares") {
 
