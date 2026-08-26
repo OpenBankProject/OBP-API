@@ -31,9 +31,12 @@ import java.util.Base64
  *   - Concurrent replay while the original is still in flight: 409 Conflict.
  *   - 5xx responses are NOT cached; clients can retry.
  *
- * Scope: the key is namespaced by SHA-256 of the consumer id, or — when
- * unauthenticated — the Authorization header.  This prevents key reuse across
- * consumers.
+ * Scope: the key is namespaced by SHA-256 of (consumer id, or — when
+ * unauthenticated — the Authorization header) AND the resolved operation id (or, absent a
+ * ResourceDoc match, the method+path). This prevents key reuse across consumers AND across
+ * endpoints: a client accidentally or deliberately reusing one Idempotency-Key against two
+ * different operations gets two independent dedup slots instead of the second operation being
+ * treated as a replay of the first and never executed.
  *
  * Validation: 8..255 printable-ASCII characters.  Anything else → 400.
  *
@@ -215,12 +218,22 @@ object IdempotencyMiddleware extends MdcLoggable {
 
   private def scopeFor(req: Request[IO]): String = {
     val ccOpt = req.attributes.lookup(Http4sRequestAttributes.callContextKey)
-    val raw = ccOpt
+    val consumerOrAuth = ccOpt
       .flatMap(_.consumer.map(_.consumerId.get).toOption)
       .filter(_.nonEmpty)
       .orElse(req.headers.get(AuthorizationHeader).map(_.head.value))
       .getOrElse("anonymous")
-    sha256Hex(raw).take(16)
+    // operationId is the canonical identity of "which endpoint" -- set by ResourceDocMiddleware
+    // once it has matched a ResourceDoc, and stable across path-template placeholders and
+    // bridge-cascade path rewrites (v400->v310->...). A tree this request is NOT served by never
+    // gets a ResourceDoc match, so it falls back to method+path; that fallback only ever feeds a
+    // lock-then-release cycle that a miss discards (see runAndCache), so it does not need to
+    // identify anything durable -- it only needs to differ from a genuinely different endpoint's
+    // fallback often enough that misses don't manufacture cross-endpoint collisions of their own.
+    val endpoint = ccOpt
+      .flatMap(_.operationId)
+      .getOrElse(s"${req.method.name} ${req.uri.path.renderString}")
+    sha256Hex(s"$consumerOrAuth|$endpoint").take(16)
   }
 
   // ── Body hash ──────────────────────────────────────────────────────────
