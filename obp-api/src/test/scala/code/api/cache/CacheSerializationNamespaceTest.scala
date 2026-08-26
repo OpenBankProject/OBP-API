@@ -38,14 +38,20 @@ import scalacache.{CacheConfig, DefaultCacheKeyBuilder}
  */
 class CacheSerializationNamespaceTest extends FlatSpec with Matchers {
 
+  /** A stand-in caller key; its value is arbitrary, only its stability across calls matters. */
+  private val SampleCallerKey = "code.example.Provider.getAll(Some(bank))"
+
+  /** This build's namespace, spelled out rather than derived, so a test asserting against it
+   *  fails loudly if the derivation and the literal ever disagree. */
+  private val CurrentNamespace = "obpser1-scala2.13"
+
   private def keyFor(namespace: String, callerKey: String): String =
     CacheConfig(cacheKeyBuilder = DefaultCacheKeyBuilder(keyPrefix = Some(namespace)))
       .cacheKeyBuilder.toCacheKey(Seq(callerKey))
 
   "the derived cache key" should "differ between two serialization namespaces" in {
-    val caller = "code.example.Provider.getAll(Some(bank))"
-    val a = keyFor("obpser1-scala2.12", caller)
-    val b = keyFor("obpser1-scala2.13", caller)
+    val a = keyFor("obpser1-scala2.12", SampleCallerKey)
+    val b = keyFor(CurrentNamespace, SampleCallerKey)
 
     withClue(s"2.12 key <$a> and 2.13 key <$b> are the same, so a 2.13 instance would read the " +
              s"bytes a 2.12 instance wrote -- which is the defect this exists to prevent. ") {
@@ -59,13 +65,11 @@ class CacheSerializationNamespaceTest extends FlatSpec with Matchers {
     // The Scala version does not move for a dependency upgrade that changes the encoding --
     // chill 0.9.3 to 0.9.5 on its own would not have. The counter is the escape hatch for that,
     // and it is only an escape hatch if it actually changes the key.
-    val caller = "code.example.Provider.getAll(Some(bank))"
-    keyFor("obpser1-scala2.13", caller) should not equal keyFor("obpser2-scala2.13", caller)
+    keyFor(CurrentNamespace, SampleCallerKey) should not equal keyFor("obpser2-scala2.13", SampleCallerKey)
   }
 
   it should "stay stable for one namespace, or nothing would ever be a cache hit" in {
-    val caller = "code.example.Provider.getAll(Some(bank))"
-    keyFor("obpser1-scala2.13", caller) shouldBe keyFor("obpser1-scala2.13", caller)
+    keyFor(CurrentNamespace, SampleCallerKey) shouldBe keyFor(CurrentNamespace, SampleCallerKey)
   }
 
   "the namespace this build uses" should "name the Scala binary version it was compiled against" in {
