@@ -126,15 +126,21 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers {
     (resp.status.code, json)
   }
 
-  /** No ALL_CAPS placeholder in the URL — nothing to create before calling. */
-  private def hasNoPathVariable(doc: ResourceDoc): Boolean =
-    EndpointCatalog.concretePath(doc) == EndpointCatalog.concretePath(doc, Map.empty) &&
-      !doc.requestUrl.split("/").exists { seg =>
-        seg.nonEmpty && seg == seg.toUpperCase && seg.length > 2 &&
-          seg.forall(c => c.isLetter || c == '_' || c.isDigit) &&
-          (seg.endsWith("_ID") || seg.endsWith("_CODE") ||
-           seg == "PROVIDER" || seg == "USERNAME" || seg == "USER_EMAIL")
-      }
+  /**
+   * No ALL_CAPS placeholder in the URL -- nothing to create before calling.
+   *
+   * EndpointCatalog.hasPlaceholder, not a local copy of the rule. This used to hold its own,
+   * and the two had already drifted: the catalog substitutes any segment ending in ID, _CODE or
+   * _NAME, this one looked for _ID and _CODE and had never learnt about _NAME. So
+   * `/signal/channels/CHANNEL_NAME/info` was a placeholder to the catalog -- which duly replaced
+   * it with a channel that does not exist -- and NOT a placeholder here, so this suite selected
+   * it as an endpoint that "needs nothing created first" and then failed it for answering 404.
+   *
+   * The first half of the old condition was worse than wrong, it was vacuous:
+   * `concretePath(doc) == concretePath(doc, Map.empty)` compares a default argument with the same
+   * value passed explicitly, so it is true for every doc and filtered nothing.
+   */
+  private def hasNoPathVariable(doc: ResourceDoc): Boolean = !EndpointCatalog.hasPlaceholder(doc)
 
   private lazy val inScope: List[ResourceDoc] =
     EndpointCatalog.all

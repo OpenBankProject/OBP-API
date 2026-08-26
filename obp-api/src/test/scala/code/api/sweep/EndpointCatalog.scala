@@ -86,6 +86,9 @@ object EndpointCatalog {
    * ACCOUNT are literals, CARD_ID and ACCOUNT_ID are placeholders — and it needs no maintenance
    * when a new literal appears, because an unrecognised segment is left alone by default.
    */
+  /** True when the URL carries at least one segment concretePath would substitute. */
+  def hasPlaceholder(doc: ResourceDoc): Boolean = doc.requestUrl.split("/").exists(isPlaceholder)
+
   private def isPlaceholder(seg: String): Boolean =
     seg.nonEmpty &&
       seg == seg.toUpperCase &&
@@ -130,7 +133,12 @@ object EndpointCatalog {
   /** Well-formed, and deliberately not present. */
   private def defaultValue(seg: String): String = seg match {
     case "ACCOUNT_ID" | "USER_ID" => "00000000-0000-0000-0000-000000000000"
-    case "VIEW_ID"                => "owner"
+    // GRANT_VIEW_ID alongside VIEW_ID, and for the same reason a real bank id is passed for the
+    // role assertion: an endpoint that resolves the view before it checks roles answers 404 for a
+    // view that does not exist, and the role gate never runs. Measured on
+    // createTransactionRequestFreeForm, which the sweep reported as "expected 403, got 500" --
+    // two defects stacked, the endpoint's raw throw AND this placeholder never resolving.
+    case "VIEW_ID" | "GRANT_VIEW_ID" => "owner"
     case "USER_EMAIL"             => "sweep-no-such-user@example.com"
     case _                        => "sweep-no-such-" + seg.toLowerCase.replace('_', '-')
   }

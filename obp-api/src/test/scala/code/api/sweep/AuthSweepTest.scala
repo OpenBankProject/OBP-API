@@ -104,12 +104,49 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
 
   // ── the three checks, each returning a failure line or None ──────────────────
 
+  /**
+   * Deviations that are deliberate, with the reason each one is not a defect.
+   *
+   * A signed-off list rather than a hard zero, for the same reason KryoGoldenCompatTest keeps
+   * knownDrift: a permanently red suite is one people learn to ignore, and the two entries here
+   * are both behaviour somebody chose and wrote down. Anything NOT listed still fails, and
+   * adding a line costs a written justification.
+   */
+  private val expectedAuthDeviation: Map[String, String] = Map(
+    "OBPv4.0.0-verifyRequestSignResponse" ->
+      ("Refuses with OBP-20311 'The Request is not signed' -- JWS request signing, a third " +
+       "authentication mechanism alongside user and application. ResourceDoc has no way to " +
+       "declare it: authMode covers user/application only, so neither the doc nor this sweep " +
+       "can express the requirement. The 401 is correct; only the message differs."),
+    "OBPv4.0.0-createTransactionRequestFreeForm" ->
+      ("Answers 400 InsufficientAuthorisationToCreateTransactionRequest rather than 403. The " +
+       "endpoint deliberately does no upfront view/role check and delegates the decision to " +
+       "checkAuthorisationToCreateTransactionRequest inside the connector -- its own comment " +
+       "says so, and an existing test depends on it. Whether an authorisation failure ought to " +
+       "be 400 at all is a product question, not something to change from inside a sweep.")
+  )
+
+  /** Which exemptions were actually needed this run -- see the stale-entry scenario below. */
+  private val deviationsUsed = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
+
+  private def deviationFor(doc: ResourceDoc): Option[String] = {
+    val why = expectedAuthDeviation.get(doc.operationId)
+    if (why.isDefined) deviationsUsed.add(doc.operationId)
+    why
+  }
+
   private def checkAnonymousIs401(doc: ResourceDoc): Option[String] = {
     val (code, json) = call(doc.requestVerb, EndpointCatalog.concretePath(doc), Map.empty)
     if (code != 401)
       Some(s"${describe(doc)} -- expected 401 for an anonymous call, got $code")
     else if (messageOf(json) != AuthenticatedUserIsRequired)
-      Some(s"${describe(doc)} -- 401 but message was '${messageOf(json)}', expected '$AuthenticatedUserIsRequired'")
+      deviationFor(doc) match {
+        case Some(why) =>
+          info(s"${describe(doc)} -- 401 with '${messageOf(json)}'; expected deviation: $why")
+          None
+        case None =>
+          Some(s"${describe(doc)} -- 401 but message was '${messageOf(json)}', expected '$AuthenticatedUserIsRequired'")
+      }
     else None
   }
 
@@ -154,8 +191,14 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
     val (code, json) = call(doc.requestVerb, path, noRoleHeaders)
     val roles = doc.roles.getOrElse(Nil).map(_.toString).mkString(",")
     if (code != 403)
-      Some(s"${doc.operationId} ${doc.requestVerb} $path -- roles $roles: " +
-           s"expected 403 for a user holding no entitlements, got $code")
+      deviationFor(doc) match {
+        case Some(why) =>
+          info(s"${doc.operationId} answered $code rather than 403; expected deviation: $why")
+          None
+        case None =>
+          Some(s"${doc.operationId} ${doc.requestVerb} $path -- roles $roles: " +
+               s"expected 403 for a user holding no entitlements, got $code")
+      }
     else if (!messageOf(json).startsWith(UserHasMissingRoles))
       Some(s"${doc.operationId} ${doc.requestVerb} $path -- 403 but message was " +
            s"'${messageOf(json)}', expected it to start with '$UserHasMissingRoles'")
@@ -215,6 +258,25 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
           }
         }
       }
+    }
+
+      // Declared after both version loops, so deviationsUsed is complete when it runs.
+    scenario("no expectedAuthDeviation entry outlives the behaviour it excuses", AuthSweep) {
+      import scala.jdk.CollectionConverters._
+      val used = deviationsUsed.asScala.toSet
+      val stale = expectedAuthDeviation.keySet -- used
+      val unknown = expectedAuthDeviation.keySet -- EndpointCatalog.all.map(_.operationId).toSet
+
+      withClue(s"these endpoints no longer deviate, so their exemption is a claim that stopped " +
+               s"being true and the next reader will take it as still true: ${stale.mkString(", ")}. " +
+               s"Delete the entry. ") {
+        stale shouldBe empty
+      }
+      withClue(s"these operationIds are not in the catalog at all -- renamed or removed, and " +
+               s"the exemption was left behind: ${unknown.mkString(", ")}. ") {
+        unknown shouldBe empty
+      }
+      info(s"${used.size} deviation(s) exercised: ${used.mkString(", ")}")
     }
   }
 }
