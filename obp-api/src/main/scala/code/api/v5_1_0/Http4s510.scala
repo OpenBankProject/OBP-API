@@ -3041,6 +3041,39 @@ object Http4s510 {
       http4sPartialFunction = Some(createMyConsumer)
     )
 
+    // Walks a Throwable's cause chain looking for a JVM/security-provider configuration problem
+    // (the requested algorithm or provider is unavailable) rather than anything about the
+    // caller-supplied certificate or JWT. `RSASSAVerifier`/`SignedJWT.verify` wrap
+    // NoSuchAlgorithmException in a JOSEException when the JVM's registered security providers
+    // don't have the requested signature algorithm (a hardened/FIPS JRE, a stripped provider
+    // list, a provider-registration bug) -- a server/environment fault that has nothing to do
+    // with whether this particular client's certificate is well-formed.
+    private[v5_1_0] def hasSecurityProviderCause(t: Throwable): Boolean =
+      Iterator.iterate(t)(_.getCause).takeWhile(_ != null).exists {
+        case _: java.security.NoSuchAlgorithmException => true
+        case _: java.security.NoSuchProviderException  => true
+        case _                                          => false
+      }
+
+    // `JwtUtil.verifyJwt` does not merely return false for a bad certificate -- it can THROW at
+    // several points (PEM parsing, JWT parsing, key extraction, signature verification), and a
+    // client-malformed certificate or JWT is exactly what most of those throws mean. But wrapping
+    // the whole call in tryons(..., 400, ...) also converted a JVM/security-provider failure (see
+    // hasSecurityProviderCause) into the same 400 -- telling a caller their input was bad when
+    // the truth is the server's environment cannot perform this verification for ANY caller.
+    // `verify` is a thunk rather than a direct call so this is testable without live PEM/JWT
+    // material: production passes `() => JwtUtil.verifyJwt(jwt, pem)`, the test a stub that
+    // throws a chosen exception.
+    private[v5_1_0] def resolveJwtSignatureValid(
+      verify: () => Boolean
+    )(implicit cc: code.api.util.CallContext): Future[Boolean] =
+      Future(verify()).recoverWith {
+        case t if hasSecurityProviderCause(t) =>
+          Future.failed(t)
+        case t =>
+          NewStyle.function.tryons(PostJsonIsNotSigned, 400, Some(cc)) { throw t }
+      }
+
     val createConsumerDynamicRegistration: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "dynamic-registration" / "consumers" =>
         EndpointHelpers.executeFutureCreated(req) {
@@ -3056,9 +3089,7 @@ object Http4s510 {
             // OBP-50000 / HTTP 500. A missing or malformed client certificate is a client error;
             // reporting it as a server fault tells a caller with retry logic to keep sending a
             // request that cannot ever succeed.
-            signatureValid <- NewStyle.function.tryons(PostJsonIsNotSigned, 400, Some(cc)) {
-              JwtUtil.verifyJwt(postedJwt.jwt, pem.getOrElse(""))
-            }
+            signatureValid <- resolveJwtSignatureValid(() => JwtUtil.verifyJwt(postedJwt.jwt, pem.getOrElse("")))
             _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, Some(cc)) { signatureValid }
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(JwtUtil.getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
