@@ -548,7 +548,7 @@ fi
 # both numbers when the suite grows: a floor that is only half the real count is barely a
 # floor at all.
 if [[ "${SF_TOTAL:-0}" -lt 3200 ]]; then
-    echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 2000 floor) — filter/discovery regression?"
+    echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 3200 floor) — filter/discovery regression?"
     OVERALL_RC=1
 fi
 
