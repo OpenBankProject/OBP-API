@@ -32,13 +32,13 @@ import java.util.Base64
  *   - 5xx responses are NOT cached; clients can retry.
  *
  * Scope: the key is namespaced by SHA-256 of (consumer id, or — when
- * unauthenticated — the Authorization header) AND the resolved operation id (or, absent a
- * ResourceDoc match, the method+path). This prevents key reuse across consumers AND across
- * endpoints: a client accidentally or deliberately reusing one Idempotency-Key against two
- * different operations gets two independent dedup slots instead of the second operation being
- * treated as a replay of the first and never executed.
+ * unauthenticated — the Authorization header) AND the resolved operation id. This prevents key
+ * reuse across consumers AND across endpoints: a client accidentally or deliberately reusing one
+ * Idempotency-Key against two different operations gets two independent dedup slots instead of
+ * the second operation being treated as a replay of the first and never executed.
  *
- * Validation: 8..255 printable-ASCII characters.  Anything else → 400.
+ * Validation: 8..255 printable-ASCII characters.  Anything else → 400, regardless of whether this
+ * tier serves the path -- a malformed header is a client error no matter where it resolves.
  *
  * Storage: Redis via the existing JedisPool.  Two keys per request:
  *   - idem:lock:<scope>:<key> → "1" (60s TTL, set with NX)
@@ -52,17 +52,27 @@ import java.util.Base64
  * INSIDE ResourceDocMiddleware, on every version's route tree. Both halves matter.
  *
  * Inside, because the scope key and the request-body hash both come from the CallContext, and
- * ResourceDocMiddleware is what populates it. Mounted outside, `bodyFromCallContextOrEmpty`
- * returns "" for every request, so two DIFFERENT payloads sent under one key hash identically --
- * the conflict check below silently stops working and the second caller receives the first
- * caller's response. On a payment endpoint that is the difference between "your retry was
- * deduplicated" and "your second, different payment returned someone else's receipt".
+ * ResourceDocMiddleware is what populates it. Mounted outside, there is no CallContext at all --
+ * no operationId and no httpBody -- so `matchedThisTier` is false for every request and this
+ * middleware does nothing at all rather than mishandling anything: no lock, no cached response,
+ * no conflict detection. That is a silent loss of protection, not a silent corruption, but it is
+ * still a config-only guard against a real risk: on a payment endpoint, dedup quietly not running
+ * is the difference between "your retry was deduplicated" and "your retry submitted the payment
+ * again".
  *
  * On every tree, because Http4sApp composes the versions with `.orElse` and a tree signals "not
  * mine" by returning OptionT.none. This middleware therefore has to pass a miss through
  * unchanged; an earlier version answered 404 in that case, which terminated the chain -- measured
  * on POST /obp/v3.1.0/management/method_routings, which answered 201 without an Idempotency-Key
- * and 404 with one. IdempotencyMiddlewareTest pins both properties.
+ * and 404 with one. A later version preserved the miss but still spent a full lock-acquire/release
+ * cycle doing it, using a method+path fallback scope for any tier that had not matched -- which
+ * meant two requests racing that SAME miss-tier's fallback lock (two genuinely different
+ * endpoints whose method+path fallback happened to differ less often than intended, or two
+ * concurrent copies of the request destined for a LATER tier) could have the loser answered a
+ * definite 409 by a tier that was never going to serve either of them, before the request ever
+ * reached the tier that would have handled it correctly. `matchedThisTier` closes that: only the
+ * one tier whose ResourceDocMatcher actually matched (the only tier where operationId is ever
+ * set) does any lock/response-key work at all. IdempotencyMiddlewareTest pins all of these.
  */
 object IdempotencyMiddleware extends MdcLoggable {
 
@@ -100,6 +110,21 @@ object IdempotencyMiddleware extends MdcLoggable {
           // A malformed header is a client error whatever the path resolves to, so this
           // one deliberately does NOT fall through.
           OptionT.liftF(invalidKeyResponse(key))
+        } else if (!matchedThisTier(req)) {
+          // operationId is set on the CallContext ONLY by ResourceDocMiddleware.attachToCallContext,
+          // and only for the one version tree whose ResourceDocMatcher actually matched this
+          // request (see ResourceDocMiddleware.apply: the `case None` branch never attaches one).
+          // Every other tree in the `.orElse` chain is about to answer a miss regardless of what
+          // this middleware does, so doing lock/response-key work there is worse than wasted: two
+          // requests that legitimately belong to two DIFFERENT trees, or two genuinely concurrent
+          // copies of the same request, can race the SAME miss-tier's method+path-fallback lock
+          // and the loser gets a definite 409 here -- terminating the `.orElse` chain on behalf of
+          // a tree that was never going to serve either of them, before the request ever reaches
+          // the tree that would have handled it correctly. Skipping straight through at a
+          // miss-tier removes both the wasted Redis round trips and this false-conflict window;
+          // only the matching tier ever computes a scope key that means anything durable, so only
+          // it needs the protection.
+          routes.run(req)
         } else {
           val scope        = scopeFor(req)
           val bodyHash     = sha256Hex(bodyFromCallContextOrEmpty(req))
@@ -214,6 +239,15 @@ object IdempotencyMiddleware extends MdcLoggable {
     key.length <= MaxKeyLength &&
     key.forall(c => c >= 0x21 && c <= 0x7E)
 
+  // True only for the one version tree whose ResourceDocMatcher matched this request --
+  // ResourceDocMiddleware.attachToCallContext is the sole place operationId is ever set, and it
+  // runs only on a match (see ResourceDocMiddleware.apply's `case Some(resourceDoc)` branch; the
+  // `case None` branch attaches a CallContext with no operationId). Every other tree in the
+  // `.orElse` chain sees operationId absent here and skips idempotency handling entirely, because
+  // it is about to answer a miss regardless of what this middleware does.
+  private def matchedThisTier(req: Request[IO]): Boolean =
+    req.attributes.lookup(Http4sRequestAttributes.callContextKey).exists(_.operationId.isDefined)
+
   // ── Scope ──────────────────────────────────────────────────────────────
 
   private def scopeFor(req: Request[IO]): String = {
@@ -225,11 +259,10 @@ object IdempotencyMiddleware extends MdcLoggable {
       .getOrElse("anonymous")
     // operationId is the canonical identity of "which endpoint" -- set by ResourceDocMiddleware
     // once it has matched a ResourceDoc, and stable across path-template placeholders and
-    // bridge-cascade path rewrites (v400->v310->...). A tree this request is NOT served by never
-    // gets a ResourceDoc match, so it falls back to method+path; that fallback only ever feeds a
-    // lock-then-release cycle that a miss discards (see runAndCache), so it does not need to
-    // identify anything durable -- it only needs to differ from a genuinely different endpoint's
-    // fallback often enough that misses don't manufacture cross-endpoint collisions of their own.
+    // bridge-cascade path rewrites (v400->v310->...). scopeFor only ever runs after
+    // matchedThisTier has confirmed operationId is present, so the method+path fallback below is
+    // purely defensive -- it should never actually be exercised in production, only under a
+    // future bug that calls scopeFor without that guard.
     val endpoint = ccOpt
       .flatMap(_.operationId)
       .getOrElse(s"${req.method.name} ${req.uri.path.renderString}")
