@@ -3372,10 +3372,27 @@ object NewStyle extends MdcLoggable{
      * This became necessary with the cache key fix below. While callContext was part of the
      * key nothing could ever hit, so a stale entry was unreachable by construction; now that
      * the cache works, writes have to publish themselves.
+     *
+     * A single delete here is not quite enough: a reader that fetched the pre-write value from
+     * the provider a moment earlier can still complete its own cache write AFTER this delete
+     * finishes, silently reintroducing the stale entry for the rest of the TTL -- nothing else
+     * would clear it until the next write. Scheduling a second delete closes that window the
+     * conventional way: any straggler write that lands in the gap gets cleared shortly after,
+     * long before an operator or caller would reasonably treat it as current.
      */
-    private def invalidateEndpointMappingCache(): Unit = {
+    private[util] def invalidateEndpointMappingCache(): Unit = {
       Redis.deleteKeysByPattern("*getEndpointMappings*")
+      code.actorsystem.ObpActorSystem.localActorSystem.scheduler.scheduleOnce(
+        endpointMappingCacheInvalidationDelay
+      )(Redis.deleteKeysByPattern("*getEndpointMappings*"))(
+        code.actorsystem.ObpActorSystem.localActorSystem.dispatcher
+      )
+      ()
     }
+
+    private[util] val endpointMappingCacheInvalidationDelay: scala.concurrent.duration.FiniteDuration =
+      scala.concurrent.duration.FiniteDuration(
+        APIUtil.getPropsAsIntValue("endpointMapping.cache.invalidation.delay.ms", 500), "ms")
 
     def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
       validateBankId(bankId, callContext)
