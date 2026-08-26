@@ -97,18 +97,30 @@ object EndpointCatalog {
       // (CONSENTID, ACCOUNTID, BASKETID, DOMESTICPAYMENTID …), and leaving those literal sent
       // the string "CONSENTID" to the server as though it were an id.
       (seg.endsWith("ID") || seg.endsWith("_CODE") || seg.endsWith("_NAME") ||
-       seg == "PROVIDER" || seg == "USERNAME" || seg == "USER_EMAIL")
+       seg == "PROVIDER" || seg == "USERNAME" || seg == "USER_EMAIL" ||
+       // Named individually because none of the three ends in ID/_CODE/_NAME, yet each is a
+       // genuine enumerated-value placeholder a live endpoint validates inline, not a literal:
+       // Http4sBGv2PIS's payment-service branches guard on
+       // Set("payments","bulk-payments","periodic-payments").contains(paymentService), and
+       // Http4s310/Http4s400's auth-context-updates and consent SCA branches guard on
+       // List(StrongCustomerAuthentication.SMS, EMAIL[, IMPLICIT]).contains(scaMethod). Left as
+       // the literal strings "PAYMENT_SERVICE"/"SCA_METHOD", both guards fail and the sweep
+       // reports the resulting 404/400 as the endpoint's own defect -- confirmed reproducing
+       // today for SCA_METHOD via OBPv5.0.0-createUserAuthContextUpdateRequest.
+       // PAYMENT_PRODUCT is not independently validated anywhere it appears, but is named here
+       // for the same reason PROVIDER/USERNAME/USER_EMAIL are: it identifies a Berlin Group
+       // payment product, not a literal segment, and treating it as one just because nothing
+       // currently checks its value the way PAYMENT_SERVICE and SCA_METHOD are checked would be
+       // an accident of the present call sites, not the actual contract of the segment.
+       seg == "PAYMENT_SERVICE" || seg == "PAYMENT_PRODUCT" || seg == "SCA_METHOD")
 
   // Checked against Http4sSupport's literalAllCapsSegments: not one of the sixteen ends in ID,
   // _CODE or _NAME, so the rule above separates the two sets cleanly.
   //
-  // Known limitation, stated rather than papered over: a handful of ALL_CAPS segments are
-  // neither — PAYMENT_SERVICE and PAYMENT_PRODUCT take enumerated Berlin Group values,
-  // SCA_METHOD likewise, and CARDANO / MOBILE_WALLET / ETH_SEND_TRANSACTION are literals this
-  // list does not carry. Those stay verbatim, which routes them to the endpoint that expects
-  // that literal (correct for the literals) or produces a 404 (visible, and safe: a sweep
-  // reporting a 404 it caused is a nuisance, one silently substituting over a real literal is
-  // a coverage hole).
+  // CARDANO, MOBILE_WALLET and ETH_SEND_TRANSACTION are the remaining literals this list does
+  // not carry, and they stay verbatim on purpose -- substituting over them would route to the
+  // wrong case entirely (or none), which is the coverage hole this whole heuristic exists to
+  // avoid on the literal side.
 
   /**
    * The concrete path to call.
@@ -140,6 +152,12 @@ object EndpointCatalog {
     // two defects stacked, the endpoint's raw throw AND this placeholder never resolving.
     case "VIEW_ID" | "GRANT_VIEW_ID" => "owner"
     case "USER_EMAIL"             => "sweep-no-such-user@example.com"
+    // Enumerated values a live endpoint validates inline (see isPlaceholder) -- a well-formed
+    // but nonexistent value here would still fail that inline check, same as an id that does not
+    // exist fails a lookup, so these get one of the endpoint's own accepted values instead.
+    case "PAYMENT_SERVICE"        => "payments"
+    case "PAYMENT_PRODUCT"        => "sepa-credit-transfers"
+    case "SCA_METHOD"             => "SMS"
     case _                        => "sweep-no-such-" + seg.toLowerCase.replace('_', '-')
   }
 }
