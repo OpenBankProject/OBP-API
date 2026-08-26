@@ -516,7 +516,17 @@ while IFS= read -r _f; do
     fi
     _fa=$(_sf_attr "$_head" failures); _fa=${_fa:-0}
     _e=$(_sf_attr "$_head" errors);    _e=${_e:-0}
-    _sk=$(_sf_attr "$_head" skipped);  _sk=${_sk:-0}
+    # ScalaTest's JUnit XML reporter does NOT put a skipped="N" attribute on <testsuite>;
+    # it emits a <skipped/> child inside each cancelled <testcase>. Reading the attribute
+    # therefore always yielded 0, so this line reported "0 skipped/canceled" for a run in
+    # which DynamicUtilTest cancelled three of its nine -- and would have reported the same
+    # for a suite that cancelled every one of its tests. That is the number somebody checks
+    # precisely when they suspect tests are not running, so it has to be counted from what
+    # is actually in the file. Attribute first for reporters that do emit it, child elements
+    # otherwise.
+    _sk=$(_sf_attr "$_head" skipped)
+    if [[ -z "$_sk" ]]; then _sk=$(grep -c "<skipped" "$_f" 2>/dev/null); fi
+    _sk=${_sk:-0}
     SF_TOTAL=$((SF_TOTAL+_t)); SF_FAIL=$((SF_FAIL+_fa)); SF_ERR=$((SF_ERR+_e)); SF_SKIP=$((SF_SKIP+_sk))
     if [[ $_fa -ne 0 || $_e -ne 0 ]]; then
         SF_BAD+=("$(basename "$_f" | sed 's/^TEST-//; s/\.xml$//'): $_fa failed, $_e errors")
