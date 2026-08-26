@@ -3,9 +3,8 @@ package code.api.sweep
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.{ApiRole, CustomJsonFormats}
+import code.api.util.CustomJsonFormats
 import code.api.util.http4s.Http4sApp
-import code.entitlement.Entitlement
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
 import fs2.Stream
 import org.http4s.{Header, Headers, Method, Request, Uri}
@@ -66,38 +65,12 @@ object FailureSweepTest {
   def scope: List[ResourceDoc] = EndpointCatalog.all.filter(EndpointCatalog.skipReason(_).isEmpty)
 }
 
-class FailureSweepTest extends ServerSetupWithTestData with DefaultUsers {
+class FailureSweepTest extends ServerSetupWithTestData with DefaultUsers with SweepFixtures {
 
   object FailureSweep extends Tag("FailureSweep")
 
   implicit val runtime: IORuntime = IORuntime.global
   private lazy val app = Http4sApp.httpApp
-
-  /**
-   * A caller holding every role in the system.
-   *
-   * Granted directly through the Entitlement provider rather than over the API — the same thing
-   * 161 existing test files do — because the goal is to get PAST authorisation, not to test it.
-   * Without this the sweep would stop at 403 on the ~478 role-gated endpoints and never reach
-   * the code that might crash.
-   */
-  private def omniscientUser: Map[String, String] = {
-    ApiRole.availableRoles.foreach { role =>
-      // Bank-scoped roles need a bank; system-wide ones must be granted with an empty bankId.
-      // valueOf throws on a name it does not recognise, and availableRoles includes dynamic
-      // roles whose backing entity may not exist in this database -- a grant that cannot be
-      // made is not a reason to abandon the other several hundred.
-      try {
-        val bankId = if (ApiRole.valueOf(role).requiresBankId) realBankId.getOrElse("") else ""
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, role)
-      } catch { case _: Exception => () }
-    }
-    Map("DirectLogin" -> s"token=${token1.value}")
-  }
-
-  private def realBankId: Option[String] =
-    code.bankconnectors.LocalMappedConnector.getBanksLegacy(None)
-      .map(_._1).getOrElse(Nil).headOption.map(_.bankId.value)
 
   private def entities: Map[String, String] =
     realBankId.map("BANK_ID" -> _).toList.toMap
@@ -183,7 +156,7 @@ class FailureSweepTest extends ServerSetupWithTestData with DefaultUsers {
         // table, so a lazy val granted during the first scenario leaves every later one
         // calling as an unentitled user -- which stops at 403 and never reaches the code
         // that might crash. That is how the first run reported only two 5xx.
-        val headers = omniscientUser
+        val headers = omniscientCaller
         val ents    = entities
         val docs    = byVersion(version)
 

@@ -58,7 +58,7 @@ object AuthSweepTest {
   def scope: List[ResourceDoc] = EndpointCatalog.all.filter(EndpointCatalog.skipReason(_).isEmpty)
 }
 
-class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
+class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with SweepFixtures {
 
   object AuthSweep extends Tag("AuthSweep")
 
@@ -98,16 +98,13 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers {
    * over HTTP — the sweep is in-process and a round trip per lookup would be the only slow part
    * of it.
    */
-  private lazy val realEntities: Map[String, String] = {
-    val bank = code.bankconnectors.LocalMappedConnector.getBanksLegacy(None).map(_._1).getOrElse(Nil).headOption
-    bank match {
-      case Some(b) =>
-        val accountId = code.model.dataAccess.MappedBankAccount
-          .find(net.liftweb.mapper.By(code.model.dataAccess.MappedBankAccount.bank, b.bankId.value))
-          .map(_.accountId.value)
-        Map("BANK_ID" -> b.bankId.value) ++ accountId.map("ACCOUNT_ID" -> _).toList.toMap
-      case None => Map.empty
-    }
+  private lazy val realEntities: Map[String, String] = realBankId match {
+    case Some(bankIdValue) =>
+      val accountId = code.model.dataAccess.MappedBankAccount
+        .find(net.liftweb.mapper.By(code.model.dataAccess.MappedBankAccount.bank, bankIdValue))
+        .map(_.accountId.value)
+      Map("BANK_ID" -> bankIdValue) ++ accountId.map("ACCOUNT_ID" -> _).toList.toMap
+    case None => Map.empty
   }
 
   private def describe(doc: ResourceDoc): String =

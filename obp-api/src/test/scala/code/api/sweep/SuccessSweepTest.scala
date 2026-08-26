@@ -3,9 +3,8 @@ package code.api.sweep
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.{ApiRole, CustomJsonFormats}
+import code.api.util.CustomJsonFormats
 import code.api.util.http4s.Http4sApp
-import code.entitlement.Entitlement
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
 import fs2.Stream
 import org.http4s.{Header, Headers, Method, Request, Uri}
@@ -57,7 +56,7 @@ import com.openbankproject.commons.util.JsonAliases.parse
  * `expectedNon2xx` with the reason, and asserted to STILL not be 5xx. An endpoint that stops
  * answering is a finding; an endpoint that was never going to answer here is a documented skip.
  */
-class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers {
+class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with SweepFixtures {
 
   object SuccessSweep extends Tag("SuccessSweep")
 
@@ -96,21 +95,6 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers {
     "OBPv6.0.0-getWebUiProp"                -> "400 OBP-08003: no WebUi prop named WEBUI_PROP_NAME",
     "OBPv7.0.0-getRoutingScheme"            -> "404 OBP-30514: no routing scheme named SCHEME"
   )
-
-  private def realBankId: Option[String] =
-    code.bankconnectors.LocalMappedConnector.getBanksLegacy(None)
-      .map(_._1).getOrElse(Nil).headOption.map(_.bankId.value)
-
-  /** A caller holding every role — the same construction FailureSweepTest uses. */
-  private def entitledCaller: Map[String, String] = {
-    ApiRole.availableRoles.foreach { role =>
-      try {
-        val bankId = if (ApiRole.valueOf(role).requiresBankId) realBankId.getOrElse("") else ""
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, role)
-      } catch { case _: Exception => () }
-    }
-    Map("DirectLogin" -> s"token=${token1.value}")
-  }
 
   private def get(path: String, headers: Map[String, String]): (Int, JValue) = {
     val req = Request[IO](
@@ -174,7 +158,7 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers {
         setPropsValues("api_disabled_endpoints" -> "[]", "api_enabled_endpoints" -> "[]")
         // Once per scenario -- beforeEach wipes the entitlement table, so a class-level
         // lazy val would leave every scenario after the first calling without roles.
-        val headers = entitledCaller
+        val headers = omniscientCaller
         val docs    = byVersion(version)
 
         When(s"each of the ${docs.size} $version GETs that need no path variable is called")
