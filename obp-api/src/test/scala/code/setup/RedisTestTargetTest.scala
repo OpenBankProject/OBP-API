@@ -17,27 +17,30 @@ import org.scalatest.exceptions.{TestCanceledException, TestFailedException}
  */
 class RedisTestTargetTest extends FlatSpec with Matchers {
 
+  /** Arbitrary label passed as `what`; only its identity across calls matters, not its text. */
+  private val CheckLabel = "a check"
+
   "requireReachable" should "return normally when Redis is reachable, whether or not it is required" in {
     noException should be thrownBy RedisTestTarget.requireReachable(
-      reachable = true, what = "a check", required = false)
+      reachable = true, what = CheckLabel, required = false)
     noException should be thrownBy RedisTestTarget.requireReachable(
-      reachable = true, what = "a check", required = true)
+      reachable = true, what = CheckLabel, required = true)
   }
 
   it should "cancel when Redis is absent and optional" in {
     val e = intercept[TestCanceledException] {
-      RedisTestTarget.requireReachable(reachable = false, what = "a check", required = false)
+      RedisTestTarget.requireReachable(reachable = false, what = CheckLabel, required = false)
     }
     e.getMessage should include("Redis not reachable")
-    e.getMessage should include("a check")
+    e.getMessage should include(CheckLabel)
   }
 
   it should "FAIL, not cancel, when Redis is absent and required" in {
     val e = intercept[TestFailedException] {
-      RedisTestTarget.requireReachable(reachable = false, what = "a check", required = true)
+      RedisTestTarget.requireReachable(reachable = false, what = CheckLabel, required = true)
     }
     e.getMessage should include("OBP_TEST_REDIS_REQUIRED=true")
-    e.getMessage should include("a check")
+    e.getMessage should include(CheckLabel)
   }
 
   "required" should "read OBP_TEST_REDIS_REQUIRED and default to false" in {
