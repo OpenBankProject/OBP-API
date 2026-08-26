@@ -2621,9 +2621,15 @@ object Http4s600 {
               code.api.cache.RedisMessaging.validateChannelName(channelName)
             }
             info <- Future(code.api.cache.RedisMessaging.channelInfo(channelName))
+            // A plain RuntimeException here surfaced as OBP-50000 / HTTP 500. "The thing you asked
+            // for does not exist" is the textbook 404; a 500 says the server broke, and a client
+            // cannot tell from it that retrying is pointless.
             (count, ttl) <- info match {
               case Some((c, t)) => Future.successful((c, t))
-              case None => Future.failed(new RuntimeException(s"Channel '$channelName' not found"))
+              case None =>
+                NewStyle.function.tryons(s"$SignalChannelNotFound Channel '$channelName' not found.", 404, Some(cc)) {
+                  throw new NoSuchElementException(channelName)
+                }
             }
           } yield SignalChannelInfoJsonV600(channelName, count, ttl)
         }

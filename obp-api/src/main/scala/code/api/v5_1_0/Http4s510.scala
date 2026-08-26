@@ -3050,9 +3050,16 @@ object Http4s510 {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerJwtPostJsonV510]
             }
             pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
-            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, Some(cc)) {
+            // `verifyJwt` does not merely return false for a bad certificate -- it THROWS
+            // ("No PEM-encoded keys found") when the PSD2-CERT header is absent or unparseable,
+            // and booleanToFuture only guards the false case, so the exception escaped as
+            // OBP-50000 / HTTP 500. A missing or malformed client certificate is a client error;
+            // reporting it as a server fault tells a caller with retry logic to keep sending a
+            // request that cannot ever succeed.
+            signatureValid <- NewStyle.function.tryons(PostJsonIsNotSigned, 400, Some(cc)) {
               JwtUtil.verifyJwt(postedJwt.jwt, pem.getOrElse(""))
             }
+            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, Some(cc)) { signatureValid }
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(JwtUtil.getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
             }

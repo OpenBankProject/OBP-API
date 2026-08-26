@@ -3042,15 +3042,26 @@ object Http4s400 {
         EndpointHelpers.executeFutureCreated(req) {
           val bodyStr = cc.httpBody.getOrElse("")
           for {
-            user    <- Future { cc.user.openOrThrowException(AuthenticatedUserIsRequired) }
-            bank    <- Future { cc.bank.getOrElse(throw new RuntimeException(BankNotFound)) }
-            account <- Future { cc.bankAccount.getOrElse(throw new RuntimeException(BankAccountNotFound)) }
+            // These four used to throw raw exceptions, which the converter can only render as
+            // OBP-50000 / HTTP 500. Every one of them is a client-side condition -- not
+            // authenticated, no such bank, no such account, no such view -- and a 500 tells a
+            // caller with retry logic to keep sending a request that cannot succeed. This is a
+            // payment path, so that retry loop is the expensive kind.
+            user    <- NewStyle.function.tryons(AuthenticatedUserIsRequired, 401, Some(cc)) {
+              cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+            }
+            bank    <- NewStyle.function.tryons(BankNotFound, 404, Some(cc)) {
+              cc.bank.getOrElse(throw new NoSuchElementException(bankIdStr))
+            }
+            account <- NewStyle.function.tryons(BankAccountNotFound, 404, Some(cc)) {
+              cc.bankAccount.getOrElse(throw new NoSuchElementException(accountIdStr))
+            }
             json <- NewStyle.function.tryons(
               s"$InvalidJsonFormat Empty or invalid request body.", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(bodyStr)
             }
             transactionRequestType = TransactionRequestType(transactionRequestTypeStr)
-            view <- Future {
+            view <- NewStyle.function.tryons(s"$ViewNotFound Current view_id($viewIdStr)", 404, Some(cc)) {
               // System views (owner, accountant, etc.) and custom views (e.g. VRP
               // `_vrp-…` views) are stored separately. Try system first; fall back
               // to the account-scoped custom view. SS.init only needs *some* View
@@ -6393,7 +6404,14 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / _ / "user-invitations" / secretLink =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
-            (invitation, _) <- NewStyle.function.getUserInvitation(bank.bankId, secretLink.toLong, Some(cc))
+            // `secretLink.toLong` used to run unguarded, so any non-numeric path segment left a
+            // NumberFormatException to escape as OBP-50000 / HTTP 500 -- a malformed identifier
+            // reported to the caller as a server fault, which tells a client with retry logic to
+            // keep sending a request that can never succeed.
+            secret <- NewStyle.function.tryons(s"$InvalidNumber Invalid SECRET_LINK: it must be a number.", 400, Some(cc)) {
+              secretLink.toLong
+            }
+            (invitation, _) <- NewStyle.function.getUserInvitation(bank.bankId, secret, Some(cc))
           } yield JSONFactory400.createUserInvitationJson(invitation)
         }
     }

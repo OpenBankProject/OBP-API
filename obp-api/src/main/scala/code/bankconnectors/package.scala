@@ -136,7 +136,23 @@ package object bankconnectors extends MdcLoggable {
     }
 
     val intercept: InvocationHandler = new InvocationHandler {
-      override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
+      override def invoke(proxy: AnyRef, method: Method, rawArgs: Array[AnyRef]): AnyRef = {
+        // `java.lang.reflect.Proxy` passes null for a method that declares no parameters; cglib,
+        // which this replaced, passed a zero-length array. Everything downstream treats args as a
+        // collection -- `.zip(args)`, `args.collectFirst`, `extractKeyParams(args)` -- and every
+        // one of those throws on null.
+        //
+        // isInheritedMember covers the members Connector does not declare, but a NO-ARGUMENT
+        // method that Connector DOES declare slips past it and lands in routeToConnector.
+        // Measured on GET /obp/v6.0.0/system/connector-method-names, which reads
+        // `connector.callableMethods`: 200 on the 2.12/cglib build, 500 on this one, with
+        // `Cannot invoke "scala.collection.IterableOnce.knownSize()" because "that" is null` --
+        // which is `zip` being handed the null.
+        //
+        // Normalising to an empty array restores exactly what cglib did, which is what a
+        // toolchain migration owes its callers. `method.invoke(target, args: _*)` is unaffected:
+        // it compiles to Java varargs and an empty array means the same as null there.
+        val args: Array[AnyRef] = if (rawArgs == null) Array.empty[AnyRef] else rawArgs
         if (method.getReturnType.getName == "scala.concurrent.Future" && !canOpenFuture(method.getName)) {
           throw new RuntimeException(ServiceIsTooBusy + s"Current Service(${method.getName})")
         } else if (method.getName.contains("$default$") || ConnectorProxy.isInheritedMember(method)) {

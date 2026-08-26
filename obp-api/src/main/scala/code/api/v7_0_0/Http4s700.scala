@@ -1953,14 +1953,17 @@ object Http4s700 {
             _ <- Helper.booleanToFuture(UserEmailAddressMissing, 400, Some(cc)) {
               toAddress.nonEmpty
             }
+            // 503, not 500. The server is not broken -- it is not configured to do this, and a
+            // 500 tells a caller with retry logic that the fault is transient. Neither of these
+            // resolves without an operator editing props.
             _ <- Helper.booleanToFuture(
               s"$IncompleteServerConfiguration portal_external_url is not set — signup-validation and password-reset emails will not be delivered.",
-              500, Some(cc)) {
+              503, Some(cc)) {
               portalUrlBox.isDefined
             }
             _ <- Helper.booleanToFuture(
               s"$IncompleteServerConfiguration mail.users.userinfo.sender.address is still the default 'noreply@example.com' — most SMTP servers will reject this From address.",
-              500, Some(cc)) {
+              503, Some(cc)) {
               fromAddress != "noreply@example.com"
             }
             sendOutcome <- Future {
