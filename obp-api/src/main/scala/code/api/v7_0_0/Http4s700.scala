@@ -4691,6 +4691,190 @@ object Http4s700 {
       )
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Dynamic-code provenance (v7.0.0, read-only)
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET-only endpoints that expose the provenance captured on the v4.0.0 create/update
+    // endpoints (created_by_user_id, updated_by_user_id, method_body_hash, created_at,
+    // updated_at) for the three runtime-compiled-code types. The v4 create/update/get shapes are
+    // frozen (STABLE); these v7 reads wrap the unchanged v4 resource JSON with a `provenance`
+    // object. Create/update/delete stay on v4. Roles mirror the v4 GET roles.
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    val getDynamicResourceDocsProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-resource-docs" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicResourceDoc.DynamicResourceDoc.findAll())
+            .map(rows => JSONFactory700.DynamicResourceDocsProvenanceJsonV700(
+              rows.map(JSONFactory700.createDynamicResourceDocProvenanceJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicResourceDocsProvenance),
+      "GET",
+      "/management/dynamic-resource-docs",
+      "Get Dynamic Resource Docs (with provenance)",
+      s"""Returns all Dynamic Resource Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Resource Docs; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicResourceDocsProvenanceJsonV700(Nil),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagDynamicResourceDoc :: Nil,
+      Some(List(ApiRole.canGetAllDynamicResourceDocs)),
+      http4sPartialFunction = Some(getDynamicResourceDocsProvenance)
+    )
+
+    val getDynamicResourceDocProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-resource-docs" / dynamicResourceDocId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicResourceDoc.DynamicResourceDoc.find(
+            By(code.dynamicResourceDoc.DynamicResourceDoc.DynamicResourceDocId, dynamicResourceDocId)))
+            .map(box => unboxFullOrFail(box, Some(cc), s"$DynamicResourceDocNotFound Current DYNAMIC_RESOURCE_DOC_ID($dynamicResourceDocId)", 404))
+            .map(JSONFactory700.createDynamicResourceDocProvenanceJsonV700)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicResourceDocProvenance),
+      "GET",
+      "/management/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
+      "Get Dynamic Resource Doc (with provenance)",
+      s"""Returns the Dynamic Resource Doc specified by DYNAMIC_RESOURCE_DOC_ID, wrapped with a `provenance` object (created_by_user_id, updated_by_user_id, method_body_hash, created_at, updated_at).
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Resource Doc; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicResourceDocProvenanceJsonV700(
+        jsonDynamicResourceDoc,
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicResourceDocNotFound, UnknownError),
+      apiTagDynamicResourceDoc :: Nil,
+      Some(List(ApiRole.canGetDynamicResourceDoc)),
+      http4sPartialFunction = Some(getDynamicResourceDocProvenance)
+    )
+
+    val getConnectorMethodsProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "connector-methods" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.connectormethod.ConnectorMethod.findAll())
+            .map(rows => JSONFactory700.ConnectorMethodsProvenanceJsonV700(
+              rows.map(JSONFactory700.createConnectorMethodProvenanceJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConnectorMethodsProvenance),
+      "GET",
+      "/management/connector-methods",
+      "Get Connector Methods (with provenance)",
+      s"""Returns all Connector Methods, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Connector Methods; create / update remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.ConnectorMethodsProvenanceJsonV700(Nil),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConnectorMethod :: Nil,
+      Some(List(ApiRole.canGetAllConnectorMethods)),
+      http4sPartialFunction = Some(getConnectorMethodsProvenance)
+    )
+
+    val getConnectorMethodProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "connector-methods" / connectorMethodId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.connectormethod.ConnectorMethod.find(
+            By(code.connectormethod.ConnectorMethod.ConnectorMethodId, connectorMethodId)))
+            .map(box => unboxFullOrFail(box, Some(cc), s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID($connectorMethodId)", 404))
+            .map(JSONFactory700.createConnectorMethodProvenanceJsonV700)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConnectorMethodProvenance),
+      "GET",
+      "/management/connector-methods/CONNECTOR_METHOD_ID",
+      "Get Connector Method (with provenance)",
+      s"""Returns the Connector Method specified by CONNECTOR_METHOD_ID, wrapped with a `provenance` object (created_by_user_id, updated_by_user_id, method_body_hash, created_at, updated_at).
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Connector Method; create / update remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.ConnectorMethodProvenanceJsonV700(
+        jsonScalaConnectorMethod,
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConnectorMethodNotFound, UnknownError),
+      apiTagConnectorMethod :: Nil,
+      Some(List(ApiRole.canGetConnectorMethod)),
+      http4sPartialFunction = Some(getConnectorMethodProvenance)
+    )
+
+    val getDynamicMessageDocsProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-message-docs" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicMessageDoc.DynamicMessageDoc.findAll())
+            .map(rows => JSONFactory700.DynamicMessageDocsProvenanceJsonV700(
+              rows.map(JSONFactory700.createDynamicMessageDocProvenanceJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicMessageDocsProvenance),
+      "GET",
+      "/management/dynamic-message-docs",
+      "Get Dynamic Message Docs (with provenance)",
+      s"""Returns all Dynamic Message Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Message Docs; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicMessageDocsProvenanceJsonV700(Nil),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagDynamicMessageDoc :: Nil,
+      Some(List(ApiRole.canGetAllDynamicMessageDocs)),
+      http4sPartialFunction = Some(getDynamicMessageDocsProvenance)
+    )
+
+    val getDynamicMessageDocProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-message-docs" / dynamicMessageDocId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicMessageDoc.DynamicMessageDoc.find(
+            By(code.dynamicMessageDoc.DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId)))
+            .map(box => unboxFullOrFail(box, Some(cc), s"$DynamicMessageDocNotFound Current DYNAMIC_MESSAGE_DOC_ID($dynamicMessageDocId)", 404))
+            .map(JSONFactory700.createDynamicMessageDocProvenanceJsonV700)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicMessageDocProvenance),
+      "GET",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
+      "Get Dynamic Message Doc (with provenance)",
+      s"""Returns the Dynamic Message Doc specified by DYNAMIC_MESSAGE_DOC_ID, wrapped with a `provenance` object (created_by_user_id, updated_by_user_id, method_body_hash, created_at, updated_at).
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Message Doc; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicMessageDocProvenanceJsonV700(
+        jsonDynamicMessageDoc,
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicMessageDocNotFound, UnknownError),
+      apiTagDynamicMessageDoc :: Nil,
+      Some(List(ApiRole.canGetDynamicMessageDoc)),
+      http4sPartialFunction = Some(getDynamicMessageDocProvenance)
+    )
+
     // All routes combined (without middleware - for direct use).
     //
     // Routes are sorted automatically by URL template specificity (segment count,

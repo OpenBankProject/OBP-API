@@ -3265,6 +3265,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
+   * Lower-case hex SHA-256 of the given string (UTF-8). Used to fingerprint the source of
+   * runtime-compiled dynamic code (e.g. a Dynamic Resource Doc's method body) so that a stored
+   * record carries an integrity hash: it lets an operator answer "has this code changed since it
+   * was created?" without diffing the raw body, and is the value a future code-signing / approval
+   * step signs over.
+   */
+  def sha256Hex(in: String): String = {
+    val digest = java.security.MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))
+    digest.map(b => f"$b%02x").mkString
+  }
+
+  /**
    *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
    *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
    */

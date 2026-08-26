@@ -36,7 +36,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 API_ROOT = REPO_ROOT / "obp-api" / "src" / "main" / "scala" / "code" / "api"
 
-# Positional fields in ResourceDoc(...) — see APIUtil.scala:1589.
+# Positional fields in the pre-teardown ResourceDoc(...) signature, which is what
+# the commented-out Lift baselines still use — the endpoint partial function was
+# the first parameter.
 POSITIONAL_FIELDS = [
     "partialFunction",         # 0
     "implementedInApiVersion", # 1
@@ -50,6 +52,15 @@ POSITIONAL_FIELDS = [
     "errorResponseBodies",     # 9
     "tags",                    # 10
 ]
+
+# Current signature (the Lift teardown removed the leading partialFunction
+# parameter — see CLAUDE.md Rule 1); used by all active Http4s*.scala files.
+CURRENT_POSITIONAL_FIELDS = POSITIONAL_FIELDS[1:]
+
+# The verb literal is the discriminator between the two signatures: it sits at
+# positional index 3 in the old signature and index 2 in the current one.
+HTTP_VERB_LITERALS = {'"%s"' % v for v in
+                      ("GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS")}
 
 # Default fields included in the diff report.
 DEFAULT_DIFF_FIELDS = [
@@ -268,11 +279,17 @@ def parse_resourcedoc(body: str):
         else:
             named[n] = v
     out = OrderedDict()
-    for fname, val in zip(POSITIONAL_FIELDS, positional):
+    # Detect which constructor signature this doc uses by where the verb
+    # literal sits: index 2 → current signature (no leading partialFunction),
+    # index 3 → old signature (Lift baseline comments).
+    fields = POSITIONAL_FIELDS
+    if len(positional) > 2 and positional[2].strip() in HTTP_VERB_LITERALS:
+        fields = CURRENT_POSITIONAL_FIELDS
+    for fname, val in zip(fields, positional):
         out[fname] = val
-    if len(positional) > len(POSITIONAL_FIELDS):
-        # 12th positional is roles (Option[List[ApiRole]]).
-        extra = positional[len(POSITIONAL_FIELDS):]
+    if len(positional) > len(fields):
+        # Next positional after tags is roles (Option[List[ApiRole]]).
+        extra = positional[len(fields):]
         if "roles" not in named and extra:
             named["roles"] = extra[0]
     out.update(named)

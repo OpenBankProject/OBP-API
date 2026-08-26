@@ -42,13 +42,13 @@ trait DynamicResourceDocProvider {
 
   def getById(bankId: Option[String], dynamicResourceDocId: String): Box[JsonDynamicResourceDoc]
   def getByVerbAndUrl(bankId: Option[String], requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc]
-  
+
   def getAll(bankId: Option[String]): List[JsonDynamicResourceDoc] = getAllAndConvert(bankId, identity)
 
   def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T]
 
-  def create(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
-  def update(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
+  def create(bankId: Option[String], entity: JsonDynamicResourceDoc, createdByUserId: Option[String]): Box[JsonDynamicResourceDoc]
+  def update(bankId: Option[String], entity: JsonDynamicResourceDoc, updatedByUserId: Option[String]): Box[JsonDynamicResourceDoc]
   def deleteById(bankId: Option[String], dynamicResourceDocId: String): Box[Boolean]
 
 }

@@ -22,7 +22,6 @@ object DynamicEndpointCodeGenerator {
         |    // if the requestUrl of resourceDoc is /hello/banks/BANK_ID/world
         |    // the request path is /hello/banks/bank_x/world
         |    //pathParams.get("BANK_ID") will get Option("bank_x") value
-        |    val pathParams = getPathParams(callContext, request)
         |    $variables
         |""".stripMargin
     } else ""
@@ -30,17 +29,17 @@ object DynamicEndpointCodeGenerator {
     val (requestBodyCaseClasses, responseBodyCaseClasses) = buildCaseClasses(fragment.exampleRequestBody, fragment.successResponseBody)
 
     def requestEntityExp(str:String) =
-      s"""    val requestEntity = request.json match {
-      |        case Full(zson) =>
-      |          try {
-      |            zson.extract[$str]
-      |          } catch {
-      |            case e: MappingException =>
-      |             return Full(errorJsonResponse(s"$$InvalidJsonFormat $${e.msg}"))
-      |          }
-      |        case _: EmptyBox =>
-      |          return Full(errorJsonResponse(s"$$InvalidRequestPayload Current request has no payload"))
-      |      }
+      s"""    val requestEntity = callContext.httpBody.filter(_.nonEmpty) match {
+      |      case Some(rawBody) =>
+      |        try {
+      |          com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[$str]
+      |        } catch {
+      |          case e: MappingException =>
+      |            return errorResponse(s"$$InvalidJsonFormat $${e.msg}")
+      |        }
+      |      case None =>
+      |        return errorResponse(s"$$InvalidRequestPayload Current request has no payload")
+      |    }
       |""".stripMargin
 
     val requestEntity = fragment.exampleRequestBody match {
@@ -71,11 +70,12 @@ object DynamicEndpointCodeGenerator {
       |  val requestUrl = "${fragment.requestUrl}"
       |
       |  // copy the whole method body as "dynamicResourceDoc" method body
-      |  override protected def process(callContext: CallContext, request: Req): Box[JsonResponse] = {
+      |  override protected def process(callContext: CallContext, request: Request[IO], pathParams: Map[String, String]): IO[Response[IO]] = {
       |    // please add import sentences here, those used by this method
       |
       |    val Some(resourceDoc) = callContext.resourceDocument
-      |    val hasRequestBody = request.body.isDefined
+      |    // the request body is available as a String on the CallContext (read by Http4sCallContextBuilder)
+      |    val hasRequestBody = callContext.httpBody.exists(_.nonEmpty)
       |
       |$pathVariables
       |

@@ -3592,6 +3592,89 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Dynamic Resource Doc",
+		description =
+			s"""
+|A Dynamic Resource Doc defines a *single* Endpoint at runtime: its verb, URL path, summary, description, example request and response bodies, error list, tags and Roles - plus a *method body* written in Scala which is compiled at runtime and becomes the handler of the Endpoint.
+|
+|Whereas a Dynamic Endpoint (see ${getGlossaryItemLink("Dynamic Endpoint Manage")}) is created from a Swagger / OpenAPI file and contains *no code* (its behaviour is selected by the swagger `host` field), a Dynamic Resource Doc *is* code: the method body has access to the full CallContext and can transform payloads, call Connector methods and NewStyle functions, or invoke Dynamic Message Docs.
+|
+|Like all Resource Docs, Dynamic Resource Docs are part of the server registry of the API (see ${getGlossaryItemLink("Resource Doc")}), so they appear in the API Explorer and resource-docs endpoints like any Static endpoint.
+|
+|Dynamic Resource Docs can be created at System level or Bank / Space level, and are served under the `/obp/dynamic-endpoint/dynamic-resource-doc` path prefix (configurable via the `url.prefix.dynamic.resourceDoc` prop).
+|
+|Authentication and Role checks are applied to the compiled endpoint exactly as for Static endpoints - including the checks that run inside the shared authentication step: Consumer disabled, User locked / deleted, Consent processing and Rate Limiting.
+|
+|Some cross-cutting features of the Static pipeline do *not* currently apply to runtime-compiled Dynamic Resource Doc endpoints: API Metrics are not recorded, the JSON Schema Validation and Force-Error interceptors are not run, the Idempotency-Key mechanism is unavailable, and handlers run on auto-commit (no request-scoped database transaction). Dynamic Endpoints created from Swagger (the proxy path) *do* record Metrics and *do* run the JSON Schema Validation interceptors.
+|
+|Because the method body is user-supplied code compiled at runtime, this feature is guarded by the `allow_user_generated_scala_code` prop (default: false) and the Roles CanCreateDynamicResourceDoc / CanCreateBankLevelDynamicResourceDoc etc.
+|
+|A helper endpoint (`POST /management/dynamic-resource-docs/endpoint-code`) can generate a method-body template from example request / response bodies.
+|
+|See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks.
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Code Paths",
+		description =
+			s"""
+|OBP offers several building blocks for defining API behaviour at *runtime* - stored in the OBP database as instance configuration rather than compiled into the source code. This item explains how they fit together.
+|
+|**The building blocks**
+|
+|At the *API surface* layer (what URL / verb exists, who may call it):
+|
+|1) **Dynamic Endpoint** (${getGlossaryItemLink("Dynamic Endpoint Manage")}) - created from a Swagger / OpenAPI file. No code. Every operation in the file becomes a live endpoint with an auto-generated Role.
+|
+|2) **Dynamic Resource Doc** (${getGlossaryItemLink("Dynamic Resource Doc")}) - one endpoint definition *plus* a Scala method body compiled at runtime. The code is the handler.
+|
+|At the *Connector* layer (how a backend system is reached):
+|
+|3) **Method Routing** (${getGlossaryItemLink("Method Routing")}) - a routing rule that selects which Connector implementation serves a given Connector method (per bank, per URL pattern etc.). Pure configuration, no code.
+|
+|4) **Connector Method** (${getGlossaryItemLink("Connector Method")}) - a runtime-compiled body (Scala, Java or JavaScript) for one of the *existing* methods of the Connector trait (e.g. getBanks, makePaymentv210, dynamicEndpointProcess). Executed when a Method Routing rule routes that method to `connector = internal`.
+|
+|5) **Dynamic Message Doc** (${getGlossaryItemLink("Dynamic Message Doc")}) - a runtime-compiled function keyed by a *process name*, for logic that does not correspond to an existing Connector method. Invoked from other dynamic code (or by Dynamic Entity storage operations).
+|
+|Related: **Dynamic Entities** (${getGlossaryItemLink("Dynamic-Entities")}) provide runtime-defined data storage, and **Endpoint Mapping** (${getGlossaryItemLink("Endpoint Mapping")}) maps Dynamic Endpoint JSON fields onto Dynamic Entity fields.
+|
+|**How they compose - the paths**
+|
+|```
+|                              +--> host=obp_mock ......... returns swagger example      (mock)
+|                              |
+| Dynamic Endpoint (swagger) --+--> host=dynamic_entity ... Endpoint Mapping
+|   no code                   |                              -> Dynamic Entity storage  (data-backed)
+|                              |
+|                              +--> any other host ......... Method Routing:
+|                                                             connector=rest  -> HTTP proxy to backend
+|                                                             connector=internal -> Connector Method (code)
+|
+| Dynamic Resource Doc ------------> compiled Scala handler
+|   code at the endpoint layer        |-> Connector methods (routed by Method Routing)
+|                                     |-> Dynamic Message Docs (by process name)
+|                                     |-> any transformation / orchestration logic
+|```
+|
+|**Choosing a path**
+|
+|* Need a quick mock of an API from its spec? Dynamic Endpoint with `host = obp_mock`.
+|* Need a data-backed CRUD API with no code? Dynamic Endpoint with `host = dynamic_entity` + Endpoint Mapping + a Dynamic Entity.
+|* Need to pass requests through to an existing backend *unchanged*? Dynamic Endpoint + Method Routing with a `url` parameter (transparent HTTP proxy - no payload transformation, no credential minting).
+|* Need transformation, authentication against the backend, error mapping or orchestration? Use code: either a Dynamic Resource Doc (code at the endpoint layer - one self-contained artifact per endpoint) or a Connector Method (code at the connector seam - keeps backend integration reusable across endpoints and swappable via Method Routing). These combine well: Dynamic Resource Docs for the API surface, Connector Methods / Dynamic Message Docs for the backend calls.
+|
+|**Static vs Dynamic**
+|
+|Static endpoints (${getGlossaryItemLink("Static Endpoint")}) are Scala source code in Git, changed via release and restart. All the dynamic building blocks above live in the OBP database of the instance: they can be created and changed in real time over the management API (or via the API Manager UI) with *no code deployment and no restart*, and they never require instance-specific code in the public source repositories.
+|
+|**Guards**
+|
+|Runtime-compiled code (Dynamic Resource Docs, Connector Methods, Dynamic Message Docs) is disabled unless the `allow_user_generated_scala_code` prop is set to true, and every creation endpoint requires its corresponding Role. Dynamic Endpoints (swagger, no code) are not affected by that prop; each generated endpoint is protected by its own auto-generated Role.
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Endpoint Mapping",
 		description =
 			s"""
@@ -3735,6 +3818,47 @@ object Glossary extends MdcLoggable  {
 				 |In short, Static (standard) endpoints are defined in Git as Scala source code, where as Dynamic (custom) endpoints are defined in the OBP database.
 				 |
 |Modifications to Static endpoint core properties such as URLs and response bodies require source code changes and an instance restart. However, JSON Schema Validation and Dynamic Connector changes can be applied in real-time.
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Resource Doc",
+		description =
+			s"""
+|A Resource Doc is the machine readable definition / description of an OBP Endpoint.
+|
+|The aim is that as much endpoint definition as possible is *defined first* within the Resource Doc making the Resource Doc the canonical source of truth about the endpoints structure and behaviour.
+|
+|In total Resource Docs form the server registry of the API: every Endpoint, static or dynamic, is registered in the running server with its Resource Doc, and that registry is the source of truth about the API surface.
+|
+|Note that the Resource Docs (like the Glossary) can contain instance variables about the OBP-API instance that is running, so HOSTNAMES and various configuration settings are automatically correct.
+|
+|An OBP API instance only serves resource docs about endpoints that are actually enabled so any client (e.g. the OBP MCP Server or API Explorer) can use them as a capability discovery channel.
+|
+|
+|Each Resource Doc includes:
+|
+|  1) The Operation ID / Scala Partial Function name (the source code / function that runs the endpoint) which uniquely identifies the Endpoint (e.g. getCoreAccountById)
+|  2) The API version the Endpoint is implemented in
+|  3) The request verb (GET, POST, PUT, DELETE etc.) and URL path
+|  4) A summary and a longer description (markdown)
+|  5) An example request body and a successful response body. These are generated from the actual Scala case classes the Endpoint uses, so field names and types reflect the real implementation rather than separately maintained documentation.
+|  6) The possible error responses
+|  7) Tags used to group Endpoints in the API Explorer and filter Resource Docs
+|  8) The Roles (Entitlements) required to call the Endpoint. Roles declared in the Resource Doc are automatically checked by the framework at runtime.
+|  9) Connector methods the Endpoint depends on (linking to the related Message Docs)
+|
+|Because the Resource Doc registry lives inside the running server, it differs from a published OpenAPI file in two important ways:
+|
+|* The arrow of generation points from code to documentation: the Swagger / OpenAPI documents that OBP publishes are generated *from* the Resource Docs, not maintained alongside the code. This avoids documentation drift.
+|
+|* It covers Endpoints created at runtime: Dynamic Endpoints and the auto-generated CRUD Endpoints for Dynamic Entities get Resource Docs when they are created, so per-bank custom APIs are documented by the same mechanism as the static Endpoints - something a static, pre-published API description cannot do.
+|
+|Resource Docs are available over the Resource Doc endpoints in OBP format (which includes OBP specific metadata such as Roles, Tags and Connector methods) and in Swagger / OpenAPI format. They can be filtered by tags, functions and API collections.
+|
+|As mentioned above, Resource Docs power the API Explorer interface and are the natural foundation for programmatic consumers of the API surface: SDK generators, API management tooling and AI assistants (such as [Opey](/glossary#Opey) and [OBP-MCP](/glossary#OBP-MCP)) that need to discover, select and validate calls to Endpoints.
+|
+|See also [Endpoint](/glossary#Endpoint), [Static Endpoint](/glossary#Static-Endpoint), [Dynamic Endpoint Manage](/glossary#Dynamic-Endpoint-Manage), [Message Doc](/glossary#Message-Doc)
+|
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -3888,8 +4012,6 @@ object Glossary extends MdcLoggable  {
       |
       |You can also use these endpoints to create your own helper methods in OBP code.
 			|
-			| This feature is somewhat work in progress (WIP).
-|
 		  |The following videos are available:
 			|* [Introduction to Dynamic Message Doc] (https://vimeo.com/623317747)
 		  |
@@ -5853,6 +5975,14 @@ object Glossary extends MdcLoggable  {
 				 |└──────────────────┘          └────────────────────────┘            └──────────────┘
 				 |```
 				 |
+				 |## Architecture diagram
+				 |
+				 |The full picture — Portal/API Explorer, Opey, external MCP clients (Claude Code, Claude Desktop, IDE agents), OBP-OIDC, the numbered consent flow, and OBP-API down to the core banking systems:
+				 |
+				 |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+				 |
+				 |The editable master is a Lucidchart document linked from the [OBP-MCP README](https://github.com/OpenBankProject/OBP-MCP#architecture).
+				 |
 				 |## Three-step discovery + call (no RAG, no vector DB)
 				 |
 				 |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
@@ -5869,7 +5999,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
 				 |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
-				 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's resource-docs and swagger to rebuild the local indexes, so discovery stays fast and offline.
+				 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's [Resource Docs](/glossary#Resource-Doc) and swagger to rebuild the local indexes, so discovery stays fast and offline.
 				 |
 				 |## Authentication and authorization
 				 |
@@ -5894,7 +6024,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
 				 |
-				 |See also: [Opey](/glossary#Opey), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |See also: [Opey](/glossary#Opey), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
 				 |
 """)
 
@@ -5912,6 +6042,10 @@ object Glossary extends MdcLoggable  {
 				 |## Opey is an agent. OBP-MCP is its tool surface.
 				 |
 				 |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
+				 |
+				 |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+				 |
+				 |Besides the MCP path shown above, Opey makes some direct HTTP calls to OBP-API for its own infrastructure (session validation via `/users/current`, admin DirectLogin operations, persisting LangGraph checkpoints as dynamic entities, and health probes) — see the architecture section of the [Opey README](https://github.com/OpenBankProject/OBP-Opey-II#architecture-how-opey-reaches-the-obp-api) for the detail diagram.
 				 |
 				 |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
 				 |
@@ -5958,7 +6092,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
 				 |
-				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
 				 |
 """)
 
