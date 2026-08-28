@@ -101,7 +101,15 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   object PrincipalUserId extends MappedString(this, 100) {
     override def defaultValue = null
   }
-  
+  // Deliberately NOT unique — several users may share a number
+  object MobilePhoneNumber extends MappedString(this, 50) {
+    override def defaultValue = null
+  }
+  object MobilePhoneNumberIsValidated extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
+  object MobilePhoneNumberValidatedDate extends MappedDateTime(this)
+
   def emailAddress = {
     val e = email.get
     if(e != null) e else ""
@@ -133,6 +141,9 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   override def lastUsedLocale: Option[String] = if(LastUsedLocale.get == null) None else Some(LastUsedLocale.get) // null --> None
   override def isNaturalPerson: Boolean = IsNaturalPerson.get
   override def principalUserIdOption: Option[String] = if(PrincipalUserId.get == null) None else if (PrincipalUserId.get.isEmpty) None else Some(PrincipalUserId.get)
+  override def mobilePhoneNumber: Option[String] = if(MobilePhoneNumber.get == null) None else if (MobilePhoneNumber.get.isEmpty) None else Some(MobilePhoneNumber.get)
+  override def mobilePhoneNumberIsValidated: Option[Boolean] = if(MobilePhoneNumberIsValidated.jdbcFriendly(MobilePhoneNumberIsValidated.calcFieldName) == null) None else Some(MobilePhoneNumberIsValidated.get) // null --> None
+  override def mobilePhoneNumberValidatedDate: Option[Date] = if(MobilePhoneNumberValidatedDate.get == null) None else Some(MobilePhoneNumberValidatedDate.get)
 }
 
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{

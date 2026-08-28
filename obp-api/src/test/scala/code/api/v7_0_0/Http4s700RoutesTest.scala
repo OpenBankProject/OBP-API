@@ -8,7 +8,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -1083,8 +1083,15 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 200 with user fields when authenticated with canGetAnyUser role", Http4s700RoutesTag) {
-      Given("canGetAnyUser role granted to resourceUser1")
+      Given("canGetAnyUser role granted to resourceUser1, who has a mobile phone number")
       addEntitlement("", resourceUser1.userId, canGetAnyUser.toString)
+      code.model.dataAccess.ResourceUser.find(
+        By(code.model.dataAccess.ResourceUser.userId_, resourceUser1.userId)
+      ).openOrThrowException("resourceUser1 must exist")
+        .MobilePhoneNumber("+49123456789")
+        .MobilePhoneNumberIsValidated(true)
+        .MobilePhoneNumberValidatedDate(new Date())
+        .save
 
       When(s"GET /obp/v7.0.0/users/user-id/${resourceUser1.userId} with DirectLogin header")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
@@ -1102,6 +1109,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           m.keys should contain("username")
           m.keys should contain("email")
           m.keys should contain("entitlements")
+          m.get("mobile_phone_number") shouldBe Some(JString("+49123456789"))
+          m.get("mobile_phone_number_is_validated") shouldBe Some(JBool(true))
+          m.get("mobile_phone_number_validated_date") match {
+            case Some(JString(_)) => succeed
+            case other => fail(s"Expected mobile_phone_number_validated_date as date string, got $other")
+          }
         case _ => fail("Expected JSON object for getUserByUserId")
       }
     }
@@ -1120,6 +1133,162 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
             case Some(JString(msg)) => msg should include(UserNotFoundByUserId)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── getCurrentUser (v7 native — adds the user's mobile phone fields) ─────────
+
+  feature("Http4s700 getCurrentUser endpoint") {
+
+    scenario("Reject unauthenticated access to /users/current", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/users/current with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/users/current")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 with mobile phone fields served natively by v7", Http4s700RoutesTag) {
+      Given("resourceUser1 has a validated mobile phone number")
+      val ru = code.model.dataAccess.ResourceUser.find(
+        By(code.model.dataAccess.ResourceUser.userId_, resourceUser1.userId)
+      ).openOrThrowException("resourceUser1 must exist")
+      ru.MobilePhoneNumber("+49123456789")
+        .MobilePhoneNumberIsValidated(true)
+        .MobilePhoneNumberValidatedDate(new Date())
+        .save
+
+      When("GET /obp/v7.0.0/users/current with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, respHeaders) = makeHttpRequest("/obp/v7.0.0/users/current", headers)
+
+      Then("Response is 200, served by v7 (no version-served fallback header), with the mobile fields")
+      statusCode shouldBe 200
+      hasHeader(respHeaders, "X-OBP-Version-Served") shouldBe false
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.get("user_id") shouldBe Some(JString(resourceUser1.userId))
+          m.get("mobile_phone_number") shouldBe Some(JString("+49123456789"))
+          m.get("mobile_phone_number_is_validated") shouldBe Some(JBool(true))
+          m.get("mobile_phone_number_validated_date") match {
+            case Some(JString(_)) => succeed
+            case other => fail(s"Expected mobile_phone_number_validated_date as date string, got $other")
+          }
+        case _ => fail("Expected JSON object for getCurrentUser")
+      }
+    }
+  }
+
+  // ─── updateMyMobilePhoneNumber ────────────────────────────────────────────────
+
+  feature("Http4s700 updateMyMobilePhoneNumber endpoint") {
+
+    scenario("Reject unauthenticated PUT to /my/user/mobile-phone-number", Http4s700RoutesTag) {
+      Given("PUT /obp/v7.0.0/my/user/mobile-phone-number with no auth headers")
+      val body = """{"mobile_phone_number":"+49123456789"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/my/user/mobile-phone-number", body)
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Setting a different number resets the validated flag but keeps the validated date", Http4s700RoutesTag) {
+      Given("resourceUser1 has a validated mobile phone number")
+      val ru = code.model.dataAccess.ResourceUser.find(
+        By(code.model.dataAccess.ResourceUser.userId_, resourceUser1.userId)
+      ).openOrThrowException("resourceUser1 must exist")
+      ru.MobilePhoneNumber("+49123456789")
+        .MobilePhoneNumberIsValidated(true)
+        .MobilePhoneNumberValidatedDate(new Date())
+        .save
+
+      When("PUT /obp/v7.0.0/my/user/mobile-phone-number with a new number")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body = """{"mobile_phone_number":"+49 170 5556677"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/my/user/mobile-phone-number", body, headers)
+
+      Then("Response is 200 with the new number, is_validated false, validated date preserved")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.get("mobile_phone_number") shouldBe Some(JString("+49 170 5556677"))
+          m.get("mobile_phone_number_is_validated") shouldBe Some(JBool(false))
+          m.get("mobile_phone_number_validated_date") match {
+            case Some(JString(_)) => succeed
+            case other => fail(s"Expected preserved validated date, got $other")
+          }
+        case _ => fail("Expected JSON object for updateMyMobilePhoneNumber")
+      }
+
+      And("the database reflects the new number with the flag reset")
+      val reloaded = code.model.dataAccess.ResourceUser.find(
+        By(code.model.dataAccess.ResourceUser.userId_, resourceUser1.userId)
+      ).openOrThrowException("resourceUser1 must exist")
+      reloaded.mobilePhoneNumber shouldBe Some("+49 170 5556677")
+      reloaded.mobilePhoneNumberIsValidated shouldBe Some(false)
+      reloaded.mobilePhoneNumberValidatedDate.isDefined shouldBe true
+    }
+
+    scenario("Re-submitting the same number keeps the validated flag", Http4s700RoutesTag) {
+      Given("resourceUser1 has a validated mobile phone number")
+      val ru = code.model.dataAccess.ResourceUser.find(
+        By(code.model.dataAccess.ResourceUser.userId_, resourceUser1.userId)
+      ).openOrThrowException("resourceUser1 must exist")
+      ru.MobilePhoneNumber("+49123456789")
+        .MobilePhoneNumberIsValidated(true)
+        .MobilePhoneNumberValidatedDate(new Date())
+        .save
+
+      When("PUT /obp/v7.0.0/my/user/mobile-phone-number with the same number")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body = """{"mobile_phone_number":"+49123456789"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/my/user/mobile-phone-number", body, headers)
+
+      Then("Response is 200 and the number is still validated")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.get("mobile_phone_number") shouldBe Some(JString("+49123456789"))
+          m.get("mobile_phone_number_is_validated") shouldBe Some(JBool(true))
+        case _ => fail("Expected JSON object for updateMyMobilePhoneNumber")
+      }
+    }
+
+    scenario("Reject an invalid phone number with 400", Http4s700RoutesTag) {
+      When("PUT /obp/v7.0.0/my/user/mobile-phone-number with a non-numeric value")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body = """{"mobile_phone_number":"not-a-phone-number"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/my/user/mobile-phone-number", body, headers)
+
+      Then("Response is 400 with InvalidPhoneNumber message")
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(InvalidPhoneNumber)
             case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")

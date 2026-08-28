@@ -871,15 +871,18 @@ object Http4s700 {
             }
             lastActivityDate = userMetrics.headOption.map(_.getDate())
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
-          } yield JSONFactory600.createUserInfoJsonV600(
+          } yield JSONFactory700.createUserInfoDetailJsonV700(
             user,
-            authUser.map(_.firstName.get).getOrElse(""),
-            authUser.map(_.lastName.get).getOrElse(""),
-            entitlements,
-            agreements,
-            isLocked,
-            lastActivityDate,
-            recentOperationIds
+            JSONFactory600.createUserInfoJsonV600(
+              user,
+              authUser.map(_.firstName.get).getOrElse(""),
+              authUser.map(_.lastName.get).getOrElse(""),
+              entitlements,
+              agreements,
+              isLocked,
+              lastActivityDate,
+              recentOperationIds
+            )
           )
         }
     }
@@ -896,11 +899,133 @@ object Http4s700 {
         |
         |CanGetAnyUser entitlement is required.""",
       EmptyBody,
-      userInfoJsonV600,
+      JSONFactory700.userInfoDetailJsonV700Example,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
       apiTagUser :: Nil,
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUserByUserId)
+    )
+
+    // Route: GET /obp/v7.0.0/users/current
+    // v7 signature change over v6: the response carries the user's own mobile phone
+    // fields (number, is_validated flag, validated date) stored on ResourceUser —
+    // distinct from the bank-scoped mobile_phone_number on Customer (KYC data).
+    val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "current" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
+          } yield {
+            val permissions = Views.views.vend.getPermissionForUser(user).toOption
+            val virtualRoleNames =
+              if (APIUtil.isSuperAdmin(user.userId)) JSONFactory200.superAdminVirtualRoles
+              else if (APIUtil.isOidcOperator(user.userId)) JSONFactory200.oidcOperatorVirtualRoles
+              else List.empty
+            val existingRoleNames = entitlements.map(_.roleName).toSet
+            val virtualEntitlements = virtualRoleNames.filterNot(existingRoleNames.contains).map { role =>
+              new Entitlement {
+                def entitlementId    = ""
+                def bankId           = ""
+                def userId           = user.userId
+                def roleName         = role
+                def createdByProcess =
+                  if (APIUtil.isSuperAdmin(user.userId)) "super_admin_user_ids"
+                  else "oidc_operator_user_ids"
+                def entitlementRequestId: Option[String] = None
+                def groupId: Option[String]              = None
+                def process: Option[String]              = None
+                def grantedByUserId: Option[String]      = None
+              }
+            }
+            val currentUser = UserV600(user, entitlements ::: virtualEntitlements, permissions)
+            val onBehalfOfUser =
+              if (cc.onBehalfOfUser.isDefined) {
+                val u = cc.onBehalfOfUser.toOption.get
+                val ents = Entitlement.entitlement.vend.getEntitlementsByUserId(u.userId)
+                  .headOption.toList.flatten
+                val perms = Views.views.vend.getPermissionForUser(u).toOption
+                Some(UserV600(u, ents, perms))
+              } else None
+            JSONFactory700.createUserJsonV700(currentUser, onBehalfOfUser)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getCurrentUser),
+      "GET",
+      "/users/current",
+      "Get User (Current)",
+      """Get the logged in user.
+        |
+        |In v7.0.0 the response includes the user's own mobile phone fields:
+        |`mobile_phone_number`, `mobile_phone_number_is_validated` and
+        |`mobile_phone_number_validated_date`. These belong to the authenticated
+        |user (global across banks) and are distinct from the bank-scoped
+        |`mobile_phone_number` on Customer, which is KYC data of a legal entity.
+        |
+        |Authentication is required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.userJsonV700Example,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagUser :: Nil,
+      None,
+      http4sPartialFunction = Some(getCurrentUser)
+    )
+
+    // Route: PUT /obp/v7.0.0/my/user/mobile-phone-number
+    val updateMyMobilePhoneNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "my" / "user" / "mobile-phone-number" =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PutMyMobilePhoneNumberJsonV700, JSONFactory700.MyMobilePhoneNumberJsonV700](req) { (user, body, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidPhoneNumber, cc = Some(cc)) {
+              body.mobile_phone_number.matches("""\+?[0-9\-\s().]{5,50}""")
+            }
+            resourceUser <- Future {
+              UserVend.users.vend.getResourceUserByResourceUserId(user.userPrimaryKey.value)
+            } map { x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404) }
+            updated <- Future {
+              val numberChanged = !resourceUser.mobilePhoneNumber.contains(body.mobile_phone_number)
+              resourceUser.MobilePhoneNumber(body.mobile_phone_number)
+              // a changed number is unverified: reset the flag, but keep
+              // MobilePhoneNumberValidatedDate as the audit trail of the last
+              // successful validation
+              if (numberChanged) resourceUser.MobilePhoneNumberIsValidated(false)
+              resourceUser.saveMe()
+            }
+          } yield JSONFactory700.MyMobilePhoneNumberJsonV700(
+            mobile_phone_number = updated.mobilePhoneNumber,
+            mobile_phone_number_is_validated = updated.mobilePhoneNumberIsValidated,
+            mobile_phone_number_validated_date = updated.mobilePhoneNumberValidatedDate
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateMyMobilePhoneNumber),
+      "PUT",
+      "/my/user/mobile-phone-number",
+      "Update My Mobile Phone Number",
+      """Set or update the mobile phone number of the currently authenticated user.
+        |
+        |This number belongs to the authenticated user (global across banks) and is
+        |distinct from the bank-scoped `mobile_phone_number` on Customer, which is
+        |KYC data of a legal entity.
+        |
+        |Setting a different number resets `mobile_phone_number_is_validated` to
+        |`false`. `mobile_phone_number_validated_date` is left untouched: it is the
+        |audit trail of the last successful validation and is only written by the
+        |validation flow.
+        |
+        |Authentication is required.""".stripMargin,
+      JSONFactory700.putMyMobilePhoneNumberJsonV700Example,
+      JSONFactory700.myMobilePhoneNumberJsonV700Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidPhoneNumber, UnknownError),
+      apiTagUser :: Nil,
+      None,
+      http4sPartialFunction = Some(updateMyMobilePhoneNumber)
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────
