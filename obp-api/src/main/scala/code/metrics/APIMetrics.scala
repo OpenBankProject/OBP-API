@@ -1,7 +1,9 @@
 package code.metrics
 
 import java.util.{Calendar, Date}
-import code.api.util.{APIUtil, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
+import code.api.util.APIUtil.{HTTPParam, createQueriesByHttpParamsFuture}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
@@ -33,6 +35,40 @@ object APIMetrics extends SimpleInjector {
     cal.set(Calendar.SECOND,0)
     cal.set(Calendar.MILLISECOND,0)
     cal.getTime
+  }
+
+  // Inject default from_date so metrics queries don't hit all rows since epoch.
+  // Shared by every endpoint that reads metrics (GET /management/metrics,
+  // GET /management/aggregate-metrics, GET /my/metrics, ...).
+  def applyMetricsFromDateDefault(httpParams: List[HTTPParam]): List[HTTPParam] = {
+    val hasFromDate = httpParams.exists(p => p.name == "from_date" || p.name == "obp_from_date")
+    if (hasFromDate) httpParams
+    else {
+      val stableBoundary = APIUtil.getPropsAsIntValue("MappedMetrics.stable.boundary.seconds", 600)
+      val defaultFromDate = new Date(System.currentTimeMillis() - ((stableBoundary - 1) * 1000L))
+      HTTPParam("from_date", List(APIUtil.DateWithMsFormat.format(defaultFromDate))) :: httpParams
+    }
+  }
+
+  // One shared fetch path for metrics-reading endpoints: builds OBPQueryParams
+  // from the http params (with the from_date default applied) and runs the query.
+  // lockedUserId pins the user filter server-side (for self-service endpoints
+  // like GET /my/metrics); when set it overrides anything in httpParams.
+  def getMetricsFromHttpParams(
+      httpParams: List[HTTPParam],
+      callContext: Option[CallContext],
+      lockedUserId: Option[String] = None
+  ): Future[(List[APIMetric], Option[CallContext])] = {
+    val effectiveParams = lockedUserId match {
+      case Some(userId) =>
+        httpParams.filterNot(_.name == "user_id") :+ HTTPParam("user_id", List(userId))
+      case None => httpParams
+    }
+    for {
+      (obpQueryParams, cc) <- createQueriesByHttpParamsFuture(
+        applyMetricsFromDateDefault(effectiveParams), callContext)
+      metrics <- Future(apiMetrics.vend.getAllMetrics(obpQueryParams))
+    } yield (metrics, cc)
   }
 
 }

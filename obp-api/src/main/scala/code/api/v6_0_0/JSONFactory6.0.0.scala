@@ -1739,6 +1739,13 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     MetricsJsonV600(metrics.map(createMetricJsonV600(_, lookupMap)))
   }
 
+  // Overload that builds the partialFunctionName -> operationId lookup itself —
+  // the shared path for endpoints returning raw metric rows.
+  def createMetricsJsonV600(metrics: List[code.metrics.APIMetric]): MetricsJsonV600 = {
+    val lookupMap = code.api.util.APIUtil.getAllResourceDocs.map(d => d.partialFunctionName -> d.operationId).toMap
+    createMetricsJsonV600(metrics, lookupMap)
+  }
+
   def createBankJSON600(
       bank: Bank,
       attributes: List[BankAttributeTrait] = Nil

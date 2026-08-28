@@ -637,30 +637,14 @@ object Http4s600 {
     }
 
 
-    // Inject default from_date so metrics queries don't hit all rows since epoch.
-    private def applyMetricsFromDateDefault(httpParams: List[HTTPParam]): List[HTTPParam] = {
-      val hasFromDate = httpParams.exists(p => p.name == "from_date" || p.name == "obp_from_date")
-      if (hasFromDate) httpParams
-      else {
-        val stableBoundary = APIUtil.getPropsAsIntValue("MappedMetrics.stable.boundary.seconds", 600)
-        val defaultFromDate = new java.util.Date(System.currentTimeMillis() - ((stableBoundary - 1) * 1000L))
-        HTTPParam("from_date", List(APIUtil.DateWithMsFormat.format(defaultFromDate))) :: httpParams
-      }
-    }
-
     // Route: GET /obp/v6.0.0/management/metrics
     lazy val getMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "metrics" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
-              applyMetricsFromDateDefault(httpParams), cc.callContext)
-            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams))
-          } yield {
-            val lookupMap = APIUtil.getAllResourceDocs.map(d => d.partialFunctionName -> d.operationId).toMap
-            JSONFactory600.createMetricsJsonV600(metrics, lookupMap)
-          }
+            (metrics, _) <- APIMetrics.getMetricsFromHttpParams(httpParams, cc.callContext)
+          } yield JSONFactory600.createMetricsJsonV600(metrics)
         }
     }
 
@@ -681,7 +665,7 @@ object Http4s600 {
               else true
             }
             (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
-              applyMetricsFromDateDefault(httpParams), cc.callContext)
+              APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
             aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, false) map {
               APIUtil.unboxFullOrFail(_, callContext, GetAggregateMetricsError)
             }

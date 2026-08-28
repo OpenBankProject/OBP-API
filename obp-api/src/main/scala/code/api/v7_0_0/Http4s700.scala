@@ -45,7 +45,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import code.loginattempts.LoginAttempt
-import code.metrics.MappedMetric
+import code.metrics.{APIMetrics, MappedMetric}
 import code.users.UserAgreementProvider
 import net.liftweb.common.Full
 import com.openbankproject.commons.util.JsonAliases.prettyRender
@@ -1026,6 +1026,90 @@ object Http4s700 {
       apiTagUser :: Nil,
       None,
       http4sPartialFunction = Some(updateMyMobilePhoneNumber)
+    )
+
+    // Route: GET /obp/v7.0.0/my/metrics
+    // Same fetch path as GET /management/metrics (APIMetrics.getMetricsFromHttpParams)
+    // with the user filter locked to the logged-in user.
+    val getMyMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "metrics" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            // The caller may only ever see their own calls: identity filters are
+            // rejected outright rather than silently ignored.
+            identityParams = httpParams.map(_.name)
+              .filter(Set("user_id", "username", "email", "provider_provider_id", "anon").contains)
+            _ <- Helper.booleanToFuture(
+              s"$UserFilterParametersNotSupported Parameters found: [${identityParams.mkString(", ")}]",
+              cc = Some(cc)) {
+              identityParams.isEmpty
+            }
+            (metrics, _) <- APIMetrics.getMetricsFromHttpParams(
+              httpParams, cc.callContext, lockedUserId = Some(user.userId))
+          } yield JSONFactory600.createMetricsJsonV600(metrics)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMyMetrics),
+      "GET",
+      "/my/metrics",
+      "Get Metrics (My)",
+      s"""Get the API metrics rows of the currently authenticated user — a record of each REST API call this user has made.
+        |
+        |No role is required: this endpoint only ever returns the logged in user's own calls.
+        |The identity filter parameters accepted by `GET /management/metrics` (`user_id`, `username`, `email`,
+        |`provider_provider_id`, `anon`) are NOT supported here and are rejected with an error —
+        |the user filter is always the current user.
+        |
+        |**NOTE: Automatic from_date Default**
+        |
+        |If you do not provide a `from_date` parameter it is automatically set to a few minutes ago
+        |(now - ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes).
+        |For historical queries, always explicitly specify your desired `from_date` — this also enables
+        |long-term caching of the result.
+        |
+        |The other filter and pagination parameters work as on `GET /management/metrics`:
+        |
+        |eg: /my/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+        |
+        |1 from_date e.g.:from_date=$DateWithMsExampleString
+        |
+        |2 to_date e.g.:to_date=$DateWithMsExampleString Defaults to a far future date i.e. ${APIUtil.ToDateInFuture}
+        |
+        |3 limit (for pagination: defaults to 50) eg:limit=200
+        |
+        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+        |
+        |5 sort_by (defaults to date field) eg: sort_by=date
+        |
+        |6 direction (defaults to date desc) eg: direction=desc
+        |
+        |7 consumer_id (if null ignore)
+        |
+        |8 app_name (if null ignore)
+        |
+        |9 url (if null ignore)
+        |
+        |10 implemented_by_partial_function (if null ignore)
+        |
+        |11 implemented_in_version (if null ignore)
+        |
+        |12 verb (if null ignore)
+        |
+        |13 correlation_id (if null ignore)
+        |
+        |14 duration (if null ignore) - Returns calls where duration > specified value (in milliseconds). eg: duration=5000
+        |
+        |Authentication is required.""".stripMargin,
+      EmptyBody,
+      metricsJsonV600,
+      List($AuthenticatedUserIsRequired, UserFilterParametersNotSupported, UnknownError),
+      apiTagMetric :: apiTagUser :: Nil,
+      None,
+      http4sPartialFunction = Some(getMyMetrics)
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────

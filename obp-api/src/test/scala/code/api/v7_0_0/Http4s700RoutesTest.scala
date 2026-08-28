@@ -8,7 +8,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -18,6 +18,7 @@ import code.views.system.ViewPermission
 import com.openbankproject.commons.model.ViewId
 import code.routingscheme.RoutingSchemes
 import code.model.dataAccess.BankAccountRouting
+import code.metrics.MappedMetric
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.organisation.Organisations
@@ -1292,6 +1293,109 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
             case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── getMyMetrics ─────────────────────────────────────────────────────────────
+
+  feature("Http4s700 getMyMetrics endpoint") {
+
+    def createTestMetric(userId: String, userName: String, partialFunctionName: String): Unit =
+      MappedMetric.create
+        .userId(userId)
+        .userName(userName)
+        .url("/obp/v7.0.0/my/metrics-test")
+        .date(new Date())
+        .duration(42)
+        .appName("Http4s700RoutesTestApp")
+        .verb("GET")
+        .implementedByPartialFunction(partialFunctionName)
+        .implementedInVersion("v7.0.0")
+        .correlationId(java.util.UUID.randomUUID().toString)
+        .save
+
+    scenario("Reject unauthenticated access to /my/metrics", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/my/metrics with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/my/metrics")
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Reject a user_id filter with 400 UserFilterParametersNotSupported", Http4s700RoutesTag) {
+      When("GET /obp/v7.0.0/my/metrics with a user_id filter pointing at resourceUser2")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) =
+        makeHttpRequest(s"/obp/v7.0.0/my/metrics?user_id=${resourceUser2.userId}&limit=500", headers)
+
+      Then("Response is 400 with UserFilterParametersNotSupported naming the offending parameter")
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserFilterParametersNotSupported)
+              msg should include("user_id")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Reject username and anon filters with 400", Http4s700RoutesTag) {
+      When("GET /obp/v7.0.0/my/metrics with username and anon filters")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) =
+        makeHttpRequest("/obp/v7.0.0/my/metrics?username=someone&anon=false", headers)
+
+      Then("Response is 400 naming both offending parameters")
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserFilterParametersNotSupported)
+              msg should include("username")
+              msg should include("anon")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return only the logged in user's own metrics", Http4s700RoutesTag) {
+      Given("a metric row for resourceUser1 and one for resourceUser2")
+      createTestMetric(resourceUser1.userId, resourceUser1.name, "getMyMetricsTestOwn")
+      createTestMetric(resourceUser2.userId, resourceUser2.name, "getMyMetricsTestOther")
+
+      When("GET /obp/v7.0.0/my/metrics with only pagination parameters")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/my/metrics?limit=500", headers)
+
+      Then("Response is 200 and every row belongs to resourceUser1")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("metrics") match {
+            case Some(JArray(rows)) =>
+              rows should not be empty
+              val userIds = rows.collect { case JObject(f) => toFieldMap(f).get("user_id") }.flatten
+              userIds.foreach(_ shouldBe JString(resourceUser1.userId))
+              val partialFunctions = rows.collect { case JObject(f) => toFieldMap(f).get("implemented_by_partial_function") }.flatten
+              partialFunctions should contain(JString("getMyMetricsTestOwn"))
+              partialFunctions should not contain JString("getMyMetricsTestOther")
+            case other => fail(s"Expected metrics array, got $other")
+          }
+        case _ => fail("Expected JSON object for getMyMetrics")
       }
     }
   }
