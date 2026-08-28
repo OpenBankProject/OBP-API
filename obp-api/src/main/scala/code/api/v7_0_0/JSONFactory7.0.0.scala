@@ -11,6 +11,10 @@ import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsArch
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.api.v3_1_0.{AccountAttributeResponseJson, JSONFactory310}
+import code.dynamicResourceDoc.{DynamicResourceDoc, JsonDynamicResourceDoc}
+import code.connectormethod.{ConnectorMethodWithProvenance, JsonConnectorMethod}
+import code.dynamicMessageDoc.{DynamicMessageDoc, JsonDynamicMessageDoc}
+import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankAccount, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
 import com.openbankproject.commons.util.ApiVersion
 import java.util.Date
@@ -19,6 +23,58 @@ import net.liftweb.common.Full
 import scala.concurrent.{ExecutionContext, Future}
 
 object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
+
+  // ─── Provenance for runtime-compiled dynamic code (v7.0.0 read-only exposure) ───
+  // The v4.0.0 create/update endpoints capture who created / last updated a piece of runtime
+  // code and a SHA-256 of its (decoded) method body into DB columns, but the v4 response shape
+  // is frozen (STABLE) and does not carry them. These v7 GET endpoints expose that provenance,
+  // wrapping the unchanged v4 resource JSON alongside a `provenance` object.
+  case class ProvenanceJsonV700(
+    created_by_user_id: Option[String],
+    updated_by_user_id: Option[String],
+    method_body_hash: Option[String],
+    created_at: Option[String],
+    updated_at: Option[String]
+  )
+  case class DynamicResourceDocProvenanceJsonV700(dynamic_resource_doc: JsonDynamicResourceDoc, provenance: ProvenanceJsonV700)
+  case class DynamicResourceDocsProvenanceJsonV700(dynamic_resource_docs: List[DynamicResourceDocProvenanceJsonV700])
+  case class ConnectorMethodProvenanceJsonV700(connector_method: JsonConnectorMethod, provenance: ProvenanceJsonV700)
+  case class ConnectorMethodsProvenanceJsonV700(connector_methods: List[ConnectorMethodProvenanceJsonV700])
+  case class DynamicMessageDocProvenanceJsonV700(dynamic_message_doc: JsonDynamicMessageDoc, provenance: ProvenanceJsonV700)
+  case class DynamicMessageDocsProvenanceJsonV700(dynamic_message_docs: List[DynamicMessageDocProvenanceJsonV700])
+
+  private def blankToNone(s: String): Option[String] = Option(s).filter(StringUtils.isNotBlank)
+  private def formatDateOpt(d: Date): Option[String] = Option(d).map(APIUtil.formatDate)
+
+  def createDynamicResourceDocProvenanceJsonV700(entity: DynamicResourceDoc): DynamicResourceDocProvenanceJsonV700 =
+    DynamicResourceDocProvenanceJsonV700(
+      DynamicResourceDoc.getJsonDynamicResourceDoc(entity),
+      ProvenanceJsonV700(
+        entity.createdByUserId.filter(StringUtils.isNotBlank),
+        entity.updatedByUserId.filter(StringUtils.isNotBlank),
+        entity.methodBodyHash.filter(StringUtils.isNotBlank),
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate))
+    )
+
+  def createConnectorMethodProvenanceJsonV700(entity: ConnectorMethodWithProvenance): ConnectorMethodProvenanceJsonV700 =
+    ConnectorMethodProvenanceJsonV700(
+      entity.connectorMethod,
+      ProvenanceJsonV700(
+        entity.createdByUserId.filter(StringUtils.isNotBlank),
+        entity.updatedByUserId.filter(StringUtils.isNotBlank),
+        entity.methodBodyHash.filter(StringUtils.isNotBlank),
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate))
+    )
+
+  def createDynamicMessageDocProvenanceJsonV700(entity: DynamicMessageDoc): DynamicMessageDocProvenanceJsonV700 =
+    DynamicMessageDocProvenanceJsonV700(
+      DynamicMessageDoc.getJsonDynamicMessageDoc(entity),
+      ProvenanceJsonV700(
+        entity.createdByUserId.filter(StringUtils.isNotBlank),
+        entity.updatedByUserId.filter(StringUtils.isNotBlank),
+        entity.methodBodyHash.filter(StringUtils.isNotBlank),
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate))
+    )
 
   case class ErrorMessageEntryJsonV700(code: String, name: String, message: String)
 
@@ -1439,6 +1495,77 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     consents_allowed = true,
     max_time_to_live_in_seconds = code.api.Constant.DEFAULT_CONSENT_TTL,
     sca_enabled = true
+  )
+
+  // ─── Password policy — published so clients can validate locally before user creation /
+  // password reset. The structured fields are the normative contract; `regex` is a convenience
+  // written in the portable subset that behaves identically in Java, JavaScript and Python.
+  // A password is valid if it satisfies AT LEAST ONE of the policies.
+
+  case class RequiredCharacterClassJsonV700(
+    name: String,
+    regex: String
+  )
+
+  case class PasswordPolicyJsonV700(
+    description: String,
+    min_length: Int,
+    max_length: Int,
+    required_character_classes: List[RequiredCharacterClassJsonV700],
+    allowed_characters: String,
+    regex: String
+  )
+
+  case class PasswordPoliciesJsonV700(
+    description: String,
+    policies: List[PasswordPolicyJsonV700]
+  )
+
+  // printable ASCII without space — the character set both policy branches accept
+  private val passwordAllowedCharacters = (0x21 to 0x7e).map(_.toChar).mkString
+
+  lazy val passwordPoliciesJsonV700 = PasswordPoliciesJsonV700(
+    description = "A password must satisfy at least one of the policies: " +
+      "10 to 16 characters including at least one digit, one lower case letter, one upper case letter " +
+      "and one special character - or a passphrase of 17 to 512 characters.",
+    policies = List(
+      PasswordPolicyJsonV700(
+        description = "10 to 16 characters (printable ASCII, no space) including at least one digit, " +
+          "one lower case letter, one upper case letter and one special character.",
+        min_length = 10,
+        max_length = 16,
+        required_character_classes = List(
+          RequiredCharacterClassJsonV700("digit", "[0-9]"),
+          RequiredCharacterClassJsonV700("lowercase letter", "[a-z]"),
+          RequiredCharacterClassJsonV700("uppercase letter", "[A-Z]"),
+          RequiredCharacterClassJsonV700("special character", """[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]""")
+        ),
+        allowed_characters = passwordAllowedCharacters,
+        regex = APIUtil.passwordCompositionPolicyRegex
+      ),
+      PasswordPolicyJsonV700(
+        description = "A passphrase of 17 to 512 characters (printable ASCII, no space), no composition rules.",
+        min_length = 17,
+        max_length = 512,
+        required_character_classes = Nil,
+        allowed_characters = passwordAllowedCharacters,
+        regex = APIUtil.passwordPassphrasePolicyRegex
+      )
+    )
+  )
+
+  // ─── Chat config — published so chat clients can apply the same link-host
+  // policy at render time that the server enforces on message input
+  // (code.chat.ChatLinkPolicy). ───────────────────────────────────────────────
+
+  case class ChatConfigJsonV700(
+    allowed_link_hosts: List[String],
+    max_message_length: Int
+  )
+
+  lazy val chatConfigJsonV700Example = ChatConfigJsonV700(
+    allowed_link_hosts = List("apisandbox.openbankproject.com", "openbankproject.com", "tesobe.com"),
+    max_message_length = 10000
   )
 
   // ─── Validation email (anonymous resend) ────────────────────────────────────

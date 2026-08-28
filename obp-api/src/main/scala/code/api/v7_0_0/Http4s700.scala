@@ -684,10 +684,11 @@ object Http4s700 {
 
     // ── Phase 1 — Simple GETs ───────────────────────────────────────────────
 
-    // Route: GET /obp/v7.0.0/consents/config
-    // Anonymous: operator-published policy that TPPs/agents need to know before issuing a consent.
+    // Route: GET /obp/v7.0.0/public/consent-config
+    // Anonymous: operator-published policy that TPPs/agents need to know before issuing
+    // a consent. The /public prefix marks client-facing config that needs no authentication.
     val getConsentsConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "consents" / "config" =>
+      case req @ GET -> `prefixPath` / "public" / "consent-config" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory700.ConsentsConfigJsonV700(
             consents_allowed            = APIUtil.getPropsAsBoolValue("consents.allowed", false),
@@ -701,7 +702,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(getConsentsConfig),
       "GET",
-      "/consents/config",
+      "/public/consent-config",
       "Get Consents Configuration",
       """Returns the operator-configured consent policy for this OBP instance:
         |
@@ -715,6 +716,90 @@ object Http4s700 {
       List(UnknownError),
       apiTagConsent :: apiTagApi :: Nil,
       http4sPartialFunction = Some(getConsentsConfig)
+    )
+
+    // Route: GET /obp/v7.0.0/public/password-config
+    // Anonymous: clients need the policy before they hold credentials, to validate
+    // a proposed password locally during signup or password reset. The /public
+    // prefix marks client-facing config that needs no authentication.
+    val getPasswordPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "public" / "password-config" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(JSONFactory700.passwordPoliciesJsonV700)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getPasswordPolicy),
+      "GET",
+      "/public/password-config",
+      "Get Password Policy",
+      """Returns the password policy this instance enforces when a password is set (user creation and password reset).
+        |
+        |A password is valid if it satisfies AT LEAST ONE of the `policies`. For each policy:
+        |
+        |* `min_length` / `max_length` — inclusive length bounds.
+        |* `required_character_classes` — the password must contain at least one character matching each class `regex`.
+        |* `allowed_characters` — every character of the password must be one of these.
+        |* `regex` — a single pattern equivalent to the three rules above, written in a portable
+        |regex subset that behaves identically in Java, JavaScript and Python, so it can be used verbatim.
+        |
+        |The structured fields are the normative contract; `regex` is a convenience.
+        |Clients can use either to give immediate feedback while a user types a new password.
+        |The server remains the final enforcer: a password failing the policy is rejected
+        |with `OBP-30207` (InvalidStrongPasswordFormat).
+        |
+        |The policy applies only when a password is set; already-stored passwords are never re-checked against it (we don't store the password in plain text).
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.passwordPoliciesJsonV700,
+      List(UnknownError),
+      apiTagApi :: apiTagUser :: Nil,
+      http4sPartialFunction = Some(getPasswordPolicy)
+    )
+
+    // Route: GET /obp/v7.0.0/public/chat-config
+    // Anonymous: chat clients need the link-host whitelist to render messages
+    // (links to non-whitelisted hosts stay inert text) before and regardless
+    // of authentication. The /public prefix marks client-facing config that
+    // needs no authentication.
+    val getChatConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "public" / "chat-config" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future(JSONFactory700.ChatConfigJsonV700(
+            code.chat.ChatLinkPolicy.allowedHosts.toList.sorted,
+            code.chat.ChatContentPolicy.maxContentLength))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getChatConfig),
+      "GET",
+      "/public/chat-config",
+      "Get Chat Config",
+      """Returns the chat configuration this instance enforces.
+        |
+        |* `allowed_link_hosts` — chat message content is rejected with `OBP-39015` when it
+        |contains an http(s) link to a host not in this list (exact match or subdomain). The
+        |list is derived from this instance's own host, the hosts of the apps in its App
+        |Directory (`public_*_url` props), and the `chat.allowed_link_hosts` prop (defaulting
+        |to tesobe.com and openbankproject.com when that prop is not defined).
+        |* `max_message_length` — content longer than this is rejected with `OBP-39016`
+        |(prop `chat.max_message_length`, default 10000 characters).
+        |
+        |Chat clients should apply the same policy at render time and in composers: show links
+        |to hosts outside the list as plain text rather than making them clickable, and cap
+        |input at the maximum length.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.chatConfigJsonV700Example,
+      List(UnknownError),
+      apiTagApi :: Nil,
+      http4sPartialFunction = Some(getChatConfig)
     )
 
     // Route: GET /obp/v7.0.0/api/error-messages
@@ -4591,6 +4676,187 @@ object Http4s700 {
         http4sPartialFunction = Some(testRollbackEndpoint)
       )
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Dynamic-code provenance (v7.0.0, read-only)
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET-only endpoints that expose the provenance captured on the v4.0.0 create/update
+    // endpoints (created_by_user_id, updated_by_user_id, method_body_hash, created_at,
+    // updated_at) for the three runtime-compiled-code types. The v4 create/update/get shapes are
+    // frozen (STABLE); these v7 reads wrap the unchanged v4 resource JSON with a `provenance`
+    // object. Create/update/delete stay on v4. Roles mirror the v4 GET roles.
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    val getDynamicResourceDocsProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-resource-docs" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicResourceDoc.DynamicResourceDoc.findAll(None))
+            .map(rows => JSONFactory700.DynamicResourceDocsProvenanceJsonV700(
+              rows.map(JSONFactory700.createDynamicResourceDocProvenanceJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicResourceDocsProvenance),
+      "GET",
+      "/management/dynamic-resource-docs",
+      "Get Dynamic Resource Docs (with provenance)",
+      s"""Returns all Dynamic Resource Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Resource Docs; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicResourceDocsProvenanceJsonV700(Nil),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagDynamicResourceDoc :: Nil,
+      Some(List(ApiRole.canGetAllDynamicResourceDocs)),
+      http4sPartialFunction = Some(getDynamicResourceDocsProvenance)
+    )
+
+    val getDynamicResourceDocProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-resource-docs" / dynamicResourceDocId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicResourceDoc.DynamicResourceDoc.findById(None, dynamicResourceDocId))
+            .map(box => unboxFullOrFail(box, Some(cc), s"$DynamicResourceDocNotFound Current DYNAMIC_RESOURCE_DOC_ID($dynamicResourceDocId)", 404))
+            .map(JSONFactory700.createDynamicResourceDocProvenanceJsonV700)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicResourceDocProvenance),
+      "GET",
+      "/management/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
+      "Get Dynamic Resource Doc (with provenance)",
+      s"""Returns the Dynamic Resource Doc specified by DYNAMIC_RESOURCE_DOC_ID, wrapped with a `provenance` object (created_by_user_id, updated_by_user_id, method_body_hash, created_at, updated_at).
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Resource Doc; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicResourceDocProvenanceJsonV700(
+        jsonDynamicResourceDoc,
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicResourceDocNotFound, UnknownError),
+      apiTagDynamicResourceDoc :: Nil,
+      Some(List(ApiRole.canGetDynamicResourceDoc)),
+      http4sPartialFunction = Some(getDynamicResourceDocProvenance)
+    )
+
+    val getConnectorMethodsProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "connector-methods" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.connectormethod.DoobieConnectorMethodProvider.getAllWithProvenance())
+            .map(rows => JSONFactory700.ConnectorMethodsProvenanceJsonV700(
+              rows.map(JSONFactory700.createConnectorMethodProvenanceJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConnectorMethodsProvenance),
+      "GET",
+      "/management/connector-methods",
+      "Get Connector Methods (with provenance)",
+      s"""Returns all Connector Methods, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Connector Methods; create / update remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.ConnectorMethodsProvenanceJsonV700(Nil),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConnectorMethod :: Nil,
+      Some(List(ApiRole.canGetAllConnectorMethods)),
+      http4sPartialFunction = Some(getConnectorMethodsProvenance)
+    )
+
+    val getConnectorMethodProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "connector-methods" / connectorMethodId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.connectormethod.DoobieConnectorMethodProvider.getByIdWithProvenance(connectorMethodId))
+            .map(box => unboxFullOrFail(box, Some(cc), s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID($connectorMethodId)", 404))
+            .map(JSONFactory700.createConnectorMethodProvenanceJsonV700)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConnectorMethodProvenance),
+      "GET",
+      "/management/connector-methods/CONNECTOR_METHOD_ID",
+      "Get Connector Method (with provenance)",
+      s"""Returns the Connector Method specified by CONNECTOR_METHOD_ID, wrapped with a `provenance` object (created_by_user_id, updated_by_user_id, method_body_hash, created_at, updated_at).
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Connector Method; create / update remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.ConnectorMethodProvenanceJsonV700(
+        jsonScalaConnectorMethod,
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConnectorMethodNotFound, UnknownError),
+      apiTagConnectorMethod :: Nil,
+      Some(List(ApiRole.canGetConnectorMethod)),
+      http4sPartialFunction = Some(getConnectorMethodProvenance)
+    )
+
+    val getDynamicMessageDocsProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-message-docs" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicMessageDoc.DynamicMessageDoc.findAll(None))
+            .map(rows => JSONFactory700.DynamicMessageDocsProvenanceJsonV700(
+              rows.map(JSONFactory700.createDynamicMessageDocProvenanceJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicMessageDocsProvenance),
+      "GET",
+      "/management/dynamic-message-docs",
+      "Get Dynamic Message Docs (with provenance)",
+      s"""Returns all Dynamic Message Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Message Docs; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicMessageDocsProvenanceJsonV700(Nil),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagDynamicMessageDoc :: Nil,
+      Some(List(ApiRole.canGetAllDynamicMessageDocs)),
+      http4sPartialFunction = Some(getDynamicMessageDocsProvenance)
+    )
+
+    val getDynamicMessageDocProvenance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-message-docs" / dynamicMessageDocId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future(code.dynamicMessageDoc.DynamicMessageDoc.findById(None, dynamicMessageDocId))
+            .map(box => unboxFullOrFail(box, Some(cc), s"$DynamicMessageDocNotFound Current DYNAMIC_MESSAGE_DOC_ID($dynamicMessageDocId)", 404))
+            .map(JSONFactory700.createDynamicMessageDocProvenanceJsonV700)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicMessageDocProvenance),
+      "GET",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
+      "Get Dynamic Message Doc (with provenance)",
+      s"""Returns the Dynamic Message Doc specified by DYNAMIC_MESSAGE_DOC_ID, wrapped with a `provenance` object (created_by_user_id, updated_by_user_id, method_body_hash, created_at, updated_at).
+        |
+        |This is the v7.0.0 read view of the v4.0.0 Dynamic Message Doc; create / update / delete remain on v4.0.0.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.DynamicMessageDocProvenanceJsonV700(
+        jsonDynamicMessageDoc,
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicMessageDocNotFound, UnknownError),
+      apiTagDynamicMessageDoc :: Nil,
+      Some(List(ApiRole.canGetDynamicMessageDoc)),
+      http4sPartialFunction = Some(getDynamicMessageDocProvenance)
+    )
 
     // All routes combined (without middleware - for direct use).
     //

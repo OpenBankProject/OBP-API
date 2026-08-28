@@ -4,8 +4,11 @@ import code.api.util.DoobieUtil
 import com.openbankproject.commons.util.json
 import doobie._
 import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common.{Box, Empty, Full}
 import org.apache.commons.lang3.StringUtils
+
+import java.util.Date
 
 import scala.collection.immutable.List
 
@@ -30,7 +33,17 @@ case class DynamicResourceDoc(
   errorResponseBodies: String,
   tags: String,
   roles: String,
-  methodBody: String
+  methodBody: String,
+  // Provenance, added upstream on the Mapper entity and carried across: who created / last updated
+  // this runtime-compiled endpoint, and a SHA-256 of the decoded method body so drift is
+  // detectable. Written server-side from the CallContext user, never from the request body.
+  createdByUserId: Option[String],
+  updatedByUserId: Option[String],
+  methodBodyHash: Option[String],
+  // CreatedUpdated's two columns. Read as java.util.Date, not the java.sql.Timestamp the driver
+  // hands back: json4s serialises the subclass as an empty JSON object.
+  createdAt: Option[Date],
+  updatedAt: Option[Date]
 )
 
 object DynamicResourceDoc {
@@ -39,7 +52,8 @@ object DynamicResourceDoc {
   private val selectColumns =
     fr"""SELECT dynamicresourcedocid, bankid, partialfunctionname, requestverb, requesturl, summary,
                 description, examplerequestbody, successresponsebody, errorresponsebodies, tags,
-                roles_c, methodbody
+                roles_c, methodbody, createdbyuserid, updatedbyuserid, methodbodyhash,
+                createdat, updatedat
          FROM dynamicresourcedoc"""
 
   // Every column the insert below binds through Option is read as one too. A doc posted with a
@@ -47,17 +61,25 @@ object DynamicResourceDoc {
   // bare String throws NonNullableColumnRead, which fails the whole query rather than the one row.
   private type Row = (Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String], Option[String], Option[String])
+    Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  /** java.sql.Timestamp is a java.util.Date subclass, but json4s renders it as {} - convert. */
+  private def readDate(value: Option[java.sql.Timestamp]): Option[Date] =
+    value.map(t => new Date(t.getTime))
 
   private def fromRow(row: Row): DynamicResourceDoc = row match {
     case (dynamicResourceDocId, bankId, partialFunctionName, requestVerb, requestUrl, summary,
           description, exampleRequestBody, successResponseBody, errorResponseBodies, tags, roles,
-          methodBody) =>
+          methodBody, createdByUserId, updatedByUserId, methodBodyHash, createdAt, updatedAt) =>
       // orNull, not "": MappedString handed a NULL column back as null and the JSON showed null.
       DynamicResourceDoc(dynamicResourceDocId.orNull, bankId, partialFunctionName.orNull,
         requestVerb.orNull, requestUrl.orNull, summary.orNull, description.orNull,
         exampleRequestBody, successResponseBody, errorResponseBodies.orNull, tags.orNull,
-        roles.orNull, methodBody.orNull)
+        roles.orNull, methodBody.orNull,
+        createdByUserId, updatedByUserId, methodBodyHash,
+        readDate(createdAt), readDate(updatedAt))
   }
 
   private def query(condition: Fragment): List[DynamicResourceDoc] =
@@ -92,17 +114,20 @@ object DynamicResourceDoc {
              requestVerb: String, requestUrl: String, summary: String, description: String,
              exampleRequestBody: Option[String], successResponseBody: Option[String],
              errorResponseBodies: String, tags: String, roles: String,
-             methodBody: String): DynamicResourceDoc = {
+             methodBody: String, createdByUserId: Option[String] = None,
+             methodBodyHash: Option[String] = None): DynamicResourceDoc = {
+    // CreatedUpdated set both on create; the row is never written without them.
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""INSERT INTO dynamicresourcedoc
             (dynamicresourcedocid, bankid, partialfunctionname, requestverb, requesturl, summary,
              description, examplerequestbody, successresponsebody, errorresponsebodies, tags,
-             roles_c, methodbody)
+             roles_c, methodbody, createdbyuserid, methodbodyhash, createdat, updatedat)
             VALUES ($dynamicResourceDocId, $bankId, ${Option(partialFunctionName)},
              ${Option(requestVerb)}, ${Option(requestUrl)}, ${Option(summary)},
              ${Option(description)}, $exampleRequestBody, $successResponseBody,
              ${Option(errorResponseBodies)}, ${Option(tags)}, ${Option(roles)},
-             ${Option(methodBody)})"""
+             ${Option(methodBody)}, $createdByUserId, $methodBodyHash, $now, $now)"""
         .update.run)
     findById(None, dynamicResourceDocId)
       .openOrThrowException("the resource doc just inserted must be readable")
@@ -113,7 +138,9 @@ object DynamicResourceDoc {
              requestVerb: String, requestUrl: String, summary: String, description: String,
              exampleRequestBody: Option[String], successResponseBody: Option[String],
              errorResponseBodies: String, tags: String, roles: String,
-             methodBody: String): Box[DynamicResourceDoc] = {
+             methodBody: String, updatedByUserId: Option[String] = None,
+             methodBodyHash: Option[String] = None): Box[DynamicResourceDoc] = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""UPDATE dynamicresourcedoc SET bankid = $bankId,
               partialfunctionname = ${Option(partialFunctionName)},
@@ -122,7 +149,9 @@ object DynamicResourceDoc {
               examplerequestbody = $exampleRequestBody,
               successresponsebody = $successResponseBody,
               errorresponsebodies = ${Option(errorResponseBodies)}, tags = ${Option(tags)},
-              roles_c = ${Option(roles)}, methodbody = ${Option(methodBody)}
+              roles_c = ${Option(roles)}, methodbody = ${Option(methodBody)},
+              updatedbyuserid = $updatedByUserId, methodbodyhash = $methodBodyHash,
+              updatedat = $now
             WHERE dynamicresourcedocid = $dynamicResourceDocId""".update.run)
     findById(None, dynamicResourceDocId)
   }

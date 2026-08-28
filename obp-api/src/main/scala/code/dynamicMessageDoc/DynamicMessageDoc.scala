@@ -4,7 +4,10 @@ import code.api.util.DoobieUtil
 import com.openbankproject.commons.util.json
 import doobie._
 import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common.{Box, Empty, Full}
+
+import java.util.Date
 
 import scala.collection.immutable.List
 
@@ -31,7 +34,14 @@ case class DynamicMessageDoc(
   inboundAvroSchema: String,
   adapterImplementation: String,
   methodBody: String,
-  programmingLang: String
+  programmingLang: String,
+  // Provenance, carried across from the Mapper entity upstream extended. Written server-side from
+  // the CallContext user and a hash computed here, never from the request body.
+  createdByUserId: Option[String],
+  updatedByUserId: Option[String],
+  methodBodyHash: Option[String],
+  createdAt: Option[Date],
+  updatedAt: Option[Date]
 )
 
 object DynamicMessageDoc {
@@ -39,25 +49,35 @@ object DynamicMessageDoc {
   private val selectColumns =
     fr"""SELECT dynamicmessagedocid, bankid, process, messageformat, description, outboundtopic,
                 inboundtopic, exampleoutboundmessage, exampleinboundmessage, outboundavroschema,
-                inboundavroschema, adapterimplementation, methodbody, lang
+                inboundavroschema, adapterimplementation, methodbody, lang,
+                createdbyuserid, updatedbyuserid, methodbodyhash, createdat, updatedat
          FROM dynamicmessagedoc"""
 
   // Read as Option wherever the insert binds Option: a doc stored with a null topic or schema is
   // SQL NULL, and a bare String mapping would throw NonNullableColumnRead for the whole query.
   private type Row = (Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String], Option[String], Option[String], Option[String])
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  /** java.sql.Timestamp is a java.util.Date subclass, but json4s renders it as {} - convert. */
+  private def readDate(value: Option[java.sql.Timestamp]): Option[Date] =
+    value.map(t => new Date(t.getTime))
 
   private def fromRow(row: Row): DynamicMessageDoc = row match {
     case (dynamicMessageDocId, bankId, process, messageFormat, description, outboundTopic,
           inboundTopic, exampleOutboundMessage, exampleInboundMessage, outboundAvroSchema,
-          inboundAvroSchema, adapterImplementation, methodBody, programmingLang) =>
+          inboundAvroSchema, adapterImplementation, methodBody, programmingLang,
+          createdByUserId, updatedByUserId, methodBodyHash, createdAt, updatedAt) =>
       // orNull, as MappedString did on read.
       DynamicMessageDoc(dynamicMessageDocId.orNull, bankId, process.orNull, messageFormat.orNull,
         description.orNull, outboundTopic.orNull, inboundTopic.orNull,
         exampleOutboundMessage.orNull, exampleInboundMessage.orNull, outboundAvroSchema.orNull,
         inboundAvroSchema.orNull, adapterImplementation.orNull, methodBody.orNull,
-        programmingLang.orNull)
+        programmingLang.orNull,
+        createdByUserId, updatedByUserId, methodBodyHash,
+        readDate(createdAt), readDate(updatedAt))
   }
 
   private def query(condition: Fragment): List[DynamicMessageDoc] =
@@ -92,17 +112,23 @@ object DynamicMessageDoc {
              messageFormat: String, description: String, outboundTopic: String,
              inboundTopic: String, exampleOutboundMessage: String, exampleInboundMessage: String,
              outboundAvroSchema: String, inboundAvroSchema: String, adapterImplementation: String,
-             methodBody: String, programmingLang: String): DynamicMessageDoc = {
+             methodBody: String, programmingLang: String,
+             createdByUserId: Option[String] = None,
+             methodBodyHash: Option[String] = None): DynamicMessageDoc = {
+    // CreatedUpdated set both on create; the row is never written without them.
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""INSERT INTO dynamicmessagedoc
             (dynamicmessagedocid, bankid, process, messageformat, description, outboundtopic,
              inboundtopic, exampleoutboundmessage, exampleinboundmessage, outboundavroschema,
-             inboundavroschema, adapterimplementation, methodbody, lang)
+             inboundavroschema, adapterimplementation, methodbody, lang,
+             createdbyuserid, methodbodyhash, createdat, updatedat)
             VALUES ($dynamicMessageDocId, $bankId, ${Option(process)}, ${Option(messageFormat)},
              ${Option(description)}, ${Option(outboundTopic)}, ${Option(inboundTopic)},
              ${Option(exampleOutboundMessage)}, ${Option(exampleInboundMessage)},
              ${Option(outboundAvroSchema)}, ${Option(inboundAvroSchema)},
-             ${Option(adapterImplementation)}, ${Option(methodBody)}, ${Option(programmingLang)})"""
+             ${Option(adapterImplementation)}, ${Option(methodBody)}, ${Option(programmingLang)},
+             $createdByUserId, $methodBodyHash, $now, $now)"""
         .update.run)
     findById(None, dynamicMessageDocId)
       .openOrThrowException("the message doc just inserted must be readable")
@@ -113,7 +139,10 @@ object DynamicMessageDoc {
              messageFormat: String, description: String, outboundTopic: String,
              inboundTopic: String, exampleOutboundMessage: String, exampleInboundMessage: String,
              outboundAvroSchema: String, inboundAvroSchema: String, adapterImplementation: String,
-             methodBody: String, programmingLang: String): Box[DynamicMessageDoc] = {
+             methodBody: String, programmingLang: String,
+             updatedByUserId: Option[String] = None,
+             methodBodyHash: Option[String] = None): Box[DynamicMessageDoc] = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""UPDATE dynamicmessagedoc SET dynamicmessagedocid = ${Option(dynamicMessageDocId)},
               process = ${Option(process)}, messageformat = ${Option(messageFormat)},
@@ -124,7 +153,9 @@ object DynamicMessageDoc {
               outboundavroschema = ${Option(outboundAvroSchema)},
               inboundavroschema = ${Option(inboundAvroSchema)},
               adapterimplementation = ${Option(adapterImplementation)},
-              methodbody = ${Option(methodBody)}, lang = ${Option(programmingLang)}
+              methodbody = ${Option(methodBody)}, lang = ${Option(programmingLang)},
+              updatedbyuserid = $updatedByUserId, methodbodyhash = $methodBodyHash,
+              updatedat = $now
             WHERE dynamicmessagedocid = $currentDynamicMessageDocId""".update.run)
     findById(None, dynamicMessageDocId)
   }

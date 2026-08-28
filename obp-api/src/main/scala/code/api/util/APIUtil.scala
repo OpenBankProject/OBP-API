@@ -853,34 +853,37 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-  /** enforce the password.
+  /** Password policy pattern strings, published verbatim via GET /public/password-config (v7.0.0)
+   * and enforced by fullPasswordValidation below. Written in the portable regex subset only
+   * (no Java nested character classes, no \d), so the identical string gives the same verdicts
+   * in Java, JavaScript and Python.
+   *
+   * Composition branch — 10 to 16 printable ASCII characters (space excluded):
+   *   (?=.*[0-9])                                   at least one digit
+   *   (?=.*[a-z])                                   at least one lower case
+   *   (?=.*[A-Z])                                   at least one upper case
+   *   (?=.*[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e])  at least one special character (the four ASCII punctuation blocks)
+   * Passphrase branch — 17 to 512 printable ASCII characters (space excluded), no composition rules.
+   */
+  val passwordCompositionPolicyRegex = // NOSONAR — a validation regex, not a hard-coded credential
+    """^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e])[\x21-\x7e]{10,16}$"""
+  val passwordPassphrasePolicyRegex = // NOSONAR — a validation regex, not a hard-coded credential
+    """^[\x21-\x7e]{17,512}$"""
+  private lazy val passwordCompositionPolicyPattern = passwordCompositionPolicyRegex.r.pattern
+  private lazy val passwordPassphrasePolicyPattern = passwordPassphrasePolicyRegex.r.pattern
+
+  /** enforce the password when it is being SET (user creation, password reset).
    * The rules :
-   * 1) length is >16 characters without validations but max length <= 512
+   * 1) length is >16 characters without composition rules but max length <= 512
    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character.
+   * No branch accepts spaces. This is never applied to already-stored passwords —
+   * login paths use basicPasswordValidation, which still accepts space because passwords
+   * saved under the pre-2026 policy may legitimately contain one.
    * */
   def fullPasswordValidation(password: String): Boolean = {
-    /**
-     * (?=.*\d)                    //should contain at least one digit
-     * (?=.*[a-z])                 //should contain at least one lower case
-     * (?=.*[A-Z])                 //should contain at least one upper case
-     * (?=.*[!\"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~\[\]])              //should contain at least one special character
-     * ([A-Za-z0-9!\"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~\[\]]{10,16})  //should contain 10 to 16 valid characters
-     **/
-    val regex =
-      """^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!\"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~\[\]])([A-Za-z0-9!\"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~\[\]]{10,16})$""".r
-
-    // first check `basicPasswordValidation`
-    if (basicPasswordValidation(password) != SILENCE_IS_GOLDEN) {
-      return false
-    }
-
-    // 2nd: check the password length between 17 and 512
-    if (password.length > 16 && password.length <= 512) {
-      return true
-    }
-
-    // 3rd: check the regular expression
-    regex.pattern.matcher(password).matches()
+    // the two published policy branches fully constrain characters and length
+    passwordPassphrasePolicyPattern.matcher(password).matches() ||
+      passwordCompositionPolicyPattern.matcher(password).matches()
   }
 
   /** only  A-Z, a-z, 0-9,-,_,. =, & and max length <= 2048  */
@@ -930,11 +933,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       ErrorMessages.InvalidLocale
   }
 
-  /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
-  /** also support space now  */
+  /** printable ASCII only (0x20-0x7E: letters, digits, all ASCII punctuation and space), max length <= 512 */
   def basicPasswordValidation(value:String): String ={
     val valueLength = value.length
-    val regex = """^([A-Za-z0-9!\"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~ \[\]]+)$""".r
+    // portable regex subset only (no Java nested character classes) — see fullPasswordValidation
+    val regex = """^[\x20-\x7e]+$""".r
 
     if (!regex.pattern.matcher(value).matches()) {
       return ErrorMessages.InvalidValueCharacters
@@ -3260,6 +3263,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def base64EncodedSha256(in: String) = base64EncodeURLSafe(MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))).stripSuffix("=")
 
     base64EncodedSha256(in)
+  }
+
+  /**
+   * Lower-case hex SHA-256 of the given string (UTF-8). Used to fingerprint the source of
+   * runtime-compiled dynamic code (e.g. a Dynamic Resource Doc's method body) so that a stored
+   * record carries an integrity hash: it lets an operator answer "has this code changed since it
+   * was created?" without diffing the raw body, and is the value a future code-signing / approval
+   * step signs over.
+   */
+  def sha256Hex(in: String): String = {
+    val digest = java.security.MessageDigest.getInstance("SHA-256").digest(in.getBytes("UTF-8"))
+    digest.map(b => f"$b%02x").mkString
   }
 
   /**

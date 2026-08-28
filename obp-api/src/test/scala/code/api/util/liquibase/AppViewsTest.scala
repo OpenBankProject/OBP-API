@@ -14,7 +14,7 @@ import org.scalatest.matchers.should.Matchers
  * anything in the changelog creating it - both were left to MigrationOfConsentView /
  * MigrationOfAccountAccessWithViewsView, which run only when BOTH `migration_scripts.enabled` and
  * `migration_scripts.execute_all` are true. Both default to false and ship commented out in
- * sample.props.template, so a deployment made from the shipped template came up with all 146
+ * sample.props.template, so a deployment made from the shipped template came up with all 147
  * tables, the three OIDC views, nothing in the log complaining - and then 500ed on the first
  * `GET /obp/v5.1.0/my/consents` with `relation "v_consent" does not exist`, and on every
  * account-access check.

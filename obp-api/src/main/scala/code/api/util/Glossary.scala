@@ -1229,60 +1229,83 @@ object Glossary extends MdcLoggable  {
 |
 |
 |
-          """)
+      """)
 
-      glossaryItems += GlossaryItem(
-        title = "Transaction Requests",
-        description =
-          """
-            |Transaction Requests are records of transaction / payment requests coming to the API. They may or may not result in Transactions (following authorisation, security challenges and sufficient funds etc.)
-            |
-            |A successful Transaction Request results in a Transaction.
-            |
-            |For more information [see here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
-          """)
+    glossaryItems += GlossaryItem(
+    title = "Transaction Requests",
+    description =
+      """
+      |Transaction Requests are records of transaction / payment requests coming to the API. They may or may not result in Transactions (following authorisation, security challenges and sufficient funds etc.)
+      |
+      |A successful Transaction Request results in a Transaction.
+      |
+      |For more information [see here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
+      """)
 
-      glossaryItems += GlossaryItem(
-        title = "User",
-        description =
-          """
-            |The entity that accesses the API with a login / authorisation token and has access to zero or more resources on the OBP API. The User is linked to the core banking user / customer at the South Side Adapter layer.
-          """)
+    glossaryItems += GlossaryItem(
+    title = "User",
+    description =
+      """
+      |The entity that accesses the API with a login / authorisation token and has access to zero or more resources on the OBP API. The User is linked to the core banking user / customer at the South Side Adapter layer.
+      """)
 
-      glossaryItems += GlossaryItem(
-        title = "User.user_id",
-        description =
-          s"""
-            |An identifier that MUST NOT leak the user name or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique on the OBP instance.
-            |
-            | Example value: ${userIdExample.value}
-          """)
+    glossaryItems += GlossaryItem(
+    title = "User.user_id",
+    description =
+      s"""
+      |An identifier that MUST NOT leak the user name or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique on the OBP instance.
+      |
+      | Example value: ${userIdExample.value}
+      """)
 
-      glossaryItems += GlossaryItem(
-        title = "User.provider",
-        description =
-          """
-            |The host name of the authentication service. e.g. the OBP hostname or OIDC host.
-          """)
+    glossaryItems += GlossaryItem(
+    title = "User.provider",
+    description =
+      """
+      |The host name of the authentication service. e.g. the OBP hostname or OIDC host.
+      """)
 
-      glossaryItems += GlossaryItem(
-        title = "User.provider_id",
-        description =
-          """
-            |The id of the user given by the authentication provider. This is UNIQUE in combination with PROVIDER name.
-          """)
+    glossaryItems += GlossaryItem(
+    title = "User.provider_id",
+    description =
+      """
+      |The id of the user given by the authentication provider. This is UNIQUE in combination with PROVIDER name.
+      """)
 
-      glossaryItems += GlossaryItem(
-        title = "User Customer Links",
-        description =
-          """
-            |Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
-          """)
+    glossaryItems += GlossaryItem(
+    title = "Password Policy",
+    description =
+      s"""
+      |The rules a password must satisfy when it is set — at user creation (POST /users) and at password reset.
+      |
+      |A password is valid if it satisfies AT LEAST ONE of the following policies:
+      |
+      |1) **Composition**: 10 to 16 printable ASCII characters (no space), including at least one digit, one lower case letter, one upper case letter and one special character.
+      |
+      |2) **Passphrase**: 17 to 512 printable ASCII characters (no space), with no composition rules.
+      |
+      |The machine-readable policy is published anonymously at `GET /obp/v7.0.0/public/password-config`, including per-policy length bounds, required character classes, allowed characters, and an equivalent regular expression written in a portable subset that behaves identically in Java, JavaScript and Python — so client applications can validate locally, while the user types, using either the structured fields (normative) or the regex (convenience):
+      |
+      |Composition: `${APIUtil.passwordCompositionPolicyRegex}`
+      |
+      |Passphrase: `${APIUtil.passwordPassphrasePolicyRegex}`
+      |
+      |The server remains the final enforcer: a password failing the policy is rejected with error OBP-30207 (InvalidStrongPasswordFormat).
+      |
+      |The policy applies only when a password is set. Already-stored passwords are never re-checked against it, so tightening the policy does not lock out existing users.
+      """)
 
-      glossaryItems += GlossaryItem(
-        title = "Consent",
-        description =
-            s"""Consents provide a mechanism through which a resource owner (e.g. a customer) can grant a third party certain access to their resources.
+    glossaryItems += GlossaryItem(
+    title = "User Customer Links",
+    description =
+      """
+      |Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
+      """)
+
+    glossaryItems += GlossaryItem(
+    title = "Consent",
+    description =
+      s"""Consents provide a mechanism through which a resource owner (e.g. a customer) can grant a third party certain access to their resources.
 |
 |The following are important considerations in Consent flows:
 |
@@ -3568,10 +3591,93 @@ object Glossary extends MdcLoggable  {
 |
 """.stripMargin)
 
-    glossaryItems += GlossaryItem(
-        title = "Endpoint Mapping",
-        description =
-            s"""
+  glossaryItems += GlossaryItem(
+    title = "Dynamic Resource Doc",
+    description =
+      s"""
+|A Dynamic Resource Doc defines a *single* Endpoint at runtime: its verb, URL path, summary, description, example request and response bodies, error list, tags and Roles - plus a *method body* written in Scala which is compiled at runtime and becomes the handler of the Endpoint.
+|
+|Whereas a Dynamic Endpoint (see ${getGlossaryItemLink("Dynamic Endpoint Manage")}) is created from a Swagger / OpenAPI file and contains *no code* (its behaviour is selected by the swagger `host` field), a Dynamic Resource Doc *is* code: the method body has access to the full CallContext and can transform payloads, call Connector methods and NewStyle functions, or invoke Dynamic Message Docs.
+|
+|Like all Resource Docs, Dynamic Resource Docs are part of the server registry of the API (see ${getGlossaryItemLink("Resource Doc")}), so they appear in the API Explorer and resource-docs endpoints like any Static endpoint.
+|
+|Dynamic Resource Docs can be created at System level or Bank / Space level, and are served under the `/obp/dynamic-endpoint/dynamic-resource-doc` path prefix (configurable via the `url.prefix.dynamic.resourceDoc` prop).
+|
+|Authentication and Role checks are applied to the compiled endpoint exactly as for Static endpoints - including the checks that run inside the shared authentication step: Consumer disabled, User locked / deleted, Consent processing and Rate Limiting.
+|
+|Some cross-cutting features of the Static pipeline do *not* currently apply to runtime-compiled Dynamic Resource Doc endpoints: API Metrics are not recorded, the JSON Schema Validation and Force-Error interceptors are not run, the Idempotency-Key mechanism is unavailable, and handlers run on auto-commit (no request-scoped database transaction). Dynamic Endpoints created from Swagger (the proxy path) *do* record Metrics and *do* run the JSON Schema Validation interceptors.
+|
+|Because the method body is user-supplied code compiled at runtime, this feature is guarded by the `allow_user_generated_scala_code` prop (default: false) and the Roles CanCreateDynamicResourceDoc / CanCreateBankLevelDynamicResourceDoc etc.
+|
+|A helper endpoint (`POST /management/dynamic-resource-docs/endpoint-code`) can generate a method-body template from example request / response bodies.
+|
+|See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks.
+|
+""".stripMargin)
+
+  glossaryItems += GlossaryItem(
+    title = "Dynamic Code Paths",
+    description =
+      s"""
+|OBP offers several building blocks for defining API behaviour at *runtime* - stored in the OBP database as instance configuration rather than compiled into the source code. This item explains how they fit together.
+|
+|**The building blocks**
+|
+|At the *API surface* layer (what URL / verb exists, who may call it):
+|
+|1) **Dynamic Endpoint** (${getGlossaryItemLink("Dynamic Endpoint Manage")}) - created from a Swagger / OpenAPI file. No code. Every operation in the file becomes a live endpoint with an auto-generated Role.
+|
+|2) **Dynamic Resource Doc** (${getGlossaryItemLink("Dynamic Resource Doc")}) - one endpoint definition *plus* a Scala method body compiled at runtime. The code is the handler.
+|
+|At the *Connector* layer (how a backend system is reached):
+|
+|3) **Method Routing** (${getGlossaryItemLink("Method Routing")}) - a routing rule that selects which Connector implementation serves a given Connector method (per bank, per URL pattern etc.). Pure configuration, no code.
+|
+|4) **Connector Method** (${getGlossaryItemLink("Connector Method")}) - a runtime-compiled body (Scala, Java or JavaScript) for one of the *existing* methods of the Connector trait (e.g. getBanks, makePaymentv210, dynamicEndpointProcess). Executed when a Method Routing rule routes that method to `connector = internal`.
+|
+|5) **Dynamic Message Doc** (${getGlossaryItemLink("Dynamic Message Doc")}) - a runtime-compiled function keyed by a *process name*, for logic that does not correspond to an existing Connector method. Invoked from other dynamic code (or by Dynamic Entity storage operations).
+|
+|Related: **Dynamic Entities** (${getGlossaryItemLink("Dynamic-Entities")}) provide runtime-defined data storage, and **Endpoint Mapping** (${getGlossaryItemLink("Endpoint Mapping")}) maps Dynamic Endpoint JSON fields onto Dynamic Entity fields.
+|
+|**How they compose - the paths**
+|
+|```
+|                              +--> host=obp_mock ......... returns swagger example      (mock)
+|                              |
+| Dynamic Endpoint (swagger) --+--> host=dynamic_entity ... Endpoint Mapping
+|   no code                   |                              -> Dynamic Entity storage  (data-backed)
+|                              |
+|                              +--> any other host ......... Method Routing:
+|                                                             connector=rest  -> HTTP proxy to backend
+|                                                             connector=internal -> Connector Method (code)
+|
+| Dynamic Resource Doc ------------> compiled Scala handler
+|   code at the endpoint layer        |-> Connector methods (routed by Method Routing)
+|                                     |-> Dynamic Message Docs (by process name)
+|                                     |-> any transformation / orchestration logic
+|```
+|
+|**Choosing a path**
+|
+|* Need a quick mock of an API from its spec? Dynamic Endpoint with `host = obp_mock`.
+|* Need a data-backed CRUD API with no code? Dynamic Endpoint with `host = dynamic_entity` + Endpoint Mapping + a Dynamic Entity.
+|* Need to pass requests through to an existing backend *unchanged*? Dynamic Endpoint + Method Routing with a `url` parameter (transparent HTTP proxy - no payload transformation, no credential minting).
+|* Need transformation, authentication against the backend, error mapping or orchestration? Use code: either a Dynamic Resource Doc (code at the endpoint layer - one self-contained artifact per endpoint) or a Connector Method (code at the connector seam - keeps backend integration reusable across endpoints and swappable via Method Routing). These combine well: Dynamic Resource Docs for the API surface, Connector Methods / Dynamic Message Docs for the backend calls.
+|
+|**Static vs Dynamic**
+|
+|Static endpoints (${getGlossaryItemLink("Static Endpoint")}) are Scala source code in Git, changed via release and restart. All the dynamic building blocks above live in the OBP database of the instance: they can be created and changed in real time over the management API (or via the API Manager UI) with *no code deployment and no restart*, and they never require instance-specific code in the public source repositories.
+|
+|**Guards**
+|
+|Runtime-compiled code (Dynamic Resource Docs, Connector Methods, Dynamic Message Docs) is disabled unless the `allow_user_generated_scala_code` prop is set to true, and every creation endpoint requires its corresponding Role. Dynamic Endpoints (swagger, no code) are not affected by that prop; each generated endpoint is protected by its own auto-generated Role.
+|
+""".stripMargin)
+
+  glossaryItems += GlossaryItem(
+    title = "Endpoint Mapping",
+    description =
+      s"""
    |Endpoint Mapping can be used to map each JSON field in a Dynamic Endpoint to different Dynamic Entity fields.
    |
    |This document assumes you already have some knowledge of OBP Dynamic Endpoints and Dynamic Entities.
@@ -3714,10 +3820,51 @@ object Glossary extends MdcLoggable  {
 |Modifications to Static endpoint core properties such as URLs and response bodies require source code changes and an instance restart. However, JSON Schema Validation and Dynamic Connector changes can be applied in real-time.
 """.stripMargin)
 
-    glossaryItems += GlossaryItem(
-        title = "Message Doc",
-        description =
-            s"""
+  glossaryItems += GlossaryItem(
+    title = "Resource Doc",
+    description =
+      s"""
+|A Resource Doc is the machine readable definition / description of an OBP Endpoint.
+|
+|The aim is that as much endpoint definition as possible is *defined first* within the Resource Doc making the Resource Doc the canonical source of truth about the endpoints structure and behaviour.
+|
+|In total Resource Docs form the server registry of the API: every Endpoint, static or dynamic, is registered in the running server with its Resource Doc, and that registry is the source of truth about the API surface.
+|
+|Note that the Resource Docs (like the Glossary) can contain instance variables about the OBP-API instance that is running, so HOSTNAMES and various configuration settings are automatically correct.
+|
+|An OBP API instance only serves resource docs about endpoints that are actually enabled so any client (e.g. the OBP MCP Server or API Explorer) can use them as a capability discovery channel.
+|
+|
+|Each Resource Doc includes:
+|
+|  1) The Operation ID / Scala Partial Function name (the source code / function that runs the endpoint) which uniquely identifies the Endpoint (e.g. getCoreAccountById)
+|  2) The API version the Endpoint is implemented in
+|  3) The request verb (GET, POST, PUT, DELETE etc.) and URL path
+|  4) A summary and a longer description (markdown)
+|  5) An example request body and a successful response body. These are generated from the actual Scala case classes the Endpoint uses, so field names and types reflect the real implementation rather than separately maintained documentation.
+|  6) The possible error responses
+|  7) Tags used to group Endpoints in the API Explorer and filter Resource Docs
+|  8) The Roles (Entitlements) required to call the Endpoint. Roles declared in the Resource Doc are automatically checked by the framework at runtime.
+|  9) Connector methods the Endpoint depends on (linking to the related Message Docs)
+|
+|Because the Resource Doc registry lives inside the running server, it differs from a published OpenAPI file in two important ways:
+|
+|* The arrow of generation points from code to documentation: the Swagger / OpenAPI documents that OBP publishes are generated *from* the Resource Docs, not maintained alongside the code. This avoids documentation drift.
+|
+|* It covers Endpoints created at runtime: Dynamic Endpoints and the auto-generated CRUD Endpoints for Dynamic Entities get Resource Docs when they are created, so per-bank custom APIs are documented by the same mechanism as the static Endpoints - something a static, pre-published API description cannot do.
+|
+|Resource Docs are available over the Resource Doc endpoints in OBP format (which includes OBP specific metadata such as Roles, Tags and Connector methods) and in Swagger / OpenAPI format. They can be filtered by tags, functions and API collections.
+|
+|As mentioned above, Resource Docs power the API Explorer interface and are the natural foundation for programmatic consumers of the API surface: SDK generators, API management tooling and AI assistants (such as [Opey](/glossary#Opey) and [OBP-MCP](/glossary#OBP-MCP)) that need to discover, select and validate calls to Endpoints.
+|
+|See also [Endpoint](/glossary#Endpoint), [Static Endpoint](/glossary#Static-Endpoint), [Dynamic Endpoint Manage](/glossary#Dynamic-Endpoint-Manage), [Message Doc](/glossary#Message-Doc)
+|
+""".stripMargin)
+
+  glossaryItems += GlossaryItem(
+    title = "Message Doc",
+    description =
+      s"""
 |OBP can communicate with core banking systems (CBS) and other back end services using a "Connector -> Adapter" approach.
 |
 |The OBP Connector is a core part of the OBP-API and is written in Scala / Java and potentially other JVM languages.
@@ -3864,103 +4011,101 @@ object Glossary extends MdcLoggable  {
             |don't yet exist in the OBP code. In this case you can use these endpoints to create your own internal Scala methods.
       |
       |You can also use these endpoints to create your own helper methods in OBP code.
-            |
-            | This feature is somewhat work in progress (WIP).
-|
-          |The following videos are available:
-            |* [Introduction to Dynamic Message Doc] (https://vimeo.com/623317747)
-          |
-          |""".stripMargin)
+      |
+      |The following videos are available:
+      |* [Introduction to Dynamic Message Doc] (https://vimeo.com/623317747)
+      |
+      |""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "QWAC",
-            description =
-                s"""A Qualified Website Authentication Certificate is a qualified digital certificate under the trust services defined in the European Union eIDAS Regulation.
-                     |A website authentication certificate makes it possible to establish a Transport Layer Security channel with the subject of the certificate, which secures data transferred through the channel.""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "QWAC",
+      description =
+        s"""A Qualified Website Authentication Certificate is a qualified digital certificate under the trust services defined in the European Union eIDAS Regulation.
+           |A website authentication certificate makes it possible to establish a Transport Layer Security channel with the subject of the certificate, which secures data transferred through the channel.""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "Dynamic linking (PSD2 context)",
-            description =
-                s"""Dynamic linking is a security requirement under PSD2's Strong Customer Authentication (SCA) rules.
-                     |
-                     |When a payer initiates an electronic payment transaction, the authentication code must be dynamically linked to:
-                     |
-                     |1. **The amount** of the transaction
-                     |2. **The payee** (recipient) of the transaction
-                     |
-                     |This means if either the amount or payee is modified after authentication, the authentication code becomes invalid. This protects against man-in-the-middle attacks where an attacker might try to redirect funds or change the payment amount after the user has authenticated.
-                     |
-                     |The requirement is specified in Article 97(2) of PSD2 and further detailed in the Regulatory Technical Standards (RTS) on SCA (Articles 5 and 6).
-                     |""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "Dynamic linking (PSD2 context)",
+      description =
+        s"""Dynamic linking is a security requirement under PSD2's Strong Customer Authentication (SCA) rules.
+           |
+           |When a payer initiates an electronic payment transaction, the authentication code must be dynamically linked to:
+           |
+           |1. **The amount** of the transaction
+           |2. **The payee** (recipient) of the transaction
+           |
+           |This means if either the amount or payee is modified after authentication, the authentication code becomes invalid. This protects against man-in-the-middle attacks where an attacker might try to redirect funds or change the payment amount after the user has authenticated.
+           |
+           |The requirement is specified in Article 97(2) of PSD2 and further detailed in the Regulatory Technical Standards (RTS) on SCA (Articles 5 and 6).
+           |""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "TPP",
-            description =
-                s"""(TPP) Third Party Providers are authorised/registered organisations or natural persons that use APIs developed to Standards to access customer’s accounts, in order to provide account information services and/or to initiate payments.
-                     |Third Party Providers are either/both Payment Initiation Service Providers (PISPs) and/or Account Information Service Providers (AISPs).""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "TPP",
+      description =
+        s"""(TPP) Third Party Providers are authorised/registered organisations or natural persons that use APIs developed to Standards to access customer’s accounts, in order to provide account information services and/or to initiate payments.
+           |Third Party Providers are either/both Payment Initiation Service Providers (PISPs) and/or Account Information Service Providers (AISPs).""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "QSealC",
-            description =
-                s"""Qualified electronic Seal Certificate.
-                     |A certificate for electronic seals allows the relying party to validate the identity of the subject of the certificate,
-                     |as well as the authenticity and integrity of the sealed data, and also prove it to third parties.
-                     |The electronic seal provides strong evidence, capable of having legal effect, that given data is originated by the legal entity identified in the certificate.""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "QSealC",
+      description =
+        s"""Qualified electronic Seal Certificate.
+           |A certificate for electronic seals allows the relying party to validate the identity of the subject of the certificate,
+           |as well as the authenticity and integrity of the sealed data, and also prove it to third parties.
+           |The electronic seal provides strong evidence, capable of having legal effect, that given data is originated by the legal entity identified in the certificate.""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "CRL",
-            description =
-                s"""Certificate Revocation List.
-                     |CRL issuers issue CRLs. The CRL issuer is either the CA (certification authority) or an entity that has been authorized by the CA to issue CRLs.
-                     |CAs publish CRLs to provide status information about the certificates they issued.
-                     |However, a CA may delegate this responsibility to another trusted authority.
-                     |It is described in RFC 5280.""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "CRL",
+      description =
+        s"""Certificate Revocation List.
+           |CRL issuers issue CRLs. The CRL issuer is either the CA (certification authority) or an entity that has been authorized by the CA to issue CRLs.
+           |CAs publish CRLs to provide status information about the certificates they issued.
+           |However, a CA may delegate this responsibility to another trusted authority.
+           |It is described in RFC 5280.""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "OCSP",
-            description =
-                s"""The Online Certificate Status Protocol (OCSP) is an Internet protocol used for obtaining the revocation status of an X.509 digital certificate.
-                     |It is described in RFC 6960 and is on the Internet standards track. It was created as an alternative to certificate revocation lists (CRL),""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "OCSP",
+      description =
+        s"""The Online Certificate Status Protocol (OCSP) is an Internet protocol used for obtaining the revocation status of an X.509 digital certificate.
+           |It is described in RFC 6960 and is on the Internet standards track. It was created as an alternative to certificate revocation lists (CRL),""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "Cross-Device Authorization",
-            description =
-                s"""
-                     |Cross-device authorization flows enable a user to initiate an authorization flow on one device
-                     |(the Consumption Device) and then use a second, personally trusted, device (Authorization Device) to
-                     |authorize the Consumption Device to access a resource (e.g., access to a service).
-                     |Two examples of popular cross-device authorization flows are:
-                     | - The Device Authorization Grant [RFC8628](https://datatracker.ietf.org/doc/html/rfc8628)
-                     | - Client-Initiated Backchannel Authentication [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html))
-                     |""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "Cross-Device Authorization",
+      description =
+        s"""
+           |Cross-device authorization flows enable a user to initiate an authorization flow on one device
+           |(the Consumption Device) and then use a second, personally trusted, device (Authorization Device) to
+           |authorize the Consumption Device to access a resource (e.g., access to a service).
+           |Two examples of popular cross-device authorization flows are:
+           | - The Device Authorization Grant [RFC8628](https://datatracker.ietf.org/doc/html/rfc8628)
+           | - Client-Initiated Backchannel Authentication [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html))
+           |""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "Consumption Device (CD)",
-            description =
-                s"""The Consumption Device is the device that helps the user consume the service. In the [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)) use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "Consumption Device (CD)",
+      description =
+        s"""The Consumption Device is the device that helps the user consume the service. In the [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)) use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "Authentication Device (AD)",
-            description =
-                s"""The device on which the user will authenticate and authorize the request, often a smartphone.""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "Authentication Device (AD)",
+      description =
+        s"""The device on which the user will authenticate and authorize the request, often a smartphone.""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "Risk-based authentication",
-            description =
-                s"""Please take a look at "Adaptive authentication" glossary item.""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "Risk-based authentication",
+      description =
+        s"""Please take a look at "Adaptive authentication" glossary item.""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "Adaptive authentication",
-            description =
-                s"""Adaptive authentication, also known as risk-based authentication, is dynamic in a way it automatically triggers additional authentication factors, usually via MFA factors, depending on a user's risk profile.
-                     |An example of this authentication at OBP-API side is the feature "Transaction request challenge threshold".
-                     | -
-                     |""".stripMargin)
+    glossaryItems += GlossaryItem(
+      title = "Adaptive authentication",
+      description =
+        s"""Adaptive authentication, also known as risk-based authentication, is dynamic in a way it automatically triggers additional authentication factors, usually via MFA factors, depending on a user's risk profile.
+           |An example of this authentication at OBP-API side is the feature "Transaction request challenge threshold".
+           | -
+           |""".stripMargin)
 
-        glossaryItems += GlossaryItem(
-            title = "Transaction request challenge threshold",
-            description =
-                s"""Is an example of "Adaptive authentication" where, in a dynamic way, we get challenge threshold via CBS depending on a user's risk profile.
+    glossaryItems += GlossaryItem(
+      title = "Transaction request challenge threshold",
+      description =
+        s"""Is an example of "Adaptive authentication" where, in a dynamic way, we get challenge threshold via CBS depending on a user's risk profile.
    |It implies that in a case of risky transaction request, over a certain amount, a user is prompted to answer the challenge.""".stripMargin)
 
         glossaryItems += GlossaryItem(
@@ -5768,135 +5913,187 @@ object Glossary extends MdcLoggable  {
                  |
 """)
 
-    glossaryItems += GlossaryItem(
-        title = "OBP-MCP",
-        description =
-            s"""
-                 |# OBP-MCP
-                 |
-                 |**OBP-MCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server for the Open Bank Project API. It lets AI assistants (Claude, Opey, IDE agents, custom LLM tooling) discover and call OBP-API endpoints as MCP *tools*, without hard-coding any knowledge of the 600+ endpoints.
-                 |
-                 |Repository: [github.com/OpenBankProject/OBP-MCP](https://github.com/OpenBankProject/OBP-MCP)
-                 |
-                 |## What it does
-                 |
-                 |OBP-MCP is a thin protocol bridge. AI clients speak **MCP** to it; it speaks **HTTPS / REST** to OBP-API on their behalf, attaching the user's OAuth token or Consent-JWT.
-                 |
-                 |```
-                 |┌──────────────────┐   MCP    ┌────────────────────────┐   HTTPS    ┌──────────────┐
-                 |│  AI client       │ ───────▶ │      OBP-MCP           │ ─────────▶ │   OBP-API    │
-                 |│  (Claude, Opey,  │ ◀─────── │   (FastMCP server)     │ ◀───────── │              │
-                 |│   IDE agent)     │  tools   │                        │  JSON      │              │
-                 |└──────────────────┘          └────────────────────────┘            └──────────────┘
-                 |```
-                 |
-                 |## Three-step discovery + call (no RAG, no vector DB)
-                 |
-                 |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
-                 |
-                 |1. **`list_endpoints_by_tag(tags)`** — returns lightweight summaries (~50–100 tokens each) from a local `endpoint_index.json`. Lets the LLM narrow down to a handful of candidate endpoints by tag (e.g. `Account`, `Transaction-Request`, `Consent`).
-                 |2. **`get_endpoint_schema(endpoint_id)`** — lazy-loads the full OpenAPI schema for one endpoint from a local `endpoint_schemas.json`.
-                 |3. **`call_obp_api(endpoint_id, path_params, query_params, body, headers)`** — actually executes the HTTP request against the live OBP-API.
-                 |
-                 |Two further tools cover the glossary itself: **`list_glossary_terms(search_query)`** and **`get_glossary_term(term_id)`**, backed by a local `glossary_index.json` of 800+ banking terms.
-                 |
-                 |## Three kinds of traffic
-                 |
-                 |It is important to understand that OBP-MCP is **not** a documentation lookup tool — it makes real, authenticated business calls:
-                 |
-                 |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
-                 |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
-                 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's resource-docs and swagger to rebuild the local indexes, so discovery stays fast and offline.
-                 |
-                 |## Authentication and authorization
-                 |
-                 |OBP-MCP supports several modes via the `AUTH_PROVIDER` environment variable for client-to-MCP auth:
-                 |
-                 || Mode           | Use case                              | Notes                                              |
-                 ||----------------|---------------------------------------|----------------------------------------------------|
-                 || `bearer-only`  | Internal agents (e.g. Opey)           | JWT validation only, multi-issuer                  |
-                 || `obp-oidc`     | External MCP clients                  | Full OAuth 2.1 + Dynamic Client Registration       |
-                 || `keycloak`     | External MCP clients                  | OAuth 2.1 + minimal DCR proxy workaround           |
-                 || `none`         | Development / testing                 | No auth required                                   |
-                 |
-                 |For onward calls to OBP-API, `OBP_AUTHORIZATION_VIA` selects:
-                 |
-                 |- **`oauth`** — pulls the access token from the MCP request context and sends `Authorization: Bearer ...`.
-                 |- **`consent`** — the default mode for user-facing deployments. `call_obp_api` requires a `Consent-JWT` for **every** endpoint except a small allowlist of genuinely public ones (`GET /root`, the bank directory `/banks` and `/banks/{BANK_ID}`, glossary, resource-docs, API metadata). For any other endpoint called without a `Consent-JWT`, the tool returns a `consent_required` payload — required roles, bank / account / view scope, and `requires_view_access` / `is_user_scoped` flags — so the client can build the right consent and retry with a `Consent-JWT` header. Consent is required **by default**, not only for role-gated endpoints, because many identity-bound endpoints (`/users/current`, `/my/*`, account-access-via-view endpoints) declare no roles yet still need the caller's identity — a role-only gate would call them unauthenticated. The allowlist is deliberately conservative: a wrongly-excluded endpoint costs only an extra prompt, whereas wrongly skipping consent fails silently.
-                 |- **`none`** — calls OBP unauthenticated (only useful for genuinely public endpoints).
-                 |
-                 |This means the consent flow is enforced at the MCP layer, not just at OBP-API: an agent cannot accidentally call a privileged endpoint without explicit user consent.
-                 |
-                 |## Why it matters
-                 |
-                 |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
-                 |
-                 |See also: [Opey](/glossary#Opey), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
-                 |
+  glossaryItems += GlossaryItem(
+    title = "Signal Channels",
+    description =
+      s"""
+         |# Signal Channels
+         |
+         |**Signal Channels** are short-lived, Redis-backed message channels for lightweight coordination between AI agents and other OBP consumers — service discovery, task hand-off, presence announcements. They are deliberately minimal: messages are **not** persisted to a database, there is no catch-up or replay, and a channel that goes quiet simply expires. Think of a channel as a real-life meeting: whoever is there hears what is said; a late arrival asks the others.
+         |
+         |Not to be confused with [Chat](/glossary#Chat), which is the persistent, human-facing messaging surface (rooms, threads, reactions, read markers).
+         |
+         |## Lifecycle
+         |- Channels are auto-created on first publish; no registration step.
+         |- On this instance a channel expires ${code.api.cache.RedisMessaging.channelTtlSeconds} seconds after its last publish, and holds at most ${code.api.cache.RedisMessaging.channelMaxMessages} messages (oldest are trimmed).
+         |- Channel names are 1 to 128 characters from letters, digits, dot, underscore and hyphen.
+         |
+         |## Constraints on published messages
+         |All publishing requires authentication. Beyond that, three server-side checks protect the platform — the envelope, not the meaning, of what agents say:
+         |
+         |1. **Size cap** — the whole publish request body may be up to ${code.signal.SignalContentPolicy.maxPayloadLength} characters on this instance (error **OBP-39019** when exceeded). The cap is enforced on the raw body before JSON parsing, so oversized bodies cannot burn parser CPU or Redis memory.
+         |2. **Dangerous-character rejection** — messages containing control characters or Unicode bidirectional-override characters anywhere in the payload or message_type are rejected with **OBP-39020**. See "Why bidirectional-override characters are rejected" below.
+         |3. **Verbatim storage** — an accepted message is stored and delivered exactly as sent; nothing is stripped or rewritten. Agents may therefore hash, sign, or byte-compare payloads. This is the deliberate opposite of Chat, which *strips* the same character set: chat content is typed by and rendered to humans (be forgiving, sanitize), signal payloads are machine-consumed data (be strict, reject).
+         |
+         |## Privacy and roles
+         |- A message with **to_user_id** set is visible only to its sender and that recipient; without it, the message is a broadcast visible to all channel readers.
+         |- **CanGetSignalStats** — read message counts and TTLs across all channels.
+         |- **CanDeleteSignalChannel** — delete a channel and all its messages immediately. Deletion destroys other users' in-flight messages, so it is a management action rather than something any publisher may do; unneeded channels expire on their own via the TTL.
+         |
+         |## Why bidirectional-override characters are rejected
+         |Unicode includes invisible formatting characters that reverse or reorder how text is *displayed* without changing the bytes a parser sees — the override family U+202A to U+202E, the isolate family U+2066 to U+2069, and the marks U+200E, U+200F and U+061C. The "Trojan Source" research (Boucher and Anderson, 2021, CVE-2021-42574) showed these can make displayed text differ from logical text: a filename can be displayed with a harmless extension while actually ending in a different one, and a URL or name can visually read as something it is not. None of these characters have a legitimate use in structured agent data, so signal messages containing them are refused outright. (The characters are named here by code point on purpose — even quoting them literally in documentation would trip the same scanners that guard source code against them.)
+         |
+         |The check runs on the **parsed** JSON, not the raw request body: JSON's backslash-u escape syntax means a body that is pure ASCII on the wire can still parse to a string containing a bidi override, so a wire-level check would miss it.
+         |
+         |## Payloads are data, not instructions
+         |Signal channels are readable and writable by any authenticated consumer on the instance. If your agent feeds received payloads to an LLM, treat them as **untrusted data, never as instructions** — the character checks above stop display-layer trickery, but no server-side check can stop a payload from *saying* something misleading. Prompt-injection defence belongs in the consuming agent.
+         |
+         |## Endpoints
+         |See the API Explorer tags **Signal** / **AI-Agent**: list channels, channel info, channel stats, publish message, get messages (offset/limit polling), delete channel — under `/obp/v6.0.0/signal/channels/...`. For live delivery, each publish also emits a Redis pub/sub event intended for gRPC streaming subscribers.
+         |
+""")
+
+  glossaryItems += GlossaryItem(
+    title = "OBP-MCP",
+    description =
+      s"""
+         |# OBP-MCP
+         |
+         |**OBP-MCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server for the Open Bank Project API. It lets AI assistants (Claude, Opey, IDE agents, custom LLM tooling) discover and call OBP-API endpoints as MCP *tools*, without hard-coding any knowledge of the 600+ endpoints.
+         |
+         |Repository: [github.com/OpenBankProject/OBP-MCP](https://github.com/OpenBankProject/OBP-MCP)
+         |
+         |## What it does
+         |
+         |OBP-MCP is a thin protocol bridge. AI clients speak **MCP** to it; it speaks **HTTPS / REST** to OBP-API on their behalf, attaching the user's OAuth token or Consent-JWT.
+         |
+         |```
+         |┌──────────────────┐   MCP    ┌────────────────────────┐   HTTPS    ┌──────────────┐
+         |│  AI client       │ ───────▶ │      OBP-MCP           │ ─────────▶ │   OBP-API    │
+         |│  (Claude, Opey,  │ ◀─────── │   (FastMCP server)     │ ◀───────── │              │
+         |│   IDE agent)     │  tools   │                        │  JSON      │              │
+         |└──────────────────┘          └────────────────────────┘            └──────────────┘
+         |```
+         |
+         |## Architecture diagram
+         |
+         |The full picture — Portal/API Explorer, Opey, external MCP clients (Claude Code, Claude Desktop, IDE agents), OBP-OIDC, the numbered consent flow, and OBP-API down to the core banking systems:
+         |
+         |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+         |
+         |The editable master is a Lucidchart document linked from the [OBP-MCP README](https://github.com/OpenBankProject/OBP-MCP#architecture).
+         |
+         |## Three-step discovery + call (no RAG, no vector DB)
+         |
+         |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
+         |
+         |1. **`list_endpoints_by_tag(tags)`** — returns lightweight summaries (~50–100 tokens each) from a local `endpoint_index.json`. Lets the LLM narrow down to a handful of candidate endpoints by tag (e.g. `Account`, `Transaction-Request`, `Consent`).
+         |2. **`get_endpoint_schema(endpoint_id)`** — lazy-loads the full OpenAPI schema for one endpoint from a local `endpoint_schemas.json`.
+         |3. **`call_obp_api(endpoint_id, path_params, query_params, body, headers)`** — actually executes the HTTP request against the live OBP-API.
+         |
+         |Two further tools cover the glossary itself: **`list_glossary_terms(search_query)`** and **`get_glossary_term(term_id)`**, backed by a local `glossary_index.json` of 800+ banking terms.
+         |
+         |## Three kinds of traffic
+         |
+         |It is important to understand that OBP-MCP is **not** a documentation lookup tool — it makes real, authenticated business calls:
+         |
+         |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
+         |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
+         |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's [Resource Docs](/glossary#Resource-Doc) and swagger to rebuild the local indexes, so discovery stays fast and offline.
+         |
+         |## Authentication and authorization
+         |
+         |OBP-MCP supports several modes via the `AUTH_PROVIDER` environment variable for client-to-MCP auth:
+         |
+         || Mode           | Use case                              | Notes                                              |
+         ||----------------|---------------------------------------|----------------------------------------------------|
+         || `bearer-only`  | Internal agents (e.g. Opey)           | JWT validation only, multi-issuer                  |
+         || `obp-oidc`     | External MCP clients                  | Full OAuth 2.1 + Dynamic Client Registration       |
+         || `keycloak`     | External MCP clients                  | OAuth 2.1 + minimal DCR proxy workaround           |
+         || `none`         | Development / testing                 | No auth required                                   |
+         |
+         |For onward calls to OBP-API, `OBP_AUTHORIZATION_VIA` selects:
+         |
+         |- **`oauth`** — pulls the access token from the MCP request context and sends `Authorization: Bearer ...`.
+         |- **`consent`** — the default mode for user-facing deployments. `call_obp_api` requires a `Consent-JWT` for **every** endpoint except a small allowlist of genuinely public ones (`GET /root`, the bank directory `/banks` and `/banks/{BANK_ID}`, glossary, resource-docs, API metadata). For any other endpoint called without a `Consent-JWT`, the tool returns a `consent_required` payload — required roles, bank / account / view scope, and `requires_view_access` / `is_user_scoped` flags — so the client can build the right consent and retry with a `Consent-JWT` header. Consent is required **by default**, not only for role-gated endpoints, because many identity-bound endpoints (`/users/current`, `/my/*`, account-access-via-view endpoints) declare no roles yet still need the caller's identity — a role-only gate would call them unauthenticated. The allowlist is deliberately conservative: a wrongly-excluded endpoint costs only an extra prompt, whereas wrongly skipping consent fails silently.
+         |- **`none`** — calls OBP unauthenticated (only useful for genuinely public endpoints).
+         |
+         |This means the consent flow is enforced at the MCP layer, not just at OBP-API: an agent cannot accidentally call a privileged endpoint without explicit user consent.
+         |
+         |## Why it matters
+         |
+         |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
+         |
+         |See also: [Opey](/glossary#Opey), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+         |
 """)
 
 
-    glossaryItems += GlossaryItem(
-        title = "Opey",
-        description =
-            s"""
-                 |# Opey
-                 |
-                 |**Opey** (current generation: **Opey II**) is the Open Bank Project's agentic AI assistant — a chatbot that lets users explore and operate the OBP API in natural language. It is built on [LangGraph](https://www.langchain.com/langgraph), is provider-agnostic across LLMs (Anthropic, OpenAI, Ollama), and is the chat backend used by **OBP-Portal**.
-                 |
-                 |Repository: [github.com/OpenBankProject/OBP-Opey-II](https://github.com/OpenBankProject/OBP-Opey-II)
-                 |
-                 |## Opey is an agent. OBP-MCP is its tool surface.
-                 |
-                 |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
-                 |
-                 |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
-                 |
-                 |```json
-                 |{
-                 |  "servers": [
-                 |    {
-                 |      "name": "obp",
-                 |      "url": "http://0.0.0.0:9100/mcp",
-                 |      "transport": "http",
-                 |      "requires_auth": true
-                 |    }
-                 |  ]
-                 |}
-                 |```
-                 |
-                 |The Opey README puts it bluntly: *"As a minimum, Opey should be connected to OBP-MCP, or it won't know anything about the Open Bank Project except for what you put in the system prompt."*
-                 |
-                 |## What OBP-MCP took over
-                 |
-                 |Subsystems that used to live in Opey are now generic MCP tools any client can use:
-                 |
-                 || Old Opey responsibility                                                              | Now in OBP-MCP                                              |
-                 ||--------------------------------------------------------------------------------------|-------------------------------------------------------------|
-                 || Endpoint Retrieval RAG pipeline (vector store of swagger, query reformulation, etc.) | `list_endpoints_by_tag` + `get_endpoint_schema`             |
-                 || Glossary Retrieval RAG pipeline                                                      | `list_glossary_terms` + `get_glossary_term`                 |
-                 || `OBPClient` (aiohttp + OAuth + consent JWT) — the actual HTTP layer to OBP-API       | `call_obp_api` (`oauth` / `consent` / `none` modes)         |
-                 || "Which endpoint should I call?" logic baked into the agent                           | Externalised — any MCP client can now discover and call     |
-                 |
-                 |## What Opey still uniquely does
-                 |
-                 |OBP-MCP is stateless and has no model — it cannot reason, plan, or hold a conversation. Everything below is what makes Opey *Opey*:
-                 |
-                 |- **The LLM loop itself.** Opey runs the actual reasoning via a LangGraph state machine (`START → Opey Agent → Tools → Sanitize → Opey → Summarize → END`), with **task follow-through**: when a tool call fails (e.g. missing entitlement), Opey reuses tools to self-correct instead of bouncing the problem back to the user.
-                 |- **Human-in-the-loop approval — richer than MCP's `consent_required`.** A `ToolRegistry` classifies operations as **SAFE / MODERATE / DANGEROUS / CRITICAL**. An `ApprovalManager` persists "approve once / session / user / workspace" decisions with TTLs. The human-review node only interrupts when truly needed. OBP-MCP just *says* consent is required; Opey decides **how** to ask, **whether** to ask again, and **remembers** the answer.
-                 |- **Conversation state.** SQLite-backed LangGraph checkpoints (`checkpoints.db`), token counting, automatic summarisation when approaching the model context limit, and graceful degradation in long sessions.
-                 |- **The streaming chat service.** FastAPI endpoints (`POST /invoke`, `POST /stream` SSE, `POST /submit_approval`, `GET /user/consent`, `GET /status`) — this is what OBP-Portal's chat UI actually talks to. Streaming events are produced by dedicated processors (token, tool, human-review, metadata, end).
-                 |- **Session, auth, usage.** OBP user session management, consent-JWT parsing for user identification, rate limiting, usage tracking, and an admin-client singleton for system-level operations.
-                 |- **Domain-tuned system prompt.** Behavioural guidelines such as *Tool-First / Knowledge-Second*, *No Hallucination*, *Proactive Verification*, and *Transparent Errors*. Configurable via `OPEY_SYSTEM_PROMPT`.
-                 |- **Model abstraction.** Provider-agnostic via `MODEL_PROVIDER` / `MODEL_NAME` — swap Claude for GPT or a local Ollama model without touching the graph. New models are registered in `MODEL_CONFIGS` (`src/agent/utils/model_factory.py`).
-                 |- **Evaluation framework.** Parameter-sweep experiments over batch size, k-value, retry thresholds; CSV export of precision / recall / latency P50–P99; combined scoring (e.g. 70% recall + 30% speed) to find sweet spots. Something a tool surface like MCP has no concept of.
-                 |
-                 |## One-line summary
-                 |
-                 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
-                 |
-                 |See also: [OBP-MCP](/glossary#OBP-MCP), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
-                 |
+  glossaryItems += GlossaryItem(
+    title = "Opey",
+    description =
+      s"""
+         |# Opey
+         |
+         |**Opey** (current generation: **Opey II**) is the Open Bank Project's agentic AI assistant — a chatbot that lets users explore and operate the OBP API in natural language. It is built on [LangGraph](https://www.langchain.com/langgraph), is provider-agnostic across LLMs (Anthropic, OpenAI, Ollama), and is the chat backend used by **OBP-Portal**.
+         |
+         |Repository: [github.com/OpenBankProject/OBP-Opey-II](https://github.com/OpenBankProject/OBP-Opey-II)
+         |
+         |## Opey is an agent. OBP-MCP is its tool surface.
+         |
+         |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
+         |
+         |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+         |
+         |Besides the MCP path shown above, Opey makes some direct HTTP calls to OBP-API for its own infrastructure (session validation via `/users/current`, admin DirectLogin operations, persisting LangGraph checkpoints as dynamic entities, and health probes) — see the architecture section of the [Opey README](https://github.com/OpenBankProject/OBP-Opey-II#architecture-how-opey-reaches-the-obp-api) for the detail diagram.
+         |
+         |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
+         |
+         |```json
+         |{
+         |  "servers": [
+         |    {
+         |      "name": "obp",
+         |      "url": "http://0.0.0.0:9100/mcp",
+         |      "transport": "http",
+         |      "requires_auth": true
+         |    }
+         |  ]
+         |}
+         |```
+         |
+         |The Opey README puts it bluntly: *"As a minimum, Opey should be connected to OBP-MCP, or it won't know anything about the Open Bank Project except for what you put in the system prompt."*
+         |
+         |## What OBP-MCP took over
+         |
+         |Subsystems that used to live in Opey are now generic MCP tools any client can use:
+         |
+         || Old Opey responsibility                                                              | Now in OBP-MCP                                              |
+         ||--------------------------------------------------------------------------------------|-------------------------------------------------------------|
+         || Endpoint Retrieval RAG pipeline (vector store of swagger, query reformulation, etc.) | `list_endpoints_by_tag` + `get_endpoint_schema`             |
+         || Glossary Retrieval RAG pipeline                                                      | `list_glossary_terms` + `get_glossary_term`                 |
+         || `OBPClient` (aiohttp + OAuth + consent JWT) — the actual HTTP layer to OBP-API       | `call_obp_api` (`oauth` / `consent` / `none` modes)         |
+         || "Which endpoint should I call?" logic baked into the agent                           | Externalised — any MCP client can now discover and call     |
+         |
+         |## What Opey still uniquely does
+         |
+         |OBP-MCP is stateless and has no model — it cannot reason, plan, or hold a conversation. Everything below is what makes Opey *Opey*:
+         |
+         |- **The LLM loop itself.** Opey runs the actual reasoning via a LangGraph state machine (`START → Opey Agent → Tools → Sanitize → Opey → Summarize → END`), with **task follow-through**: when a tool call fails (e.g. missing entitlement), Opey reuses tools to self-correct instead of bouncing the problem back to the user.
+         |- **Human-in-the-loop approval — richer than MCP's `consent_required`.** A `ToolRegistry` classifies operations as **SAFE / MODERATE / DANGEROUS / CRITICAL**. An `ApprovalManager` persists "approve once / session / user / workspace" decisions with TTLs. The human-review node only interrupts when truly needed. OBP-MCP just *says* consent is required; Opey decides **how** to ask, **whether** to ask again, and **remembers** the answer.
+         |- **Conversation state.** SQLite-backed LangGraph checkpoints (`checkpoints.db`), token counting, automatic summarisation when approaching the model context limit, and graceful degradation in long sessions.
+         |- **The streaming chat service.** FastAPI endpoints (`POST /invoke`, `POST /stream` SSE, `POST /submit_approval`, `GET /user/consent`, `GET /status`) — this is what OBP-Portal's chat UI actually talks to. Streaming events are produced by dedicated processors (token, tool, human-review, metadata, end).
+         |- **Session, auth, usage.** OBP user session management, consent-JWT parsing for user identification, rate limiting, usage tracking, and an admin-client singleton for system-level operations.
+         |- **Domain-tuned system prompt.** Behavioural guidelines such as *Tool-First / Knowledge-Second*, *No Hallucination*, *Proactive Verification*, and *Transparent Errors*. Configurable via `OPEY_SYSTEM_PROMPT`.
+         |- **Model abstraction.** Provider-agnostic via `MODEL_PROVIDER` / `MODEL_NAME` — swap Claude for GPT or a local Ollama model without touching the graph. New models are registered in `MODEL_CONFIGS` (`src/agent/utils/model_factory.py`).
+         |- **Evaluation framework.** Parameter-sweep experiments over batch size, k-value, retry thresholds; CSV export of precision / recall / latency P50–P99; combined scoring (e.g. 70% recall + 30% speed) to find sweet spots. Something a tool surface like MCP has no concept of.
+         |
+         |## One-line summary
+         |
+         |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
+         |
+         |See also: [OBP-MCP](/glossary#OBP-MCP), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+         |
 """)
 
 

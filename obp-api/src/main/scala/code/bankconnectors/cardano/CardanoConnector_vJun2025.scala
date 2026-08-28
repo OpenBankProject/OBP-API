@@ -188,30 +188,6 @@ trait CardanoConnector_vJun2025 extends Connector with MdcLoggable {
       case _ => ""
     }
   }
-//  override def makePaymentv210(fromAccount: BankAccount,
-//    toAccount: BankAccount,
-//    transactionRequestId: TransactionRequestId,
-//    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-//    amount: BigDecimal,
-//    description: String,
-//    transactionRequestType: TransactionRequestType,
-//    chargePolicy: String,
-//    callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
-//    for {
-//      transactionData <- Future.successful("123|100.50|EUR|2025-03-16 12:30:00")
-//      transactionHash <- Future {
-//        code.cardano.CardanoMetadataWriter.generateHash(transactionData)
-//      }
-//      txIn <- Future.successful("8c293647e5cb51c4d29e57e162a0bb4a0500096560ce6899a4b801f2b69f2813:0")
-//      txOut <- Future.successful("addr_test1qruvtthh7mndxu2ncykn47tksar9yqr3u97dlkq2h2dhzwnf3d755n99t92kp4rydpzgv7wmx4nx2j0zzz0g802qvadqtczjhn:1234")
-//      signingKey <- Future.successful("payment.skey")
-//      network <- Future.successful("--testnet-magic")
-//      _ <- Future {
-//        code.cardano.CardanoMetadataWriter.submitHashToCardano(transactionHash, txIn, txOut, signingKey, network)
-//      }
-//      transactionId <- Future.successful(TransactionId(randomUUID().toString))
-//    } yield (Full(transactionId), callContext)
-//  }
 }
 
 object CardanoConnector_vJun2025 extends CardanoConnector_vJun2025

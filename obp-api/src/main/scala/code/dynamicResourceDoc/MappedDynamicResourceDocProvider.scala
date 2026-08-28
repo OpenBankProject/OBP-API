@@ -37,7 +37,8 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     }
   }
 
-  override def create(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc] =
+  override def create(bankId: Option[String], entity: JsonDynamicResourceDoc,
+                      createdByUserId: Option[String]): Box[JsonDynamicResourceDoc] =
     tryo {
       DynamicResourceDoc.insert(
         dynamicResourceDocId = APIUtil.generateUUID(),
@@ -52,10 +53,15 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
         errorResponseBodies = entity.errorResponseBodies,
         tags = entity.tags,
         roles = entity.roles,
-        methodBody = entity.methodBody)
+        methodBody = entity.methodBody,
+        // Provenance comes from the authenticated user and a hash computed here - never from the
+        // request body, which the caller controls.
+        createdByUserId = createdByUserId,
+        methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
-  override def update(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc] = {
+  override def update(bankId: Option[String], entity: JsonDynamicResourceDoc,
+                      updatedByUserId: Option[String]): Box[JsonDynamicResourceDoc] = {
     // The lookup deliberately ignores bankId — Mapper's did too — so an update addressed by id
     // finds the doc whatever its scope, and then writes the supplied bankId onto it.
     val currentId = entity.dynamicResourceDocId.getOrElse("")
@@ -75,7 +81,9 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
             errorResponseBodies = entity.errorResponseBodies,
             tags = entity.tags,
             roles = entity.roles,
-            methodBody = entity.methodBody)
+            methodBody = entity.methodBody,
+            updatedByUserId = updatedByUserId,
+            methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
         }.flatMap(box => box).map(DynamicResourceDoc.getJsonDynamicResourceDoc)
       case _ => Empty
     }

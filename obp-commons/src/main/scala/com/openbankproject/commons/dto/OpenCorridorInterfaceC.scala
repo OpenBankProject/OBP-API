@@ -107,11 +107,15 @@ case class OutBoundOpenCorridorSettlementInstruction(
 )
 
 /**
- * `obp_settlement_advice` — published to each BENEFICIARY bank's vhost after a
- * netted settle: "the promises you already paid out against are now covered".
- * Purely reconciliatory — no money moves on this message (the debtor's
- * `obp_settlement_instruction` does that). One advice per beneficiary bank,
- * listing exactly the covered promise ids where that bank was the creditor.
+ * `obp_settlement_advice` — published to BOTH party banks' vhosts after a
+ * netted settle: "these promises are now covered". Purely reconciliatory — no
+ * money moves on this message (the debtor's `obp_settlement_instruction` does
+ * that, and at net zero no instruction exists at all — this advice is then the
+ * only settle-time message either bank receives).
+ * `covered_transaction_request_ids` is the FULL covered list of the pair, both
+ * directions: each node stamps whatever matches its own records (credits it
+ * paid out AND its own outbound promises); ids of the counterparty's records
+ * match nothing there and are ignored.
  * Credit notifications themselves travel at promise-report-back time, not here.
  */
 case class OutBoundOpenCorridorSettlementAdvice(

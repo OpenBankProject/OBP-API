@@ -4,6 +4,7 @@ import code.api.cache.Caching
 import code.api.util.{APIUtil, DoobieUtil}
 import doobie._
 import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -74,30 +75,69 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
     }
   }
 
-  override def create(entity: JsonConnectorMethod): Box[JsonConnectorMethod] = {
+  override def create(entity: JsonConnectorMethod, createdByUserId: Option[String]): Box[JsonConnectorMethod] = {
     val id = APIUtil.generateUUID()
+    // Provenance is written from the authenticated user and a hash computed here, never from the
+    // request body. createdat/updatedat are what the Mapper CreatedUpdated trait used to set.
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    val hash = APIUtil.sha256Hex(entity.decodedMethodBody)
     tryo {
       DoobieUtil.runUpdate(
-        sql"""INSERT INTO connectormethod (connectormethodid, methodname, methodbody, lang)
-              VALUES ($id, ${entity.methodName}, ${entity.methodBody}, ${entity.programmingLang})"""
+        sql"""INSERT INTO connectormethod (connectormethodid, methodname, methodbody, lang,
+                createdbyuserid, methodbodyhash, createdat, updatedat)
+              VALUES ($id, ${entity.methodName}, ${entity.methodBody}, ${entity.programmingLang},
+                $createdByUserId, ${Option(hash)}, $now, $now)"""
           .update.run)
       JsonConnectorMethod(Some(id), entity.methodName, entity.methodBody, entity.programmingLang)
     }
   }
 
-  override def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String): Box[JsonConnectorMethod] =
+  override def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String,
+                      updatedByUserId: Option[String]): Box[JsonConnectorMethod] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE connectormethodid = $connectorMethodId LIMIT 1").query[Row].option
     ) match {
       case Some(existing) =>
         tryo {
+          val now = new java.sql.Timestamp(System.currentTimeMillis())
+          val hash = APIUtil.sha256Hex(
+            java.net.URLDecoder.decode(connectorMethodBody, "UTF-8"))
           DoobieUtil.runUpdate(
-            sql"""UPDATE connectormethod SET methodbody = $connectorMethodBody, lang = $programmingLang
+            sql"""UPDATE connectormethod SET methodbody = $connectorMethodBody, lang = $programmingLang,
+                    updatedbyuserid = $updatedByUserId, methodbodyhash = ${Option(hash)},
+                    updatedat = $now
                   WHERE connectormethodid = $connectorMethodId"""
               .update.run)
           JsonConnectorMethod(Some(connectorMethodId), existing._2, connectorMethodBody, programmingLang)
         }
       case None => Empty
+    }
+
+  private type ProvRow = (String, String, String, Option[String], Option[String], Option[String],
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  private def toProv(r: ProvRow): ConnectorMethodWithProvenance =
+    ConnectorMethodWithProvenance(
+      JsonConnectorMethod(Some(r._1), r._2, r._3, r._4.getOrElse("Scala")),
+      r._5, r._6, r._7,
+      // java.sql.Timestamp is a java.util.Date subclass json4s renders as {} - convert.
+      r._8.map(t => new java.util.Date(t.getTime)), r._9.map(t => new java.util.Date(t.getTime)))
+
+  private val selectProvCols: Fragment =
+    fr"""SELECT connectormethodid, methodname, methodbody, lang, createdbyuserid, updatedbyuserid,
+                methodbodyhash, createdat, updatedat
+         FROM connectormethod"""
+
+  /** The v7.0.0 read-only provenance endpoints; the ordinary reads keep returning the plain DTO. */
+  def getAllWithProvenance(): List[ConnectorMethodWithProvenance] =
+    DoobieUtil.runQuery(selectProvCols.query[ProvRow].to[List]).map(toProv)
+
+  def getByIdWithProvenance(connectorMethodId: String): Box[ConnectorMethodWithProvenance] =
+    DoobieUtil.runQuery(
+      (selectProvCols ++ fr"WHERE connectormethodid = $connectorMethodId LIMIT 1").query[ProvRow].option
+    ) match {
+      case Some(r) => Full(toProv(r))
+      case None    => Empty
     }
 
   override def deleteById(id: String): Box[Boolean] = tryo {

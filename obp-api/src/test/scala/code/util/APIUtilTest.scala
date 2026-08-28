@@ -50,6 +50,11 @@ import org.scalatest.matchers.should.Matchers
 
 class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with PropsReset {
 
+  // Pin the JVM default timezone before the expected-date vals below are parsed.
+  // Boot.scala sets UTC when a ServerSetup suite boots in the same JVM; without this,
+  // suite ordering decides which timezone the expectations were parsed in.
+  java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"))
+
   val DefaultFromDateString = APIUtil.epochTimeString
   val DefaultToDateString = APIUtil.DefaultToDateString
   val startDateString = DefaultFromDateString
@@ -795,6 +800,8 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
   }
 
   Feature(s"test ${nameOf(APIUtil.basicPasswordValidation _)} and ${nameOf(APIUtil.fullPasswordValidation _)}") {
+    // shortest password satisfying every composition rule — shared across scenarios
+    val validCompositionPassword = "Abcdefgh!1"
     
     Scenario(s"Test the ${nameOf(APIUtil.basicPasswordValidation _)} method") {
       val firefoxStrongPasswordProposal = "9YF]gZnXzAENM+]"
@@ -816,13 +823,87 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       fullPasswordValidation(firefoxStrongPasswordProposal) shouldBe true//  true
       fullPasswordValidation("Abcd!123xyz") shouldBe true //  true
       fullPasswordValidation("SuperStrong#123") shouldBe true //  true
-      fullPasswordValidation("Abcdefgh!1") shouldBe true //  true
+      fullPasswordValidation(validCompositionPassword) shouldBe true //  true
       fullPasswordValidation("short1!") shouldBe false //  false（too short）
       fullPasswordValidation("alllowercase123!") shouldBe false //  false（no capital letter）
       fullPasswordValidation("ALLUPPERCASE123!") shouldBe false//  false（no smaller case letter）
       fullPasswordValidation("NoSpecialChar123") shouldBe false//  false（not special character）
     }
-    
+
+    scenario(s"${nameOf(APIUtil.fullPasswordValidation _)} passphrase branch: length > 16 has no composition rules") {
+      fullPasswordValidation("a" * 17) shouldBe true
+      fullPasswordValidation("a" * 16) shouldBe false // 16 chars still falls under the composition branch
+      fullPasswordValidation("a" * 512) shouldBe true
+      fullPasswordValidation("a" * 513) shouldBe false
+      fullPasswordValidation("correct horse battery staple") shouldBe false // spaces are not accepted in new passwords at any length
+      fullPasswordValidation("correct-horse-battery-staple") shouldBe true
+      fullPasswordValidation("pässword longer than sixteen") shouldBe false // non-ASCII rejected at any length
+    }
+
+    scenario(s"${nameOf(APIUtil.fullPasswordValidation _)} composition branch boundaries (10-16 chars)") {
+      fullPasswordValidation("Abcdefg!1") shouldBe false // 9 chars, all classes present
+      fullPasswordValidation(validCompositionPassword) shouldBe true // 10 chars
+      fullPasswordValidation("Abcdefghijklmn!1") shouldBe true // 16 chars
+      fullPasswordValidation("Abcdefghijklmno1") shouldBe false // 16 chars but no special character
+      fullPasswordValidation("Abc 123!Xy") shouldBe false // space is not accepted in new passwords (basicPasswordValidation still accepts it for stored ones at login)
+      fullPasswordValidation("") shouldBe false
+    }
+
+    scenario(s"every ASCII special character satisfies the ${nameOf(APIUtil.fullPasswordValidation _)} special-character rule") {
+      val allAsciiSpecials = """!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""
+      allAsciiSpecials should have length 32
+      for (specialChar <- allAsciiSpecials) withClue(s"special char [$specialChar]: ") {
+        fullPasswordValidation(s"Abcdefgh1$specialChar") shouldBe true
+      }
+    }
+
+    scenario(s"${nameOf(APIUtil.basicPasswordValidation _)} boundaries and control characters") {
+      basicPasswordValidation("a" * 512) shouldBe SILENCE_IS_GOLDEN
+      basicPasswordValidation("Abc\tdef123!") shouldBe InvalidValueCharacters // tab is not printable ASCII
+      basicPasswordValidation("Abc\ndef123!") shouldBe InvalidValueCharacters
+      basicPasswordValidation("") shouldBe InvalidValueCharacters
+    }
+
+    scenario(s"the published password policy (GET /public/password-config) agrees with ${nameOf(APIUtil.fullPasswordValidation _)}") {
+      val publishedPolicy = code.api.v7_0_0.JSONFactory700.passwordPoliciesJsonV700
+
+      // the documented client algorithm over the NORMATIVE structured fields
+      def structuredFieldsVerdict(password: String): Boolean =
+        publishedPolicy.policies.exists { policy =>
+          password.length >= policy.min_length &&
+            password.length <= policy.max_length &&
+            password.forall(character => policy.allowed_characters.contains(character)) &&
+            policy.required_character_classes.forall(characterClass =>
+              characterClass.regex.r.findFirstIn(password).isDefined)
+        }
+
+      // the convenience `regex` field, compiled fresh from the published string
+      def publishedRegexVerdict(password: String): Boolean =
+        publishedPolicy.policies.exists(policy => policy.regex.r.pattern.matcher(password).matches())
+
+      val deterministicRandom = new scala.util.Random(20260813)
+      val alphabet = ((0x20 to 0x7e).map(_.toChar) ++ "äöüß€\t\n ").toArray
+      def randomPassword(): String = {
+        val length = deterministicRandom.nextInt(3) match {
+          case 0 => deterministicRandom.nextInt(20)        // around the short boundaries
+          case 1 => 8 + deterministicRandom.nextInt(12)    // dense around 10-16
+          case _ => 505 + deterministicRandom.nextInt(15)  // around the 512 boundary
+        }
+        (1 to length).map(_ => alphabet(deterministicRandom.nextInt(alphabet.length))).mkString
+      }
+      val corpus = (1 to 500).map(_ => randomPassword()) ++
+        List("", "a" * 16, "a" * 17, "a" * 512, "a" * 513, validCompositionPassword, "Abc 123!Xy", "with space but seventeen")
+
+      for (password <- corpus) {
+        withClue(s"structured fields verdict for [${password.take(40)}] (length ${password.length}): ") {
+          structuredFieldsVerdict(password) shouldBe fullPasswordValidation(password)
+        }
+        withClue(s"published regex verdict for [${password.take(40)}] (length ${password.length}): ") {
+          publishedRegexVerdict(password) shouldBe fullPasswordValidation(password)
+        }
+      }
+    }
+
   }
 
 }

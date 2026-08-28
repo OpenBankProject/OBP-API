@@ -508,6 +508,12 @@ class Boot extends MdcLoggable {
     if (APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)) {
       MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("open_corridor.outbox_relay_interval", 10L))
     }
+    // Chat: emails users an occasional digest of unread messages (computed at
+    // send time from read markers — see ChatEmailDigestScheduler for why this
+    // is not the transactional message outbox).
+    if (APIUtil.getPropsAsBoolValue("chat.email_digest_enabled", false)) {
+      code.chat.ChatEmailDigestScheduler.start(APIUtil.getPropsAsLongValue("chat.email_digest_tick_seconds", 300L))
+    }
     APIUtil.getPropsAsLongValue("database_messages_scheduler_interval") match {
       case Full(i) => DatabaseDriverScheduler.start(i)
       case _ => // Do not start it

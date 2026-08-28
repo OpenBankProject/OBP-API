@@ -97,6 +97,13 @@ class DynamicMessageDocTest extends V400ServerSetup {
       dynamicMessageDoc.inboundAvroSchema  should be (postDynamicMessageDoc.inboundAvroSchema)
       dynamicMessageDoc.adapterImplementation should be (postDynamicMessageDoc.adapterImplementation)
 
+      Then("provenance is captured server-side into the stored row (not surfaced in the frozen v4 response)")
+      val storedMessageDoc = code.dynamicMessageDoc.DynamicMessageDoc
+        .findById(None, dynamicMessageDoc.dynamicMessageDocId.getOrElse(""))
+        .openOrThrowException("stored dynamic message doc not found")
+      storedMessageDoc.createdByUserId should be (Some(resourceUser1.userId))
+      storedMessageDoc.methodBodyHash should be (Some(code.api.util.APIUtil.sha256Hex(postDynamicMessageDoc.decodedMethodBody)))
+
 
       Then(s"we test the $ApiEndpoint2")
       val requestGet = (v4_0_0_Request / "management" / "dynamic-message-docs" / {dynamicMessageDoc.dynamicMessageDocId.getOrElse("")}).GET <@ (user1)
@@ -292,7 +299,7 @@ class DynamicMessageDocTest extends V400ServerSetup {
       )
 
       When("We store the DynamicMessageDoc via the provider")
-      DynamicMessageDocProvider.provider.vend.create(None, doc).isDefined should equal(true)
+      DynamicMessageDocProvider.provider.vend.create(None, doc, None).isDefined should equal(true)
 
       Then("DynamicConnector.invoke compiles the stored methodBody and runs the connector method")
       val fut = DynamicConnector

@@ -114,7 +114,7 @@ class DuplicateChangelogOnClasspathTest extends AnyFlatSpec with Matchers {
     LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db), loader)
 
     withClue("the schema must have been built from one of the two copies: ") {
-      tableCount(db) should equal(146L)
+      tableCount(db) should equal(147L)
     }
   }
 }

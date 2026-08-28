@@ -29,8 +29,23 @@ trait ConnectorMethodProvider {
 
   def getAll(): List[JsonConnectorMethod]
 
-  def create(entity: JsonConnectorMethod): Box[JsonConnectorMethod]
-  def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String): Box[JsonConnectorMethod]
+  def create(entity: JsonConnectorMethod, createdByUserId: Option[String]): Box[JsonConnectorMethod]
+  def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String, updatedByUserId: Option[String]): Box[JsonConnectorMethod]
   def deleteById(connectorMethodId: String): Box[Boolean]
 
 }
+
+/**
+ * A connector method plus the provenance columns, for the v7.0.0 read-only endpoints.
+ *
+ * Kept separate from JsonConnectorMethod because that one is the request/response contract for
+ * create and update, and adding server-set fields to it would let a caller submit them.
+ */
+case class ConnectorMethodWithProvenance(
+  connectorMethod: JsonConnectorMethod,
+  createdByUserId: Option[String],
+  updatedByUserId: Option[String],
+  methodBodyHash: Option[String],
+  createdAt: Option[java.util.Date],
+  updatedAt: Option[java.util.Date]
+)

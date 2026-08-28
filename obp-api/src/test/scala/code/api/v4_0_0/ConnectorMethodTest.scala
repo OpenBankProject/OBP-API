@@ -99,6 +99,13 @@ class ConnectorMethodTest extends V400ServerSetup {
       connectorMethod.methodBody should be (postConnectorMethod.methodBody)
       connectorMethod.connectorMethodId shouldNot be (null)
 
+      Then("provenance is captured server-side into the stored row (not surfaced in the frozen v4 response)")
+      val storedConnectorMethod = code.connectormethod.DoobieConnectorMethodProvider
+        .getByIdWithProvenance(connectorMethod.connectorMethodId.getOrElse(""))
+        .openOrThrowException("stored connector method not found")
+      storedConnectorMethod.createdByUserId should be (Some(resourceUser1.userId))
+      storedConnectorMethod.methodBodyHash should be (Some(code.api.util.APIUtil.sha256Hex(postConnectorMethod.decodedMethodBody)))
+
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
       
       val requestCreateMethodRouting = (v4_0_0_Request / "management" / "method_routings").POST <@(user1)
@@ -279,7 +286,7 @@ class ConnectorMethodTest extends V400ServerSetup {
           |)
           |""".stripMargin
       val encodedMethodBody = URLEncoder.encode(methodBody, "UTF-8")
-      ConnectorMethodProvider.provider.vend.create(JsonConnectorMethod(Some("Hello_bank_id"), "getBank", encodedMethodBody))
+      ConnectorMethodProvider.provider.vend.create(JsonConnectorMethod(Some("Hello_bank_id"), "getBank", encodedMethodBody), None)
       val connectorMethod = InternalConnector.instance
 
       Then("Call dynamic method")

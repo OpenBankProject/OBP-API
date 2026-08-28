@@ -87,6 +87,9 @@ object Participant {
   def findAllByUserId(userId: String): List[Participant] =
     query(fr"WHERE userid = $userId")
 
+  /** Every membership, for the digest scheduler, which groups them by user itself. */
+  def findAll(): List[Participant] = query(Fragment.empty)
+
   private def update(chatRoomId: String, userId: String, set: Fragment): Box[Participant] =
     find(chatRoomId, userId).flatMap { _ =>
       DoobieUtil.runUpdate(

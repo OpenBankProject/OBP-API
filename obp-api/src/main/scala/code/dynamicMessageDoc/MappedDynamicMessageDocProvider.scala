@@ -29,7 +29,8 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
     }
   }
 
-  override def create(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc] =
+  override def create(bankId: Option[String], entity: JsonDynamicMessageDoc,
+                      createdByUserId: Option[String]): Box[JsonDynamicMessageDoc] =
     tryo {
       DynamicMessageDoc.insert(
         dynamicMessageDocId = APIUtil.generateUUID(),
@@ -45,10 +46,14 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
         inboundAvroSchema = entity.inboundAvroSchema,
         adapterImplementation = entity.adapterImplementation,
         methodBody = entity.methodBody,
-        programmingLang = entity.programmingLang)
+        programmingLang = entity.programmingLang,
+        // Provenance from the authenticated user and a hash computed here, never from the body.
+        createdByUserId = createdByUserId,
+        methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
     }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
 
-  override def update(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc] = {
+  override def update(bankId: Option[String], entity: JsonDynamicMessageDoc,
+                      updatedByUserId: Option[String]): Box[JsonDynamicMessageDoc] = {
     val currentId = entity.dynamicMessageDocId.getOrElse("")
     DynamicMessageDoc.findById(bankId, currentId) match {
       case Full(_) =>
@@ -69,7 +74,9 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
             inboundAvroSchema = entity.inboundAvroSchema,
             adapterImplementation = entity.adapterImplementation,
             methodBody = entity.methodBody,
-            programmingLang = entity.programmingLang)
+            programmingLang = entity.programmingLang,
+            updatedByUserId = updatedByUserId,
+            methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
         }.flatMap(box => box).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
       case _ => Empty
     }

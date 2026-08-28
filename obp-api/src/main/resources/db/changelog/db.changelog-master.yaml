@@ -61,6 +61,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/db.changelog-baseline.yaml
   - include:
+      file: db/changelog/db.changelog-provenance.yaml
+  - include:
       file: db/changelog/db.changelog-oidc-views.yaml
   - include:
       file: db/changelog/db.changelog-app-views.yaml

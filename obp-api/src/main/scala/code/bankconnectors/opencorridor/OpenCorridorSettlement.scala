@@ -256,22 +256,25 @@ object OpenCorridorSettlement extends MdcLoggable {
 
       // Enqueue the Interface C messages in this same DB transaction (the outbox).
       // Credit notifications went to each beneficiary at promise-report-back time
-      // (OpenCorridorProcessor); settlement sends each beneficiary an advice so
-      // its already-paid-out credits get marked settled.
+      // (OpenCorridorProcessor); settlement sends BOTH party banks an advice with
+      // the FULL covered list, so each node stamps its already-paid-out credits
+      // AND its own outbound promises settled — including the party that did not
+      // trigger the settle, which otherwise never learns of the coverage (the
+      // instruction only moves money, and at net zero it is not sent at all).
       settlementAdviceCount <- Future {
-        covered.groupBy(_.toBankId).map { case (beneficiaryBankId, rows) =>
-          val advice = OutBoundOpenCorridorSettlementAdvice(
-            settlement_id = settlementTrId,
-            currency = currency,
-            net_amount = netAbs.toString(),
-            debtor_bank_id = debtorBankId,
-            creditor_bank_id = creditorBankId,
-            covered_transaction_request_ids = rows.map(_.transactionRequestId),
-            idempotency_key = settlementTrId
-          )
+        val advice = OutBoundOpenCorridorSettlementAdvice(
+          settlement_id = settlementTrId,
+          currency = currency,
+          net_amount = netAbs.toString(),
+          debtor_bank_id = debtorBankId,
+          creditor_bank_id = creditorBankId,
+          covered_transaction_request_ids = covered.map(_.transactionRequestId),
+          idempotency_key = settlementTrId
+        )
+        Set(bankIdA, bankIdB).map { partyBankId =>
           MessageOutbox.enqueue(
             MessageOutbox.TYPE_OPEN_CORRIDOR, settlementTrId, MessageOutbox.SUBJECT_TYPE_SETTLEMENT_ID,
-            "obp_settlement_advice", beneficiaryBankId, Serialization.write(advice))
+            "obp_settlement_advice", partyBankId, Serialization.write(advice))
         }.size
       }
       settlementInstructionCount <- Future {
