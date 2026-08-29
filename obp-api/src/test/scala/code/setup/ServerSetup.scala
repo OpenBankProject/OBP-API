@@ -225,6 +225,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM chatmessage".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM participant".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM chatroom".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM chat_email_digest_state".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedproductcollection".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedproductcollectionitem".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM directdebit".update.run)

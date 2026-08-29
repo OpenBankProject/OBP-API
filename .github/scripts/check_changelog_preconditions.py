@@ -31,33 +31,55 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = ROOT / "obp-api/src/main/resources/db/changelog/db.changelog-baseline.yaml"
+CHANGELOG_DIR = ROOT / "obp-api/src/main/resources/db/changelog"
+
+# Every changelog that creates or alters schema. The view changelogs are deliberately absent:
+# they use createView with replaceIfExists under runOnChange, which is idempotent by
+# construction, and db.changelog-dedup.yaml has its own guard
+# (check_changelog_data_migrations.py) because its DELETEs cannot be expressed this way.
+# Listing them rather than globbing so that adding a changelog is a decision, not an accident -
+# a new schema file has to be named here, which is the moment to ask which guard it needs.
+SCHEMA_CHANGELOGS = [
+    CHANGELOG_DIR / "db.changelog-baseline.yaml",
+    CHANGELOG_DIR / "db.changelog-provenance.yaml",
+]
 
 
 def changesets(text):
-    """Each changeset as (id, body), split on the top-level `- changeSet:` marker."""
-    parts = re.split(r"(?m)^- changeSet:\n", text)[1:]
+    """Each changeset as (id, body), split on the `- changeSet:` marker.
+
+    The indentation is not fixed: the generated baseline puts `- changeSet:` at column 0, while a
+    hand-written changelog nests it under `databaseChangeLog:`. Anchoring on column 0, as this did,
+    silently matched nothing in the second shape - the guard reported success over a file it had
+    not read. Accept either.
+    """
+    parts = re.split(r"(?m)^[ \t]*- changeSet:\n", text)[1:]
     for body in parts:
         m = re.search(r"^\s*id: (\S+)$", body, re.M)
         yield (m.group(1) if m else "<unnamed>"), body
 
 
 def main():
-    if not BASELINE.exists():
-        print(f"check_changelog_preconditions: {BASELINE} not found", file=sys.stderr)
+    missing = [c for c in SCHEMA_CHANGELOGS if not c.exists()]
+    if missing:
+        for c in missing:
+            print(f"check_changelog_preconditions: {c} not found", file=sys.stderr)
         return 1
 
-    text = BASELINE.read_text()
     problems = []
     checked = 0
 
-    for cs_id, body in changesets(text):
+    for changelog in SCHEMA_CHANGELOGS:
+      where = changelog.name
+      for cs_id, body in changesets(changelog.read_text()):
+        cs_id = f"{where}::{cs_id}"
         checked += 1
         creates_table = "- createTable:" in body
         creates_index = "- createIndex:" in body
-        if not (creates_table or creates_index):
-            problems.append(f"{cs_id}: neither createTable nor createIndex - this check does not "
-                            f"know what precondition it needs; teach it, do not skip it")
+        adds_column = "- addColumn:" in body
+        if not (creates_table or creates_index or adds_column):
+            problems.append(f"{cs_id}: none of createTable / createIndex / addColumn - this check "
+                            f"does not know what precondition it needs; teach it, do not skip it")
             continue
 
         if "preConditions:" not in body:
@@ -79,6 +101,20 @@ def main():
             elif body.count(f"indexName: {index.group(1)}") < 2:
                 problems.append(f"{cs_id}: the precondition names an index other than "
                                 f"{index.group(1)}")
+        elif adds_column:
+            # A column cannot be checked with tableExists - the table is there either way. The
+            # precondition has to name one of the columns the changeset adds, so a database that
+            # already went through this change marks it run instead of failing on a duplicate.
+            if not re.search(r"^\s*- columnExists:$", body, re.M):
+                problems.append(f"{cs_id}: addColumn needs a columnExists precondition")
+            else:
+                guarded = re.search(r"^\s*columnName: (\S+)$", body, re.M)
+                added = set(re.findall(r"\{name: ([a-z_]+),", body))
+                if guarded is None:
+                    problems.append(f"{cs_id}: columnExists has no columnName to check")
+                elif added and guarded.group(1) not in added:
+                    problems.append(f"{cs_id}: the precondition checks {guarded.group(1)}, which "
+                                    f"is not among the columns this changeset adds")
         else:
             if not re.search(r"^\s*- tableExists:$", body, re.M):
                 problems.append(f"{cs_id}: createTable needs a tableExists precondition")
@@ -88,7 +124,7 @@ def main():
                 problems.append(f"{cs_id}: the precondition names a table other than "
                                 f"{table.group(1)}")
 
-    print(f"check_changelog_preconditions: {checked} baseline changeset(s) checked, "
+    print(f"check_changelog_preconditions: {checked} schema changeset(s) checked, "
           f"{len(problems)} without a usable existence precondition")
     if problems:
         print("", file=sys.stderr)
@@ -97,7 +133,7 @@ def main():
         if len(problems) > 40:
             print(f"  ... and {len(problems) - 40} more", file=sys.stderr)
         print("", file=sys.stderr)
-        print("Each baseline changeset needs `preConditions: [onFail: MARK_RAN, not: "
+        print("Each schema changeset needs `preConditions: [onFail: MARK_RAN, not: "
               "[tableExists|indexExists: <the object it creates>]]`. "
               "scripts/normalise_generated_changelog.py inserts them; if the changelog was "
               "regenerated without it, re-run the normaliser rather than adding them by hand.",
