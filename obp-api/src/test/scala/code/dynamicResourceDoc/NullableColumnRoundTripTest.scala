@@ -45,7 +45,9 @@ class NullableColumnRoundTripTest extends ServerSetup {
         errorResponseBodies = null,
         tags = null,
         roles = null,
-        methodBody = "()")
+        methodBody = "()",
+        // provenance is not what this test exercises; it wants the NULL shape
+        createdByUserId = None, methodBodyHash = None)
 
       inserted.tags should be(null)
       inserted.roles should be(null)
@@ -76,7 +78,9 @@ class NullableColumnRoundTripTest extends ServerSetup {
         errorResponseBodies = "[]",
         tags = "[]",
         roles = "[]",
-        methodBody = "()")
+        methodBody = "()",
+        // provenance is not what this test exercises; it wants the NULL shape
+        createdByUserId = None, methodBodyHash = None)
 
       DynamicResourceDoc.findAll(None).map(_.dynamicResourceDocId) should contain(id)
     }
@@ -101,7 +105,9 @@ class NullableColumnRoundTripTest extends ServerSetup {
         inboundAvroSchema = null,
         adapterImplementation = null,
         methodBody = "()",
-        programmingLang = "Scala")
+        programmingLang = "Scala",
+        // provenance is not what this test exercises; it wants the NULL shape
+        createdByUserId = None, methodBodyHash = None)
 
       DynamicMessageDoc.findById(None, id) match {
         case Full(found) => found.process should equal(process)

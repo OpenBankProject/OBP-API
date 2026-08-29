@@ -80,8 +80,12 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
     // Provenance is written from the authenticated user and a hash computed here, never from the
     // request body. createdat/updatedat are what the Mapper CreatedUpdated trait used to set.
     val now = new java.sql.Timestamp(System.currentTimeMillis())
-    val hash = APIUtil.sha256Hex(entity.decodedMethodBody)
     tryo {
+      // Inside the tryo, not before it: decodedMethodBody is URLDecoder.decode of a
+      // caller-supplied string, which throws on a malformed escape ('%' is ordinary in Scala
+      // source). Computing it outside turned that into an exception escaping create, where the
+      // Mapper implementation returned a Failure the endpoint could report.
+      val hash = APIUtil.sha256Hex(entity.decodedMethodBody)
       DoobieUtil.runUpdate(
         sql"""INSERT INTO connectormethod (connectormethodid, methodname, methodbody, lang,
                 createdbyuserid, methodbodyhash, createdat, updatedat)

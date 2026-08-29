@@ -114,8 +114,8 @@ object DynamicResourceDoc {
              requestVerb: String, requestUrl: String, summary: String, description: String,
              exampleRequestBody: Option[String], successResponseBody: Option[String],
              errorResponseBodies: String, tags: String, roles: String,
-             methodBody: String, createdByUserId: Option[String] = None,
-             methodBodyHash: Option[String] = None): DynamicResourceDoc = {
+             methodBody: String, createdByUserId: Option[String],
+             methodBodyHash: Option[String]): DynamicResourceDoc = {
     // CreatedUpdated set both on create; the row is never written without them.
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
@@ -138,8 +138,8 @@ object DynamicResourceDoc {
              requestVerb: String, requestUrl: String, summary: String, description: String,
              exampleRequestBody: Option[String], successResponseBody: Option[String],
              errorResponseBodies: String, tags: String, roles: String,
-             methodBody: String, updatedByUserId: Option[String] = None,
-             methodBodyHash: Option[String] = None): Box[DynamicResourceDoc] = {
+             methodBody: String, updatedByUserId: Option[String],
+             methodBodyHash: Option[String]): Box[DynamicResourceDoc] = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""UPDATE dynamicresourcedoc SET bankid = $bankId,

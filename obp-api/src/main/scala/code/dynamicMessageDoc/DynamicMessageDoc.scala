@@ -113,8 +113,8 @@ object DynamicMessageDoc {
              inboundTopic: String, exampleOutboundMessage: String, exampleInboundMessage: String,
              outboundAvroSchema: String, inboundAvroSchema: String, adapterImplementation: String,
              methodBody: String, programmingLang: String,
-             createdByUserId: Option[String] = None,
-             methodBodyHash: Option[String] = None): DynamicMessageDoc = {
+             createdByUserId: Option[String],
+             methodBodyHash: Option[String]): DynamicMessageDoc = {
     // CreatedUpdated set both on create; the row is never written without them.
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
@@ -140,8 +140,8 @@ object DynamicMessageDoc {
              inboundTopic: String, exampleOutboundMessage: String, exampleInboundMessage: String,
              outboundAvroSchema: String, inboundAvroSchema: String, adapterImplementation: String,
              methodBody: String, programmingLang: String,
-             updatedByUserId: Option[String] = None,
-             methodBodyHash: Option[String] = None): Box[DynamicMessageDoc] = {
+             updatedByUserId: Option[String],
+             methodBodyHash: Option[String]): Box[DynamicMessageDoc] = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""UPDATE dynamicmessagedoc SET dynamicmessagedocid = ${Option(dynamicMessageDocId)},
