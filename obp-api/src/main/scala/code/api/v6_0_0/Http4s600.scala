@@ -933,6 +933,83 @@ object Http4s600 {
     }
 
 
+    // Shared by POST /users in v6.0.0 and v7.0.0 (v7 adds mobile_phone_number).
+    // Validates the password against the strong-password policy, rejects a
+    // duplicate username (409), then creates and saves the AuthUser (which also
+    // creates its ResourceUser). Email validation state follows
+    // `authUser.skipEmailValidation`.
+    def createAndSaveAuthUser(
+      email: String,
+      username: String,
+      password: String,
+      firstName: String,
+      lastName: String
+    )(implicit cc: CallContext): Future[AuthUser] = {
+      for {
+        _ <- Helper.booleanToFuture(InvalidStrongPasswordFormat, 400, Some(cc)) {
+          APIUtil.fullPasswordValidation(password)
+        }
+        _ <- Helper.booleanToFuture(DuplicateUsername, 409, Some(cc)) {
+          AuthUser.find(net.liftweb.mapper.By(AuthUser.username, username)).isEmpty
+        }
+        userCreated <- Future {
+          AuthUser.create
+            .firstName(firstName).lastName(lastName)
+            .username(username).email(email)
+            .password(password)
+            .validated(APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false))
+        }
+        _ <- Helper.booleanToFuture(InvalidJsonFormat + userCreated.validate.map(_.msg).mkString(";"), 400, Some(cc)) {
+          userCreated.validate.size == 0
+        }
+        savedUser <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { userCreated.saveMe() }
+        _ <- Helper.booleanToFuture(s"$UnknownError Error occurred during user creation.", 400, Some(cc)) {
+          userCreated.saved_?
+        }
+      } yield savedUser
+    }
+
+    // Sends the sign-up validation email unless `authUser.skipEmailValidation`
+    // is on. Delivery problems are logged, never raised: the user row already
+    // exists and can retry via POST /obp/v7.0.0/users/validation-emails.
+    def sendSignupValidationEmailIfRequired(savedUser: AuthUser): Unit = {
+      val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
+      if (!skipEmailValidation) {
+        val portalUrlBox = APIUtil.getPortalUrl
+        val senderAddress = AuthUser.emailFrom
+        val portalMissing = portalUrlBox.isEmpty
+        val senderIsDefault = senderAddress == "noreply@example.com"
+        if (portalMissing) {
+          logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — public_obp_portal_url (or legacy portal_external_url) is not set. The user will be unable to validate via email. They can use POST /obp/v7.0.0/users/validation-emails to retry once the prop is configured.")
+        } else if (senderIsDefault) {
+          logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address).")
+        } else {
+          val portalUrl = portalUrlBox.openOr("")
+          val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
+          val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+            .subject(savedUser.uniqueId.get)
+            .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+            .issueTime(new java.util.Date()).build()
+          val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
+          val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
+          val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
+            from = senderAddress,
+            to = List(savedUser.email.get),
+            bcc = AuthUser.bccEmail.toList,
+            subject = "Sign up confirmation",
+            textContent = Some(s"Welcome! Please validate your account: $emailLink"),
+            htmlContent = Some(s"<p>Welcome! Please <a href='$emailLink'>validate your account</a>.</p>")
+          ))
+          sendOutcome match {
+            case Right(msgId) =>
+              logger.info(s"createUser says: validation email sent to '${savedUser.email.get}' messageId=$msgId")
+            case Left(e) =>
+              logger.warn(s"createUser says: validation email send FAILED for user '${savedUser.username.get}' (${savedUser.email.get}): ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}. The user can retry via POST /obp/v7.0.0/users/validation-emails once the SMTP issue is resolved.")
+          }
+        }
+      }
+    }
+
     // Route: POST /obp/v6.0.0/users (201)
     lazy val createUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "users" =>
@@ -943,64 +1020,13 @@ object Http4s600 {
             postedData <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateUserJsonV600]
             }
-            _ <- Helper.booleanToFuture(InvalidStrongPasswordFormat, 400, Some(cc)) {
-              APIUtil.fullPasswordValidation(postedData.password)
-            }
-            _ <- Helper.booleanToFuture(DuplicateUsername, 409, Some(cc)) {
-              AuthUser.find(net.liftweb.mapper.By(AuthUser.username, postedData.username)).isEmpty
-            }
-            userCreated <- Future {
-              AuthUser.create
-                .firstName(postedData.first_name).lastName(postedData.last_name)
-                .username(postedData.username).email(postedData.email)
-                .password(postedData.password)
-                .validated(APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false))
-            }
-            _ <- Helper.booleanToFuture(InvalidJsonFormat + userCreated.validate.map(_.msg).mkString(";"), 400, Some(cc)) {
-              userCreated.validate.size == 0
-            }
-            savedUser <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { userCreated.saveMe() }
-            _ <- Helper.booleanToFuture(s"$UnknownError Error occurred during user creation.", 400, Some(cc)) {
-              userCreated.saved_?
-            }
+            savedUser <- createAndSaveAuthUser(
+              postedData.email, postedData.username, postedData.password, postedData.first_name, postedData.last_name
+            )
           } yield {
-            val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
-            if (!skipEmailValidation) {
-              val portalUrlBox = APIUtil.getPortalUrl
-              val senderAddress = AuthUser.emailFrom
-              val portalMissing = portalUrlBox.isEmpty
-              val senderIsDefault = senderAddress == "noreply@example.com"
-              if (portalMissing) {
-                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — public_obp_portal_url (or legacy portal_external_url) is not set. The user will be unable to validate via email. They can use POST /obp/v7.0.0/users/validation-emails to retry once the prop is configured.")
-              } else if (senderIsDefault) {
-                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address).")
-              } else {
-                val portalUrl = portalUrlBox.openOr("")
-                val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
-                val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                  .subject(savedUser.uniqueId.get)
-                  .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
-                  .issueTime(new java.util.Date()).build()
-                val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
-                val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
-                val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
-                  from = senderAddress,
-                  to = List(savedUser.email.get),
-                  bcc = AuthUser.bccEmail.toList,
-                  subject = "Sign up confirmation",
-                  textContent = Some(s"Welcome! Please validate your account: $emailLink"),
-                  htmlContent = Some(s"<p>Welcome! Please <a href='$emailLink'>validate your account</a>.</p>")
-                ))
-                sendOutcome match {
-                  case Right(msgId) =>
-                    logger.info(s"createUser says: validation email sent to '${savedUser.email.get}' messageId=$msgId")
-                  case Left(e) =>
-                    logger.warn(s"createUser says: validation email send FAILED for user '${savedUser.username.get}' (${savedUser.email.get}): ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}. The user can retry via POST /obp/v7.0.0/users/validation-emails once the SMTP issue is resolved.")
-                }
-              }
-            }
+            sendSignupValidationEmailIfRequired(savedUser)
             AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
-            JSONFactory200.createUserJSONfromAuthUser(userCreated)
+            JSONFactory200.createUserJSONfromAuthUser(savedUser)
           }
         }
     }

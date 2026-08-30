@@ -1622,6 +1622,65 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     mobile_phone_number_validated_date = None
   )
 
+  // ─── Create User (self-registration) — v7 adds the optional mobile phone number ──
+  // The number belongs to the person registering (global across banks, stored on
+  // ResourceUser) and is stored UNVERIFIED: is_validated=false, no validated date.
+  // Verification is a separate flow. Absent or blank means "no number".
+  case class CreateUserJsonV700(
+    email: String,
+    username: String,
+    password: String,
+    first_name: String,
+    last_name: String,
+    mobile_phone_number: Option[String]
+  )
+
+  case class CreatedUserJsonV700(
+    user_id: String,
+    email: String,
+    provider_id: String,
+    provider: String,
+    username: String,
+    mobile_phone_number: Option[String],
+    mobile_phone_number_is_validated: Option[Boolean],
+    mobile_phone_number_validated_date: Option[Date],
+    entitlements: EntitlementJSONs
+  )
+
+  def createCreatedUserJsonV700(v200: code.api.v2_0_0.JSONFactory200.UserJsonV200, resourceUser: User): CreatedUserJsonV700 =
+    CreatedUserJsonV700(
+      user_id = v200.user_id,
+      email = v200.email,
+      provider_id = v200.provider_id,
+      provider = v200.provider,
+      username = v200.username,
+      mobile_phone_number = resourceUser.mobilePhoneNumber,
+      mobile_phone_number_is_validated = resourceUser.mobilePhoneNumberIsValidated,
+      mobile_phone_number_validated_date = resourceUser.mobilePhoneNumberValidatedDate,
+      entitlements = v200.entitlements
+    )
+
+  lazy val createUserJsonV700Example = CreateUserJsonV700(
+    email = ExampleValue.emailExample.value,
+    username = ExampleValue.usernameExample.value,
+    password = "String",
+    first_name = "Simon",
+    last_name = "Redfern",
+    mobile_phone_number = Some(ExampleValue.mobileNumberExample.value)
+  )
+
+  lazy val createdUserJsonV700Example = CreatedUserJsonV700(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = ExampleValue.providerIdValueExample.value,
+    provider = ExampleValue.providerValueExample.value,
+    username = ExampleValue.usernameExample.value,
+    mobile_phone_number = Some(ExampleValue.mobileNumberExample.value),
+    mobile_phone_number_is_validated = Some(false),
+    mobile_phone_number_validated_date = None,
+    entitlements = EntitlementJSONs(Nil)
+  )
+
   // ─── Password policy — published so clients can validate locally before user creation /
   // password reset. The structured fields are the normative contract; `regex` is a convenience
   // written in the portable subset that behaves identically in Java, JavaScript and Python.

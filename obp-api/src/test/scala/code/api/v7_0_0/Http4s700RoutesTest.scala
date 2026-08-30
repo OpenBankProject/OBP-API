@@ -8,7 +8,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -17,7 +17,8 @@ import code.views.MapperViews
 import code.views.system.ViewPermission
 import com.openbankproject.commons.model.ViewId
 import code.routingscheme.RoutingSchemes
-import code.model.dataAccess.BankAccountRouting
+import code.model.dataAccess.{AuthUser, BankAccountRouting}
+import net.liftweb.util.Helpers.randomString
 import code.metrics.MappedMetric
 import code.customer.CustomerX
 import code.entitlement.Entitlement
@@ -1190,6 +1191,129 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           }
         case _ => fail("Expected JSON object for getCurrentUser")
       }
+    }
+  }
+
+  // ─── createUser (v7 native — adds the optional mobile_phone_number) ───────────
+
+  feature("Http4s700 createUser endpoint") {
+
+    val strongPassword = "StrongP@ssw0rd123!"
+
+    def createUserBody(username: String, mobilePhoneNumberJson: Option[String]): String = {
+      val phone = mobilePhoneNumberJson.map(v => s""","mobile_phone_number":$v""").getOrElse("")
+      s"""{"email":"$username","username":"$username","password":"$strongPassword","first_name":"Simon","last_name":"Redfern"$phone}"""
+    }
+
+    def newUsername(): String = "v7reg" + randomString(10).toLowerCase + "@example.com"
+
+    def deleteAuthUser(username: String): Unit =
+      AuthUser.find(By(AuthUser.username, username)).foreach(_.delete_!)
+
+    scenario("Create a user with a mobile phone number, stored unverified, served natively by v7", Http4s700RoutesTag) {
+      Given("email validation is skipped and a fresh username")
+      setPropsValues("authUser.skipEmailValidation" -> "true")
+      val username = newUsername()
+
+      When("POST /obp/v7.0.0/users with mobile_phone_number")
+      val (statusCode, json, headers) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/users", createUserBody(username, Some("\"+49 170 5556677\"")))
+
+      Then("Response is 201 from v7 itself (no version-served fallback header), with the phone fields")
+      statusCode shouldBe 201
+      hasHeader(headers, "X-OBP-Version-Served") shouldBe false
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.get("username") shouldBe Some(JString(username))
+          m.get("email") shouldBe Some(JString(username))
+          m.get("user_id") match {
+            case Some(JString(id)) => id should not be empty
+            case other => fail(s"Expected user_id, got $other")
+          }
+          m.get("mobile_phone_number") shouldBe Some(JString("+49 170 5556677"))
+          m.get("mobile_phone_number_is_validated") shouldBe Some(JBool(false))
+          m.get("mobile_phone_number_validated_date") should (be(None) or be(Some(JNull)))
+          m.keys should contain("entitlements")
+        case _ => fail("Expected JSON object for createUser")
+      }
+
+      And("the ResourceUser carries the number, unverified")
+      val authUser = AuthUser.find(By(AuthUser.username, username)).openOrThrowException("user must have been created")
+      val ru = code.model.dataAccess.ResourceUser.find(By(code.model.dataAccess.ResourceUser.id, authUser.user.get))
+        .openOrThrowException("resource user must exist")
+      ru.mobilePhoneNumber shouldBe Some("+49 170 5556677")
+      ru.mobilePhoneNumberIsValidated shouldBe Some(false)
+      ru.mobilePhoneNumberValidatedDate shouldBe None
+
+      deleteAuthUser(username)
+    }
+
+    scenario("Create a user without a mobile phone number", Http4s700RoutesTag) {
+      Given("email validation is skipped and a fresh username")
+      setPropsValues("authUser.skipEmailValidation" -> "true")
+      val username = newUsername()
+
+      When("POST /obp/v7.0.0/users with the v6-shaped body (no mobile_phone_number)")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/users", createUserBody(username, None))
+
+      Then("Response is 201 and the phone fields are empty")
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.get("username") shouldBe Some(JString(username))
+          m.get("mobile_phone_number") should (be(None) or be(Some(JNull)))
+        case _ => fail("Expected JSON object for createUser")
+      }
+
+      deleteAuthUser(username)
+    }
+
+    scenario("Reject a malformed mobile phone number without creating the user", Http4s700RoutesTag) {
+      Given("a fresh username")
+      setPropsValues("authUser.skipEmailValidation" -> "true")
+      val username = newUsername()
+
+      When("POST /obp/v7.0.0/users with letters in mobile_phone_number")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/users", createUserBody(username, Some("\"call me maybe\"")))
+
+      Then("Response is 400 with InvalidPhoneNumber and no user row exists")
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(InvalidPhoneNumber)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+      AuthUser.find(By(AuthUser.username, username)).isDefined shouldBe false
+    }
+
+    scenario("Reject a duplicate username with 409", Http4s700RoutesTag) {
+      Given("a user that already exists")
+      setPropsValues("authUser.skipEmailValidation" -> "true")
+      val username = newUsername()
+      val (first, _, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/users", createUserBody(username, None))
+      first shouldBe 201
+
+      When("POST /obp/v7.0.0/users again with the same username")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/users", createUserBody(username, None))
+
+      Then("Response is 409 with DuplicateUsername")
+      statusCode shouldBe 409
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(DuplicateUsername)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+
+      deleteAuthUser(username)
     }
   }
 

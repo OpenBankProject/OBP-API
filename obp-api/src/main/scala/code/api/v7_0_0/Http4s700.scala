@@ -974,13 +974,18 @@ object Http4s700 {
       http4sPartialFunction = Some(getCurrentUser)
     )
 
+    // Accepted shape of a user's own mobile phone number (POST /users and
+    // PUT /my/user/mobile-phone-number): optional leading "+", then 5-50 of
+    // digits, spaces, dashes, dots and parentheses.
+    private val mobilePhoneNumberRegex = """\+?[0-9\-\s().]{5,50}"""
+
     // Route: PUT /obp/v7.0.0/my/user/mobile-phone-number
     val updateMyMobilePhoneNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "my" / "user" / "mobile-phone-number" =>
         EndpointHelpers.withUserAndBody[JSONFactory700.PutMyMobilePhoneNumberJsonV700, JSONFactory700.MyMobilePhoneNumberJsonV700](req) { (user, body, cc) =>
           for {
             _ <- Helper.booleanToFuture(InvalidPhoneNumber, cc = Some(cc)) {
-              body.mobile_phone_number.matches("""\+?[0-9\-\s().]{5,50}""")
+              body.mobile_phone_number.matches(mobilePhoneNumberRegex)
             }
             resourceUser <- Future {
               UserVend.users.vend.getResourceUserByResourceUserId(user.userPrimaryKey.value)
@@ -1026,6 +1031,90 @@ object Http4s700 {
       apiTagUser :: Nil,
       None,
       http4sPartialFunction = Some(updateMyMobilePhoneNumber)
+    )
+
+    // Route: POST /obp/v7.0.0/users (201)
+    // v7 signature change over v6: the body accepts an optional mobile_phone_number,
+    // stored on the ResourceUser as unverified (is_validated=false, no validated
+    // date) — verification is a separate flow. Password policy, duplicate-username
+    // check, validation email and default entitlements are shared with v6.
+    val createUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[JSONFactory700.CreateUserJsonV700]}",
+              400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory700.CreateUserJsonV700]
+            }
+            mobilePhoneNumber = postedData.mobile_phone_number.map(_.trim).filter(_.nonEmpty)
+            _ <- Helper.booleanToFuture(InvalidPhoneNumber, 400, Some(cc)) {
+              mobilePhoneNumber.forall(_.matches(mobilePhoneNumberRegex))
+            }
+            savedUser <- code.api.v6_0_0.Http4s600.Implementations6_0_0.createAndSaveAuthUser(
+              postedData.email, postedData.username, postedData.password, postedData.first_name, postedData.last_name
+            )
+            resourceUser <- Future {
+              UserVend.users.vend.getResourceUserByResourceUserId(savedUser.user.get)
+            } map { x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404) }
+            storedResourceUser <- Future {
+              mobilePhoneNumber match {
+                case Some(number) =>
+                  resourceUser.MobilePhoneNumber(number).MobilePhoneNumberIsValidated(false).saveMe()
+                case None => resourceUser
+              }
+            }
+          } yield {
+            code.api.v6_0_0.Http4s600.Implementations6_0_0.sendSignupValidationEmailIfRequired(savedUser)
+            AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
+            JSONFactory700.createCreatedUserJsonV700(
+              JSONFactory200.createUserJSONfromAuthUser(savedUser),
+              storedResourceUser
+            )
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createUser),
+      "POST",
+      "/users",
+      "Create User (self-registration)",
+      s"""Creates an OBP user (self-registration). No authorisation required.
+        |
+        |Requires email, username, password, first_name and last_name.
+        |
+        |v7.0.0 adds the optional `mobile_phone_number`: the registering person's own
+        |number (global across banks, distinct from the bank-scoped `mobile_phone_number`
+        |on Customer, which is KYC data of a legal entity). It is stored unverified —
+        |`mobile_phone_number_is_validated` is `false` and
+        |`mobile_phone_number_validated_date` is empty until a separate validation flow
+        |succeeds. Omit the field, or send null / blank, to register without a number.
+        |
+        |Validation checks performed:
+        |- Password must meet strong password requirements ($InvalidStrongPasswordFormat)
+        |- Username must be unique (409, $DuplicateUsername)
+        |- `mobile_phone_number`, when present, must be an optional leading `+` followed by
+        |  5 to 50 digits, spaces, dashes, dots or parentheses ($InvalidPhoneNumber)
+        |
+        |Email validation behavior:
+        |- Controlled by property `authUser.skipEmailValidation` (default: false)
+        |- When false: the user is created with validated=false and a validation email is sent.
+        |  The link uses `public_obp_portal_url` (or legacy `portal_external_url`); if that is
+        |  not set, or sending fails, the user can retry via POST /obp/v7.0.0/users/validation-emails.
+        |- When true: the user is created with validated=true and no email is sent.
+        |- Default entitlements are granted immediately regardless of validation status.
+        |
+        |""".stripMargin,
+      JSONFactory700.createUserJsonV700Example,
+      JSONFactory700.createdUserJsonV700Example,
+      List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, InvalidPhoneNumber, "Error occurred during user creation.", UnknownError),
+      List(apiTagUser, apiTagOnboarding),
+      None,
+      http4sPartialFunction = Some(createUser)
     )
 
     // Route: GET /obp/v7.0.0/my/metrics
