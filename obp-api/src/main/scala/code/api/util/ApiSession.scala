@@ -29,8 +29,25 @@ case class CallContext(
                         dauthRequestPayload: Option[JSONFactoryDAuth.PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
                         dauthResponseHeader: Option[String] = None,
                         spelling: Option[String] = None,
+                        // The AUTHENTICATED principal. Not always a person: under a consent this is the
+                        // consent's own shadow user. Stored data (metric rows, created_by_user_id columns)
+                        // always records this id — the human is resolved at read time via the consent table.
                         user: Box[User] = Empty,
+                        // The human who CREATED the consent this request runs under. Populated only by the
+                        // OBP-native consent path (applyConsentRulesCommon) from the consent JWT's
+                        // createdByUserId claim, resolved against the users table. For OBP-native consents
+                        // the creator is the granting human (they create their own consent in the Portal).
+                        // Not set by Berlin Group / UK flows, where the consent may be created by a TPP flow
+                        // with no human logged in — see `consenter` for those.
+                        // Read via humanUser / effectiveHumanUserId, where it takes precedence over consenter.
                         onBehalfOfUser: Box[User] = Empty,
+                        // The human (PSU) who AUTHORISED the consent this request runs under — the owner of
+                        // record, from the consent table's userId (bound by updateConsentUser during the
+                        // authorise ceremony). Populated by the Berlin Group and UK consent paths, whose
+                        // consents are created by TPP flows and only gain their human at authorisation.
+                        // The UK ownership check (checkUKConsent) compares the consent's userId against this.
+                        // In practice onBehalfOfUser and consenter are never both set: each consent standard
+                        // populates the one whose source is authoritative for it.
                         consenter: Box[User] = Empty,
                         consumer: Box[Consumer] = Empty,
                         ipAddress: String = "",
@@ -94,7 +111,9 @@ case class CallContext(
    * `user` is not always a person: a consent resolves to a shadow user that exists only for that
    * consent (Berlin Group, OBP-native, and -- since UK consents moved to the same model -- UK too).
    * Anything that must name a human rather than a principal reads this instead: the CBS adapter,
-   * which tells the core banking system who is asking, and metric attribution.
+   * which tells the core banking system who is asking, and the consent ownership checks.
+   * Stored data (metric rows included) always carries the authenticated principal; the human is
+   * resolved at read time via the consent table (see effectiveHumanUserId).
    */
   def humanUser: Box[User] = onBehalfOfUser.or(consenter).or(user)
 
@@ -159,12 +178,13 @@ case class CallContext(
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
       gatewayLoginResponseHeader = this.gatewayLoginResponseHeader,
-      // Metrics name the human, not the principal. A consent's shadow user would record a per-consent
-      // UUID and an empty username, which is what Berlin Group and OBP-native traffic has always
-      // looked like on the metrics table; the consent itself stays identifiable via
-      // consentReferenceId below.
-      userId = this.humanUser.map(_.userId).toOption,
-      userName = this.humanUser.map(_.name).toOption,
+      // Like for like with CallContext: userId/userName are the AUTHENTICATED principal
+      // (CallContext.user), never a resolved human. Under a consent that principal is the
+      // consent's own shadow user (a per-consent UUID with an empty name) — the on-behalf-of
+      // human is not stored here but resolved at read time via the consent table
+      // (consentReferenceId below -> consent.userId), see CallContext.effectiveHumanUserId.
+      userId = this.user.map(_.userId).toOption,
+      userName = this.user.map(_.name).toOption,
       consumerId = this.consumer.map(_.consumerId.get).toOption,
       appName = this.consumer.map(_.name.get).toOption,
       developerEmail = this.consumer.map(_.developerEmail.get).toOption,

@@ -52,22 +52,29 @@ object APIMetrics extends SimpleInjector {
 
   // One shared fetch path for metrics-reading endpoints: builds OBPQueryParams
   // from the http params (with the from_date default applied) and runs the query.
-  // lockedUserId pins the user filter server-side (for self-service endpoints
+  // lockedUserIds pins the user filter server-side (for self-service endpoints
   // like GET /my/metrics); when set it overrides anything in httpParams.
   def getMetricsFromHttpParams(
       httpParams: List[HTTPParam],
       callContext: Option[CallContext],
-      lockedUserId: Option[String] = None
+      lockedUserIds: Option[List[String]] = None
   ): Future[(List[APIMetric], Option[CallContext])] = {
-    val effectiveParams = lockedUserId match {
-      case Some(userId) =>
-        httpParams.filterNot(_.name == "user_id") :+ HTTPParam("user_id", List(userId))
+    // The lock replaces any caller-supplied user filter outright: the ids are
+    // server-resolved (e.g. the human plus their consent-agents for /my/metrics)
+    // and nothing from the request may widen or narrow them.
+    val effectiveParams = lockedUserIds match {
+      case Some(_) => httpParams.filterNot(_.name == "user_id")
       case None => httpParams
     }
     for {
       (obpQueryParams, cc) <- createQueriesByHttpParamsFuture(
         applyMetricsFromDateDefault(effectiveParams), callContext)
-      metrics <- Future(apiMetrics.vend.getAllMetrics(obpQueryParams))
+      lockedParams = lockedUserIds match {
+        case Some(userIds) =>
+          code.api.util.OBPUserIds(userIds) :: obpQueryParams.filterNot(_.isInstanceOf[code.api.util.OBPUserId])
+        case None => obpQueryParams
+      }
+      metrics <- Future(apiMetrics.vend.getAllMetrics(lockedParams))
     } yield (metrics, cc)
   }
 
@@ -194,7 +201,15 @@ case class AggregateMetrics(
   totalCount: Int,
   avgResponseTime: Double,
   minResponseTime: Double,
-  maxResponseTime: Double
+  maxResponseTime: Double,
+  // Distinct humans behind the calls: consent-borne rows are attributed to the granting
+  // (on-behalf-of) user via the consent table, mirroring CallContext.effectiveHumanUserId.
+  distinctUserCount: Int,
+  distinctConsumerCount: Int,
+  // Calls that arrived under a consent (metric.consent_reference_id not null), and how many
+  // distinct consents were exercised in the window.
+  consentCallCount: Int,
+  distinctConsentCount: Int
 )
 
 case class TopApi(

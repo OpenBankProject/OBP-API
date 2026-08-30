@@ -67,9 +67,17 @@ object DoobieMetricsQueries {
     val toTs = new java.sql.Timestamp(toDate.getTime)
 
     // Build dynamic WHERE conditions
+    // Consent-borne calls are attributed to the granting (on-behalf-of) human via the consent
+    // table (COALESCE below) — see MappedMetrics.getAllAggregateMetricsBox for the rationale.
+    // The consent side of the join is unique-indexed on consent_reference_id (no row fan-out).
     val baseQuery = fr"""
-      SELECT count(*), avg(duration), min(duration), max(duration)
-      FROM metric
+      SELECT count(*), avg(duration), min(duration), max(duration),
+        count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
+        count(DISTINCT CASE WHEN m.consumerid <> '' AND m.consumerid <> 'null' THEN m.consumerid END),
+        count(NULLIF(m.consent_reference_id, '')),
+        count(DISTINCT NULLIF(m.consent_reference_id, ''))
+      FROM metric m
+      LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
       WHERE date_c >= $fromTs
         AND date_c <= $toTs
     """
@@ -77,13 +85,17 @@ object DoobieMetricsQueries {
     val conditions = buildFilterConditions(filters, isNewVersion)
     val fullQuery = baseQuery ++ conditions
 
-    fullQuery.query[(Long, Option[Double], Option[Double], Option[Double])].to[List].map { rows =>
-      rows.map { case (count, avgOpt, minOpt, maxOpt) =>
+    fullQuery.query[(Long, Option[Double], Option[Double], Option[Double], Long, Long, Long, Long)].to[List].map { rows =>
+      rows.map { case (count, avgOpt, minOpt, maxOpt, distinctUsers, distinctConsumers, consentCalls, distinctConsents) =>
         AggregateMetrics(
           count.toInt,
           avgOpt.map(d => BigDecimal(d).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble).getOrElse(0.0),
           minOpt.getOrElse(0.0),
-          maxOpt.getOrElse(0.0)
+          maxOpt.getOrElse(0.0),
+          distinctUsers.toInt,
+          distinctConsumers.toInt,
+          consentCalls.toInt,
+          distinctConsents.toInt
         )
       }
     }

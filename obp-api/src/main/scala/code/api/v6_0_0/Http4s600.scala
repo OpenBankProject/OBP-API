@@ -666,10 +666,13 @@ object Http4s600 {
             }
             (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
               APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
-            aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, false) map {
+            // isNewVersion = true: v6 is include_* style (exclude_* is rejected above). With
+            // false the include_app_names / include_url_patterns /
+            // include_implemented_by_partial_functions filters were silently ignored.
+            aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, true) map {
               APIUtil.unboxFullOrFail(_, callContext, GetAggregateMetricsError)
             }
-          } yield JSONFactory300.createAggregateMetricJson(aggregateMetrics)
+          } yield JSONFactory600.createAggregateMetricJsonV600(aggregateMetrics)
         }
     }
 
@@ -7516,9 +7519,18 @@ object Http4s600 {
            |
            |15 http_status_code (if null ignore) - Filter by HTTP status code. eg: http_status_code=200 returns only successful calls, http_status_code=500 returns server errors
            |
+           |**Response fields added in v6.0.0:**
+           |
+           |- `distinct_user_count` - distinct humans behind the calls. Calls made under a Consent
+           |(e.g. by an agent or TPP) are attributed to the granting (on-behalf-of) user resolved via
+           |the consent table, not to the consent's technical shadow user. Anonymous calls are excluded.
+           |- `distinct_consumer_count` - distinct Consumers (apps) that made calls.
+           |- `consent_call_count` - calls that arrived under a Consent.
+           |- `distinct_consent_count` - distinct Consents exercised in the window.
+           |
         """.stripMargin,
         EmptyBody,
-        aggregateMetricsJSONV300,
+        aggregateMetricJsonV600,
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,

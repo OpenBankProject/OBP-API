@@ -1134,8 +1134,13 @@ object Http4s700 {
               cc = Some(cc)) {
               identityParams.isEmpty
             }
+            // "My" spans the delegation family: the human plus every agent user minted
+            // from a Consent they granted (metric rows record the authenticated principal,
+            // so an agent's calls sit under the agent's own user id). Resolve up to the
+            // human, then fan down — both via server-written columns only.
             (metrics, _) <- APIMetrics.getMetricsFromHttpParams(
-              httpParams, cc.callContext, lockedUserId = Some(user.userId))
+              httpParams, cc.callContext,
+              lockedUserIds = Some(humanAndAgentUserIds(cc.effectiveHumanUserId)))
           } yield JSONFactory600.createMetricsJsonV600(metrics)
         }
     }
@@ -1148,10 +1153,13 @@ object Http4s700 {
       "Get Metrics (My)",
       s"""Get the API metrics rows of the currently authenticated user — a record of each REST API call this user has made.
         |
-        |No role is required: this endpoint only ever returns the logged in user's own calls.
+        |No role is required: this endpoint only ever returns calls belonging to the logged in user —
+        |their own calls, plus calls made by agent users minted from Consents this user granted
+        |(e.g. an AI agent calling on their behalf). Called under such a Consent, it returns the
+        |same family of calls, resolved through the granting user.
         |The identity filter parameters accepted by `GET /management/metrics` (`user_id`, `username`, `email`,
         |`provider_provider_id`, `anon`) are NOT supported here and are rejected with an error —
-        |the user filter is always the current user.
+        |the user filter is always the current user's delegation family.
         |
         |**NOTE: Automatic from_date Default**
         |
