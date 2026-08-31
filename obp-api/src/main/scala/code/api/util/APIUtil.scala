@@ -4892,6 +4892,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //    ++ code.api.MxOF.OBP_MXOF_1_0_0.allResourceDocs
     //    ++ code.api.BahrainOBF.v1_0_0.ApiCollector.allResourceDocs
     ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3.allResourceDocs
+    // The BG v1.3 alias (active only when berlin_group_v1_3_alias_path is set) is served by
+    // the resource-docs dispatcher via its ScannedApis registration, but its docs carry their
+    // own operation ids (re-derived from the alias version), so it hit the same
+    // getAllResourceDocs membership gap as BGv2 below. Empty when the prop is unset, so this
+    // is a no-op on instances without the alias configured.
+    ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3_Alias.allResourceDocs
     // BGv2 was missing here even though /resource-docs/BGv2 serves it, so a BGv2 operation id
     // (e.g. BGv2-getAccountDetails) failed the getAllResourceDocs membership check that
     // api-collection-endpoints (and anything else resolving operation ids) relies on.
