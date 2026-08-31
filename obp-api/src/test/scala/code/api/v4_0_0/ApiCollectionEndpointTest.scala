@@ -202,7 +202,28 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
         val  operationId= apiCollectionEndpoint.operation_id
       }
-      
+
+      {
+        // Regression pin for the sandbox bug report: BGv2-getAccountDetails was served by the
+        // resource-docs dispatcher (/resource-docs/BGv2/obp) but missing from the global
+        // operation-id union getAllResourceDocs relies on, so this exact request used to fail
+        // with OBP-40048 Invalid operation_id.
+        Then(s"we test the $ApiEndpoint6- BGv2-getAccountDetails")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="BGv2-getAccountDetails")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+
       {
         Then(s"we test the $ApiEndpoint7")
         val requestGet = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").GET <@ (user1)
@@ -213,7 +234,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
         val apiCollectionsJsonGet400 = responseGet.body.extract[ApiCollectionEndpointsJson400]
 
-        apiCollectionsJsonGet400.api_collection_endpoints.length should be (4)
+        apiCollectionsJsonGet400.api_collection_endpoints.length should be (5)
       }
     }
   }
