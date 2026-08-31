@@ -28,7 +28,12 @@ TESOBE (http://www.tesobe.com/)
 package code.util
 
 import code.api.util.{ApiSession, CallContext}
+import code.api.util.APIUtil.HTTPParam
+import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Full}
+
+import java.util.Date
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
@@ -57,6 +62,105 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
     }
   }
   
+  feature("CallContext.toLight is like for like with CallContext")
+  {
+    // Any field name that exists on BOTH CallContext and CallContextLight must carry the
+    // same value through toLight — CallContext may have more fields, but overlapping names
+    // must never diverge. Reflection over the case-class fields keeps this true for fields
+    // added in the future without anyone remembering to extend this test.
+    scenario("every same-named field survives toLight unchanged")
+    {
+      val principal = ResourceUser.create.userId_("principal-user-id").name_("principal-name")
+
+      // Populate every shared-name field with a distinctive, non-default value so a wrong
+      // mapping cannot hide behind matching defaults.
+      val cc = CallContext(
+        gatewayLoginRequestPayload = Some(ApiSession.emptyPayloadOfJwt),
+        gatewayLoginResponseHeader = Some("gateway-response-jwt"),
+        spelling = Some("ISO20022"),
+        user = Full(principal),
+        startTime = Some(new Date(1000L)),
+        endTime = Some(new Date(2000L)),
+        correlationId = "corr-123",
+        url = "/obp/v6.0.0/banks",
+        verb = "GET",
+        implementedInVersion = "v6.0.0",
+        operationId = Some("OBPv6.0.0-getBanks"),
+        authReqHeaderField = Full("Bearer abc"),
+        directLoginParams = Map("token" -> "dl-token"),
+        httpCode = Some(201),
+        httpBody = Some("""{"ok":true}"""),
+        requestHeaders = List(HTTPParam("X-Request-ID", List("rid-1"))),
+        xRateLimitLimit = 100L,
+        xRateLimitRemaining = 99L,
+        xRateLimitReset = 42L,
+        paginationOffset = Some("10"),
+        paginationLimit = Some("50"),
+        consentReferenceId = Some("consent-ref-1"),
+        certificateTrust = Some("forwarded"),
+        certificateTrustDetail = Some("cn=proxy")
+      )
+      val light = cc.toLight
+
+      // Box (on CallContext) vs Option (on CallContextLight) is a representation
+      // difference, not a value difference — compare through Option.
+      def normalise(value: Any): Any = value match {
+        case box: Box[_] => box.toOption
+        case other => other
+      }
+
+      val ccFields = cc.productElementNames.zip(cc.productIterator).toMap
+      val lightFields = light.productElementNames.zip(light.productIterator).toMap
+      val sharedNames = ccFields.keySet.intersect(lightFields.keySet)
+
+      // Guard the guard: if a rename ever shrinks the overlap, fail loudly instead of
+      // silently comparing less.
+      sharedNames should contain allOf(
+        "correlationId", "url", "verb", "implementedInVersion", "startTime", "endTime",
+        "operationId", "httpCode", "httpBody", "authReqHeaderField", "requestHeaders",
+        "consentReferenceId", "certificateTrust", "certificateTrustDetail",
+        "paginationOffset", "paginationLimit",
+        "xRateLimitLimit", "xRateLimitRemaining", "xRateLimitReset")
+
+      for (name <- sharedNames) {
+        withClue(s"CallContext.$name vs CallContextLight.$name: ") {
+          normalise(lightFields(name)) should be(normalise(ccFields(name)))
+        }
+      }
+    }
+
+    // The differently-named fields are a deliberate projection, pinned here by hand:
+    // userId/userName come from the AUTHENTICATED principal (CallContext.user), never from
+    // a resolved human. Under a consent the principal is the consent's shadow user; the
+    // human stays on the context as consenter/onBehalfOfUser and is resolved at read time
+    // via the consent table, never baked into stored rows.
+    scenario("userId and userName carry the AUTHENTICATED principal, even when consenter and onBehalfOfUser are set")
+    {
+      val principal = ResourceUser.create.userId_("principal-user-id").name_("principal-name")
+      val human = ResourceUser.create.userId_("human-user-id").name_("human-name")
+
+      val light = CallContext(
+        user = Full(principal),
+        consenter = Full(human),
+        onBehalfOfUser = Full(human),
+        directLoginParams = Map("token" -> "dl-token")
+      ).toLight
+
+      light.userId should be(Some("principal-user-id"))
+      light.userName should be(Some("principal-name"))
+      light.directLoginToken should be("dl-token")
+      light.partialFunctionName should be("")
+    }
+
+    scenario("without consent context, userId is simply the authenticated user")
+    {
+      val user = ResourceUser.create.userId_("plain-user-id").name_("plain-name")
+      val light = CallContext(user = Full(user)).toLight
+      light.userId should be(Some("plain-user-id"))
+      light.userName should be(Some("plain-name"))
+    }
+  }
+
   feature("test CallContext toString secure logging masking") 
   {
     scenario("toString should mask sensitive data") 

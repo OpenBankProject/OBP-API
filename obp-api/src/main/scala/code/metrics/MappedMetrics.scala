@@ -279,6 +279,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val consumerId = queryParams.collect { case OBPConsumerId(value) => By(MappedMetric.consumerId, value)}.headOption
     val bankId = queryParams.collect { case OBPBankId(value) => Like(MappedMetric.url, s"%banks/$value%") }.headOption
     val userId = queryParams.collect { case OBPUserId(value) => By(MappedMetric.userId, value) }.headOption
+    val userIds = queryParams.collect { case OBPUserIds(values) => net.liftweb.mapper.ByList(MappedMetric.userId, values) }.headOption
     val url = queryParams.collect { case OBPUrl(value) => By(MappedMetric.url, value) }.headOption
     val appName = queryParams.collect { case OBPAppName(value) => By(MappedMetric.appName, value) }.headOption
     val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => By(MappedMetric.implementedInVersion, value) }.headOption
@@ -305,6 +306,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       ordering,
       consumerId.toSeq,
       userId.toSeq,
+      userIds.toSeq,
       bankId.toSeq,
       url.toSeq,
       appName.toSeq,
@@ -426,10 +428,22 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val includeUrlPatternsQueries = extendLikeQuery(includeUrlPatternsList, true)
       val includeUrlPatternsQueriesSql = s"$includeUrlPatternsQueries" 
       
+      // The LEFT JOIN attributes consent-borne calls to the granting (on-behalf-of) human:
+      // metric.userid records the AUTHENTICATED principal, which under a consent is the
+      // consent's own shadow user. COALESCE(consent.muserid, metric.userid) resolves such rows
+      // to the granting human at read time, mirroring CallContext.effectiveHumanUserId. (Rows
+      // written 2026-08 only, while toLight briefly recorded the human, resolve identically.)
+      // The consent side of the join is unique-indexed on consent_reference_id, so the join
+      // cannot fan out rows.
       val result = {
         val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better.
-          s"""SELECT count(*), avg(duration), min(duration), max(duration)
-              FROM metric
+          s"""SELECT count(*), avg(duration), min(duration), max(duration),
+              count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
+              count(DISTINCT CASE WHEN m.consumerid <> '' AND m.consumerid <> 'null' THEN m.consumerid END),
+              count(NULLIF(m.consent_reference_id, '')),
+              count(DISTINCT NULLIF(m.consent_reference_id, ''))
+              FROM metric m
+              LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
               WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
               AND date_c <= '${sqlTimestamp(toDate.get)}'
               AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
@@ -448,8 +462,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($includeImplementedByPartialFunctionsList))
               """.stripMargin
         else
-          s"""SELECT count(*), avg(duration), min(duration), max(duration)
-            FROM metric
+          s"""SELECT count(*), avg(duration), min(duration), max(duration),
+            count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
+            count(DISTINCT CASE WHEN m.consumerid <> '' AND m.consumerid <> 'null' THEN m.consumerid END),
+            count(NULLIF(m.consent_reference_id, '')),
+            count(DISTINCT NULLIF(m.consent_reference_id, ''))
+            FROM metric m
+            LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
             WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
             AND date_c <= '${sqlTimestamp(toDate.get)}'
             AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
@@ -477,7 +496,11 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                   tryo(rs(0).toInt).getOrElse(0),
                   tryo("%.2f".format(rs(1).toDouble).toDouble).getOrElse(0),
                   tryo(rs(2).toDouble).getOrElse(0),
-                  tryo(rs(3).toDouble).getOrElse(0)
+                  tryo(rs(3).toDouble).getOrElse(0),
+                  tryo(rs(4).toInt).getOrElse(0),
+                  tryo(rs(5).toInt).getOrElse(0),
+                  tryo(rs(6).toInt).getOrElse(0),
+                  tryo(rs(7).toInt).getOrElse(0)
                 )
         )
         logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlResult --:  " + sqlResult)

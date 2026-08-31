@@ -3208,6 +3208,16 @@ object SwaggerDefinitionsJSON {
   lazy val metricsJsonV600 = MetricsJsonV600(
     metrics = List(metricJsonV600)
   )
+  lazy val aggregateMetricJsonV600 = AggregateMetricJsonV600(
+    count = 7076,
+    average_response_time = 65.21,
+    minimum_response_time = 1,
+    maximum_response_time = 9039,
+    distinct_user_count = 41,
+    distinct_consumer_count = 12,
+    consent_call_count = 1024,
+    distinct_consent_count = 9
+  )
 
   lazy val branchJsonPut = BranchJsonPutV210("gh.29.fi", "OBP",
     addressJsonV140,

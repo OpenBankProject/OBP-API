@@ -538,6 +538,12 @@ object OAuth2Login extends MdcLoggable {
       validateIdToken(token) match {
         case Full(_) =>
           logger.debug("applyIdTokenRules - ID token validation successful")
+          // Also enforced on the ID-token login path: in REQUIRED mode an unbound ID token
+          // must not be a bypass around certificate-bound access tokens.
+          TokenBinding.verifyTokenBinding(token, cc) match {
+            case failure: Failure => return (failure, Some(cc))
+            case _ => // binding ok, or checking not enabled
+          }
           validateAudience(token) match {
             case Full(_) =>
               val user = getOrCreateResourceUser(token)
@@ -586,6 +592,12 @@ object OAuth2Login extends MdcLoggable {
 
       validateAccessToken(token) match {
         case Full(_) =>
+          // FAPI / RFC 8705 sender-constrained token check (oauth2.token_binding.mode).
+          // Runs after signature validation so the cnf claim can be trusted.
+          TokenBinding.verifyTokenBinding(token, cc) match {
+            case failure: Failure => return (failure, Some(cc))
+            case _ => // binding ok, or checking not enabled
+          }
           validateAudience(token) match {
             case Full(_) =>
               val user = getOrCreateResourceUser(token)

@@ -73,6 +73,12 @@ trait User {
   def lastUsedLocale: Option[String] = None
   def isNaturalPerson: Boolean = true
   def principalUserIdOption: Option[String] = None
+  //the user's own OBP-verified mobile, global across banks — distinct from Customer.mobileNumber which is bank-scoped KYC data
+  def mobilePhoneNumber: Option[String] = None
+  //kept separate from the date so it can be reset without losing the audit trail
+  def mobilePhoneNumberIsValidated: Option[Boolean] = None
+  //set only on successful validation: always means "last time this number passed verification"
+  def mobilePhoneNumberValidatedDate: Option[Date] = None
 }
 
 case class UserPrimaryKey(val value : Long) {

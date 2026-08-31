@@ -148,6 +148,8 @@ object ErrorMessages {
   val InvalidSignalChannelName = "OBP-10057: Invalid Signal Channel name. " +
     "Signal Channel names must use only alphanumeric characters, dots, hyphens, and underscores, " +
     "and be between 1 and 128 characters long."
+  val UserFilterParametersNotSupported = "OBP-10058: User identity filter parameters (user_id, username, email, provider_provider_id, anon) " +
+    "are not supported on this endpoint. It only ever returns the logged in user's own records. "
 
 
 
@@ -323,6 +325,10 @@ object ErrorMessages {
 
   val DuplicateUsername = "OBP-20258: Duplicate Username. Cannot create Username because it already exists. "
   val ExternalUserCheckFailed = "OBP-20259: Could not check username uniqueness against the external provider. The Connector or Adapter may not be running. "
+
+  val Oauth2TokenBindingCertificateMissing = "OBP-20260: The access token is certificate-bound (cnf.x5t#S256) but no client certificate was presented with the request. "
+  val Oauth2TokenBindingCertificateMismatch = "OBP-20261: The presented client certificate does not match the certificate binding (cnf.x5t#S256) of the access token. "
+  val Oauth2TokenBindingRequired = "OBP-20262: This instance requires certificate-bound access tokens (oauth2.token_binding.mode=REQUIRED) but the token carries no cnf.x5t#S256 claim. "
 
 
   // X.509
