@@ -159,6 +159,7 @@ object Migration extends MdcLoggable {
       migrateMetricConsentReferenceId(startedBeforeSchemifier)
       migrateMetricCertificateTrust(startedBeforeSchemifier)
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
+      alterDynamicResourceDocBodyFieldsLength()
     }
 
     /**
@@ -513,6 +514,13 @@ object Migration extends MdcLoggable {
     // Retire the fast-firehose SQL views (firehose -> account directory + ABAC). Runs after the create
     // migrations above, so a fresh DB creates-then-drops them and an existing DB just drops them. See
     // MigrationOfDropFastFireHoseViews.
+    private def alterDynamicResourceDocBodyFieldsLength(): Boolean = {
+      val name = nameOf(alterDynamicResourceDocBodyFieldsLength)
+      runOnce(name) {
+        MigrationOfDynamicResourceDocBodyFieldsLength.alterColumnsType(name)
+      }
+    }
+
     private def dropFastFirehoseAccountsViews(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
         logger.warn(s"Migration.database.dropFastFirehoseAccountsViews(true) cannot be run before Schemifier.")
