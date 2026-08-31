@@ -248,6 +248,29 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       }
 
       {
+        // Regression pin for the third drift instance: the global operation-id union used to be
+        // built from the v6.0.0 aggregation, so operation ids belonging to endpoints that exist
+        // ONLY in v7.0.0 (getMyMetrics, getTopUsers, getTopConsumers) were absent from it and
+        // could not be added to an API collection either. getMyMetrics is v7-only -- it is not
+        // part of Http4sResourceDocAggregation.v600 -- so this pins the v7 base specifically,
+        // unlike the OBPv6.0.0-* cases above which passed even under the old v6-based union.
+        Then(s"we test the $ApiEndpoint6- OBPv7.0.0-getMyMetrics (v7-only endpoint)")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="OBPv7.0.0-getMyMetrics")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+
+      {
         Then(s"we test the $ApiEndpoint7")
         val requestGet = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").GET <@ (user1)
 
@@ -257,7 +280,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
         val apiCollectionsJsonGet400 = responseGet.body.extract[ApiCollectionEndpointsJson400]
 
-        apiCollectionsJsonGet400.api_collection_endpoints.length should be (6)
+        apiCollectionsJsonGet400.api_collection_endpoints.length should be (7)
       }
     }
   }

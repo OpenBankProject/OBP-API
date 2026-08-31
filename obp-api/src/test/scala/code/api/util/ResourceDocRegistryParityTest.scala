@@ -54,6 +54,9 @@ class ResourceDocRegistryParityTest extends ServerSetup {
       }
     }
 
+    // The three named pins below are the three historical drift instances. The generic loop
+    // above would also catch them, but naming them keeps the specific regressions legible.
+
     scenario("the operation id from the sandbox bug report resolves", RegistryParityTag) {
       allOperationIds should contain("BGv2-getAccountDetails")
     }
@@ -63,6 +66,12 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     // toggled per-test) -- pin a concrete alias operation id, not just the generic loop above.
     scenario("the operation id from the Berlin Group v1.3 alias resolves", RegistryParityTag) {
       allOperationIds should contain("BGv1-getPaymentInitiationStatus")
+    }
+
+    // The union used to be built from the v6.0.0 aggregation, so v7-only operation ids were
+    // absent from it. getMyMetrics exists only in v7.0.0, so it pins the v7 base specifically.
+    scenario("a v7-only operation id resolves", RegistryParityTag) {
+      allOperationIds should contain("OBPv7.0.0-getMyMetrics")
     }
   }
 }
