@@ -20,6 +20,8 @@ import org.json4s.native.Serialization.write
  */
 class DynamicResourceDocJavaTest extends V400ServerSetup {
 
+  private def createDynamicResourceDocsRequest = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+
   // Java-side convention: the pasted class implements Supplier<Function<Object[], Object>>.
   // args(0) = raw request body (String, or null), args(1) = path params (java.util.Map<String,String>),
   // args(2) = the CallContext. See DynamicUtil.createJavaHttp4sEndpoint's doc comment.
@@ -58,7 +60,7 @@ class DynamicResourceDocJavaTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
       When("We create a Java-language dynamic resource doc gated by that role")
-      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val createReq = createDynamicResourceDocsRequest
       val doc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
         dynamicResourceDocId = None,
         bankId = None,
@@ -99,7 +101,7 @@ class DynamicResourceDocJavaTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
       When("We create a dynamic resource doc with an unsupported programming_lang")
-      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val createReq = createDynamicResourceDocsRequest
       val doc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
         dynamicResourceDocId = None,
         bankId = None,
@@ -132,7 +134,7 @@ class DynamicResourceDocJavaTest extends V400ServerSetup {
       val requestBodyStr = compact(render(withoutLang))
       requestBodyStr should not include "programming_lang"
 
-      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val createReq = createDynamicResourceDocsRequest
       val createResp = makePostRequest(createReq, requestBodyStr)
 
       Then("We should get a 201 and the stored/served doc defaults to the Scala language")
