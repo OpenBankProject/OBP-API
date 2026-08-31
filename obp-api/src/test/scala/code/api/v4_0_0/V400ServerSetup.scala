@@ -21,9 +21,10 @@ import code.metadata.comments.MappedComment
 import code.metadata.narrative.MappedNarrative
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
-import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, ErrorMessage, UpdateViewJSON}
 import com.openbankproject.commons.util.ApiShortVersions
 import code.setup.OBPReq
 import org.json4s.native.Serialization.write
@@ -41,6 +42,30 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def v5_1_0_Request: OBPReq = baseRequest / "obp" / "v5.1.0"
   def dynamicEndpoint_Request: OBPReq = baseRequest / "obp" / ApiShortVersions.`dynamic-endpoint`.toString
   def dynamicEntity_Request: OBPReq = baseRequest / "obp" / ApiShortVersions.`dynamic-entity`.toString
+
+  /**
+   * Shared by DynamicResourceDocTest and DynamicResourceDocJavaTest: exercises
+   * ResourceDoc.authCheckIO's role-gated path against a runtime-compiled dynamic-resource-doc --
+   * calling without auth returns 401, authenticated without the role returns 403, and granting the
+   * role makes the call succeed (200), handed to `assertSuccess` for endpoint-specific checks.
+   */
+  def assertRoleGated401Then403Then200(callUrl: OBPReq, body: String, dynamicRole: String)(assertSuccess: APIResponse => Unit): Unit = {
+    Then("calling without authentication returns 401")
+    val resp401 = makePostRequest(callUrl.POST, body)
+    resp401.code should equal(401)
+    resp401.body.extract[ErrorMessage].message should include(AuthenticatedUserIsRequired)
+
+    Then("calling authenticated but without the role returns 403")
+    val resp403 = makePostRequest(callUrl.POST <@ (user1), body)
+    resp403.code should equal(403)
+    resp403.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
+
+    Then("granting the role makes the call succeed (200)")
+    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, dynamicRole)
+    val resp200 = makePostRequest(callUrl.POST <@ (user1), body)
+    resp200.code should equal(200)
+    assertSuccess(resp200)
+  }
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {

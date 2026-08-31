@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, DynamicCodeLangNotSupport, UserHasMissingRoles}
+import code.api.util.ErrorMessages.DynamicCodeLangNotSupport
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.entitlement.Entitlement
 import com.openbankproject.commons.model.ErrorMessage
@@ -78,23 +78,11 @@ class DynamicResourceDocJavaTest extends V400ServerSetup {
       val callUrl = dynamicEndpoint_Request / "dynamic-resource-doc" / "my_java_role_user" / "user-1"
       val body = """{"name":"Jhon","age":12,"hobby":["coding"]}"""
 
-      Then("calling without authentication returns 401")
-      val resp401 = makePostRequest(callUrl.POST, body)
-      resp401.code should equal(401)
-      resp401.body.extract[ErrorMessage].message should include(AuthenticatedUserIsRequired)
-
-      Then("calling authenticated but without the role returns 403")
-      val resp403 = makePostRequest(callUrl.POST <@ (user1), body)
-      resp403.code should equal(403)
-      resp403.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
-
-      Then("granting the role makes the call succeed (200), served by the compiled Java class")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, dynamicRole)
-      val resp200 = makePostRequest(callUrl.POST <@ (user1), body)
-      resp200.code should equal(200)
-      val rendered = json.compactRender(resp200.body)
-      rendered should include("user-1_from_path")
-      rendered should include("Jhon")
+      assertRoleGated401Then403Then200(callUrl, body, dynamicRole) { resp200 =>
+        val rendered = json.compactRender(resp200.body)
+        rendered should include("user-1_from_path")
+        rendered should include("Jhon")
+      }
     }
 
     scenario("Reject an unsupported programming_lang before attempting compilation") {
