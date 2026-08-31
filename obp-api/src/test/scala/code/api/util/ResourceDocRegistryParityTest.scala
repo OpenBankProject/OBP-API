@@ -57,5 +57,12 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     scenario("the operation id from the sandbox bug report resolves", RegistryParityTag) {
       allOperationIds should contain("BGv2-getAccountDetails")
     }
+
+    // berlin_group_v1_3_alias_path is set in test.default.props precisely so this surface is
+    // reliably non-empty here (see that file's comment on why it must be set before boot, not
+    // toggled per-test) -- pin a concrete alias operation id, not just the generic loop above.
+    scenario("the operation id from the Berlin Group v1.3 alias resolves", RegistryParityTag) {
+      allOperationIds should contain("BGv1-getPaymentInitiationStatus")
+    }
   }
 }

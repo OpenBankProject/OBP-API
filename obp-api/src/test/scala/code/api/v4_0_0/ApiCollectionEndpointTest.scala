@@ -225,6 +225,29 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       }
 
       {
+        // Regression pin for the Berlin Group v1.3 alias gap: berlin_group_v1_3_alias_path
+        // (set to 0.6/v1 in test.default.props) activates Http4sBGv13Alias, whose docs are
+        // re-stamped copies of the canonical BG v1.3 docs carrying their own operation ids
+        // (BGv1-... here, not BGv1.3-...). These were served by the resource-docs dispatcher
+        // via ScannedApis discovery but missing from the global operation-id union, the same
+        // class of gap as BGv2 above.
+        Then(s"we test the $ApiEndpoint6- BGv1-getPaymentInitiationStatus (Berlin Group v1.3 alias)")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="BGv1-getPaymentInitiationStatus")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+
+      {
         Then(s"we test the $ApiEndpoint7")
         val requestGet = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").GET <@ (user1)
 
@@ -234,7 +257,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
         val apiCollectionsJsonGet400 = responseGet.body.extract[ApiCollectionEndpointsJson400]
 
-        apiCollectionsJsonGet400.api_collection_endpoints.length should be (5)
+        apiCollectionsJsonGet400.api_collection_endpoints.length should be (6)
       }
     }
   }
