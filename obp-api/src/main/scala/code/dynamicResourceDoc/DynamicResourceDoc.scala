@@ -25,6 +25,9 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK w
   object Tags extends MappedString(this, 255)
   object Roles extends MappedString(this, 255)
   object MethodBody extends MappedText(this)
+  // Source language of MethodBody: "Scala" (default) or "Java". Mirrors DynamicMessageDoc.Lang /
+  // ConnectorMethod.programmingLang — same field name/width convention, see DynamicEndpoints.
+  object Lang extends MappedString(this, 50)
   // Provenance: who created / last updated this runtime-compiled endpoint, and a SHA-256 of the
   // (decoded) method body so tampering / drift is detectable. Set server-side from the CallContext
   // user — never from the request body. createdAt / updatedAt come from the CreatedUpdated trait.
@@ -50,7 +53,8 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     successResponseBody = Option(dynamicResourceDoc.SuccessResponseBody.get).filter(StringUtils.isNotBlank).map(json.parse),
     errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
     tags = dynamicResourceDoc.Tags.get,
-    roles = dynamicResourceDoc.Roles.get
+    roles = dynamicResourceDoc.Roles.get,
+    programmingLang = dynamicResourceDoc.Lang.get
   )
 }
 

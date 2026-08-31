@@ -33,7 +33,12 @@ case class JsonDynamicResourceDoc(
    successResponseBody: Option[JValue],
    errorResponseBodies: String,
    tags: String,
-   roles: String
+   roles: String,
+   // Source language of methodBody: "Scala" (default) or "Java". Mirrors
+   // JsonConnectorMethod.programmingLang / JsonDynamicMessageDoc.programmingLang. Appended last
+   // (not inserted alphabetically) so existing named-arg call sites and JSON payloads that predate
+   // this field keep compiling/deserializing unchanged.
+   programmingLang: String = "Scala"
 ) extends JsonFieldReName {
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }

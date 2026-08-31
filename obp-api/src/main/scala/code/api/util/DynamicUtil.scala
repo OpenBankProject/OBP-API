@@ -44,6 +44,7 @@ object DynamicUtil extends MdcLoggable{
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
+  private val memoJavaHttp4sEndpoint = new Memo[String, Box[code.api.util.APIUtil.Http4sEndpointIO]]
 
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
     val cp = ClassPool.getDefault
@@ -543,4 +544,135 @@ object DynamicUtil extends MdcLoggable{
       }
     }
   }
+
+  /**
+   * Converts a plain value returned by a compiled Java `method_body` into a JValue, for endpoints
+   * where json4s' `Extraction.decompose` cannot help: it works by Scala-case-class/collection
+   * reflection, so a `java.util.Map`/`java.util.List` returned from Java decomposes to `{}`/`[]`
+   * (its entries are invisible to Scala reflection) rather than throwing — a silent data-loss bug,
+   * not a compile or runtime error, so it only surfaces as an empty response body. Recurses through
+   * the Java collection types directly; anything else (including a Scala case class constructed
+   * from Java, as ConnectorMethod's Java example does) falls back to Extraction.decompose.
+   */
+  private def javaValueToJValue(value: Any): JValue = {
+    import scala.jdk.CollectionConverters._
+    value match {
+      case null => JNull
+      case jv: JValue => jv
+      case m: java.util.Map[_, _] =>
+        JObject(m.asScala.toList.map { case (k, v) => (String.valueOf(k), javaValueToJValue(v)) })
+      case l: java.util.List[_] =>
+        JArray(l.asScala.toList.map(javaValueToJValue))
+      case s: String => JString(s)
+      case b: java.lang.Boolean => JBool(b)
+      case i: java.lang.Integer => JInt(BigInt(i.intValue()))
+      case l: java.lang.Long => JInt(BigInt(l.longValue()))
+      case d: java.lang.Double => JDouble(d.doubleValue())
+      case f: java.lang.Float => JDouble(f.doubleValue())
+      case bd: java.math.BigDecimal => JDecimal(BigDecimal(bd))
+      case other => Extraction.decompose(other)(CustomJsonFormats.formats)
+    }
+  }
+
+  /**
+   * Compiles a Java `method_body` for a DynamicResourceDoc endpoint into a native
+   * `Http4sEndpointIO` (`PartialFunction[Request[IO], CallContext => IO[Response[IO]]]`), the same
+   * type the Scala template compiles to in DynamicEndpoints.CompiledObjects.
+   *
+   * Reuses the same JSR-223 "java" engine (backed by a real javax.tools.JavaCompiler via
+   * ch.obermuhlner:java-scriptengine — see createJavaFunction above) and the same
+   * package-uniquification trick, but — unlike createJavaFunction, whose DynamicFunction shape is
+   * specific to the ConnectorMethod feature — wraps the compiled function in a hand-written
+   * Http4sEndpointIO here in Scala. The Java method_body never has to construct cats.effect.IO,
+   * org.http4s.Response, or a Scala PartialFunction: it only ever returns a plain Java object
+   * (Map/List/String/number/boolean/etc.), which this adapter serializes via javaValueToJValue
+   * above (NOT Extraction.decompose directly — see that method's doc comment for why).
+   *
+   * Java-side convention (identical to the existing ConnectorMethod convention): the pasted class
+   * implements java.util.function.Supplier<java.util.function.Function<Object[], Object>>. The
+   * compiled function is invoked with:
+   *   args(0) = the raw request body (String, or null if the request had none)
+   *   args(1) = path params (java.util.Map<String, String>)
+   *   args(2) = the CallContext (present whenever this endpoint is actually being served)
+   * mirroring createJavaFunction's own `func(args ++ cc)` call (line above): appending an
+   * Option[CallContext] via `++` appends its *contents* (0 or 1 raw CallContext), not the Option
+   * wrapper itself, so Java reads args[2] directly as a CallContext, no unwrapping needed.
+   *
+   * Unlike createJavaFunction, this validates the actual compiled Java class (not just its Scala
+   * wrapper) against `dynamic_code_compile_validate_dependencies`/`dynamic_code_compile_validate_enable`.
+   * CompiledObjects.validateDependency() (called by the ResourceDoc-creation flow) only ever sees
+   * `this.partialFunction` — the hand-written Http4sEndpointIO below — whose own bytecode just
+   * calls `java.util.function.Function.apply`, a non-restricted type; it can't see what the pasted
+   * Java class does inside apply(Object[]). Worse, `func` itself (the Function returned by the
+   * pasted class's get()) is commonly a method reference (`this::apply`), which the JVM
+   * materialises as a synthetic lambda class whose bytecode is just a delegating call — validating
+   * `func.getClass` would be equally blind. So we go through the JSR-223 Compilable API directly
+   * (JavaScriptEngine implements it) instead of plain eval(), to get the real top-level compiled
+   * class/instance (JavaCompiledScript.getCompiledClass/getCompiledInstance) and validate that
+   * before the function is ever returned or invoked.
+   */
+  def createJavaHttp4sEndpoint(methodBody: String): Box[code.api.util.APIUtil.Http4sEndpointIO] =
+    if (!dynamicCodeExecutionEnabled) Failure(ErrorMessages.DynamicCodeExecutionDisabled)
+    else memoJavaHttp4sEndpoint.memoize("java-http4s-endpoint:" + methodBody) {
+      import cats.effect.IO
+      import code.api.util.APIUtil.Http4sEndpointIO
+      import com.openbankproject.commons.ExecutionContext.Implicits.global
+      import com.openbankproject.commons.util.JsonAliases.compactRender
+      import org.http4s.headers.`Content-Type`
+      import org.http4s.dsl.io._
+      import org.http4s.{MediaType, Request, Response}
+
+      import scala.jdk.CollectionConverters._
+
+      Box tryo {
+        val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")
+        val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
+
+        val javaCode = s"""package code.api.util.dynamic.${packageExp};
+                          |${packageMatcher.replaceFirst("")}
+                          |""".stripMargin
+
+        // Real compile happens here (javax.tools.JavaCompiler via the JSR-223 "java" engine) —
+        // any Java syntax/type error surfaces as an exception, caught by the outer `Box tryo`.
+        val compiledScript = javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
+          .asInstanceOf[ch.obermuhlner.scriptengine.java.JavaCompiledScript]
+
+        // Validate the real compiled Supplier class before it's ever invoked — see the doc comment
+        // above for why this must run against getCompiledInstance, not `func`/`this.partialFunction`.
+        Validation.validateDependency(compiledScript.getCompiledInstance)
+
+        val func = compiledScript.eval().asInstanceOf[java.util.function.Function[Array[AnyRef], Any]]
+        val jsonContentType = `Content-Type`(MediaType.application.json)
+
+        new Http4sEndpointIO {
+          override def isDefinedAt(req: Request[IO]): Boolean = true
+
+          override def apply(req: Request[IO]): CallContext => IO[Response[IO]] = { cc =>
+            val pathParams: java.util.Map[String, String] = cc.resourceDocument
+              .map(_.getPathParams(req.uri.path.segments.toList.map(_.encoded)))
+              .getOrElse(Map.empty[String, String])
+              .asJava
+
+            val valueIO: IO[Any] = IO.fromFuture(IO {
+              Future {
+                val args: Array[AnyRef] = Array(cc.httpBody.orNull, pathParams)
+                func(args ++ Some(cc))
+              }
+            })
+
+            valueIO.flatMap { value =>
+              Ok(compactRender(javaValueToJValue(value)), jsonContentType)
+            }.handleErrorWith { e =>
+              logger.warn(s"createJavaHttp4sEndpoint: Java method_body threw", e)
+              InternalServerError(
+                compactRender(Extraction.decompose(
+                  Map("code" -> 500, "message" -> s"OBP-50000: Unknown Error. ${e.getMessage}")
+                )(CustomJsonFormats.formats)),
+                jsonContentType
+              )
+            }
+          }
+        }
+      }
+    }
 }

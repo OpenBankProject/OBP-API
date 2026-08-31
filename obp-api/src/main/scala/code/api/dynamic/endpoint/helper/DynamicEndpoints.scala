@@ -77,7 +77,7 @@ trait EndpointGroup {
  * @param successResponseBody successResponseBody from the post json body,it is JValue here.
  * @param methodBody it is url-encoded string for the api level code.
  */
-case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String) {
+case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String, programmingLang: String = "Scala") {
   val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
   val requestBody: Product = exampleRequestBody match {
       //this case means, we accept the empty string "" from json post body, we need to map it to None.
@@ -87,7 +87,24 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
   }
   val successResponse: Product = toCaseObject(successResponseBody)
 
-  private val partialFunction: Http4sEndpointIO = {
+  private val partialFunction: Http4sEndpointIO = programmingLang match {
+    case "java" | "Java" =>
+      DynamicUtil.createJavaHttp4sEndpoint(decodedMethodBody) match {
+        case Full(func) => func
+        case Failure(msg: String, exception: Box[Throwable], _) =>
+          throw exception.getOrElse(new RuntimeException(msg))
+        case _ => throw new RuntimeException("compiled code return nothing")
+      }
+    case _ /* "Scala" | "scala" | "" | null, default */ =>
+      scalaPartialFunction
+  }
+
+  // Unchanged Scala-template compile path, factored out so the `partialFunction` match above stays
+  // readable. Only evaluated for Scala-language docs (the default) — Java-language docs never
+  // touch this, so example/response-body JValues that don't fit the Scala case-class generator
+  // (irrelevant for Java, since it doesn't use RequestRootJsonClass/ResponseRootJsonClass) are a
+  // non-issue there.
+  private def scalaPartialFunction: Http4sEndpointIO = {
 
     //If the requestBody is PrimaryDataBody, return None. otherwise, return the exampleRequestBody:Option[JValue]
     // In side OBP resourceDoc, requestBody and successResponse must be Product type，

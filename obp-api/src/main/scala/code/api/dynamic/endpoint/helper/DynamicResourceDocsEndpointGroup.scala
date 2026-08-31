@@ -49,7 +49,7 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
    * 
    */
   private val toResourceDoc: JsonDynamicResourceDoc => ResourceDoc = { dynamicDoc =>
-    val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody)
+    val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody, dynamicDoc.programmingLang)
     ResourceDoc(
       // partialFunction is a no-op stub — the runtime dispatch uses the native handler in
       // dynamicHttp4sFunction (the compiled artifact is OBPEndpointIO, not the Lift OBPEndpoint).

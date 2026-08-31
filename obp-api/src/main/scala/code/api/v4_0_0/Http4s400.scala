@@ -9374,12 +9374,19 @@ object Http4s400 {
             case _ => true
           }
         }
+        // Fail fast with a clean 400 before attempting compilation, rather than surfacing an
+        // unsupported programming_lang only as a generic DynamicCodeCompileFail.
+        _ <- code.util.Helper.booleanToFuture(
+          s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: Scala, Java""",
+          cc = Some(cc)) {
+          Set("", "scala", "Scala", "java", "Java").contains(body.programmingLang)
+        }
       } yield ()
     }
 
     private def compileDynamicResourceDoc(body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
       try {
-        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody).validateDependency()
+        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang).validateDependency()
       } catch {
         case e: JsonResponseException => throw e
         case e: Exception =>
