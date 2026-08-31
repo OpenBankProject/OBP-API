@@ -624,7 +624,11 @@ object DynamicUtil extends MdcLoggable{
 
       import scala.jdk.CollectionConverters._
 
-      Box tryo {
+      // Real compile happens here (javax.tools.JavaCompiler via the JSR-223 "java" engine) — any
+      // Java syntax/type error surfaces as an exception, caught by this `Box tryo` and turned into
+      // a Failure. Deliberately narrow: only the compile step is wrapped. Validation runs below,
+      // outside any tryo — see the comment there for why that separation matters.
+      val compiledScriptBox: Box[ch.obermuhlner.scriptengine.java.JavaCompiledScript] = Box tryo {
         val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")
         val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
 
@@ -632,10 +636,37 @@ object DynamicUtil extends MdcLoggable{
                           |${packageMatcher.replaceFirst("")}
                           |""".stripMargin
 
-        // Real compile happens here (javax.tools.JavaCompiler via the JSR-223 "java" engine) —
-        // any Java syntax/type error surfaces as an exception, caught by the outer `Box tryo`.
-        val compiledScript = javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
+        javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
           .asInstanceOf[ch.obermuhlner.scriptengine.java.JavaCompiledScript]
+      }
+
+      // Deliberately outside compiledScriptBox's `Box tryo`: a rejection here throws
+      // JsonResponseException, which must propagate UNCAUGHT (mirroring the Scala path's
+      // CompiledObjects.validateDependency(), also never wrapped in tryo) so
+      // compileDynamicResourceDoc's `case e: JsonResponseException => throw e` sees it intact.
+      // JsonResponseException never sets a Throwable message (getMessage == null); Box.tryo would
+      // catch it into Failure(null, Full(theException), Empty), and DynamicEndpoints.scala's
+      // `case Failure(msg: String, ...)` pattern silently fails to match a null msg — falling
+      // through to "compiled code return nothing" and discarding the real rejection reason. `.map`
+      // does not swallow exceptions the way `Box tryo` does, so this stays uncaught here.
+      compiledScriptBox.map { compiledScript =>
+        val compiledClass = compiledScript.getCompiledClass
+
+        // getDynamicCodeDependentMethods loads the class's bytecode via Javassist's LoaderClassPath,
+        // which reads it through classLoader.getResourceAsStream(...). The compiler's
+        // ch.obermuhlner.scriptengine.java.MemoryClassLoader only overrides loadClass() — it never
+        // exposes the compiled bytes as a classpath resource — so that lookup silently fails
+        // (javassist.NotFoundException) and validation would see zero dependent methods no matter
+        // what the Java code actually calls. Read the bytes directly from the classloader's private
+        // byte map (reflection is unavoidable here: java-scriptengine exposes no public accessor)
+        // and hand them to Javassist explicitly via ByteArrayClassPath, so the real method bodies —
+        // including any restricted OBP call — are visible to validation.
+        val classBytesField = compiledClass.getClassLoader.getClass.getDeclaredField("mapClassBytes")
+        classBytesField.setAccessible(true)
+        val classBytes = classBytesField.get(compiledClass.getClassLoader)
+          .asInstanceOf[java.util.Map[String, Array[Byte]]].get(compiledClass.getName)
+        getClassPool(compiledClass.getClassLoader)
+          .appendClassPath(new javassist.ByteArrayClassPath(compiledClass.getName, classBytes))
 
         // Validate the real compiled Supplier class before it's ever invoked — see the doc comment
         // above for why this must run against getCompiledInstance, not `func`/`this.partialFunction`.
