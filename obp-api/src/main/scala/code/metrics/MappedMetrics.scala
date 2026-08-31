@@ -279,6 +279,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val consumerId = queryParams.collect { case OBPConsumerId(value) => By(MappedMetric.consumerId, value)}.headOption
     val bankId = queryParams.collect { case OBPBankId(value) => Like(MappedMetric.url, s"%banks/$value%") }.headOption
     val userId = queryParams.collect { case OBPUserId(value) => By(MappedMetric.userId, value) }.headOption
+    val userIds = queryParams.collect { case OBPUserIds(values) => net.liftweb.mapper.ByList(MappedMetric.userId, values) }.headOption
     val url = queryParams.collect { case OBPUrl(value) => By(MappedMetric.url, value) }.headOption
     val appName = queryParams.collect { case OBPAppName(value) => By(MappedMetric.appName, value) }.headOption
     val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => By(MappedMetric.implementedInVersion, value) }.headOption
@@ -305,6 +306,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       ordering,
       consumerId.toSeq,
       userId.toSeq,
+      userIds.toSeq,
       bankId.toSeq,
       url.toSeq,
       appName.toSeq,
@@ -426,10 +428,22 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val includeUrlPatternsQueries = extendLikeQuery(includeUrlPatternsList, true)
       val includeUrlPatternsQueriesSql = s"$includeUrlPatternsQueries" 
       
+      // The LEFT JOIN attributes consent-borne calls to the granting (on-behalf-of) human:
+      // metric.userid records the AUTHENTICATED principal, which under a consent is the
+      // consent's own shadow user. COALESCE(consent.muserid, metric.userid) resolves such rows
+      // to the granting human at read time, mirroring CallContext.effectiveHumanUserId. (Rows
+      // written 2026-08 only, while toLight briefly recorded the human, resolve identically.)
+      // The consent side of the join is unique-indexed on consent_reference_id, so the join
+      // cannot fan out rows.
       val result = {
         val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better.
-          s"""SELECT count(*), avg(duration), min(duration), max(duration)
-              FROM metric
+          s"""SELECT count(*), avg(duration), min(duration), max(duration),
+              count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
+              count(DISTINCT CASE WHEN m.consumerid <> '' AND m.consumerid <> 'null' THEN m.consumerid END),
+              count(NULLIF(m.consent_reference_id, '')),
+              count(DISTINCT NULLIF(m.consent_reference_id, ''))
+              FROM metric m
+              LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
               WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
               AND date_c <= '${sqlTimestamp(toDate.get)}'
               AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
@@ -448,8 +462,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($includeImplementedByPartialFunctionsList))
               """.stripMargin
         else
-          s"""SELECT count(*), avg(duration), min(duration), max(duration)
-            FROM metric
+          s"""SELECT count(*), avg(duration), min(duration), max(duration),
+            count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
+            count(DISTINCT CASE WHEN m.consumerid <> '' AND m.consumerid <> 'null' THEN m.consumerid END),
+            count(NULLIF(m.consent_reference_id, '')),
+            count(DISTINCT NULLIF(m.consent_reference_id, ''))
+            FROM metric m
+            LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
             WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
             AND date_c <= '${sqlTimestamp(toDate.get)}'
             AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
@@ -477,7 +496,11 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                   tryo(rs(0).toInt).getOrElse(0),
                   tryo("%.2f".format(rs(1).toDouble).toDouble).getOrElse(0),
                   tryo(rs(2).toDouble).getOrElse(0),
-                  tryo(rs(3).toDouble).getOrElse(0)
+                  tryo(rs(3).toDouble).getOrElse(0),
+                  tryo(rs(4).toInt).getOrElse(0),
+                  tryo(rs(5).toInt).getOrElse(0),
+                  tryo(rs(6).toInt).getOrElse(0),
+                  tryo(rs(7).toInt).getOrElse(0)
                 )
         )
         logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlResult --:  " + sqlResult)
@@ -553,6 +576,113 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
           logger.debug(s"getTopApisFuture first row sample: ${topApis.head}")
         }
         topApis
+      }
+      result
+    }}
+  }}
+
+  // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  // Groups by metric.consumerid — see DoobieMetricsQueries.buildTopConsumersByConsumerIdQuery.
+  override def getTopConsumersByConsumerIdFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{
+  /**
+  * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+  * is just a temporary value field with UUID values in order to prevent any ambiguity.
+  * The real value will be assigned by Macro during compile time at this line of a code:
+  * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+  */
+  var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+  val cacheTTL = determineMetricsCacheTTL(queryParams)
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+    {
+      val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+      val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
+      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+
+      val filters = MetricsQueryFilters(
+        consumerId = consumerId,
+        userId = userId,
+        url = url,
+        appName = appName,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        anon = anon,
+        correlationId = correlationId,
+        httpStatusCode = httpStatusCode,
+        excludeAppNames = None,
+        excludeUrlPatterns = None,
+        excludeImplementedByPartialFunctions = None
+      )
+
+      val result: Box[List[TopConsumer]] = tryo {
+        logger.debug(s"getTopConsumersByConsumerIdFuture using Doobie with filters: $filters, limit: $limit")
+        DoobieMetricsQueries.getTopConsumersByConsumerId(fromDate.get, toDate.get, limit, filters)
+      }
+      result
+    }}
+  }}
+
+  // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  // Groups by the on-behalf-of-resolved user — see DoobieMetricsQueries.buildTopUsersQuery.
+  override def getTopUsersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopUser]]] = Future{
+  /**
+  * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+  * is just a temporary value field with UUID values in order to prevent any ambiguity.
+  * The real value will be assigned by Macro during compile time at this line of a code:
+  * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+  */
+  var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+  val cacheTTL = determineMetricsCacheTTL(queryParams)
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+    {
+      val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+      val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+      val excludeAppNames: Option[List[String]] = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
+      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
+      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
+      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+
+      val filters = MetricsQueryFilters(
+        consumerId = consumerId,
+        userId = userId,
+        url = url,
+        appName = appName,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        anon = anon,
+        correlationId = correlationId,
+        httpStatusCode = httpStatusCode,
+        excludeAppNames = excludeAppNames,
+        excludeUrlPatterns = excludeUrlPatterns,
+        excludeImplementedByPartialFunctions = excludeImplementedByPartialFunctions
+      )
+
+      val result: Box[List[TopUser]] = tryo {
+        logger.debug(s"getTopUsersFuture using Doobie with filters: $filters, limit: $limit")
+        val topUsers = DoobieMetricsQueries.getTopUsers(fromDate.get, toDate.get, limit, filters)
+        logger.debug(s"getTopUsersFuture returned " + topUsers.length + " rows")
+        topUsers
       }
       result
     }}
@@ -732,7 +862,14 @@ object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] 
   //     and new rows are stored in the table "Metric"
   //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
   override def dbTableName = "Metric" // define the DB table name
-  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: super.dbIndexes
+  // (userId, date) serves the hot self-service reads — /my/metrics locks on user ids and
+  // filters/sorts/limits on date, and top-users groups by userid over a date range. The
+  // composite answers equality-on-user + range-and-order-on-date in one pass, avoiding the
+  // per-user sort a plain userid index (metric_userid_idx from MigrationOfUserIdIndexes,
+  // where enabled) still needs; that single-column index becomes redundant once this exists.
+  // NOTE: on a large existing metric table the Schemifier builds this index at boot — expect
+  // a one-off slow start on the first deploy that includes it.
+  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: Index(userId, date) :: super.dbIndexes
 }
 
 

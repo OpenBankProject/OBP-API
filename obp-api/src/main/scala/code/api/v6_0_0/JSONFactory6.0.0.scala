@@ -451,6 +451,7 @@ case class TopApiJsonV600(
 
 case class TopApisJsonV600(top_apis: List[TopApiJsonV600])
 
+
 case class MetricJsonV600(
     user_id: String,
     url: String,
@@ -478,6 +479,20 @@ case class MetricJsonV600(
     certificate_trust_detail: Option[String]
 )
 case class MetricsJsonV600(metrics: List[MetricJsonV600])
+
+case class AggregateMetricJsonV600(
+    count: Int,
+    average_response_time: Double,
+    minimum_response_time: Double,
+    maximum_response_time: Double,
+    // Distinct humans: consent-borne calls are attributed to the granting (on-behalf-of)
+    // user via the consent table, not to the consent's technical shadow user.
+    distinct_user_count: Int,
+    distinct_consumer_count: Int,
+    // Calls made under a consent, and the number of distinct consents exercised.
+    consent_call_count: Int,
+    distinct_consent_count: Int
+)
 
 case class CacheNamespaceJsonV600(
     prefix: String,
@@ -1737,6 +1752,30 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createMetricsJsonV600(metrics: List[code.metrics.APIMetric], lookupMap: Map[String, String]): MetricsJsonV600 = {
     MetricsJsonV600(metrics.map(createMetricJsonV600(_, lookupMap)))
+  }
+
+  // Overload that builds the partialFunctionName -> operationId lookup itself —
+  // the shared path for endpoints returning raw metric rows.
+  def createMetricsJsonV600(metrics: List[code.metrics.APIMetric]): MetricsJsonV600 = {
+    val lookupMap = code.api.util.APIUtil.getAllResourceDocs.map(d => d.partialFunctionName -> d.operationId).toMap
+    createMetricsJsonV600(metrics, lookupMap)
+  }
+
+  // Same list shape as JSONFactory300.createAggregateMetricJson (a single-element array),
+  // extended with the distinct/consent counts introduced in v6.0.0.
+  def createAggregateMetricJsonV600(aggregateMetrics: List[code.metrics.AggregateMetrics]): List[AggregateMetricJsonV600] = {
+    aggregateMetrics.map(aggregateMetric =>
+      AggregateMetricJsonV600(
+        aggregateMetric.totalCount,
+        aggregateMetric.avgResponseTime,
+        aggregateMetric.minResponseTime,
+        aggregateMetric.maxResponseTime,
+        aggregateMetric.distinctUserCount,
+        aggregateMetric.distinctConsumerCount,
+        aggregateMetric.consentCallCount,
+        aggregateMetric.distinctConsentCount
+      )
+    )
   }
 
   def createBankJSON600(

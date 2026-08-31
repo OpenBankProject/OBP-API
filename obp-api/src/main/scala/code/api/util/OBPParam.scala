@@ -70,6 +70,9 @@ case class OBPConsentReferenceId(value: String) extends OBPQueryParam
 // PeerTrust.Resolution.mode on the metric row: "direct", "forwarded" or "none".
 case class OBPCertificateTrust(value: String) extends OBPQueryParam
 case class OBPUserId(value: String) extends OBPQueryParam
+// Multiple user ids, matched with SQL IN — used by self-service endpoints that lock the
+// user filter to a server-resolved set (e.g. /my/metrics: the human plus their consent-agents).
+case class OBPUserIds(values: List[String]) extends OBPQueryParam
 case class ProviderProviderId(value: String) extends OBPQueryParam
 case class OBPStatus(value: String) extends OBPQueryParam
 case class OBPBankId(value: String) extends OBPQueryParam
