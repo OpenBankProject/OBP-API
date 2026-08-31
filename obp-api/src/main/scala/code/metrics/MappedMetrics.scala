@@ -582,6 +582,113 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }}
 
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  // Groups by metric.consumerid — see DoobieMetricsQueries.buildTopConsumersByConsumerIdQuery.
+  override def getTopConsumersByConsumerIdFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{
+  /**
+  * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+  * is just a temporary value field with UUID values in order to prevent any ambiguity.
+  * The real value will be assigned by Macro during compile time at this line of a code:
+  * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+  */
+  var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+  val cacheTTL = determineMetricsCacheTTL(queryParams)
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+    {
+      val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+      val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
+      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+
+      val filters = MetricsQueryFilters(
+        consumerId = consumerId,
+        userId = userId,
+        url = url,
+        appName = appName,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        anon = anon,
+        correlationId = correlationId,
+        httpStatusCode = httpStatusCode,
+        excludeAppNames = None,
+        excludeUrlPatterns = None,
+        excludeImplementedByPartialFunctions = None
+      )
+
+      val result: Box[List[TopConsumer]] = tryo {
+        logger.debug(s"getTopConsumersByConsumerIdFuture using Doobie with filters: $filters, limit: $limit")
+        DoobieMetricsQueries.getTopConsumersByConsumerId(fromDate.get, toDate.get, limit, filters)
+      }
+      result
+    }}
+  }}
+
+  // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  // Groups by the on-behalf-of-resolved user — see DoobieMetricsQueries.buildTopUsersQuery.
+  override def getTopUsersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopUser]]] = Future{
+  /**
+  * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+  * is just a temporary value field with UUID values in order to prevent any ambiguity.
+  * The real value will be assigned by Macro during compile time at this line of a code:
+  * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+  */
+  var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+  val cacheTTL = determineMetricsCacheTTL(queryParams)
+  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+    {
+      val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+      val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+      val excludeAppNames: Option[List[String]] = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
+      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
+      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
+      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+
+      val filters = MetricsQueryFilters(
+        consumerId = consumerId,
+        userId = userId,
+        url = url,
+        appName = appName,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        anon = anon,
+        correlationId = correlationId,
+        httpStatusCode = httpStatusCode,
+        excludeAppNames = excludeAppNames,
+        excludeUrlPatterns = excludeUrlPatterns,
+        excludeImplementedByPartialFunctions = excludeImplementedByPartialFunctions
+      )
+
+      val result: Box[List[TopUser]] = tryo {
+        logger.debug(s"getTopUsersFuture using Doobie with filters: $filters, limit: $limit")
+        val topUsers = DoobieMetricsQueries.getTopUsers(fromDate.get, toDate.get, limit, filters)
+        logger.debug(s"getTopUsersFuture returned " + topUsers.length + " rows")
+        topUsers
+      }
+      result
+    }}
+  }}
+
+  // Smart caching applied - uses determineMetricsCacheTTL based on query date range
   override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future {
   /**                                                                                        
   * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUU
@@ -755,7 +862,14 @@ object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] 
   //     and new rows are stored in the table "Metric"
   //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
   override def dbTableName = "Metric" // define the DB table name
-  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: super.dbIndexes
+  // (userId, date) serves the hot self-service reads — /my/metrics locks on user ids and
+  // filters/sorts/limits on date, and top-users groups by userid over a date range. The
+  // composite answers equality-on-user + range-and-order-on-date in one pass, avoiding the
+  // per-user sort a plain userid index (metric_userid_idx from MigrationOfUserIdIndexes,
+  // where enabled) still needs; that single-column index becomes redundant once this exists.
+  // NOTE: on a large existing metric table the Schemifier builds this index at boot — expect
+  // a one-off slow start on the first deploy that includes it.
+  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: Index(userId, date) :: super.dbIndexes
 }
 
 

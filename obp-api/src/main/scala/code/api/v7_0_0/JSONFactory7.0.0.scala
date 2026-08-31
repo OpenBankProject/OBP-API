@@ -1851,6 +1851,43 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   // "completed" (a run executed — inspect `run.success`) or
   // "skipped_already_in_progress" (a run was already running, so none was started;
   // `in_progress` then describes the lock that blocked it).
+  // ─── Top Consumers (v7.0.0) ───
+  // Grouped by the consumer id stored on the metric row (NOT by app name like v3.1.0), so
+  // for a given window the number of rows matches aggregate-metrics' distinct_consumer_count.
+  // app_name / developer_email are empty when the consumer row no longer exists.
+  case class TopConsumerJsonV700(
+      count: Int,
+      consumer_id: String,
+      app_name: String,
+      developer_email: String
+  )
+
+  case class TopConsumersJsonV700(top_consumers: List[TopConsumerJsonV700])
+
+  def createTopConsumersJsonV700(topConsumers: List[code.metrics.TopConsumer]): TopConsumersJsonV700 =
+    TopConsumersJsonV700(
+      topConsumers.map(topConsumer =>
+        TopConsumerJsonV700(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)
+      )
+    )
+
+  // ─── Top Users (v7.0.0) ───
+  // One distinct user and their call count. On-behalf-of aware: consent-borne calls are
+  // attributed to the granting human (resolved via the consent table), so for a given
+  // window the number of rows matches aggregate-metrics' distinct_user_count.
+  case class TopUserJsonV700(
+      count: Int,
+      user_id: String,
+      username: String
+  )
+
+  case class TopUsersJsonV700(top_users: List[TopUserJsonV700])
+
+  def createTopUsersJsonV700(topUsers: List[code.metrics.TopUser]): TopUsersJsonV700 =
+    TopUsersJsonV700(
+      topUsers.map(topUser => TopUserJsonV700(topUser.count, topUser.userId, topUser.userName))
+    )
+
   case class TriggerMetricsArchiveRunResponseJsonV700(
     status: String,
     message: String,

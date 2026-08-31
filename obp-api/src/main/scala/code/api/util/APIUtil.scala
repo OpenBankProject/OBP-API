@@ -4874,7 +4874,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   
   val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
   
-  lazy val allStaticResourceDocs = (code.api.util.http4s.Http4sResourceDocAggregation.v600
+  // Base is the v7 aggregation — the newest OBP-standard surface, which already contains the
+  // v6.0.0-and-older aggregation plus the v7-only endpoints (deduped by URL/method). Basing on
+  // the v6 aggregation silently excluded v7-only operation ids from everything that resolves
+  // operation ids through this list (api-collection endpoint validation, top-apis lookups, ...).
+  // ResourceDocRegistryParityTest pins the invariant that every per-standard surface the
+  // resource-docs dispatcher can serve is contained here.
+  lazy val allStaticResourceDocs = (code.api.v7_0_0.Http4s700.allResourceDocs
     ++ OBP_UKOpenBanking_200.allResourceDocs
     ++ OBP_UKOpenBanking_310.allResourceDocs
     ++ OBP_UKOpenBanking_401.allResourceDocs
@@ -4885,7 +4891,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     //    ++ code.api.MxOF.CNBV9_1_0_0.allResourceDocs
     //    ++ code.api.MxOF.OBP_MXOF_1_0_0.allResourceDocs
     //    ++ code.api.BahrainOBF.v1_0_0.ApiCollector.allResourceDocs
-    ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3.allResourceDocs).toList
+    ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3.allResourceDocs
+    // BGv2 was missing here even though /resource-docs/BGv2 serves it, so a BGv2 operation id
+    // (e.g. BGv2-getAccountDetails) failed the getAllResourceDocs membership check that
+    // api-collection-endpoints (and anything else resolving operation ids) relies on.
+    ++ code.api.berlin.group.v2.Http4sBGv2.resourceDocs).toList
   
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
   
