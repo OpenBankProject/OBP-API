@@ -1,7 +1,7 @@
 package code.api.util
 
 import code.setup.ServerSetup
-import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiStandards, ApiVersion, ScannedApiVersion}
 import org.scalatest.Tag
 
 /**
@@ -30,23 +30,28 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     case other => other.toString
   }
 
-  // Dynamic arms (dynamic-endpoint / dynamic-entity) are excluded: they are runtime-mutable and
-  // ResourceDocRegistry.allStaticResourceDocs itself excludes them for the same reason (see its
-  // doc comment) -- APIUtil.getAllResourceDocs appends them fresh via allDynamicResourceDocs
-  // instead, so comparing them against this registry-derived snapshot would be meaningless.
+  // Scoped to ResourceDocRegistry.unionVersions -- the current OBP surface plus every non-OBP
+  // standard. The superseded OBP aggregations (v6.0.0 and older) and the two dynamic arms are
+  // deliberately out of the union; see ResourceDocRegistry.obpUnionVersion for why, and for the
+  // accepted consequence that an operation id living only in a superseded aggregation stays
+  // unresolvable.
   private lazy val surfaces: List[(String, Seq[String])] =
-    (ResourceDocRegistry.registry - ApiVersion.`dynamic-endpoint` - ApiVersion.`dynamic-entity`)
-      .toList
-      .map { case (version, docsThunk) => (label(version), docsThunk().map(_.operationId)) }
+    ResourceDocRegistry.unionVersions.toList
+      .map(version => (label(version), ResourceDocRegistry.docsFor(version).map(_.operationId)))
 
-  feature("getAllResourceDocs contains every per-standard resource-doc surface the dispatcher can serve") {
+  feature("getAllResourceDocs contains every per-standard resource-doc surface the union covers") {
     scenario("the registry itself is non-empty", RegistryParityTag) {
       surfaces should not be empty
-      surfaces.exists(_._2.nonEmpty) shouldBe true
     }
 
     surfaces.foreach { case (label, operationIds) =>
       scenario(s"$label operation ids are all resolvable globally", RegistryParityTag) {
+        // Non-empty matters as much as membership: an empty surface is trivially a subset of the
+        // union, so without this a standard whose docs silently stop being registered (the very
+        // failure mode this test exists for) would pass unnoticed.
+        withClue(s"$label contributed no operation ids at all -- did its docs stop being registered? ") {
+          operationIds should not be empty
+        }
         val missing = operationIds.filterNot(allOperationIds.contains)
         withClue(s"$label operation ids missing from getAllResourceDocs: ${missing.take(10).mkString(", ")} ") {
           missing shouldBe empty
@@ -54,8 +59,28 @@ class ResourceDocRegistryParityTest extends ServerSetup {
       }
     }
 
-    // The three named pins below are the three historical drift instances. The generic loop
-    // above would also catch them, but naming them keeps the specific regressions legible.
+    // Guards the one hand-maintained knob left in the registry: if a v8.0.0 aggregation is added
+    // without moving obpUnionVersion, the union would keep serving the v7 surface and every
+    // v8-only operation id would silently be unresolvable -- the exact bug this PR started from.
+    scenario("obpUnionVersion is the newest OBP-standard version in the registry", RegistryParityTag) {
+      val obpVersions = ResourceDocRegistry.registry.keys.toList.collect {
+        case sv: ScannedApiVersion
+          if sv.apiStandard == ApiStandards.obp.toString &&
+             sv != ApiVersion.`dynamic-endpoint` && sv != ApiVersion.`dynamic-entity` => sv
+      }
+      obpVersions should not be empty
+      // ApiVersionUtils.versions lists the OBP versions oldest-first, so the highest index wins.
+      val newest = obpVersions.maxBy(ApiVersionUtils.versions.indexOf(_))
+      withClue(s"registry holds OBP versions ${obpVersions.map(_.fullyQualifiedVersion).mkString(", ")} " +
+        s"but obpUnionVersion is ${ResourceDocRegistry.obpUnionVersion} ") {
+        newest shouldBe ResourceDocRegistry.obpUnionVersion
+      }
+    }
+
+    // The three named pins below are the three historical drift instances. They are NOT redundant
+    // with the loop above: both sides of that loop are now derived from ResourceDocRegistry, so its
+    // membership half holds by construction and cannot fail. What the loop still catches is a
+    // surface going empty; what these pins still catch is a specific operation id disappearing.
 
     scenario("the operation id from the sandbox bug report resolves", RegistryParityTag) {
       allOperationIds should contain("BGv2-getAccountDetails")

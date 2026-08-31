@@ -3,7 +3,7 @@ package code.api.util
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.ResourceDoc
 import com.openbankproject.commons.util.ApiVersion._
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiStandards, ApiVersion, ScannedApiVersion}
 
 import scala.collection.immutable.ListMap
 
@@ -61,22 +61,62 @@ object ResourceDocRegistry {
     // Every standard discovered via ScannedApis (UK OB 200/310/401, BG v1.3 canonical + alias,
     // BG v2, and any future `with ScannedApis` standard). Explicit entries win on key collision --
     // BG v1.3 canonical is both explicit above and a registrant, same underlying buffer either way.
-    val scanned: Map[ApiVersion, () => Seq[ResourceDoc]] = ScannedApis.versionMapScannedApis.collect {
-      case (version, apis) if !explicit.contains(version) => version -> (() => apis.allResourceDocs.toSeq)
-    }
+    //
+    // Sorted, and folded into a ListMap, so the registry has ONE defined iteration order.
+    // ScannedApis.versionMapScannedApis is an unordered Map, and several standards share
+    // partialFunctionNames (the BG v1.3 alias re-stamps the canonical BG v1.3 docs, so it collides
+    // with both BG v1.3 and -- on getAccountDetails, getAccountList, getCardAccountBalances,
+    // getCardAccountTransactionList, getTransactionDetails -- with BG v2). Consumers such as
+    // Http4s600's top-apis/popular-apis and JSONFactory6.0.0's metrics build
+    // `partialFunctionName -> operationId` with `.toMap`, where the LAST entry wins, so leaving the
+    // order to Map's hash iteration would leave the reported operation_id undefined and let it
+    // shift silently whenever a standard is added or removed.
+    val scanned: ListMap[ApiVersion, () => Seq[ResourceDoc]] =
+      ScannedApis.versionMapScannedApis.toSeq
+        .collect { case (version: ScannedApiVersion, apis) if !explicit.contains(version) =>
+          version -> (() => apis.allResourceDocs.toSeq) }
+        .sortBy(_._1.fullyQualifiedVersion)
+        .foldLeft(ListMap.empty[ApiVersion, () => Seq[ResourceDoc]])(_ + _)
     explicit ++ scanned
   }
 
   /** What the per-version resource-docs dispatcher serves for this version (empty if unknown). */
   def docsFor(version: ApiVersion): Seq[ResourceDoc] = registry.get(version).map(_ ()).getOrElse(Nil)
 
-  /** The global operation-id union. Excludes the dynamic arms: those are runtime-mutable (created/
-   * deleted dynamic entities and endpoints) and are appended FRESH by APIUtil.getAllResourceDocs on
-   * every call -- caching them in this lazy union would serve stale dynamic docs. Deduped by
-   * operationId: the underlying per-version buffers legitimately overlap (each OBP-standard
-   * aggregation repeats every older version's docs), and consumers only ever `.find`/build a
-   * lookup map from this list, never rely on it containing duplicates. */
+  /**
+   * The OBP-standard surface the global union is built from.
+   *
+   * The registry also holds the cumulative aggregations for every older OBP version, because the
+   * dispatcher must still serve /resource-docs/OBPv4.0.0/obp and friends. Those are NOT folded into
+   * the union: they are not subsets of the v7 aggregation (an endpoint dropped after v4 keeps its
+   * operation id there), so including them would add ~287 operation ids that the union never
+   * carried, 234 of which collide on partialFunctionName with an entry already present -- and the
+   * `.toMap` consumers above would then report the OLDEST id (getBanks -> OBPv1.2.1-getBanks)
+   * instead of the current one in metrics, top-apis and popular-apis output.
+   *
+   * Consequence, deliberately accepted: an operation id that exists ONLY in a superseded
+   * aggregation stays unresolvable by api-collection-endpoint creation, exactly as before this
+   * refactor. ResourceDocRegistryParityTest pins that this constant is the newest OBP-standard
+   * version in the registry, so adding v8 without moving it fails the build rather than silently
+   * dropping v8-only operation ids from the union.
+   */
+  val obpUnionVersion: ApiVersion = v7_0_0
+
+  private def isObpStandard(version: ApiVersion): Boolean = version match {
+    case sv: ScannedApiVersion => sv.apiStandard == ApiStandards.obp.toString
+    case _ => false
+  }
+
+  /** Versions whose docs make up the global union: the current OBP surface plus every non-OBP
+   * standard. Excluding the other OBP-standard keys also excludes `dynamic-endpoint` /
+   * `dynamic-entity` (both carry apiStandard "obp"), which must stay out for a second reason:
+   * they are runtime-mutable and APIUtil.getAllResourceDocs appends them FRESH on every call, so
+   * caching them in this lazy union would serve stale dynamic docs. */
+  lazy val unionVersions: Seq[ApiVersion] =
+    registry.keys.filter(v => v == obpUnionVersion || !isObpStandard(v)).toSeq
+
+  /** The global operation-id union. Deduped by operationId: the surfaces legitimately overlap, and
+   * consumers only ever `.find`/build a lookup map from this list, never rely on duplicates. */
   lazy val allStaticResourceDocs: List[ResourceDoc] =
-    (registry - `dynamic-endpoint` - `dynamic-entity`)
-      .values.flatMap(_ ()).toList.distinctBy(_.operationId)
+    unionVersions.flatMap(docsFor).toList.distinctBy(_.operationId)
 }
