@@ -355,35 +355,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
-      val activeResourceDocs = requestedApiVersion match {
-        case ApiVersion.v7_0_0 => resourceDocs
-        case ConstantsBG.`berlinGroupVersion1` => resourceDocs  // fully on http4s — no Lift route filter
-        case ConstantsBG.`berlinGroupVersion2` => resourceDocs
-        case ApiVersion.v1_2_1 => resourceDocs
-        case ApiVersion.v6_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v5_1_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v5_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v4_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v3_1_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v3_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v2_2_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v2_1_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v2_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v1_4_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v1_3_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.`dynamic-entity` => resourceDocs  // runtime CRUD now on Http4sDynamicEntity; routes are Nil, skip Lift-route filter
-        case ApiVersion.`dynamic-endpoint` => resourceDocs  // dispatch now on Http4sDynamicEndpoint (proxy + native Piece C); routes carry only the stub, skip Lift-route filter
-        case ApiVersion.ukOpenBankingV20 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.ukOpenBankingV31 => resourceDocs  // fully on http4s — no Lift route filter
-        case _ => resourceDocs
-      }
-
-      logger.debug(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
-
-
       val activePlusLocalResourceDocs = ArrayBuffer[ResourceDoc]()
 
-      activePlusLocalResourceDocs ++= activeResourceDocs
+      activePlusLocalResourceDocs ++= resourceDocs
       requestedApiVersion match
       {
         // only `obp` standard show the `localResourceDocs`
