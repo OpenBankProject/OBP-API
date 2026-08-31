@@ -83,7 +83,19 @@ class ResourceDocRegistryParityTest extends ServerSetup {
              sv != ApiVersion.`dynamic-endpoint` && sv != ApiVersion.`dynamic-entity` => sv
       }
       obpVersions should not be empty
-      // ApiVersionUtils.versions lists the OBP versions oldest-first, so the highest index wins.
+
+      // Rank by position in ApiVersionUtils.versions, which lists the OBP versions oldest-first.
+      // indexOf returns -1 for anything absent from that (also hand-maintained) list, and a -1
+      // would lose every maxBy comparison -- so a v8.0.0 added to the registry but not to
+      // ApiVersionUtils.versions would leave v7 as the maximum and let this scenario pass, in
+      // exactly the two-places-to-edit case it exists to catch. Establish coverage first.
+      val unranked = obpVersions.filter(ApiVersionUtils.versions.indexOf(_) < 0)
+      withClue(s"OBP versions in the registry but missing from ApiVersionUtils.versions: " +
+        s"${unranked.map(_.fullyQualifiedVersion).mkString(", ")} -- add them there so they can be " +
+        s"ranked, otherwise this guard cannot see them ") {
+        unranked shouldBe empty
+      }
+
       val newest = obpVersions.maxBy(ApiVersionUtils.versions.indexOf(_))
       withClue(s"registry holds OBP versions ${obpVersions.map(_.fullyQualifiedVersion).mkString(", ")} " +
         s"but obpUnionVersion is ${ResourceDocRegistry.obpUnionVersion} ") {

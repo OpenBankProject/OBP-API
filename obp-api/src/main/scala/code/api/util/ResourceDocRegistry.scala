@@ -71,11 +71,21 @@ object ResourceDocRegistry {
     // `partialFunctionName -> operationId` with `.toMap`, where the LAST entry wins, so leaving the
     // order to Map's hash iteration would leave the reported operation_id undefined and let it
     // shift silently whenever a standard is added or removed.
+    //
+    // The sort key is (apiStandard, apiShortVersion) rather than fullyQualifiedVersion because it
+    // cannot tie: that pair is exactly ScannedApiVersion's equals/hashCode key, so two distinct
+    // keys of this Map always differ in it, and sortBy therefore yields a total order rather than
+    // falling back to the unordered input for ties. fullyQualifiedVersion concatenates the two
+    // (apiStandard.toUpperCase + apiShortVersion) and so can collide across distinct keys --
+    // ("BG", "v1.3") and ("BGV", "1.3") both render "BGV1.3" -- which a deployment could reach by
+    // configuring berlin_group_v1_3_alias_path. The resulting order is unchanged in practice:
+    // alias ("0.6"/"") first, then BG v1.3, BG v2, then UK 2.0/3.1/4.0.1, so BG v2 keeps winning
+    // the names it shares with the alias, matching the behaviour before this branch.
     val scanned: ListMap[ApiVersion, () => Seq[ResourceDoc]] =
       ScannedApis.versionMapScannedApis.toSeq
         .collect { case (version: ScannedApiVersion, apis) if !explicit.contains(version) =>
           version -> (() => apis.allResourceDocs.toSeq) }
-        .sortBy(_._1.fullyQualifiedVersion)
+        .sortBy(entry => (entry._1.apiStandard, entry._1.apiShortVersion))
         .foldLeft(ListMap.empty[ApiVersion, () => Seq[ResourceDoc]])(_ + _)
     explicit ++ scanned
   }
