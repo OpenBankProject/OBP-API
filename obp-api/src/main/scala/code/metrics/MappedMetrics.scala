@@ -862,7 +862,14 @@ object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] 
   //     and new rows are stored in the table "Metric"
   //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
   override def dbTableName = "Metric" // define the DB table name
-  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: super.dbIndexes
+  // (userId, date) serves the hot self-service reads — /my/metrics locks on user ids and
+  // filters/sorts/limits on date, and top-users groups by userid over a date range. The
+  // composite answers equality-on-user + range-and-order-on-date in one pass, avoiding the
+  // per-user sort a plain userid index (metric_userid_idx from MigrationOfUserIdIndexes,
+  // where enabled) still needs; that single-column index becomes redundant once this exists.
+  // NOTE: on a large existing metric table the Schemifier builds this index at boot — expect
+  // a one-off slow start on the first deploy that includes it.
+  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: Index(userId, date) :: super.dbIndexes
 }
 
 

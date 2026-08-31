@@ -141,6 +141,8 @@ object Migration extends MdcLoggable {
       renameCustomerRoleNames()
       addUniqueIndexOnResourceUserUserId()
       addIndexOnMappedMetricUserId()
+      addCompositeIndexOnMetricUserIdDate()
+      addIndexOnResourceUserCreatedByConsentId()
       alterRoleNameLength()
       alterConsentRequestColumnConsumerIdLength()
       alterMappedConsentColumnConsumerIdLength()
@@ -679,6 +681,20 @@ object Migration extends MdcLoggable {
       val name = nameOf(addIndexOnMappedMetricUserId)
       runOnce(name) {
         MigrationOfUserIdIndexes.addIndexOnMappedMetricUserId(name)
+      }
+    }
+
+    private def addCompositeIndexOnMetricUserIdDate(): Boolean = {
+      val name = nameOf(addCompositeIndexOnMetricUserIdDate)
+      runOnce(name) {
+        MigrationOfActivityDashboardIndexes.addCompositeIndexOnMetricUserIdDate(name)
+      }
+    }
+
+    private def addIndexOnResourceUserCreatedByConsentId(): Boolean = {
+      val name = nameOf(addIndexOnResourceUserCreatedByConsentId)
+      runOnce(name) {
+        MigrationOfActivityDashboardIndexes.addIndexOnResourceUserCreatedByConsentId(name)
       }
     }
     
