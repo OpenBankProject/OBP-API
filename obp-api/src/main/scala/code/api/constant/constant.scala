@@ -305,7 +305,12 @@ object Constant extends MdcLoggable {
   final val CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL: Int = APIUtil.getPropsValue(s"createLocalisedResourceDocJson.cache.ttl.seconds", "3600").toInt
   final val GET_DYNAMIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
   final val GET_STATIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "3600").toInt
-  final val SHOW_USED_CONNECTOR_METHODS: Boolean = APIUtil.getPropsAsBoolValue(s"show_used_connector_methods", false)
+  // def, not final val: DynamicUtil.Validation.validateDependency (dynamic-code dependency
+  // checking) needs this to react to a props change without a restart -- e.g. test-time
+  // setPropsValues overrides. A final val here would freeze at whatever value was true the
+  // moment this object was first touched (typically during server boot, well before any test
+  // scenario runs), and no later prop override could ever reach it.
+  def SHOW_USED_CONNECTOR_METHODS: Boolean = APIUtil.getPropsAsBoolValue(s"show_used_connector_methods", false)
 
   // Rate Limiting Cache Prefixes (with global namespace and versioning)
   // Both call_counter and rl_active are versioned for consistent cache invalidation

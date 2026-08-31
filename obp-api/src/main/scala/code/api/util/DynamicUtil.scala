@@ -361,10 +361,17 @@ object DynamicUtil extends MdcLoggable{
 
   object Validation {
 
-    val dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
-    val scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
-    val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
-    
+    // def, not val, throughout this object: these must react to a props change (e.g. test-time
+    // setPropsValues) without a restart, not freeze at whatever the props held the moment
+    // Validation was first touched (typically by whichever dynamic-code test happens to run
+    // first in a shared test JVM). This costs nothing extra in production -- the only expensive
+    // step, DynamicUtil.compileScalaCodeUnchecked, is already memoized by the exact source
+    // string, so re-evaluating these on every call is a cache hit unless the underlying props
+    // value actually changed.
+    def dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
+    def scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
+    def permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
+
     // all Permissions put at here
     // Here is the Java Permission document, please extend these permissions carefully. 
     // https://docs.oracle.com/javase/8/docs/technotes/guides/security/spec/security-spec.doc3.html#17001
@@ -383,15 +390,15 @@ object DynamicUtil extends MdcLoggable{
 //      new RuntimePermission("accessDeclaredMembers"),
 //      new RuntimePermission("getClassLoader"),
 //    )
-    val allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
+    def allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
 
-    val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
+    def dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
     // `Map[String, String](` rather than `Map(`: the props default is an empty list, and a bare
     // `Map()` leaves its type parameters undetermined, so the trailing .toMap cannot prove the
     // elements are pairs and the reflective compilation fails. The .toMap itself is needed because
     // mapValues returns a view rather than a Map.
-    val scalaCodeDependencies = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map[String, String](").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
-    val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
+    def scalaCodeDependencies = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map[String, String](").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
+    def dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
     
     /**
      * Compilation OBP Dependencies Guard, only checked the OBP methods, not scala/Java libraies(are checked during the runtime.).
@@ -422,7 +429,7 @@ object DynamicUtil extends MdcLoggable{
 //      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
 //
 //    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
-    val allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_compile_validate_dependencies` to Map")
+    def allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_compile_validate_dependencies` to Map")
 
     //Do not touch this Set, try to use the `allowedPermissions` and `allowedMethods` to control the sandbox 
     val restrictedTypes = Set(
