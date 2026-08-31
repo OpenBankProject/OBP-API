@@ -4358,10 +4358,10 @@ object Http4s600 {
             }
           } yield try {
             code.api.dynamic.endpoint.helper.CompiledObjects(
-              body.exampleRequestBody, body.successResponseBody, body.methodBody).validateDependency()
+              body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang).validateDependency()
             ValidateDynamicResourceDocSuccessJsonV600(
               valid = true,
-              message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies.")
+              message = s"Dynamic Resource Doc method body is valid ${body.programmingLang} and uses allowed dependencies.")
           } catch {
             case e: code.api.JsonResponseException =>
               val errorText = e.jsonResponse match {
