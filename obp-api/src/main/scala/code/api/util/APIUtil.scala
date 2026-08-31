@@ -4756,7 +4756,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   )
 
-  val berlinGroupV13AliasPath = APIUtil.getPropsValue("berlin_group_v1_3_alias_path","").split("/").toList.map(_.trim)
+  // Empty segments are dropped so that "unset" really means "no alias". Without the filter an
+  // absent prop yields List("") -- "".split("/") returns Array(""), not an empty array -- which is
+  // nonEmpty, so every `if (berlinGroupV13AliasPath.nonEmpty)` guard downstream took its ACTIVE
+  // branch on a default instance: Http4sBGv13Alias published 55 docs stamped with the degenerate
+  // version ScannedApiVersion("", "", ""), whose operation ids came out as `BG-<name>`, and its
+  // route bridge matched on the prefix "/" (every path) only to fall through again.
+  val berlinGroupV13AliasPath =
+    APIUtil.getPropsValue("berlin_group_v1_3_alias_path","").split("/").toList.map(_.trim).filter(_.nonEmpty)
 
   val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 

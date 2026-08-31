@@ -27,6 +27,7 @@ package code.api.v4_0_0
 
 import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.berlin.group.v1_3.Http4sBGv13Alias
 import code.api.util.APIUtil.OAuth._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
@@ -224,17 +225,24 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
         val  operationId= apiCollectionEndpoint.operation_id
       }
 
-      {
-        // Regression pin for the Berlin Group v1.3 alias gap: berlin_group_v1_3_alias_path
-        // (set to 0.6/v1 in test.default.props) activates Http4sBGv13Alias, whose docs are
-        // re-stamped copies of the canonical BG v1.3 docs carrying their own operation ids
-        // (BGv1-... here, not BGv1.3-...). These were served by the resource-docs dispatcher
-        // via ScannedApis discovery but missing from the global operation-id union, the same
-        // class of gap as BGv2 above.
-        Then(s"we test the $ApiEndpoint6- BGv1-getPaymentInitiationStatus (Berlin Group v1.3 alias)")
+      // Regression pin for the Berlin Group v1.3 alias gap: when berlin_group_v1_3_alias_path is
+      // set (0.6/v1 in test.default.props and in both CI workflows) Http4sBGv13Alias publishes
+      // re-stamped copies of the canonical BG v1.3 docs under their own operation ids -- served by
+      // the resource-docs dispatcher via ScannedApis discovery, but formerly missing from the
+      // global operation-id union, the same class of gap as BGv2 above.
+      //
+      // Guarded on the alias actually being configured, and the expected id is read back from its
+      // own docs rather than hard-coded: test.default.props is gitignored (.gitignore:21), so a
+      // fresh clone or an IDE runner may not carry that prop, and a deployment may configure a
+      // different path (which changes the id's prefix).
+      val aliasOperationId: Option[String] = Http4sBGv13Alias.resourceDocs
+        .find(_.partialFunctionName == "getPaymentInitiationStatus").map(_.operationId)
+
+      aliasOperationId.foreach { opId =>
+        Then(s"we test the $ApiEndpoint6- $opId (Berlin Group v1.3 alias)")
         val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
 
-        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="BGv1-getPaymentInitiationStatus")
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id = opId)
 
         val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
         Then("We should get a 201")
@@ -243,8 +251,6 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
         apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
         apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
-
-        val  operationId= apiCollectionEndpoint.operation_id
       }
 
       {
@@ -280,7 +286,10 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
         val apiCollectionsJsonGet400 = responseGet.body.extract[ApiCollectionEndpointsJson400]
 
-        apiCollectionsJsonGet400.api_collection_endpoints.length should be (7)
+        // Six unconditional cases above, plus the Berlin Group v1.3 alias one when that alias is
+        // configured for this run.
+        val expected = if (aliasOperationId.isDefined) 7 else 6
+        apiCollectionsJsonGet400.api_collection_endpoints.length should be (expected)
       }
     }
   }

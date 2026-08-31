@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.api.berlin.group.v1_3.{Http4sBGv13Alias, OBP_BERLIN_GROUP_1_3_Alias}
 import code.setup.ServerSetup
 import com.openbankproject.commons.util.{ApiStandards, ApiVersion, ScannedApiVersion}
 import org.scalatest.Tag
@@ -25,7 +26,19 @@ class ResourceDocRegistryParityTest extends ServerSetup {
   private lazy val allOperationIds: Set[String] =
     APIUtil.getAllResourceDocs.map(_.operationId).toSet
 
+  // The Berlin Group v1.3 alias is the one surface in the union a deployment can switch off:
+  // berlin_group_v1_3_alias_path is unset by default and is supplied for test runs by
+  // test.default.props and by the two CI workflows. test.default.props is gitignored
+  // (.gitignore:21), so a fresh clone, a colleague's checkout or an IDE ScalaTest run may not have
+  // it -- assertions that genuinely need the alias cancel there instead of failing with a message
+  // that gives no hint a prop is missing.
+  private lazy val aliasVersion: ApiVersion = OBP_BERLIN_GROUP_1_3_Alias.apiVersion
+  private lazy val aliasIsConfigured: Boolean = Http4sBGv13Alias.resourceDocs.nonEmpty
+  private val aliasNotConfigured =
+    "berlin_group_v1_3_alias_path is not set, so the Berlin Group v1.3 alias contributes no docs"
+
   private def label(version: ApiVersion): String = version match {
+    case v if v == aliasVersion && !aliasIsConfigured => "Berlin Group v1.3 alias (not configured)"
     case sv: ScannedApiVersion => sv.fullyQualifiedVersion
     case other => other.toString
   }
@@ -35,17 +48,18 @@ class ResourceDocRegistryParityTest extends ServerSetup {
   // deliberately out of the union; see ResourceDocRegistry.obpUnionVersion for why, and for the
   // accepted consequence that an operation id living only in a superseded aggregation stays
   // unresolvable.
-  private lazy val surfaces: List[(String, Seq[String])] =
+  private lazy val surfaces: List[(ApiVersion, String, Seq[String])] =
     ResourceDocRegistry.unionVersions.toList
-      .map(version => (label(version), ResourceDocRegistry.docsFor(version).map(_.operationId)))
+      .map(version => (version, label(version), ResourceDocRegistry.docsFor(version).map(_.operationId)))
 
   feature("getAllResourceDocs contains every per-standard resource-doc surface the union covers") {
     scenario("the registry itself is non-empty", RegistryParityTag) {
       surfaces should not be empty
     }
 
-    surfaces.foreach { case (label, operationIds) =>
+    surfaces.foreach { case (version, label, operationIds) =>
       scenario(s"$label operation ids are all resolvable globally", RegistryParityTag) {
+        if (version == aliasVersion && !aliasIsConfigured) cancel(aliasNotConfigured)
         // Non-empty matters as much as membership: an empty surface is trivially a subset of the
         // union, so without this a standard whose docs silently stop being registered (the very
         // failure mode this test exists for) would pass unnoticed.
@@ -86,11 +100,18 @@ class ResourceDocRegistryParityTest extends ServerSetup {
       allOperationIds should contain("BGv2-getAccountDetails")
     }
 
-    // berlin_group_v1_3_alias_path is set in test.default.props precisely so this surface is
-    // reliably non-empty here (see that file's comment on why it must be set before boot, not
-    // toggled per-test) -- pin a concrete alias operation id, not just the generic loop above.
+    // The alias's operation-id prefix is derived from the configured path (0.6/v1 in the test props
+    // yields BGv1-...), so the expected id is read back from the alias's own docs rather than
+    // hard-coded -- a deployment that configures a different path would otherwise fail here for no
+    // real reason.
     scenario("the operation id from the Berlin Group v1.3 alias resolves", RegistryParityTag) {
-      allOperationIds should contain("BGv1-getPaymentInitiationStatus")
+      if (!aliasIsConfigured) cancel(aliasNotConfigured)
+      val aliasOperationId = Http4sBGv13Alias.resourceDocs
+        .find(_.partialFunctionName == "getPaymentInitiationStatus").map(_.operationId)
+      withClue("the alias is configured but publishes no getPaymentInitiationStatus doc ") {
+        aliasOperationId shouldBe defined
+      }
+      allOperationIds should contain(aliasOperationId.get)
     }
 
     // The union used to be built from the v6.0.0 aggregation, so v7-only operation ids were
