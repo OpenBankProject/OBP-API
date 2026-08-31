@@ -149,6 +149,13 @@ trait APIMetrics {
   
   def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]
 
+  def getTopUsersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopUser]]]
+
+  // Like getTopConsumersFuture but grouped by metric.consumerid (v3.1.0's version joins on
+  // app NAME, which drops unmatched rows and fans out on duplicate names). Row count for a
+  // window matches AggregateMetrics.distinctConsumerCount by construction.
+  def getTopConsumersByConsumerIdFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]
+
   def bulkDeleteMetrics(): Boolean
 
 }
@@ -224,4 +231,13 @@ case class TopConsumer(
   consumerId: String,
   appName: String,
   developerEmail: String
+)
+
+// One distinct user and their call count. On-behalf-of aware: consent-borne calls are
+// attributed to the granting human via the consent table (see buildTopUsersQuery), so the
+// row count for a window matches AggregateMetrics.distinctUserCount.
+case class TopUser(
+  count: Int,
+  userId: String,
+  userName: String
 )

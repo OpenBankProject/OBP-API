@@ -186,6 +186,188 @@ object DoobieMetricsQueries {
    * @param filters Filter options
    * @return List of TopConsumer sorted by count descending
    */
+  /**
+   * Get top consumers by API call count, grouped by metric.consumerid.
+   *
+   * Unlike getTopConsumers (v3.1.0 semantics), which joins on metric.appname = consumer.name
+   * — dropping rows whose app name no longer matches a consumer and fanning out on duplicate
+   * names — this groups on the consumer id stored on the metric row itself, so for a window
+   * the row count matches AggregateMetrics.distinctConsumerCount by construction. Rows
+   * without a consumer id ('' / 'null' / NULL) are excluded, mirroring that count. App name
+   * and developer email are decoration via LEFT JOIN and empty when the consumer row is gone.
+   *
+   * buildFilterConditions is NOT reused here: its unqualified `consumerid` fragment would be
+   * ambiguous against the joined consumer table, so the supported filters are inlined with
+   * the metric alias. (exclude_* filters are not supported, as everywhere v6+.)
+   *
+   * @return List of TopConsumer sorted by count descending
+   */
+  def getTopConsumersByConsumerId(
+    fromDate: Date,
+    toDate: Date,
+    limit: Int,
+    filters: MetricsQueryFilters
+  ): List[TopConsumer] = {
+    val query = buildTopConsumersByConsumerIdQuery(fromDate, toDate, limit, filters)
+    DoobieUtil.runQuery(query)
+  }
+
+  private def buildTopConsumersByConsumerIdQuery(
+    fromDate: Date,
+    toDate: Date,
+    limit: Int,
+    filters: MetricsQueryFilters
+  ): ConnectionIO[List[TopConsumer]] = {
+    val fromTs = new java.sql.Timestamp(fromDate.getTime)
+    val toTs = new java.sql.Timestamp(toDate.getTime)
+
+    val isSqlServer = DBUtil.isSqlServer
+
+    val baseQuery = if (isSqlServer) {
+      fr"""
+        SELECT TOP($limit) count(*), m.consumerid, COALESCE(con.name, ''), COALESCE(con.developeremail, '')
+        FROM metric m
+        LEFT JOIN consumer con ON con.consumerid = m.consumerid
+        WHERE m.date_c >= $fromTs
+          AND m.date_c <= $toTs
+          AND m.consumerid IS NOT NULL
+          AND m.consumerid <> ''
+          AND m.consumerid <> 'null'
+      """
+    } else {
+      fr"""
+        SELECT count(*), m.consumerid, COALESCE(con.name, ''), COALESCE(con.developeremail, '')
+        FROM metric m
+        LEFT JOIN consumer con ON con.consumerid = m.consumerid
+        WHERE m.date_c >= $fromTs
+          AND m.date_c <= $toTs
+          AND m.consumerid IS NOT NULL
+          AND m.consumerid <> ''
+          AND m.consumerid <> 'null'
+      """
+    }
+
+    val conditions = List(
+      filters.consumerId.map(v => fr"AND m.consumerid = $v"),
+      filters.userId.map(v => fr"AND m.userid = $v"),
+      filters.implementedByPartialFunction.map(v => fr"AND m.implementedbypartialfunction = $v"),
+      filters.implementedInVersion.map(v => fr"AND m.implementedinversion = $v"),
+      filters.url.map(v => fr"AND m.url = $v"),
+      filters.appName.map(v => fr"AND m.appname = $v"),
+      filters.verb.map(v => fr"AND m.verb = $v"),
+      filters.correlationId.map(v => fr"AND m.correlationid = $v"),
+      filters.httpStatusCode.map(v => fr"AND m.httpcode = $v"),
+      filters.anon.flatMap {
+        case true => Some(fr"AND m.userid = 'null'")
+        case false => Some(fr"AND m.userid != 'null'")
+      }
+    ).flatten.foldLeft(fr"")(_ ++ _)
+
+    val groupAndOrder = fr"""
+      GROUP BY m.consumerid, con.name, con.developeremail
+      ORDER BY count(*) DESC
+    """
+
+    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+
+    val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
+
+    fullQuery.query[(Long, String, String, String)].to[List].map { rows =>
+      rows.map { case (count, consumerId, appName, developerEmail) =>
+        TopConsumer(count.toInt, consumerId, appName, developerEmail)
+      }
+    }
+  }
+
+  /**
+   * Get top users by API call count for the given time range — WHO is behind the traffic.
+   *
+   * On-behalf-of aware: consent-borne rows are attributed to the granting human via the
+   * consent table (COALESCE(consent.muserid, metric.userid)), mirroring the
+   * distinct_user_count of the aggregate-metrics query, so the row count for a window
+   * matches that field. The display name comes from resourceuser — the metric row's own
+   * username is empty for consent shadow users. Anonymous rows are excluded.
+   *
+   * @return List of TopUser sorted by count descending
+   */
+  def getTopUsers(
+    fromDate: Date,
+    toDate: Date,
+    limit: Int,
+    filters: MetricsQueryFilters
+  ): List[TopUser] = {
+    val query = buildTopUsersQuery(fromDate, toDate, limit, filters)
+    DoobieUtil.runQuery(query)
+  }
+
+  def getTopUsersFuture(
+    fromDate: Date,
+    toDate: Date,
+    limit: Int,
+    filters: MetricsQueryFilters
+  )(implicit ec: ExecutionContext): Future[List[TopUser]] = {
+    Future {
+      getTopUsers(fromDate, toDate, limit, filters)
+    }
+  }
+
+  private def buildTopUsersQuery(
+    fromDate: Date,
+    toDate: Date,
+    limit: Int,
+    filters: MetricsQueryFilters
+  ): ConnectionIO[List[TopUser]] = {
+    val fromTs = new java.sql.Timestamp(fromDate.getTime)
+    val toTs = new java.sql.Timestamp(toDate.getTime)
+
+    val isSqlServer = DBUtil.isSqlServer
+
+    // The consent side of the join is unique-indexed on consent_reference_id (no fan-out);
+    // resourceuser is joined on the RESOLVED id, so a consent's calls surface under the
+    // granting human's id and name. buildFilterConditions' unqualified columns stay
+    // unambiguous: the joined tables have no column names in common with metric.
+    val baseQuery = if (isSqlServer) {
+      fr"""
+        SELECT TOP($limit) count(*), COALESCE(c.muserid, m.userid), COALESCE(ru.name_, '')
+        FROM metric m
+        LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
+        LEFT JOIN resourceuser ru ON ru.userid_ = COALESCE(c.muserid, m.userid)
+        WHERE m.date_c >= $fromTs
+          AND m.date_c <= $toTs
+          AND COALESCE(c.muserid, m.userid) IS NOT NULL
+          AND COALESCE(c.muserid, m.userid) <> 'null'
+      """
+    } else {
+      fr"""
+        SELECT count(*), COALESCE(c.muserid, m.userid), COALESCE(ru.name_, '')
+        FROM metric m
+        LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
+        LEFT JOIN resourceuser ru ON ru.userid_ = COALESCE(c.muserid, m.userid)
+        WHERE m.date_c >= $fromTs
+          AND m.date_c <= $toTs
+          AND COALESCE(c.muserid, m.userid) IS NOT NULL
+          AND COALESCE(c.muserid, m.userid) <> 'null'
+      """
+    }
+
+    val conditions = buildFilterConditions(filters, isNewVersion = false)
+
+    val groupAndOrder = fr"""
+      GROUP BY COALESCE(c.muserid, m.userid), COALESCE(ru.name_, '')
+      ORDER BY count(*) DESC
+    """
+
+    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+
+    val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
+
+    fullQuery.query[(Long, String, String)].to[List].map { rows =>
+      rows.map { case (count, userId, userName) =>
+        TopUser(count.toInt, userId, userName)
+      }
+    }
+  }
+
   def getTopConsumers(
     fromDate: Date,
     toDate: Date,

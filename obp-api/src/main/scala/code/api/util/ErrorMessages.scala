@@ -417,6 +417,8 @@ object ErrorMessages {
 
   val CheckbookOrderNotFound = "OBP-30041: CheckbookOrder not found for Account. "
   val GetTopApisError = "OBP-30042: Could not get the top apis from database.  "
+  val GetTopUsersError = "OBP-30551: Could not get the top users from database.  "
+  val GetTopConsumersError = "OBP-30552: Could not get the top consumers from database.  "
   val GetMetricsTopConsumersError = "OBP-30045: Could not get the top consumers from database.  "
   val GetAggregateMetricsError = "OBP-30043: Could not get the aggregate metrics from database.  "
 

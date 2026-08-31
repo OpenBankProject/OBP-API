@@ -8,7 +8,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
@@ -1207,6 +1207,164 @@ object Http4s700 {
       apiTagMetric :: apiTagUser :: Nil,
       None,
       http4sPartialFunction = Some(getMyMetrics)
+    )
+
+    // ─── getTopUsers ──────────────────────────────────────────────────────────────
+
+    val getTopUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "metrics" / "top-users" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            topUsers <- APIMetrics.apiMetrics.vend.getTopUsersFuture(obpQueryParams) map {
+              APIUtil.unboxFullOrFail(_, callContext, GetTopUsersError)
+            }
+          } yield JSONFactory700.createTopUsersJsonV700(topUsers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getTopUsers),
+      "GET",
+      "/management/metrics/top-users",
+      "Get Top Users",
+      s"""Get the users behind the API traffic: one row per distinct user with their call count,
+        |sorted by count descending.
+        |
+        |**On-behalf-of aware**: calls made under a Consent (e.g. by an agent or a TPP) are
+        |attributed to the granting (on-behalf-of) user, resolved via the consent table — not to
+        |the consent's technical shadow user. Anonymous calls are excluded. For a given window and
+        |filters the number of distinct users listed here therefore matches the
+        |`distinct_user_count` field of GET /management/aggregate-metrics.
+        |
+        |require CanReadMetrics role
+        |
+        |Should be able to filter on the following fields
+        |
+        |eg: /management/metrics/top-users?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
+        |
+        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |
+        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null) or false (return where user_id is not null)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore)
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlation_id (if null ignore)
+        |
+        |12 limit (defaults to 50) eg: limit=200
+        |
+      """.stripMargin,
+      EmptyBody,
+      JSONFactory700.TopUsersJsonV700(List(
+        JSONFactory700.TopUserJsonV700(1000, "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", "felixsmith"),
+        JSONFactory700.TopUserJsonV700(250, "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", "susan.uk.29@example.com")
+      )),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetTopUsersError,
+        UnknownError
+      ),
+      apiTagMetric :: apiTagUser :: Nil,
+      Some(canReadMetrics :: Nil),
+      http4sPartialFunction = Some(getTopUsers)
+    )
+
+    // ─── getTopConsumers ──────────────────────────────────────────────────────────
+
+    val getTopConsumers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "metrics" / "top-consumers" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersByConsumerIdFuture(obpQueryParams) map {
+              APIUtil.unboxFullOrFail(_, callContext, GetTopConsumersError)
+            }
+          } yield JSONFactory700.createTopConsumersJsonV700(topConsumers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getTopConsumers),
+      "GET",
+      "/management/metrics/top-consumers",
+      "Get Top Consumers",
+      s"""Get the Consumers (apps) behind the API traffic: one row per distinct consumer with its
+        |call count, sorted by count descending.
+        |
+        |Unlike the v3.1.0 version — which joins metric rows to consumers by APP NAME, dropping
+        |calls whose app name no longer matches a consumer and double-counting duplicate names —
+        |this groups by the consumer id stored on each metric row. For a given window and filters
+        |the number of distinct consumers listed here therefore matches the
+        |`distinct_consumer_count` field of GET /management/aggregate-metrics. Calls that carried
+        |no consumer are excluded. `app_name` and `developer_email` are empty when the consumer
+        |row no longer exists.
+        |
+        |require CanReadMetrics role
+        |
+        |Should be able to filter on the following fields
+        |
+        |eg: /management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
+        |
+        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |
+        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null) or false (return where user_id is not null)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore)
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlation_id (if null ignore)
+        |
+        |12 limit (defaults to 50) eg: limit=200
+        |
+      """.stripMargin,
+      EmptyBody,
+      JSONFactory700.TopConsumersJsonV700(List(
+        JSONFactory700.TopConsumerJsonV700(1000, "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "API-EXPLORER", "developer@example.com"),
+        JSONFactory700.TopConsumerJsonV700(250, "8uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "API-Manager", "manager@example.com")
+      )),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetTopConsumersError,
+        UnknownError
+      ),
+      apiTagMetric :: apiTagApi :: Nil,
+      Some(canReadMetrics :: Nil),
+      http4sPartialFunction = Some(getTopConsumers)
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────
