@@ -54,7 +54,11 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
     tags = dynamicResourceDoc.Tags.get,
     roles = dynamicResourceDoc.Roles.get,
-    programmingLang = dynamicResourceDoc.Lang.get
+    // Rows created before the Lang column existed have NULL there, not "Scala" -- a bare
+    // Lang.get would surface that as an empty/null programming_lang instead of falling back to
+    // JsonDynamicResourceDoc's own "Scala" default, since an explicit null argument bypasses a
+    // case class default (that only applies when the argument is omitted entirely).
+    programmingLang = Option(dynamicResourceDoc.Lang.get).filter(StringUtils.isNotBlank).getOrElse("Scala")
   )
 }
 

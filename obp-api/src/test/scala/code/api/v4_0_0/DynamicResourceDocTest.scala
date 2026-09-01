@@ -414,6 +414,42 @@ class DynamicResourceDocTest extends V400ServerSetup {
       storedRow.UpdatedByUserId.get should be(resourceUser1.userId)
       storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(URLDecoder.decode(changedMethodBody, "UTF-8")))
     }
+
+    // Regression guard: rows created before the Lang column existed have a genuine SQL NULL there
+    // (Schemifier's ALTER TABLE ADD COLUMN sets no default), not "Scala". An explicit null argument
+    // bypasses JsonDynamicResourceDoc's own programmingLang="Scala" default -- that default only
+    // applies when the argument is omitted entirely -- so a bare Lang.get would have surfaced as a
+    // null/empty programming_lang in the API response instead of falling back to "Scala".
+    scenario("A dynamic resource doc row predating the programming_lang column still reports \"Scala\"", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetDynamicResourceDoc.toString)
+
+      When("We create a dynamic resource doc")
+      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val posted = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+        dynamicResourceDocId = None,
+        bankId = None,
+        partialFunctionName = "preDatesLangColumnTest",
+        requestUrl = "/pre_dates_lang_column_test/MY_USER_ID"
+      )
+      val createResp = makePostRequest(createReq, write(posted))
+      createResp.code should equal(201)
+      val docId = (createResp.body \ "dynamic_resource_doc_id").values.toString
+
+      When("its lang column is forced to a genuine SQL NULL, bypassing the ORM (which always writes \"Scala\")")
+      import code.dynamicResourceDoc.DynamicResourceDoc
+      net.liftweb.mapper.DB.runUpdate(
+        s"UPDATE ${DynamicResourceDoc.dbTableName} SET ${DynamicResourceDoc.Lang.dbColumnName} = NULL " +
+          s"WHERE ${DynamicResourceDoc.DynamicResourceDocId.dbColumnName} = ?",
+        List(docId)
+      )
+
+      Then("GET still reports programming_lang as \"Scala\", not null or empty")
+      val getReq = (v4_0_0_Request / "management" / "dynamic-resource-docs" / docId).GET <@ (user1)
+      val getResp = makeGetRequest(getReq)
+      getResp.code should equal(200)
+      getResp.body.extract[JsonDynamicResourceDoc].programmingLang should equal("Scala")
+    }
   }
 
 }
