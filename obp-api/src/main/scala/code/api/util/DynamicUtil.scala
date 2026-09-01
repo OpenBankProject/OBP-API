@@ -193,30 +193,48 @@ object DynamicUtil extends MdcLoggable{
     val classPool = getClassPool(clazz.getClassLoader)
     //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap.
     val ctClass = classPool.get(className)
+
+    // A same-class (or same-generated-unit, for the Scala nested-closure case below) call is not
+    // itself a dependency to police -- recurse into what the TARGET method calls instead of
+    // flagging the call itself as forbidden, all the way down until a genuinely foreign
+    // dependency is reached. This is required for Java: every Java dynamic resource doc
+    // implements Supplier<Function<Object[], Object>> (the documented convention), and the
+    // compiler always erases that generic Supplier.get() to a synthetic bridge method
+    // `Object get()` whose body is just `return this.get();` -- an ordinary same-class
+    // invokevirtual call to the real, properly-typed get(). A single level of unrolling only
+    // fixes that one hop: any Java body that factors logic into its own private helper methods
+    // (an entirely normal thing to do) reintroduces the exact same false rejection one level
+    // deeper, since the un-recursed helper's own callees would otherwise be appended as raw
+    // (thisClass, method) tuples and then rejected as calls to an unwhitelistable random-UUID
+    // class. `visited` guards against a call cycle -- direct or mutual recursion between
+    // same-class private methods (e.g. a fibonacci/factorial helper) is entirely normal Java and
+    // would otherwise recurse forever. On hitting a cycle this contributes nothing further (Nil),
+    // not a leaf: the recursive call is still a same-class call, not a foreign dependency, and
+    // whatever it in turn depends on is already being expanded by the in-progress call further up
+    // this same path -- returning it as a leaf here would flag the method's own name
+    // (unwhitelistable, like any other randomly-named dynamic class) as a forbidden dependency,
+    // exactly the bug this whole function exists to avoid.
+    def expand(typeName: String, methodName: String, signature: String, visited: Set[(String, String, String)]): List[(String, String, String)] = {
+      val key = (typeName, methodName, signature)
+      val sameUnit = typeName == className ||
+        (className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName + "$"))
+      if (!sameUnit) {
+        List(key)
+      } else if (visited.contains(key)) {
+        Nil
+      } else {
+        APIUtil.getDependentMethods(typeName, methodName, signature, force).flatMap { case (t, m, s) =>
+          expand(t, m, s, visited + key)
+        }
+      }
+    }
+
     for {
       method <- ctClass.getDeclaredMethods.toList
       if predicate(method.getName)
-      ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force)
+      (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force)
     } yield {
-      // if method is also dynamic compile code, extract it's dependent method
-      if (typeName == className) {
-        // A same-class self-call is not itself a dependency to police -- recurse into what the
-        // target method calls instead of flagging the call as forbidden. This is required for
-        // Java: every Java dynamic resource doc implements Supplier<Function<Object[], Object>>
-        // (the documented convention), and the compiler always erases that generic Supplier.get()
-        // to a synthetic bridge method `Object get()` whose body is just `return this.get();` --
-        // an ordinary same-class invokevirtual call to the real, properly-typed get(). Without this
-        // branch that bridge call is scanned like any other, resolves to (thisClass, "get", ...),
-        // and since the dynamically-compiled class lives under the OBP-owned code.* package
-        // (isRestrictedType) but its randomly-generated name can never appear in a static
-        // whitelist, EVERY Java doc is unconditionally rejected under strict validation --
-        // regardless of what its code actually does.
-        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature, force))
-      } else if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
-        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature, force))
-      } else {
-        listBuffer.append(ternary)
-      }
+      listBuffer.appendAll(expand(typeName, methodName, signature, Set.empty))
     }
 
     listBuffer.distinct.toList
