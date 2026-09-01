@@ -13,6 +13,7 @@ import code.api.v4_0_0.Http4s400
 import code.api.v5_0_0.Http4s500
 import code.api.v5_1_0.Http4s510
 import code.api.v6_0_0.Http4s600
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ScannedApiVersion
 
 import scala.collection.mutable.ArrayBuffer
@@ -26,11 +27,12 @@ import scala.collection.mutable.ArrayBuffer
  * (requestUrl, requestVerb) dedup keeping the newest version, same per-version `excludeEndpoints`
  * filter — so doc counts are unchanged. The point is that the computation no longer runs on an
  * `OBPRestHelper`/Lift object, so `ResourceDocsAPIMethods` and `Http4s700` can source the catalog
- * without touching the Lift dispatch aggregators (which are deleted in a later phase).
+ * without touching the Lift dispatch aggregators (now deleted).
  *
- * NOTE: the `excludeEndpoints` lists are still referenced from the `OBPAPIx_x_x` objects (they are
- * pure `List[String]` of partial-function names, not Lift dispatch). They move here when the
- * aggregator objects are deleted.
+ * The `excludeEndpoints` lists below moved here from those objects verbatim. They are pure
+ * `List[String]` of partial-function names (`nameOf` is a compile-time macro yielding the member
+ * name, so pointing it at `Http4sNNN.ImplementationsX` instead of the old re-export produces the
+ * same strings).
  */
 object Http4sResourceDocAggregation {
 
@@ -53,6 +55,46 @@ object Http4sResourceDocAggregation {
     }
     result
   }
+
+  /** Moved from OBPAPI4_0_0.excludeEndpoints. */
+  lazy val excludeEndpointsV400: List[String] =
+    nameOf(Http4s121.Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
+      nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
+      nameOf(Http4s121.Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
+      nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
+      nameOf(Http4s310.Implementations3_1_0.createAccount) ::
+      nameOf(Http4s310.Implementations3_1_0.revokeConsent) ::
+      Nil
+
+  /** Moved from OBPAPI5_1_0.excludeEndpoints. */
+  lazy val excludeEndpointsV510: List[String] =
+    nameOf(Http4s300.Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
+      nameOf(Http4s310.Implementations3_1_0.getBadLoginStatus) ::
+      nameOf(Http4s310.Implementations3_1_0.unlockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.lockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
+      nameOf(Http4s400.Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
+      Nil
+
+  /** Moved from OBPAPI6_0_0.excludeEndpoints. */
+  lazy val excludeEndpointsV600: List[String] =
+    nameOf(Http4s300.Implementations3_0_0.getUserByUsername) ::
+      nameOf(Http4s310.Implementations3_1_0.getBadLoginStatus) ::
+      nameOf(Http4s310.Implementations3_1_0.unlockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.lockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.createUserWithAccountAccess) ::
+      nameOf(Http4s400.Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeGrantUserAccessToViews) ::
+      nameOf(Http4s400.Implementations4_0_0.getMyPersonalUserAttributes) ::
+      nameOf(Http4s400.Implementations4_0_0.createMyPersonalUserAttribute) ::
+      nameOf(Http4s400.Implementations4_0_0.updateMyPersonalUserAttribute) ::
+      nameOf(Http4s510.Implementations5_1_0.createNonPersonalUserAttribute) ::
+      nameOf(Http4s510.Implementations5_1_0.getNonPersonalUserAttributes) ::
+      nameOf(Http4s510.Implementations5_1_0.deleteNonPersonalUserAttribute) ::
+      Nil
 
   private def filterExcluded(docs: ArrayBuffer[ResourceDoc], excludeEndpoints: List[String]): ArrayBuffer[ResourceDoc] =
     if (excludeEndpoints.isEmpty) docs
@@ -99,7 +141,7 @@ object Http4sResourceDocAggregation {
   }
   lazy val v400: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s400.Implementations4_0_0)
-    filterExcluded(dedup(v310, Http4s400.resourceDocs), code.api.v4_0_0.OBPAPI4_0_0.excludeEndpoints)
+    filterExcluded(dedup(v310, Http4s400.resourceDocs), excludeEndpointsV400)
   }
   lazy val v500: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s500.Implementations5_0_0)
@@ -107,10 +149,10 @@ object Http4sResourceDocAggregation {
   }
   lazy val v510: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s510.Implementations5_1_0)
-    filterExcluded(dedup(v500, Http4s510.resourceDocs), code.api.v5_1_0.OBPAPI5_1_0.excludeEndpoints)
+    filterExcluded(dedup(v500, Http4s510.resourceDocs), excludeEndpointsV510)
   }
   lazy val v600: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s600.Implementations6_0_0)
-    filterExcluded(dedup(v510, Http4s600.resourceDocs), code.api.v6_0_0.OBPAPI6_0_0.excludeEndpoints)
+    filterExcluded(dedup(v510, Http4s600.resourceDocs), excludeEndpointsV600)
   }
 }
