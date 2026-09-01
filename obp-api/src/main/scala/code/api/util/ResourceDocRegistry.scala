@@ -40,7 +40,6 @@ object ResourceDocRegistry {
   lazy val registry: ListMap[ApiVersion, () => Seq[ResourceDoc]] = {
     val explicit: ListMap[ApiVersion, () => Seq[ResourceDoc]] = ListMap(
       v7_0_0 -> (() => code.api.v7_0_0.Http4s700.allResourceDocs.toSeq),
-      ConstantsBG.berlinGroupVersion1 -> (() => code.api.berlin.group.v1_3.Http4sBGv13.resourceDocs.toSeq),
       v6_0_0 -> (() => code.api.util.http4s.Http4sResourceDocAggregation.v600.toSeq),
       v5_1_0 -> (() => code.api.util.http4s.Http4sResourceDocAggregation.v510.toSeq),
       v5_0_0 -> (() => code.api.util.http4s.Http4sResourceDocAggregation.v500.toSeq),
@@ -55,40 +54,55 @@ object ResourceDocRegistry {
       v1_2_1 -> (() => code.api.util.http4s.Http4sResourceDocAggregation.v121.toSeq),
       `dynamic-endpoint` -> (() => code.api.dynamic.endpoint.OBPAPIDynamicEndpoint.allResourceDocs.toSeq),
       `dynamic-entity` -> (() => code.api.dynamic.entity.OBPAPIDynamicEntity.allResourceDocs.toSeq)
-      // Berlin Group v2 is NOT listed here -- Http4sBGv2 is a ScannedApis registrant (its
-      // apiVersion is ConstantsBG.berlinGroupVersion2), so it is picked up by `scanned` below.
+      // Neither Berlin Group nor UK Open Banking is listed here: they are all ScannedApis
+      // registrants, so `scanned` picks them up and -- crucially -- orders them against each other
+      // by standardPrecedence below. Naming one of them here would pin it ahead of that ordering.
     )
     // Every standard discovered via ScannedApis (UK OB 200/310/401, BG v1.3 canonical + alias,
-    // BG v2, and any future `with ScannedApis` standard). Explicit entries win on key collision --
-    // BG v1.3 canonical is both explicit above and a registrant, same underlying buffer either way.
+    // BG v2, and any future `with ScannedApis` standard), folded into a ListMap so the registry has
+    // ONE defined iteration order.
     //
-    // Sorted, and folded into a ListMap, so the registry has ONE defined iteration order.
-    // ScannedApis.versionMapScannedApis is an unordered Map, and several standards share
-    // partialFunctionNames (the BG v1.3 alias re-stamps the canonical BG v1.3 docs, so it collides
-    // with both BG v1.3 and -- on getAccountDetails, getAccountList, getCardAccountBalances,
-    // getCardAccountTransactionList, getTransactionDetails -- with BG v2). Consumers such as
-    // Http4s600's top-apis/popular-apis and JSONFactory6.0.0's metrics build
-    // `partialFunctionName -> operationId` with `.toMap`, where the LAST entry wins, so leaving the
-    // order to Map's hash iteration would leave the reported operation_id undefined and let it
-    // shift silently whenever a standard is added or removed.
-    //
-    // The sort key is (apiStandard, apiShortVersion) rather than fullyQualifiedVersion because it
-    // cannot tie: that pair is exactly ScannedApiVersion's equals/hashCode key, so two distinct
-    // keys of this Map always differ in it, and sortBy therefore yields a total order rather than
-    // falling back to the unordered input for ties. fullyQualifiedVersion concatenates the two
-    // (apiStandard.toUpperCase + apiShortVersion) and so can collide across distinct keys --
-    // ("BG", "v1.3") and ("BGV", "1.3") both render "BGV1.3" -- which a deployment could reach by
-    // configuring berlin_group_v1_3_alias_path. The resulting order is unchanged in practice:
-    // alias ("0.6"/"") first, then BG v1.3, BG v2, then UK 2.0/3.1/4.0.1, so BG v2 keeps winning
-    // the names it shares with the alias, matching the behaviour before this branch.
+    // Order matters beyond determinism: Http4s600's top-apis/popular-apis and JSONFactory6.0.0's
+    // metrics build `partialFunctionName -> operationId` with `.toMap`, where the LAST entry wins.
+    // Berlin Group and UK Open Banking share three partialFunctionNames -- getBalances,
+    // getAccountList, getAccountBalances -- and the hand-written union this registry replaced
+    // listed UK before BG, so Berlin Group won all three. Sorting alphabetically put UK last and
+    // silently flipped them to UKv4.0.1-getBalances / UKv2.0-getAccountList /
+    // UKv2.0-getAccountBalances in metrics output, so the precedence is now explicit.
     val scanned: ListMap[ApiVersion, () => Seq[ResourceDoc]] =
       ScannedApis.versionMapScannedApis.toSeq
         .collect { case (version: ScannedApiVersion, apis) if !explicit.contains(version) =>
           version -> (() => apis.allResourceDocs.toSeq) }
-        .sortBy(entry => (entry._1.apiStandard, entry._1.apiShortVersion))
+        .sortBy(entry => sortKey(entry._1))
         .foldLeft(ListMap.empty[ApiVersion, () => Seq[ResourceDoc]])(_ + _)
     explicit ++ scanned
   }
+
+  /**
+   * Standards in ASCENDING precedence: a standard later in this list wins a partialFunctionName it
+   * shares with an earlier one, because the `.toMap` consumers keep the last entry. This
+   * reproduces the order of the hand-written union that preceded this registry (UK Open Banking,
+   * then Berlin Group).
+   *
+   * A standard that is not listed ranks below all of them -- including the Berlin Group v1.3 alias,
+   * whose apiStandard is whatever `berlin_group_v1_3_alias_path` names, so it can never override a
+   * first-class standard no matter how a deployment configures it.
+   */
+  private val standardPrecedence: List[String] =
+    List(ApiVersion.ukOpenBankingV20.apiStandard, ConstantsBG.berlinGroupVersion1.apiStandard)
+
+  /**
+   * Total order over registry keys: precedence first, then the version's own identity.
+   *
+   * The tie-breaker is (apiStandard, apiShortVersion) rather than fullyQualifiedVersion because
+   * that pair is exactly ScannedApiVersion's equals/hashCode key, so two distinct keys of a Map
+   * keyed by version always differ in it and sortBy never has to fall back to the unordered input.
+   * fullyQualifiedVersion concatenates the two (apiStandard.toUpperCase + apiShortVersion) and can
+   * therefore collide across distinct keys -- ("BG", "v1.3") and ("BGV", "1.3") both render
+   * "BGV1.3" -- which a deployment could reach through berlin_group_v1_3_alias_path.
+   */
+  private def sortKey(version: ScannedApiVersion): (Int, String, String) =
+    (standardPrecedence.indexOf(version.apiStandard), version.apiStandard, version.apiShortVersion)
 
   /** What the per-version resource-docs dispatcher serves for this version (empty if unknown). */
   def docsFor(version: ApiVersion): Seq[ResourceDoc] = registry.get(version).map(_ ()).getOrElse(Nil)

@@ -1,6 +1,6 @@
 package code.api.util
 
-import code.api.berlin.group.v1_3.{Http4sBGv13Alias, OBP_BERLIN_GROUP_1_3_Alias}
+import code.api.berlin.group.v1_3.Http4sBGv13Alias
 import code.setup.ServerSetup
 import com.openbankproject.commons.util.{ApiStandards, ApiVersion, ScannedApiVersion}
 import org.scalatest.Tag
@@ -26,19 +26,19 @@ class ResourceDocRegistryParityTest extends ServerSetup {
   private lazy val allOperationIds: Set[String] =
     APIUtil.getAllResourceDocs.map(_.operationId).toSet
 
-  // The Berlin Group v1.3 alias is the one surface in the union a deployment can switch off:
+  // The Berlin Group v1.3 alias is the one surface a deployment can switch off:
   // berlin_group_v1_3_alias_path is unset by default and is supplied for test runs by
   // test.default.props and by the two CI workflows. test.default.props is gitignored
   // (.gitignore:21), so a fresh clone, a colleague's checkout or an IDE ScalaTest run may not have
-  // it -- assertions that genuinely need the alias cancel there instead of failing with a message
-  // that gives no hint a prop is missing.
-  private lazy val aliasVersion: ApiVersion = OBP_BERLIN_GROUP_1_3_Alias.apiVersion
+  // it -- the pin below cancels there instead of failing with a message that gives no hint a prop
+  // is missing. The per-surface loop needs no such guard: an unconfigured alias reports the
+  // unaddressable ScannedApiVersion("", "", ""), which ScannedApis now drops, so it is not a
+  // surface at all rather than an empty one.
   private lazy val aliasIsConfigured: Boolean = Http4sBGv13Alias.resourceDocs.nonEmpty
   private val aliasNotConfigured =
     "berlin_group_v1_3_alias_path is not set, so the Berlin Group v1.3 alias contributes no docs"
 
   private def label(version: ApiVersion): String = version match {
-    case v if v == aliasVersion && !aliasIsConfigured => "Berlin Group v1.3 alias (not configured)"
     case sv: ScannedApiVersion => sv.fullyQualifiedVersion
     case other => other.toString
   }
@@ -48,18 +48,17 @@ class ResourceDocRegistryParityTest extends ServerSetup {
   // deliberately out of the union; see ResourceDocRegistry.obpUnionVersion for why, and for the
   // accepted consequence that an operation id living only in a superseded aggregation stays
   // unresolvable.
-  private lazy val surfaces: List[(ApiVersion, String, Seq[String])] =
+  private lazy val surfaces: List[(String, Seq[String])] =
     ResourceDocRegistry.unionVersions.toList
-      .map(version => (version, label(version), ResourceDocRegistry.docsFor(version).map(_.operationId)))
+      .map(version => (label(version), ResourceDocRegistry.docsFor(version).map(_.operationId)))
 
   feature("getAllResourceDocs contains every per-standard resource-doc surface the union covers") {
     scenario("the registry itself is non-empty", RegistryParityTag) {
       surfaces should not be empty
     }
 
-    surfaces.foreach { case (version, label, operationIds) =>
+    surfaces.foreach { case (label, operationIds) =>
       scenario(s"$label operation ids are all resolvable globally", RegistryParityTag) {
-        if (version == aliasVersion && !aliasIsConfigured) cancel(aliasNotConfigured)
         // Non-empty matters as much as membership: an empty surface is trivially a subset of the
         // union, so without this a standard whose docs silently stop being registered (the very
         // failure mode this test exists for) would pass unnoticed.
@@ -101,6 +100,35 @@ class ResourceDocRegistryParityTest extends ServerSetup {
         s"but obpUnionVersion is ${ResourceDocRegistry.obpUnionVersion} ") {
         newest shouldBe ResourceDocRegistry.obpUnionVersion
       }
+    }
+
+    // Berlin Group and UK Open Banking both publish getBalances, getAccountList and
+    // getAccountBalances. Http4s600's top-apis/popular-apis and JSONFactory6.0.0's metrics resolve
+    // a partialFunctionName with `.toMap`, which keeps the LAST matching entry, so the registry's
+    // iteration order decides the operation_id those endpoints report. The hand-written union that
+    // preceded this registry listed UK before BG, giving Berlin Group the three names; sorting the
+    // scanned standards alphabetically silently handed them to UK Open Banking instead. This pins
+    // the resolved values so the precedence cannot drift again unnoticed.
+    scenario("Berlin Group keeps the partialFunctionNames it shares with UK Open Banking", RegistryParityTag) {
+      val resolved = APIUtil.getAllResourceDocs
+        .map(doc => doc.partialFunctionName -> doc.operationId).toMap
+      resolved.get("getBalances") shouldBe Some("BGv1.3-getBalances")
+      resolved.get("getAccountList") shouldBe Some("BGv2-getAccountList")
+      resolved.get("getAccountBalances") shouldBe Some("BGv2-getAccountBalances")
+    }
+
+    // An unconfigured configuration-gated standard reports ScannedApiVersion("", "", ""), whose
+    // fullyQualifiedVersion is "" as well. While ScannedApis kept it, ApiVersionUtils.valueOf("")
+    // resolved successfully and GET /obp/v7.0.0/resource-docs//obp answered 200 with an empty
+    // document list instead of the 400 every other unknown version string gets.
+    scenario("an unaddressable empty version is not a registered API version", RegistryParityTag) {
+      ScannedApis.versionMapScannedApis.keys.foreach { version =>
+        withClue(s"$version was registered despite addressing nothing ") {
+          (version.urlPrefix.trim + version.apiStandard.trim + version.apiShortVersion.trim) should not be empty
+        }
+      }
+      ApiVersionUtils.versions.map(_.fullyQualifiedVersion) should not contain ""
+      an[IllegalArgumentException] should be thrownBy ApiVersionUtils.valueOf("")
     }
 
     // The three named pins below are the three historical drift instances. They are NOT redundant
