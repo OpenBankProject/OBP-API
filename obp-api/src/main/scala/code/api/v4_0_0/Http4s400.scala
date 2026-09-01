@@ -35,6 +35,7 @@ import code.api.v1_4_0.JSONFactory1_4_0
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v4_0_0.JSONFactory400._
 import code.DynamicData.DynamicData
@@ -3018,6 +3019,33 @@ object Http4s400 {
     // first synchronous read of `SS.user` captures the cc.user, then the Future chain
     // runs normally on any thread.
 
+    // Resolves the view createTransactionRequest needs, unit-testable without a live Mapper
+    // connection: `lookup` is production's real `Views.views.vend.systemView(...).or(...)` call
+    // in the route below, and a stub in the test.
+    //
+    // `lookup()` runs OUTSIDE tryons's blanket exception catch, not inside it. tryons/tryo catch
+    // any Exception the wrapped block raises and report it via the given failCode regardless of
+    // cause -- wrapping the DB call itself made a connection-pool exhaustion, a transient SQL
+    // error, or a Mapper bug indistinguishable from a genuine "no such view" and reported ALL of
+    // them as 404. `Future(lookup())` still catches an exception from `lookup()` (standard
+    // Future-block semantics), but as an ordinary failed Future carrying the ORIGINAL exception,
+    // untouched -- so it falls through to ErrorResponseConverter's catch-all (500), the same as
+    // any other unexpected server-side failure. Only a lookup that SUCCEEDS and returns an empty
+    // Box is a genuine client-side "not found", and only that case is explicitly mapped to 404
+    // via tryons below (whose wrapped block cannot itself throw for any other reason -- it only
+    // ever raises the NoSuchElementException it constructs).
+    private[v4_0_0] def resolveCreateTransactionRequestView(
+      viewIdStr: String,
+      lookup: () => Box[View]
+    )(implicit cc: CallContext): Future[View] =
+      Future(lookup()).flatMap {
+        case Full(v) => Future.successful(v)
+        case _ =>
+          NewStyle.function.tryons(s"$ViewNotFound Current view_id($viewIdStr)", 404, Some(cc)) {
+            throw new NoSuchElementException(s"view_id($viewIdStr)")
+          }
+      }
+
     lazy val createTransactionRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
       // GRANT_VIEW_ID in the ResourceDoc URL → middleware skips view validation.
       // Lift's v4 endpoint does no view-access check upfront; it lets
@@ -3041,24 +3069,29 @@ object Http4s400 {
         EndpointHelpers.executeFutureCreated(req) {
           val bodyStr = cc.httpBody.getOrElse("")
           for {
-            user    <- Future { cc.user.openOrThrowException(AuthenticatedUserIsRequired) }
-            bank    <- Future { cc.bank.getOrElse(throw new RuntimeException(BankNotFound)) }
-            account <- Future { cc.bankAccount.getOrElse(throw new RuntimeException(BankAccountNotFound)) }
+            // These four used to throw raw exceptions, which the converter can only render as
+            // OBP-50000 / HTTP 500. Every one of them is a client-side condition -- not
+            // authenticated, no such bank, no such account, no such view -- and a 500 tells a
+            // caller with retry logic to keep sending a request that cannot succeed. This is a
+            // payment path, so that retry loop is the expensive kind.
+            user    <- NewStyle.function.tryons(AuthenticatedUserIsRequired, 401, Some(cc)) {
+              cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+            }
+            bank    <- NewStyle.function.tryons(BankNotFound, 404, Some(cc)) {
+              cc.bank.getOrElse(throw new NoSuchElementException(bankIdStr))
+            }
+            account <- NewStyle.function.tryons(BankAccountNotFound, 404, Some(cc)) {
+              cc.bankAccount.getOrElse(throw new NoSuchElementException(accountIdStr))
+            }
             json <- NewStyle.function.tryons(
               s"$InvalidJsonFormat Empty or invalid request body.", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(bodyStr)
             }
             transactionRequestType = TransactionRequestType(transactionRequestTypeStr)
-            view <- Future {
-              // System views (owner, accountant, etc.) and custom views (e.g. VRP
-              // `_vrp-…` views) are stored separately. Try system first; fall back
-              // to the account-scoped custom view. SS.init only needs *some* View
-              // instance — the connector reads viewId from the parameter, not the
-              // View object — so a soft fallback is fine here.
+            view <- resolveCreateTransactionRequestView(viewIdStr, () =>
               Views.views.vend.systemView(ViewId(viewIdStr))
                 .or(Views.views.vend.customView(ViewId(viewIdStr), BankIdAccountId(account.bankId, account.accountId)))
-                .openOrThrowException(s"$ViewNotFound Current view_id($viewIdStr)")
-            }
+            )
             // SS.init populates Lift thread-globals (used by `SS.user` inside the
             // connector). The connector's first line `SS.user` resolves synchronously
             // inside this block, capturing the user; subsequent flatMap stages run on
@@ -6392,7 +6425,14 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / _ / "user-invitations" / secretLink =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
-            (invitation, _) <- NewStyle.function.getUserInvitation(bank.bankId, secretLink.toLong, Some(cc))
+            // `secretLink.toLong` used to run unguarded, so any non-numeric path segment left a
+            // NumberFormatException to escape as OBP-50000 / HTTP 500 -- a malformed identifier
+            // reported to the caller as a server fault, which tells a client with retry logic to
+            // keep sending a request that can never succeed.
+            secret <- NewStyle.function.tryons(s"$InvalidNumber Invalid SECRET_LINK: it must be a number.", 400, Some(cc)) {
+              secretLink.toLong
+            }
+            (invitation, _) <- NewStyle.function.getUserInvitation(bank.bankId, secret, Some(cc))
           } yield JSONFactory400.createUserInvitationJson(invitation)
         }
     }
@@ -7095,7 +7135,7 @@ object Http4s400 {
         "Get My Api Collection Endpoint",
         s"""Get Api Collection Endpoint By API_COLLECTION_NAME and OPERATION_ID.
         |
-        |${userAuthenticationMessage(false)}
+        |${userAuthenticationMessage(true)}
         |""".stripMargin,
         EmptyBody,
         apiCollectionEndpointJson400,
@@ -7113,7 +7153,7 @@ object Http4s400 {
         "Get Api Collection Endpoints",
         s"""Get Api Collection Endpoints By API_COLLECTION_ID.
         |
-        |${userAuthenticationMessage(false)}
+        |${userAuthenticationMessage(true)}
         |""".stripMargin,
         EmptyBody,
         apiCollectionEndpointsJson400,
@@ -11116,7 +11156,7 @@ object Http4s400 {
         .orElse(createUserInvitation.run(req))
     }
 
-    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── nameOf-compatibility aliases ────────────────────────────────────────
     // These vals have no Lift counterpart in Http4s400 but are referenced by

@@ -1,0 +1,12 @@
+# name	base64(chill 0.9.3 bytes)	runtime class as written
+scala-list-string	dwEDAwGCYQMBgmIDAYJj	scala.collection.immutable.$colon$colon
+scala-list-empty	dgEA	scala.collection.immutable.Nil$
+scala-list-int	dwEDAgICBAIG	scala.collection.immutable.$colon$colon
+scala-vector	FAECAwGCeAMBgnk=	scala.collection.immutable.Vector
+scala-map	GwECJwEDAWuxAwF2sScBAwFrsgMBdrI=	scala.collection.immutable.Map$Map2
+scala-set	FgECAwGCYQMBgmI=	scala.collection.immutable.Set$Set2
+scala-seq	dwECAwFzsQMBc7I=	scala.collection.immutable.$colon$colon
+scala-option-some	EQEDAWhlcuU=	scala.Some
+scala-option-none	dAE=	scala.None$
+scala-tuple	JwEDAYJhAgI=	scala.Tuple2
+scala-nested-list	dwECdwEBAwGCeHcBAgMBgnkDAYJ6	scala.collection.immutable.$colon$colon

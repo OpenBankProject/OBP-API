@@ -9,6 +9,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.NewStyle
 import code.api.v1_2_1.JSONFactory
 import com.github.dwickern.macros.NameOf.nameOf
@@ -126,7 +127,7 @@ object Http4s130 {
         .orElse(getCardsForBank.run(req))
     }
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── path-rewriting bridge: /obp/v1.3.0/… → /obp/v1.2.1/… ─────────────
     // Delegates to Http4s121 so all inherited v1.2.1 endpoints are served

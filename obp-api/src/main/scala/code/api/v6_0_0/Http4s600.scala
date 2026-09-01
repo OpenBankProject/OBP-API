@@ -32,7 +32,7 @@ import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
+import code.api.util.http4s.{ErrorResponseConverter, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
@@ -1041,6 +1041,32 @@ object Http4s600 {
     }
 
 
+    // Resolves the portal URL used to build the reset-password link. Unit-testable without
+    // touching Props: `portalUrlBox` is production's real `APIUtil.getPortalUrl` call in the
+    // route below, and a fixed Box in the test.
+    //
+    // 503, not 400. A missing public_obp_portal_url/portal_external_url is an operator's
+    // configuration mistake, not this caller's -- the exact condition Http4s700's createTestEmail
+    // reports as 503 ("the server is not broken -- it is not configured to do this, and [a wrong
+    // code] tells a caller with retry logic that the fault is transient"). A bare
+    // Future.failed(new Exception(s"$IncompleteServerConfiguration ...")) resolves to 400: the
+    // message starts with "OBP-10056: ", which ErrorResponseConverter's OBP-prefix path promotes
+    // only to {401,403,408,429} and defaults everything else to 400 -- so the admin resetting a
+    // password is told their request was bad. tryons with an explicit failCode bypasses that
+    // default entirely.
+    private[v6_0_0] def resolveResetPasswordPortalUrl(
+      portalUrlBox: net.liftweb.common.Box[String]
+    )(implicit cc: CallContext): Future[String] =
+      portalUrlBox match {
+        case Full(url) => Future.successful(url)
+        case _ =>
+          NewStyle.function.tryons(
+            s"$IncompleteServerConfiguration public_obp_portal_url (or legacy portal_external_url) is not set",
+            503, Some(cc)) {
+            throw new NoSuchElementException("public_obp_portal_url")
+          }
+      }
+
     // Route: POST /obp/v6.0.0/management/user/reset-password-url (201)
     lazy val resetPasswordUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "user" / "reset-password-url" =>
@@ -1067,10 +1093,7 @@ object Http4s600 {
                 case _ => throw new Exception("User not found, not validated, or email mismatch")
               }
             }
-            portalUrl <- APIUtil.getPortalUrl match {
-              case Full(url) => Future.successful(url)
-              case _ => Future.failed(new Exception(s"$IncompleteServerConfiguration public_obp_portal_url (or legacy portal_external_url) is not set"))
-            }
+            portalUrl <- resolveResetPasswordPortalUrl(APIUtil.getPortalUrl)
             resetLink <- Future {
               val user: AuthUser = authUser
               user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
@@ -2663,9 +2686,15 @@ object Http4s600 {
               code.api.cache.RedisMessaging.validateChannelName(channelName)
             }
             info <- Future(code.api.cache.RedisMessaging.channelInfo(channelName))
+            // A plain RuntimeException here surfaced as OBP-50000 / HTTP 500. "The thing you asked
+            // for does not exist" is the textbook 404; a 500 says the server broke, and a client
+            // cannot tell from it that retrying is pointless.
             (count, ttl) <- info match {
               case Some((c, t)) => Future.successful((c, t))
-              case None => Future.failed(new RuntimeException(s"Channel '$channelName' not found"))
+              case None =>
+                NewStyle.function.tryons(s"$SignalChannelNotFound Channel '$channelName' not found.", 404, Some(cc)) {
+                  throw new NoSuchElementException(channelName)
+                }
             }
           } yield SignalChannelInfoJsonV600(channelName, count, ttl)
         }
@@ -6351,7 +6380,7 @@ object Http4s600 {
     // Deferring index construction to first request (post object-init) lets every
     // registration land before the snapshot is taken.
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
 
     // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
     // Targets v5.1.0; Http4s510 has its own working cascade down to v5.0.0 → v4.0.0 → …
@@ -8825,7 +8854,7 @@ object Http4s600 {
         |
         |9 user_id (if null ignore)
         |
-        |Authentication is Required.
+        |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
         EmptyBody,
@@ -9919,7 +9948,7 @@ object Http4s600 {
         |
         |Optional query parameter `tag` — filter to products that have the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive.
         |
-        |${userAuthenticationMessage(!getApiProductsIsPublic)}""".stripMargin,
+        |${userAuthenticationMessage(true)}""".stripMargin,
         EmptyBody,
         apiProductsJsonV600,
         List(UnknownError),
@@ -9937,7 +9966,7 @@ object Http4s600 {
         |
         |Optional query parameter `tag` — filter to products that carry the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive. Repeat `tag=` to require multiple tags.
         |
-        |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+        |${userAuthenticationMessage(true)}""".stripMargin,
         EmptyBody,
         productsJsonV600,
         List(UnknownError),
@@ -13392,7 +13421,7 @@ object Http4s600 {
         |Properties with sensitive keys or values (containing ${APIUtil.sensitiveKeywords.mkString(", ")})
         |are excluded from the response entirely.
         |
-        |Authentication is Required.
+        |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
         EmptyBody,

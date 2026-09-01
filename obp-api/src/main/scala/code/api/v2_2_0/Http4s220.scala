@@ -13,6 +13,7 @@ import code.api.util.Glossary
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import java.util.Date
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_2_1.{CreateViewJsonV121, JSONFactory => JSONFactory121, UpdateViewJsonV121}
@@ -1067,7 +1068,7 @@ object Http4s220 {
         .orElse(createCounterparty.run(req))
     }
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── path-rewriting bridge: /obp/v2.2.0/… → /obp/v2.1.0/… ──────────────
 

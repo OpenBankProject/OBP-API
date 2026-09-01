@@ -1,0 +1,15 @@
+# Kryo/chill golden fixture. Written by the chill on the generating classpath --
+# chill 0.9.3 / chill-bijection 0.9.1 from the pre-migration (Scala 2.12) build,
+# the versions PR #2890 replaces with 0.9.5.
+# One line per value: name<TAB>base64(KryoInjection(value)).
+# Regenerating this with the NEW chill would defeat its entire purpose.
+string	AwFhLWNhY2hlZC1zdHJpbuc=
+int	AlQ=
+long	CZaT2J/uRw==
+boolean	BQE=
+double	CkAKAAAAAAAA
+jlist-string	AQBqYXZhLnV0aWwuQXJyYXlMaXP0AQMDAYJhAwGCYgMBgmM=
+jlist-empty	AQBqYXZhLnV0aWwuQXJyYXlMaXP0AQA=
+jmap	AQBqYXZhLnV0aWwuTGlua2VkSGFzaE1h8AEBAwFrsQMBdrE=
+nested	AQBqYXZhLnV0aWwuQXJyYXlMaXP0AQIBAAEBAwGCeAEAAQIDAYJ5AwGCeg==
+byte-array	XwEFAQIDBA==
