@@ -297,23 +297,40 @@ def collect_baseline_full(version: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────
 
 
-def field_index(args: list, field_name: str):
-    """Map a semantic field name (partialFunctionName, description, ...) to
-    its positional index in `args`, detecting which ResourceDoc constructor
-    signature this particular call uses: the Lift teardown removed the
-    leading `partialFunction` parameter, so a pre-teardown call (11
-    positional fields, verb literal at index 3) and a current one (10
-    fields, no leading partialFunction, verb literal at index 2) put every
-    field at a different offset. Reuses check_lift_http4s_resource_doc_parity's
-    own POSITIONAL_FIELDS/CURRENT_POSITIONAL_FIELDS + the same verb-literal
-    detection it already relies on, instead of a second hardcoded guess that
-    can silently drift out of sync with it (as the old fixed args[2]/args[6..8]
-    indices here had — they assumed the pre-teardown signature and silently
-    matched nothing against current Http4sXYZ.scala files).
+def detect_positional_fields(args: list):
+    """Return the field-name list matching THIS call's ResourceDoc signature,
+    or None when neither shape is recognisable.
+
+    The Lift teardown removed the leading `partialFunction` parameter, so a
+    pre-teardown call (11 positional fields, verb literal at index 3) and a
+    current one (10 fields, verb literal at index 2) put every field at a
+    different offset. The verb literal is the discriminator, so exactly one of
+    index 2 and index 3 must hold one; anything else (neither, or both) means
+    the call does not have a shape this tool understands.
+
+    Returning None rather than defaulting matters because the caller writes the
+    file back: guessing wrong shifts every field by one and would splice the
+    description into the summary slot. Reuses parity's
+    POSITIONAL_FIELDS/CURRENT_POSITIONAL_FIELDS/HTTP_VERB_LITERALS rather than
+    a second hardcoded guess that can drift out of sync with them.
     """
-    fields = parity.POSITIONAL_FIELDS
-    if len(args) > 2 and args[2].strip() in parity.HTTP_VERB_LITERALS:
-        fields = parity.CURRENT_POSITIONAL_FIELDS
+    def verb_at(i):
+        return len(args) > i and args[i].strip() in parity.HTTP_VERB_LITERALS
+
+    current, legacy = verb_at(2), verb_at(3)
+    if current and not legacy:
+        return parity.CURRENT_POSITIONAL_FIELDS
+    if legacy and not current:
+        return parity.POSITIONAL_FIELDS
+    return None
+
+
+def field_index(args: list, field_name: str):
+    """Positional index of a semantic field name, or None when the signature is
+    unrecognisable or the field is absent from it."""
+    fields = detect_positional_fields(args)
+    if fields is None:
+        return None
     try:
         return fields.index(field_name)
     except ValueError:
@@ -504,7 +521,20 @@ def cmd_lift(http4s: Path) -> int:
     skipped_missing = 0
     skipped_unchanged = 0
     skipped_short_args = 0
+    unknown_signature = 0
     for j, k, name, args in spans:
+        # A registration whose signature we cannot classify is skipped, never
+        # guessed at: writing to guessed offsets would corrupt the file.
+        if len(args) >= 3 and detect_positional_fields(args) is None:
+            unknown_signature += 1
+            line_no = h4_src.count("\n", 0, j) + 1
+            print(
+                f"  WARN: unrecognised ResourceDoc signature at "
+                f"{http4s.name}:{line_no} ({name or 'unnamed'}) — no verb literal at "
+                f"positional index 2 or 3; skipped",
+                file=sys.stderr,
+            )
+            continue
         desc_idx = field_index(args, "description")
         req_idx = field_index(args, "exampleRequestBody")
         resp_idx = field_index(args, "successResponseBody")
@@ -540,7 +570,11 @@ def cmd_lift(http4s: Path) -> int:
     print(f"Skipped (already up-to-date): {skipped_unchanged}")
     print(f"Skipped (no liftweb match): {skipped_missing}")
     print(f"Skipped (parse / arg-count): {skipped_short_args}")
-    return 0
+    print(f"Skipped (unrecognised signature): {unknown_signature}")
+    # Non-zero on an unclassifiable registration: the tool's assumption about
+    # the constructor shape no longer holds everywhere, and silently patching
+    # the rest would hide that.
+    return 1 if unknown_signature else 0
 
 
 # ─────────────────────────────────────────────────────────────────────────

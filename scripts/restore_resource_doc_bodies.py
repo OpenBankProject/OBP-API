@@ -188,20 +188,31 @@ def parse_args(body: str):
     return positional, named
 
 
-def detect_fields(positional) -> list:
+def detect_fields(positional):
     """Return the field-name list matching THIS particular call's constructor
-    signature: pre-teardown (leading `partialFunction`, verb literal at index
-    3) or current (no leading partialFunction, verb literal at index 2).
-    Reuses check_lift_http4s_resource_doc_parity.py's own detection instead
-    of a second hardcoded guess — this file's old fixed index-2 name lookup
-    and POSITIONAL_FIELDS.index(fname) calls had silently stopped matching
-    any current-signature Http4sXYZ.scala file (the constructor's leading
-    partialFunction param was removed by the Lift teardown; every ordinary
-    http4s file only ever used the current signature).
+    signature, or None when neither shape is recognisable.
+
+    Pre-teardown calls carry a leading `partialFunction` (verb literal at index
+    3); current ones do not (verb literal at index 2). The verb literal is the
+    discriminator, so exactly one of those two positions must hold one —
+    neither, or both, means this is not a shape the tool understands.
+
+    None is returned rather than defaulting to either layout because the caller
+    rewrites the file: guessing wrong shifts every field by one and would write
+    a field's text into its neighbour's slot. Reuses
+    check_lift_http4s_resource_doc_parity.py's own constants instead of a second
+    hardcoded guess — this file's old fixed index-2 name lookup had silently
+    stopped matching any current-signature Http4sXYZ.scala file.
     """
-    if len(positional) > 2 and positional[2]["text"].strip() in parity.HTTP_VERB_LITERALS:
+    def verb_at(i):
+        return len(positional) > i and positional[i]["text"].strip() in parity.HTTP_VERB_LITERALS
+
+    current, legacy = verb_at(2), verb_at(3)
+    if current and not legacy:
         return parity.CURRENT_POSITIONAL_FIELDS
-    return parity.POSITIONAL_FIELDS
+    if legacy and not current:
+        return parity.POSITIONAL_FIELDS
+    return None
 
 
 def collect_lift_docs(version: str):
@@ -318,6 +329,7 @@ def process_file(http4s_path: Path, lift_docs: dict, dry_run: bool,
     edits = []
     matched = 0
     skipped_no_lift = 0
+    unknown_signature = 0
     changed_endpoints = 0
     per_field_changes = {f: 0 for f in fields_to_restore}
 
@@ -326,6 +338,18 @@ def process_file(http4s_path: Path, lift_docs: dict, dry_run: bool,
         if len(positional) < 3:
             continue
         fields = detect_fields(positional)
+        if fields is None:
+            # Never guess at an unclassifiable signature — writing to guessed
+            # offsets would move each field's text into its neighbour's slot.
+            unknown_signature += 1
+            line_no = source.count("\n", 0, header_start) + 1
+            print(
+                f"  WARN: unrecognised ResourceDoc signature at "
+                f"{http4s_path.name}:{line_no} — no verb literal at positional "
+                f"index 2 or 3; skipped",
+                file=sys.stderr,
+            )
+            continue
         name_idx = fields.index("partialFunctionName")
         if name_idx >= len(positional):
             continue
@@ -384,13 +408,16 @@ def process_file(http4s_path: Path, lift_docs: dict, dry_run: bool,
 
     prefix = "[dry-run] " if dry_run else ""
     print(f"  {prefix}endpoints matched: {matched}  changed: {changed_endpoints}  "
-          f"skipped (no lift match): {skipped_no_lift}")
+          f"skipped (no lift match): {skipped_no_lift}  "
+          f"skipped (unrecognised signature): {unknown_signature}")
     for f in fields_to_restore:
         print(f"    {f}: {per_field_changes[f]} fields rewritten")
 
     if not dry_run and changed_endpoints:
         http4s_path.write_text(new_source, encoding="utf-8")
         print(f"  wrote {http4s_path}")
+
+    return unknown_signature
 
 
 def main():
@@ -413,6 +440,7 @@ def main():
         print(f"ERROR: unknown fields: {invalid}", file=sys.stderr)
         sys.exit(2)
 
+    unrecognised = 0
     for v in args.versions:
         http4s_path = parity.find_http4s_path(v)
         if http4s_path is None:
@@ -428,8 +456,17 @@ def main():
         print(f"  lift:   scripts/resource_doc_baseline/lift_resource_docs_{v}.json")
         print(f"  http4s: {http4s_path.relative_to(REPO_ROOT)}")
         print(f"  fields: {fields_to_restore}")
-        process_file(http4s_path, lift_docs, args.dry_run,
-                     fields_to_restore, set(args.only) if args.only else None)
+        unrecognised += process_file(
+            http4s_path, lift_docs, args.dry_run,
+            fields_to_restore, set(args.only) if args.only else None)
+
+    # Non-zero when any registration could not be classified: the tool's
+    # assumption about the constructor shape no longer holds everywhere, and
+    # quietly patching the rest would hide that.
+    if unrecognised:
+        print(f"\nERROR: {unrecognised} ResourceDoc registration(s) had an "
+              f"unrecognised constructor signature and were skipped.", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
