@@ -4301,10 +4301,16 @@ object Http4s310 {
             (accountBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
             _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, cc = Some(cc)) { accountBox.isEmpty }
             loggedInUserId = user.userId
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else loggedInUserId
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
+            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.accountableUserId
             _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
             (accountOwner, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!accountOwner.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else code.util.Helper.booleanToFuture(
                    s"$UserHasMissingRoles $canCreateAccount or create account for self",

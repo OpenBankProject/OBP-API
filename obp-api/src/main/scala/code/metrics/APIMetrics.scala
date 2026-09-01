@@ -101,7 +101,8 @@ trait APIMetrics {
                  apiInstanceId: String,
                  consentReferenceId: String,
                  certificateTrust: String,
-                 certificateTrustDetail: String): Unit
+                 certificateTrustDetail: String,
+                 authType: String): Unit
 
   def saveMetricsArchive(primaryKey: Long,
                          userId: String,
@@ -123,7 +124,8 @@ trait APIMetrics {
                          apiInstanceId: String,
                          consentReferenceId: String,
                          certificateTrust: String,
-                         certificateTrustDetail: String
+                         certificateTrustDetail: String,
+                         authType: String
                         ): Boolean
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
@@ -183,6 +185,9 @@ trait APIMetric {
   def getConsentReferenceId(): String
   def getCertificateTrust(): String
   def getCertificateTrustDetail(): String
+  // Authentication scheme of the call — "Consent", "OAuth2", "OAuth1", "DirectLogin",
+  // "GatewayLogin", "DAuth", "Anonymous" or "Other". Scheme only, never credentials.
+  def getAuthType(): String
 
 }
 
@@ -210,7 +215,7 @@ case class AggregateMetrics(
   minResponseTime: Double,
   maxResponseTime: Double,
   // Distinct humans behind the calls: consent-borne rows are attributed to the granting
-  // (on-behalf-of) user via the consent table, mirroring CallContext.effectiveHumanUserId.
+  // (on-behalf-of) user via the consent table, mirroring CallContext.accountableUserId.
   distinctUserCount: Int,
   distinctConsumerCount: Int,
   // Calls that arrived under a consent (metric.consent_reference_id not null), and how many

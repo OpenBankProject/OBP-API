@@ -6,6 +6,7 @@ import code.api.util.ApiRole.{
   CanCreateEntitlementAtOneBank
 }
 import code.api.util.{ErrorMessages, NotificationUtil}
+import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
@@ -15,7 +16,7 @@ import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common
 
-object MappedEntitlementsProvider extends EntitlementProvider {
+object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
   override def getEntitlement(
       bankId: String,
       userId: String,
@@ -163,32 +164,57 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       roleName: String,
       createdByProcess: String = "manual",
       grantedByUserId: Option[String] = None,
-      groupId: Option[String] = None,
-      process: Option[String] = None
+      groupId: Option[String] = None
   ): Box[Entitlement] = {
     // grantedByUserId is audit metadata, stored as-is: authorization is the
     // calling endpoint's responsibility. (Until 2026-08-09 an unused
     // grantorUserId parameter gated on the grantor's granting roles here —
     // no caller ever passed it, and the check ignored super admins, whose
     // granting rights are virtual and have no rows to find.)
+
+    // On-behalf-of guard: a consent user (the per-consent principal a Consent-JWT
+    // authenticates as; its ResourceUser row carries CreatedByConsentId) must not
+    // accumulate durable roles — they strand when the consent dies, invisible to the
+    // human's next consent (see the simon.bank creator-grant incident, 2026-08-31).
+    // Any grant targeting one is redirected to the consent's granting human. The one
+    // legitimate writer of consent-user rows is the consent engine copying the
+    // consent's own scope, which tags itself Constant.consent_user and is exempt.
+    val targetUserId =
+      if (createdByProcess == code.api.Constant.consent_user) userId
+      else {
+        val grantingHumanUserId = for {
+          resourceUser <- code.model.dataAccess.ResourceUser.find(
+            By(code.model.dataAccess.ResourceUser.userId_, userId))
+          consentId <- Full(resourceUser.CreatedByConsentId.get)
+            .filter(id => id != null && id.nonEmpty)
+          consent <- code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
+          humanUserId <- Full(consent.userId).filter(id => id != null && id.nonEmpty)
+        } yield humanUserId
+        grantingHumanUserId match {
+          case Full(humanUserId) =>
+            logger.warn(s"addEntitlement: target user $userId is a consent user; granting role '$roleName' (bankId '$bankId', createdByProcess '$createdByProcess') to its granting human $humanUserId instead")
+            humanUserId
+          case _ => userId
+        }
+      }
+
     def addEntitlementToUser(): Box[MappedEntitlement] = {
       val entitlement = MappedEntitlement.create
         .mBankId(bankId)
-        .mUserId(userId)
+        .mUserId(targetUserId)
         .mRoleName(roleName)
         .mCreatedByProcess(createdByProcess)
       grantedByUserId.foreach(g => entitlement.mGrantedByUserId(g))
       groupId.foreach(gid => entitlement.mGroupId(gid))
-      process.foreach(p => entitlement.mProcess(p))
       tryo(entitlement.saveMe()) match {
         case Full(saved) =>
-          NotificationUtil.sendEmailRegardingAssignedRole(userId, saved)
+          NotificationUtil.sendEmailRegardingAssignedRole(targetUserId, saved)
           Full(saved)
         case Failure(_, _, _) =>
           // UniqueIndex(mBankId, mUserId, mRoleName) violated by concurrent grant — return the committed row
           MappedEntitlement.find(
             By(MappedEntitlement.mBankId, bankId),
-            By(MappedEntitlement.mUserId, userId),
+            By(MappedEntitlement.mUserId, targetUserId),
             By(MappedEntitlement.mRoleName, roleName)
           )
         case other => other
@@ -217,10 +243,10 @@ class MappedEntitlement
     override def defaultValue = ""
   }
 
-  object mProcess extends MappedString(this, 255) {
-    override def dbColumnName = "process"
-    override def defaultValue = ""
-  }
+  // The legacy "process" DB column (a duplicate of createdByProcess written only by the
+  // Groups feature) is no longer mapped: group rows are identified by group_id, and
+  // provenance lives in createdByProcess. The column itself can be dropped from the DB
+  // whenever convenient.
 
   object entitlement_request_id extends MappedUUID(this) {
     override def dbColumnName = "entitlement_request_id"
@@ -242,10 +268,6 @@ class MappedEntitlement
   override def groupId: Option[String] = {
     val gid = mGroupId.get
     if (gid == null || gid.isEmpty) None else Some(gid)
-  }
-  override def process: Option[String] = {
-    val p = mProcess.get
-    if (p == null || p.isEmpty) None else Some(p)
   }
   override def grantedByUserId: Option[String] = {
     val g = mGrantedByUserId.get

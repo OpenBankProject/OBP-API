@@ -149,7 +149,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     // userId_ is deliberately NOT declared here: MigrationOfUserIdIndexes creates a stronger
     // UNIQUE index on it (resourceuser_userid_unique). CreatedByConsentId is the delegation
-    // registry — consent-agent fan-down (/my/metrics, /my/banks) and effectiveHumanUserId join
+    // registry — consent-agent fan-down (/my/metrics, /my/banks) and accountableUserId join
     // through it; nothing else indexes it, which matters on consent-heavy instances where every
     // consent mints a user row.
     override def dbIndexes = UniqueIndex(provider_, providerId) :: Index(CreatedByConsentId) :: super.dbIndexes

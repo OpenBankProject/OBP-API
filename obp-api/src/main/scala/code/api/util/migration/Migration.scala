@@ -157,6 +157,7 @@ object Migration extends MdcLoggable {
       migrateChatRoomCreatedByAndLastMessageSender()
       migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
       migrateMetricConsentReferenceId(startedBeforeSchemifier)
+      migrateMetricAuthType(startedBeforeSchemifier)
       migrateMetricCertificateTrust(startedBeforeSchemifier)
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
       alterDynamicResourceDocBodyFieldsLength()
@@ -804,6 +805,18 @@ object Migration extends MdcLoggable {
         val name = nameOf(migrateMetricConsentReferenceId(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfMetricConsentReferenceId.migrate(name)
+        }
+      }
+    }
+
+    private def migrateMetricAuthType(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.migrateMetricAuthType(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(migrateMetricAuthType(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfMetricAuthType.migrate(name)
         }
       }
     }

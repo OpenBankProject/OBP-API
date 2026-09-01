@@ -88,7 +88,7 @@ object MigrationOfActivityDashboardIndexes {
    * Index on resourceuser.createdbyconsentid.
    *
    * The delegation registry: consent-agent fan-down (/my/metrics, /my/banks) and
-   * CallContext.effectiveHumanUserId look up agent users by the consent that minted them.
+   * CallContext.accountableUserId look up agent users by the consent that minted them.
    * Unindexed this is a full scan of resourceuser on every such request, which matters on
    * consent-heavy instances where every consent mints a user row.
    */
@@ -130,7 +130,7 @@ object MigrationOfActivityDashboardIndexes {
           s"""Added index on resourceuser.createdbyconsentid
              |Executed SQL:
              |$executedSql
-             |Serves the consent-agent delegation fan-down (/my/metrics, /my/banks, effectiveHumanUserId).
+             |Serves the consent-agent delegation fan-down (/my/metrics, /my/banks, accountableUserId).
              |""".stripMargin
         isSuccessful = true
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
