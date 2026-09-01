@@ -678,8 +678,32 @@ object DynamicUtil extends MdcLoggable{
                               |${packageMatcher.replaceFirst("")}
                               |""".stripMargin
 
-            javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
+            val compiledScript = javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
               .asInstanceOf[ch.obermuhlner.scriptengine.java.JavaCompiledScript]
+
+            // getDynamicCodeDependentMethods loads a class's bytecode via Javassist's
+            // LoaderClassPath, which reads it through classLoader.getResourceAsStream(...). The
+            // compiler's ch.obermuhlner.scriptengine.java.MemoryClassLoader only overrides
+            // loadClass() — it never exposes the compiled bytes as a classpath resource — so that
+            // lookup silently fails (javassist.NotFoundException) and validation would see zero
+            // dependent methods no matter what the Java code actually calls. Read the bytes
+            // directly from the classloader's private byte map (reflection is unavoidable here:
+            // java-scriptengine exposes no public accessor) and hand them to Javassist explicitly
+            // via ByteArrayClassPath, so the real method bodies — including any restricted OBP
+            // call — are visible to validation. Done here, inside the compile memoization, so it
+            // runs exactly once per distinct source: ClassPool.appendClassPath has no dedup of its
+            // own, so doing this on every createJavaHttp4sEndpoint call (as an earlier version of
+            // this function did, on every resourceDocs-list rebuild for the process's lifetime)
+            // grew that ClassPool's classpath chain without bound.
+            val compiledClass = compiledScript.getCompiledClass
+            val classBytesField = compiledClass.getClassLoader.getClass.getDeclaredField("mapClassBytes")
+            classBytesField.setAccessible(true)
+            val classBytes = classBytesField.get(compiledClass.getClassLoader)
+              .asInstanceOf[java.util.Map[String, Array[Byte]]].get(compiledClass.getName)
+            getClassPool(compiledClass.getClassLoader)
+              .appendClassPath(new javassist.ByteArrayClassPath(compiledClass.getName, classBytes))
+
+            compiledScript
           }
         }
 
@@ -693,26 +717,6 @@ object DynamicUtil extends MdcLoggable{
       // through to "compiled code return nothing" and discarding the real rejection reason. `.map`
       // does not swallow exceptions the way `Box tryo` does, so this stays uncaught here.
       compiledScriptBox.map { compiledScript =>
-        val compiledClass = compiledScript.getCompiledClass
-
-        // getDynamicCodeDependentMethods loads the class's bytecode via Javassist's LoaderClassPath,
-        // which reads it through classLoader.getResourceAsStream(...). The compiler's
-        // ch.obermuhlner.scriptengine.java.MemoryClassLoader only overrides loadClass() — it never
-        // exposes the compiled bytes as a classpath resource — so that lookup silently fails
-        // (javassist.NotFoundException) and validation would see zero dependent methods no matter
-        // what the Java code actually calls. Read the bytes directly from the classloader's private
-        // byte map (reflection is unavoidable here: java-scriptengine exposes no public accessor)
-        // and hand them to Javassist explicitly via ByteArrayClassPath, so the real method bodies —
-        // including any restricted OBP call — are visible to validation. Re-registering the same
-        // bytes on a compile-cache hit is harmless: Javassist's ClassPool just gains a duplicate,
-        // already-matching ClassPath entry.
-        val classBytesField = compiledClass.getClassLoader.getClass.getDeclaredField("mapClassBytes")
-        classBytesField.setAccessible(true)
-        val classBytes = classBytesField.get(compiledClass.getClassLoader)
-          .asInstanceOf[java.util.Map[String, Array[Byte]]].get(compiledClass.getName)
-        getClassPool(compiledClass.getClassLoader)
-          .appendClassPath(new javassist.ByteArrayClassPath(compiledClass.getName, classBytes))
-
         // Validate the real compiled Supplier class before it's ever invoked — see the doc comment
         // above for why this must run against getCompiledInstance, not `func`/`this.partialFunction`,
         // and why it must run fresh on every call rather than being cached with the compile result.
