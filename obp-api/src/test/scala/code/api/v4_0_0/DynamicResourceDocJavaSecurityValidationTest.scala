@@ -44,11 +44,16 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
   private def defaultDependenciesWhitelist: String =
     """[NewStyle.function.getClass.getTypeName -> "*", CompiledObjects.getClass.getTypeName -> "sandbox", HttpCode.getClass.getTypeName -> "200", DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse", APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse", ErrorMessages.getClass.getTypeName -> "*", ExecutionContext.Implicits.getClass.getTypeName -> "global", JSONFactory400.getClass.getTypeName -> "createBanksJson", classOf[Sandbox].getTypeName -> "runInSandbox", classOf[CallContext].getTypeName -> "*", classOf[ResourceDoc].getTypeName -> "getPathParams", "scala.reflect.runtime.package$" -> "universe", PractiseEndpoint.getClass.getTypeName + "*" -> "*"]"""
 
-  private def enableStrictValidation(): Unit = setPropsValues(
-    "show_used_connector_methods" -> "true",
-    "dynamic_code_compile_validate_enable" -> "true",
-    "dynamic_code_compile_validate_dependencies" -> defaultDependenciesWhitelist
-  )
+  // Block body (not `= setPropsValues(...)`) so .github/scripts/check_test_isolation.py's brace
+  // scanner sees an opening `{` right after `def enableStrictValidation` and treats this as a
+  // safe "helper called from scenarios" scope rather than a class-body-level setPropsValues call.
+  private def enableStrictValidation(): Unit = {
+    setPropsValues(
+      "show_used_connector_methods" -> "true",
+      "dynamic_code_compile_validate_enable" -> "true",
+      "dynamic_code_compile_validate_dependencies" -> defaultDependenciesWhitelist
+    )
+  }
 
   private def createRequest = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
 
