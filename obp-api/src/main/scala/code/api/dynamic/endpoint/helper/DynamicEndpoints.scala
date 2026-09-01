@@ -77,7 +77,7 @@ trait EndpointGroup {
  * @param successResponseBody successResponseBody from the post json body,it is JValue here.
  * @param methodBody it is url-encoded string for the api level code.
  */
-case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String) {
+case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String, programmingLang: String = "Scala") {
   val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
   val requestBody: Product = exampleRequestBody match {
       //this case means, we accept the empty string "" from json post body, we need to map it to None.
@@ -87,7 +87,24 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
   }
   val successResponse: Product = toCaseObject(successResponseBody)
 
-  private val partialFunction: Http4sEndpointIO = {
+  private val partialFunction: Http4sEndpointIO = programmingLang match {
+    case "java" | "Java" =>
+      DynamicUtil.createJavaHttp4sEndpoint(decodedMethodBody) match {
+        case Full(func) => func
+        case Failure(msg: String, exception: Box[Throwable], _) =>
+          throw exception.getOrElse(new RuntimeException(msg))
+        case _ => throw new RuntimeException("compiled code return nothing")
+      }
+    case _ /* "Scala" | "scala" | "" | null, default */ =>
+      scalaPartialFunction
+  }
+
+  // Unchanged Scala-template compile path, factored out so the `partialFunction` match above stays
+  // readable. Only evaluated for Scala-language docs (the default) — Java-language docs never
+  // touch this, so example/response-body JValues that don't fit the Scala case-class generator
+  // (irrelevant for Java, since it doesn't use RequestRootJsonClass/ResponseRootJsonClass) are a
+  // non-issue there.
+  private def scalaPartialFunction: Http4sEndpointIO = {
 
     //If the requestBody is PrimaryDataBody, return None. otherwise, return the exampleRequestBody:Option[JValue]
     // In side OBP resourceDoc, requestBody and successResponse must be Product type，
@@ -157,8 +174,21 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    * this will check all the dynamic scala code dependencies at compile time.
    *
    *Search for the usage, you can see how to use it in OBP code.
+   *
+   * Scala-only: for the Scala language, `this.partialFunction` IS the compiled user code, so
+   * validating its bytecode directly is correct. For Java, `this.partialFunction` is instead
+   * OBP's own Http4sEndpointIO wrapper (built by DynamicUtil.createJavaHttp4sEndpoint) around the
+   * real compiled Java class -- its bytecode legitimately calls internal OBP helpers
+   * (DynamicUtil.javaValueToJValue/logger, CustomJsonFormats.formats, JsonAliases.compactRender)
+   * that were never meant to be dependency-whitelisted, since they are framework glue, not
+   * user-supplied code. createJavaHttp4sEndpoint already validates the real compiled Java class
+   * internally (see its own doc comment) before ever returning that wrapper, so re-validating the
+   * wrapper here is both redundant and wrong -- it would reject every Java doc unconditionally.
    */
-  def validateDependency() = Validation.validateDependency(this.partialFunction)
+  def validateDependency() = programmingLang match {
+    case "java" | "Java" => ()
+    case _ => Validation.validateDependency(this.partialFunction)
+  }
 
   /**
    * This is used to check the security permission at the run time.

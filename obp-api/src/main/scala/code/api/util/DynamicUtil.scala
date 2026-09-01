@@ -43,7 +43,20 @@ object DynamicUtil extends MdcLoggable{
     }
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
+  // Neither this nor memoJavaCompiledScript below ever evicts, so each distinct ClassLoader (and
+  // therefore each distinct compiled Java method_body -- java-scriptengine hands createJavaHttp4sEndpoint
+  // a fresh MemoryClassLoader per compile) is retained for the life of the process, along with its
+  // ClassPool. This is the same unbounded-but-trusted-operator-only tradeoff dynamicCompileResult
+  // below already makes for the Scala compile cache, predating the Java path: registering a dynamic
+  // resource doc is gated behind canCreateDynamicResourceDoc / canCreateBankLevelDynamicResourceDoc,
+  // not open to arbitrary callers, and a served endpoint's ClassLoader must stay reachable for as
+  // long as that endpoint keeps serving requests -- an eviction policy here would need to be
+  // reference-counted against currently-registered docs to avoid reclaiming a live one, which is a
+  // larger change than this cache's existing (pre-Java) design accounted for.
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
+  // Caches only the compiled artifact (deterministic given the source string), never the
+  // validation outcome built on top of it -- see createJavaHttp4sEndpoint's doc comment.
+  private val memoJavaCompiledScript = new Memo[String, Box[ch.obermuhlner.scriptengine.java.JavaCompiledScript]]
 
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
     val cp = ClassPool.getDefault
@@ -167,29 +180,71 @@ object DynamicUtil extends MdcLoggable{
   }
 
   /**
-   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap.
    * @param clazz
    * @param predicate
+   * @param force bypasses the SHOW_USED_CONNECTOR_METHODS gate below. SHOW_USED_CONNECTOR_METHODS
+   *              exists to opt in to an unrelated, expensive introspection/reporting feature (which
+   *              connector methods a static endpoint touches) — it was never meant to gate SECURITY
+   *              validation, which reuses this same bytecode scan. Without `force`, a deployment
+   *              that sets dynamic_code_compile_validate_enable=true (the documented, security-
+   *              relevant prop) but leaves the unrelated show_used_connector_methods at its default
+   *              false would silently get an always-empty dependency list here — every dynamic-code
+   *              call looks "allowed" no matter what it does, because there is nothing to check
+   *              against the whitelist. Validation.validateDependency passes force=true so it is
+   *              controlled solely by dynamic_code_compile_validate_enable, matching what an
+   *              operator following that prop's own documentation would expect.
    * @return
    */
-  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = 
-  if (SHOW_USED_CONNECTOR_METHODS) {
+  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true, force: Boolean = false): List[(String, String, String)] =
+  if (SHOW_USED_CONNECTOR_METHODS || force) {
     val className = clazz.getTypeName
     val listBuffer = new ListBuffer[(String, String, String)]()
     val classPool = getClassPool(clazz.getClassLoader)
-    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap.
     val ctClass = classPool.get(className)
+
+    // A same-class (or same-generated-unit, for the Scala nested-closure case below) call is not
+    // itself a dependency to police -- recurse into what the TARGET method calls instead of
+    // flagging the call itself as forbidden, all the way down until a genuinely foreign
+    // dependency is reached. This is required for Java: every Java dynamic resource doc
+    // implements Supplier<Function<Object[], Object>> (the documented convention), and the
+    // compiler always erases that generic Supplier.get() to a synthetic bridge method
+    // `Object get()` whose body is just `return this.get();` -- an ordinary same-class
+    // invokevirtual call to the real, properly-typed get(). A single level of unrolling only
+    // fixes that one hop: any Java body that factors logic into its own private helper methods
+    // (an entirely normal thing to do) reintroduces the exact same false rejection one level
+    // deeper, since the un-recursed helper's own callees would otherwise be appended as raw
+    // (thisClass, method) tuples and then rejected as calls to an unwhitelistable random-UUID
+    // class. `visited` guards against a call cycle -- direct or mutual recursion between
+    // same-class private methods (e.g. a fibonacci/factorial helper) is entirely normal Java and
+    // would otherwise recurse forever. On hitting a cycle this contributes nothing further (Nil),
+    // not a leaf: the recursive call is still a same-class call, not a foreign dependency, and
+    // whatever it in turn depends on is already being expanded by the in-progress call further up
+    // this same path -- returning it as a leaf here would flag the method's own name
+    // (unwhitelistable, like any other randomly-named dynamic class) as a forbidden dependency,
+    // exactly the bug this whole function exists to avoid.
+    def expand(typeName: String, methodName: String, signature: String, visited: Set[(String, String, String)]): List[(String, String, String)] = {
+      val key = (typeName, methodName, signature)
+      val sameUnit = typeName == className ||
+        (className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName + "$"))
+      if (!sameUnit) {
+        List(key)
+      } else if (visited.contains(key)) {
+        Nil
+      } else {
+        APIUtil.getDependentMethods(typeName, methodName, signature, force).flatMap { case (t, m, s) =>
+          expand(t, m, s, visited + key)
+        }
+      }
+    }
+
     for {
       method <- ctClass.getDeclaredMethods.toList
       if predicate(method.getName)
-      ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature)
+      (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force)
     } yield {
-      // if method is also dynamic compile code, extract it's dependent method
-      if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
-        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature))
-      } else {
-        listBuffer.append(ternary)
-      }
+      listBuffer.appendAll(expand(typeName, methodName, signature, Set.empty))
     }
 
     listBuffer.distinct.toList
@@ -360,6 +415,22 @@ object DynamicUtil extends MdcLoggable{
 
   object Validation {
 
+    // def, not val, throughout this object: these must react to a props change (e.g. test-time
+    // setPropsValues) without a restart, not freeze at whatever the props held the moment
+    // Validation was first touched (typically by whichever dynamic-code test happens to run
+    // first in a shared test JVM). This costs nothing extra in production -- the only expensive
+    // step, DynamicUtil.compileScalaCodeUnchecked, is already memoized by the exact source
+    // string, so re-evaluating these on every call is a cache hit unless the underlying props
+    // value actually changed.
+    //
+    // This makes allowedRuntimePermissions itself always current, but NOT everything downstream
+    // of it: Sandbox.sandbox(bankId) below separately caches the whole Sandbox it builds, keyed
+    // only by bankId -- so a bankId whose sandbox was already built keeps that snapshot of
+    // allowedRuntimePermissions until the process restarts, same staleness this def change fixed
+    // for validateDependency. Left as-is here because it's moot in practice: SecurityManager
+    // enforcement is already a no-op on this JVM (JEP 486, JDK 24+; see Sandbox's own comment),
+    // so neither the stale nor the fresh permission list is actually enforced.
+
     /**
      * Turn the `dynamic_code_compile_validate_dependencies` props value into the Scala source
      * that, once compiled, yields the whitelist.
@@ -380,10 +451,10 @@ object DynamicUtil extends MdcLoggable{
         dependenciesString.replaceFirst("\\[", "Map[String, String](").dropRight(1) +
         ").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
 
-    val dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
-    val scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
-    val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
-    
+    def dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
+    def scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
+    def permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
+
     // all Permissions put at here
     // Here is the Java Permission document, please extend these permissions carefully. 
     // https://docs.oracle.com/javase/8/docs/technotes/guides/security/spec/security-spec.doc3.html#17001
@@ -402,11 +473,11 @@ object DynamicUtil extends MdcLoggable{
 //      new RuntimePermission("accessDeclaredMembers"),
 //      new RuntimePermission("getClassLoader"),
 //    )
-    val allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
+    def allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
 
-    val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
-    val scalaCodeDependencies = dependenciesScalaCode(dependenciesString)
-    val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
+    def dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
+    def scalaCodeDependencies = dependenciesScalaCode(dependenciesString)
+    def dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
     
     /**
      * Compilation OBP Dependencies Guard, only checked the OBP methods, not scala/Java libraies(are checked during the runtime.).
@@ -437,7 +508,7 @@ object DynamicUtil extends MdcLoggable{
 //      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
 //
 //    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
-    val allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_compile_validate_dependencies` to Map")
+    def allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_compile_validate_dependencies` to Map")
 
     //Do not touch this Set, try to use the `allowedPermissions` and `allowedMethods` to control the sandbox 
     val restrictedTypes = Set(
@@ -454,6 +525,11 @@ object DynamicUtil extends MdcLoggable{
      * Here only validate the restricted types(isObpClass + val restrictedTypes), not all scala/java types.
      */
     private def validateDependency(dependentMethods: List[(String, String, String)]) = {
+      // Bound once per call, not re-derived per dependency tuple: allowedCompilationMethods is a
+      // def (see the "def, not val" comment above) so it observes a live props change, but it
+      // recompiles the whitelist source on every access -- reading it twice per element inside
+      // the `collect` guard below would mean up to 2N re-derivations for N dependency tuples.
+      val allowedCompilationMethods = this.allowedCompilationMethods
       val notAllowedDependentMethods = dependentMethods collect {
         case (typeName, method, _)
           if isRestrictedType(typeName) &&
@@ -476,7 +552,9 @@ object DynamicUtil extends MdcLoggable{
 
     def validateDependency(obj: AnyRef): Unit = {
       if(APIUtil.getPropsAsBoolValue("dynamic_code_compile_validate_enable",false)){
-        val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass)
+        // force=true: this check must not also require the unrelated show_used_connector_methods
+        // prop -- see getDynamicCodeDependentMethods' doc comment for why.
+        val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass, force = true)
         validateDependency(dependentMethods)
       } else{ // If false, nothing to do here.
         ;
@@ -559,4 +637,196 @@ object DynamicUtil extends MdcLoggable{
       }
     }
   }
+
+  /**
+   * Converts a plain value returned by a compiled Java `method_body` into a JValue, for endpoints
+   * where json4s' `Extraction.decompose` cannot help: it works by Scala-case-class/collection
+   * reflection, so a `java.util.Map`/`java.util.List` returned from Java decomposes to `{}`/`[]`
+   * (its entries are invisible to Scala reflection) rather than throwing — a silent data-loss bug,
+   * not a compile or runtime error, so it only surfaces as an empty response body. Recurses through
+   * the Java collection types directly; anything else (including a Scala case class constructed
+   * from Java, as ConnectorMethod's Java example does) falls back to Extraction.decompose.
+   */
+  private def javaValueToJValue(value: Any): JValue = {
+    import scala.jdk.CollectionConverters._
+    value match {
+      case null => JNull
+      case jv: JValue => jv
+      case m: java.util.Map[_, _] =>
+        JObject(m.asScala.toList.map { case (k, v) => (String.valueOf(k), javaValueToJValue(v)) })
+      case l: java.util.List[_] =>
+        JArray(l.asScala.toList.map(javaValueToJValue))
+      case s: String => JString(s)
+      case b: java.lang.Boolean => JBool(b)
+      case i: java.lang.Integer => JInt(BigInt(i.intValue()))
+      case l: java.lang.Long => JInt(BigInt(l.longValue()))
+      case d: java.lang.Double => JDouble(d.doubleValue())
+      case f: java.lang.Float => JDouble(f.doubleValue())
+      case bd: java.math.BigDecimal => JDecimal(BigDecimal(bd))
+      case other => Extraction.decompose(other)(CustomJsonFormats.formats)
+    }
+  }
+
+  /**
+   * Compiles a Java `method_body` for a DynamicResourceDoc endpoint into a native
+   * `Http4sEndpointIO` (`PartialFunction[Request[IO], CallContext => IO[Response[IO]]]`), the same
+   * type the Scala template compiles to in DynamicEndpoints.CompiledObjects.
+   *
+   * Reuses the same JSR-223 "java" engine (backed by a real javax.tools.JavaCompiler via
+   * ch.obermuhlner:java-scriptengine — see createJavaFunction above) and the same
+   * package-uniquification trick, but — unlike createJavaFunction, whose DynamicFunction shape is
+   * specific to the ConnectorMethod feature — wraps the compiled function in a hand-written
+   * Http4sEndpointIO here in Scala. The Java method_body never has to construct cats.effect.IO,
+   * org.http4s.Response, or a Scala PartialFunction: it only ever returns a plain Java object
+   * (Map/List/String/number/boolean/etc.), which this adapter serializes via javaValueToJValue
+   * above (NOT Extraction.decompose directly — see that method's doc comment for why).
+   *
+   * Java-side convention (identical to the existing ConnectorMethod convention): the pasted class
+   * implements java.util.function.Supplier<java.util.function.Function<Object[], Object>>. The
+   * compiled function is invoked with:
+   *   args(0) = the raw request body (String, or null if the request had none)
+   *   args(1) = path params (java.util.Map<String, String>)
+   *   args(2) = the CallContext (present whenever this endpoint is actually being served)
+   * mirroring createJavaFunction's own `func(args ++ cc)` call (line above): appending an
+   * Option[CallContext] via `++` appends its *contents* (0 or 1 raw CallContext), not the Option
+   * wrapper itself, so Java reads args[2] directly as a CallContext, no unwrapping needed.
+   *
+   * Unlike createJavaFunction, this validates the actual compiled Java class (not just its Scala
+   * wrapper) against `dynamic_code_compile_validate_dependencies`/`dynamic_code_compile_validate_enable`.
+   * CompiledObjects.validateDependency() (called by the ResourceDoc-creation flow) only ever sees
+   * `this.partialFunction` — the hand-written Http4sEndpointIO below — whose own bytecode just
+   * calls `java.util.function.Function.apply`, a non-restricted type; it can't see what the pasted
+   * Java class does inside apply(Object[]). Worse, `func` itself (the Function returned by the
+   * pasted class's get()) is commonly a method reference (`this::apply`), which the JVM
+   * materialises as a synthetic lambda class whose bytecode is just a delegating call — validating
+   * `func.getClass` would be equally blind. So we go through the JSR-223 Compilable API directly
+   * (JavaScriptEngine implements it) instead of plain eval(), to get the real top-level compiled
+   * class/instance (JavaCompiledScript.getCompiledClass/getCompiledInstance) and validate that
+   * before the function is ever returned or invoked.
+   */
+  def createJavaHttp4sEndpoint(methodBody: String): Box[code.api.util.APIUtil.Http4sEndpointIO] =
+    if (!dynamicCodeExecutionEnabled) Failure(ErrorMessages.DynamicCodeExecutionDisabled)
+    else {
+      import cats.effect.IO
+      import code.api.util.APIUtil.Http4sEndpointIO
+      import com.openbankproject.commons.ExecutionContext.Implicits.global
+      import com.openbankproject.commons.util.JsonAliases.compactRender
+      import org.http4s.headers.`Content-Type`
+      import org.http4s.dsl.io._
+      import org.http4s.{MediaType, Request, Response}
+
+      import scala.jdk.CollectionConverters._
+
+      // Only the compile step is memoized — deterministic given the same source string, and the
+      // one genuinely expensive part (a real javax.tools.JavaCompiler invocation). Dependency
+      // validation below is NOT memoized: it depends on mutable external config
+      // (dynamic_code_compile_validate_enable/_dependencies), which can change between two
+      // createJavaHttp4sEndpoint calls for the identical source string — e.g. a doc compiled once
+      // while validation was off, then a later create/update call resubmitting the exact same
+      // method_body after validation was turned on and the whitelist tightened. An earlier version
+      // of this function memoized the validated *result* (Box[Http4sEndpointIO]) as a single unit,
+      // so that second call silently reused the first call's unvalidated success — bypassing the
+      // now-stricter policy for any resubmitted source. Re-running validation on every call costs
+      // little: it is Javassist bytecode inspection plus a Map lookup, not another compile.
+      val compiledScriptBox: Box[ch.obermuhlner.scriptengine.java.JavaCompiledScript] =
+        memoJavaCompiledScript.memoize("java-http4s-endpoint:" + methodBody) {
+          // Real compile happens here (javax.tools.JavaCompiler via the JSR-223 "java" engine) —
+          // any Java syntax/type error surfaces as an exception, caught by this `Box tryo` and
+          // turned into a Failure.
+          Box tryo {
+            val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")
+            val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
+
+            val javaCode = s"""package code.api.util.dynamic.${packageExp};
+                              |${packageMatcher.replaceFirst("")}
+                              |""".stripMargin
+
+            val compiledScript = javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
+              .asInstanceOf[ch.obermuhlner.scriptengine.java.JavaCompiledScript]
+
+            // getDynamicCodeDependentMethods loads a class's bytecode via Javassist's
+            // LoaderClassPath, which reads it through classLoader.getResourceAsStream(...). The
+            // compiler's ch.obermuhlner.scriptengine.java.MemoryClassLoader only overrides
+            // loadClass() — it never exposes the compiled bytes as a classpath resource — so that
+            // lookup silently fails (javassist.NotFoundException) and validation would see zero
+            // dependent methods no matter what the Java code actually calls. Read the bytes
+            // directly from the classloader's private byte map (reflection is unavoidable here:
+            // java-scriptengine exposes no public accessor) and hand them to Javassist explicitly
+            // via ByteArrayClassPath, so the real method bodies — including any restricted OBP
+            // call — are visible to validation. Done here, inside the compile memoization, so it
+            // runs exactly once per distinct source: ClassPool.appendClassPath has no dedup of its
+            // own, so doing this on every createJavaHttp4sEndpoint call (as an earlier version of
+            // this function did, on every resourceDocs-list rebuild for the process's lifetime)
+            // grew that ClassPool's classpath chain without bound.
+            val compiledClass = compiledScript.getCompiledClass
+            val classBytesField = compiledClass.getClassLoader.getClass.getDeclaredField("mapClassBytes")
+            classBytesField.setAccessible(true)
+            val classBytes = classBytesField.get(compiledClass.getClassLoader)
+              .asInstanceOf[java.util.Map[String, Array[Byte]]].get(compiledClass.getName)
+            // Fail loudly and specifically here rather than handing Javassist a null byte array --
+            // that would only surface later, inside ByteArrayClassPath/ClassPool, as an opaque NPE
+            // with no indication that the cause was this reflective read (e.g. a java-scriptengine
+            // upgrade that changes mapClassBytes' keying from binary name to internal name, or that
+            // stops using that field name at all).
+            if (classBytes == null) {
+              throw new IllegalStateException(
+                s"createJavaHttp4sEndpoint: MemoryClassLoader.mapClassBytes has no entry for " +
+                  s"${compiledClass.getName} -- java-scriptengine's internal layout may have changed")
+            }
+            getClassPool(compiledClass.getClassLoader)
+              .appendClassPath(new javassist.ByteArrayClassPath(compiledClass.getName, classBytes))
+
+            compiledScript
+          }
+        }
+
+      // Deliberately outside compiledScriptBox's `Box tryo` AND outside the memoization above: a
+      // rejection here throws JsonResponseException, which must propagate UNCAUGHT (mirroring the
+      // Scala path's CompiledObjects.validateDependency(), also never wrapped in tryo) so
+      // compileDynamicResourceDoc's `case e: JsonResponseException => throw e` sees it intact.
+      // JsonResponseException never sets a Throwable message (getMessage == null); Box.tryo would
+      // catch it into Failure(null, Full(theException), Empty), and DynamicEndpoints.scala's
+      // `case Failure(msg: String, ...)` pattern silently fails to match a null msg — falling
+      // through to "compiled code return nothing" and discarding the real rejection reason. `.map`
+      // does not swallow exceptions the way `Box tryo` does, so this stays uncaught here.
+      compiledScriptBox.map { compiledScript =>
+        // Validate the real compiled Supplier class before it's ever invoked — see the doc comment
+        // above for why this must run against getCompiledInstance, not `func`/`this.partialFunction`,
+        // and why it must run fresh on every call rather than being cached with the compile result.
+        Validation.validateDependency(compiledScript.getCompiledInstance)
+
+        val func = compiledScript.eval().asInstanceOf[java.util.function.Function[Array[AnyRef], Any]]
+        val jsonContentType = `Content-Type`(MediaType.application.json)
+
+        new Http4sEndpointIO {
+          override def isDefinedAt(req: Request[IO]): Boolean = true
+
+          override def apply(req: Request[IO]): CallContext => IO[Response[IO]] = { cc =>
+            val pathParams: java.util.Map[String, String] = cc.resourceDocument
+              .map(_.getPathParams(req.uri.path.segments.toList.map(_.encoded)))
+              .getOrElse(Map.empty[String, String])
+              .asJava
+
+            val valueIO: IO[Any] = IO.fromFuture(IO {
+              Future {
+                val args: Array[AnyRef] = Array(cc.httpBody.orNull, pathParams)
+                func(args ++ Some(cc))
+              }
+            })
+
+            valueIO.flatMap { value =>
+              Ok(compactRender(javaValueToJValue(value)), jsonContentType)
+            }.handleErrorWith { e =>
+              logger.warn(s"createJavaHttp4sEndpoint: Java method_body threw", e)
+              InternalServerError(
+                compactRender(Extraction.decompose(
+                  Map("code" -> 500, "message" -> s"OBP-50000: Unknown Error. ${e.getMessage}")
+                )(CustomJsonFormats.formats)),
+                jsonContentType
+              )
+            }
+          }
+        }
+      }
+    }
 }

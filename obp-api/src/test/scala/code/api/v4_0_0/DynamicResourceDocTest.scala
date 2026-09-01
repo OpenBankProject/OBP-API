@@ -29,7 +29,7 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, DynamicResourceDocAlreadyExists, DynamicResourceDocNotFound, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{DynamicResourceDocAlreadyExists, DynamicResourceDocNotFound, UserHasMissingRoles}
 import code.api.util.ApiRole
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
@@ -315,21 +315,9 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val callUrl = dynamicEndpoint_Request / "dynamic-resource-doc" / "my_role_user" / "user-1"
       val body = """{"name":"Jhon","age":12,"hobby":["coding"]}"""
 
-      Then("calling without authentication returns 401")
-      val resp401 = makePostRequest(callUrl.POST, body)
-      resp401.code should equal(401)
-      resp401.body.extract[ErrorMessage].message should include(AuthenticatedUserIsRequired)
-
-      Then("calling authenticated but without the role returns 403")
-      val resp403 = makePostRequest(callUrl.POST <@ (user1), body)
-      resp403.code should equal(403)
-      resp403.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
-
-      Then("granting the role makes the call succeed (200)")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, dynamicRole)
-      val resp200 = makePostRequest(callUrl.POST <@ (user1), body)
-      resp200.code should equal(200)
-      json.compactRender(resp200.body) should include("_from_path")
+      assertRoleGated401Then403Then200(callUrl, body, dynamicRole) { resp200 =>
+        json.compactRender(resp200.body) should include("_from_path")
+      }
     }
 
     // Regression guard for DynamicEndpointCodeGenerator.buildTemplate: the template served by
@@ -425,6 +413,42 @@ class DynamicResourceDocTest extends V400ServerSetup {
       storedRow.CreatedByUserId.get should be(resourceUser1.userId)
       storedRow.UpdatedByUserId.get should be(resourceUser1.userId)
       storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(URLDecoder.decode(changedMethodBody, "UTF-8")))
+    }
+
+    // Regression guard: rows created before the Lang column existed have a genuine SQL NULL there
+    // (Schemifier's ALTER TABLE ADD COLUMN sets no default), not "Scala". An explicit null argument
+    // bypasses JsonDynamicResourceDoc's own programmingLang="Scala" default -- that default only
+    // applies when the argument is omitted entirely -- so a bare Lang.get would have surfaced as a
+    // null/empty programming_lang in the API response instead of falling back to "Scala".
+    scenario("A dynamic resource doc row predating the programming_lang column still reports \"Scala\"", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetDynamicResourceDoc.toString)
+
+      When("We create a dynamic resource doc")
+      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val posted = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+        dynamicResourceDocId = None,
+        bankId = None,
+        partialFunctionName = "preDatesLangColumnTest",
+        requestUrl = "/pre_dates_lang_column_test/MY_USER_ID"
+      )
+      val createResp = makePostRequest(createReq, write(posted))
+      createResp.code should equal(201)
+      val docId = (createResp.body \ "dynamic_resource_doc_id").values.toString
+
+      When("its lang column is forced to a genuine SQL NULL, bypassing the ORM (which always writes \"Scala\")")
+      import code.dynamicResourceDoc.DynamicResourceDoc
+      net.liftweb.mapper.DB.runUpdate(
+        s"UPDATE ${DynamicResourceDoc.dbTableName} SET ${DynamicResourceDoc.Lang.dbColumnName} = NULL " +
+          s"WHERE ${DynamicResourceDoc.DynamicResourceDocId.dbColumnName} = ?",
+        List(docId)
+      )
+
+      Then("GET still reports programming_lang as \"Scala\", not null or empty")
+      val getReq = (v4_0_0_Request / "management" / "dynamic-resource-docs" / docId).GET <@ (user1)
+      val getResp = makeGetRequest(getReq)
+      getResp.code should equal(200)
+      getResp.body.extract[JsonDynamicResourceDoc].programmingLang should equal("Scala")
     }
   }
 
