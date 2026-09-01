@@ -444,6 +444,39 @@ else
     TOTAL_SHARDS=4
 fi
 
+# PropGatedPublicEndpoint: JsonSchemaValidationPublicPropTrueTest /
+# AuthenticationTypeValidationPublicPropTrueTest need
+# read_json_schema_validation_requires_role / read_authentication_type_validation_requires_role
+# forced true. That value is baked into Http4s400's ResourceDoc error list at object-init time, so
+# it needs its own JVM (pom.xml's default tagsToExclude skips this tag in every shard above, which
+# all boot with the props unset i.e. false). Run sequentially, after the main shards, so it shares
+# no DB connection pool contention with them; its surefire XML lands in the same
+# obp-api/target/surefire-reports directory the audit below already scans, so no separate
+# reporting path is needed.
+echo ""
+echo "Running PropGatedPublicEndpoint tests (prop=true JVM)..."
+alloc_free_port || exit 1; PROP_PORT=$ALLOC_PORT
+alloc_free_port || exit 1; PROP_HTTP4S_PORT=$ALLOC_PORT
+MAVEN_OPTS="$MVN_OPTS" \
+OBP_TESTS_PORT="${PROP_PORT}" \
+OBP_HOSTNAME="http://localhost:${PROP_PORT}" \
+OBP_HTTP4S_TEST_PORT="${PROP_HTTP4S_PORT}" \
+OBP_MAIL_TEST_MODE="true" \
+OBP_API_INSTANCE_ID="prop_gated_${PROP_PORT}" \
+OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true" \
+OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true" \
+"$TIMEOUT_BIN" 300 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
+    "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest" \
+    -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= \
+    > test-results/parallel/prop_gated_public_endpoint.log 2>&1
+PROP_RC=$?
+if [[ $PROP_RC -ne 0 ]]; then
+    echo "  ✗ PropGatedPublicEndpoint tests failed — see test-results/parallel/prop_gated_public_endpoint.log"
+else
+    echo "  ✓ PropGatedPublicEndpoint tests passed"
+fi
+RCS+=($PROP_RC)
+
 END=$(date +%s)
 ELAPSED=$(( (END - START) / 60 ))
 SEC=$(( (END - START) % 60 ))

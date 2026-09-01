@@ -274,7 +274,7 @@ Perf note: integration tests are DB/HTTP-bound (~0.4 s/test) on both frameworks;
 
 ### Shard assignment
 
-Shards are defined per-matrix-entry in `.github/workflows/build_pull_request.yml` and `.github/workflows/build_container.yml` (both files carry an identical 9-shard matrix — update both when reshaping). Shard 8 runs a **catch-all**: any `.scala` test file whose package is not covered by shards 1–7 and 9 is appended automatically at runtime — new packages are never silently skipped. Extras are printed in the step log under `"Catch-all extras added to shard 8"`. Shard 1 (`code.api.v4_0_0` non-Dynamic) is itself discovered at runtime rather than hand-listed — see the "Run tests" step's `matrix.shard = 1` branch — specifically so a newly added class in that package can never fall through both shard 1 and the catch-all.
+Shards are defined per-matrix-entry in `.github/workflows/build_pull_request.yml` and `.github/workflows/build_container.yml` (both files carry an identical 10-shard matrix — update both when reshaping). Shard 8 runs a **catch-all**: any `.scala` test file whose package is not covered by shards 1–7, 9, and 10 is appended automatically at runtime — new packages are never silently skipped. Extras are printed in the step log under `"Catch-all extras added to shard 8"`. Shard 1 (`code.api.v4_0_0` non-Dynamic) is itself discovered at runtime rather than hand-listed — see the "Run tests" step's `matrix.shard = 1` branch — specifically so a newly added class in that package can never fall through both shard 1 and the catch-all.
 
 | Package prefix | Shard |
 |---|---|
@@ -288,6 +288,9 @@ Shards are defined per-matrix-entry in `.github/workflows/build_pull_request.yml
 | `code.connector`, `code.util`, `code.api.Authentication*`, `code.api.dauthTest`, `code.api.DirectLoginTest`, `code.api.gateWayloginTest`, `code.api.OBPRestHelperTest`, `code.entitlement`, `code.bankaccountcreation`, `code.bankconnectors`, `code.container`, `code.management`, `code.metrics`, `code.concurrency` | 8 |
 | anything else | **8** (catch-all) |
 | `code.api.v4_0_0.Dynamic*` | 9 |
+| `code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest`, `code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest` (tagged `PropGatedPublicEndpoint`) | 10 |
+
+Shard 10 is a special case: it's the only shard that overrides pom.xml's default `tagsToExclude` (which otherwise skips `PropGatedPublicEndpoint` everywhere) and sets `OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE`/`OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE=true`, because those two props are baked into `Http4s400`'s `ResourceDoc` error lists at object-init time — a single JVM can only ever observe one value of each, so the `true` branch needs its own shard while every other shard (which boots with the props unset, i.e. `false`) exercises the default branch. `run_tests_parallel.sh` (local runner) mirrors this with a dedicated sequential step after its 4 main shards — see that script's own comment near `PropGatedPublicEndpoint`.
 
 To explicitly move a package to a different shard, add it to that shard's `test_filter` block — it will be excluded from the catch-all automatically. `run_tests_parallel.sh` (local runner) uses a coarser 4-shard layout that folds all 9 CI shards' coverage into 4 wildcardSuites groups — see its own header comment for the mapping.
 
