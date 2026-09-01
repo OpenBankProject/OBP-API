@@ -14,7 +14,7 @@ import org.scalatest.Tag
  *  - LiftUsers.createResourceUser field assignments — pins the 2021 copy-paste bug where
  *    the createdByUserInvitationId None branch wiped CreatedByConsentId (the consent →
  *    agent linkage every delegation query joins through).
- *  - CallContext.effectiveHumanUserId — resolve-up from the authenticated caller (human
+ *  - CallContext.accountableUserId — resolve-up from the authenticated caller (human
  *    or consent-minted agent) to the human the request is really about, including the
  *    branch an HTTP test cannot reach (the agent as the caller).
  */
@@ -71,23 +71,23 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("CallContext.effectiveHumanUserId resolves the caller to the human the request is about") {
+  feature("CallContext.accountableUserId resolves the caller to the human the request is about") {
 
     scenario("a plain human resolves to themselves", AgentDelegationTag) {
       val human = createUser()
-      CallContext(user = Full(human)).effectiveHumanUserId shouldBe human.userId
+      CallContext(user = Full(human)).accountableUserId shouldBe human.userId
     }
 
     scenario("a consent-minted agent resolves to the granting human", AgentDelegationTag) {
       val human = createUser()
       val consent = MappedConsent.create.mUserId(human.userId).saveMe()
       val agent = createUser(createdByConsentId = Some(consent.consentId))
-      CallContext(user = Full(agent)).effectiveHumanUserId shouldBe human.userId
+      CallContext(user = Full(agent)).accountableUserId shouldBe human.userId
     }
 
     scenario("an agent with a dangling consent id falls back to itself (fails closed)", AgentDelegationTag) {
       val agent = createUser(createdByConsentId = Some(generateUUID()))
-      CallContext(user = Full(agent)).effectiveHumanUserId shouldBe agent.userId
+      CallContext(user = Full(agent)).accountableUserId shouldBe agent.userId
     }
 
     scenario("a populated consenter box wins over the DB chain", AgentDelegationTag) {
@@ -96,7 +96,7 @@ class AgentDelegationTest extends ServerSetup {
       val agent = createUser(createdByConsentId = Some(consent.consentId))
       val consenterHuman = createUser()
       CallContext(user = Full(agent), consenter = Full(consenterHuman))
-        .effectiveHumanUserId shouldBe consenterHuman.userId
+        .accountableUserId shouldBe consenterHuman.userId
     }
 
     scenario("onBehalfOfUser wins over consenter", AgentDelegationTag) {
@@ -107,7 +107,7 @@ class AgentDelegationTest extends ServerSetup {
         user = Full(agent),
         consenter = Full(consenterHuman),
         onBehalfOfUser = Full(explicitHuman)
-      ).effectiveHumanUserId shouldBe explicitHuman.userId
+      ).accountableUserId shouldBe explicitHuman.userId
     }
   }
 }

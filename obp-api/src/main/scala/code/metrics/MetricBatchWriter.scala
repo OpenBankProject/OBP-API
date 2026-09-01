@@ -43,7 +43,8 @@ object MetricBatchWriter extends MdcLoggable {
     apiInstanceId: String,
     consentReferenceId: String,
     certificateTrust: String,
-    certificateTrustDetail: String
+    certificateTrustDetail: String,
+    authType: String
   )
 
   private val queue = new ConcurrentLinkedQueue[MetricRow]()
@@ -106,8 +107,8 @@ object MetricBatchWriter extends MdcLoggable {
             developeremail, consumerid, implementedbypartialfunction,
             implementedinversion, verb, httpcode, correlationid,
             responsebody, sourceip, targetip, apiinstanceid, consent_reference_id,
-            certificate_trust, certificate_trust_detail
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            certificate_trust, certificate_trust_detail, auth_type
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         // Use Option[String] so Doobie handles nullable fields via Put[Option[String]]
@@ -117,7 +118,7 @@ object MetricBatchWriter extends MdcLoggable {
            Option[String], Option[String], Option[String],
            Option[String], Option[String], Int, Option[String],
            Option[String], Option[String], Option[String], Option[String], Option[String],
-           Option[String], Option[String])
+           Option[String], Option[String], Option[String])
         ](insertSql)
 
         val values = rows.map { r =>
@@ -128,7 +129,8 @@ object MetricBatchWriter extends MdcLoggable {
             Option(r.implementedInVersion), Option(r.verb), r.httpCode, Option(r.correlationId),
             Option(r.responseBody), Option(r.sourceIp), Option(r.targetIp), Option(r.apiInstanceId),
             Option(r.consentReferenceId),
-            Option(r.certificateTrust), Option(r.certificateTrustDetail)
+            Option(r.certificateTrust), Option(r.certificateTrustDetail),
+            Option(r.authType)
           )
         }
 

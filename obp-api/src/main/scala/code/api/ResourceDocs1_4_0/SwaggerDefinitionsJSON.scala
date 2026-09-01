@@ -3202,6 +3202,7 @@ object SwaggerDefinitionsJSON {
     operation_id = "OBPv4.0.0-getBanks",
     api_instance_id = "obp_node_a",
     consent_reference_id = Some(ExampleValue.consentReferenceIdExample.value),
+    auth_type = Some("Consent"),
     certificate_trust = Some("forwarded"),
     certificate_trust_detail = Some("cn=nginx-prod-1,ou=edge,o=tesobe gmbh,c=de")
   )
