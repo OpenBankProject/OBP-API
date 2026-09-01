@@ -105,12 +105,20 @@ object Http4sResourceDocAggregation {
   // uses a Kleisli wrapper that defers ImplementationsNxx initialization to the first HTTP request, so
   // resourceDocs is empty when Http4sResourceDocAggregation is first evaluated via a resource-docs request.
   // Accessing the ImplementationsNxx object directly forces its initialization, populating the buffer.
-  // Http4s121 is the exception: its wrappedRoutesV121Services is a direct lazy val reference
-  // (not Kleisli-wrapped), so Implementations1_2_1 is always initialized by Http4sApp startup.
+  // v121 forces its own too. It used not to: Http4s121's wrappedRoutesV121Services is a direct
+  // lazy val (not Kleisli-wrapped), so Http4sApp startup initialized Implementations1_2_1 — and
+  // the OBPAPI1_2_1/OBPAPI3_1_0 objects touched it from their static initializers besides. Those
+  // objects are gone, which leaves a caller that reads a catalog without booting the server
+  // (a plain unit test) relying on the server path alone. Since every catalog below v121 snapshots
+  // it into a fresh buffer, an unpopulated v121 would drop v1.2.1 out of every later catalog for
+  // the life of the JVM, so this does not stay an exception.
   private def forceInit(impl: Any): Unit = ()
 
   // The cumulative per-version catalogs (each = all docs from v1.2.1 up to and including this version).
-  lazy val v121: ArrayBuffer[ResourceDoc] = Http4s121.resourceDocs
+  lazy val v121: ArrayBuffer[ResourceDoc] = {
+    forceInit(Http4s121.Implementations1_2_1)
+    Http4s121.resourceDocs
+  }
   lazy val v130: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s130.Implementations1_3_0)
     dedup(v121, Http4s130.resourceDocs)
