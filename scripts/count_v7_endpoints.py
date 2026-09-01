@@ -10,16 +10,16 @@ Inputs are derived from source — no hardcoded data tables:
     older Lift APIMethods*.scala files have been deleted (their historical
     ResourceDoc text lives on in scripts/resource_doc_baseline/, see that
     directory's README).
-  * excludeEndpoints lists are extracted from each version's OBPAPI{a}_{b}_{c}.scala
-    (or OBPAPI{a}.{b}.{c}.scala for v1.2.1) — and from Http4s700.scala for v7
-    which has no OBPAPI counterpart.
+  * excludeEndpoints lists are extracted from Http4sResourceDocAggregation.scala
+    (as excludeEndpointsV{nnn}) — and from Http4s700.scala for v7, which keeps
+    its own list.
 
-Aggregation chain (matches the runtime code in each OBPAPI{a}_{b}_{c}.scala):
-  OBPAPI1_2_1.allResourceDocs = Http4s121.resourceDocs                    (chain root)
-  OBPAPI{N}.allResourceDocs   = collectResourceDocs(OBPAPI{N-1}, Http4s{N})
-                                  .filterNot(excludeEndpoints if any)
-  Http4s700.allResourceDocs   = collectResourceDocs(OBPAPI6_0_0, Http4s700)
-                                  .filterNot(v7 excludeEndpoints — currently Nil)
+Aggregation chain (matches the runtime code in Http4sResourceDocAggregation):
+  v121 = Http4s121.resourceDocs                                           (chain root)
+  v{N} = collectResourceDocs(v{N-1}, Http4s{N})
+           .filterNot(excludeEndpointsV{N} if any)
+  Http4s700.allResourceDocs = collectResourceDocs(v600, Http4s700)
+                                .filterNot(v7 excludeEndpoints — currently Nil)
 
 collectResourceDocs: concat, stable sort by version descending, dedup by (url, verb).
 filterNot: drop docs whose partialFunctionName is in the excluded-names set.
@@ -43,7 +43,7 @@ VERSION_DIR_RE = re.compile(r"^v(\d+)_(\d+)_(\d+)$")
 REG_START      = re.compile(r"^\s*(?:static)?[Rr]esourceDocs\s*\+=\s*ResourceDoc\s*\(")
 ANY_REG_REF    = re.compile(r"\w*[Rr]esourceDocs\s*\+=\s*ResourceDoc\b")
 NAMEOF_RE      = re.compile(r"nameOf\s*\(\s*[\w.]*?(\w+)\s*\)")
-EXCLUDE_DEF_RE = re.compile(r"(?:lazy\s+)?val\s+excludeEndpoints\b[^=]*=")
+EXCLUDE_DEF_RE = re.compile(r"(?:lazy\s+)?val\s+excludeEndpoints(?P<suffix>V\d{3})?\b[^=]*=")
 
 HTTP_VERBS = {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
 
@@ -88,34 +88,41 @@ def discover_version_files() -> list[tuple[tuple, Path]]:
     return found
 
 
-def find_obpapi_file(version: tuple) -> Path | None:
+AGGREGATION_FILE = SRC / "util" / "http4s" / "Http4sResourceDocAggregation.scala"
+
+
+def find_exclude_source(version: tuple) -> Path | None:
     """Locate the file that owns this version's excludeEndpoints list.
 
-    Most versions: OBPAPI{a}_{b}_{c}.scala. v1.2.1 is an outlier
-    (OBPAPI1.2.1.scala with dots). v7 has no OBPAPI counterpart — its
-    excludeEndpoints lives in Http4s700.scala.
+    The v1.2.1-v6.0.0 lists live together in Http4sResourceDocAggregation.scala
+    as excludeEndpointsV{nnn} (they moved there when the OBPAPI* aggregator
+    objects were deleted). v7.0.0 keeps its own `excludeEndpoints` in
+    Http4s700.scala.
     """
     a, b, c = version
-    vdir = SRC / f"v{a}_{b}_{c}"
-    for candidate in (
-        vdir / f"OBPAPI{a}_{b}_{c}.scala",
-        vdir / f"OBPAPI{a}.{b}.{c}.scala",
-        vdir / f"Http4s{a}{b}{c}.scala",
-    ):
-        if candidate.is_file():
-            return candidate
-    return None
+    own = SRC / f"v{a}_{b}_{c}" / f"Http4s{a}{b}{c}.scala"
+    if own.is_file() and EXCLUDE_DEF_RE.search(own.read_text(encoding="utf-8")):
+        return own
+    return AGGREGATION_FILE if AGGREGATION_FILE.is_file() else None
 
 
 # -- excludeEndpoints extraction ---------------------------------------
 
-def extract_excludes(path: Path) -> set[str]:
-    """Pull names from `(lazy )?val excludeEndpoints = nameOf(...) :: ... :: Nil`.
+def extract_excludes(path: Path, version: tuple) -> set[str]:
+    """Pull names from `(lazy )?val excludeEndpoints[V{nnn}] = nameOf(...) :: ... :: Nil`.
 
-    Returns the empty set if the val is absent (e.g. v3.0.0, v5.0.0).
+    One file can hold several versions' lists (Http4sResourceDocAggregation), so the
+    val is matched by its V{nnn} suffix; an unsuffixed name is the file's own list.
+    Returns the empty set if there is no such val (e.g. v3.0.0, v5.0.0).
     """
+    want = "V" + "".join(str(p) for p in version)
     lines = path.read_text(encoding="utf-8").splitlines()
-    start = next((i for i, line in enumerate(lines) if EXCLUDE_DEF_RE.search(line)), None)
+    start = None
+    for i, line in enumerate(lines):
+        m = EXCLUDE_DEF_RE.search(line)
+        if m and (m.group("suffix") or want) == want:
+            start = i
+            break
     if start is None:
         return set()
 
@@ -307,17 +314,17 @@ def main() -> None:
     excludes: dict[tuple, set[str]] = {}
     print("Extracting excludeEndpoints lists from source:")
     for version, _ in version_files:
-        owner = find_obpapi_file(version)
+        owner = find_exclude_source(version)
         if owner is None:
             continue
-        ex = extract_excludes(owner)
+        ex = extract_excludes(owner, version)
         if ex:
             excludes[version] = ex
             print(f"  v{'.'.join(map(str, version))}: "
                   f"{len(ex)} excludes ({owner.relative_to(REPO)})")
     print()
 
-    # Chain root: OBPAPI1_2_1.allResourceDocs = Http4s121.resourceDocs (no concat).
+    # Chain root: v121 = Http4s121.resourceDocs (no concat).
     # Every later version: collectResourceDocs(prev, this) [.filterNot(excludes)].
     versions_asc = sorted(by_version.keys())
     if not versions_asc:
