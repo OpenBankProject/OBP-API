@@ -14,7 +14,7 @@ import code.api.v5_0_0.Http4s500
 import code.api.v5_1_0.Http4s510
 import code.api.v6_0_0.Http4s600
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.util.ScannedApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -155,4 +155,34 @@ object Http4sResourceDocAggregation {
     forceInit(Http4s600.Implementations6_0_0)
     filterExcluded(dedup(v510, Http4s600.resourceDocs), excludeEndpointsV600)
   }
+
+  /**
+   * One OBP API version: its number, its lifecycle status, and its cumulative doc catalog.
+   * `docs` is by-name because each catalog is a lazy val that forces the corresponding
+   * ImplementationsNxx initialization — callers that only want the version/status should not
+   * pay for (or trigger) that.
+   */
+  case class VersionedCatalog(version: ApiVersion, versionStatus: String, docs: () => ArrayBuffer[ResourceDoc])
+
+  /**
+   * Every OBP API version, oldest first. This is the enumeration that used to be implicit in the
+   * set of `OBPAPIx_x_x` objects implementing `VersionedOBPApis` and be recovered by classpath
+   * reflection; it is now explicit, in the one file that already had to name all twelve versions.
+   * `versionStatus` is read from each Http4sNxx rather than restated here, so there is still
+   * exactly one place declaring whether a version is DEPRECATED / STABLE / BLEEDING_EDGE.
+   */
+  lazy val allVersions: List[VersionedCatalog] = List(
+    VersionedCatalog(ApiVersion.v1_2_1, Http4s121.versionStatus, () => v121),
+    VersionedCatalog(ApiVersion.v1_3_0, Http4s130.versionStatus, () => v130),
+    VersionedCatalog(ApiVersion.v1_4_0, Http4s140.versionStatus, () => v140),
+    VersionedCatalog(ApiVersion.v2_0_0, Http4s200.versionStatus, () => v200),
+    VersionedCatalog(ApiVersion.v2_1_0, Http4s210.versionStatus, () => v210),
+    VersionedCatalog(ApiVersion.v2_2_0, Http4s220.versionStatus, () => v220),
+    VersionedCatalog(ApiVersion.v3_0_0, Http4s300.versionStatus, () => v300),
+    VersionedCatalog(ApiVersion.v3_1_0, Http4s310.versionStatus, () => v310),
+    VersionedCatalog(ApiVersion.v4_0_0, Http4s400.versionStatus, () => v400),
+    VersionedCatalog(ApiVersion.v5_0_0, Http4s500.versionStatus, () => v500),
+    VersionedCatalog(ApiVersion.v5_1_0, Http4s510.versionStatus, () => v510),
+    VersionedCatalog(ApiVersion.v6_0_0, Http4s600.versionStatus, () => v600),
+  )
 }
