@@ -31,7 +31,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, canGetAdapterInfo}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.setup.{APIResponse, DefaultUsers}
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage

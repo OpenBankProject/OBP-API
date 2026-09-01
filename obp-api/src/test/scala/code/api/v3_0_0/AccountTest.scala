@@ -5,7 +5,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.{AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag

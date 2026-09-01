@@ -5,9 +5,9 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations2_2_0
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v2_2_0.Http4s220.Implementations2_2_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.dynamic.endpoint.APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint
 import code.api.dynamic.entity.APIMethodsDynamicEntity.ImplementationsDynamicEntity
 import code.entitlement.Entitlement

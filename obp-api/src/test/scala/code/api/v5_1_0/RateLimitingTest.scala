@@ -30,7 +30,7 @@ import code.api.util.ApiRole
 import code.api.util.ApiRole.CanReadCallLimits
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.CallLimitPostJsonV400
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.setup.PropsReset

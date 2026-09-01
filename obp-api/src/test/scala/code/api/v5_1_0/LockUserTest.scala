@@ -7,7 +7,7 @@ import code.api.util.ApiRole.{CanLockUser, CanReadUserLockedStatus, CanUnlockUse
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotFoundByProviderAndUsername, AuthenticatedUserIsRequired, UsernameHasBeenLocked}
 import code.api.v3_0_0.UserJsonV300
 import code.api.v3_1_0.BadLoginStatusJson
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import com.github.dwickern.macros.NameOf.nameOf

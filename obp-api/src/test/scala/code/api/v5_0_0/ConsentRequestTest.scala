@@ -33,9 +33,9 @@ import code.api.util.ApiRole._
 import code.api.util.{APIUtil, Consent}
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v4_0_0.UsersJsonV400
-import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.consent.ConsentStatus
 import code.entitlement.Entitlement
 import code.setup.PropsReset

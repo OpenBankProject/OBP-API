@@ -4,7 +4,7 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion

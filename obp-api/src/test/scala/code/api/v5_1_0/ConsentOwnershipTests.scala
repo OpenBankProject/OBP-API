@@ -33,7 +33,7 @@ import code.api.util.ApiRole._
 import code.api.util.Consent
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{ConsentJsonV310, PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf

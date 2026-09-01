@@ -10,6 +10,7 @@ import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
+import code.api.v2_2_0.Http4s220
 
 class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
 
@@ -21,7 +22,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v2_2_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(OBPAPI2_2_0.Implementations2_2_0.getCurrentFxRate))
+  object ApiEndpoint1 extends Tag(nameOf(Http4s220.Implementations2_2_0.getCurrentFxRate))
 
   override def beforeAll(): Unit = {
     super.beforeAll()

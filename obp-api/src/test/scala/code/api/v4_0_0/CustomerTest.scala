@@ -32,7 +32,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.v3_0_0.CustomerJSONsV300
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v3_1_0.{CustomerJsonV310, PostCustomerNumberJsonV310}
 import code.customer.CustomerX
 import code.entitlement.Entitlement

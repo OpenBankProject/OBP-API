@@ -29,7 +29,7 @@ import org.json4s._
 import code.api.Constant.localIdentityProvider
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
-import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
+import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.api.v3_0_0.UserJsonV300
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt

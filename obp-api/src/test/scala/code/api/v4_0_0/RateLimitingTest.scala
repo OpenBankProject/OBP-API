@@ -31,8 +31,8 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanUpdateRateLimits, canCreateDynamicEndpoint}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{ApiRole, ExampleValue, RateLimitingUtil}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0.getCurrentUser
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0.getCurrentUser
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf

@@ -34,8 +34,8 @@ import code.api.util.{APIUtil, Consent}
 import code.api.util.APIUtil.OAuth._
 import code.api.v3_0_0.{Http4s300, UserJsonV300}
 import code.api.v3_1_0.{ConsentJsonV310, PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
