@@ -2,7 +2,6 @@ package code.api.util
 
 import com.openbankproject.commons.util.ApiVersion._
 import com.openbankproject.commons.util.ScannedApiVersion
-import code.api.berlin.group.ConstantsBG
 
 object ApiVersionUtils {
 
@@ -23,7 +22,6 @@ object ApiVersionUtils {
       v7_0_0 ::
       `dynamic-endpoint` ::
       `dynamic-entity` ::
-      ConstantsBG.berlinGroupVersion2 ::
       scannedApis
     ).distinct
 
@@ -48,7 +46,6 @@ object ApiVersionUtils {
       case v7_0_0.fullyQualifiedVersion | v7_0_0.apiShortVersion => v7_0_0
       case `dynamic-endpoint`.fullyQualifiedVersion | `dynamic-endpoint`.apiShortVersion => `dynamic-endpoint`
       case `dynamic-entity`.fullyQualifiedVersion | `dynamic-entity`.apiShortVersion => `dynamic-entity`
-      case version if version == ConstantsBG.berlinGroupVersion2.fullyQualifiedVersion || version == ConstantsBG.berlinGroupVersion2.apiShortVersion => ConstantsBG.berlinGroupVersion2
       case version if(scannedApis.map(_.fullyQualifiedVersion).contains(version))
         =>scannedApis.filter(_.fullyQualifiedVersion==version).head
       case version if(scannedApis.map(_.apiShortVersion).contains(version))
