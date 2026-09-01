@@ -9,8 +9,12 @@ remaining "metadata" fields that public docs consumers also see:
   - errorResponseBodies
   - tags
 
-Reads the commented Lift ResourceDocs in APIMethodsXYZ.scala and overwrites
-the matching field in Http4sXYZ.scala. Endpoints are matched by `nameOf(...)`.
+Reads the Lift-era predecessor data from the JSON baseline at
+scripts/resource_doc_baseline/lift_resource_docs_vX_Y_Z.json (see that
+directory's README) — originally commented-out ResourceDocs in
+APIMethodsXYZ.scala, now JSON since those .scala files were deleted once the
+baseline was verified to reproduce them losslessly — and overwrites the
+matching field in Http4sXYZ.scala. Endpoints are matched by `nameOf(...)`.
 
 Usage:
     python3 scripts/restore_resource_doc_bodies.py v6_0_0
@@ -18,7 +22,7 @@ Usage:
     python3 scripts/restore_resource_doc_bodies.py v6_0_0 --fields=tags
     python3 scripts/restore_resource_doc_bodies.py v6_0_0 --only=getXyz
 
-Read+writes the http4s file in place. Does NOT touch the Lift file.
+Read+writes the http4s file in place. Does NOT touch the JSON baseline.
 """
 
 import argparse
@@ -30,45 +34,26 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 API_ROOT = REPO_ROOT / "obp-api" / "src" / "main" / "scala" / "code" / "api"
 
-POSITIONAL_FIELDS = [
-    "partialFunction",         # 0
-    "implementedInApiVersion", # 1
-    "partialFunctionName",     # 2 — endpoint identifier (nameOf(...))
-    "requestVerb",             # 3
-    "requestUrl",              # 4
-    "summary",                 # 5
-    "description",             # 6
-    "exampleRequestBody",      # 7
-    "successResponseBody",     # 8
-    "errorResponseBodies",     # 9
-    "tags",                    # 10
-]
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+import check_lift_http4s_resource_doc_parity as parity  # noqa: E402
 
-NAMED_ARG_FIELDS = {
-    "roles",
-    "http4sPartialFunction",
-    "isFeatured",
-    "specialInstructions",
-    "createdByBankId",
-    "authMode",
-}
+# Kept as the canonical field-name list for --fields validation and iteration —
+# both ResourceDoc constructor signatures (pre- and post-Lift-teardown) share
+# these same field NAMES, just at different positional indices. See
+# detect_fields() below for the index-detection logic, reused from
+# check_lift_http4s_resource_doc_parity.py's own POSITIONAL_FIELDS /
+# CURRENT_POSITIONAL_FIELDS split (the same split this file used to duplicate
+# with a single hardcoded — and pre-teardown-only — index list, which had
+# silently stopped matching any current Http4sXYZ.scala file).
+POSITIONAL_FIELDS = parity.POSITIONAL_FIELDS
+NAMED_ARG_FIELDS = parity.NAMED_ARG_FIELDS
 
 DEFAULT_FIELDS_TO_RESTORE = [
     "summary",
     "errorResponseBodies",
     "tags",
 ]
-
-
-def uncomment(source: str) -> str:
-    out = []
-    for line in source.splitlines():
-        m = re.match(r"^(\s*)//\s?(.*)$", line)
-        if m:
-            out.append(m.group(1) + m.group(2))
-        else:
-            out.append(line)
-    return "\n".join(out)
 
 
 def _skip_string_or_comment(source: str, i: int):
@@ -203,68 +188,30 @@ def parse_args(body: str):
     return positional, named
 
 
-def endpoint_name(part_fn_name: str) -> str:
-    """Like in check_lift_http4s_resource_doc_parity.py: also evaluate
-    chained `.replace("a", "b")` calls so derived names match."""
-    s = (part_fn_name or "").strip()
-    rest = s
-    m = re.match(r"^nameOf\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", s)
-    if m:
-        base = m.group(1)
-        rest = s[m.end():]
-    elif s.startswith('"'):
-        m2 = re.match(r'^"([^"]*)"', s)
-        if not m2:
-            return s
-        base = m2.group(1)
-        rest = s[m2.end():]
-    else:
-        return s
-    rep_re = re.compile(r'^\s*\.\s*replace\s*\(\s*"([^"]*)"\s*,\s*"([^"]*)"\s*\)')
-    while True:
-        m = rep_re.match(rest)
-        if not m:
-            break
-        base = base.replace(m.group(1), m.group(2))
-        rest = rest[m.end():]
-    return base
+def detect_fields(positional) -> list:
+    """Return the field-name list matching THIS particular call's constructor
+    signature: pre-teardown (leading `partialFunction`, verb literal at index
+    3) or current (no leading partialFunction, verb literal at index 2).
+    Reuses check_lift_http4s_resource_doc_parity.py's own detection instead
+    of a second hardcoded guess — this file's old fixed index-2 name lookup
+    and POSITIONAL_FIELDS.index(fname) calls had silently stopped matching
+    any current-signature Http4sXYZ.scala file (the constructor's leading
+    partialFunction param was removed by the Lift teardown; every ordinary
+    http4s file only ever used the current signature).
+    """
+    if len(positional) > 2 and positional[2]["text"].strip() in parity.HTTP_VERB_LITERALS:
+        return parity.CURRENT_POSITIONAL_FIELDS
+    return parity.POSITIONAL_FIELDS
 
 
-def find_pair_for_version(version_dir: Path):
-    api_methods = list(version_dir.glob("APIMethods*.scala"))
-    http4s = list(version_dir.glob("Http4s*.scala"))
-    if not api_methods or not http4s:
-        return None
-    def pick(files, prefix):
-        ranked = sorted(
-            files,
-            key=lambda p: (
-                0 if re.match(rf"^{prefix}\d+\.scala$", p.name) else 1,
-                len(p.name),
-            ),
+def collect_lift_docs(version: str):
+    """Return {endpoint_name -> {field_name -> raw_text}} from the JSON baseline."""
+    docs = parity.load_baseline_docs(version)
+    if docs is None:
+        raise FileNotFoundError(
+            f"no baseline at {parity.BASELINE_DIR / f'lift_resource_docs_{version}.json'} "
+            f"— see scripts/resource_doc_baseline/README.md"
         )
-        return ranked[0]
-    return pick(api_methods, "APIMethods"), pick(http4s, "Http4s")
-
-
-def collect_lift_docs(path: Path):
-    """Return {endpoint_name -> {field_name -> raw_text}}."""
-    source = path.read_text(encoding="utf-8")
-    active = re.search(r"^\s*(?:static)?[rR]esourceDocs\s*\+=\s*ResourceDoc\s*\(", source, re.M)
-    commented = re.search(r"^\s*//\s*(?:static)?[rR]esourceDocs\s*\+=\s*ResourceDoc\s*\(", source, re.M)
-    if not active and commented:
-        source = uncomment(source)
-    docs = OrderedDict()
-    for _, _, _, body in find_resourcedoc_blocks(source):
-        positional, _ = parse_args(body)
-        if len(positional) < 3:
-            continue
-        name = endpoint_name(positional[2]["text"])
-        field_values = OrderedDict()
-        for idx, fname in enumerate(POSITIONAL_FIELDS):
-            if idx < len(positional):
-                field_values[fname] = positional[idx]["text"]
-        docs.setdefault(name, field_values)
     return docs
 
 
@@ -378,7 +325,11 @@ def process_file(http4s_path: Path, lift_docs: dict, dry_run: bool,
         positional, _ = parse_args(body)
         if len(positional) < 3:
             continue
-        name = endpoint_name(positional[2]["text"])
+        fields = detect_fields(positional)
+        name_idx = fields.index("partialFunctionName")
+        if name_idx >= len(positional):
+            continue
+        name = parity.endpoint_name(positional[name_idx]["text"])
         if only_names and name not in only_names:
             continue
         lift = lift_docs.get(name)
@@ -392,7 +343,7 @@ def process_file(http4s_path: Path, lift_docs: dict, dry_run: bool,
         # (Field indent only matters when the new value has embedded newlines.)
         endpoint_changed = False
         for fname in fields_to_restore:
-            idx = POSITIONAL_FIELDS.index(fname)
+            idx = fields.index(fname)
             if idx >= len(positional):
                 continue
             if fname not in lift:
@@ -463,22 +414,20 @@ def main():
         sys.exit(2)
 
     for v in args.versions:
-        version_dir = API_ROOT / v
-        if not version_dir.is_dir():
-            print(f"[skip] {v}: no such directory under {API_ROOT}",
+        http4s_path = parity.find_http4s_path(v)
+        if http4s_path is None:
+            print(f"[skip] {v}: no Http4s*.scala found under {API_ROOT / v}",
                   file=sys.stderr)
             continue
-        pair = find_pair_for_version(version_dir)
-        if not pair:
-            print(f"[skip] {v}: no APIMethods+Http4s pair found",
-                  file=sys.stderr)
+        try:
+            lift_docs = collect_lift_docs(v)
+        except FileNotFoundError as e:
+            print(f"[skip] {v}: {e}", file=sys.stderr)
             continue
-        lift_path, http4s_path = pair
         print(f"\n=== {v} ===")
-        print(f"  lift:   {lift_path.relative_to(REPO_ROOT)}")
+        print(f"  lift:   scripts/resource_doc_baseline/lift_resource_docs_{v}.json")
         print(f"  http4s: {http4s_path.relative_to(REPO_ROOT)}")
         print(f"  fields: {fields_to_restore}")
-        lift_docs = collect_lift_docs(lift_path)
         process_file(http4s_path, lift_docs, args.dry_run,
                      fields_to_restore, set(args.only) if args.only else None)
 

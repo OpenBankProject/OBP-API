@@ -1,0 +1,476 @@
+{
+  "schema_version": 1,
+  "version": "v2_0_0",
+  "source_file": "obp-api/src/main/scala/code/api/v2_0_0/APIMethods200.scala",
+  "exported_from_git_commit": "e198c922328095b9abbd1370056fb5ee002f7980",
+  "endpoint_count": 37,
+  "endpoints": {
+    "root": {
+      "partial_function_name_raw": "\"root\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/root\"",
+      "summary": "\"Get API Info (root)\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API version\n       |* Hosted by information\n       |* Git Commit\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiInfoJSON",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi :: Nil"
+    },
+    "getPrivateAccountsAllBanks": {
+      "partial_function_name_raw": "\"getPrivateAccountsAllBanks\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/accounts\"",
+      "summary": "\"Get all Accounts at all Banks\"",
+      "description": "s\"\"\"Get all accounts at all banks the User has access to.\n        |Returns the list of accounts at that the user has access to at all banks.\n        |For each account the API returns the account ID and the available views.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "basicAccountsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagOldStyle)"
+    },
+    "corePrivateAccountsAllBanks": {
+      "partial_function_name_raw": "\"corePrivateAccountsAllBanks\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/my/accounts\"",
+      "summary": "\"Get Accounts at all Banks (Private)\"",
+      "description": "s\"\"\"Get private accounts at all banks (Authenticated access)\n        |Returns the list of accounts containing private views for the user at all banks.\n        |For each account the API returns the ID and the available views.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "coreAccountsJSON",
+      "error_response_bodies": "List(UnknownError)",
+      "tags": "List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagOldStyle)"
+    },
+    "publicAccountsAllBanks": {
+      "partial_function_name_raw": "\"publicAccountsAllBanks\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/accounts/public\"",
+      "summary": "\"Get Public Accounts at all Banks\"",
+      "description": "s\"\"\"Get public accounts at all banks (Anonymous access).\n        |Returns accounts that contain at least one public view (a view where is_public is true)\n        |For each account the API returns the ID and the available views.\n        |\n        |${userAuthenticationMessage(false)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "basicAccountsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, CannotGetAccounts, UnknownError)",
+      "tags": "List(apiTagAccountPublic, apiTagAccount, apiTagPublicData)"
+    },
+    "getPrivateAccountsAtOneBank": {
+      "partial_function_name_raw": "\"getPrivateAccountsAtOneBank\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts\"",
+      "summary": "\"Get Accounts at Bank\"",
+      "description": "s\"\"\"\n        |Returns the list of accounts at BANK_ID that the user has access to.\n        |For each account the API returns the account ID and the views available to the user..\n        |Each account must have at least one private View.\n        |\n        |${userAuthenticationMessage(true)}\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "basicAccountsJSON",
+      "error_response_bodies": "List(BankNotFound, UnknownError)",
+      "tags": "List(apiTagAccount, apiTagPrivateData, apiTagPublicData)"
+    },
+    "corePrivateAccountsAtOneBank": {
+      "partial_function_name_raw": "\"corePrivateAccountsAtOneBank\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/my/banks/BANK_ID/accounts\"",
+      "summary": "\"Get Accounts at Bank (Private)\"",
+      "description": "s\"\"\"Get private accounts at one bank (Authenticated access).\n        |Returns the list of accounts containing private views for the user at BANK_ID.\n        |For each account the API returns the ID and label. To also see the list of Views, see privateAccountsAtOneBank\n        |\n        |\n        |This call MAY have an alias /bank/accounts but ONLY if defaultBank is set in Props\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "coreAccountsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagAccount, apiTagPrivateData, apiTagPsd2)"
+    },
+    "privateAccountsAtOneBank": {
+      "partial_function_name_raw": "\"privateAccountsAtOneBank\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/private\"",
+      "summary": "\"Get private accounts at one bank\"",
+      "description": "s\"\"\"Returns the list of private accounts at BANK_ID that the user has access to.\n        |For each account the API returns the ID and the available views.\n        |\n        |If you want to see more information on the Views, use the Account Detail call.\n        |If you want less information about the account, use the /my accounts call\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "basicAccountsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, BankNotFound, UnknownError)",
+      "tags": "List(apiTagAccount, apiTagPsd2)"
+    },
+    "publicAccountsAtOneBank": {
+      "partial_function_name_raw": "\"publicAccountsAtOneBank\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/public\"",
+      "summary": "\"Get Public Accounts at Bank\"",
+      "description": "s\"\"\"Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.\n        |\n        |${userAuthenticationMessage(false)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "basicAccountsJSON",
+      "error_response_bodies": "List(UnknownError)",
+      "tags": "List(apiTagAccountPublic, apiTagAccount, apiTagPublicData)"
+    },
+    "getKycDocuments": {
+      "partial_function_name_raw": "\"getKycDocuments\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/customers/CUSTOMER_ID/kyc_documents\"",
+      "summary": "\"Get Customer KYC Documents\"",
+      "description": "s\"\"\"Get KYC (know your customer) documents for a customer specified by CUSTOMER_ID\n        |Get a list of documents that affirm the identity of the customer\n        |Passport, driving licence etc.\n        |${userAuthenticationMessage(false)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "kycDocumentsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UnknownError)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAnyKycDocuments))"
+      }
+    },
+    "getKycMedia": {
+      "partial_function_name_raw": "\"getKycMedia\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/customers/CUSTOMER_ID/kyc_media\"",
+      "summary": "\"Get KYC Media for a customer\"",
+      "description": "s\"\"\"Get KYC media (scans, pictures, videos) that affirms the identity of the customer.\n        |\n        |${userAuthenticationMessage(true)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "kycMediasJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UnknownError)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAnyKycMedia))"
+      }
+    },
+    "getKycChecks": {
+      "partial_function_name_raw": "\"getKycChecks\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/customers/CUSTOMER_ID/kyc_checks\"",
+      "summary": "\"Get Customer KYC Checks\"",
+      "description": "s\"\"\"Get KYC checks for the Customer specified by CUSTOMER_ID.\n        |\n        |${userAuthenticationMessage(true)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "kycChecksJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UnknownError)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAnyKycChecks))"
+      }
+    },
+    "getKycStatuses": {
+      "partial_function_name_raw": "\"getKycStatuses\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/customers/CUSTOMER_ID/kyc_statuses\"",
+      "summary": "\"Get Customer KYC statuses\"",
+      "description": "s\"\"\"Get the KYC statuses for a customer specified by CUSTOMER_ID over time.\n        |\n        |${userAuthenticationMessage(true)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "kycStatusesJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UnknownError)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAnyKycStatuses))"
+      }
+    },
+    "getSocialMediaHandles": {
+      "partial_function_name_raw": "\"getSocialMediaHandles\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles\"",
+      "summary": "\"Get Customer Social Media Handles\"",
+      "description": "s\"\"\"Get social media handles for a customer specified by CUSTOMER_ID.\n        |\n        |${userAuthenticationMessage(true)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "socialMediasJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError)",
+      "tags": "List(apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSocialMediaHandles))"
+      }
+    },
+    "addKycDocument": {
+      "partial_function_name_raw": "\"addKycDocument\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID\"",
+      "summary": "\"Add KYC Document\"",
+      "description": "\"Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. \"",
+      "example_request_body": "postKycDocumentJSON",
+      "success_response_body": "kycDocumentJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId,\"Server error: could not add KycDocument\", UnknownError)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canAddKycDocument))"
+      }
+    },
+    "addKycMedia": {
+      "partial_function_name_raw": "\"addKycMedia\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID\"",
+      "summary": "\"Add KYC Media\"",
+      "description": "\"Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc\"",
+      "example_request_body": "postKycMediaJSON",
+      "success_response_body": "kycMediaJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canAddKycMedia))"
+      }
+    },
+    "addKycCheck": {
+      "partial_function_name_raw": "\"addKycCheck\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check/KYC_CHECK_ID\"",
+      "summary": "\"Add KYC Check\"",
+      "description": "\"Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status\"",
+      "example_request_body": "postKycCheckJSON",
+      "success_response_body": "kycCheckJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canAddKycCheck))"
+      }
+    },
+    "addKycStatus": {
+      "partial_function_name_raw": "\"addKycStatus\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/customers/CUSTOMER_ID/kyc_statuses\"",
+      "summary": "\"Add KYC Status\"",
+      "description": "\"Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer\"",
+      "example_request_body": "postKycStatusJSON",
+      "success_response_body": "kycStatusJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidBankIdFormat,UnknownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId)",
+      "tags": "List(apiTagKyc, apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canAddKycStatus))"
+      }
+    },
+    "addSocialMediaHandle": {
+      "partial_function_name_raw": "\"addSocialMediaHandle\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles\"",
+      "summary": "\"Create Customer Social Media Handle\"",
+      "description": "\"Create a customer social media handle for the customer specified by CUSTOMER_ID\"",
+      "example_request_body": "socialMediaJSON",
+      "success_response_body": "successMessage",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       InvalidBankIdFormat,\n       UserHasMissingRoles,\n       CustomerNotFoundByCustomerId,\n       UnknownError)",
+      "tags": "List(apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canAddSocialMediaHandle))"
+      }
+    },
+    "getCoreAccountById": {
+      "partial_function_name_raw": "\"getCoreAccountById\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/my/banks/BANK_ID/accounts/ACCOUNT_ID/account\"",
+      "summary": "\"Get Account by Id (Core)\"",
+      "description": "s\"\"\"Information returned about the account specified by ACCOUNT_ID:\n        |\n        |* Number\n        |* Owners\n        |* Type\n        |* Balance\n        |* IBAN\n        |\n        |This call returns the owner view and requires access to that view.\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "moderatedCoreAccountJSON",
+      "error_response_bodies": "List(BankAccountNotFound,UnknownError)",
+      "tags": "apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil"
+    },
+    "getCoreTransactionsForBankAccount": {
+      "partial_function_name_raw": "\"getCoreTransactionsForBankAccount\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions\"",
+      "summary": "\"Get Transactions for Account (Core)\"",
+      "description": "s\"\"\"Returns transactions list (Core info) of the account specified by ACCOUNT_ID.\n        |\n        |Authentication is required.\n        |\n        |${urlParametersDocument(true, true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "coreTransactionsJSON",
+      "error_response_bodies": "List(BankAccountNotFound, UnknownError)",
+      "tags": "List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle)"
+    },
+    "accountById": {
+      "partial_function_name_raw": "\"accountById\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account\"",
+      "summary": "\"Get Account by Id (Full)\"",
+      "description": "s\"\"\"Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):\n        |\n        |* Number\n        |* Owners\n        |* Type\n        |* Balance\n        |* IBAN\n        |* Available views (sorted by short_name)\n        |\n        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).\n        |\n        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.\n        |This call provides balance and other account information via delegated authentication using OAuth.\n        |\n        |${userAuthenticationMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "moderatedAccountJSON",
+      "error_response_bodies": "List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError)",
+      "tags": "apiTagAccount :: apiTagOldStyle :: Nil"
+    },
+    "getPermissionsForBankAccount": {
+      "partial_function_name_raw": "\"getPermissionsForBankAccount\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/permissions\"",
+      "summary": "\"Get access\"",
+      "description": "s\"\"\"Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.\n        |\n        |${userAuthenticationMessage(true)}\n        |and the user needs to have access to the owner view.\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "permissionsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, BankNotFound, AccountNotFound ,UnknownError)",
+      "tags": "List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement)"
+    },
+    "getPermissionForUserForBankAccount": {
+      "partial_function_name_raw": "\"getPermissionForUserForBankAccount\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID\"",
+      "summary": "\"Get Account access for User\"",
+      "description": "s\"\"\"Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.\n        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |The user needs to have access to the owner view.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "viewsJSONV121",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired,BankNotFound, AccountNotFound,UnknownError)",
+      "tags": "List(apiTagView, apiTagAccount, apiTagUser, apiTagOldStyle)"
+    },
+    "createAccount": {
+      "partial_function_name_raw": "\"createAccount\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID\"",
+      "summary": "\"Create Account\"",
+      "description": "\"\"\"Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.\n       |\n       |\n       |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.\n       |\n       |If USER_ID is not specified the account will be owned by the logged in User.\n       |\n       |ACCOUNT_ID SHOULD be a UUID. ACCOUNT_ID MUST NOT be the ACCOUNT_NUMBER.\n       |\n       |TYPE SHOULD be the PRODUCT_CODE from Product.\n       |\n       |Note: The Amount must be zero.\"\"\".stripMargin",
+      "example_request_body": "CreateAccountJSON(\"A user_id\",\"CURRENT\", \"Label\", AmountOfMoneyJSON121(\"EUR\", \"0\"))",
+      "success_response_body": "coreAccountJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       InvalidUserId,\n       InvalidAccountIdFormat,\n       InvalidBankIdFormat,\n       UserNotFoundById,\n       InvalidAccountBalanceAmount,\n       InvalidAccountType,\n       InvalidAccountInitialBalance,\n       InvalidAccountBalanceCurrency,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateAccount))"
+      }
+    },
+    "getTransactionTypes": {
+      "partial_function_name_raw": "\"getTransactionTypes\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/transaction-types\"",
+      "summary": "\"Get Transaction Types at Bank\"",
+      "description": "s\"\"\"Get Transaction Types for the bank specified by BANK_ID:\n        |\n        |Lists the possible Transaction Types available at the bank (as opposed to Transaction Request Types which are the possible ways Transactions can be created by this API Server).\n        |\n        |  * id : Unique transaction type id across the API instance. SHOULD be a UUID. MUST be unique.\n        |  * bank_id : The bank that supports this TransactionType\n        |  * short_code : A short code (SHOULD have no-spaces) which MUST be unique across the bank. May be stored with Transactions to link here\n        |  * summary : A succinct summary\n        |  * description : A longer description\n        |  * charge : The charge to the customer for each one of these\n        |\n        |${userAuthenticationMessage(!getTransactionTypesIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "transactionTypesJsonV200",
+      "error_response_bodies": "List(BankNotFound, UnknownError)",
+      "tags": "List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "createUser": {
+      "partial_function_name_raw": "\"createUser\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/users\"",
+      "summary": "\"Create User\"",
+      "description": "s\"\"\"Creates OBP user.\n        | No authorisation required.\n        |\n        | Mimics current webform to Register.\n        |\n        | Requires username(email), password, first_name, last_name, and email.\n        |\n        | Validation checks performed:\n        | - Password must meet strong password requirements (InvalidStrongPasswordFormat error if not)\n        | - Username must be unique (409 error if username already exists)\n        | - All required fields must be present in valid JSON format\n        |\n        | Email validation behavior:\n        | - Controlled by property 'authUser.skipEmailValidation' (default: false)\n        | - When false: User is created with validated=false and a validation email is sent to the user's email address\n        | - When true: User is created with validated=true and no validation email is sent\n        | - Default entitlements are granted immediately regardless of validation status\n        |\n        | Note: If email validation is required (skipEmailValidation=false), the user must click the validation link\n        | in the email before they can log in, even though entitlements are already granted.\n        |\n        |\"\"\"",
+      "example_request_body": "createUserJson",
+      "success_response_body": "userJsonV200",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, ExternalUserCheckFailed, \"Error occurred during user creation.\", UnknownError)",
+      "tags": "List(apiTagUser, apiTagOnboarding)"
+    },
+    "createCustomer": {
+      "partial_function_name_raw": "\"createCustomer\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customers\"",
+      "summary": "\"Create Customer\"",
+      "description": "s\"\"\"Add a customer linked to the user specified by user_id\n        |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.\n        |This call may require additional permissions/role in the future.\n        |For now the authenticated user can create at most one linked customer.\n        |Dates need to be in the format 2013-01-21T23:08:00Z\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "createCustomerJson",
+      "success_response_body": "customerJsonV140",
+      "error_response_bodies": "List(\n       InvalidBankIdFormat,\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       CustomerNumberAlreadyExists,\n       UserHasMissingRoles,\n       UserNotFoundById,\n       CreateConsumerError,\n       CustomerAlreadyExistsForUser,\n       CreateUserCustomerLinksError,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagPerson, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateCustomer,canCreateUserCustomerLink))"
+      }
+    },
+    "getCurrentUser": {
+      "partial_function_name_raw": "\"getCurrentUser\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/current\"",
+      "summary": "\"Get User (Current)\"",
+      "description": "\"\"\"Get the logged in user\n       |\n       |Login is required.\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "userJsonV200",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagUser, apiTagOldStyle)"
+    },
+    "getUser": {
+      "partial_function_name_raw": "\"getUser\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_EMAIL\"",
+      "summary": "\"Get Users by Email Address\"",
+      "description": "\"\"\"Get users by email address\n       |\n       |Login is required.\n       |CanGetAnyUser entitlement is required,\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "usersJsonV200",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError)",
+      "tags": "List(apiTagUser, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAnyUser))"
+      }
+    },
+    "createUserCustomerLinks": {
+      "partial_function_name_raw": "\"createUserCustomerLinks\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/user_customer_links\"",
+      "summary": "\"Create User Customer Link\"",
+      "description": "s\"\"\"Link a User to a Customer\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |$createUserCustomerLinksrequiredEntitlementsText\n        |\"\"\"",
+      "example_request_body": "createUserCustomerLinkJson",
+      "success_response_body": "userCustomerLinkJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidBankIdFormat,\n       BankNotFound,\n       InvalidJsonFormat,\n       CustomerNotFoundByCustomerId,\n       UserHasMissingRoles,\n       CustomerAlreadyExistsForUser,\n       CreateUserCustomerLinksError,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagUser, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateUserCustomerLink,canCreateUserCustomerLinkAtAnyBank))"
+      }
+    },
+    "addEntitlement": {
+      "partial_function_name_raw": "\"addEntitlement\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/users/USER_ID/entitlements\"",
+      "summary": "\"Add Entitlement for a User\"",
+      "description": "\"\"\"Create Entitlement. Grant Role to User.\n       |\n       |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)\n       |\n       |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. \"bank_id\":\"\"\n       |\n       |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. \"bank_id\":\"my-bank-id\"\n       |\n       |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.\"\"\"",
+      "example_request_body": "code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON",
+      "success_response_body": "entitlementJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserNotFoundById,\n       UserNotSuperAdmin,\n       InvalidJsonFormat,\n       IncorrectRoleName,\n       EntitlementIsBankRole,\n       EntitlementIsSystemRole,\n       EntitlementAlreadyExists,\n       UnknownError\n     )",
+      "tags": "List(apiTagRole, apiTagEntitlement, apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank))"
+      }
+    },
+    "getEntitlements": {
+      "partial_function_name_raw": "\"getEntitlements\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_ID/entitlements\"",
+      "summary": "\"Get Entitlements for User\"",
+      "description": "s\"\"\"\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "entitlementJSONs",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetEntitlementsForAnyUserAtAnyBank))"
+      }
+    },
+    "deleteEntitlement": {
+      "partial_function_name_raw": "\"deleteEntitlement\"",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/users/USER_ID/entitlement/ENTITLEMENT_ID\"",
+      "summary": "\"Delete Entitlement\"",
+      "description": "\"\"\"Delete Entitlement specified by ENTITLEMENT_ID for an user specified by USER_ID\n       |\n       |Authentication is required and the user needs to be a Super Admin.\n       |Super Admins are listed in the Props file.\n       |\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserHasMissingRoles, EntitlementNotFound, UnknownError)",
+      "tags": "List(apiTagRole, apiTagUser, apiTagEntitlement)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteEntitlementAtAnyBank))"
+      }
+    },
+    "getAllEntitlements": {
+      "partial_function_name_raw": "\"getAllEntitlements\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/entitlements\"",
+      "summary": "\"Get all Entitlements\"",
+      "description": "\"\"\"\n       |\n       |Login is required.\n       |\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "entitlementJSONs",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagRole, apiTagEntitlement)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetEntitlementsForAnyUserAtAnyBank))"
+      }
+    },
+    "elasticSearchWarehouse": {
+      "partial_function_name_raw": "\"elasticSearchWarehouse\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/search/warehouse\"",
+      "summary": "\"Search Warehouse Data Via Elasticsearch\"",
+      "description": "\"\"\"\n       |Search warehouse data via Elastic Search.\n       |\n       |Login is required.\n       |\n       |CanSearchWarehouse entitlement is required to search warehouse data!\n       |\n       |Send your email, name, project name and user_id to the admins to get access.\n       |\n       |Elastic (search) is used in the background. See links below for syntax.\n       |\n       |\n       |parameters:\n       |\n       | esType  - elasticsearch type\n       |\n       | simple query:\n       |\n       | q       - plain_text_query\n       |\n       | df      - default field to search\n       |\n       | sort    - field to sort on\n       |\n       | size    - number of hits returned, default 10\n       |\n       | from    - show hits starting from\n       |\n       | json query:\n       |\n       | source  - JSON_query_(URL-escaped)\n       |\n       |\n       |Example usage:\n       |\n       |GET /search/warehouse/q=findThis\n       |\n       |or:\n       |\n       |GET /search/warehouse/source={\"query\":{\"query_string\":{\"query\":\"findThis\"}}}\n       |\n       |\n       |Note!!\n       |\n       |The whole JSON query string MUST be URL-encoded:\n       |\n       |* For {  use %7B\n       |* For }  use %7D\n       |* For : use %3A\n       |* For \" use %22\n       |\n       |etc..\n       |\n       |\n       |\n       |Only q, source and esType are passed to Elastic\n       |\n       |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html\n       |\n       |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html\n       |\n       |You can specify the esType thus: /search/warehouse/esType=type&q=a\n       |\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "emptyElasticSearch",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagSearchWarehouse, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canSearchWarehouse))"
+      }
+    },
+    "elasticSearchMetrics": {
+      "partial_function_name_raw": "\"elasticSearchMetrics\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/search/metrics\"",
+      "summary": "\"Search API Metrics via Elasticsearch\"",
+      "description": "\"\"\"\n       |Search the API calls made to this API instance via Elastic Search.\n       |\n       |Login is required.\n       |\n       |CanSearchMetrics entitlement is required to search metrics data.\n       |\n       |\n       |parameters:\n       |\n       | esType  - elasticsearch type\n       |\n       | simple query:\n       |\n       | q       - plain_text_query\n       |\n       | df      - default field to search\n       |\n       | sort    - field to sort on\n       |\n       | size    - number of hits returned, default 10\n       |\n       | from    - show hits starting from\n       |\n       | json query:\n       |\n       | source  - JSON_query_(URL-escaped)\n       |\n       |\n       |example usage:\n       |\n       | /search/metrics/q=findThis\n       |\n       |or:\n       |\n       | /search/metrics/source={\"query\":{\"query_string\":{\"query\":\"findThis\"}}}\n       |\n       |\n       |Note!!\n       |\n       |The whole JSON query string MUST be URL-encoded:\n       |\n       |* For {  use %7B\n       |* For }  use %7D\n       |* For : use %3A\n       |* For \" use %22\n       |\n       |etc..\n       |\n       |\n       |\n       |Only q, source and esType are passed to Elastic\n       |\n       |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html\n       |\n       |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html\n       |\n       |\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "emptyElasticSearch",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagMetric, apiTagApi, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canSearchMetrics))"
+      }
+    },
+    "getCustomers": {
+      "partial_function_name_raw": "\"getCustomers\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/current/customers\"",
+      "summary": "\"Get all customers for logged in user\"",
+      "description": "\"\"\"Information about the currently authenticated user.\n       |\n       |Authentication via OAuth is required.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customersJsonV140",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError)",
+      "tags": "List(apiTagPerson, apiTagCustomer, apiTagOldStyle)"
+    }
+  }
+}
