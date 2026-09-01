@@ -21,6 +21,22 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
       try {
         Some(toResourceDoc(dynamicDoc))
       } catch {
+        // Validation.validateDependency / createJavaHttp4sEndpoint's own rejection path both throw
+        // this specifically for a dependency-whitelist miss -- distinct from a genuine compile
+        // failure, and reachable here (not just at create/update time) because CompiledObjects'
+        // validation runs fresh on every construction and dynamic_code_compile_validate_dependencies
+        // can be tightened after a doc was already registered. Logging it as a "deprecated Lift
+        // contract" problem sends whoever reads this log to re-author a body that is not the
+        // problem, instead of at the whitelist they (or someone else) just edited.
+        case e: code.api.JsonResponseException =>
+          val reason = e.jsonResponse match {
+            case APIUtil.JsonResponseExtractor(msg, _) => msg
+            case _ => Option(e.getMessage).getOrElse("")
+          }
+          logger.error(s"[DynamicResourceDocsEndpointGroup] skipping dynamic resource doc '${dynamicDoc.requestVerb} ${dynamicDoc.requestUrl}' " +
+            s"(id=${dynamicDoc.dynamicResourceDocId.getOrElse("")}, programming_lang=${dynamicDoc.programmingLang}): rejected by dependency " +
+            s"validation (dynamic_code_compile_validate_dependencies). $reason")
+          None
         case e: Throwable =>
           logger.error(s"[DynamicResourceDocsEndpointGroup] skipping dynamic resource doc '${dynamicDoc.requestVerb} ${dynamicDoc.requestUrl}' " +
             s"(id=${dynamicDoc.dynamicResourceDocId.getOrElse("")}): its methodBody could not be compiled under the native http4s contract. " +
