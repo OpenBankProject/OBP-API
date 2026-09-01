@@ -12,14 +12,8 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.util.YAMLUtils
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
-import code.api.v1_4_0.{JSONFactory1_4_0, OBPAPI1_4_0}
-import code.api.v2_2_0.OBPAPI2_2_0
-import code.api.v3_0_0.OBPAPI3_0_0
-import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.v4_0_0.{Http4s400, OBPAPI4_0_0}
-import code.api.v5_0_0.OBPAPI5_0_0
-import code.api.v5_1_0.OBPAPI5_1_0
-import code.api.v6_0_0.OBPAPI6_0_0
+import code.api.v1_4_0.JSONFactory1_4_0
+import code.api.v4_0_0.Http4s400
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
@@ -41,10 +35,6 @@ import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
 // JObject creation
-import code.api.v1_2_1.OBPAPI1_2_1
-import code.api.v1_3_0.OBPAPI1_3_0
-import code.api.v2_0_0.OBPAPI2_0_0
-import code.api.v2_1_0.OBPAPI2_1_0
 
 import scala.collection.mutable.ArrayBuffer
 

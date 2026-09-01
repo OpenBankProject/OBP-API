@@ -6,7 +6,7 @@ import scala.language.reflectiveCalls
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v3_0_0.{CoreTransactionsJsonV300, ModeratedTransactionCoreWithAttributes}
-import code.api.v4_0_0.{BankJson400, BanksJson400, JSONFactory400, OBPAPI4_0_0}
+import code.api.v4_0_0.{BankJson400, BanksJson400, JSONFactory400}
 import code.obp.grpc.api.BanksJson400Grpc.{BankJson400Grpc, BankRoutingJsonV121Grpc}
 import code.obp.grpc.api._
 import code.util.Helper

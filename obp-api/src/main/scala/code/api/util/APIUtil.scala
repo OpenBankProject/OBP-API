@@ -49,8 +49,7 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v6_0_0.OBPAPI6_0_0
+import code.api.v2_2_0.Http4s220.Implementations2_2_0
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers

@@ -107,7 +107,7 @@ object Http4s500 {
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "root" =>
         val responseJson = convertAnyToJsonString(
-          JSONFactory400.getApiInfoJSON(OBPAPI5_0_0.version, OBPAPI5_0_0.versionStatus)
+          JSONFactory400.getApiInfoJSON(ApiVersion.v5_0_0, versionStatus)
         )
         Ok(responseJson)
     }
