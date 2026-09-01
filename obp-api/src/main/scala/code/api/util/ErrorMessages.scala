@@ -1023,7 +1023,16 @@ object ErrorMessages {
   //For Swagger, used reflect to  list all the varible names and values.
   // eg : val InvalidUserId = "OBP-30107: Invalid User Id."
   //   -->(InvalidUserId, "OBP-30107: Invalid User Id.")
-  val allFields =
+  //
+  // This must be a lazy val: it reflectively scans this object's own declared fields,
+  // some of which (e.g. errorToCode, isValidName) are declared further down in this
+  // file and are only assigned once the object's constructor has run past them. As an
+  // eager val, this scan can run mid-construction and observe those fields as not yet
+  // set, with the exact outcome depending on JVM/reflection field-ordering, which is not
+  // guaranteed by the JVM spec and can differ between environments (e.g. local run vs.
+  // Docker). Making it lazy defers the scan until first use, by which point the object
+  // is fully constructed and every field is guaranteed to be initialized.
+  lazy val allFields =
   for (
     v <- this.getClass.getDeclaredFields
     //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
