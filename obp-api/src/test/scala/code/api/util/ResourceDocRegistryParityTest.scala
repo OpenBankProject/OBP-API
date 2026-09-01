@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.Http4sBGv13Alias
 import code.setup.ServerSetup
 import com.openbankproject.commons.util.{ApiStandards, ApiVersion, ScannedApiVersion}
@@ -115,6 +116,27 @@ class ResourceDocRegistryParityTest extends ServerSetup {
       resolved.get("getBalances") shouldBe Some("BGv1.3-getBalances")
       resolved.get("getAccountList") shouldBe Some("BGv2-getAccountList")
       resolved.get("getAccountBalances") shouldBe Some("BGv2-getAccountBalances")
+    }
+
+    // The Berlin Group v1.3 alias only re-publishes the canonical BG v1.3 docs, so it must never
+    // win a partialFunctionName away from the standard it copied. Its apiStandard is the first
+    // segment of berlin_group_v1_3_alias_path, so a deployment can point it at a name an existing
+    // standard already uses ("BG/v9"); ranking by that string alone put the alias alongside Berlin
+    // Group and, sorting after "v2", ahead of it. Ranking is by identity instead, and the synthetic
+    // alias below exercises the colliding configuration without needing a JVM under that prop.
+    scenario("a derived alias never outranks the standard it re-publishes", RegistryParityTag) {
+      val syntheticAlias = ScannedApiVersion("BG", "BG", "v9")
+      val rankOf = ResourceDocRegistry.sortKey(syntheticAlias) _
+      withClue("the alias must sort before Berlin Group, i.e. lose the `.toMap` last-wins race ") {
+        rankOf(syntheticAlias) should be < rankOf(ConstantsBG.berlinGroupVersion2)
+        rankOf(syntheticAlias) should be < rankOf(ConstantsBG.berlinGroupVersion1)
+      }
+      withClue("the alias must also sort before UK Open Banking ") {
+        rankOf(syntheticAlias) should be < rankOf(ApiVersion.ukOpenBankingV401)
+      }
+      withClue("UK must still sort before Berlin Group, so BG keeps the names they share ") {
+        rankOf(ApiVersion.ukOpenBankingV401) should be < rankOf(ConstantsBG.berlinGroupVersion2)
+      }
     }
 
     // An unconfigured configuration-gated standard reports ScannedApiVersion("", "", ""), whose

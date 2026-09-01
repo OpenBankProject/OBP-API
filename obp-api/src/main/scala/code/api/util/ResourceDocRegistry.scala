@@ -73,7 +73,7 @@ object ResourceDocRegistry {
       ScannedApis.versionMapScannedApis.toSeq
         .collect { case (version: ScannedApiVersion, apis) if !explicit.contains(version) =>
           version -> (() => apis.allResourceDocs.toSeq) }
-        .sortBy(entry => sortKey(entry._1))
+        .sortBy(entry => sortKey(code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3_Alias.apiVersion)(entry._1))
         .foldLeft(ListMap.empty[ApiVersion, () => Seq[ResourceDoc]])(_ + _)
     explicit ++ scanned
   }
@@ -82,17 +82,25 @@ object ResourceDocRegistry {
    * Standards in ASCENDING precedence: a standard later in this list wins a partialFunctionName it
    * shares with an earlier one, because the `.toMap` consumers keep the last entry. This
    * reproduces the order of the hand-written union that preceded this registry (UK Open Banking,
-   * then Berlin Group).
-   *
-   * A standard that is not listed ranks below all of them -- including the Berlin Group v1.3 alias,
-   * whose apiStandard is whatever `berlin_group_v1_3_alias_path` names, so it can never override a
-   * first-class standard no matter how a deployment configures it.
+   * then Berlin Group). A standard that is not listed ranks below all of them.
    */
   private val standardPrecedence: List[String] =
     List(ApiVersion.ukOpenBankingV20.apiStandard, ConstantsBG.berlinGroupVersion1.apiStandard)
 
+  /** Below every entry of standardPrecedence, whose lowest index is -1 for an unlisted standard. */
+  private val derivedStandardRank: Int = -2
+
   /**
    * Total order over registry keys: precedence first, then the version's own identity.
+   *
+   * `derivedAliasVersion` is the version of a standard that merely re-publishes another standard's
+   * docs -- today only the Berlin Group v1.3 alias. It is matched by identity, NOT by its
+   * apiStandard, because that string is the first segment of `berlin_group_v1_3_alias_path` and a
+   * deployment may legitimately choose one that an existing standard already uses: configured as
+   * "BG/v9" the alias would otherwise rank alongside Berlin Group and, sorting after "v2", let its
+   * re-stamped copies win getBalances, getAccountList and getAccountBalances away from the
+   * canonical docs it copied. Ranking it derivedStandardRank keeps that impossible for any
+   * configuration.
    *
    * The tie-breaker is (apiStandard, apiShortVersion) rather than fullyQualifiedVersion because
    * that pair is exactly ScannedApiVersion's equals/hashCode key, so two distinct keys of a Map
@@ -100,9 +108,17 @@ object ResourceDocRegistry {
    * fullyQualifiedVersion concatenates the two (apiStandard.toUpperCase + apiShortVersion) and can
    * therefore collide across distinct keys -- ("BG", "v1.3") and ("BGV", "1.3") both render
    * "BGV1.3" -- which a deployment could reach through berlin_group_v1_3_alias_path.
+   *
+   * Curried and package-private so a test can rank against a synthetic alias without having to
+   * restart the JVM under a different berlin_group_v1_3_alias_path.
    */
-  private def sortKey(version: ScannedApiVersion): (Int, String, String) =
-    (standardPrecedence.indexOf(version.apiStandard), version.apiStandard, version.apiShortVersion)
+  private[util] def sortKey(derivedAliasVersion: ScannedApiVersion)
+                           (version: ScannedApiVersion): (Int, String, String) = {
+    val rank =
+      if (version == derivedAliasVersion) derivedStandardRank
+      else standardPrecedence.indexOf(version.apiStandard)
+    (rank, version.apiStandard, version.apiShortVersion)
+  }
 
   /** What the per-version resource-docs dispatcher serves for this version (empty if unknown). */
   def docsFor(version: ApiVersion): Seq[ResourceDoc] = registry.get(version).map(_ ()).getOrElse(Nil)
