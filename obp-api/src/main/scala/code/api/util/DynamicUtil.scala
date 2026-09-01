@@ -515,6 +515,11 @@ object DynamicUtil extends MdcLoggable{
      * Here only validate the restricted types(isObpClass + val restrictedTypes), not all scala/java types.
      */
     private def validateDependency(dependentMethods: List[(String, String, String)]) = {
+      // Bound once per call, not re-derived per dependency tuple: allowedCompilationMethods is a
+      // def (see the "def, not val" comment above) so it observes a live props change, but it
+      // recompiles the whitelist source on every access -- reading it twice per element inside
+      // the `collect` guard below would mean up to 2N re-derivations for N dependency tuples.
+      val allowedCompilationMethods = this.allowedCompilationMethods
       val notAllowedDependentMethods = dependentMethods collect {
         case (typeName, method, _)
           if isRestrictedType(typeName) &&
