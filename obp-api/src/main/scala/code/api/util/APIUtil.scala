@@ -2655,7 +2655,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /*
   If a version is allowed, enable its endpoints.
-  Note a version such as v3_0_0.OBPAPI3_0_0 may well include routes from other earlier versions.
+  Note a version such as v3.0.0 may well include routes from other earlier versions.
    */
 
   def enableVersionIfAllowed(version: ScannedApiVersion) : Boolean = {

@@ -15197,7 +15197,7 @@ object Http4s600 {
   private lazy val v6ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
     ResourceDocMatcher.buildIndex(resourceDocs)
 
-  // `lazy val`, not `val`: `OBPAPI6_0_0` and `APIMethods600` reference
+  // `lazy val`, not `val`: other objects reference
   // `Http4s600.Implementations6_0_0` directly via getstatic. When either is loaded
   // first (during Lift's Boot), the JVM triggers `Implementations6_0_0.<clinit>`
   // before `Http4s600.<clinit>`. Resource-doc registrations inside Impl6.<init>

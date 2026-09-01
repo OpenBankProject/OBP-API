@@ -198,7 +198,7 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
     //  } yield {
     //    val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bankId)
     //    val availablePrivateAccounts = bank.privateAccounts(privateAccountAccess)
-    //    val jValue = OBPAPI4_0_0.Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
+    //    val jValue = Http4s200.Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
     //    val jArray = JArray(
     //      jValue.asInstanceOf[JArray].arr.map(it => {
     //        val bankIdJObject: JObject = "bankId" -> (it \ "bank_id")
