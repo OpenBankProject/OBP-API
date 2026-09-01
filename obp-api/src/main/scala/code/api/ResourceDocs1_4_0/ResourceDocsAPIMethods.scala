@@ -12,11 +12,11 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.util.YAMLUtils
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
-import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
-import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
+import code.api.v1_4_0.{JSONFactory1_4_0, OBPAPI1_4_0}
+import code.api.v2_2_0.OBPAPI2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
+import code.api.v4_0_0.{Http4s400, OBPAPI4_0_0}
 import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
@@ -41,10 +41,10 @@ import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
 // JObject creation
-import code.api.v1_2_1.{APIMethods121, OBPAPI1_2_1}
-import code.api.v1_3_0.{APIMethods130, OBPAPI1_3_0}
-import code.api.v2_0_0.{APIMethods200, OBPAPI2_0_0}
-import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
+import code.api.v1_2_1.OBPAPI1_2_1
+import code.api.v1_3_0.OBPAPI1_3_0
+import code.api.v2_0_0.OBPAPI2_0_0
+import code.api.v2_1_0.OBPAPI2_1_0
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -57,7 +57,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 
 
-trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
+trait ResourceDocsAPIMethods extends MdcLoggable {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: OBPRestHelper =>
@@ -1205,26 +1205,26 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
                * So here filter out them.
                */
-              case doc if (doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint))  ||
-                doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.createBankLevelDynamicEndpoint))) =>
+              case doc if (doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.createDynamicEndpoint))  ||
+                doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.createBankLevelDynamicEndpoint))) =>
                 doc.copy(example_request_body =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
                   success_response_body = ExampleValue.dynamicEndpointResponseBodyEmptyExample
                 )
 
-              case doc if (doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.createEndpointMapping)) ||
-                doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.createBankLevelEndpointMapping))) =>
+              case doc if (doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.createEndpointMapping)) ||
+                doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.createBankLevelEndpointMapping))) =>
                 doc.copy(
                   example_request_body = endpointMappingRequestBodyExample,
                   success_response_body = endpointMappingRequestBodyExample
                 )
                 
-              case doc if ( doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint)) ||
-                doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.getBankLevelDynamicEndpoint))) =>
+              case doc if ( doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.getDynamicEndpoint)) ||
+                doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.getBankLevelDynamicEndpoint))) =>
                 doc.copy(success_response_body = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
 
-              case doc if (doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints)) ||
-                doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints)) ||
-                doc.operation_id == buildOperationId(APIMethods400.Implementations4_0_0.implementedInApiVersion, nameOf(APIMethods400.Implementations4_0_0.getBankLevelDynamicEndpoints)))=>
+              case doc if (doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.getDynamicEndpoints)) ||
+                doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.getMyDynamicEndpoints)) ||
+                doc.operation_id == buildOperationId(Http4s400.Implementations4_0_0.implementedInApiVersion, nameOf(Http4s400.Implementations4_0_0.getBankLevelDynamicEndpoints)))=>
                 doc.copy(success_response_body = ListResult(
                   "dynamic_endpoints",
                   List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)

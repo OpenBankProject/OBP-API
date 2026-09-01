@@ -409,7 +409,7 @@ object Http4s210 {
       // logic (maker-checker, ChallengeJsonV400 shape, attribute attachment). Routing
       // them through this handler returns the v2.1.0 shape and skips v4 validation,
       // so the test sees "400 did not equal 202". Let unknown types fall through to
-      // the Lift fallback where APIMethods400.answerTransactionRequestChallenge runs.
+      // the http4s v4.0.0 bridge, where Http4s400's answerTransactionRequestChallenge runs.
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" / transReqIdStr / "challenge"
           if v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr) =>
         implicit val cc: CallContext = req.callContext

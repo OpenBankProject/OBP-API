@@ -127,7 +127,7 @@ object Http4s600 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
     // Local config flag referenced by some lifted product-endpoint descriptions.
-    // Mirrors the same `val` in `code.api.v2_1_0.{APIMethods210, Http4s210}`.
+    // Mirrors the same `val` in `code.api.v2_1_0.Http4s210`.
     val getProductsIsPublic =
       APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 

@@ -7,7 +7,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{AtmNotFoundByAtmId, UserHasMissingRoles}
 import code.api.util.ExampleValue.atmTypeExample
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v5_1_0.APIMethods510.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.atmattribute.AtmAttribute
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers

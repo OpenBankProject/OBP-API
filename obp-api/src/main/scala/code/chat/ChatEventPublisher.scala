@@ -9,7 +9,7 @@ import org.json4s.native.Serialization.write
 /**
  * Publishes chat events to ChatEventBus after REST operations.
  *
- * Called from APIMethods600 after createMessage, updateMessage,
+ * Called from Http4s600 after createMessage, updateMessage,
  * softDeleteMessage, and typing indicator operations.
  */
 object ChatEventPublisher extends MdcLoggable {

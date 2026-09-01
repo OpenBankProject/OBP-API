@@ -30,9 +30,9 @@ import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.VersionedOBPApis
 import code.api.v3_0_0.Http4s300
-import code.api.v3_1_0.{APIMethods310, Http4s310}
-import code.api.v4_0_0.{APIMethods400, Http4s400}
-import code.api.v5_0_0.{APIMethods500, OBPAPI5_0_0}
+import code.api.v3_1_0.Http4s310
+import code.api.v4_0_0.Http4s400
+import code.api.v5_0_0.OBPAPI5_0_0
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
@@ -43,10 +43,6 @@ All v5.1.0 endpoints have been migrated to Http4s510 — this object is retained
 only for resource-doc aggregation and the Lift dispatch registry.
  */
 object OBPAPI5_1_0 extends OBPRestHelper
-  with APIMethods310
-  with APIMethods400
-  with APIMethods500
-  with APIMethods510
   with MdcLoggable
   with VersionedOBPApis{
 
@@ -54,17 +50,13 @@ object OBPAPI5_1_0 extends OBPRestHelper
 
   val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
 
-  // Re-export so tests that import OBPAPI5_1_0.Implementations5_1_0 still compile
-  // after APIMethods510 was replaced with an empty stub.
+  // Re-exported so nameOf(ImplementationsX.xxx) below (in excludeEndpoints) and
+  // external consumers (e.g. tests) referencing OBPAPI5_1_0.ImplementationsX
+  // continue to compile now that the corresponding APIMethodsNNN shim has been
+  // deleted — see scripts/resource_doc_baseline/README.md.
   val Implementations5_1_0 = Http4s510.Implementations5_1_0
-  // Re-export so nameOf references below (in excludeEndpoints) continue to compile
-  // after APIMethods400 was replaced with an empty stub.
   val Implementations4_0_0 = Http4s400.Implementations4_0_0
-  // Re-export so nameOf(Implementations3_1_0.xxx) in excludeEndpoints continues to compile
-  // after APIMethods310 was replaced with an empty stub.
   val Implementations3_1_0 = Http4s310.Implementations3_1_0
-  // Re-export so nameOf(Implementations3_0_0.xxx) in excludeEndpoints continues to compile
-  // after APIMethods300 was replaced with an empty stub.
   val Implementations3_0_0 = Http4s300.Implementations3_0_0
 
   lazy val excludeEndpoints =

@@ -1925,7 +1925,7 @@ curl -s https://api.example.com/obp/v5.1.0/resource-docs/v5.1.0/obp | \
 
 **Method 3: Check Source Code**
 
-Operation IDs are defined in the API implementation files (e.g., `APIMethods510.scala`):
+Operation IDs are defined in the API implementation files (e.g., `Http4s510.scala`):
 
 ```scala
 lazy val getBanks: OBPEndpoint = {
@@ -3234,7 +3234,6 @@ For comprehensive use case examples and implementation guides, see the dedicated
 
 ```xml
 <!-- Enable specific components -->
-<logger name="code.api.v5_1_0.APIMethods510" level="DEBUG"/>
 <logger name="code.bankconnectors.Connector" level="TRACE"/>
 <logger name="code.api.util.RateLimiting" level="DEBUG"/>
 ```

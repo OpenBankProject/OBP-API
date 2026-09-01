@@ -715,8 +715,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val jsonAst: JValue = {
       val partialFunctionName = callContext.map(_.resourceDocument.map(_.partialFunctionName)).flatten.getOrElse("")
       if (
-        nameOf(code.api.v5_1_0.APIMethods510.Implementations5_1_0.getMetrics).equals(partialFunctionName) ||
-        nameOf(code.api.v5_0_0.APIMethods500.Implementations5_0_0.getMetricsAtBank).equals(partialFunctionName) ||
+        nameOf(code.api.v5_1_0.Http4s510.Implementations5_1_0.getMetrics).equals(partialFunctionName) ||
+        nameOf(code.api.v5_0_0.Http4s500.Implementations5_0_0.getMetricsAtBank).equals(partialFunctionName) ||
         nameOf(Implementations2_2_0.getConnectorMetrics).equals(partialFunctionName)
       ) {
         ApiSession.processJson(Extraction.decompose(cc)(CustomJsonFormats.losslessFormats), callContext)

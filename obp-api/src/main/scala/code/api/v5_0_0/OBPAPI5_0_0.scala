@@ -43,8 +43,8 @@ object OBPAPI5_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
   val version: ApiVersion = ApiVersion.v5_0_0
   val versionStatus       = ApiVersionStatus.STABLE.toString
 
-  // Re-export so tests that import OBPAPI5_0_0.Implementations5_0_0 still compile
-  // after APIMethods500 is replaced with an empty stub.
+  // Re-exported so tests that import OBPAPI5_0_0.Implementations5_0_0 still compile
+  // now that APIMethods500 has been deleted — see scripts/resource_doc_baseline/README.md.
   val Implementations5_0_0 = Http4s500.Implementations5_0_0
 
   // All v5.0.0 endpoints live in Http4s500 — aggregate Http4s500.resourceDocs on top of v4.0.0.

@@ -34,7 +34,7 @@ import code.api.util.ApiRole._
 import code.api.util.CertificateUtil
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
-import code.api.v6_0_0.APIMethods600
+import code.api.v6_0_0.Http4s600
 
 import code.entitlement.Entitlement
 import code.model.dataAccess.{AuthUser, ResourceUser}
@@ -66,9 +66,9 @@ class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
   }
 
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(APIMethods600.Implementations6_0_0.resetPasswordUrl))
-  object ApiEndpoint2 extends Tag(nameOf(APIMethods600.Implementations6_0_0.resetPasswordUrlAnonymous))
-  object ApiEndpoint3 extends Tag(nameOf(APIMethods600.Implementations6_0_0.resetPasswordComplete))
+  object ApiEndpoint1 extends Tag(nameOf(Http4s600.Implementations6_0_0.resetPasswordUrl))
+  object ApiEndpoint2 extends Tag(nameOf(Http4s600.Implementations6_0_0.resetPasswordUrlAnonymous))
+  object ApiEndpoint3 extends Tag(nameOf(Http4s600.Implementations6_0_0.resetPasswordComplete))
   lazy val postUserId = UUID.randomUUID.toString
   lazy val postJson = JSONFactory600.PostResetPasswordUrlJsonV600("marko", "marko@tesobe.com", postUserId)
 
