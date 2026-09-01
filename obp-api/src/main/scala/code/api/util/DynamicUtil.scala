@@ -43,6 +43,16 @@ object DynamicUtil extends MdcLoggable{
     }
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
+  // Neither this nor memoJavaCompiledScript below ever evicts, so each distinct ClassLoader (and
+  // therefore each distinct compiled Java method_body -- java-scriptengine hands createJavaHttp4sEndpoint
+  // a fresh MemoryClassLoader per compile) is retained for the life of the process, along with its
+  // ClassPool. This is the same unbounded-but-trusted-operator-only tradeoff dynamicCompileResult
+  // below already makes for the Scala compile cache, predating the Java path: registering a dynamic
+  // resource doc is gated behind canCreateDynamicResourceDoc / canCreateBankLevelDynamicResourceDoc,
+  // not open to arbitrary callers, and a served endpoint's ClassLoader must stay reachable for as
+  // long as that endpoint keeps serving requests -- an eviction policy here would need to be
+  // reference-counted against currently-registered docs to avoid reclaiming a live one, which is a
+  // larger change than this cache's existing (pre-Java) design accounted for.
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
   // Caches only the compiled artifact (deterministic given the source string), never the
   // validation outcome built on top of it -- see createJavaHttp4sEndpoint's doc comment.
@@ -753,6 +763,16 @@ object DynamicUtil extends MdcLoggable{
             classBytesField.setAccessible(true)
             val classBytes = classBytesField.get(compiledClass.getClassLoader)
               .asInstanceOf[java.util.Map[String, Array[Byte]]].get(compiledClass.getName)
+            // Fail loudly and specifically here rather than handing Javassist a null byte array --
+            // that would only surface later, inside ByteArrayClassPath/ClassPool, as an opaque NPE
+            // with no indication that the cause was this reflective read (e.g. a java-scriptengine
+            // upgrade that changes mapClassBytes' keying from binary name to internal name, or that
+            // stops using that field name at all).
+            if (classBytes == null) {
+              throw new IllegalStateException(
+                s"createJavaHttp4sEndpoint: MemoryClassLoader.mapClassBytes has no entry for " +
+                  s"${compiledClass.getName} -- java-scriptengine's internal layout may have changed")
+            }
             getClassPool(compiledClass.getClassLoader)
               .appendClassPath(new javassist.ByteArrayClassPath(compiledClass.getName, classBytes))
 
