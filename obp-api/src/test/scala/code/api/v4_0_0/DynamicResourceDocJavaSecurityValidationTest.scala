@@ -44,12 +44,18 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
   private def defaultDependenciesWhitelist: String =
     """[NewStyle.function.getClass.getTypeName -> "*", CompiledObjects.getClass.getTypeName -> "sandbox", HttpCode.getClass.getTypeName -> "200", DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse", APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse", ErrorMessages.getClass.getTypeName -> "*", ExecutionContext.Implicits.getClass.getTypeName -> "global", JSONFactory400.getClass.getTypeName -> "createBanksJson", classOf[Sandbox].getTypeName -> "runInSandbox", classOf[CallContext].getTypeName -> "*", classOf[ResourceDoc].getTypeName -> "getPathParams", "scala.reflect.runtime.package$" -> "universe", PractiseEndpoint.getClass.getTypeName + "*" -> "*"]"""
 
+  // Deliberately does NOT set show_used_connector_methods: that prop exists to opt in to an
+  // unrelated, expensive introspection/reporting feature and was never meant to gate security
+  // validation, which happens to reuse the same underlying bytecode scan. An operator who reads
+  // only dynamic_code_compile_validate_enable's own prop documentation and sets just these two
+  // props (as this method does) must still get real enforcement -- proving that is the point of
+  // every scenario below.
+  //
   // Block body (not `= setPropsValues(...)`) so .github/scripts/check_test_isolation.py's brace
   // scanner sees an opening `{` right after `def enableStrictValidation` and treats this as a
   // safe "helper called from scenarios" scope rather than a class-body-level setPropsValues call.
   private def enableStrictValidation(): Unit = {
     setPropsValues(
-      "show_used_connector_methods" -> "true",
       "dynamic_code_compile_validate_enable" -> "true",
       "dynamic_code_compile_validate_dependencies" -> defaultDependenciesWhitelist
     )

@@ -4399,8 +4399,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * 
    * than the return value may be (getUserAndSessionContextFuture, ***,***),(map,***,***), (getOrElse,***,***) ......
    */ 
-  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
-    if (SHOW_USED_CONNECTOR_METHODS) {
+  // force bypasses the SHOW_USED_CONNECTOR_METHODS gate below -- see
+  // DynamicUtil.getDynamicCodeDependentMethods' doc comment for why security validation needs this.
+  def getDependentMethods(className: String, methodName:String, signature: String, force: Boolean = false): List[(String, String, String)] = {
+    if (SHOW_USED_CONNECTOR_METHODS || force) {
       val methods = ListBuffer[(String, String, String)]()
       //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
       //eg:  className == code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1

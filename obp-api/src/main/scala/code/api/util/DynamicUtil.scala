@@ -170,26 +170,37 @@ object DynamicUtil extends MdcLoggable{
   }
 
   /**
-   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+   * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap.
    * @param clazz
    * @param predicate
+   * @param force bypasses the SHOW_USED_CONNECTOR_METHODS gate below. SHOW_USED_CONNECTOR_METHODS
+   *              exists to opt in to an unrelated, expensive introspection/reporting feature (which
+   *              connector methods a static endpoint touches) — it was never meant to gate SECURITY
+   *              validation, which reuses this same bytecode scan. Without `force`, a deployment
+   *              that sets dynamic_code_compile_validate_enable=true (the documented, security-
+   *              relevant prop) but leaves the unrelated show_used_connector_methods at its default
+   *              false would silently get an always-empty dependency list here — every dynamic-code
+   *              call looks "allowed" no matter what it does, because there is nothing to check
+   *              against the whitelist. Validation.validateDependency passes force=true so it is
+   *              controlled solely by dynamic_code_compile_validate_enable, matching what an
+   *              operator following that prop's own documentation would expect.
    * @return
    */
-  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = 
-  if (SHOW_USED_CONNECTOR_METHODS) {
+  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true, force: Boolean = false): List[(String, String, String)] =
+  if (SHOW_USED_CONNECTOR_METHODS || force) {
     val className = clazz.getTypeName
     val listBuffer = new ListBuffer[(String, String, String)]()
     val classPool = getClassPool(clazz.getClassLoader)
-    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
+    //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap.
     val ctClass = classPool.get(className)
     for {
       method <- ctClass.getDeclaredMethods.toList
       if predicate(method.getName)
-      ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature)
+      ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force)
     } yield {
       // if method is also dynamic compile code, extract it's dependent method
       if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
-        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature))
+        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature, force))
       } else {
         listBuffer.append(ternary)
       }
@@ -478,7 +489,9 @@ object DynamicUtil extends MdcLoggable{
 
     def validateDependency(obj: AnyRef): Unit = {
       if(APIUtil.getPropsAsBoolValue("dynamic_code_compile_validate_enable",false)){
-        val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass)
+        // force=true: this check must not also require the unrelated show_used_connector_methods
+        // prop -- see getDynamicCodeDependentMethods' doc comment for why.
+        val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass, force = true)
         validateDependency(dependentMethods)
       } else{ // If false, nothing to do here.
         ;
