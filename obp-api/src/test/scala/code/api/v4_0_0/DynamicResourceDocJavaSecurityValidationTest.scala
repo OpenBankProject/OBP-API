@@ -39,18 +39,24 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
       |}
       |""".stripMargin
 
+  // Mirrors sample.props.template's default dynamic_code_compile_validate_dependencies exactly,
+  // minus the trailing newlines/line-continuations -- deliberately does NOT list APIUtil.getPropsValue.
+  private def defaultDependenciesWhitelist: String =
+    """[NewStyle.function.getClass.getTypeName -> "*", CompiledObjects.getClass.getTypeName -> "sandbox", HttpCode.getClass.getTypeName -> "200", DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse", APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse", ErrorMessages.getClass.getTypeName -> "*", ExecutionContext.Implicits.getClass.getTypeName -> "global", JSONFactory400.getClass.getTypeName -> "createBanksJson", classOf[Sandbox].getTypeName -> "runInSandbox", classOf[CallContext].getTypeName -> "*", classOf[ResourceDoc].getTypeName -> "getPathParams", "scala.reflect.runtime.package$" -> "universe", PractiseEndpoint.getClass.getTypeName + "*" -> "*"]"""
+
+  private def enableStrictValidation(): Unit = setPropsValues(
+    "show_used_connector_methods" -> "true",
+    "dynamic_code_compile_validate_enable" -> "true",
+    "dynamic_code_compile_validate_dependencies" -> defaultDependenciesWhitelist
+  )
+
+  private def createRequest = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+
   feature("Security validation of Java method_body against dynamic_code_compile_validate_dependencies") {
     scenario("Registering a Java doc that calls a non-whitelisted OBP method is rejected with 400") {
-      setPropsValues(
-        "show_used_connector_methods" -> "true",
-        "dynamic_code_compile_validate_enable" -> "true",
-        "dynamic_code_compile_validate_dependencies" ->
-          """[NewStyle.function.getClass.getTypeName -> "*", CompiledObjects.getClass.getTypeName -> "sandbox", HttpCode.getClass.getTypeName -> "200", DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse", APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse", ErrorMessages.getClass.getTypeName -> "*", ExecutionContext.Implicits.getClass.getTypeName -> "global", JSONFactory400.getClass.getTypeName -> "createBanksJson", classOf[Sandbox].getTypeName -> "runInSandbox", classOf[CallContext].getTypeName -> "*", classOf[ResourceDoc].getTypeName -> "getPathParams", "scala.reflect.runtime.package$" -> "universe", PractiseEndpoint.getClass.getTypeName + "*" -> "*"]"""
-      )
-
+      enableStrictValidation()
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
-      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
       val doc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
         dynamicResourceDocId = None,
         bankId = None,
@@ -60,11 +66,48 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
         methodBody = java.net.URLEncoder.encode(maliciousMethodBody, "UTF-8"),
         programmingLang = "Java"
       )
-      val resp = makePostRequest(createReq, write(doc))
+      val resp = makePostRequest(createRequest, write(doc))
 
       Then("the compile is rejected with 400 DynamicResourceDocMethodDependency, not accepted")
       resp.code should equal(400)
       resp.body.extract[ErrorMessage].message should include(DynamicResourceDocMethodDependency)
+    }
+
+    // Regression guard for the bug createJavaHttp4sEndpoint had before it split compilation from
+    // validation: memoJavaCompiledScript (formerly memoJavaHttp4sEndpoint) memoized the WHOLE
+    // Box[Http4sEndpointIO], keyed only by the exact method_body string. A doc compiled once while
+    // validation was off got a cached Full(...) that a later, identical create call -- made AFTER
+    // validation was turned on and the whitelist tightened -- would silently reuse, never
+    // re-running Validation.validateDependency at all. This scenario reproduces exactly that
+    // sequence: compile the same malicious source once with validation off (succeeds, populates
+    // the compile cache), then enable strict validation and resubmit the identical source.
+    scenario("A Java source compiled once while validation was off is still validated on a later create call") {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+
+      val firstDoc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+        dynamicResourceDocId = None,
+        bankId = None,
+        roles = "",
+        partialFunctionName = "cacheBypassProbeTest1",
+        requestUrl = "/cache_bypass_probe_test_1/MY_USER_ID",
+        methodBody = java.net.URLEncoder.encode(maliciousMethodBody, "UTF-8"),
+        programmingLang = "Java"
+      )
+      When("validation is off (the suite default) and we compile the malicious source for the first time")
+      val firstResp = makePostRequest(createRequest, write(firstDoc))
+      firstResp.code should equal(201)
+
+      When("validation is then turned on with the same source resubmitted under a different doc")
+      enableStrictValidation()
+      val secondDoc = firstDoc.copy(
+        partialFunctionName = "cacheBypassProbeTest2",
+        requestUrl = "/cache_bypass_probe_test_2/MY_USER_ID"
+      )
+      val secondResp = makePostRequest(createRequest, write(secondDoc))
+
+      Then("the second create is still rejected -- the compile-result cache must not bypass fresh validation")
+      secondResp.code should equal(400)
+      secondResp.body.extract[ErrorMessage].message should include(DynamicResourceDocMethodDependency)
     }
   }
 }

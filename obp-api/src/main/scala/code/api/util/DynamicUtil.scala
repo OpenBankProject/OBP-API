@@ -44,7 +44,9 @@ object DynamicUtil extends MdcLoggable{
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
-  private val memoJavaHttp4sEndpoint = new Memo[String, Box[code.api.util.APIUtil.Http4sEndpointIO]]
+  // Caches only the compiled artifact (deterministic given the source string), never the
+  // validation outcome built on top of it -- see createJavaHttp4sEndpoint's doc comment.
+  private val memoJavaCompiledScript = new Memo[String, Box[ch.obermuhlner.scriptengine.java.JavaCompiledScript]]
 
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
     val cp = ClassPool.getDefault
@@ -368,6 +370,14 @@ object DynamicUtil extends MdcLoggable{
     // step, DynamicUtil.compileScalaCodeUnchecked, is already memoized by the exact source
     // string, so re-evaluating these on every call is a cache hit unless the underlying props
     // value actually changed.
+    //
+    // This makes allowedRuntimePermissions itself always current, but NOT everything downstream
+    // of it: Sandbox.sandbox(bankId) below separately caches the whole Sandbox it builds, keyed
+    // only by bankId -- so a bankId whose sandbox was already built keeps that snapshot of
+    // allowedRuntimePermissions until the process restarts, same staleness this def change fixed
+    // for validateDependency. Left as-is here because it's moot in practice: SecurityManager
+    // enforcement is already a no-op on this JVM (JEP 486, JDK 24+; see Sandbox's own comment),
+    // so neither the stale nor the fresh permission list is actually enforced.
     def dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
     def scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
     def permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
@@ -620,7 +630,7 @@ object DynamicUtil extends MdcLoggable{
    */
   def createJavaHttp4sEndpoint(methodBody: String): Box[code.api.util.APIUtil.Http4sEndpointIO] =
     if (!dynamicCodeExecutionEnabled) Failure(ErrorMessages.DynamicCodeExecutionDisabled)
-    else memoJavaHttp4sEndpoint.memoize("java-http4s-endpoint:" + methodBody) {
+    else {
       import cats.effect.IO
       import code.api.util.APIUtil.Http4sEndpointIO
       import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -631,25 +641,38 @@ object DynamicUtil extends MdcLoggable{
 
       import scala.jdk.CollectionConverters._
 
-      // Real compile happens here (javax.tools.JavaCompiler via the JSR-223 "java" engine) — any
-      // Java syntax/type error surfaces as an exception, caught by this `Box tryo` and turned into
-      // a Failure. Deliberately narrow: only the compile step is wrapped. Validation runs below,
-      // outside any tryo — see the comment there for why that separation matters.
-      val compiledScriptBox: Box[ch.obermuhlner.scriptengine.java.JavaCompiledScript] = Box tryo {
-        val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")
-        val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
+      // Only the compile step is memoized — deterministic given the same source string, and the
+      // one genuinely expensive part (a real javax.tools.JavaCompiler invocation). Dependency
+      // validation below is NOT memoized: it depends on mutable external config
+      // (dynamic_code_compile_validate_enable/_dependencies), which can change between two
+      // createJavaHttp4sEndpoint calls for the identical source string — e.g. a doc compiled once
+      // while validation was off, then a later create/update call resubmitting the exact same
+      // method_body after validation was turned on and the whitelist tightened. An earlier version
+      // of this function memoized the validated *result* (Box[Http4sEndpointIO]) as a single unit,
+      // so that second call silently reused the first call's unvalidated success — bypassing the
+      // now-stricter policy for any resubmitted source. Re-running validation on every call costs
+      // little: it is Javassist bytecode inspection plus a Map lookup, not another compile.
+      val compiledScriptBox: Box[ch.obermuhlner.scriptengine.java.JavaCompiledScript] =
+        memoJavaCompiledScript.memoize("java-http4s-endpoint:" + methodBody) {
+          // Real compile happens here (javax.tools.JavaCompiler via the JSR-223 "java" engine) —
+          // any Java syntax/type error surfaces as an exception, caught by this `Box tryo` and
+          // turned into a Failure.
+          Box tryo {
+            val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")
+            val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
 
-        val javaCode = s"""package code.api.util.dynamic.${packageExp};
-                          |${packageMatcher.replaceFirst("")}
-                          |""".stripMargin
+            val javaCode = s"""package code.api.util.dynamic.${packageExp};
+                              |${packageMatcher.replaceFirst("")}
+                              |""".stripMargin
 
-        javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
-          .asInstanceOf[ch.obermuhlner.scriptengine.java.JavaCompiledScript]
-      }
+            javaEngine.asInstanceOf[javax.script.Compilable].compile(javaCode)
+              .asInstanceOf[ch.obermuhlner.scriptengine.java.JavaCompiledScript]
+          }
+        }
 
-      // Deliberately outside compiledScriptBox's `Box tryo`: a rejection here throws
-      // JsonResponseException, which must propagate UNCAUGHT (mirroring the Scala path's
-      // CompiledObjects.validateDependency(), also never wrapped in tryo) so
+      // Deliberately outside compiledScriptBox's `Box tryo` AND outside the memoization above: a
+      // rejection here throws JsonResponseException, which must propagate UNCAUGHT (mirroring the
+      // Scala path's CompiledObjects.validateDependency(), also never wrapped in tryo) so
       // compileDynamicResourceDoc's `case e: JsonResponseException => throw e` sees it intact.
       // JsonResponseException never sets a Throwable message (getMessage == null); Box.tryo would
       // catch it into Failure(null, Full(theException), Empty), and DynamicEndpoints.scala's
@@ -667,7 +690,9 @@ object DynamicUtil extends MdcLoggable{
         // what the Java code actually calls. Read the bytes directly from the classloader's private
         // byte map (reflection is unavoidable here: java-scriptengine exposes no public accessor)
         // and hand them to Javassist explicitly via ByteArrayClassPath, so the real method bodies —
-        // including any restricted OBP call — are visible to validation.
+        // including any restricted OBP call — are visible to validation. Re-registering the same
+        // bytes on a compile-cache hit is harmless: Javassist's ClassPool just gains a duplicate,
+        // already-matching ClassPath entry.
         val classBytesField = compiledClass.getClassLoader.getClass.getDeclaredField("mapClassBytes")
         classBytesField.setAccessible(true)
         val classBytes = classBytesField.get(compiledClass.getClassLoader)
@@ -676,7 +701,8 @@ object DynamicUtil extends MdcLoggable{
           .appendClassPath(new javassist.ByteArrayClassPath(compiledClass.getName, classBytes))
 
         // Validate the real compiled Supplier class before it's ever invoked — see the doc comment
-        // above for why this must run against getCompiledInstance, not `func`/`this.partialFunction`.
+        // above for why this must run against getCompiledInstance, not `func`/`this.partialFunction`,
+        // and why it must run fresh on every call rather than being cached with the compile result.
         Validation.validateDependency(compiledScript.getCompiledInstance)
 
         val func = compiledScript.eval().asInstanceOf[java.util.function.Function[Array[AnyRef], Any]]
