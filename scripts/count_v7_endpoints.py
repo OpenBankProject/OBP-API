@@ -215,13 +215,29 @@ def parse_file(path: Path, version: tuple) -> tuple[list[Doc], set[int]]:
         chunk = chunk[chunk.index("ResourceDoc") + len("ResourceDoc"):]
         chunk = chunk[chunk.index("(") + 1:]
         args = split_top_level_args(chunk, want=5)
-        if len(args) < 5:
+        if len(args) < 4:
             print(f"  WARN: incomplete args at {path.name}:{idx + 1}", file=sys.stderr)
             continue
-        m = NAMEOF_RE.search(args[2])
-        func = m.group(1) if m else strip_str_literal(args[2])
-        verb = strip_str_literal(args[3]).upper()
-        url  = strip_str_literal(args[4])
+        # Detect which ResourceDoc constructor signature this call uses: the Lift
+        # teardown removed the leading `partialFunction` parameter, so a
+        # pre-teardown call (name/verb/url at args[2]/[3]/[4]) and a current one
+        # (args[1]/[2]/[3], no leading partialFunction) put every field at a
+        # different offset. Same detection check_lift_http4s_resource_doc_parity.py
+        # uses for its own POSITIONAL_FIELDS/CURRENT_POSITIONAL_FIELDS split —
+        # every current Http4sXYZ.scala uses the second form, which the previous,
+        # hardcoded-to-the-first-form version of this function silently matched
+        # zero endpoints against.
+        if strip_str_literal(args[2]).upper() in HTTP_VERBS:
+            name_idx, verb_idx, url_idx = 1, 2, 3
+        else:
+            name_idx, verb_idx, url_idx = 2, 3, 4
+        if len(args) <= url_idx:
+            print(f"  WARN: incomplete args at {path.name}:{idx + 1}", file=sys.stderr)
+            continue
+        m = NAMEOF_RE.search(args[name_idx])
+        func = m.group(1) if m else strip_str_literal(args[name_idx])
+        verb = strip_str_literal(args[verb_idx]).upper()
+        url  = strip_str_literal(args[url_idx])
         if verb not in HTTP_VERBS:
             print(f"  WARN: unexpected verb {verb!r} at {path.name}:{idx + 1}",
                   file=sys.stderr)
