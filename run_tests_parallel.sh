@@ -455,25 +455,39 @@ fi
 # reporting path is needed.
 echo ""
 echo "Running PropGatedPublicEndpoint tests (prop=true JVM)..."
-alloc_free_port || exit 1; PROP_PORT=$ALLOC_PORT
-alloc_free_port || exit 1; PROP_HTTP4S_PORT=$ALLOC_PORT
-MAVEN_OPTS="$MVN_OPTS" \
-OBP_TESTS_PORT="${PROP_PORT}" \
-OBP_HOSTNAME="http://localhost:${PROP_PORT}" \
-OBP_HTTP4S_TEST_PORT="${PROP_HTTP4S_PORT}" \
-OBP_MAIL_TEST_MODE="true" \
-OBP_API_INSTANCE_ID="prop_gated_${PROP_PORT}" \
-OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true" \
-OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true" \
-"$TIMEOUT_BIN" 300 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
-    "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest" \
-    -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= \
-    > test-results/parallel/prop_gated_public_endpoint.log 2>&1
-PROP_RC=$?
-if [[ $PROP_RC -ne 0 ]]; then
-    echo "  ✗ PropGatedPublicEndpoint tests failed — see test-results/parallel/prop_gated_public_endpoint.log"
+# Port allocation failure records a failing RC instead of exiting: the four shards
+# have already run by this point, and a hard exit here would skip the summary,
+# the per-shard failure diagnostics and the Surefire audit below — throwing away
+# their results over an unrelated transient.
+if ! alloc_free_port; then
+    echo "  ✗ PropGatedPublicEndpoint tests skipped — could not allocate a test port"
+    PROP_RC=1
 else
-    echo "  ✓ PropGatedPublicEndpoint tests passed"
+    PROP_PORT=$ALLOC_PORT
+    if ! alloc_free_port; then
+        echo "  ✗ PropGatedPublicEndpoint tests skipped — could not allocate an http4s port"
+        PROP_RC=1
+    else
+        PROP_HTTP4S_PORT=$ALLOC_PORT
+        MAVEN_OPTS="$MVN_OPTS" \
+        OBP_TESTS_PORT="${PROP_PORT}" \
+        OBP_HOSTNAME="http://localhost:${PROP_PORT}" \
+        OBP_HTTP4S_TEST_PORT="${PROP_HTTP4S_PORT}" \
+        OBP_MAIL_TEST_MODE="true" \
+        OBP_API_INSTANCE_ID="prop_gated_${PROP_PORT}" \
+        OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true" \
+        OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true" \
+        "$TIMEOUT_BIN" 300 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
+            "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest" \
+            -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= \
+            > test-results/parallel/prop_gated_public_endpoint.log 2>&1
+        PROP_RC=$?
+        if [[ $PROP_RC -ne 0 ]]; then
+            echo "  ✗ PropGatedPublicEndpoint tests failed — see test-results/parallel/prop_gated_public_endpoint.log"
+        else
+            echo "  ✓ PropGatedPublicEndpoint tests passed"
+        fi
+    fi
 fi
 RCS+=($PROP_RC)
 
