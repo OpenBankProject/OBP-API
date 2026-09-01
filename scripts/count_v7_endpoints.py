@@ -7,7 +7,9 @@ Statically reproduces Http4s700.allResourceDocs.
 Inputs are derived from source — no hardcoded data tables:
   * Version files are discovered by globbing obp-api/src/main/scala/code/api/v*/
     for Http4s{NNN}.scala. All registrations live in Http4s files now — the
-    older Lift APIMethods*.scala files have been emptied/commented out.
+    older Lift APIMethods*.scala files have been deleted (their historical
+    ResourceDoc text lives on in scripts/resource_doc_baseline/, see that
+    directory's README).
   * excludeEndpoints lists are extracted from each version's OBPAPI{a}_{b}_{c}.scala
     (or OBPAPI{a}.{b}.{c}.scala for v1.2.1) — and from Http4s700.scala for v7
     which has no OBPAPI counterpart.
@@ -63,8 +65,8 @@ def discover_version_files() -> list[tuple[tuple, Path]]:
     """Find every v*/ directory and resolve its Http4s{NNN}.scala source file.
 
     Every version's contribution to the aggregation chain lives in its
-    Http4s{NNN}.scala (the older Lift APIMethods*.scala files have been
-    commented out and no longer carry registrations).
+    Http4s{NNN}.scala (the older Lift APIMethods*.scala files that used to
+    carry registrations have been deleted).
     """
     found = []
     for entry in sorted(SRC.iterdir()):
@@ -272,7 +274,7 @@ def collect(*buckets: list[Doc]) -> list[Doc]:
 def main() -> None:
     version_files = discover_version_files()
     if not version_files:
-        sys.exit("ERROR: no v*/Http4s*.scala or APIMethods*.scala files found")
+        sys.exit("ERROR: no v*/Http4s*.scala files found")
 
     by_version: dict[tuple, list[Doc]] = {}
     self_check_warnings: list[str] = []
