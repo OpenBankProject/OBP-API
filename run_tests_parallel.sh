@@ -214,6 +214,12 @@ run_shard() {
     # fallback, so DynamicUtilTest / ConnectorMethodTest / AbacRuleTests /
     # DynamicResourceDocTest / DynamicMessageDocTest / DynamicCodeKillSwitchTest's ON
     # scenarios need this set explicitly or they fail locally with OBP-50020.
+    # OBP_BERLIN_GROUP_V1_3_ALIAS_PATH mirrors CI's berlin_group_v1_3_alias_path=0.6/v1
+    # (injected by both workflows' "Setup props" step): without it, OBP_BERLIN_GROUP_1_3_Alias
+    # reports an empty ScannedApiVersion("","","") and ScannedApis.isAddressable filters it
+    # out of versionMapScannedApis entirely, so ApiVersionUtilsTest's `versions.length shouldBe(21)`
+    # sees only 20 (CI green, local red) -- confirmed by reproducing the failure on a clean
+    # checkout with this var unset, then reproducing the pass with it set.
     # -pl obp-commons,obp-api mirrors CI: obp-commons' own util suites run on whichever
     # shard's filter matches com.openbankproject.* (the shard-4 catch-all); on every other
     # shard the filter matches nothing in obp-commons -> 0 tests there.
@@ -239,6 +245,7 @@ run_shard() {
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
+    OBP_BERLIN_GROUP_V1_3_ALIAS_PATH="0.6/v1" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
