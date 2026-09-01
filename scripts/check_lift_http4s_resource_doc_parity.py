@@ -49,6 +49,16 @@ BASELINE_DIR = REPO_ROOT / "scripts" / "resource_doc_baseline"
 DEFAULT_ALLOWLIST_PATH = BASELINE_DIR / "parity_allowlist.json"
 API_ROOT = REPO_ROOT / "obp-api" / "src" / "main" / "scala" / "code" / "api"
 
+VERSION_RE = re.compile(r"^v\d+_\d+_\d+$")
+
+
+def resolve_inside(path: Path, root: Path, what: str) -> Path:
+    """Resolve a caller-supplied path and require it to stay under root."""
+    resolved = Path(path).resolve()
+    if resolved != root and root not in resolved.parents:
+        sys.exit(f"ERROR: {what} must be inside {root}, got: {resolved}")
+    return resolved
+
 # Positional fields in the pre-teardown ResourceDoc(...) signature, which is what
 # the commented-out Lift baselines still use — the endpoint partial function was
 # the first parameter.
@@ -479,6 +489,8 @@ def load_baseline_docs(version: str):
     JSON-sourced and .scala-sourced docs identically. Returns None if no
     baseline file exists for this version.
     """
+    if not VERSION_RE.match(version):
+        sys.exit(f"ERROR: not a valid version token: {version!r} (expected e.g. v6_0_0)")
     path = BASELINE_DIR / f"lift_resource_docs_{version}.json"
     if not path.exists():
         return None
@@ -499,6 +511,7 @@ def load_baseline_docs(version: str):
 
 
 def load_allowlist(path: Path):
+    path = resolve_inside(path, REPO_ROOT, "--allowlist")
     if not path.exists():
         return {"rename_pairs": [], "only_in_lift": [], "only_in_http4s": [], "field_mismatches": []}
     data = json.loads(path.read_text(encoding="utf-8"))
