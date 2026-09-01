@@ -465,17 +465,20 @@ object Http4s220 {
               bank.swift_bic, bank.national_identifier,
               bank.bank_routing.scheme, bank.bank_routing.address, Some(cc)
             )
+            // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
+            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
+            humanUserId = cc.accountableUserId
             entitlements <- Future {
               unboxFullOrFail(
-                code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId),
+                code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(humanUserId),
                 Some(cc), UnknownError)
             }
             _ <- Future {
               val bankEntitlements = entitlements.filter(_.bankId == bank.id)
               if (!bankEntitlements.exists(_.roleName == canCreateEntitlementAtOneBank.toString()))
-                code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, user.userId, canCreateEntitlementAtOneBank.toString())
+                code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, humanUserId, canCreateEntitlementAtOneBank.toString(), grantedByUserId = Some(user.userId))
               if (!bankEntitlements.exists(_.roleName == canReadDynamicResourceDocsAtOneBank.toString()))
-                code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, user.userId, canReadDynamicResourceDocsAtOneBank.toString())
+                code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, humanUserId, canReadDynamicResourceDocsAtOneBank.toString(), grantedByUserId = Some(user.userId))
             }
           } yield JSONFactory220.createBankJSON(success)
         }

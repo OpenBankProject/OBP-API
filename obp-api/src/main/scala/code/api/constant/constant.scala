@@ -16,6 +16,21 @@ object Constant extends MdcLoggable {
 
   final val directLoginHeaderName = "DirectLogin"
 
+  // createdByProcess of entitlement rows the consent engine copies onto a consent user —
+  // the per-consent principal a Consent-JWT authenticates as (its ResourceUser row carries
+  // CreatedByConsentId). Only rows tagged with this value may target a consent user:
+  // addEntitlement redirects any other grant to the consent's granting human, so durable
+  // roles (e.g. bank-creator grants) can never strand on a principal that dies with its
+  // consent. Also the marker for cleaning these rows up when the consent is revoked.
+  final val consent_user = "consent_user"
+
+  // createdByProcess of entitlement rows granted through group membership (the Groups
+  // feature). The value predates this constant: the Groups feature originally wrote it to
+  // its own `process` column, a duplicate of createdByProcess since retired — provenance
+  // now lives in createdByProcess like every other granting mechanism, and group rows are
+  // identified by their group_id.
+  final val group_membership = "GROUP_MEMBERSHIP"
+
   object Pagination {
     final val offset = 0
     final val limit = 50

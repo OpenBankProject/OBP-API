@@ -39,7 +39,7 @@ case class CallContext(
                         // the creator is the granting human (they create their own consent in the Portal).
                         // Not set by Berlin Group / UK flows, where the consent may be created by a TPP flow
                         // with no human logged in — see `consenter` for those.
-                        // Read via humanUser / effectiveHumanUserId, where it takes precedence over consenter.
+                        // Read via humanUser / accountableUserId, where it takes precedence over consenter.
                         onBehalfOfUser: Box[User] = Empty,
                         // The human (PSU) who AUTHORISED the consent this request runs under — the owner of
                         // record, from the consent table's userId (bound by updateConsentUser during the
@@ -113,7 +113,7 @@ case class CallContext(
    * Anything that must name a human rather than a principal reads this instead: the CBS adapter,
    * which tells the core banking system who is asking, and the consent ownership checks.
    * Stored data (metric rows included) always carries the authenticated principal; the human is
-   * resolved at read time via the consent table (see effectiveHumanUserId).
+   * resolved at read time via the consent table (see accountableUserId).
    */
   def humanUser: Box[User] = onBehalfOfUser.or(consenter).or(user)
 
@@ -182,7 +182,7 @@ case class CallContext(
       // (CallContext.user), never a resolved human. Under a consent that principal is the
       // consent's own shadow user (a per-consent UUID with an empty name) — the on-behalf-of
       // human is not stored here but resolved at read time via the consent table
-      // (consentReferenceId below -> consent.userId), see CallContext.effectiveHumanUserId.
+      // (consentReferenceId below -> consent.userId), see CallContext.accountableUserId.
       userId = this.user.map(_.userId).toOption,
       userName = this.user.map(_.name).toOption,
       consumerId = this.consumer.map(_.consumerId.get).toOption,
@@ -217,22 +217,31 @@ case class CallContext(
   def userId: String  = user.map(_.userId).openOrThrowException(AuthenticatedUserIsRequired)
 
   /**
-   * The human User this request is really about.
+   * The ACCOUNTABLE identity this request is really about — the user_id that durable
+   * state (creator role grants, account holders, entitlement requests) and attribution
+   * (metrics families, "my" queries) bind to. "Accountable" deliberately hints at a
+   * legal person: today resolution always ends at the human who granted the consent,
+   * but the contract is accountability, not species — if durable, sponsored agent
+   * identities are ever admitted as principals in their own right, resolution may stop
+   * at such an agent without this name becoming a lie (unlike the previous name,
+   * effectiveHumanUserId).
    *
-   * The authenticated `user` may be the human themselves, or an agent user minted by a
-   * Consent the human granted (e.g. Opey / MCP acting under a consent). Resolution order:
+   * The authenticated `user` may be the accountable party themselves, or a consent user
+   * minted by a Consent they granted (e.g. Opey / MCP acting under a consent) — consent
+   * users are ephemeral and must never hold durable state (see addEntitlement's guard).
+   * Resolution order:
    *  1. `onBehalfOfUser` or `consenter`, when a middleware populated them (free);
    *  2. otherwise resolve via the delegation registry: the caller's ResourceUser row's
    *     CreatedByConsentId names the Consent that minted it, and that Consent's userId
    *     names the granting human;
-   *  3. otherwise the caller IS the human.
+   *  3. otherwise the caller IS the accountable party.
    *
    * IMPORTANT: this reads only the authenticated user and server-written columns
    * (ResourceUser.CreatedByConsentId, MappedConsent.mUserId). It deliberately takes no
    * parameters so nothing caller-asserted (body/header/query values) can ever influence
    * the resolution — identity-sensitive queries (e.g. /my/banks) depend on that.
    */
-  def effectiveHumanUserId: String = {
+  def accountableUserId: String = {
     val delegatedHumanUserId = onBehalfOfUser.or(consenter).map(_.userId).filter(_.nonEmpty)
     delegatedHumanUserId.openOr {
       val authenticatedUserId = user.map(_.userId).openOr("")

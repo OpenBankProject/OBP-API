@@ -1526,7 +1526,13 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               accountRoutings = Nil,
               callContext = callContext
             )
-            _ <- code.model.dataAccess.BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, newAccountId, cc.get.user.head, callContext)
+            // Holder is the HUMAN: under a Consent cc.user is the per-consent shadow, and a
+            // holding account held by it would strand when the consent dies. For non-consent
+            // callers accountableUserId is the caller, so this is a no-op for them.
+            holdingAccountHolder = cc.flatMap(c =>
+              code.users.Users.users.vend.getUserByUserId(c.accountableUserId).toOption
+            ).getOrElse(cc.get.user.head)
+            _ <- code.model.dataAccess.BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, newAccountId, holdingAccountHolder, callContext)
             // create attribute on holding account to link to releaser account
             _ <- NewStyle.function.createOrUpdateAccountAttribute(
               bankId = bankId,

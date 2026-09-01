@@ -3195,6 +3195,12 @@ object Http4s510 {
               APIUtil.canGrantAccessToView(com.openbankproject.commons.model.BankIdAccountIdViewId(bankId, accountId, viewId), targetViewId, user, Some(cc))
             }
             (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            // A consent user's account access comes ONLY from its Consent (materialised and
+            // revoked with it); access granted here would outlive nothing and confuse audits.
+            _ <- Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Account access targets humans - a consent user's access comes only from its Consent.",
+              failCode = 400, cc = Some(cc))(!targetUser.isConsentUser)
             view <- if (isValidSystemViewId(targetViewId.value)) ViewNewStyle.systemView(targetViewId, Some(cc))
                     else ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
             addedView <- JSONFactory400.grantAccountAccessToUser(bankId, accountId, targetUser, view, Some(cc))

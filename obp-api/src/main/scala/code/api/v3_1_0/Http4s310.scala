@@ -3063,8 +3063,9 @@ object Http4s310 {
     )
 
     // ─── updateAccountApplicationStatus (PUT) ────────────────────────────────
-    // Side effect: when status == "ACCEPTED", a new bank account is created for the
-    // logged-in user. Preserved verbatim from the Lift implementation.
+    // Side effect: when status == "ACCEPTED", a new bank account is created and the
+    // APPLICANT (the application's user) becomes its holder. The Lift implementation
+    // (and its verbatim port) made the logged-in approver the holder — fixed 2026-09.
 
     val updateAccountApplicationStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "banks" / _ / "account-applications" / accountApplicationIdStr =>
@@ -3074,24 +3075,36 @@ object Http4s310 {
             _ <- NewStyle.function.tryons(s"$InvalidJsonFormat status should not be blank.", 400, Some(cc)) {
               org.apache.commons.lang3.Validate.notBlank(putJson.status)
             }
-            (_, _) <- NewStyle.function.getAccountApplicationById(accountApplicationIdStr, Some(cc))
-            (accountApplication, _) <- NewStyle.function.updateAccountApplicationStatus(accountApplicationIdStr, putJson.status, Some(cc))
-            userIdOpt = Option(accountApplication.userId)
-            customerIdOpt = Option(accountApplication.customerId)
+            (applicationBefore, _) <- NewStyle.function.getAccountApplicationById(accountApplicationIdStr, Some(cc))
+            userIdOpt = Option(applicationBefore.userId)
+            customerIdOpt = Option(applicationBefore.customerId)
             appUser <- unboxOptionOBPReturnType(userIdOpt.map(NewStyle.function.findByUserId(_, Some(cc))))
             customer <- unboxOptionOBPReturnType(customerIdOpt.map(NewStyle.function.getCustomerByCustomerId(_, Some(cc))))
+            // Guard BEFORE the status transition commits: failing after it would strand the
+            // application as ACCEPTED with no account. A consent-user applicant can only come
+            // from a row that predates the creation-side guard (or was written another way).
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId The application's user is a consent user (an agent identity minted by a Consent). Accounts are held by humans - re-apply with the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!appUser.exists(_.isConsentUser))
+            (accountApplication, _) <- NewStyle.function.updateAccountApplicationStatus(accountApplicationIdStr, putJson.status, Some(cc))
             _ <- putJson.status match {
               case "ACCEPTED" =>
+                // The APPLICANT becomes the holder. The Lift-era code (ported verbatim) made the
+                // approving admin the holder and left appUser unused — every accepted application
+                // handed the account to whoever clicked approve. Customer-only applications
+                // (userId empty) keep the legacy approver-as-holder behaviour: there is no user
+                // to hold, and refusing here would strand the just-committed ACCEPTED status.
                 for {
                   accountId <- Future(AccountId(java.util.UUID.randomUUID().toString))
+                  holder = appUser.getOrElse(user)
                   (_, _) <- NewStyle.function.createBankAccount(
                     bank.bankId, accountId,
                     accountApplication.productCode.value,
                     "", "EUR", BigDecimal("0"),
-                    user.name, "",
+                    holder.name, "",
                     List.empty, Some(cc))
                   success <- code.model.dataAccess.BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(
-                    bank.bankId, accountId, user, Some(cc))
+                    bank.bankId, accountId, holder, Some(cc))
                 } yield success
               case _ => Future("")
             }
@@ -3227,6 +3240,12 @@ object Http4s310 {
               org.apache.commons.lang3.Validate.isTrue(postedData.user_id.isDefined || postedData.customer_id.isDefined)
             }
             appUser <- unboxOptionOBPReturnType(postedData.user_id.map(NewStyle.function.findByUserId(_, Some(cc))))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            // On ACCEPTED the application's user becomes the account holder, so a consent
+            // user must be rejected here, before the application is stored.
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!appUser.exists(_.isConsentUser))
             customer <- unboxOptionOBPReturnType(postedData.customer_id.map(NewStyle.function.getCustomerByCustomerId(_, Some(cc))))
             (accountApplication, _) <- NewStyle.function.createAccountApplication(
               productCode = ProductCode(postedData.product_code),
@@ -4301,10 +4320,16 @@ object Http4s310 {
             (accountBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
             _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, cc = Some(cc)) { accountBox.isEmpty }
             loggedInUserId = user.userId
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else loggedInUserId
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
+            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.accountableUserId
             _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
             (accountOwner, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!accountOwner.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else code.util.Helper.booleanToFuture(
                    s"$UserHasMissingRoles $canCreateAccount or create account for self",

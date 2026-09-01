@@ -380,7 +380,10 @@ object Consent extends MdcLoggable {
           existingEntitlements.exists(_.roleName == entitlement.role_name) match { // Check is a role already added to a user
             case false =>
               val bankId = if (role.requiresBankId) entitlement.bank_id else ""
-              Entitlement.entitlement.vend.addEntitlement(bankId, user.userId, entitlement.role_name) match {
+              // Tagged consent_user: this is the ONE writer allowed to target a consent
+              // user — addEntitlement redirects untagged grants to the granting human.
+              Entitlement.entitlement.vend.addEntitlement(bankId, user.userId, entitlement.role_name,
+                createdByProcess = Constant.consent_user) match {
                 case Full(_) => (entitlement, "AddedOrExisted")
                 case _ =>
                   (entitlement, CannotAddEntitlement + entitlement)
@@ -905,7 +908,7 @@ object Consent extends MdcLoggable {
       } yield {
         (principal, callContext.copy(
           // The PSU stays reachable for everything that needs a human: the CBS adapter, metric
-          // attribution, and CallContext.effectiveHumanUserId.
+          // attribution, and CallContext.accountableUserId.
           consenter = Full(psu),
           ukConsentId = Some(storedConsent.consentId),
           consentReferenceId = Some(storedConsent.consentReferenceId)

@@ -287,12 +287,12 @@ object Http4s700 {
     // Response shapes reuse the v6 bank JSON (BankJson600 / BanksJsonV600).
 
     // ─── Delegation fan-down for /my/banks ───────────────────────────────────
-    // Resolving UP (agent caller → the granting human) is cc.effectiveHumanUserId.
+    // Resolving UP (agent caller → the granting human) is cc.accountableUserId.
     // This is the fan DOWN: the human plus every agent user minted from any Consent the
     // human granted — i.e. all user ids whose creations belong to that human. Match the
     // result against CreatedByUserId. Reads only server-written columns
     // (MappedConsent.mUserId, ResourceUser.CreatedByConsentId); the input must be an
-    // already-resolved human id (cc.effectiveHumanUserId), never a raw caller value.
+    // already-resolved human id (cc.accountableUserId), never a raw caller value.
 
     private def humanAndAgentUserIds(humanUserId: String): List[String] = {
       val consentIds = Consents.consentProvider.vend.getConsentsByUser(humanUserId)
@@ -336,7 +336,7 @@ object Http4s700 {
               // Quota binds to the human: banks created by the human directly or by any
               // of their consent-agents count toward the same limit — otherwise every
               // new consent would arrive with a fresh quota.
-              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
+              val creatorUserIds = humanAndAgentUserIds(cc.accountableUserId)
               MappedBank.count(ByList(MappedBank.CreatedByUserId, creatorUserIds))
             }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
@@ -356,8 +356,11 @@ object Http4s700 {
               "", "", "", "", "", "",
               Some(cc)
             )
+            // Creator grant targets the HUMAN (see v6.0.0 createBank): under a Consent the
+            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
             _ <- Future(Entitlement.entitlement.vend.addEntitlement(
-              generatedName.bankId, cc.userId, canCreateEntitlementAtOneBank.toString()))
+              generatedName.bankId, cc.accountableUserId, canCreateEntitlementAtOneBank.toString(),
+              grantedByUserId = Some(cc.userId)))
           } yield JSONFactory600.createBankJSON600(bank)
         }
     }
@@ -414,7 +417,7 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             banksCreatedByUser <- Future {
-              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
+              val creatorUserIds = humanAndAgentUserIds(cc.accountableUserId)
               MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
             }
           } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
@@ -484,7 +487,13 @@ object Http4s700 {
       case req @ POST -> `prefixPath` / "users" / userId / "entitlements" =>
         EndpointHelpers.withUserAndBodyCreated[CreateEntitlementJSON, AnyRef](req) { (user, body, cc) =>
           for {
-            (_, _)   <- NewStyle.function.findByUserId(userId, Some(cc))
+            (targetUser, _) <- NewStyle.function.findByUserId(userId, Some(cc))
+            // Explicit target: fail loud rather than redirect. A consent user (an agent
+            // identity minted by a Consent) cannot hold durable roles — grant to the
+            // granting human instead.
+            _ <- Helper.booleanToFuture(
+              s"$InvalidUserId USER_ID names a consent user (an agent identity minted by a Consent). Entitlements target humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!targetUser.isConsentUser)
             role     <- NewStyle.function.tryons(
               s"$InvalidJsonFormat Unknown role: ${body.role_name}. Possible roles: ${ApiRole.availableRoles.sorted.mkString(", ")}",
               400, Some(cc)) { ApiRole.valueOf(body.role_name) }
@@ -933,7 +942,6 @@ object Http4s700 {
                   else "oidc_operator_user_ids"
                 def entitlementRequestId: Option[String] = None
                 def groupId: Option[String]              = None
-                def process: Option[String]              = None
                 def grantedByUserId: Option[String]      = None
               }
             }
@@ -1140,7 +1148,7 @@ object Http4s700 {
             // human, then fan down — both via server-written columns only.
             (metrics, _) <- APIMetrics.getMetricsFromHttpParams(
               httpParams, cc.callContext,
-              lockedUserIds = Some(humanAndAgentUserIds(cc.effectiveHumanUserId)))
+              lockedUserIds = Some(humanAndAgentUserIds(cc.accountableUserId)))
           } yield JSONFactory600.createMetricsJsonV600(metrics)
         }
     }
@@ -4197,8 +4205,14 @@ object Http4s700 {
           case None => Future.successful(AccountId(APIUtil.generateUUID()))
         }
         // CanCreateAccount is enforced by ResourceDocMiddleware from the doc.
-        ownerId = body.user_id.filter(_.trim.nonEmpty).getOrElse(user.userId)
+        // The implicit owner is the HUMAN: under a Consent the caller (user.userId) is the
+        // per-consent shadow, and an account held by it strands when the consent dies.
+        ownerId = body.user_id.filter(_.trim.nonEmpty).getOrElse(cc.accountableUserId)
         (owner, _) <- NewStyle.function.findByUserId(ownerId, Some(cc))
+        // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+        _ <- Helper.booleanToFuture(
+          s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+          failCode = 400, cc = Some(cc))(!owner.isConsentUser)
         initialBalance <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, Some(cc)) {
           BigDecimal(body.balance.amount)
         }

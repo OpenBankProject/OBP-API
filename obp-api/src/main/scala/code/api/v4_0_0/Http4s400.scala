@@ -10144,10 +10144,16 @@ object Http4s400 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.api.v3_1_0.CreateAccountRequestJsonV310]
             }
             loggedInUserId = cc.userId
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner =
               if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id
-              else loggedInUserId
+              else cc.accountableUserId
             (postedOrLoggedInUser, callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!postedOrLoggedInUser.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else NewStyle.function.hasEntitlement(
                    bankId.value, loggedInUserId, canCreateAccount, callContext,
@@ -10214,10 +10220,16 @@ object Http4s400 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[SettlementAccountRequestJson]
             }
             loggedInUserId = cc.userId
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner =
               if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id
-              else loggedInUserId
+              else cc.accountableUserId
             (postedOrLoggedInUser, callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!postedOrLoggedInUser.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else NewStyle.function.hasEntitlement(bankId.value, loggedInUserId, canCreateSettlementAccountAtOneBank, callContext)
             initialBalanceAsString = createAccountJson.balance.amount

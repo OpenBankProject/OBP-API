@@ -845,8 +845,14 @@ object Http4s200 {
               isValidID(bank.bankId.value)
             }
             loggedInUserId   = user.userId
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else loggedInUserId
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
+            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.accountableUserId
             (postedOrLoggedInUser, cc2) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = cc2)(!postedOrLoggedInUser.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else code.util.Helper.booleanToFuture(
                    s"${UserHasMissingRoles} $canCreateAccount or create account for self", failCode = 403, cc = Some(cc)) {
@@ -1188,7 +1194,13 @@ object Http4s200 {
       case req @ POST -> `prefixPath` / "users" / userId / "entitlements" =>
         EndpointHelpers.withUserAndBodyCreated[CreateEntitlementJSON, EntitlementJSON](req) { (user, body, cc) =>
           for {
-            (_, cc2) <- NewStyle.function.findByUserId(userId, Some(cc))
+            (targetUser, cc2) <- NewStyle.function.findByUserId(userId, Some(cc))
+            // Explicit target: fail loud rather than redirect. A consent user (an agent
+            // identity minted by a Consent) cannot hold durable roles — grant to the
+            // granting human instead.
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId USER_ID names a consent user (an agent identity minted by a Consent). Entitlements target humans - use the granting user's USER_ID.",
+              failCode = 400, cc = cc2)(!targetUser.isConsentUser)
             role <- Future {
               unboxFullOrFail(
                 net.liftweb.util.Helpers.tryo { ApiRole.valueOf(body.role_name) },

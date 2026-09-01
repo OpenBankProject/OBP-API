@@ -47,8 +47,22 @@ import scala.collection.mutable.ArrayBuffer
  */
 object OBP_BERLIN_GROUP_1_3_Alias extends OBPRestHelper with MdcLoggable with ScannedApis {
 
+  /**
+   * The version this aggregator registers under.
+   *
+   * `berlinGroupV13AliasPath` is empty when `berlin_group_v1_3_alias_path` is unset, so `.head` /
+   * `.last` must be guarded: this object is instantiated by the ScannedApis classpath scan, which
+   * catches a throwing companion and merely logs a warning, so an unguarded NoSuchElementException
+   * would drop the alias silently. Inactive registrations keep the empty-string version they have
+   * always had, which no request can address and which deliberately does NOT equal
+   * ConstantsBG.berlinGroupVersion1 -- colliding with the canonical BG v1.3 key would let this
+   * (doc-less) object win ScannedApis' `.toMap` and blank out /resource-docs/BGv1.3/obp.
+   */
   override val apiVersion: ScannedApiVersion =
-    ScannedApiVersion(berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.last)
+    if (berlinGroupV13AliasPath.nonEmpty)
+      ScannedApiVersion(berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.last)
+    else
+      ScannedApiVersion("", "", "")
 
   val versionStatus: String = ApiVersionStatus.DRAFT.toString
 

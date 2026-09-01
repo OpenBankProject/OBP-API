@@ -114,7 +114,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
                           responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String,
-                          certificateTrust: String, certificateTrustDetail: String): Unit = {
+                          certificateTrust: String, certificateTrustDetail: String,
+                          authType: String): Unit = {
     // A correlation id is expected on every metric. Rows without one cannot be moved
     // to the archive later (its correlationId column requires a UUID), so flag it at
     // write time where the source of the missing id can actually be traced.
@@ -142,7 +143,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         apiInstanceId = apiInstanceId,
         consentReferenceId = consentReferenceId,
         certificateTrust = certificateTrust,
-        certificateTrustDetail = certificateTrustDetail
+        certificateTrustDetail = certificateTrustDetail,
+        authType = authType
       )
     )
   }
@@ -153,7 +155,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   verb: String, httpCode: Option[Int], correlationId: String,
                                   responseBody: String, sourceIp: String, targetIp: String,
                                   apiInstanceId: String, consentReferenceId: String,
-                                  certificateTrust: String, certificateTrustDetail: String): Boolean = {
+                                  certificateTrust: String, certificateTrustDetail: String,
+                                  authType: String): Boolean = {
     // Fix: dedup by the source metric's primary key stored in `metricId`, NOT by the
     // archive's own auto-increment `id`. The two are unrelated id-spaces; matching on
     // `id` overwrites an unrelated archived row once the archive's id sequence grows
@@ -181,6 +184,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .consentReferenceId(consentReferenceId)
       .certificateTrust(certificateTrust)
       .certificateTrustDetail(certificateTrustDetail)
+      .authType(authType)
 
     httpCode match {
       case Some(code) => metric.httpCode(code)
@@ -431,7 +435,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       // The LEFT JOIN attributes consent-borne calls to the granting (on-behalf-of) human:
       // metric.userid records the AUTHENTICATED principal, which under a consent is the
       // consent's own shadow user. COALESCE(consent.muserid, metric.userid) resolves such rows
-      // to the granting human at read time, mirroring CallContext.effectiveHumanUserId. (Rows
+      // to the granting human at read time, mirroring CallContext.accountableUserId. (Rows
       // written 2026-08 only, while toLight briefly recorded the human, resolve identically.)
       // The consent side of the join is unique-indexed on consent_reference_id, so the join
       // cannot fan out rows.
@@ -827,6 +831,13 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   }
   // The specifics behind certificateTrust (PeerTrust.Resolution.detail): the forwarding proxy's
   // canonical subject DN for "forwarded", the rejection reason for "none". Null for "direct".
+  // Authentication scheme of the call (scheme only, never credentials): "Consent",
+  // "OAuth2", "OAuth1", "DirectLogin", "GatewayLogin", "DAuth", "Anonymous", "Other".
+  // Null on rows written before the column existed.
+  object authType extends MappedString(this, 32) {
+    override def dbColumnName = "auth_type"
+    override def defaultValue = null
+  }
   object certificateTrustDetail extends MappedString(this, 255) {
     override def dbColumnName = "certificate_trust_detail"
     override def defaultValue = null
@@ -853,6 +864,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getConsentReferenceId(): String = consentReferenceId.get
   override def getCertificateTrust(): String = certificateTrust.get
   override def getCertificateTrustDetail(): String = certificateTrustDetail.get
+  override def getAuthType(): String = authType.get
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
@@ -921,6 +933,13 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
     override def dbColumnName = "certificate_trust"
     override def defaultValue = null
   }
+  // Authentication scheme of the call (scheme only, never credentials): "Consent",
+  // "OAuth2", "OAuth1", "DirectLogin", "GatewayLogin", "DAuth", "Anonymous", "Other".
+  // Null on rows written before the column existed.
+  object authType extends MappedString(this, 32) {
+    override def dbColumnName = "auth_type"
+    override def defaultValue = null
+  }
   object certificateTrustDetail extends MappedString(this, 255) {
     override def dbColumnName = "certificate_trust_detail"
     override def defaultValue = null
@@ -948,6 +967,7 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getConsentReferenceId(): String = consentReferenceId.get
   override def getCertificateTrust(): String = certificateTrust.get
   override def getCertificateTrustDetail(): String = certificateTrustDetail.get
+  override def getAuthType(): String = authType.get
 }
 object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
   override def dbIndexes =

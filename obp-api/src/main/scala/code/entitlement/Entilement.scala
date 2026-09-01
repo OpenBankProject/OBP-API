@@ -44,8 +44,7 @@ trait EntitlementProvider {
       // createdByProcess carries the provenance. Authorization is the
       // calling endpoint's responsibility, not this method's.
       grantedByUserId: Option[String] = None,
-      groupId: Option[String] = None,
-      process: Option[String] = None
+      groupId: Option[String] = None
   ): Box[Entitlement]
   def deleteDynamicEntityEntitlement(
       entityName: String,
@@ -62,7 +61,6 @@ trait Entitlement {
   def createdByProcess: String
   def entitlementRequestId: Option[String]
   def groupId: Option[String]
-  def process: Option[String]
 
   /** user_id of the granter, when the grant was made by a person (directly
     * or as a self-grant). None for system-process grants and virtual

@@ -472,6 +472,10 @@ case class MetricJsonV600(
     operation_id: String,
     api_instance_id: String,
     consent_reference_id: Option[String],
+    // Authentication scheme of the call: "Consent", "OAuth2", "OAuth1", "DirectLogin",
+    // "GatewayLogin", "DAuth", "Anonymous", "Other". Absent on rows written before the
+    // auth_type column existed.
+    auth_type: Option[String],
     // How the caller's certificate was established: "direct", "forwarded" or "none";
     // absent when the request carried no certificate material. See PeerTrust.Resolution.
     certificate_trust: Option[String],
@@ -1745,6 +1749,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       operation_id = operationId,
       api_instance_id = metric.getApiInstanceId(),
       consent_reference_id = Option(metric.getConsentReferenceId()).filter(_.nonEmpty),
+      auth_type = Option(metric.getAuthType()).filter(_.nonEmpty),
       certificate_trust = Option(metric.getCertificateTrust()).filter(_.nonEmpty),
       certificate_trust_detail = Option(metric.getCertificateTrustDetail()).filter(_.nonEmpty)
     )
@@ -2061,7 +2066,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       user_id: String,
       username: String,
       group_id: Option[String],
-      process: Option[String]
+      // The row's stored provenance, verbatim: "GROUP_MEMBERSHIP" for rows granted since
+      // provenance moved to created_by_process; legacy group rows show "manual".
+      created_by_process: String
   )
 
   case class GroupEntitlementsJsonV600(

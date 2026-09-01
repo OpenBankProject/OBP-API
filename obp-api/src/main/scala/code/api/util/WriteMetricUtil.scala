@@ -45,7 +45,8 @@ object WriteMetricUtil extends MdcLoggable {
                                    duration: Long,
                                    responseBodyToWrite: String,
                                    sourceIp: String,
-                                   targetIp: String)
+                                   targetIp: String,
+                                   authType: String)
 
   private def persistAndPublishMetric(responseBody: Any, cc: CallContextLight): Unit = {
     val fields = MetricFields(
@@ -58,7 +59,8 @@ object WriteMetricUtil extends MdcLoggable {
       duration = callDuration(cc),
       responseBodyToWrite = responseBodyForMetric(responseBody, cc),
       sourceIp = requestHeaderValue(cc, "x-forwarded-for"),
-      targetIp = requestHeaderValue(cc, "x-forwarded-host")
+      targetIp = requestHeaderValue(cc, "x-forwarded-host"),
+      authType = deriveAuthType(cc)
     )
 
     // enqueue synchronously so flush() in tests reliably drains this metric before assertions
@@ -71,6 +73,30 @@ object WriteMetricUtil extends MdcLoggable {
         developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
         cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
         cc.consentReferenceId.orNull, cc.certificateTrust.orNull, cc.certificateTrustDetail.orNull)
+    }
+  }
+
+  /**
+   * Authentication SCHEME of the call — never the credential itself. "Consent" wins
+   * outright: when a consent authenticated the call, the Authorization header (if any)
+   * was not what authorized it. The rest is read off the Authorization header shape,
+   * with the gateway payload / direct-login params as fallbacks for flows that
+   * populate those without a header.
+   */
+  private[util] def deriveAuthType(cc: CallContextLight): String = {
+    if (cc.consentReferenceId.isDefined) "Consent"
+    else cc.authReqHeaderField.map(_.trim) match {
+      case Some(h) if h.startsWith("DirectLogin") => "DirectLogin"
+      case Some(h) if h.startsWith("Bearer") => "OAuth2"
+      case Some(h) if h.startsWith("GatewayLogin") => "GatewayLogin"
+      case Some(h) if h.startsWith("DAuth") => "DAuth"
+      case Some(h) if h.startsWith("OAuth") => "OAuth1"
+      case Some(_) => "Other"
+      case None =>
+        if (cc.gatewayLoginRequestPayload.isDefined) "GatewayLogin"
+        else if (cc.directLoginToken != null && cc.directLoginToken.nonEmpty) "DirectLogin"
+        else if (cc.userId.isDefined) "Other"
+        else "Anonymous"
     }
   }
 
@@ -116,7 +142,8 @@ object WriteMetricUtil extends MdcLoggable {
         code.api.Constant.ApiInstanceId,
         cc.consentReferenceId.orNull,
         cc.certificateTrust.orNull,
-        cc.certificateTrustDetail.orNull
+        cc.certificateTrustDetail.orNull,
+        authType
       )
     } catch {
       case NonFatal(e) =>

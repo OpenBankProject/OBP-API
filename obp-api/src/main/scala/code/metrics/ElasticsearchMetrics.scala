@@ -15,7 +15,8 @@ object ElasticsearchMetrics extends APIMetrics {
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
                           responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String,
-                          certificateTrust: String, certificateTrustDetail: String): Unit = {
+                          certificateTrust: String, certificateTrustDetail: String,
+                          authType: String): Unit = {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
       //TODO ,need to be fixed now add more parameters
       es.indexMetric(userId, url, date, duration, userName, appName, developerEmail, correlationId, apiInstanceId)
@@ -28,7 +29,8 @@ object ElasticsearchMetrics extends APIMetrics {
                                   apiInstanceId: String,
                                   consentReferenceId: String,
                                   certificateTrust: String,
-                                  certificateTrustDetail: String): Boolean = ???
+                                  certificateTrustDetail: String,
+                                  authType: String): Boolean = ???
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: replace the following with valid ES query

@@ -283,6 +283,9 @@ jobs:
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           echo hikari.maximumPoolSize=20 >> obp-api/src/main/resources/props/test.default.props
+          # Enables the Berlin Group v1.3 alias so ResourceDocRegistryParityTest and
+          # ApiCollectionEndpointTest can exercise a real alias operation id end to end.
+          echo berlin_group_v1_3_alias_path=0.6/v1 >> obp-api/src/main/resources/props/test.default.props
           echo write_metrics=false >> obp-api/src/main/resources/props/test.default.props
           # Log emails instead of opening a real SMTP socket: without this,
           # LocalMappedConnector.sendCustomerNotification's EMAIL branch calls
