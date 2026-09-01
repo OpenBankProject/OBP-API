@@ -54,7 +54,7 @@ jobs:
             mvn clean install -T 4 -Pprod -DskipTests
 
       - name: Upload compiled output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compiled-output
           retention-days: 1
@@ -70,7 +70,7 @@ jobs:
           cp obp-api/target/obp-api.jar ./pull/
           cp -r obp-api/target/lib ./pull/lib
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ github.sha }}
           path: pull/
@@ -427,7 +427,7 @@ jobs:
 
       - name: Upload Maven build log — shard ${{ matrix.shard }}
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: maven-build-log-shard${{ matrix.shard }}
           if-no-files-found: ignore
@@ -435,7 +435,7 @@ jobs:
 
       - name: Upload test reports — shard ${{ matrix.shard }}
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports-shard${{ matrix.shard }}
           if-no-files-found: ignore
