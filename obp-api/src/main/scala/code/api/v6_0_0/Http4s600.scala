@@ -4427,6 +4427,17 @@ object Http4s600 {
                 case _ => true
               }
             }
+            // Mirrors Http4s400's validateDynamicResourceDocBody: fail fast on an unsupported
+            // programming_lang here too, rather than reporting `valid = true` for a language
+            // create would actually reject with 400 DynamicCodeLangNotSupport (CompiledObjects
+            // silently falls through to the Scala compile path for any value it doesn't
+            // recognise as Java, so an unsupported/misspelled language would otherwise still
+            // "validate" successfully as Scala).
+            _ <- Helper.booleanToFuture(
+              s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: Scala, Java""",
+              cc = Some(cc)) {
+              Set("", "scala", "Scala", "java", "Java").contains(body.programmingLang)
+            }
           } yield try {
             code.api.dynamic.endpoint.helper.CompiledObjects(
               body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang).validateDependency()
