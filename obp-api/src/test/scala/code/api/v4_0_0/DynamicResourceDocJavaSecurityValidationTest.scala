@@ -61,9 +61,59 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
     )
   }
 
+  // Every Java method_body implements Supplier<Function<Object[], Object>> per convention (see
+  // DynamicUtil.createJavaHttp4sEndpoint's doc comment). javac always erases that generic
+  // Supplier.get() to a synthetic bridge method `Object get()` whose body just invokevirtual-calls
+  // the real, properly-typed get() -- an ordinary same-class call regardless of what the body does.
+  private def benignMethodBody: String =
+    """package code.api.util.dynamic;
+      |
+      |import java.util.LinkedHashMap;
+      |import java.util.Map;
+      |import java.util.function.Function;
+      |import java.util.function.Supplier;
+      |
+      |public class DynamicJavaSecurityBenignProbe implements Supplier<Function<Object[], Object>> {
+      |    private Object apply(Object[] args) {
+      |        Map<String, Object> response = new LinkedHashMap<>();
+      |        response.put("greeting", "hello");
+      |        return response;
+      |    }
+      |
+      |    @Override
+      |    public Function<Object[], Object> get() {
+      |        return this::apply;
+      |    }
+      |}
+      |""".stripMargin
+
   private def createRequest = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
 
   feature("Security validation of Java method_body against dynamic_code_compile_validate_dependencies") {
+
+    // Regression guard: the Supplier.get() generics-erasure bridge method's same-class call to the
+    // real get() must not itself be treated as a call to a forbidden method. Without this, every
+    // Java doc -- malicious or not -- was rejected under strict validation, because the compiled
+    // class lives under the OBP-owned code.* package but its randomly-generated name can never
+    // appear in a static whitelist.
+    scenario("Registering a benign Java doc succeeds even with strict validation enabled") {
+      enableStrictValidation()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+
+      val doc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+        dynamicResourceDocId = None,
+        bankId = None,
+        roles = "",
+        partialFunctionName = "benignProbeTest",
+        requestUrl = "/benign_probe_test/MY_USER_ID",
+        methodBody = java.net.URLEncoder.encode(benignMethodBody, "UTF-8"),
+        programmingLang = "Java"
+      )
+      val resp = makePostRequest(createRequest, write(doc))
+
+      Then("the compile succeeds -- the Supplier.get() bridge method's self-call is not a forbidden dependency")
+      resp.code should equal(201)
+    }
     scenario("Registering a Java doc that calls a non-whitelisted OBP method is rejected with 400") {
       enableStrictValidation()
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)

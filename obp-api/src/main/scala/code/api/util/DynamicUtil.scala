@@ -199,7 +199,20 @@ object DynamicUtil extends MdcLoggable{
       ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force)
     } yield {
       // if method is also dynamic compile code, extract it's dependent method
-      if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
+      if (typeName == className) {
+        // A same-class self-call is not itself a dependency to police -- recurse into what the
+        // target method calls instead of flagging the call as forbidden. This is required for
+        // Java: every Java dynamic resource doc implements Supplier<Function<Object[], Object>>
+        // (the documented convention), and the compiler always erases that generic Supplier.get()
+        // to a synthetic bridge method `Object get()` whose body is just `return this.get();` --
+        // an ordinary same-class invokevirtual call to the real, properly-typed get(). Without this
+        // branch that bridge call is scanned like any other, resolves to (thisClass, "get", ...),
+        // and since the dynamically-compiled class lives under the OBP-owned code.* package
+        // (isRestrictedType) but its randomly-generated name can never appear in a static
+        // whitelist, EVERY Java doc is unconditionally rejected under strict validation --
+        // regardless of what its code actually does.
+        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature, force))
+      } else if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
         listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature, force))
       } else {
         listBuffer.append(ternary)

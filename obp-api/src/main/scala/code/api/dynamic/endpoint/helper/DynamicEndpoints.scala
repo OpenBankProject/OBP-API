@@ -174,8 +174,21 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    * this will check all the dynamic scala code dependencies at compile time.
    *
    *Search for the usage, you can see how to use it in OBP code.
+   *
+   * Scala-only: for the Scala language, `this.partialFunction` IS the compiled user code, so
+   * validating its bytecode directly is correct. For Java, `this.partialFunction` is instead
+   * OBP's own Http4sEndpointIO wrapper (built by DynamicUtil.createJavaHttp4sEndpoint) around the
+   * real compiled Java class -- its bytecode legitimately calls internal OBP helpers
+   * (DynamicUtil.javaValueToJValue/logger, CustomJsonFormats.formats, JsonAliases.compactRender)
+   * that were never meant to be dependency-whitelisted, since they are framework glue, not
+   * user-supplied code. createJavaHttp4sEndpoint already validates the real compiled Java class
+   * internally (see its own doc comment) before ever returning that wrapper, so re-validating the
+   * wrapper here is both redundant and wrong -- it would reject every Java doc unconditionally.
    */
-  def validateDependency() = Validation.validateDependency(this.partialFunction)
+  def validateDependency() = programmingLang match {
+    case "java" | "Java" => ()
+    case _ => Validation.validateDependency(this.partialFunction)
+  }
 
   /**
    * This is used to check the security permission at the run time.
