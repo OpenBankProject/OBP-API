@@ -4420,6 +4420,13 @@ object Http4s310 {
                 case _ => true
               }
             }
+            // Reject CanCreateEntitlementAtAnyBank explicitly (same rule as the consent-request flow).
+            // createConsentJWT drops it anyway, but silently omitting a requested role is worse
+            // than a 400: the caller must never believe a consent carries a role it does not.
+            // CanCreateEntitlementAtOneBank is allowed, see createConsentByConsentRequestId.
+            _ <- code.util.Helper.booleanToFuture(RolesForbiddenInConsent, cc = Some(cc)) {
+              !consentJson.entitlements.map(_.role_name).contains(canCreateEntitlementAtAnyBank.toString())
+            }
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             _ <- code.util.Helper.booleanToFuture(RolesAllowedInConsent, cc = Some(cc)) {
               consentJson.entitlements.forall(re =>
@@ -4590,7 +4597,7 @@ object Http4s310 {
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
-        RolesAllowedInConsent,
+        RolesAllowedInConsent, RolesForbiddenInConsent,
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
@@ -4671,7 +4678,7 @@ object Http4s310 {
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
-        RolesAllowedInConsent,
+        RolesAllowedInConsent, RolesForbiddenInConsent,
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
@@ -4751,7 +4758,7 @@ object Http4s310 {
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
-        RolesAllowedInConsent,
+        RolesAllowedInConsent, RolesForbiddenInConsent,
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,

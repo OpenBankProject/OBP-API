@@ -907,6 +907,7 @@ object Glossary extends MdcLoggable  {
 				 |This speeds up the process of granting of roles. Certain roles are excluded from this automation:
 				 |  - CanCreateEntitlementAtOneBank
 				 |  - CanCreateEntitlementAtAnyBank
+				 |Consent users (the principal a Consent-JWT authenticates as) never receive Just in Time Entitlements: their Roles come only from the Consent, even if the Consent carries CanCreateEntitlementAtOneBank.
 				 |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 				 |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
 				 |

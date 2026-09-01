@@ -1216,10 +1216,12 @@ object Http4s500 {
             }
             requestedEntitlements = consentRequestJson.entitlements.getOrElse(Nil)
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            // CanCreateEntitlementAtAnyBank stays out of consents. CanCreateEntitlementAtOneBank is
+            // allowed (an agent acting under a consent may grant bank roles to humans): a consent user
+            // can never be the target of a grant (addEntitlement redirects, the endpoints reject) and
+            // just-in-time entitlements are disabled for consent users, so the role cannot widen the consent.
             _ <- Helper.booleanToFuture(RolesForbiddenInConsent, cc = callContextOpt) {
-              requestedEntitlements.map(_.role_name).intersect(
-                List(canCreateEntitlementAtOneBank.toString(), canCreateEntitlementAtAnyBank.toString())
-              ).isEmpty
+              !requestedEntitlements.map(_.role_name).contains(canCreateEntitlementAtAnyBank.toString())
             }
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContextOpt) {
               requestedEntitlements.forall(re =>

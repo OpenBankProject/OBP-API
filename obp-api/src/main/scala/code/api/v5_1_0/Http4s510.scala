@@ -4994,6 +4994,13 @@ object Http4s510 {
               }
             }
             requestedEntitlements = consentJson.entitlements
+            // Reject CanCreateEntitlementAtAnyBank explicitly (same rule as the consent-request flow).
+            // createConsentJWT drops it anyway, but silently omitting a requested role is worse
+            // than a 400: the caller must never believe a consent carries a role it does not.
+            // CanCreateEntitlementAtOneBank is allowed, see createConsentByConsentRequestId.
+            _ <- Helper.booleanToFuture(RolesForbiddenInConsent, cc = callContextOpt) {
+              !requestedEntitlements.map(_.role_name).contains(canCreateEntitlementAtAnyBank.toString())
+            }
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContextOpt) {
               requestedEntitlements.forall(re =>
@@ -5142,7 +5149,7 @@ object Http4s510 {
       |""",
       postConsentImplicitJsonV310, consentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
-        RolesAllowedInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+        RolesAllowedInConsent, RolesForbiddenInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
         MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,

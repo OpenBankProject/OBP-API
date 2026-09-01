@@ -1331,6 +1331,12 @@ object Consent extends MdcLoggable {
     }
     // 2. Add Roles
     // Please note that consents can only contain Roles that the User already has access to.
+    // CanCreateEntitlementAtAnyBank is excluded here as defence in depth. Every create endpoint
+    // must ALSO reject an explicit request for it with RolesForbiddenInConsent: this filter
+    // exists so `everything = true` never copies it, not so a named role can vanish silently.
+    // CanCreateEntitlementAtOneBank is allowed: a consent user cannot be the target of a grant
+    // and gets no just-in-time entitlements, so the role lets the agent grant bank roles to
+    // humans without widening its own consent.
     val allUserEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)
     val entitlements = consent.bank_id match {
       case Some(bankId) =>
@@ -1344,7 +1350,6 @@ object Consent extends MdcLoggable {
     val entitlementsToAdd: Seq[Role] = 
       for {
         entitlement <- entitlements
-        if !(entitlement.roleName == canCreateEntitlementAtOneBank.toString())
         if !(entitlement.roleName == canCreateEntitlementAtAnyBank.toString())
         if consent.everything || consent.entitlements.exists(_ == PostConsentEntitlementJsonV310(entitlement.bankId,entitlement.roleName))
       } yield  {
