@@ -5,6 +5,7 @@ import cats.effect._
 import code.api.util.APIUtil
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiVersion
 import org.http4s._
@@ -62,5 +63,5 @@ object Http4sUKOBv401 extends MdcLoggable {
       routes(req).map(_.putHeaders(Header.Raw(fapiInteractionIdHeader, interactionId)))
     }
 
-  val wrappedRoutes: HttpRoutes[IO] = withFapiInteractionId(ResourceDocMiddleware.apply(resourceDocs)(allRoutes))
+  val wrappedRoutes: HttpRoutes[IO] = withFapiInteractionId(ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes)))
 }

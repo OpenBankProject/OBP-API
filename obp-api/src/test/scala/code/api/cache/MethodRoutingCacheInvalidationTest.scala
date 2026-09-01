@@ -4,6 +4,8 @@ import java.util.UUID
 
 import org.scalatest.{FlatSpec, Matchers}
 
+import code.setup.RedisTestTarget
+
 import scala.concurrent.duration._
 
 /**
@@ -26,7 +28,7 @@ class MethodRoutingCacheInvalidationTest extends FlatSpec with Matchers {
     Caching.memoizeSyncWithProvider(Some(cacheKey))(ttl)(f)
 
   "deleteKeysByPattern(*getMethodRoutings*)" should "invalidate memoized entries so the next read recomputes" in {
-    assume(Redis.isRedisReady, "requires a reachable Redis")
+    RedisTestTarget.requireReachable(Redis.isRedisReady, "the MethodRouting cache checks")
     val marker = s"inv-${UUID.randomUUID().toString}"
     val cacheKey = s"(MethodRoutingCacheInvalidationTest,getMethodRoutings,$marker)"
     var computations = 0
@@ -44,7 +46,7 @@ class MethodRoutingCacheInvalidationTest extends FlatSpec with Matchers {
   }
 
   "a corrupted cache entry" should "behave as a miss: recompute once and repopulate with valid bytes" in {
-    assume(Redis.isRedisReady, "requires a reachable Redis")
+    RedisTestTarget.requireReachable(Redis.isRedisReady, "the MethodRouting cache checks")
     val marker = s"poison-${UUID.randomUUID().toString}"
     val cacheKey = s"(MethodRoutingCacheInvalidationTest,getMethodRoutings,$marker)"
     var computations = 0

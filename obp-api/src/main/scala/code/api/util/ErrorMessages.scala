@@ -836,6 +836,7 @@ object ErrorMessages {
   val ChatMessageTypeNotAllowed = "OBP-39018: Invalid message_type. Allowed values: text, system."
   val SignalMessageTooLong = "OBP-39019: Signal message exceeds the maximum allowed length."
   val SignalMessageContainsDangerousCharacters = "OBP-39020: Signal message contains control or bidirectional-override characters, which are not allowed."
+  val SignalChannelNotFound = "OBP-39021: Signal Channel not found."
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"

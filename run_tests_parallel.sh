@@ -516,7 +516,17 @@ while IFS= read -r _f; do
     fi
     _fa=$(_sf_attr "$_head" failures); _fa=${_fa:-0}
     _e=$(_sf_attr "$_head" errors);    _e=${_e:-0}
-    _sk=$(_sf_attr "$_head" skipped);  _sk=${_sk:-0}
+    # ScalaTest's JUnit XML reporter does NOT put a skipped="N" attribute on <testsuite>;
+    # it emits a <skipped/> child inside each cancelled <testcase>. Reading the attribute
+    # therefore always yielded 0, so this line reported "0 skipped/canceled" for a run in
+    # which DynamicUtilTest cancelled three of its nine -- and would have reported the same
+    # for a suite that cancelled every one of its tests. That is the number somebody checks
+    # precisely when they suspect tests are not running, so it has to be counted from what
+    # is actually in the file. Attribute first for reporters that do emit it, child elements
+    # otherwise.
+    _sk=$(_sf_attr "$_head" skipped)
+    if [[ -z "$_sk" ]]; then _sk=$(grep -c "<skipped" "$_f" 2>/dev/null); fi
+    _sk=${_sk:-0}
     SF_TOTAL=$((SF_TOTAL+_t)); SF_FAIL=$((SF_FAIL+_fa)); SF_ERR=$((SF_ERR+_e)); SF_SKIP=$((SF_SKIP+_sk))
     if [[ $_fa -ne 0 || $_e -ne 0 ]]; then
         SF_BAD+=("$(basename "$_f" | sed 's/^TEST-//; s/\.xml$//'): $_fa failed, $_e errors")
@@ -529,10 +539,16 @@ if [[ "$SF_FAIL" != "0" ]] || [[ "$SF_ERR" != "0" ]] || [[ "$SF_BROKEN" != "0" ]
     OVERALL_RC=1
 fi
 # Zero-test floor: -DfailIfNoTests=false means a broken wildcardSuites filter runs nothing
-# and "passes". The suite has ~2900 tests; a total far below that means shards ran
-# near-empty — fail instead of reporting a hollow green.
-if [[ "${SF_TOTAL:-0}" -lt 2000 ]]; then
-    echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 2000 floor) — filter/discovery regression?"
+# and "passes". A total far below the real one means shards ran near-empty — fail instead of
+# reporting a hollow green.
+#
+# 3200 is 90% of the 3571 measured on develop-obp (2026-08-25, --shards=4). The previous
+# figure, 2000, was set against a suite the header called "~2900" and had drifted far enough
+# that a run losing a fifth of its tests would still have passed it. Re-measure and re-set
+# both numbers when the suite grows: a floor that is only half the real count is barely a
+# floor at all.
+if [[ "${SF_TOTAL:-0}" -lt 3200 ]]; then
+    echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 3200 floor) — filter/discovery regression?"
     OVERALL_RC=1
 fi
 

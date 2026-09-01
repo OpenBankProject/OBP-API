@@ -64,7 +64,7 @@
       "currency":"GBP",
       "amount":"6599.63"
     },
-    "IBAN":"BA12 1234 5123 4518 4490 1189 877",
+    "IBAN":"BA511990000000000001",
     "owners":["Susan.X.0.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -79,7 +79,7 @@
       "currency":"GBP",
       "amount":"6379.63"
     },
-    "IBAN":"BA12 1234 5123 4511 8754 4625 177",
+    "IBAN":"BA241990000000000002",
     "owners":["Robert.X.0.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -94,7 +94,7 @@
       "currency":"GBP",
       "amount":"7588.25"
     },
-    "IBAN":"BA12 1234 5123 4510 4337 1399 677",
+    "IBAN":"BA941990000000000003",
     "owners":["Anil.X.0.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -109,7 +109,7 @@
       "currency":"GBP",
       "amount":"6662.05"
     },
-    "IBAN":"BA12 1234 5123 4514 4440 2184 977",
+    "IBAN":"BA671990000000000004",
     "owners":["Robert.X.0.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -124,7 +124,7 @@
       "currency":"GBP",
       "amount":"3748.57"
     },
-    "IBAN":"BA12 1234 5123 4518 9534 3427 277",
+    "IBAN":"BA401990000000000005",
     "owners":["Ellie.X.0.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -139,7 +139,7 @@
       "currency":"GBP",
       "amount":"15860.50"
     },
-    "IBAN":"BA12 1234 5123 4512 1957 2301 577",
+    "IBAN":"BA131990000000000006",
     "owners":["Anil.X.0.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -154,7 +154,7 @@
       "currency":"GBP",
       "amount":"7724.41"
     },
-    "IBAN":"BA12 1234 5123 4512 6914 8586 977",
+    "IBAN":"BA831990000000000007",
     "owners":["Anil.X.0.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -169,7 +169,7 @@
       "currency":"GBP",
       "amount":"6599.63"
     },
-    "IBAN":"BA12 1234 5123 4518 4490 1189 877",
+    "IBAN":"BA972990000000000001",
     "owners":["Susan.Y.9.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -184,7 +184,7 @@
       "currency":"GBP",
       "amount":"6379.63"
     },
-    "IBAN":"BA12 1234 5123 4511 8754 4625 177",
+    "IBAN":"BA702990000000000002",
     "owners":["Robert.Y.9.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -199,7 +199,7 @@
       "currency":"GBP",
       "amount":"7588.25"
     },
-    "IBAN":"BA12 1234 5123 4510 4337 1399 677",
+    "IBAN":"BA432990000000000003",
     "owners":["Anil.Y.9.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -214,7 +214,7 @@
       "currency":"GBP",
       "amount":"6662.05"
     },
-    "IBAN":"BA12 1234 5123 4514 4440 2184 977",
+    "IBAN":"BA162990000000000004",
     "owners":["Robert.Y.9.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -229,7 +229,7 @@
       "currency":"GBP",
       "amount":"3748.57"
     },
-    "IBAN":"BA12 1234 5123 4518 9534 3427 277",
+    "IBAN":"BA862990000000000005",
     "owners":["Ellie.Y.9.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -244,7 +244,7 @@
       "currency":"GBP",
       "amount":"15860.50"
     },
-    "IBAN":"BA12 1234 5123 4512 1957 2301 577",
+    "IBAN":"BA592990000000000006",
     "owners":["Anil.Y.9.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,
@@ -259,7 +259,7 @@
       "currency":"GBP",
       "amount":"7724.41"
     },
-    "IBAN":"BA12 1234 5123 4512 6914 8586 977",
+    "IBAN":"BA322990000000000007",
     "owners":["Anil.Y.9.GH"],
     "generate_public_view":true,
     "generate_accountants_view":true,

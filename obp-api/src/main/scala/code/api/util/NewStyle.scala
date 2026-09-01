@@ -3341,7 +3341,9 @@ object NewStyle extends MdcLoggable{
     def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = {
       validateBankId(bankId, callContext)
       Future {
-        (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
+        val result = EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping)
+        invalidateEndpointMappingCache()
+        (result, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
@@ -3350,11 +3352,47 @@ object NewStyle extends MdcLoggable{
     def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = {
       validateBankId(bankId, callContext)
       Future {
-        (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
+        val result = EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId)
+        invalidateEndpointMappingCache()
+        (result, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    /**
+     * Drop every memoized `getEndpointMappings(...)` entry after a mapping is created,
+     * updated, or deleted, so the change takes effect on the next request instead of waiting
+     * out `endpointMapping.cache.ttl.seconds`. Mirrors invalidateMethodRoutingCache: the
+     * memoize key embeds the literal method name, so one pattern delete clears every bankId
+     * variant. The pattern is a prefix of the actual name the macro renders
+     * (`getEndpointMappingsCached`), which is what makes one wildcard cover it. No-op / logged
+     * when Redis is unavailable (deleteKeysByPattern swallows and returns 0).
+     *
+     * This became necessary with the cache key fix below. While callContext was part of the
+     * key nothing could ever hit, so a stale entry was unreachable by construction; now that
+     * the cache works, writes have to publish themselves.
+     *
+     * A single delete here is not quite enough: a reader that fetched the pre-write value from
+     * the provider a moment earlier can still complete its own cache write AFTER this delete
+     * finishes, silently reintroducing the stale entry for the rest of the TTL -- nothing else
+     * would clear it until the next write. Scheduling a second delete closes that window the
+     * conventional way: any straggler write that lands in the gap gets cleared shortly after,
+     * long before an operator or caller would reasonably treat it as current.
+     */
+    private[util] def invalidateEndpointMappingCache(): Unit = {
+      Redis.deleteKeysByPattern("*getEndpointMappings*")
+      code.actorsystem.ObpActorSystem.localActorSystem.scheduler.scheduleOnce(
+        endpointMappingCacheInvalidationDelay
+      )(Redis.deleteKeysByPattern("*getEndpointMappings*"))(
+        code.actorsystem.ObpActorSystem.localActorSystem.dispatcher
+      )
+      ()
+    }
+
+    private[util] val endpointMappingCacheInvalidationDelay: scala.concurrent.duration.FiniteDuration =
+      scala.concurrent.duration.FiniteDuration(
+        APIUtil.getPropsAsIntValue("endpointMapping.cache.invalidation.delay.ms", 500), "ms")
 
     def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
       validateBankId(bankId, callContext)
@@ -3378,17 +3416,40 @@ object NewStyle extends MdcLoggable{
 
     private[this] val endpointMappingTTL = APIUtil.getPropsValue(s"endpointMapping.cache.ttl.seconds", "0").toInt
 
-    def getEndpointMappings(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = Future{
+    /**
+     * The memoized half of getEndpointMappings, split into its own method for two reasons.
+     *
+     * Neither the key nor the cached value may mention the callContext. The key, because
+     * CacheKeyFromArguments renders every un-annotated parameter and CallContext carries
+     * per-request state (startTime, correlationId, url, verb, ipAddress, user) - keying on it
+     * made the key unique per request, so the cache could never hit. The value, because a hit
+     * would hand the caller the originating request's CallContext, and because chill/Kryo
+     * cannot encode the lambda reachable through CallContext.resourceDocument: every write of
+     * the old (mappings, callContext) tuple failed and cachePut swallowed it as "result served
+     * uncached", so endpointMapping.cache.ttl.seconds bought nothing but a WARN per call.
+     *
+     * A parameter-less signature rather than `@CacheKeyOmit callContext` on the caller, because
+     * CacheKeyFromArguments reads the parameters of the method whose body ENDS in buildCacheKey.
+     * Binding the result to a val first (`val x = buildCacheKey {...}; (x, callContext)`) leaves
+     * the macro with no parameters to render and it emits `Nil.mkString("_")` - an empty
+     * argument segment, i.e. every bankId sharing one entry. Keep buildCacheKey as the tail
+     * expression here; `NewStyle.function.getEndpointMappings` is verified by javap to render
+     * `bankId :: Nil`.
+     */
+    private def getEndpointMappingsCached(bankId: Option[String]): List[EndpointMappingT] = {
       import scala.concurrent.duration._
-
-      validateBankId(bankId, callContext)
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL.second) {
-          {(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId), callContext)}
+          EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId)
         }
       }
+    }
+
+    def getEndpointMappings(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = Future{
+      validateBankId(bankId, callContext)
+      (getEndpointMappingsCached(bankId), callContext)
     }
     
     /**
