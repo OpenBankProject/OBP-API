@@ -11,7 +11,6 @@ import org.json4s.JsonAST.JValue
 import org.json4s.JsonDSL._
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
-import net.liftweb.mapper.Mapper
 import net.liftweb.util.StringHelpers
 
 import java.lang.reflect.{Constructor, Modifier, Parameter}
@@ -48,7 +47,7 @@ object JsonSerializers {
       BigDecimalSerializer :: StringDeserializer ::
       FiledRenameSerializer :: EnumValueSerializer ::
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
-      MapperSerializer :: JavaMathBigDecimalSerializer ::
+      JavaMathBigDecimalSerializer ::
       ObpCommonsProductSerializer :: ObpCommonsProductDeserializer :: Nil
 
   implicit val commonFormats: Formats =  CustomFormats ++ serializers
@@ -500,38 +499,6 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
 
 
 /**
- * serialize DB Mapped object to JValue
- */
-object MapperSerializer extends ObpSerializer[Mapper[_]] {
-  /**
-   * `call by name` method names those defined in Mapper trait.
-   */
-  // Mapper is Scala-2.13-compiled (lift-persistence); ru.typeOf[Mapper[_]] needs the Scala 2
-  // compiler's TypeTag synthesis at the call site, which Scala 3 does not implement for a
-  // cross-module type. ReflectUtils.forType does the equivalent lookup from a class name string.
-  val mapperMethods: Set[String] = ReflectUtils.forType("net.liftweb.mapper.Mapper").decls.filter(it => it.isMethod && it.asMethod.paramLists.isEmpty).map(_.name.decodedName.toString).toSet
-
-  private val memo = new Memo[ru.Type, Iterable[ru.MethodSymbol]]
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
-    case x: Mapper[_] =>
-      val tp: ru.Type = ReflectUtils.getType(x)
-      val instanceMirror: ru.InstanceMirror = ReflectUtils.getInstanceMirror(x)
-      val callByNameMethods = memo.memoize(tp) {
-        tp.decls.filter(it => it.isMethod && it.overrides.nonEmpty && it.asMethod.paramLists.isEmpty && !mapperMethods.contains(it.name.decodedName.toString))
-          .map(_.asMethod)
-      }
-      // mapper object to Map[String, _]
-      val map: Map[String, Any] = callByNameMethods.map(method => {
-        val methodName = method.name.decodedName.toString
-        val value = instanceMirror.reflectMethod(method).apply()
-        methodName -> value
-      }).toMap
-      json.Extraction.decompose(map)
-  }
-}
-
-/**
  * Serializes any obp-commons (Scala-2.13-compiled) case class by reading its constructor arguments
  * through ReflectUtils (scala.reflect.runtime.universe) instead of letting json4s's default
  * Reflector build a field descriptor for it.
@@ -548,9 +515,9 @@ object MapperSerializer extends ObpSerializer[Mapper[_]] {
  * OutboundAdapterCallContext -> User, and User.isDeleted is exactly this shape). ReflectUtils reads
  * Scala-2.13-compiled classes with their own compiler's reflection, which has no such gap, so this
  * sidesteps the problem instead of special-casing individual fields or types. It intercepts every
- * obp-commons Product uniformly (mirroring MapperSerializer's approach above for Mapper[_]) so the
- * fix also covers nested/nested-again nulls automatically, since Extraction.decompose re-consults
- * the same Formats for every field value it recurses into.
+ * obp-commons Product uniformly (the same shape MapperSerializer once used for the now-removed
+ * Mapper[_] entities) so the fix also covers nested/nested-again nulls automatically, since
+ * Extraction.decompose re-consults the same Formats for every field value it recurses into.
  *
  * Deliberately scoped to the com.openbankproject.commons package only (obp-commons, always
  * Scala-2.13-compiled) - NOT the code.* package (obp-api, Scala 3-compiled), where reflecting via
@@ -563,8 +530,8 @@ object ObpCommonsProductSerializer extends ObpSerializer[Product] {
   // A class's constructor parameter names are fixed once the class is - getConstructorArgs
   // re-derived them (Type lookup + getPrimaryConstructor's full alternatives scan) on every
   // single call, for every obp-commons Product this Formats chain serializes. Cache by Class,
-  // same approach as MapperSerializer.callByNameMethods above; only the per-instance values still
-  // have to be re-read per call.
+  // the same approach the now-removed MapperSerializer.mapperMethods once used; only the
+  // per-instance values still have to be re-read per call.
   private val paramNamesMemo = new Memo[Class[_], List[String]]
 
   override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {

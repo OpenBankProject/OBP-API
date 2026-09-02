@@ -39,8 +39,9 @@ trait Saveable[T] {
   // lazy: Scala 3 does not allow a lazy val to override an abstract strict val (even directly,
   // not just through trait linearization), and SaveableBranch/SaveableProduct/SaveableBank/
   // SaveableTransaction/SaveableBankAccount all implement this member with `lazy val value = ...`.
-  // A strict val (case-class constructor params, as MappedSaveable/SaveableAtm/SaveableCrmEvent
-  // use) still satisfies an abstract lazy val, so this widens the contract without breaking them.
+  // A strict val (case-class constructor params, as the now-removed MappedSaveable and as
+  // SaveableAtm/SaveableCrmEvent still do) still satisfies an abstract lazy val, so this widens
+  // the contract without breaking them.
   lazy val value : T
   def save() : Unit
 }

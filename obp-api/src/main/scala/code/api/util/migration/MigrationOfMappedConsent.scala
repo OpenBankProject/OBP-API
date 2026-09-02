@@ -7,7 +7,7 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.consent.MappedConsent
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
+import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfMappedConsent {

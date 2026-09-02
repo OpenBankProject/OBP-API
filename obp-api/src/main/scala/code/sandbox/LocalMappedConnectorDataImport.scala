@@ -15,15 +15,7 @@ import com.openbankproject.commons.model.{AccountId, Address, AtmId, AtmT, BankI
 // , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.mapper.Mapper
 import net.liftweb.util.Helpers._
-
-// Saveable.value is a lazy val (Scala 3 does not allow a strict val to override an abstract
-// lazy val); the constructor param is renamed so it does not clash with the member it feeds.
-case class MappedSaveable[T <: Mapper[_]](valueParam : T) extends Saveable[T] {
-  lazy val value: T = valueParam
-  def save() = value.save
-}
 
 // Branch persistence goes through the Doobie store, for the same reason as SaveableAtm below.
 case class SaveableBranch(branchId: String, bankId: String, name: String, line1: String,
@@ -125,7 +117,7 @@ case class SaveableBank(bankId: String, fullBankName: String, shortBankName: Str
                         logoURL: String, websiteURL: String) extends Saveable[MappedBank] {
   // Read before save() runs - createAccountsAndViews needs the bank ids while the rows are still
   // unwritten - so this is the transient row the import is about to store, not a row read back.
-  // MappedSaveable handed out the unsaved Mapper entity in exactly the same way.
+  // The now-removed MappedSaveable handed out the unsaved Mapper entity in exactly the same way.
   lazy val value: MappedBank = MappedBank(BankId(bankId), fullBankName, shortBankName, logoURL, websiteURL,
     swiftBic = "", nationalIdentifier = "", bankRoutingScheme = "", bankRoutingAddress = "",
     createdByUserId = "")
@@ -151,7 +143,7 @@ case class SaveableTransaction(bank: String, account: String, transactionId: Str
                                counterpartyAccountNumber: String)
   extends Saveable[MappedTransaction] {
   // Read both before and after save() runs, so this is the transient row the import is about to
-  // store rather than a row read back - the same thing MappedSaveable handed out. The
+  // store rather than a row read back - the same thing the now-removed MappedSaveable handed out. The
   // transactionUUID the store generates on write is not needed by any importer caller.
   lazy val value: MappedTransaction = MappedTransaction(bank, account, transactionId,
     transactionUUID = "", transactionType, amount, newAccountBalance, currency, tStartDate,
@@ -176,7 +168,7 @@ case class SaveableAccount(accountId: String, bankId: String, accountLabel: Stri
                            accountNumber: String, kind: String, accountCurrency: String,
                            accountBalance: Long) extends Saveable[MappedBankAccount] {
   // Read before save() runs - createTransactions needs the account ids while the rows are still
-  // unwritten - so this is the transient row the import is about to store, as MappedSaveable did.
+  // unwritten - so this is the transient row the import is about to store, as the now-removed MappedSaveable did.
   lazy val value: MappedBankAccount = MappedBankAccount(0L, bankId, accountId, accountCurrency,
     accountNumber, holder = "", accountBalance, accountName = "", kind, accountLabel,
     accountLastUpdate = null, branchId = "", accountRuleScheme1 = "", accountRuleValue1 = 0L,

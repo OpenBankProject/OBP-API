@@ -9,7 +9,7 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
 import code.model.dataAccess.AuthUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
+import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfAuthUser {

@@ -98,25 +98,4 @@ object ClassScanUtils extends MdcLoggable {
     }
   }
 
-  /**
-    * get all subtype of net.liftweb.mapper.LongKeyedMapper, so we can register scanned db models dynamically
-    * @param packageName scanned root package name
-    * @return all matching class names
-    */
-  def getMappers(packageName: String = ""): Seq[String] = {
-    try {
-      val mapperInterface = Class.forName("net.liftweb.mapper.LongKeyedMapper")
-      val all = reflections.getSubTypesOf(mapperInterface).asScala.toSeq
-        .map(_.getName)
-      if (StringUtils.isNotBlank(packageName))
-        all.filter(_.startsWith(packageName))
-      else
-        all
-    } catch {
-      case e: Exception =>
-        logger.warn(s"ClassScanUtils.getMappers failed: ${e.getMessage}")
-        Nil
-    }
-  }
-
 }

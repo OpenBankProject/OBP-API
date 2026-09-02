@@ -14,7 +14,6 @@ import code.api.util.ApiRole.{
 }
 import code.api.util.{ErrorMessages, NotificationUtil}
 import code.util.Helper.MdcLoggable
-import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.util.Helpers.tryo
 

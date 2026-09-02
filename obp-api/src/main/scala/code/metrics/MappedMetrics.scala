@@ -9,7 +9,6 @@ import code.api.util.APIUtil.generateUUID
 import code.api.util._
 import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
-import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import doobie._
 import doobie.implicits._

@@ -5,7 +5,7 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MappedMetric
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
+import net.liftweb.mapper.Schemifier
 
 object MigrationOfUserIdIndexes {
 

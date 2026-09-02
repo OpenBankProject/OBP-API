@@ -3,7 +3,6 @@ package code.DynamicData
 import org.json4s._
 import code.api.util.{CustomJsonFormats, DoobieUtil}
 import code.api.util.ErrorMessages.DynamicDataNotFound
-import code.util.MappedUUID
 import net.liftweb.common.{Box, Failure, Full, Empty}
 import com.openbankproject.commons.util.json
 import org.json4s.JObject

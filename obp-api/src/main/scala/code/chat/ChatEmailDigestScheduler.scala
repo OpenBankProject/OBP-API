@@ -5,7 +5,6 @@ import code.api.util.{APIUtil, CommonsEmailWrapper}
 import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.Helper.MdcLoggable
-import net.liftweb.mapper.By
 
 import java.util.Date
 import java.util.concurrent.TimeUnit

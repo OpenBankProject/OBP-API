@@ -6,7 +6,7 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
 import code.views.system.AccountAccess
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
+import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import java.time.format.DateTimeFormatter
