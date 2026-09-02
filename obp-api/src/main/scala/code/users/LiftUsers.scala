@@ -318,9 +318,7 @@ object LiftUsers extends Users with MdcLoggable{
                                   userId: Option[String],
                                   createdByUserInvitationId: Option[String],
                                   company: Option[String],
-                                  lastMarketingAgreementSignedDate: Option[Date],
-                                  isNaturalPerson: Option[Boolean] = Some(true),
-                                  principalUserId: Option[String] = None): Box[ResourceUser] = {
+                                  lastMarketingAgreementSignedDate: Option[Date]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)
     providerId match {
@@ -353,14 +351,6 @@ object LiftUsers extends Users with MdcLoggable{
     }
     lastMarketingAgreementSignedDate match {
       case Some(v) => ru.LastMarketingAgreementSignedDate(v)
-      case None    =>
-    }
-    isNaturalPerson match {
-      case Some(v) => ru.IsNaturalPerson(v)
-      case None    =>
-    }
-    principalUserId match {
-      case Some(v) => ru.PrincipalUserId(v)
       case None    =>
     }
     Full(ru.saveMe())

@@ -1659,7 +1659,7 @@ object Http4s300 {
             // A request for power is a request BY the human: under a Consent the caller is a
             // per-consent shadow, and a request filed for it would have an admin granting to
             // an identity that dies with the consent (the grant endpoint now rejects that).
-            requesterUserId = cc.accountableUserId
+            requesterUserId = cc.onBehalfOfUserId
             _ <- code.util.Helper.booleanToFuture(EntitlementRequestAlreadyExists, cc = Some(cc)) {
               EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(body.bank_id, requesterUserId, body.role_name).isEmpty
             }

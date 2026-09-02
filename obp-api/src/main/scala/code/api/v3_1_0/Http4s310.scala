@@ -4323,7 +4323,7 @@ object Http4s310 {
             loggedInUserId = user.userId
             // Implicit owner resolves to the HUMAN: under a Consent the caller is the
             // per-consent shadow, and an account held by it strands when the consent dies.
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.accountableUserId
+            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
             _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
             (accountOwner, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))

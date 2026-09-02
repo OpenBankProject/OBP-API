@@ -4713,11 +4713,11 @@ object Http4s510 {
           for {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
-            // cc.humanUser, not cc.userId: under consent authentication the principal is the
-            // per-consent shadow user, so comparing it against the consent's PSU never matched and
+            // cc.onBehalfOfUser, not cc.userId: under consent authentication the authenticated user
+            // is the consent user, so comparing it against the consent's PSU never matched and
             // the PSU got a 404 for their own consent. See Consent.checkObpConsentUserAccess for
             // why an unbound consent stays readable.
-            _ <- Consent.checkObpConsentUserAccess(consent.userId, cc.humanUser.toOption.map(_.userId)) match {
+            _ <- Consent.checkObpConsentUserAccess(consent.userId, cc.onBehalfOfUser.toOption.map(_.userId)) match {
               case Some(reason) => Helper.booleanToFuture(failMsg = reason, failCode = 404, cc = Some(cc))(false)
               case None => Future.successful(true)
             }

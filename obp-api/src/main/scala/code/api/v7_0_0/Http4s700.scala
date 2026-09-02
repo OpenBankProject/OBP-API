@@ -287,12 +287,12 @@ object Http4s700 {
     // Response shapes reuse the v6 bank JSON (BankJson600 / BanksJsonV600).
 
     // ─── Delegation fan-down for /my/banks ───────────────────────────────────
-    // Resolving UP (agent caller → the granting human) is cc.accountableUserId.
+    // Resolving UP (agent caller → the granting human) is cc.onBehalfOfUserId.
     // This is the fan DOWN: the human plus every agent user minted from any Consent the
     // human granted — i.e. all user ids whose creations belong to that human. Match the
     // result against CreatedByUserId. Reads only server-written columns
     // (MappedConsent.mUserId, ResourceUser.CreatedByConsentId); the input must be an
-    // already-resolved human id (cc.accountableUserId), never a raw caller value.
+    // already-resolved human id (cc.onBehalfOfUserId), never a raw caller value.
 
     private def humanAndAgentUserIds(humanUserId: String): List[String] = {
       val consentIds = Consents.consentProvider.vend.getConsentsByUser(humanUserId)
@@ -336,7 +336,7 @@ object Http4s700 {
               // Quota binds to the human: banks created by the human directly or by any
               // of their consent-agents count toward the same limit — otherwise every
               // new consent would arrive with a fresh quota.
-              val creatorUserIds = humanAndAgentUserIds(cc.accountableUserId)
+              val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
               MappedBank.count(ByList(MappedBank.CreatedByUserId, creatorUserIds))
             }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
@@ -359,7 +359,7 @@ object Http4s700 {
             // Creator grant targets the HUMAN (see v6.0.0 createBank): under a Consent the
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
             _ <- Future(Entitlement.entitlement.vend.addEntitlement(
-              generatedName.bankId, cc.accountableUserId, canCreateEntitlementAtOneBank.toString(),
+              generatedName.bankId, cc.onBehalfOfUserId, canCreateEntitlementAtOneBank.toString(),
               grantedByUserId = Some(cc.userId)))
           } yield JSONFactory600.createBankJSON600(bank)
         }
@@ -417,7 +417,7 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             banksCreatedByUser <- Future {
-              val creatorUserIds = humanAndAgentUserIds(cc.accountableUserId)
+              val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
               MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
             }
           } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
@@ -946,9 +946,12 @@ object Http4s700 {
               }
             }
             val currentUser = UserV600(user, entitlements ::: virtualEntitlements, permissions)
+            // The delegated on-behalf-of user only (consentCreator for OBP-native consents,
+            // consenter for BG/UK) — NOT cc.onBehalfOfUser, whose .or(user) fallback would show a
+            // plain user as their own on-behalf-of. Null unless a consent is in play.
             val onBehalfOfUser =
-              if (cc.onBehalfOfUser.isDefined) {
-                val u = cc.onBehalfOfUser.toOption.get
+              if (cc.consentCreator.or(cc.consenter).isDefined) {
+                val u = cc.consentCreator.or(cc.consenter).toOption.get
                 val ents = Entitlement.entitlement.vend.getEntitlementsByUserId(u.userId)
                   .headOption.toList.flatten
                 val perms = Views.views.vend.getPermissionForUser(u).toOption
@@ -1148,7 +1151,7 @@ object Http4s700 {
             // human, then fan down — both via server-written columns only.
             (metrics, _) <- APIMetrics.getMetricsFromHttpParams(
               httpParams, cc.callContext,
-              lockedUserIds = Some(humanAndAgentUserIds(cc.accountableUserId)))
+              lockedUserIds = Some(humanAndAgentUserIds(cc.onBehalfOfUserId)))
           } yield JSONFactory600.createMetricsJsonV600(metrics)
         }
     }
@@ -4210,7 +4213,7 @@ object Http4s700 {
         // CanCreateAccount is enforced by ResourceDocMiddleware from the doc.
         // The implicit owner is the HUMAN: under a Consent the caller (user.userId) is the
         // per-consent shadow, and an account held by it strands when the consent dies.
-        ownerId = body.user_id.filter(_.trim.nonEmpty).getOrElse(cc.accountableUserId)
+        ownerId = body.user_id.filter(_.trim.nonEmpty).getOrElse(cc.onBehalfOfUserId)
         (owner, _) <- NewStyle.function.findByUserId(ownerId, Some(cc))
         // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
         _ <- Helper.booleanToFuture(

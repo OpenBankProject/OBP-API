@@ -175,7 +175,7 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/users/current
     // Auth-only. Returns the logged-in user enriched with entitlements,
     // virtual roles (super_admin / oidc_operator), permissions, and the
-    // optional on-behalf-of user when impersonation headers are set.
+    // optional on-behalf-of user when the request runs under a consent.
     lazy val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "users" / "current" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
@@ -203,9 +203,12 @@ object Http4s600 {
               }
             }
             val currentUser = UserV600(user, entitlements ::: virtualEntitlements, permissions)
+            // The delegated on-behalf-of user only (consentCreator for OBP-native consents,
+            // consenter for BG/UK) — NOT cc.onBehalfOfUser, whose .or(user) fallback would show a
+            // plain user as their own on-behalf-of. Null unless a consent is in play.
             val onBehalfOfUser =
-              if (cc.onBehalfOfUser.isDefined) {
-                val u = cc.onBehalfOfUser.toOption.get
+              if (cc.consentCreator.or(cc.consenter).isDefined) {
+                val u = cc.consentCreator.or(cc.consenter).toOption.get
                 val ents = Entitlement.entitlement.vend.getEntitlementsByUserId(u.userId)
                   .headOption.toList.flatten
                 val perms = Views.views.vend.getPermissionForUser(u).toOption
@@ -493,7 +496,7 @@ object Http4s600 {
       // Creator grants target the HUMAN (see createBank): a per-consent shadow principal
       // must not end up owning the entity's admin roles.
       crudRoles.foreach(role =>
-        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.accountableUserId, role.toString(),
+        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.onBehalfOfUserId, role.toString(),
           grantedByUserId = Some(cc.userId)))
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }
@@ -874,7 +877,7 @@ object Http4s600 {
             // Consent the principal is a per-consent shadow user, and a role granted to it
             // is stranded when the consent dies (and invisible to the human's next consent).
             // grantedByUserId stays the principal — the audit trail records who acted.
-            humanUserId = cc.accountableUserId
+            humanUserId = cc.onBehalfOfUserId
             entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
             entitlementsByBank = entitlements.filter(_.bankId == postJson.bank_id)
             _ = if (!entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString))

@@ -10181,7 +10181,7 @@ object Http4s400 {
             // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner =
               if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id
-              else cc.accountableUserId
+              else cc.onBehalfOfUserId
             (postedOrLoggedInUser, callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
             // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
             _ <- code.util.Helper.booleanToFuture(
@@ -10257,7 +10257,7 @@ object Http4s400 {
             // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner =
               if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id
-              else cc.accountableUserId
+              else cc.onBehalfOfUserId
             (postedOrLoggedInUser, callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
             // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
             _ <- code.util.Helper.booleanToFuture(

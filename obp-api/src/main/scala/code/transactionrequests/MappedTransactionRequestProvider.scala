@@ -169,7 +169,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       .mApiVersion(apiVersion.getOrElse(null))
       .mApiStandard(apiStandard.getOrElse(null))
       .mUserId(callContext.flatMap(_.user.map(_.userId)).getOrElse(null))
-      .mOnBehalfOfUserId(callContext.flatMap(cc => cc.onBehalfOfUser.or(cc.consenter).map(_.userId)).getOrElse(null))
+      .mOnBehalfOfUserId(callContext.flatMap(cc => cc.consentCreator.or(cc.consenter).map(_.userId)).getOrElse(null))
       .mConsumerId(callContext.flatMap(_.consumer.map(_.consumerId.get)).getOrElse(null))
 
       // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR_PROMISE type only — null otherwise).
