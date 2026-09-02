@@ -1,10 +1,13 @@
 package code.api.v7_0_0
 
 import code.api.Constant
-import code.api.util.{APIUtil, CallContext}
+import code.api.util.{APIUtil, CallContext, ExampleValue}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
-import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400}
+import code.api.v2_0_0.EntitlementJSONs
+import code.api.v3_0_0.{UserJsonV300, ViewsJSON300}
+import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400, UserAgreementJson}
+import code.api.v6_0_0.{EntitlementsJsonV600, JSONFactory600, UserInfoDetailJsonV600, UserV600}
 import code.bankconnectors.Connector
 import code.customer.CustomerX
 import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsArchiveRunTrait, MetricsProps}
@@ -1497,6 +1500,207 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     sca_enabled = true
   )
 
+  // ─── User JSON — v7 adds the user's own OBP-verified mobile phone fields ───────
+  // Distinct from Customer.mobile_phone_number (bank-scoped KYC data): this is the
+  // authenticated person's number, global across banks, stored on ResourceUser.
+  // The validated flag is separate from the validated date so it can be reset
+  // (re-verification policy, suspected SIM swap) without losing the audit trail;
+  // the date is set only on successful validation, so it always means "last time
+  // this number passed verification".
+
+  case class UserJsonV700(
+    user_id: String,
+    email: String,
+    provider_id: String,
+    provider: String,
+    username: String,
+    mobile_phone_number: Option[String],
+    mobile_phone_number_is_validated: Option[Boolean],
+    mobile_phone_number_validated_date: Option[Date],
+    entitlements: EntitlementsJsonV600,
+    views: Option[ViewsJSON300],
+    on_behalf_of: Option[UserJsonV300]
+  )
+
+  case class UserInfoDetailJsonV700(
+    user_id: String,
+    email: String,
+    provider_id: String,
+    provider: String,
+    username: String,
+    first_name: String,
+    last_name: String,
+    mobile_phone_number: Option[String],
+    mobile_phone_number_is_validated: Option[Boolean],
+    mobile_phone_number_validated_date: Option[Date],
+    entitlements: EntitlementJSONs,
+    views: Option[ViewsJSON300],
+    agreements: Option[List[UserAgreementJson]],
+    is_deleted: Boolean,
+    last_marketing_agreement_signed_date: Option[Date],
+    is_locked: Boolean,
+    created_date: Option[Date],
+    updated_date: Option[Date],
+    email_validated: Option[Boolean],
+    last_used_locale: Option[String],
+    last_activity_date: Option[Date],
+    recent_operation_ids: List[String]
+  )
+
+  def createUserJsonV700(currentUser: UserV600, onBehalfOfUser: Option[UserV600]): UserJsonV700 = {
+    val v600 = JSONFactory600.createUserInfoJSON(currentUser, onBehalfOfUser)
+    UserJsonV700(
+      user_id = v600.user_id,
+      email = v600.email,
+      provider_id = v600.provider_id,
+      provider = v600.provider,
+      username = v600.username,
+      mobile_phone_number = currentUser.user.mobilePhoneNumber,
+      mobile_phone_number_is_validated = currentUser.user.mobilePhoneNumberIsValidated,
+      mobile_phone_number_validated_date = currentUser.user.mobilePhoneNumberValidatedDate,
+      entitlements = v600.entitlements,
+      views = v600.views,
+      on_behalf_of = v600.on_behalf_of
+    )
+  }
+
+  private def toUserInfoDetailJsonV700(
+      v600: UserInfoDetailJsonV600,
+      mobilePhoneNumber: Option[String],
+      mobilePhoneNumberIsValidated: Option[Boolean],
+      mobilePhoneNumberValidatedDate: Option[Date]
+  ): UserInfoDetailJsonV700 =
+    UserInfoDetailJsonV700(
+      user_id = v600.user_id,
+      email = v600.email,
+      provider_id = v600.provider_id,
+      provider = v600.provider,
+      username = v600.username,
+      first_name = v600.first_name,
+      last_name = v600.last_name,
+      mobile_phone_number = mobilePhoneNumber,
+      mobile_phone_number_is_validated = mobilePhoneNumberIsValidated,
+      mobile_phone_number_validated_date = mobilePhoneNumberValidatedDate,
+      entitlements = v600.entitlements,
+      views = v600.views,
+      agreements = v600.agreements,
+      is_deleted = v600.is_deleted,
+      last_marketing_agreement_signed_date = v600.last_marketing_agreement_signed_date,
+      is_locked = v600.is_locked,
+      created_date = v600.created_date,
+      updated_date = v600.updated_date,
+      email_validated = v600.email_validated,
+      last_used_locale = v600.last_used_locale,
+      last_activity_date = v600.last_activity_date,
+      recent_operation_ids = v600.recent_operation_ids
+    )
+
+  def createUserInfoDetailJsonV700(user: User, v600: UserInfoDetailJsonV600): UserInfoDetailJsonV700 =
+    toUserInfoDetailJsonV700(
+      v600,
+      user.mobilePhoneNumber,
+      user.mobilePhoneNumberIsValidated,
+      user.mobilePhoneNumberValidatedDate
+    )
+
+  lazy val userJsonV700Example = UserJsonV700(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = ExampleValue.providerIdValueExample.value,
+    provider = ExampleValue.providerValueExample.value,
+    username = ExampleValue.usernameExample.value,
+    mobile_phone_number = Some(ExampleValue.mobileNumberExample.value),
+    mobile_phone_number_is_validated = Some(true),
+    mobile_phone_number_validated_date = Some(APIUtil.DateWithSecondsExampleObject),
+    entitlements = EntitlementsJsonV600(Nil),
+    views = None,
+    on_behalf_of = None
+  )
+
+  lazy val userInfoDetailJsonV700Example = toUserInfoDetailJsonV700(
+    code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.userInfoDetailJsonV600,
+    Some(ExampleValue.mobileNumberExample.value),
+    Some(true),
+    Some(APIUtil.DateWithSecondsExampleObject)
+  )
+
+  case class PutMyMobilePhoneNumberJsonV700(mobile_phone_number: String)
+
+  case class MyMobilePhoneNumberJsonV700(
+    mobile_phone_number: Option[String],
+    mobile_phone_number_is_validated: Option[Boolean],
+    mobile_phone_number_validated_date: Option[Date]
+  )
+
+  lazy val putMyMobilePhoneNumberJsonV700Example =
+    PutMyMobilePhoneNumberJsonV700(ExampleValue.mobileNumberExample.value)
+
+  // a freshly set number is unverified: flag false, no validated date yet
+  lazy val myMobilePhoneNumberJsonV700Example = MyMobilePhoneNumberJsonV700(
+    mobile_phone_number = Some(ExampleValue.mobileNumberExample.value),
+    mobile_phone_number_is_validated = Some(false),
+    mobile_phone_number_validated_date = None
+  )
+
+  // ─── Create User (self-registration) — v7 adds the optional mobile phone number ──
+  // The number belongs to the person registering (global across banks, stored on
+  // ResourceUser) and is stored UNVERIFIED: is_validated=false, no validated date.
+  // Verification is a separate flow. Absent or blank means "no number".
+  case class CreateUserJsonV700(
+    email: String,
+    username: String,
+    password: String,
+    first_name: String,
+    last_name: String,
+    mobile_phone_number: Option[String]
+  )
+
+  case class CreatedUserJsonV700(
+    user_id: String,
+    email: String,
+    provider_id: String,
+    provider: String,
+    username: String,
+    mobile_phone_number: Option[String],
+    mobile_phone_number_is_validated: Option[Boolean],
+    mobile_phone_number_validated_date: Option[Date],
+    entitlements: EntitlementJSONs
+  )
+
+  def createCreatedUserJsonV700(v200: code.api.v2_0_0.JSONFactory200.UserJsonV200, resourceUser: User): CreatedUserJsonV700 =
+    CreatedUserJsonV700(
+      user_id = v200.user_id,
+      email = v200.email,
+      provider_id = v200.provider_id,
+      provider = v200.provider,
+      username = v200.username,
+      mobile_phone_number = resourceUser.mobilePhoneNumber,
+      mobile_phone_number_is_validated = resourceUser.mobilePhoneNumberIsValidated,
+      mobile_phone_number_validated_date = resourceUser.mobilePhoneNumberValidatedDate,
+      entitlements = v200.entitlements
+    )
+
+  lazy val createUserJsonV700Example = CreateUserJsonV700(
+    email = ExampleValue.emailExample.value,
+    username = ExampleValue.usernameExample.value,
+    password = "String",
+    first_name = "Simon",
+    last_name = "Redfern",
+    mobile_phone_number = Some(ExampleValue.mobileNumberExample.value)
+  )
+
+  lazy val createdUserJsonV700Example = CreatedUserJsonV700(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = ExampleValue.providerIdValueExample.value,
+    provider = ExampleValue.providerValueExample.value,
+    username = ExampleValue.usernameExample.value,
+    mobile_phone_number = Some(ExampleValue.mobileNumberExample.value),
+    mobile_phone_number_is_validated = Some(false),
+    mobile_phone_number_validated_date = None,
+    entitlements = EntitlementJSONs(Nil)
+  )
+
   // ─── Password policy — published so clients can validate locally before user creation /
   // password reset. The structured fields are the normative contract; `regex` is a convenience
   // written in the portable subset that behaves identically in Java, JavaScript and Python.
@@ -1667,6 +1871,43 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   // "completed" (a run executed — inspect `run.success`) or
   // "skipped_already_in_progress" (a run was already running, so none was started;
   // `in_progress` then describes the lock that blocked it).
+  // ─── Top Consumers (v7.0.0) ───
+  // Grouped by the consumer id stored on the metric row (NOT by app name like v3.1.0), so
+  // for a given window the number of rows matches aggregate-metrics' distinct_consumer_count.
+  // app_name / developer_email are empty when the consumer row no longer exists.
+  case class TopConsumerJsonV700(
+      count: Int,
+      consumer_id: String,
+      app_name: String,
+      developer_email: String
+  )
+
+  case class TopConsumersJsonV700(top_consumers: List[TopConsumerJsonV700])
+
+  def createTopConsumersJsonV700(topConsumers: List[code.metrics.TopConsumer]): TopConsumersJsonV700 =
+    TopConsumersJsonV700(
+      topConsumers.map(topConsumer =>
+        TopConsumerJsonV700(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)
+      )
+    )
+
+  // ─── Top Users (v7.0.0) ───
+  // One distinct user and their call count. On-behalf-of aware: consent-borne calls are
+  // attributed to the granting human (resolved via the consent table), so for a given
+  // window the number of rows matches aggregate-metrics' distinct_user_count.
+  case class TopUserJsonV700(
+      count: Int,
+      user_id: String,
+      username: String
+  )
+
+  case class TopUsersJsonV700(top_users: List[TopUserJsonV700])
+
+  def createTopUsersJsonV700(topUsers: List[code.metrics.TopUser]): TopUsersJsonV700 =
+    TopUsersJsonV700(
+      topUsers.map(topUser => TopUserJsonV700(topUser.count, topUser.userId, topUser.userName))
+    )
+
   case class TriggerMetricsArchiveRunResponseJsonV700(
     status: String,
     message: String,

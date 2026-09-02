@@ -83,7 +83,8 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       apiInstanceId = "test",
       consentReferenceId = "",
       certificateTrust = null,
-      certificateTrustDetail = null)
+      certificateTrustDetail = null,
+      authType = null)
     MetricArchive.findByMetricId(metricId)
       .openOrThrowException("the archive row just seeded must be readable")
   }

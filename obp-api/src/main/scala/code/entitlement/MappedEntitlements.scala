@@ -1,12 +1,21 @@
 package code.entitlement
 
 import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.Constant
 import code.api.util.{APIUtil, DoobieUtil, NotificationUtil}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
 import net.liftweb.common.{Box, Empty, Full}
+import code.api.util.ApiRole.{
+  CanCreateEntitlementAtAnyBank,
+  CanCreateEntitlementAtOneBank
+}
+import code.api.util.{ErrorMessages, NotificationUtil}
+import code.util.Helper.MdcLoggable
+import code.util.{MappedUUID, UUIDString}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future
@@ -32,7 +41,6 @@ case class MappedEntitlement(
   roleName: String,
   private val createdByProcessRaw: String,
   private val groupIdRaw: String,
-  private val processRaw: String,
   private val grantedByUserIdRaw: String,
   private val entitlementRequestIdRaw: Option[String]
 ) extends Entitlement {
@@ -42,9 +50,6 @@ case class MappedEntitlement(
 
   override def groupId: Option[String] =
     if (groupIdRaw == null || groupIdRaw.isEmpty) None else Some(groupIdRaw)
-
-  override def process: Option[String] =
-    if (processRaw == null || processRaw.isEmpty) None else Some(processRaw)
 
   override def grantedByUserId: Option[String] =
     if (grantedByUserIdRaw == null || grantedByUserIdRaw.isEmpty) None else Some(grantedByUserIdRaw)
@@ -58,18 +63,20 @@ case class MappedEntitlement(
 object MappedEntitlement {
 
   private val selectColumns =
-    fr"""SELECT mentitlementid, mbankid, muserid, mrolename, mcreatedbyprocess, group_id, process,
+    // `process` is not selected: develop retired it from the Entitlement trait, so there is no
+    // member to carry it. The column remains in the table until it is dropped.
+    fr"""SELECT mentitlementid, mbankid, muserid, mrolename, mcreatedbyprocess, group_id,
                 granted_by_user_id, entitlement_request_id
          FROM mappedentitlement"""
 
   private type Row = (Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String], Option[String], Option[String], Option[String])
+    Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): MappedEntitlement = row match {
-    case (entitlementId, bankId, userId, roleName, createdByProcess, groupId, process,
+    case (entitlementId, bankId, userId, roleName, createdByProcess, groupId,
           grantedByUserId, entitlementRequestId) =>
       MappedEntitlement(entitlementId.orNull, bankId.orNull, userId.orNull, roleName.orNull,
-        createdByProcess.orNull, groupId.orNull, process.orNull, grantedByUserId.orNull,
+        createdByProcess.orNull, groupId.orNull, grantedByUserId.orNull,
         entitlementRequestId)
   }
 
@@ -110,19 +117,26 @@ object MappedEntitlement {
       query(fr"WHERE " ++ in ++ fr"ORDER BY id ASC")
     }
 
+  // No `process` parameter: develop retired that column (a duplicate of createdByProcess written
+  // only by the Groups feature). Group rows are identified by group_id and provenance lives in
+  // createdByProcess. The column stays in the table, written empty, until it is dropped.
   def insert(bankId: String, userId: String, roleName: String, createdByProcess: String,
-             grantedByUserId: Option[String], groupId: Option[String],
-             process: Option[String]): MappedEntitlement = {
+             grantedByUserId: Option[String], groupId: Option[String]): MappedEntitlement = {
     val entitlementId = APIUtil.generateUUID()
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     // The three optional columns default to "" rather than NULL when the caller omits them, which
     // is what Mapper's untouched MappedString defaults wrote.
     DoobieUtil.runUpdate(
+      // `process` is deliberately absent: develop retired the field, and the column is nullable,
+      // so leaving it out of the column list stores NULL. It must not be listed with a `""`
+      // value - in SQL that is a quoted IDENTIFIER, not an empty string, so the statement fails
+      // to parse. The failure is invisible here because the caller wraps this in `tryo`: the
+      // grant silently does not happen and every role-gated endpoint answers 403 instead.
       sql"""INSERT INTO mappedentitlement
-            (mentitlementid, mbankid, muserid, mrolename, mcreatedbyprocess, group_id, process,
+            (mentitlementid, mbankid, muserid, mrolename, mcreatedbyprocess, group_id,
              granted_by_user_id, createdat, updatedat)
             VALUES ($entitlementId, $bankId, $userId, $roleName, $createdByProcess,
-             ${groupId.getOrElse("")}, ${process.getOrElse("")},
+             ${groupId.getOrElse("")},
              ${grantedByUserId.getOrElse("")}, $now, $now)"""
         .update.run)
     findByEntitlementId(entitlementId)
@@ -171,7 +185,7 @@ object MappedEntitlement {
   }
 }
 
-object MappedEntitlementsProvider extends EntitlementProvider {
+object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
 
   override def getEntitlement(bankId: String, userId: String, roleName: String): Box[MappedEntitlement] =
     MappedEntitlement.find(bankId, userId, roleName)
@@ -225,22 +239,50 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       roleName: String,
       createdByProcess: String = "manual",
       grantedByUserId: Option[String] = None,
-      groupId: Option[String] = None,
-      process: Option[String] = None
+      groupId: Option[String] = None
   ): Box[Entitlement] = {
     // grantedByUserId is audit metadata, stored as-is: authorization is the
     // calling endpoint's responsibility. (Until 2026-08-09 an unused
     // grantorUserId parameter gated on the grantor's granting roles here —
     // no caller ever passed it, and the check ignored super admins, whose
     // granting rights are virtual and have no rows to find.)
-    tryo(MappedEntitlement.insert(bankId, userId, roleName, createdByProcess, grantedByUserId,
-      groupId, process)) match {
+    // On-behalf-of guard, ported from the Mapper implementation this branch replaced.
+    // A consent user (the per-consent principal a Consent-JWT authenticates as; its
+    // resourceuser row carries createdByConsentId) must not accumulate durable roles - they
+    // strand when the consent dies, invisible to the human's next consent (see the simon.bank
+    // creator-grant incident, 2026-08-31). Any grant targeting one is redirected to the
+    // consent's granting human. The one legitimate writer of consent-user rows is the consent
+    // engine copying the consent's own scope, which tags itself Constant.consent_user.
+    //
+    // createdByConsentId is an Option on the Doobie row, so the null/empty dance the Mapper
+    // version needed is gone; the shape of the decision is otherwise unchanged.
+    val targetUserId =
+      if (createdByProcess == Constant.consent_user) userId
+      else {
+        val grantingHumanUserId = for {
+          resourceUser <- code.model.dataAccess.ResourceUser.findByUserId(userId)
+          consentId <- Box(resourceUser.createdByConsentId.filter(_.nonEmpty))
+          consent <- code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
+          humanUserId <- Full(consent.userId).filter(id => id != null && id.nonEmpty)
+        } yield humanUserId
+        grantingHumanUserId match {
+          case Full(humanUserId) =>
+            logger.warn(s"addEntitlement: target user $userId is a consent user; granting role " +
+              s"'$roleName' (bankId '$bankId', createdByProcess '$createdByProcess') to its " +
+              s"granting human $humanUserId instead")
+            humanUserId
+          case _ => userId
+        }
+      }
+
+    tryo(MappedEntitlement.insert(bankId, targetUserId, roleName, createdByProcess,
+      grantedByUserId, groupId)) match {
       case Full(saved) =>
-        NotificationUtil.sendEmailRegardingAssignedRole(userId, saved)
+        NotificationUtil.sendEmailRegardingAssignedRole(targetUserId, saved)
         Full(saved)
       case _: net.liftweb.common.Failure =>
-        // UniqueIndex(mBankId, mUserId, mRoleName) violated by concurrent grant — return the committed row
-        MappedEntitlement.find(bankId, userId, roleName)
+        // UniqueIndex(mBankId, mUserId, mRoleName) violated by concurrent grant - return the committed row
+        MappedEntitlement.find(bankId, targetUserId, roleName)
       case other => other
     }
   }

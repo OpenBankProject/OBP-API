@@ -26,8 +26,13 @@ import code.setup.ServerSetup
  */
 class CacheKeyGoldenTest extends ServerSetup {
 
+  // The envelope is spelled out rather than derived, which is the point of a golden test: it
+  // fails if the rewrite changes the shape. The namespace is the one part taken from the code,
+  // because it is deliberately build-dependent (Redis.serializationNamespace isolates builds
+  // whose encodings differ) - pinning its current value here would pin the Scala version.
   private def expectedRedisKey(cacheKey: String): String =
-    s"code.api.cache.Redis.memoizeSyncWithRedis(Some($cacheKey))()()()"
+    Redis.serializationNamespace +
+      s"code.api.cache.Redis.memoizeSyncWithRedis(Some($cacheKey))()()()"
 
   /**
    * Delete the EXACT expected key before exercising the method, so the assertion can only be

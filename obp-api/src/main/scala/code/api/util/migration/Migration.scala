@@ -155,6 +155,10 @@ object Migration extends MdcLoggable {
       migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
       migrateMetricConsentReferenceId(startedBeforeSchemifier)
       migrateMetricCertificateTrust(startedBeforeSchemifier)
+      // Removed with the develop merge: the schema these produced now comes from
+      // db.changelog-develop-merge.yaml. They read Lift Mapper metadata
+      // (MappedMetric._dbTableNameLC and friends) that no longer exists on this branch,
+      // and Schemifier - their other half - creates nothing here (ToSchemify.models = Nil).
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
     }
 
@@ -426,6 +430,7 @@ object Migration extends MdcLoggable {
     // Retire the fast-firehose SQL views (firehose -> account directory + ABAC). Runs after the create
     // migrations above, so a fresh DB creates-then-drops them and an existing DB just drops them. See
     // MigrationOfDropFastFireHoseViews.
+
     private def dropFastFirehoseAccountsViews(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
         logger.warn(s"Migration.database.dropFastFirehoseAccountsViews(true) cannot be run before Schemifier.")
@@ -596,6 +601,8 @@ object Migration extends MdcLoggable {
         MigrationOfUserIdIndexes.addIndexOnMappedMetricUserId(name)
       }
     }
+
+
     
     private def alterRoleNameLength(): Boolean = {
       val name = nameOf(alterRoleNameLength())
@@ -698,6 +705,7 @@ object Migration extends MdcLoggable {
         }
       }
     }
+
 
     private def migrateMetricCertificateTrust(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {

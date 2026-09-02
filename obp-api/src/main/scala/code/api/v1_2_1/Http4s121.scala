@@ -10,6 +10,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps, callContextKey}
 import code.api.util.http4s.Http4sCallContextBuilder
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{CallContext, CustomJsonFormats, NewStyle}
@@ -2669,7 +2670,7 @@ object Http4s121 {
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] = {
-      val middlewareWrapped = ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      val middlewareWrapped = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
       // bankById runs before middleware so it can return 400 (not 404) for unknown bank
       Kleisli[HttpF, Request[IO], Response[IO]] { req =>
         bankById.run(req).orElse(middlewareWrapped.run(req))

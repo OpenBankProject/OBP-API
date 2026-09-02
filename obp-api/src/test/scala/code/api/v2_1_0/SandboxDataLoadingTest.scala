@@ -1278,17 +1278,24 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     }
   }
 
-  it should "reject the same IBAN at a different bank" in {
-    // An IBAN is globally unique by construction - ISO 13616 encodes the institution in the
-    // string - so two banks sharing one is not a legitimate address space, it is bad data. The
-    // connector depends on that: the payment path resolves a target account by routing with no
-    // bank context (BulkPaymentHandler:135, three Http4s700 transaction-request endpoints,
-    // getBankAccountByIban), and getBankAccountByRouting fails any lookup matching more than one
-    // row. Accepting a duplicate at import would produce an account that fails every such
-    // payment, reporting AccountRoutingNotUnique far from the cause. The unique index on
-    // (bankId, scheme, address) does not license the opposite reading: that is a storage
-    // constraint, and a per-bank index cannot authorise duplicates when a bank-less lookup
-    // exists.
+  it should "not allow two accounts at DIFFERENT banks to share an IBAN either" in {
+    // The global-uniqueness half of the rule, which had no test at all.
+    //
+    // An IBAN is globally unique by ISO 13616 -- the bank identifier is encoded INSIDE the
+    // string, so two banks cannot legitimately hold the same one. OBP does not merely assume
+    // that; it depends on it. LocalMappedConnector.getBankAccountByRoutingLegacy, called with
+    // no bankId, refuses outright when a routing address matches more than one account:
+    //
+    //     if (routing.size > 1) { // Routing MUST be unique
+    //       Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
+    //
+    // and that is the lookup PAYMENT DESTINATIONS resolve through -- BulkPaymentHandler and
+    // three v7.0.0 transaction paths all call it with bankId = None. So letting a duplicate in
+    // at import time does not create a working account: it creates one that any global-routing
+    // payment then fails on, far from the import that caused it.
+    //
+    // Rejecting at import is therefore the correct behaviour, and this test exists so nobody
+    // "fixes" the duplicate check by scoping it per bank to make a broken fixture load.
     val users = standardUsers
     val banks = standardBanks
 
@@ -1298,18 +1305,24 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
       postImportJson(json)
     }
 
-    val acc1 = account1AtBank1
-    val accAtOtherBank = account1AtBank2
+    val accAtBank1 = account1AtBank1
+    val accAtBank2 = account1AtBank2
 
-    val acc1Json = Extraction.decompose(acc1)
-    val sameIbanAtOtherBankJson = replaceField(Extraction.decompose(accAtOtherBank), "IBAN", acc1.IBAN)
+    val bank1Json = Extraction.decompose(accAtBank1)
+    // Same IBAN, different bank. Nothing else changed.
+    val bank2SameIbanJson = replaceField(Extraction.decompose(accAtBank2), "IBAN", accAtBank1.IBAN)
 
-    getResponse(List(acc1Json, sameIbanAtOtherBankJson)).code should equal(FAILED)
+    getResponse(List(bank1Json, bank2SameIbanJson)).code should equal(FAILED)
 
-    withClue("neither account may be created - the import is rejected whole: ") {
-      Connector.connector.vend.getBankAccountLegacy(BankId(acc1.bank), AccountId(acc1.id), None).isDefined should equal(false)
-      Connector.connector.vend.getBankAccountLegacy(BankId(accAtOtherBank.bank), AccountId(accAtOtherBank.id), None).isDefined should equal(false)
-    }
+    // And nothing partially imported.
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank1.bank), AccountId(accAtBank1.id), None).isDefined should equal(false)
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank2.bank), AccountId(accAtBank2.id), None).isDefined should equal(false)
+
+    // The same two accounts import fine once their IBANs differ -- proving the rejection above
+    // was about the IBAN collision and not about anything else in the payload.
+    getResponse(List(bank1Json, Extraction.decompose(accAtBank2))).code should equal(SUCCESS)
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank1.bank), AccountId(accAtBank1.id), None).isDefined should equal(true)
+    Connector.connector.vend.getBankAccountLegacy(BankId(accAtBank2.bank), AccountId(accAtBank2.id), None).isDefined should equal(true)
   }
 
   it should "not allow an account to be created with an existing IBAN" in {

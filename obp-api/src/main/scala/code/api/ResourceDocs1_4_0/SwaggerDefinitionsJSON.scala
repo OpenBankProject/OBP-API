@@ -3206,11 +3206,22 @@ object SwaggerDefinitionsJSON {
     operation_id = "OBPv4.0.0-getBanks",
     api_instance_id = "obp_node_a",
     consent_reference_id = Some(ExampleValue.consentReferenceIdExample.value),
+    auth_type = Some("Consent"),
     certificate_trust = Some("forwarded"),
     certificate_trust_detail = Some("cn=nginx-prod-1,ou=edge,o=tesobe gmbh,c=de")
   )
   lazy val metricsJsonV600 = MetricsJsonV600(
     metrics = List(metricJsonV600)
+  )
+  lazy val aggregateMetricJsonV600 = AggregateMetricJsonV600(
+    count = 7076,
+    average_response_time = 65.21,
+    minimum_response_time = 1,
+    maximum_response_time = 9039,
+    distinct_user_count = 41,
+    distinct_consumer_count = 12,
+    consent_call_count = 1024,
+    distinct_consent_count = 9
   )
 
   lazy val branchJsonPut = BranchJsonPutV210("gh.29.fi", "OBP",

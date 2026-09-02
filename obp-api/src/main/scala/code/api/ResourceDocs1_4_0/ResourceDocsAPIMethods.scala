@@ -3,8 +3,6 @@ package code.api.ResourceDocs1_4_0
 import code.api.Constant.{GET_DYNAMIC_RESOURCE_DOCS_TTL, GET_STATIC_RESOURCE_DOCS_TTL, HostName, PARAM_LOCALE}
 import code.api.OBPRestHelper
 import code.api.cache.Caching
-import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
-import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
 import code.api.util.ApiTag._
@@ -23,6 +21,7 @@ import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.api.berlin.group.ConstantsBG
+import code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -334,59 +333,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
-      val resourceDocs = requestedApiVersion match {
-        case ApiVersion.v7_0_0 =>  code.api.v7_0_0.Http4s700.allResourceDocs  // Use aggregated docs for v7.0.0
-        case ConstantsBG.`berlinGroupVersion1` => code.api.berlin.group.v1_3.Http4sBGv13.resourceDocs
-        case ConstantsBG.`berlinGroupVersion2` => code.api.berlin.group.v2.Http4sBGv2.resourceDocs
-        case ApiVersion.v6_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v600
-        case ApiVersion.v5_1_0 => code.api.util.http4s.Http4sResourceDocAggregation.v510
-        case ApiVersion.v5_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v500
-        case ApiVersion.v4_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v400
-        case ApiVersion.v3_1_0 => code.api.util.http4s.Http4sResourceDocAggregation.v310
-        case ApiVersion.v3_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v300
-        case ApiVersion.v2_2_0 => code.api.util.http4s.Http4sResourceDocAggregation.v220
-        case ApiVersion.v2_1_0 => code.api.util.http4s.Http4sResourceDocAggregation.v210
-        case ApiVersion.v2_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v200
-        case ApiVersion.v1_4_0 => code.api.util.http4s.Http4sResourceDocAggregation.v140
-        case ApiVersion.v1_3_0 => code.api.util.http4s.Http4sResourceDocAggregation.v130
-        case ApiVersion.v1_2_1 => code.api.util.http4s.Http4sResourceDocAggregation.v121
-        case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.allResourceDocs
-        case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.allResourceDocs
-        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.allResourceDocs).getOrElse(ArrayBuffer.empty[ResourceDoc])
-        case _ => ArrayBuffer.empty[ResourceDoc]
-      }
+      // ResourceDocRegistry is the single source of truth for both this per-version dispatch and
+      // APIUtil.allStaticResourceDocs' global operation-id union -- see that object's doc comment.
+      val resourceDocs = ResourceDocRegistry.docsFor(requestedApiVersion)
 
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
-      val activeResourceDocs = requestedApiVersion match {
-        case ApiVersion.v7_0_0 => resourceDocs
-        case ConstantsBG.`berlinGroupVersion1` => resourceDocs  // fully on http4s — no Lift route filter
-        case ConstantsBG.`berlinGroupVersion2` => resourceDocs
-        case ApiVersion.v1_2_1 => resourceDocs
-        case ApiVersion.v6_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v5_1_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v5_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v4_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v3_1_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v3_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v2_2_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v2_1_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v2_0_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v1_4_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.v1_3_0 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.`dynamic-entity` => resourceDocs  // runtime CRUD now on Http4sDynamicEntity; routes are Nil, skip Lift-route filter
-        case ApiVersion.`dynamic-endpoint` => resourceDocs  // dispatch now on Http4sDynamicEndpoint (proxy + native Piece C); routes carry only the stub, skip Lift-route filter
-        case ApiVersion.ukOpenBankingV20 => resourceDocs  // fully on http4s — no Lift route filter
-        case ApiVersion.ukOpenBankingV31 => resourceDocs  // fully on http4s — no Lift route filter
-        case _ => resourceDocs
-      }
-
-      logger.debug(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
-
-
       val activePlusLocalResourceDocs = ArrayBuffer[ResourceDoc]()
 
-      activePlusLocalResourceDocs ++= activeResourceDocs
+      activePlusLocalResourceDocs ++= resourceDocs
       requestedApiVersion match
       {
         // only `obp` standard show the `localResourceDocs`
@@ -717,7 +672,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 //          json <- locale match {
 //            case _ if (apiCollectionIdParam.isDefined) =>
 //              NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
-//                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
 //                val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
 //                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
 //                val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
@@ -936,7 +891,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 //              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
 //                val resourceDocsJsonFiltered = locale match {
 //                  case _ if (apiCollectionIdParam.isDefined) =>
-//                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                    val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
 //                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
 //                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
 //                    resourceDocsJson.resource_docs
@@ -1140,7 +1095,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 //              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file.", 400, cc.callContext) {
 //                val resourceDocsJsonFiltered = locale match {
 //                  case _ if (apiCollectionIdParam.isDefined) =>
-//                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                    val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
 //                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
 //                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
 //                    resourceDocsJson.resource_docs

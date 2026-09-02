@@ -450,6 +450,7 @@ case class TopApiJsonV600(
 
 case class TopApisJsonV600(top_apis: List[TopApiJsonV600])
 
+
 case class MetricJsonV600(
     user_id: String,
     url: String,
@@ -470,6 +471,10 @@ case class MetricJsonV600(
     operation_id: String,
     api_instance_id: String,
     consent_reference_id: Option[String],
+    // Authentication scheme of the call: "Consent", "OAuth2", "OAuth1", "DirectLogin",
+    // "GatewayLogin", "DAuth", "Anonymous", "Other". Absent on rows written before the
+    // auth_type column existed.
+    auth_type: Option[String],
     // How the caller's certificate was established: "direct", "forwarded" or "none";
     // absent when the request carried no certificate material. See PeerTrust.Resolution.
     certificate_trust: Option[String],
@@ -477,6 +482,20 @@ case class MetricJsonV600(
     certificate_trust_detail: Option[String]
 )
 case class MetricsJsonV600(metrics: List[MetricJsonV600])
+
+case class AggregateMetricJsonV600(
+    count: Int,
+    average_response_time: Double,
+    minimum_response_time: Double,
+    maximum_response_time: Double,
+    // Distinct humans: consent-borne calls are attributed to the granting (on-behalf-of)
+    // user via the consent table, not to the consent's technical shadow user.
+    distinct_user_count: Int,
+    distinct_consumer_count: Int,
+    // Calls made under a consent, and the number of distinct consents exercised.
+    consent_call_count: Int,
+    distinct_consent_count: Int
+)
 
 case class CacheNamespaceJsonV600(
     prefix: String,
@@ -1735,6 +1754,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       operation_id = operationId,
       api_instance_id = metric.getApiInstanceId(),
       consent_reference_id = Option(metric.getConsentReferenceId()).filter(_.nonEmpty),
+      auth_type = Option(metric.getAuthType()).filter(_.nonEmpty),
       certificate_trust = Option(metric.getCertificateTrust()).filter(_.nonEmpty),
       certificate_trust_detail = Option(metric.getCertificateTrustDetail()).filter(_.nonEmpty)
     )
@@ -1742,6 +1762,30 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createMetricsJsonV600(metrics: List[code.metrics.APIMetric], lookupMap: Map[String, String]): MetricsJsonV600 = {
     MetricsJsonV600(metrics.map(createMetricJsonV600(_, lookupMap)))
+  }
+
+  // Overload that builds the partialFunctionName -> operationId lookup itself —
+  // the shared path for endpoints returning raw metric rows.
+  def createMetricsJsonV600(metrics: List[code.metrics.APIMetric]): MetricsJsonV600 = {
+    val lookupMap = code.api.util.APIUtil.getAllResourceDocs.map(d => d.partialFunctionName -> d.operationId).toMap
+    createMetricsJsonV600(metrics, lookupMap)
+  }
+
+  // Same list shape as JSONFactory300.createAggregateMetricJson (a single-element array),
+  // extended with the distinct/consent counts introduced in v6.0.0.
+  def createAggregateMetricJsonV600(aggregateMetrics: List[code.metrics.AggregateMetrics]): List[AggregateMetricJsonV600] = {
+    aggregateMetrics.map(aggregateMetric =>
+      AggregateMetricJsonV600(
+        aggregateMetric.totalCount,
+        aggregateMetric.avgResponseTime,
+        aggregateMetric.minResponseTime,
+        aggregateMetric.maxResponseTime,
+        aggregateMetric.distinctUserCount,
+        aggregateMetric.distinctConsumerCount,
+        aggregateMetric.consentCallCount,
+        aggregateMetric.distinctConsentCount
+      )
+    )
   }
 
   def createBankJSON600(
@@ -2027,7 +2071,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       user_id: String,
       username: String,
       group_id: Option[String],
-      process: Option[String]
+      // The row's stored provenance, verbatim: "GROUP_MEMBERSHIP" for rows granted since
+      // provenance moved to created_by_process; legacy group rows show "manual".
+      created_by_process: String
   )
 
   case class GroupEntitlementsJsonV600(

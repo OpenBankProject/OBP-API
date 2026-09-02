@@ -114,7 +114,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
                           responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String,
-                          certificateTrust: String, certificateTrustDetail: String): Unit = {
+                          certificateTrust: String, certificateTrustDetail: String,
+                          authType: String): Unit = {
     // A correlation id is expected on every metric. Rows without one cannot be moved
     // to the archive later (its correlationId column requires a UUID), so flag it at
     // write time where the source of the missing id can actually be traced.
@@ -142,7 +143,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         apiInstanceId = apiInstanceId,
         consentReferenceId = consentReferenceId,
         certificateTrust = certificateTrust,
-        certificateTrustDetail = certificateTrustDetail
+        certificateTrustDetail = certificateTrustDetail,
+        authType = authType
       )
     )
   }
@@ -153,7 +155,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   verb: String, httpCode: Option[Int], correlationId: String,
                                   responseBody: String, sourceIp: String, targetIp: String,
                                   apiInstanceId: String, consentReferenceId: String,
-                                  certificateTrust: String, certificateTrustDetail: String): Boolean = {
+                                  certificateTrust: String, certificateTrustDetail: String,
+                                  authType: String): Boolean = {
     // Dedup by the source metric's primary key stored in `metricId`, NOT by the archive's own
     // auto-increment `id`. The two are unrelated id-spaces; matching on `id` overwrites an
     // unrelated archived row once the archive's id sequence grows into the live metric id range.
@@ -164,7 +167,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val saved = MetricArchive.upsertByMetricId(primaryKey, userId, url, date, duration, userName,
       appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion,
       verb, httpCode, correlationId, responseBody, sourceIp, targetIp, apiInstanceId,
-      consentReferenceId, certificateTrust, certificateTrustDetail)
+      consentReferenceId, certificateTrust, certificateTrustDetail, authType)
     if (!saved) {
       logger.error(s"saveMetricsArchive: failed to persist MetricArchive row for metricId=$primaryKey (url=$url, date=$date)")
     }
@@ -319,6 +322,107 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  // Groups by metric.consumerid — see DoobieMetricsQueries.buildTopConsumersByConsumerIdQuery.
+  override def getTopConsumersByConsumerIdFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{
+  // Key built by hand, like every other cache site in this file: CacheKeyFromArguments is a macro
+  // whose rendering depends on the enclosing signature, and binding its result to a val silently
+  // empties the argument segment (every caller then shares one entry).
+  val cacheKey = ("code.metrics.MappedMetrics", "getTopConsumersByConsumerIdFuture", List(queryParams).mkString("_"))
+  val cacheTTL = determineMetricsCacheTTL(queryParams)
+  Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+    {
+      val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+      val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
+      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+
+      val filters = MetricsQueryFilters(
+        consumerId = consumerId,
+        userId = userId,
+        url = url,
+        appName = appName,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        anon = anon,
+        correlationId = correlationId,
+        httpStatusCode = httpStatusCode,
+        excludeAppNames = None,
+        excludeUrlPatterns = None,
+        excludeImplementedByPartialFunctions = None
+      )
+
+      val result: Box[List[TopConsumer]] = tryo {
+        logger.debug(s"getTopConsumersByConsumerIdFuture using Doobie with filters: $filters, limit: $limit")
+        DoobieMetricsQueries.getTopConsumersByConsumerId(fromDate.get, toDate.get, limit, filters)
+      }
+      result
+    }}
+  }
+
+  // Smart caching applied - uses determineMetricsCacheTTL based on query date range
+  // Groups by the on-behalf-of-resolved user — see DoobieMetricsQueries.buildTopUsersQuery.
+  override def getTopUsersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopUser]]] = Future{
+  // Key built by hand, like every other cache site in this file: CacheKeyFromArguments is a macro
+  // whose rendering depends on the enclosing signature, and binding its result to a val silently
+  // empties the argument segment (every caller then shares one entry).
+  val cacheKey = ("code.metrics.MappedMetrics", "getTopUsersFuture", List(queryParams).mkString("_"))
+  val cacheTTL = determineMetricsCacheTTL(queryParams)
+  Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+    {
+      val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+      val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+      val excludeAppNames: Option[List[String]] = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
+      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
+      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
+      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+
+      val filters = MetricsQueryFilters(
+        consumerId = consumerId,
+        userId = userId,
+        url = url,
+        appName = appName,
+        implementedByPartialFunction = implementedByPartialFunction,
+        implementedInVersion = implementedInVersion,
+        verb = verb,
+        anon = anon,
+        correlationId = correlationId,
+        httpStatusCode = httpStatusCode,
+        excludeAppNames = excludeAppNames,
+        excludeUrlPatterns = excludeUrlPatterns,
+        excludeImplementedByPartialFunctions = excludeImplementedByPartialFunctions
+      )
+
+      val result: Box[List[TopUser]] = tryo {
+        logger.debug(s"getTopUsersFuture using Doobie with filters: $filters, limit: $limit")
+        val topUsers = DoobieMetricsQueries.getTopUsers(fromDate.get, toDate.get, limit, filters)
+        logger.debug(s"getTopUsersFuture returned " + topUsers.length + " rows")
+        topUsers
+      }
+      result
+    }}
+  }
+
+  // Smart caching applied - uses determineMetricsCacheTTL based on query date range
   override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future {
   val cacheKey = ("code.metrics.MappedMetrics", "getTopConsumersFuture", List(queryParams).mkString("_"))
   val cacheTTL = determineMetricsCacheTTL(queryParams)
@@ -353,6 +457,11 @@ case class MetricQuery(
   consumerId: Option[String],
   bankId: Option[String],
   userId: Option[String],
+  // The server-locked user set behind GET /my/metrics (the caller plus the agent users their
+  // consents minted). It is a separate field from `userId` because it must not be expressible
+  // through a request parameter: APIMetrics.getMetricsFromHttpParams strips any caller-supplied
+  // user_id before setting it.
+  userIds: Option[List[String]],
   url: Option[String],
   appName: Option[String],
   implementedInVersion: Option[String],
@@ -406,6 +515,7 @@ object MetricQuery {
       consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption,
       bankId = queryParams.collect { case OBPBankId(value) => value }.headOption,
       userId = queryParams.collect { case OBPUserId(value) => value }.headOption,
+      userIds = queryParams.collect { case OBPUserIds(values) => values }.headOption,
       url = queryParams.collect { case OBPUrl(value) => value }.headOption,
       appName = queryParams.collect { case OBPAppName(value) => value }.headOption,
       implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption,
@@ -442,7 +552,8 @@ case class MappedMetric(
   apiInstanceId: String,
   consentReferenceId: String,
   certificateTrust: String,
-  certificateTrustDetail: String
+  certificateTrustDetail: String,
+  authType: String
 ) extends APIMetric {
   override def getMetricId(): Long = metricPrimaryKey
   override def getUrl(): String = url
@@ -465,6 +576,7 @@ case class MappedMetric(
   override def getConsentReferenceId(): String = consentReferenceId
   override def getCertificateTrust(): String = certificateTrust
   override def getCertificateTrustDetail(): String = certificateTrustDetail
+  override def getAuthType(): String = authType
 }
 
 object MappedMetric extends MetricStore[MappedMetric] {
@@ -491,7 +603,7 @@ object MappedMetric extends MetricStore[MappedMetric] {
       row.developerEmail, row.consumerId, row.implementedByPartialFunction,
       row.implementedInVersion, row.verb, row.httpCode, row.correlationId, row.responseBody,
       row.sourceIp, row.targetIp, row.apiInstanceId, row.consentReferenceId, row.certificateTrust,
-      row.certificateTrustDetail)
+      row.certificateTrustDetail, row.authType)
 }
 
 /**
@@ -522,7 +634,8 @@ case class MetricArchive(
   apiInstanceId: String,
   consentReferenceId: String,
   certificateTrust: String,
-  certificateTrustDetail: String
+  certificateTrustDetail: String,
+  authType: String
 ) extends APIMetric {
   override def getMetricId(): Long = metricId
   override def getUrl(): String = url
@@ -545,6 +658,7 @@ case class MetricArchive(
   override def getConsentReferenceId(): String = consentReferenceId
   override def getCertificateTrust(): String = certificateTrust
   override def getCertificateTrustDetail(): String = certificateTrustDetail
+  override def getAuthType(): String = authType
 }
 
 object MetricArchive extends MetricStore[MetricArchive] {
@@ -559,7 +673,7 @@ object MetricArchive extends MetricStore[MetricArchive] {
       row.userName, row.appName, row.developerEmail, row.consumerId,
       row.implementedByPartialFunction, row.implementedInVersion, row.verb, row.httpCode,
       row.correlationId, row.responseBody, row.sourceIp, row.targetIp, row.apiInstanceId,
-      row.consentReferenceId, row.certificateTrust, row.certificateTrustDetail)
+      row.consentReferenceId, row.certificateTrust, row.certificateTrustDetail, row.authType)
 
   def findByMetricId(metricId: Long): Box[MetricArchive] =
     query(fr"WHERE metricid = $metricId ORDER BY id ASC LIMIT 1").headOption match {
@@ -580,7 +694,8 @@ object MetricArchive extends MetricStore[MetricArchive] {
                        implementedInVersion: String, verb: String, httpCode: Option[Int],
                        correlationId: String, responseBody: String, sourceIp: String,
                        targetIp: String, apiInstanceId: String, consentReferenceId: String,
-                       certificateTrust: String, certificateTrustDetail: String): Boolean =
+                       certificateTrust: String, certificateTrustDetail: String,
+                       authType: String): Boolean =
     tryo {
       DoobieUtil.runUpdate(
         sql"DELETE FROM metricarchive WHERE metricid = $metricId".update.run)
@@ -589,14 +704,14 @@ object MetricArchive extends MetricStore[MetricArchive] {
               (metricid, userid, url, date_c, duration, username, appname, developeremail,
                consumerid, implementedbypartialfunction, implementedinversion, verb, httpcode,
                correlationid, responsebody, sourceip, targetip, apiinstanceid,
-               consent_reference_id, certificate_trust, certificate_trust_detail)
+               consent_reference_id, certificate_trust, certificate_trust_detail, auth_type)
               VALUES ($metricId, ${opt(userId)}, ${opt(url)}, ${timestamp(date)}, $duration,
                ${opt(userName)}, ${opt(appName)}, ${opt(developerEmail)}, ${opt(consumerId)},
                ${opt(implementedByPartialFunction)}, ${opt(implementedInVersion)}, ${opt(verb)},
                ${httpCode.getOrElse(0)}, ${opt(correlationId)}, ${opt(responseBody)},
                ${opt(sourceIp)}, ${opt(targetIp)}, ${opt(apiInstanceId)},
                ${opt(consentReferenceId)}, ${opt(certificateTrust)},
-               ${opt(certificateTrustDetail)})"""
+               ${opt(certificateTrustDetail)}, ${opt(authType)})"""
           .update.run)
       true
     }.getOrElse(false)
@@ -624,7 +739,8 @@ case class MetricColumns(
   apiInstanceId: String,
   consentReferenceId: String,
   certificateTrust: String,
-  certificateTrustDetail: String
+  certificateTrustDetail: String,
+  authType: String
 )
 
 /**
@@ -650,7 +766,7 @@ abstract class MetricStore[A] {
         "date_c", "duration", "username", "appname", "developeremail", "consumerid",
         "implementedbypartialfunction", "implementedinversion", "verb", "httpcode",
         "correlationid", "responsebody", "sourceip", "targetip", "apiinstanceid",
-        "consent_reference_id", "certificate_trust", "certificate_trust_detail")
+        "consent_reference_id", "certificate_trust", "certificate_trust_detail", "auth_type")
         .mkString("SELECT ", ", ", " FROM " + tableName))
 
   // 21 or 22 columns, so the row is read as two nested tuples.
@@ -659,7 +775,7 @@ abstract class MetricStore[A] {
     Option[String], Option[String])
   private type RowTail = (Option[String], Option[String], Option[Int], Option[String],
     Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
-    Option[String])
+    Option[String], Option[String])
   private type Row = (RowHead, RowTail)
 
   /** A timestamp read back as a plain java.util.Date, which is what MappedDateTime handed out. */
@@ -670,14 +786,15 @@ abstract class MetricStore[A] {
     case ((id, metricId, userId, url, date, duration, userName, appName, developerEmail,
            consumerId, implementedByPartialFunction),
           (implementedInVersion, verb, httpCode, correlationId, responseBody, sourceIp, targetIp,
-           apiInstanceId, consentReferenceId, certificateTrust, certificateTrustDetail)) =>
+           apiInstanceId, consentReferenceId, certificateTrust, certificateTrustDetail,
+           authType)) =>
       build(id, MetricColumns(metricId, userId.orNull, url.orNull, readDate(date),
         // A NULL number reads back as 0, which is what MappedLong and MappedInt did.
         duration.getOrElse(0L), userName.orNull, appName.orNull, developerEmail.orNull,
         consumerId.orNull, implementedByPartialFunction.orNull, implementedInVersion.orNull,
         verb.orNull, httpCode.getOrElse(0), correlationId.orNull, responseBody.orNull,
         sourceIp.orNull, targetIp.orNull, apiInstanceId.orNull, consentReferenceId.orNull,
-        certificateTrust.orNull, certificateTrustDetail.orNull))
+        certificateTrust.orNull, certificateTrustDetail.orNull, authType.orNull))
   }
 
   protected def query(condition: Fragment): List[A] =
@@ -696,6 +813,14 @@ abstract class MetricStore[A] {
       // A bank id is matched by the shape of the url rather than by a column of its own.
       params.bankId.map(v => fr"url LIKE ${opt(s"%banks/$v%")}"),
       params.userId.map(v => fr"userid = ${opt(v)}"),
+      // An empty locked set must match nothing rather than drop the filter: it means the caller
+      // has no user ids to see, not "no restriction". Dropping it is how the whole clause went
+      // missing before -- OBPUserIds was simply not collected here, so GET /my/metrics returned
+      // every user's rows with no error anywhere.
+      params.userIds.map {
+        case Nil => fr"1 = 0"
+        case ids => Fragments.in(fr"userid", cats.data.NonEmptyList.fromListUnsafe(ids.distinct))
+      },
       params.url.map(v => fr"url = ${opt(v)}"),
       params.appName.map(v => fr"appname = ${opt(v)}"),
       params.implementedInVersion.map(v => fr"implementedinversion = ${opt(v)}"),

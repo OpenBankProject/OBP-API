@@ -13,7 +13,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.{ResourceDocMiddleware, ResourceDocMatcher}
+import code.api.util.http4s.{IdempotencyMiddleware, ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle, ViewNewStyle}
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
@@ -3038,6 +3038,39 @@ object Http4s510 {
       http4sPartialFunction = Some(createMyConsumer)
     )
 
+    // Walks a Throwable's cause chain looking for a JVM/security-provider configuration problem
+    // (the requested algorithm or provider is unavailable) rather than anything about the
+    // caller-supplied certificate or JWT. `RSASSAVerifier`/`SignedJWT.verify` wrap
+    // NoSuchAlgorithmException in a JOSEException when the JVM's registered security providers
+    // don't have the requested signature algorithm (a hardened/FIPS JRE, a stripped provider
+    // list, a provider-registration bug) -- a server/environment fault that has nothing to do
+    // with whether this particular client's certificate is well-formed.
+    private[v5_1_0] def hasSecurityProviderCause(t: Throwable): Boolean =
+      Iterator.iterate(t)(_.getCause).takeWhile(_ != null).exists {
+        case _: java.security.NoSuchAlgorithmException => true
+        case _: java.security.NoSuchProviderException  => true
+        case _                                          => false
+      }
+
+    // `JwtUtil.verifyJwt` does not merely return false for a bad certificate -- it can THROW at
+    // several points (PEM parsing, JWT parsing, key extraction, signature verification), and a
+    // client-malformed certificate or JWT is exactly what most of those throws mean. But wrapping
+    // the whole call in tryons(..., 400, ...) also converted a JVM/security-provider failure (see
+    // hasSecurityProviderCause) into the same 400 -- telling a caller their input was bad when
+    // the truth is the server's environment cannot perform this verification for ANY caller.
+    // `verify` is a thunk rather than a direct call so this is testable without live PEM/JWT
+    // material: production passes `() => JwtUtil.verifyJwt(jwt, pem)`, the test a stub that
+    // throws a chosen exception.
+    private[v5_1_0] def resolveJwtSignatureValid(
+      verify: () => Boolean
+    )(implicit cc: code.api.util.CallContext): Future[Boolean] =
+      Future(verify()).recoverWith {
+        case t if hasSecurityProviderCause(t) =>
+          Future.failed(t)
+        case t =>
+          NewStyle.function.tryons(PostJsonIsNotSigned, 400, Some(cc)) { throw t }
+      }
+
     val createConsumerDynamicRegistration: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "dynamic-registration" / "consumers" =>
         EndpointHelpers.executeFutureCreated(req) {
@@ -3047,9 +3080,14 @@ object Http4s510 {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerJwtPostJsonV510]
             }
             pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
-            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, Some(cc)) {
-              JwtUtil.verifyJwt(postedJwt.jwt, pem.getOrElse(""))
-            }
+            // `verifyJwt` does not merely return false for a bad certificate -- it THROWS
+            // ("No PEM-encoded keys found") when the PSD2-CERT header is absent or unparseable,
+            // and booleanToFuture only guards the false case, so the exception escaped as
+            // OBP-50000 / HTTP 500. A missing or malformed client certificate is a client error;
+            // reporting it as a server fault tells a caller with retry logic to keep sending a
+            // request that cannot ever succeed.
+            signatureValid <- resolveJwtSignatureValid(() => JwtUtil.verifyJwt(postedJwt.jwt, pem.getOrElse("")))
+            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, Some(cc)) { signatureValid }
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(JwtUtil.getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
             }
@@ -3192,6 +3230,12 @@ object Http4s510 {
               APIUtil.canGrantAccessToView(com.openbankproject.commons.model.BankIdAccountIdViewId(bankId, accountId, viewId), targetViewId, user, Some(cc))
             }
             (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            // A consent user's account access comes ONLY from its Consent (materialised and
+            // revoked with it); access granted here would outlive nothing and confuse audits.
+            _ <- Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Account access targets humans - a consent user's access comes only from its Consent.",
+              failCode = 400, cc = Some(cc))(!targetUser.isConsentUser)
             view <- if (isValidSystemViewId(targetViewId.value)) ViewNewStyle.systemView(targetViewId, Some(cc))
                     else ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
             addedView <- JSONFactory400.grantAccountAccessToUser(bankId, accountId, targetUser, view, Some(cc))
@@ -5323,7 +5367,7 @@ object Http4s510 {
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
 
     // ─── path-rewriting bridge: /obp/v5.1.0/… → /obp/v5.0.0/… ─────────────
     lazy val v510ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>

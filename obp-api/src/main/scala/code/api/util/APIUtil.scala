@@ -32,9 +32,6 @@ import cats.effect.IO
 import code.abacrule.AbacRuleEngine
 import code.accountholders.AccountHolders
 import code.api.Constant._
-import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
-import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
-import code.api.UKOpenBanking.v4_0_1.OBP_UKOpenBanking_401
 import code.api._
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ErrorMessageBG, ErrorMessagesBG}
@@ -4775,7 +4772,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   )
 
-  val berlinGroupV13AliasPath = APIUtil.getPropsValue("berlin_group_v1_3_alias_path","").split("/").toList.map(_.trim)
+  // Empty segments are dropped so that "unset" really means "no alias". Without the filter an
+  // absent prop yields List("") -- "".split("/") returns Array(""), not an empty array -- which is
+  // nonEmpty, so every `if (berlinGroupV13AliasPath.nonEmpty)` guard downstream took its ACTIVE
+  // branch on a default instance: Http4sBGv13Alias published 55 docs stamped with the degenerate
+  // version ScannedApiVersion("", "", ""), whose operation ids came out as `BG-<name>`, and its
+  // route bridge matched on the prefix "/" (every path) only to fall through again.
+  val berlinGroupV13AliasPath =
+    APIUtil.getPropsValue("berlin_group_v1_3_alias_path","").split("/").toList.map(_.trim).filter(_.nonEmpty)
 
   val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
@@ -4890,19 +4894,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   
   val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
   
-  lazy val allStaticResourceDocs = (code.api.util.http4s.Http4sResourceDocAggregation.v600
-    ++ OBP_UKOpenBanking_200.allResourceDocs
-    ++ OBP_UKOpenBanking_310.allResourceDocs
-    ++ OBP_UKOpenBanking_401.allResourceDocs
-    // Commented out: Lift endpoints migrated off / removed (Polish, STET, AUOpenBanking, MxOF/CNBV9, BahrainOBF)
-    //    ++ code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1.allResourceDocs
-    //    ++ code.api.STET.v1_4.OBP_STET_1_4.allResourceDocs
-    //    ++ code.api.AUOpenBanking.v1_0_0.ApiCollector.allResourceDocs
-    //    ++ code.api.MxOF.CNBV9_1_0_0.allResourceDocs
-    //    ++ code.api.MxOF.OBP_MXOF_1_0_0.allResourceDocs
-    //    ++ code.api.BahrainOBF.v1_0_0.ApiCollector.allResourceDocs
-    ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3.allResourceDocs).toList
-  
+  // Delegates to ResourceDocRegistry, the single source of truth shared with the per-version
+  // resource-docs dispatcher (ResourceDocsAPIMethods.getResourceDocsList) -- see that object's
+  // doc comment for why the two used to drift and how deriving both from one registry fixes it.
+  // Kept under this name so existing call sites (Http4s400, Http4s600, JSONFactory6.0.0, ...)
+  // don't need to move.
+  lazy val allStaticResourceDocs: List[ResourceDoc] = ResourceDocRegistry.allStaticResourceDocs
+
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
   
   def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs

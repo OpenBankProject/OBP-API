@@ -42,6 +42,7 @@ CHANGELOG_DIR = ROOT / "obp-api/src/main/resources/db/changelog"
 SCHEMA_CHANGELOGS = [
     CHANGELOG_DIR / "db.changelog-baseline.yaml",
     CHANGELOG_DIR / "db.changelog-provenance.yaml",
+    CHANGELOG_DIR / "db.changelog-develop-merge.yaml",
 ]
 
 
@@ -59,6 +60,49 @@ def changesets(text):
         yield (m.group(1) if m else "<unnamed>"), body
 
 
+MASTER_CHANGELOG = CHANGELOG_DIR / "db.changelog-master.yaml"
+
+
+def unreferenced_changelogs():
+    """Every schema changelog must be included by the master changelog, exactly once.
+
+    Liquibase only ever loads what the master includes, so a changelog that is complete, correct
+    and guarded by every check above still does nothing at all if its `- include:` is missing --
+    and nothing here would have said so: the other checks read each file on its own.
+
+    The failure it produced was a merge that folded two includes into one YAML mapping::
+
+        - include:
+            file: db/changelog/db.changelog-provenance.yaml
+            file: db/changelog/db.changelog-develop-merge.yaml
+
+    Duplicate keys in a mapping are not an error; the last one wins, so the provenance changelog
+    was silently dropped and the tables it creates were never made. That surfaced far away, as
+    `Table "CHAT_EMAIL_DIGEST_STATE" not found` from a DELETE in the per-class test reset, with
+    every shard aborting before it ran a test.
+
+    Hence also the count check: one `- include:` per `file:` line is what distinguishes the two
+    shapes, and it is the shape, not the file list, that went wrong.
+    """
+    text = MASTER_CHANGELOG.read_text()
+    includes = len(re.findall(r"(?m)^\s*- include:$", text))
+    files = re.findall(r"(?m)^\s*file: (\S+)$", text)
+    problems = []
+    if includes != len(files):
+        problems.append(f"{MASTER_CHANGELOG.name}: {includes} `- include:` entries but "
+                        f"{len(files)} `file:` lines -- two includes sharing one mapping means "
+                        f"all but the last are silently ignored")
+    for changelog in SCHEMA_CHANGELOGS:
+        want = f"db/changelog/{changelog.name}"
+        n = files.count(want)
+        if n == 0:
+            problems.append(f"{changelog.name} is not included by {MASTER_CHANGELOG.name} -- "
+                            f"Liquibase will never load it")
+        elif n > 1:
+            problems.append(f"{changelog.name} is included {n} times by {MASTER_CHANGELOG.name}")
+    return problems
+
+
 def main():
     missing = [c for c in SCHEMA_CHANGELOGS if not c.exists()]
     if missing:
@@ -66,7 +110,7 @@ def main():
             print(f"check_changelog_preconditions: {c} not found", file=sys.stderr)
         return 1
 
-    problems = []
+    problems = unreferenced_changelogs()
     checked = 0
 
     for changelog in SCHEMA_CHANGELOGS:

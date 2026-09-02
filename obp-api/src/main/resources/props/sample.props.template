@@ -1066,6 +1066,30 @@ display_internal_errors=false
 
 # After setting the above and restarting the server curl -s http://localhost:8080/obp/v5.1.0/well-known
 # should advertise obp-oidc
+
+# Sender-constrained (certificate-bound) access tokens - FAPI / RFC 8705.
+# A FAPI-grade authorization server (e.g. Keycloak with "certificate-bound access
+# tokens" enabled per client) stamps cnf.x5t#S256 (the SHA-256 thumbprint of the
+# client certificate) into the access token. This prop controls whether OBP, as the
+# resource server, verifies that claim against the certificate the caller actually
+# presented (as resolved by PeerTrust: the direct TLS peer, or one forwarded by a
+# trusted proxy - see mtls.* props). A stolen bearer token then cannot be replayed
+# from a different TLS client.
+#
+# Modes (rollout ladder - move down as your estate migrates):
+#   NONE     (default) no checking; behaviour identical to before this prop existed
+#   MONITOR  check tokens that carry cnf.x5t#S256, log mismatches, never reject
+#   ENFORCE  reject bound tokens that do not match (or arrive without a client
+#            certificate); tokens WITHOUT a cnf claim still pass, so first-party
+#            apps on plain bearer tokens keep working while TPP clients are bound
+#   REQUIRED every OAuth2 token (access and id) must be bound and match - full FAPI
+#            posture, for instances dedicated to the TPP channel
+#
+# Which clients receive bound tokens is decided per client in the authorization
+# server, so app-by-app migration control lives there; this prop is the server-side
+# gate. DPoP (cnf.jkt) is not yet supported. An invalid value logs an error and
+# behaves as NONE.
+#oauth2.token_binding.mode=NONE
 # -----------------------------------------------------------------------------------
 
 

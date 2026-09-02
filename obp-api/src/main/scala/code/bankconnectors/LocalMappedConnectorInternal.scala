@@ -461,6 +461,12 @@ object LocalMappedConnectorInternal extends MdcLoggable {
   }
 
   // The rate depends on the bank and the currency pair only. callContext is deliberately left
+  // out of the key. Upstream fixes the same bug with @CacheKeyOmit; this branch builds the key
+  // by hand instead, which does not depend on CacheKeyFromArguments rendering every
+  // un-annotated parameter - and so cannot be re-broken by a change in macro behaviour.
+  // CallContext carries per-request state (startTime, correlationId, url, verb, ipAddress,
+  // user), so keying on it made the key unique per request: the cache could never hit, and
+  // every call wrote a fresh Redis entry that lived out code.fx.exchangeRate.cache.ttl.seconds.
   // out of the key, which diverges from the macro-era key format at this site: it carries
   // per-request state (startTime, correlationId, url, verb, ipAddress, user), so keying on it
   // made the key unique per request - the cache could never hit and every call wrote a fresh
@@ -1496,7 +1502,13 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               accountRoutings = Nil,
               callContext = callContext
             )
-            _ <- code.model.dataAccess.BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, newAccountId, cc.get.user.head, callContext)
+            // Holder is the HUMAN: under a Consent cc.user is the per-consent shadow, and a
+            // holding account held by it would strand when the consent dies. For non-consent
+            // callers accountableUserId is the caller, so this is a no-op for them.
+            holdingAccountHolder = cc.flatMap(c =>
+              code.users.Users.users.vend.getUserByUserId(c.accountableUserId).toOption
+            ).getOrElse(cc.get.user.head)
+            _ <- code.model.dataAccess.BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, newAccountId, holdingAccountHolder, callContext)
             // create attribute on holding account to link to releaser account
             _ <- NewStyle.function.createOrUpdateAccountAttribute(
               bankId = bankId,

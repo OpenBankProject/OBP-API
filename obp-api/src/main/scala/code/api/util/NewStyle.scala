@@ -3353,16 +3353,34 @@ object NewStyle extends MdcLoggable{
      * updated, or deleted, so the change takes effect on the next request instead of waiting
      * out `endpointMapping.cache.ttl.seconds`. Mirrors invalidateMethodRoutingCache: the
      * memoize key embeds the literal method name, so one pattern delete clears every bankId
-     * variant. No-op / logged when Redis is unavailable (deleteKeysByPattern swallows and
-     * returns 0).
+     * variant. The pattern is a prefix of the actual name the macro renders
+     * (`getEndpointMappingsCached`), which is what makes one wildcard cover it. No-op / logged
+     * when Redis is unavailable (deleteKeysByPattern swallows and returns 0).
      *
-     * This became necessary with the cache key fix above. While callContext was part of the
+     * This became necessary with the cache key fix below. While callContext was part of the
      * key nothing could ever hit, so a stale entry was unreachable by construction; now that
      * the cache works, writes have to publish themselves.
+     *
+     * A single delete here is not quite enough: a reader that fetched the pre-write value from
+     * the provider a moment earlier can still complete its own cache write AFTER this delete
+     * finishes, silently reintroducing the stale entry for the rest of the TTL -- nothing else
+     * would clear it until the next write. Scheduling a second delete closes that window the
+     * conventional way: any straggler write that lands in the gap gets cleared shortly after,
+     * long before an operator or caller would reasonably treat it as current.
      */
-    private def invalidateEndpointMappingCache(): Unit = {
+    private[util] def invalidateEndpointMappingCache(): Unit = {
       Redis.deleteKeysByPattern("*getEndpointMappings*")
+      code.actorsystem.ObpActorSystem.localActorSystem.scheduler.scheduleOnce(
+        endpointMappingCacheInvalidationDelay
+      )(Redis.deleteKeysByPattern("*getEndpointMappings*"))(
+        code.actorsystem.ObpActorSystem.localActorSystem.dispatcher
+      )
+      ()
     }
+
+    private[util] val endpointMappingCacheInvalidationDelay: scala.concurrent.duration.FiniteDuration =
+      scala.concurrent.duration.FiniteDuration(
+        APIUtil.getPropsAsIntValue("endpointMapping.cache.invalidation.delay.ms", 500), "ms")
 
     def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
       validateBankId(bankId, callContext)
@@ -3410,7 +3428,7 @@ object NewStyle extends MdcLoggable{
       }
       (endpointMappings, callContext)
     }
-    
+
     /**
      * Invalidate the Redis-backed resource-doc caches whose contents include
      * dynamic-entity documentation (the `dynamic` and `all` views). Bumping the

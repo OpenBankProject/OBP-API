@@ -327,8 +327,46 @@ object Redis extends MdcLoggable {
   //   sub-second TTL expires when it says it does - see cachePut below for why setex was
   //   wrong here. A non-finite ttl stores without expiry, as scalacache's ttl=None did.
 
+  /**
+   * The serialization identity these cached bytes were produced under.
+   *
+   * Ported from develop, which added it on scalacache's CacheConfig; this branch replaced
+   * scalacache (no Scala 3 release since a 2021 milestone) with the memoize layer above, so the
+   * prefix is applied here in the key builder instead. The reason is unchanged and measured:
+   * cache entries are Kryo-encoded, and what Kryo produces depends on the Scala library and chill
+   * build that encoded it. Across 2.12 -> 2.13 an EMPTY `List` written by chill 0.9.3 decodes
+   * under 0.9.5 into a `scala.collection.immutable.Queue`. That decode SUCCEEDS; it fails only at
+   * the call site, whose signature says `List` -
+   *
+   *     class scala.collection.immutable.Queue cannot be cast to
+   *     class scala.collection.immutable.List
+   *
+   * - so the caller gets a 500 rather than a miss, for the whole TTL, because a failed read does
+   * not evict. Reproduced on `GET /management/dynamic-message-docs` and
+   * `GET /management/connector-methods`. Namespacing the key is the fix rather than casting at
+   * each call site: entries written by another version simply stop being addressable and age out.
+   *
+   * This matters more on this branch than on develop, not less: the compiler moves to Scala 3
+   * here, which is exactly the axis `scalaBinary` tracks.
+   *
+   * `obp.cache.serialization.version` covers the case the Scala version does not - a dependency
+   * upgrade that changes the encoding on its own, which is what chill 0.9.3 to 0.9.5 would have
+   * been. Bump it then; the cost is one cold cache.
+   */
+  private[cache] val serializationNamespace: String = {
+    val scalaBinary = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
+    val manual = APIUtil.getPropsValue("obp.cache.serialization.version", "1")
+    s"obpser$manual-scala$scalaBinary"
+  }
+
+  /** The namespace and the caller key are joined here and nowhere else, so a test can exercise
+   *  the real composition with a namespace of its own rather than re-implementing it. */
+  private[cache] def composeMemoKey(namespace: String, callerKey: String): String = namespace + callerKey
+
   private[cache] def redisMemoKey(wrapperMethod: String, cacheKey: Option[String], excludedParamLists: Int): String =
-    s"code.api.cache.Redis.$wrapperMethod($cacheKey)" + ("()" * excludedParamLists)
+    composeMemoKey(
+      serializationNamespace,
+      s"code.api.cache.Redis.$wrapperMethod($cacheKey)" + ("()" * excludedParamLists))
 
   import com.twitter.chill.KryoInjection
 

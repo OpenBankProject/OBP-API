@@ -8,7 +8,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
@@ -45,7 +45,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import code.loginattempts.LoginAttempt
-import code.metrics.MappedMetric
+import code.metrics.{APIMetrics, MappedMetric}
 import code.users.UserAgreementProvider
 import net.liftweb.common.Full
 import com.openbankproject.commons.util.JsonAliases.prettyRender
@@ -286,12 +286,12 @@ object Http4s700 {
     // Response shapes reuse the v6 bank JSON (BankJson600 / BanksJsonV600).
 
     // ─── Delegation fan-down for /my/banks ───────────────────────────────────
-    // Resolving UP (agent caller → the granting human) is cc.effectiveHumanUserId.
+    // Resolving UP (agent caller → the granting human) is cc.accountableUserId.
     // This is the fan DOWN: the human plus every agent user minted from any Consent the
     // human granted — i.e. all user ids whose creations belong to that human. Match the
     // result against CreatedByUserId. Reads only server-written columns
     // (MappedConsent.mUserId, ResourceUser.CreatedByConsentId); the input must be an
-    // already-resolved human id (cc.effectiveHumanUserId), never a raw caller value.
+    // already-resolved human id (cc.accountableUserId), never a raw caller value.
 
     private def humanAndAgentUserIds(humanUserId: String): List[String] = {
       val consentIds = Consents.consentProvider.vend.getConsentsByUser(humanUserId)
@@ -335,8 +335,8 @@ object Http4s700 {
               // Quota binds to the human: banks created by the human directly or by any
               // of their consent-agents count toward the same limit — otherwise every
               // new consent would arrive with a fresh quota.
-              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
-              MappedBank.countByCreatedByUserIds(creatorUserIds)
+              val creatorUserIds = humanAndAgentUserIds(cc.accountableUserId)
+              MappedBank.findAllByCreatedByUserIds(creatorUserIds).size.toLong
             }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
               banksCreatedByUser < selfServiceBankLimit
@@ -355,8 +355,11 @@ object Http4s700 {
               "", "", "", "", "", "",
               Some(cc)
             )
+            // Creator grant targets the HUMAN (see v6.0.0 createBank): under a Consent the
+            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
             _ <- Future(Entitlement.entitlement.vend.addEntitlement(
-              generatedName.bankId, cc.userId, canCreateEntitlementAtOneBank.toString()))
+              generatedName.bankId, cc.accountableUserId, canCreateEntitlementAtOneBank.toString(),
+              grantedByUserId = Some(cc.userId)))
           } yield JSONFactory600.createBankJSON600(bank)
         }
     }
@@ -413,7 +416,7 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             banksCreatedByUser <- Future {
-              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
+              val creatorUserIds = humanAndAgentUserIds(cc.accountableUserId)
               MappedBank.findAllByCreatedByUserIds(creatorUserIds)
             }
           } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
@@ -483,7 +486,13 @@ object Http4s700 {
       case req @ POST -> `prefixPath` / "users" / userId / "entitlements" =>
         EndpointHelpers.withUserAndBodyCreated[CreateEntitlementJSON, AnyRef](req) { (user, body, cc) =>
           for {
-            (_, _)   <- NewStyle.function.findByUserId(userId, Some(cc))
+            (targetUser, _) <- NewStyle.function.findByUserId(userId, Some(cc))
+            // Explicit target: fail loud rather than redirect. A consent user (an agent
+            // identity minted by a Consent) cannot hold durable roles — grant to the
+            // granting human instead.
+            _ <- Helper.booleanToFuture(
+              s"$InvalidUserId USER_ID names a consent user (an agent identity minted by a Consent). Entitlements target humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!targetUser.isConsentUser)
             role     <- NewStyle.function.tryons(
               s"$InvalidJsonFormat Unknown role: ${body.role_name}. Possible roles: ${ApiRole.availableRoles.sorted.mkString(", ")}",
               400, Some(cc)) { ApiRole.valueOf(body.role_name) }
@@ -865,15 +874,18 @@ object Http4s700 {
             }
             lastActivityDate = userMetrics.headOption.map(_.getDate())
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
-          } yield JSONFactory600.createUserInfoJsonV600(
+          } yield JSONFactory700.createUserInfoDetailJsonV700(
             user,
-            authUser.map(_.firstName).getOrElse(""),
-            authUser.map(_.lastName).getOrElse(""),
-            entitlements,
-            agreements,
-            isLocked,
-            lastActivityDate,
-            recentOperationIds
+            JSONFactory600.createUserInfoJsonV600(
+              user,
+              authUser.map(_.firstName).getOrElse(""),
+              authUser.map(_.lastName).getOrElse(""),
+              entitlements,
+              agreements,
+              isLocked,
+              lastActivityDate,
+              recentOperationIds
+            )
           )
         }
     }
@@ -890,11 +902,476 @@ object Http4s700 {
         |
         |CanGetAnyUser entitlement is required.""",
       EmptyBody,
-      userInfoJsonV600,
+      JSONFactory700.userInfoDetailJsonV700Example,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
       apiTagUser :: Nil,
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUserByUserId)
+    )
+
+    // Route: GET /obp/v7.0.0/users/current
+    // v7 signature change over v6: the response carries the user's own mobile phone
+    // fields (number, is_validated flag, validated date) stored on ResourceUser —
+    // distinct from the bank-scoped mobile_phone_number on Customer (KYC data).
+    val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "current" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
+          } yield {
+            val permissions = Views.views.vend.getPermissionForUser(user).toOption
+            val virtualRoleNames =
+              if (APIUtil.isSuperAdmin(user.userId)) JSONFactory200.superAdminVirtualRoles
+              else if (APIUtil.isOidcOperator(user.userId)) JSONFactory200.oidcOperatorVirtualRoles
+              else List.empty
+            val existingRoleNames = entitlements.map(_.roleName).toSet
+            val virtualEntitlements = virtualRoleNames.filterNot(existingRoleNames.contains).map { role =>
+              new Entitlement {
+                def entitlementId    = ""
+                def bankId           = ""
+                def userId           = user.userId
+                def roleName         = role
+                def createdByProcess =
+                  if (APIUtil.isSuperAdmin(user.userId)) "super_admin_user_ids"
+                  else "oidc_operator_user_ids"
+                def entitlementRequestId: Option[String] = None
+                def groupId: Option[String]              = None
+                def grantedByUserId: Option[String]      = None
+              }
+            }
+            val currentUser = UserV600(user, entitlements ::: virtualEntitlements, permissions)
+            val onBehalfOfUser =
+              if (cc.onBehalfOfUser.isDefined) {
+                val u = cc.onBehalfOfUser.toOption.get
+                val ents = Entitlement.entitlement.vend.getEntitlementsByUserId(u.userId)
+                  .headOption.toList.flatten
+                val perms = Views.views.vend.getPermissionForUser(u).toOption
+                Some(UserV600(u, ents, perms))
+              } else None
+            JSONFactory700.createUserJsonV700(currentUser, onBehalfOfUser)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getCurrentUser),
+      "GET",
+      "/users/current",
+      "Get User (Current)",
+      """Get the logged in user.
+        |
+        |In v7.0.0 the response includes the user's own mobile phone fields:
+        |`mobile_phone_number`, `mobile_phone_number_is_validated` and
+        |`mobile_phone_number_validated_date`. These belong to the authenticated
+        |user (global across banks) and are distinct from the bank-scoped
+        |`mobile_phone_number` on Customer, which is KYC data of a legal entity.
+        |
+        |Authentication is required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.userJsonV700Example,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagUser :: Nil,
+      None,
+      http4sPartialFunction = Some(getCurrentUser)
+    )
+
+    // Accepted shape of a user's own mobile phone number (POST /users and
+    // PUT /my/user/mobile-phone-number): optional leading "+", then 5-50 of
+    // digits, spaces, dashes, dots and parentheses.
+    private val mobilePhoneNumberRegex = """\+?[0-9\-\s().]{5,50}"""
+
+    // Route: PUT /obp/v7.0.0/my/user/mobile-phone-number
+    val updateMyMobilePhoneNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "my" / "user" / "mobile-phone-number" =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PutMyMobilePhoneNumberJsonV700, JSONFactory700.MyMobilePhoneNumberJsonV700](req) { (user, body, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidPhoneNumber, cc = Some(cc)) {
+              body.mobile_phone_number.matches(mobilePhoneNumberRegex)
+            }
+            resourceUser <- Future {
+              UserVend.users.vend.getResourceUserByResourceUserId(user.userPrimaryKey.value)
+            } map { x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404) }
+            updated <- Future {
+              val numberChanged = !resourceUser.mobilePhoneNumber.contains(body.mobile_phone_number)
+              // a changed number is unverified: reset the flag, but keep
+              // mobilePhoneNumberValidatedDate as the audit trail of the last successful
+              // validation. ResourceUser is a case class here, so this is a copy rather than
+              // the chained setters develop's Mapper entity used.
+              code.model.dataAccess.ResourceUser.update(resourceUser.copy(
+                mobilePhoneNumber = Some(body.mobile_phone_number),
+                mobilePhoneNumberIsValidated =
+                  if (numberChanged) Some(false) else resourceUser.mobilePhoneNumberIsValidated))
+            }
+          } yield JSONFactory700.MyMobilePhoneNumberJsonV700(
+            mobile_phone_number = updated.mobilePhoneNumber,
+            mobile_phone_number_is_validated = updated.mobilePhoneNumberIsValidated,
+            mobile_phone_number_validated_date = updated.mobilePhoneNumberValidatedDate
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateMyMobilePhoneNumber),
+      "PUT",
+      "/my/user/mobile-phone-number",
+      "Update My Mobile Phone Number",
+      """Set or update the mobile phone number of the currently authenticated user.
+        |
+        |This number belongs to the authenticated user (global across banks) and is
+        |distinct from the bank-scoped `mobile_phone_number` on Customer, which is
+        |KYC data of a legal entity.
+        |
+        |Setting a different number resets `mobile_phone_number_is_validated` to
+        |`false`. `mobile_phone_number_validated_date` is left untouched: it is the
+        |audit trail of the last successful validation and is only written by the
+        |validation flow.
+        |
+        |Authentication is required.""".stripMargin,
+      JSONFactory700.putMyMobilePhoneNumberJsonV700Example,
+      JSONFactory700.myMobilePhoneNumberJsonV700Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidPhoneNumber, UnknownError),
+      apiTagUser :: Nil,
+      None,
+      http4sPartialFunction = Some(updateMyMobilePhoneNumber)
+    )
+
+    // Route: POST /obp/v7.0.0/users (201)
+    // v7 signature change over v6: the body accepts an optional mobile_phone_number,
+    // stored on the ResourceUser as unverified (is_validated=false, no validated
+    // date) — verification is a separate flow. Password policy, duplicate-username
+    // check, validation email and default entitlements are shared with v6.
+    val createUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[JSONFactory700.CreateUserJsonV700]}",
+              400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory700.CreateUserJsonV700]
+            }
+            mobilePhoneNumber = postedData.mobile_phone_number.map(_.trim).filter(_.nonEmpty)
+            _ <- Helper.booleanToFuture(InvalidPhoneNumber, 400, Some(cc)) {
+              mobilePhoneNumber.forall(_.matches(mobilePhoneNumberRegex))
+            }
+            savedUser <- code.api.v6_0_0.Http4s600.Implementations6_0_0.createAndSaveAuthUser(
+              postedData.email, postedData.username, postedData.password, postedData.first_name, postedData.last_name
+            )
+            resourceUser <- Future {
+              UserVend.users.vend.getResourceUserByResourceUserId(savedUser.user)
+            } map { x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404) }
+            storedResourceUser <- Future {
+              mobilePhoneNumber match {
+                case Some(number) =>
+                  // A number supplied at creation starts unvalidated.
+                  code.model.dataAccess.ResourceUser.update(resourceUser.copy(
+                    mobilePhoneNumber = Some(number),
+                    mobilePhoneNumberIsValidated = Some(false)))
+                case None => resourceUser
+              }
+            }
+          } yield {
+            code.api.v6_0_0.Http4s600.Implementations6_0_0.sendSignupValidationEmailIfRequired(savedUser)
+            AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
+            JSONFactory700.createCreatedUserJsonV700(
+              JSONFactory200.createUserJSONfromAuthUser(savedUser),
+              storedResourceUser
+            )
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createUser),
+      "POST",
+      "/users",
+      "Create User (self-registration)",
+      s"""Creates an OBP user (self-registration). No authorisation required.
+        |
+        |Requires email, username, password, first_name and last_name.
+        |
+        |v7.0.0 adds the optional `mobile_phone_number`: the registering person's own
+        |number (global across banks, distinct from the bank-scoped `mobile_phone_number`
+        |on Customer, which is KYC data of a legal entity). It is stored unverified —
+        |`mobile_phone_number_is_validated` is `false` and
+        |`mobile_phone_number_validated_date` is empty until a separate validation flow
+        |succeeds. Omit the field, or send null / blank, to register without a number.
+        |
+        |Validation checks performed:
+        |- Password must meet strong password requirements ($InvalidStrongPasswordFormat)
+        |- Username must be unique (409, $DuplicateUsername)
+        |- `mobile_phone_number`, when present, must be an optional leading `+` followed by
+        |  5 to 50 digits, spaces, dashes, dots or parentheses ($InvalidPhoneNumber)
+        |
+        |Email validation behavior:
+        |- Controlled by property `authUser.skipEmailValidation` (default: false)
+        |- When false: the user is created with validated=false and a validation email is sent.
+        |  The link uses `public_obp_portal_url` (or legacy `portal_external_url`); if that is
+        |  not set, or sending fails, the user can retry via POST /obp/v7.0.0/users/validation-emails.
+        |- When true: the user is created with validated=true and no email is sent.
+        |- Default entitlements are granted immediately regardless of validation status.
+        |
+        |""".stripMargin,
+      JSONFactory700.createUserJsonV700Example,
+      JSONFactory700.createdUserJsonV700Example,
+      List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, InvalidPhoneNumber, "Error occurred during user creation.", UnknownError),
+      List(apiTagUser, apiTagOnboarding),
+      None,
+      http4sPartialFunction = Some(createUser)
+    )
+
+    // Route: GET /obp/v7.0.0/my/metrics
+    // Same fetch path as GET /management/metrics (APIMetrics.getMetricsFromHttpParams)
+    // with the user filter locked to the logged-in user.
+    val getMyMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "metrics" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            // The caller may only ever see their own calls: identity filters are
+            // rejected outright rather than silently ignored.
+            identityParams = httpParams.map(_.name)
+              .filter(Set("user_id", "username", "email", "provider_provider_id", "anon").contains)
+            _ <- Helper.booleanToFuture(
+              s"$UserFilterParametersNotSupported Parameters found: [${identityParams.mkString(", ")}]",
+              cc = Some(cc)) {
+              identityParams.isEmpty
+            }
+            // "My" spans the delegation family: the human plus every agent user minted
+            // from a Consent they granted (metric rows record the authenticated principal,
+            // so an agent's calls sit under the agent's own user id). Resolve up to the
+            // human, then fan down — both via server-written columns only.
+            (metrics, _) <- APIMetrics.getMetricsFromHttpParams(
+              httpParams, cc.callContext,
+              lockedUserIds = Some(humanAndAgentUserIds(cc.accountableUserId)))
+          } yield JSONFactory600.createMetricsJsonV600(metrics)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMyMetrics),
+      "GET",
+      "/my/metrics",
+      "Get Metrics (My)",
+      s"""Get the API metrics rows of the currently authenticated user — a record of each REST API call this user has made.
+        |
+        |No role is required: this endpoint only ever returns calls belonging to the logged in user —
+        |their own calls, plus calls made by agent users minted from Consents this user granted
+        |(e.g. an AI agent calling on their behalf). Called under such a Consent, it returns the
+        |same family of calls, resolved through the granting user.
+        |The identity filter parameters accepted by `GET /management/metrics` (`user_id`, `username`, `email`,
+        |`provider_provider_id`, `anon`) are NOT supported here and are rejected with an error —
+        |the user filter is always the current user's delegation family.
+        |
+        |**NOTE: Automatic from_date Default**
+        |
+        |If you do not provide a `from_date` parameter it is automatically set to a few minutes ago
+        |(now - ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes).
+        |For historical queries, always explicitly specify your desired `from_date` — this also enables
+        |long-term caching of the result.
+        |
+        |The other filter and pagination parameters work as on `GET /management/metrics`:
+        |
+        |eg: /my/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+        |
+        |1 from_date e.g.:from_date=$DateWithMsExampleString
+        |
+        |2 to_date e.g.:to_date=$DateWithMsExampleString Defaults to a far future date i.e. ${APIUtil.ToDateInFuture}
+        |
+        |3 limit (for pagination: defaults to 50) eg:limit=200
+        |
+        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+        |
+        |5 sort_by (defaults to date field) eg: sort_by=date
+        |
+        |6 direction (defaults to date desc) eg: direction=desc
+        |
+        |7 consumer_id (if null ignore)
+        |
+        |8 app_name (if null ignore)
+        |
+        |9 url (if null ignore)
+        |
+        |10 implemented_by_partial_function (if null ignore)
+        |
+        |11 implemented_in_version (if null ignore)
+        |
+        |12 verb (if null ignore)
+        |
+        |13 correlation_id (if null ignore)
+        |
+        |14 duration (if null ignore) - Returns calls where duration > specified value (in milliseconds). eg: duration=5000
+        |
+        |Authentication is required.""".stripMargin,
+      EmptyBody,
+      metricsJsonV600,
+      List($AuthenticatedUserIsRequired, UserFilterParametersNotSupported, UnknownError),
+      apiTagMetric :: apiTagUser :: Nil,
+      None,
+      http4sPartialFunction = Some(getMyMetrics)
+    )
+
+    // ─── getTopUsers ──────────────────────────────────────────────────────────────
+
+    val getTopUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "metrics" / "top-users" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            topUsers <- APIMetrics.apiMetrics.vend.getTopUsersFuture(obpQueryParams) map {
+              APIUtil.unboxFullOrFail(_, callContext, GetTopUsersError)
+            }
+          } yield JSONFactory700.createTopUsersJsonV700(topUsers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getTopUsers),
+      "GET",
+      "/management/metrics/top-users",
+      "Get Top Users",
+      s"""Get the users behind the API traffic: one row per distinct user with their call count,
+        |sorted by count descending.
+        |
+        |**On-behalf-of aware**: calls made under a Consent (e.g. by an agent or a TPP) are
+        |attributed to the granting (on-behalf-of) user, resolved via the consent table — not to
+        |the consent's technical shadow user. Anonymous calls are excluded. For a given window and
+        |filters the number of distinct users listed here therefore matches the
+        |`distinct_user_count` field of GET /management/aggregate-metrics.
+        |
+        |require CanReadMetrics role
+        |
+        |Should be able to filter on the following fields
+        |
+        |eg: /management/metrics/top-users?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
+        |
+        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |
+        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null) or false (return where user_id is not null)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore)
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlation_id (if null ignore)
+        |
+        |12 limit (defaults to 50) eg: limit=200
+        |
+      """.stripMargin,
+      EmptyBody,
+      JSONFactory700.TopUsersJsonV700(List(
+        JSONFactory700.TopUserJsonV700(1000, "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", "felixsmith"),
+        JSONFactory700.TopUserJsonV700(250, "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", "susan.uk.29@example.com")
+      )),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetTopUsersError,
+        UnknownError
+      ),
+      apiTagMetric :: apiTagUser :: Nil,
+      Some(canReadMetrics :: Nil),
+      http4sPartialFunction = Some(getTopUsers)
+    )
+
+    // ─── getTopConsumers ──────────────────────────────────────────────────────────
+
+    val getTopConsumers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "metrics" / "top-consumers" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersByConsumerIdFuture(obpQueryParams) map {
+              APIUtil.unboxFullOrFail(_, callContext, GetTopConsumersError)
+            }
+          } yield JSONFactory700.createTopConsumersJsonV700(topConsumers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getTopConsumers),
+      "GET",
+      "/management/metrics/top-consumers",
+      "Get Top Consumers",
+      s"""Get the Consumers (apps) behind the API traffic: one row per distinct consumer with its
+        |call count, sorted by count descending.
+        |
+        |Unlike the v3.1.0 version — which joins metric rows to consumers by APP NAME, dropping
+        |calls whose app name no longer matches a consumer and double-counting duplicate names —
+        |this groups by the consumer id stored on each metric row. For a given window and filters
+        |the number of distinct consumers listed here therefore matches the
+        |`distinct_consumer_count` field of GET /management/aggregate-metrics. Calls that carried
+        |no consumer are excluded. `app_name` and `developer_email` are empty when the consumer
+        |row no longer exists.
+        |
+        |require CanReadMetrics role
+        |
+        |Should be able to filter on the following fields
+        |
+        |eg: /management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
+        |
+        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |
+        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null) or false (return where user_id is not null)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore)
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlation_id (if null ignore)
+        |
+        |12 limit (defaults to 50) eg: limit=200
+        |
+      """.stripMargin,
+      EmptyBody,
+      JSONFactory700.TopConsumersJsonV700(List(
+        JSONFactory700.TopConsumerJsonV700(1000, "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "API-EXPLORER", "developer@example.com"),
+        JSONFactory700.TopConsumerJsonV700(250, "8uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "API-Manager", "manager@example.com")
+      )),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetTopConsumersError,
+        UnknownError
+      ),
+      apiTagMetric :: apiTagApi :: Nil,
+      Some(canReadMetrics :: Nil),
+      http4sPartialFunction = Some(getTopConsumers)
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────
@@ -1943,14 +2420,17 @@ object Http4s700 {
             _ <- Helper.booleanToFuture(UserEmailAddressMissing, 400, Some(cc)) {
               toAddress.nonEmpty
             }
+            // 503, not 500. The server is not broken -- it is not configured to do this, and a
+            // 500 tells a caller with retry logic that the fault is transient. Neither of these
+            // resolves without an operator editing props.
             _ <- Helper.booleanToFuture(
               s"$IncompleteServerConfiguration portal_external_url is not set — signup-validation and password-reset emails will not be delivered.",
-              500, Some(cc)) {
+              503, Some(cc)) {
               portalUrlBox.isDefined
             }
             _ <- Helper.booleanToFuture(
               s"$IncompleteServerConfiguration mail.users.userinfo.sender.address is still the default 'noreply@example.com' — most SMTP servers will reject this From address.",
-              500, Some(cc)) {
+              503, Some(cc)) {
               fromAddress != "noreply@example.com"
             }
             sendOutcome <- Future {
@@ -3719,8 +4199,14 @@ object Http4s700 {
           case None => Future.successful(AccountId(APIUtil.generateUUID()))
         }
         // CanCreateAccount is enforced by ResourceDocMiddleware from the doc.
-        ownerId = body.user_id.filter(_.trim.nonEmpty).getOrElse(user.userId)
+        // The implicit owner is the HUMAN: under a Consent the caller (user.userId) is the
+        // per-consent shadow, and an account held by it strands when the consent dies.
+        ownerId = body.user_id.filter(_.trim.nonEmpty).getOrElse(cc.accountableUserId)
         (owner, _) <- NewStyle.function.findByUserId(ownerId, Some(cc))
+        // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+        _ <- Helper.booleanToFuture(
+          s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+          failCode = 400, cc = Some(cc))(!owner.isConsentUser)
         initialBalance <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, Some(cc)) {
           BigDecimal(body.balance.amount)
         }

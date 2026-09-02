@@ -67,7 +67,7 @@ class MetricsSqlInjectionTest extends ServerSetup with WipeMetrics {
     for (_ <- 1 to 3) {
       metrics.saveMetric("uid", "http://example.com/x", day, 5L, "uname", realApp,
         "dev@example.com", "cid", "getBanks", "1.0", "GET", None, getCorrelationId(),
-        "body", "1.2.3.4", "1.2.3.4", "inst", null, null, null)
+        "body", "1.2.3.4", "1.2.3.4", "inst", null, null, null, null)
     }
     MetricBatchWriter.flush()
     // top-consumers joins metric.appname = consumer.name, so without a matching consumer the join

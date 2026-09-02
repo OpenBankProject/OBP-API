@@ -519,7 +519,13 @@ object JSONFactory1_4_0 extends MdcLoggable{
   }
   
   def checkFieldOption(jsonBody: Any, rootFields: List[Field]) = {
-    val types = rootFields.map(f => (f.getName(), f.getType().getCanonicalName().contains("Option")))
+    // getCanonicalName() is null for a local/anonymous class (Java reflection spec) -- which is
+    // exactly what a nested case class declared inside a runtime-compiled DynamicResourceDoc
+    // method body is, from the JVM's perspective (e.g. an example_request_body with a nested
+    // object generates a locally-scoped case class for that object's type). A field whose
+    // declared type is such a class is never itself an Option (Option's own canonical name is
+    // always present, since scala.Option is a top-level class), so None safely defaults to false.
+    val types = rootFields.map(f => (f.getName(), Option(f.getType().getCanonicalName()).exists(_.contains("Option"))))
     (decompose(jsonBody), types)
   }
   

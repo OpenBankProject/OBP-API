@@ -25,6 +25,9 @@ jobs:
   # --------------------------------------------------------------------------
   compile:
     runs-on: ubuntu-latest
+    # The test job has carried a timeout since it was written; compile and report never did,
+    # so a hung Maven resolve blocks the build until GitHub's own 6-hour ceiling.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -314,6 +317,9 @@ jobs:
           echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           echo hikari.maximumPoolSize=20 >> obp-api/src/main/resources/props/test.default.props
+          # Enables the Berlin Group v1.3 alias so ResourceDocRegistryParityTest and
+          # ApiCollectionEndpointTest can exercise a real alias operation id end to end.
+          echo berlin_group_v1_3_alias_path=0.6/v1 >> obp-api/src/main/resources/props/test.default.props
           echo write_metrics=false >> obp-api/src/main/resources/props/test.default.props
           # Log emails instead of opening a real SMTP socket: without this,
           # LocalMappedConnector.sendCustomerNotification's EMAIL branch calls
@@ -338,6 +344,16 @@ jobs:
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
         env:
+          # This job has declared a redis service since it was written, but nothing ever failed
+          # when the service was absent: ConcurrentRateLimiterRaceTest and
+          # MethodRoutingCacheInvalidationTest each `assume` a reachable Redis and cancel
+          # otherwise, and a cancelled test reports as a pass. Dropping the services: block, or
+          # a container that never became healthy, would have taken the rate-limiter and
+          # cache-invalidation races out of the run without changing a single report.
+          #
+          # RedisTestTarget turns that cancellation into a failure wherever this is set.
+          # Developers leave it unset and keep the skip.
+          OBP_TEST_REDIS_REQUIRED: "true"
           OBP_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/postgres
           OBP_TEST_POSTGRES_USER: postgres
           OBP_TEST_POSTGRES_PASSWORD: postgres
@@ -494,6 +510,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: always()
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 

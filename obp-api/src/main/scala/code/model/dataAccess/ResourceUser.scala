@@ -65,7 +65,12 @@ case class ResourceUser(
   lastMarketingAgreementSignedDate: Option[Date] = None,
   override val lastUsedLocale: Option[String] = None,
   override val isNaturalPerson: Boolean = true,
-  override val principalUserIdOption: Option[String] = None
+  override val principalUserIdOption: Option[String] = None,
+  // Carried over from develop's Mapper entity. The User trait defaults all three to None, so
+  // omitting them here would compile and silently disable the feature rather than fail.
+  override val mobilePhoneNumber: Option[String] = None,
+  override val mobilePhoneNumberIsValidated: Option[Boolean] = None,
+  override val mobilePhoneNumberValidatedDate: Option[Date] = None
 ) extends User {
 
   def userPrimaryKey: UserPrimaryKey = UserPrimaryKey(id)
@@ -104,12 +109,14 @@ object ResourceUser {
   private val selectColumns =
     fr"""SELECT id, userid_, email, name_, provider_, providerid, company, createdbyconsentid,
                 createdbyuserinvitationid, isdeleted, lastmarketingagreementsigneddate,
-                lastusedlocale, isnaturalperson, principaluserid
+                lastusedlocale, isnaturalperson, principaluserid,
+                mobilephonenumber, mobilephonenumberisvalidated, mobilephonenumbervalidateddate
          FROM resourceuser"""
 
   private type Row = (Long, Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String], Option[String], Option[Boolean],
-    Option[java.sql.Date], Option[String], Option[Boolean], Option[String])
+    Option[java.sql.Date], Option[String], Option[Boolean], Option[String],
+    Option[String], Option[Boolean], Option[java.sql.Timestamp])
 
   /** A DATE comes back as java.sql.Date, which json4s serializes as {} unless it is converted. */
   private def readDate(value: Option[java.sql.Date]): Option[Date] =
@@ -122,7 +129,8 @@ object ResourceUser {
   private def fromRow(row: Row): ResourceUser = row match {
     case (id, userId, email, name, provider, providerId, company, createdByConsentId,
           createdByUserInvitationId, isDeleted, signedDate, lastUsedLocale, isNaturalPerson,
-          principalUserId) =>
+          principalUserId, mobilePhoneNumber, mobilePhoneNumberIsValidated,
+          mobilePhoneNumberValidatedDate) =>
       ResourceUser(
         id = id,
         userId = userId.orNull,
@@ -140,7 +148,10 @@ object ResourceUser {
         // MappedBoolean read a NULL as false whatever the field declared - `defaultValue = true`
         // only seeds a new in-memory instance, it is not what the getter returned.
         isNaturalPerson = isNaturalPerson.getOrElse(false),
-        principalUserIdOption = blankToNone(principalUserId))
+        principalUserIdOption = blankToNone(principalUserId),
+        mobilePhoneNumber = blankToNone(mobilePhoneNumber),
+        mobilePhoneNumberIsValidated = mobilePhoneNumberIsValidated,
+        mobilePhoneNumberValidatedDate = mobilePhoneNumberValidatedDate.map(t => new Date(t.getTime)))
   }
 
   private def query(condition: Fragment): List[ResourceUser] =
@@ -212,14 +223,17 @@ object ResourceUser {
       sql"""INSERT INTO resourceuser
             (userid_, email, name_, provider_, providerid, company, createdbyconsentid,
              createdbyuserinvitationid, isdeleted, lastmarketingagreementsigneddate,
-             lastusedlocale, isnaturalperson, principaluserid)
+             lastusedlocale, isnaturalperson, principaluserid,
+             mobilephonenumber, mobilephonenumberisvalidated, mobilephonenumbervalidateddate)
             VALUES (${opt(row.userId)}, ${opt(row.emailAddress)}, ${opt(row.name)},
              ${opt(row.provider)}, ${opt(row.idGivenByProvider)}, ${opt(row.company)},
              ${row.createdByConsentId.flatMap(Option(_))},
              ${row.createdByUserInvitationId.flatMap(Option(_))}, ${row.isDeleted},
              ${row.lastMarketingAgreementSignedDate.map(d => new java.sql.Date(d.getTime))},
              ${row.lastUsedLocale.flatMap(Option(_))}, ${row.isNaturalPerson},
-             ${row.principalUserIdOption.flatMap(Option(_))})"""
+             ${row.principalUserIdOption.flatMap(Option(_))},
+             ${row.mobilePhoneNumber.flatMap(Option(_))}, ${row.mobilePhoneNumberIsValidated},
+             ${row.mobilePhoneNumberValidatedDate.map(d => new java.sql.Timestamp(d.getTime))})"""
         .update.withUniqueGeneratedKeys[Long]("id"))
     row.copy(id = id)
   }
@@ -237,7 +251,11 @@ object ResourceUser {
                   ${row.lastMarketingAgreementSignedDate.map(d => new java.sql.Date(d.getTime))},
                 lastusedlocale = ${row.lastUsedLocale.flatMap(Option(_))},
                 isnaturalperson = ${row.isNaturalPerson},
-                principaluserid = ${row.principalUserIdOption.flatMap(Option(_))}
+                principaluserid = ${row.principalUserIdOption.flatMap(Option(_))},
+                mobilephonenumber = ${row.mobilePhoneNumber.flatMap(Option(_))},
+                mobilephonenumberisvalidated = ${row.mobilePhoneNumberIsValidated},
+                mobilephonenumbervalidateddate =
+                  ${row.mobilePhoneNumberValidatedDate.map(d => new java.sql.Timestamp(d.getTime))}
             WHERE id = ${row.id}"""
         .update.run)
     row

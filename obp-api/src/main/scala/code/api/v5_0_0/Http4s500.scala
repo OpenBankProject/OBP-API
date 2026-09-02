@@ -14,6 +14,7 @@ import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
 import code.api.v2_1_0.JSONFactory210
@@ -462,18 +463,21 @@ object Http4s500 {
               postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
               Some(cc)
             )
-            entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, Some(cc))
+            // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
+            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
+            humanUserId = cc.accountableUserId
+            entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
             entitlementsByBank = entitlements.filter(_.bankId == postJson.id.getOrElse(""))
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString(),
+                postJson.id.getOrElse(""), humanUserId, CanCreateEntitlementAtOneBank.toString(),
                 grantedByUserId = Some(cc.userId)))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                postJson.id.getOrElse(""), humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
                 grantedByUserId = Some(cc.userId)))
             }
           } yield JSONFactory500.createBankJSON500(success)
@@ -583,10 +587,16 @@ object Http4s500 {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreateAccountRequestJsonV500]
             }
             loggedInUserId = user.userId
-            userIdAccountOwner = createAccountJson.user_id.getOrElse(loggedInUserId)
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
+            userIdAccountOwner = createAccountJson.user_id.getOrElse(cc.accountableUserId)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
             _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            _ <- Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!postedOrLoggedInUser.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else Helper.booleanToFuture(
                    s"${UserHasMissingRoles} $canCreateAccount", failCode = 403, cc = Some(cc)) {
@@ -2352,7 +2362,7 @@ object Http4s500 {
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
 
     // ─── path-rewriting bridge: /obp/v5.0.0/… → /obp/v4.0.0/… ─────────────
     // Cascades inherited (v1.2.1–v4.0.0) endpoints through the http4s versions

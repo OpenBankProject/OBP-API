@@ -249,7 +249,8 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
 
       resolved.userId should not equal resourceUser1.userId
       // The PSU has to survive the swap: checkUKConsent compares the consent's owner against it,
-      // and the CBS adapter and metrics both name it.
+      // and the CBS adapter names it. (Metric rows record the principal; the PSU behind a
+      // consent-borne row is resolved via the consent table at read time.)
       cc.consenter.map(_.userId) should equal(Full(resourceUser1.userId))
 
       UserExtended(resolved).hasAccountAccess(systemView(ReadAccountsBasic), bankIdAccountId, Some(cc)) should equal(true)

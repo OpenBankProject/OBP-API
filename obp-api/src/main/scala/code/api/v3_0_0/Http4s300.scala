@@ -15,6 +15,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v1_2_1.JSONFactory
@@ -1655,10 +1656,14 @@ object Http4s300 {
             _ <- code.util.Helper.booleanToFuture(
               if (ApiRole.valueOf(body.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
               cc = Some(cc)) { ApiRole.valueOf(body.role_name).requiresBankId == body.bank_id.nonEmpty }
+            // A request for power is a request BY the human: under a Consent the caller is a
+            // per-consent shadow, and a request filed for it would have an admin granting to
+            // an identity that dies with the consent (the grant endpoint now rejects that).
+            requesterUserId = cc.accountableUserId
             _ <- code.util.Helper.booleanToFuture(EntitlementRequestAlreadyExists, cc = Some(cc)) {
-              EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(body.bank_id, user.userId, body.role_name).isEmpty
+              EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(body.bank_id, requesterUserId, body.role_name).isEmpty
             }
-            addedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.addEntitlementRequestFuture(body.bank_id, user.userId, body.role_name) map {
+            addedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.addEntitlementRequestFuture(body.bank_id, requesterUserId, body.role_name) map {
               x => unboxFullOrFail(x, Some(cc), EntitlementRequestCannotBeAdded)
             }
           } yield JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest)
@@ -2303,7 +2308,7 @@ object Http4s300 {
         .orElse(bankById.run(req))
     }
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── path-rewriting bridge: /obp/v3.0.0/… → /obp/v2.2.0/… ──────────────
 
