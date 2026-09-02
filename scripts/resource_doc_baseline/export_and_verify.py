@@ -102,7 +102,7 @@ def current_git_commit() -> str:
 def discover_versions():
     return sorted(
         d.name for d in parity.API_ROOT.iterdir()
-        if d.is_dir() and re.match(r"^v\d+_\d+_\d+$", d.name)
+        if d.is_dir() and parity.VERSION_RE.match(d.name)
     )
 
 

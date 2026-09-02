@@ -265,7 +265,7 @@ def split_top_level(text: str) -> list[str]:
 def version_from_http4s_path(http4s: Path) -> str:
     """.../v5_1_0/Http4s510.scala -> "v5_1_0" (the baseline filename suffix)."""
     version = http4s.resolve().parent.name
-    if not re.match(r"^v\d+_\d+_\d+$", version):
+    if not parity.VERSION_RE.match(version):
         raise ValueError(
             f"couldn't derive a version like v5_1_0 from {http4s}'s parent "
             f"directory ({version!r}); pass a canonical Http4sXYZ.scala path"
