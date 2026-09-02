@@ -5,7 +5,6 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfFastFireHoseView {
@@ -22,7 +21,7 @@ object MigrationOfFastFireHoseView {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
               case value if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>""  //TODO: do not support mssql server yet.

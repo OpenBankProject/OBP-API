@@ -2,7 +2,6 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import net.liftweb.mapper.Schemifier
 
 /**
  * One-time historical migration: drops a legacy unique index that used to block legitimate
@@ -25,7 +24,7 @@ object MigrationOfConsentAuthContextDropIndex {
     val commitId: String = APIUtil.gitCommit
     if (DbFunction.tableExistsByName(tableName)) {
       val executedSql =
-        DbFunction.maybeWrite(true, Schemifier.infoF _) {
+        DbFunction.maybeWrite(true, DbFunction.infoF _) {
           val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
           () =>
             code.util.Helper.dropIndexIfExists(dbDriver, tableName, "consentauthcontext_consentid_key_c")

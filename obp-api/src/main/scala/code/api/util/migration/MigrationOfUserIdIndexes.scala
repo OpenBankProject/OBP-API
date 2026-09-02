@@ -5,7 +5,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MappedMetric
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 object MigrationOfUserIdIndexes {
 
@@ -21,7 +20,7 @@ object MigrationOfUserIdIndexes {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") match {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -88,7 +87,7 @@ object MigrationOfUserIdIndexes {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") match {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>

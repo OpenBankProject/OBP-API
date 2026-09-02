@@ -2,7 +2,6 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import net.liftweb.mapper.Schemifier
 import code.util.Helper
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
@@ -31,7 +30,7 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
         var isSuccessful = false
         
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
             () =>
               s"""${Helper.dropIndexIfExists(dbDriver, "mappedbadloginattempt", "mappedbadloginattempt_musername")}""".stripMargin

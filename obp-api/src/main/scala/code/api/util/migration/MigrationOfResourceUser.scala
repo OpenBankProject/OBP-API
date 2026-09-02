@@ -7,7 +7,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfResourceUser {
@@ -73,7 +72,7 @@ object MigrationOfResourceUser {
           if (DbFunction.columnMaxLength("resourceuser", "email").contains(targetLength)) {
             s"-- skipped: resourceuser.email already varchar($targetLength)"
           } else {
-            DbFunction.maybeWrite(true, Schemifier.infoF _) {
+            DbFunction.maybeWrite(true, DbFunction.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () =>

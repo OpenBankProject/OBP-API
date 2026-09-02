@@ -3,7 +3,6 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import java.time.format.DateTimeFormatter
@@ -74,7 +73,7 @@ object MigrationOfFastFireHoseMaterializedView {
              |                   ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink);
              |""".stripMargin
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
               case value if value.contains("org.h2.Driver") =>
                 () => migrationSql(false)//Note: H2 database, do not support the MATERIALIZED view

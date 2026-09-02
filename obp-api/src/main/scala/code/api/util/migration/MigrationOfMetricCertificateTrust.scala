@@ -3,7 +3,6 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MappedMetric
-import net.liftweb.mapper.Schemifier
 
 /**
  * Migration: add `certificate_trust VARCHAR(32)` and `certificate_trust_detail VARCHAR(255)` to
@@ -55,7 +54,7 @@ object MigrationOfMetricCertificateTrust {
               "ALTER TABLE metricarchive ADD COLUMN IF NOT EXISTS certificate_trust_detail VARCHAR(255);"
             )
           statements.foreach { statement =>
-            sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => statement)).append("\n")
+            sqlLog.append(DbFunction.maybeWrite(true, DbFunction.infoF _)(() => statement)).append("\n")
           }
 
           isSuccessful = true

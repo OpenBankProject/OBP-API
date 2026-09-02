@@ -6,7 +6,6 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfTransactionRequerst {
@@ -28,7 +27,7 @@ object MigrationOfTransactionRequerst {
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mdetails text;"

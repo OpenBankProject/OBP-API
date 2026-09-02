@@ -9,7 +9,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
 import code.model.dataAccess.AuthUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfAuthUser {
@@ -26,7 +25,7 @@ object MigrationOfAuthUser {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -122,7 +121,7 @@ object MigrationOfAuthUser {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
             () =>
               s"""${Helper.dropIndexIfExists(dbDriver, "authuser", "authuser_username")}"""

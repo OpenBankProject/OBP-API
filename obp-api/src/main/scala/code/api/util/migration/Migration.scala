@@ -8,8 +8,7 @@ import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.mapper.Schemifier.getDefaultSchemaName
-import net.liftweb.mapper.{BaseMetaMapper, DB}
+import net.liftweb.db.{DB, SuperConnection}
 
 import java.sql.{ResultSet, SQLException}
 import java.text.SimpleDateFormat
@@ -773,30 +772,23 @@ object Migration extends MdcLoggable {
         theVar.close()
       }
     }
+
+    /** Logging callback for maybeWrite - was net.liftweb.mapper.Schemifier.infoF, a thin
+      * wrapper around a Lift Logger with the same call-by-name signature. */
+    def infoF(msg: => AnyRef): Unit = logger.info(msg)
+
     /**
       * This function is copied from the module "net.liftweb.mapper.Schemifier".
-      * The purpose is to provide answer does a table exist at a database instance.
-      * For instance migration scripts needs to differentiate update of an instance from build a new one from scratch.
-     *  note: 07.05.2024 now. we get the connection from HikariDatasource.ds instead of Liftweb.
+      * The purpose is to provide the schema to look tables up under: the connection's own
+      * schema if it has one, else the driver's default, else the instance-wide default,
+      * else (as a last resort) the JDBC user name - the same fallback chain Schemifier used.
       */
-    def tableExists (table: BaseMetaMapper, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
-      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
-        conn =>
-          val md = conn.getMetaData
-          val schema =  getDefaultSchemaName(conn)
-      
-          using(md.getTables(null, schema, null, null)){ rs =>
-            def hasTable(rs: ResultSet): Boolean =
-              if (!rs.next) false
-              else rs.getString(3) match {
-                case s if s.toLowerCase == table._dbTableNameLC.toLowerCase => actualTableNames(table._dbTableNameLC) = s; true
-                case _ => hasTable(rs)
-              }
-    
-            hasTable(rs)
-          }
-      }
-    }
+    def getDefaultSchemaName(conn: SuperConnection): String =
+      conn.schemaName
+        .or(conn.driverType.defaultSchemaName)
+        .or(DB.globalDefaultSchemaName)
+        .openOr(conn.getMetaData.getUserName)
+
     def tableExistsByName(tableName: String): Boolean = {
       DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
         val md = conn.getMetaData
@@ -900,16 +892,9 @@ object Migration extends MdcLoggable {
     }
 
     /**
-      * This function makes a copy on an table
-      * @param table The table we want to back up
-      * @return true in case of success or false otherwise
-      */
-    def makeBackUpOfTable(table: BaseMetaMapper): Boolean = makeBackUpOfTableByName(table.dbTableName)
-
-    /**
-     * Same as makeBackUpOfTable, taking a plain table name rather than a Lift MetaMapper. For
-     * tables that have moved off Lift Mapper and no longer have one - the historical migration
-     * scripts that still reference them by name after the entity is deleted.
+     * Makes a copy of a table. Used to be two overloads - one taking a Lift MetaMapper, one a
+     * plain name for tables that had already moved off Lift Mapper - now that no entity is left
+     * anywhere, only the by-name form remains.
      */
     def makeBackUpOfTableByName(tableName: String): Boolean ={
       DB.use(net.liftweb.util.DefaultConnectionIdentifier) {

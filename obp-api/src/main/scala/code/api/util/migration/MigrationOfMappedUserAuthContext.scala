@@ -6,7 +6,6 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 /**
  * One-time historical migration: drops a legacy unique index that predates the current
@@ -34,7 +33,7 @@ object MigrationOfMappedUserAuthContext {
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "DROP INDEX IF EXISTS mappeduserauthcontext_muserid_mkey ON mappeduserauthcontext;"

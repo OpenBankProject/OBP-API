@@ -6,7 +6,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
 import code.views.system.AccountAccess
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import java.time.format.DateTimeFormatter
@@ -26,7 +25,7 @@ object MigrationOfAccountAccessAddedConsumerId {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             val dbDriver = APIUtil.getPropsValue("db.driver","org.h2.Driver")
             () => s"""
                |${Helper.addColumnIfNotExists(dbDriver,"accountaccess", "consumer_id", ALL_CONSUMERS)}

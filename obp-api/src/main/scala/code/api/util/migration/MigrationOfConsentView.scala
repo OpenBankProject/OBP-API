@@ -3,7 +3,6 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.consent.MappedConsent
-import net.liftweb.mapper.Schemifier
 
 object MigrationOfConsentView {
 
@@ -15,7 +14,7 @@ object MigrationOfConsentView {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
               case value if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>

@@ -6,7 +6,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 /**
  * One-time historical migration: widens mKey/mValue to varchar(4000). Originally looked the
@@ -31,7 +30,7 @@ object MigrationOfUserAuthContextFieldLength {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>

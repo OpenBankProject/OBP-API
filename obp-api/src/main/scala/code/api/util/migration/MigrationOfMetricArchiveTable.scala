@@ -7,7 +7,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MetricArchive
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 /**
  * Widen `metricarchive.correlationid` from varchar(36) to varchar(256) so it matches
@@ -38,7 +37,7 @@ object MigrationOfMetricArchiveTable {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true, DbFunction.infoF _) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
