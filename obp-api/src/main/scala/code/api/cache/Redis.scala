@@ -327,6 +327,17 @@ object Redis extends MdcLoggable {
   //   sub-second TTL expires when it says it does - see cachePut below for why setex was
   //   wrong here. A non-finite ttl stores without expiry, as scalacache's ttl=None did.
 
+  /** True on a Scala 3 build. Deliberately a class probe rather than a version string: see
+   *  serializationNamespace. Any failure to load is read as "not Scala 3", which is the safe
+   *  direction - the 2.13 spelling is what develop already uses. */
+  private[cache] val isScala3Runtime: Boolean =
+    try {
+      Class.forName("scala.runtime.Scala3RunTime", false, getClass.getClassLoader)
+      true
+    } catch {
+      case _: Throwable => false
+    }
+
   /**
    * The serialization identity these cached bytes were produced under.
    *
@@ -359,17 +370,6 @@ object Redis extends MdcLoggable {
    * upgrade that changes the encoding on its own, which is what chill 0.9.3 to 0.9.5 would have
    * been. Bump it then; the cost is one cold cache.
    */
-  /** True on a Scala 3 build. Deliberately a class probe rather than a version string: see
-   *  serializationNamespace. Any failure to load is read as "not Scala 3", which is the safe
-   *  direction - the 2.13 spelling is what develop already uses. */
-  private[cache] val isScala3Runtime: Boolean =
-    try {
-      Class.forName("scala.runtime.Scala3RunTime", false, getClass.getClassLoader)
-      true
-    } catch {
-      case _: Throwable => false
-    }
-
   private[cache] val serializationNamespace: String = {
     val libraryBinary = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
     // A 2.13 build keeps the spelling develop produces, so only the Scala 3 side moves.

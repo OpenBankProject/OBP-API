@@ -128,10 +128,11 @@ databaseChangeLog:
         Postgres, a varchar wide enough not to be a limit on H2.
 
         The precondition counts the columns still at 255 rather than asking whether a column
-        exists: they exist either way, and the question is their width. It reads
-        character_maximum_length, which is NULL for an unbounded type, so a database that has
-        already been widened - by the upstream migration or by a previous run of this changeset -
-        counts zero and marks this run instead of re-applying it.
+        exists: they exist either way, and the question is their width. It counts only columns
+        still at exactly 255, rather than testing for the widened type, because what that type
+        reports differs per vendor - NULL on Postgres and MySQL, 1000000000 on H2, -1 on SQL
+        Server. So a database already widened, by the upstream migration or by a previous run of
+        this changeset, counts zero and marks this run instead of re-applying it.
       changes:
         - modifyDataType:
             tableName: dynamicresourcedoc

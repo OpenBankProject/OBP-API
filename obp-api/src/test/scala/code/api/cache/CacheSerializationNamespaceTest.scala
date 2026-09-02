@@ -97,7 +97,9 @@ class CacheSerializationNamespaceTest extends AnyFlatSpec with Matchers {
                s"Scala 2.13 build produces - the two would read each other's Kryo entries ") {
         CurrentNamespace should not equal whatAScala213BuildProduces
       }
-      CurrentNamespace should include("3")
+      // Not `include("3")`: "obpser1-scala2.13" contains a '3' too, so that assertion could
+      // never have failed. The compiler generation has to be named as such.
+      CurrentNamespace should include("scala3")
       keyFor(CurrentNamespace, SampleCallerKey) should not equal
         keyFor(whatAScala213BuildProduces, SampleCallerKey)
     } else {
