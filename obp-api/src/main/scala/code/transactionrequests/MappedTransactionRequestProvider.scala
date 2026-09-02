@@ -115,6 +115,17 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     }
 
     // Note: We don't save transaction_ids, status and challenge here.
+    // Record both: mUserId = the authenticated user, mOnBehalfOfUserId = who the payment is for.
+    // One attribution call (UserReference.TransactionRequest) gives both; the request layer's
+    // consentCreator / consenter take precedence over the DB chain, as in CallContext.onBehalfOfUserId.
+    val transactionRequestAttribution: Option[code.users.Attribution] = for {
+      cc   <- callContext
+      user <- cc.user.toOption
+      a    <- code.users.Users.users.vend.attributionOf(user.userId, code.users.UserReference.TransactionRequest).toOption
+    } yield cc.consentCreator.or(cc.consenter).map(_.userId).filter(_.nonEmpty) match {
+      case Full(delegated) => a.copy(onBehalfOfUserId = delegated)
+      case _               => a
+    }
     val mappedTransactionRequest = MappedTransactionRequest.create
 
       //transaction request fields:
@@ -168,8 +179,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       .mConsentReferenceId(consentReferenceIdOption.getOrElse(null))
       .mApiVersion(apiVersion.getOrElse(null))
       .mApiStandard(apiStandard.getOrElse(null))
-      .mUserId(callContext.flatMap(_.user.map(_.userId)).getOrElse(null))
-      .mOnBehalfOfUserId(callContext.flatMap(cc => cc.consentCreator.or(cc.consenter).map(_.userId)).getOrElse(null))
+      .mUserId(transactionRequestAttribution.map(_.userId).getOrElse(null))
+      .mOnBehalfOfUserId(transactionRequestAttribution.map(_.onBehalfOfUserId).getOrElse(null))
       .mConsumerId(callContext.flatMap(_.consumer.map(_.consumerId.get)).getOrElse(null))
 
       // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR_PROMISE type only — null otherwise).

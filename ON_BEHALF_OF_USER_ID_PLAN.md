@@ -1,8 +1,10 @@
 # On-behalf-of user id — making ownership-by-the-human automatic
 
 Written 2026-09-02 evening, for pickup 2026-09-03. This is the only document: no separate
-checklist. Track progress here by marking items done in place. **Status: Phase 0 done 2026-09-02 (uncommitted): clean build green, `AgentDelegationTest` /
-`ApiSessionTest` / `ConsentOwnershipTests` all pass (21 tests). Phase 1 next.** Background and the reasoning are on the Portal page `/developers/opey-permissions`
+checklist. Track progress here by marking items done in place. **Status: Phases 0 and 1 done 2026-09-02 (uncommitted). Clean build green; `AgentDelegationTest`
+(22), `ApiSessionTest`, `ConsentOwnershipTests`, `ConsentObpTest`, `ConsentTest`, `EntitlementTests`
+all pass. `AbacRuleTests` fails locally for an unrelated props reason (see Phase 1 note 2). Phase 2
+next; manual litmus tests under Phase 1.** Background and the reasoning are on the Portal page `/developers/opey-permissions`
 (OBP-Frontend, uncommitted) and in `OBP-Frontend/CONSENT_ESCALATION_GAP.md`.
 
 Working rules: the user commits, the assistant never does. The provider is the mechanism;
@@ -82,14 +84,18 @@ rename of an accessor, plus one documentation fix. No schema migration.
 | 8 ✅ | v6/v7 `/users/current` JSON field `on_behalf_of` reads the `consentCreator` field only (null for BG/UK consents) | reads `consentCreator.or(consenter)` — the delegated value, **not** the resolved `onBehalfOfUser`, whose `.or(user)` fallback would show a plain user as their own on-behalf-of | `Http4s600.scala:174-213`, `Http4s700.scala:949-956`; endpoint comment ("impersonation headers", stale; fixed). No resource-doc text mentions the field, nothing to change there | **optional, not needed by Phase 1.** Additive behaviour change: BG/UK consent callers get the consenter instead of null; everyone else unchanged (Decisions 8); release-note it |
 | 9 ✅ | — | **checked 2026-09-02: yes, always the same user.** | `MappedConsent.scala:205,232,279`; `ConsentUtil.scala:1359,1457,1647`; create endpoints `Http4s310:4451`, `Http4s500:1265`, `Http4s510:5025` | An OBP consent names its user twice: the row column `mUserId` and the JWT claim `createdByUserId`. OBP-native: all three create endpoints pass the logged-in `user` to both. BG/UK: both empty at creation, both set to the authorising user at authorisation (`updateConsentUser` + `updateUserIdOfBerlinGroupConsentJWT`). So `CallContext`'s two sources (`onBehalfOfUser` field from the claim, `consenter` from the column) always carry one value. **Decided: keep the two source fields separate anyway** (`consentCreator`, `consenter`) — explicit about where each came from; the resolved `onBehalfOfUser` (row 6) is the one to read. |
 
-Not renamed: local `val humanUserId = cc.onBehalfOfUserId` in the createBank endpoints (`Http4s220:471`, `Http4s500:469`, `Http4s600:877`) and `Http4s700.humanAndAgentUserIds` — locals, Phase 3 touches those endpoints anyway; `consenter` (a source, name is accurate), `User.isConsentUser` / `Constant.consent_user`
+Not renamed: local `val humanUserId = cc.onBehalfOfUserId` in the createBank endpoints (`Http4s220:471`, `Http4s500:469`, `Http4s600:877`) and `Http4s700.humanAndAgentUserIds` — locals, Phase 2 touches those endpoints anyway; `consenter` (a source, name is accurate), `User.isConsentUser` / `Constant.consent_user`
 (the kind of user), `mOnBehalfOfUserId` and `on_behalf_of_user_id` (already right). The ABAC rule
 engine's `onBehalfOfUser` parameter (`AbacRuleEngine.scala:33,164`) is a separate rule-input slot,
 always `None` today; leave it, it already uses the right word.
 
 Done when (both satisfied 2026-09-02): `grep -rn "PrincipalUserId\|principalUserId\|IsNaturalPerson\|isNaturalPerson\|humanUser\b\|accountableUserId" obp-api/src obp-commons/src` is empty and `AgentDelegationTest`, `ApiSessionTest`, `ConsentOwnershipTests` pass.
 
-## Phase 1 — one resolver, policy-aware entry point (decided: lives in `Users`)
+## Phase 1 — one resolver + the complete policy file (decided: lives in `Users`) — **done 2026-09-02, tests green**
+
+Phase 1 delivers the design whole: the resolver, the policy-aware entry point, **and every row of
+the policy file**. Nothing calls the rows until Phase 2, but the file is declarative and one line
+per row, so there is no reason to ship it in pieces.
 
 Resolver home: trait `code.users.Users`, impl `LiftUsers`. Chosen over a separate object because
 `LiftUsers` is the only writer of `CreatedByConsentId`, it
@@ -138,7 +144,7 @@ def attributionOf(userId: String, ref: UserReference): Box[Attribution]
 def attributedUserId(userId: String, ref: UserReference): Box[String] = attributionOf(userId, ref).map(_.userIdToStore)
 ```
 
-`UserReference` is the Phase-2 policy file as code (main tree, see Phase 2). The `ref` argument is
+`UserReference` is the policy file as code (main tree, see "The policy file" below). The `ref` argument is
 chosen by provider code, never from the request, so the "no caller-asserted input" property of
 `onBehalfOfUserIdOf` still holds. `consentId` is derived inside the resolver, never passed in, for
 the same reason.
@@ -149,21 +155,26 @@ Implementation notes:
    inline today (`ResourceUser.find(By(userId_)) → CreatedByConsentId → getConsentByConsentId →
    consent.userId`). Both then delegate to it; CallContext
    keeps its `consentCreator.or(consenter)` precedence in front.
-2. Cache (decided): `Caching.memoizeSyncWithImMemory` (Guava via scalacache, already used),
-   key `onBehalfOfUserIdOf:<userId>`, TTL 10 min. Memoise humans (answer = self) and bound
-   consent users. Do **not** memoise the "consent user whose consent names no human yet" branch,
-   or a BG consent bound a minute later stays pinned to the consent user for the TTL.
+2. Cache (as built): a private Guava cache in `LiftUsers` (the `Caching` wrapper cannot skip
+   memoising selected answers), TTL from props `on_behalf_of_user_id.cache_ttl_seconds`, default
+   600, `0` disables. Memoises original users (answer = self) and bound consent users. Note for
+   local test runs: `AbacRuleTests` (and the other dynamic-code suites) return 400 on rule creation
+   unless `allow_user_generated_scala_code=true` is in the test props, as CI sets it; that is
+   unrelated to this work. Does **not**
+   memoise "consent user whose consent names no human yet", dangling ids, or the invariant
+   failure, so a BG consent bound a minute later is seen at once.
 3. Agents (decided, see Decisions 4): an agent is a consent user; there is no consent-less
    agent and no second column. The resolver is one hop (no chains) and asserts the target row
    `isOriginalUser`; if not, WARN and `Failure`. The `Reject` policy on consent creation by a
    consent user is what keeps chains from ever being written.
 4. Every delegated attribution logs WARN with the `ref` name, `userId`, `onBehalfOfUserId`,
    `consentId`. A WARN firing in tests means a site chose the wrong reference or a policy is wrong.
-5. **Check before coding**: for OBP-native consents, `CallContext` prefers the JWT's
-   `createdByUserId` (`consentCreator`) while the resolver follows `consent.userId`. Same person
-   when a human creates their own consent in the Portal; verify no creation path sets `mUserId`
-   to someone other than the creator (`MappedConsentProvider.scala:54,205,232,279`). If one does,
-   decide which wins and write it down here.
+5. **Checked 2026-09-02 (Phase 0 row 9): the two sources always agree.** `CallContext` prefers
+   the JWT claim `createdByUserId` (`consentCreator`); the resolver follows the row column
+   `consent.userId`. Every OBP-native create endpoint (`Http4s310:4451`, `Http4s500:1265`,
+   `Http4s510:5025`) writes both from the same logged-in `user`; BG/UK set both to the authorising
+   user at authorisation. No path writes them differently, so precedence is a no-op today and the
+   resolver's answer equals the request-layer answer. Kept as two fields anyway (decided).
 
 Call sites after Phase 1:
 
@@ -184,7 +195,23 @@ for { a <- Users.users.vend.attributionOf(userId, UserReference.TransactionReque
    tr.mUserId(a.userId).mOnBehalfOfUserId(a.onBehalfOfUserId)
 ```
 
-## Phase 2 — assign an attribution policy to every user-reference column (from a grep of Mapped classes)
+### The policy file — an attribution policy for every user-reference column (from a grep of Mapped classes)
+
+**Written 2026-09-02: `obp-api/src/main/scala/code/users/UserReference.scala` is now the source of
+truth — 72 references, 9 not-a-user-id exclusions.** The tables below were the draft; the file was
+generated from an inventory of every model in `ToSchemify.models` and covers more than the tables.
+Columns the draft missed, and the policy given (change in the file if wrong):
+
+| policy | added |
+|---|---|
+| `KeepUserId` | `AuthUser.user` (login row), `OpenIDConnectToken.AuthUserPrimaryKey`, `MappedUserRefreshes.mUserId`, `MetricArchive.userId`, `DynamicDataAccess.GrantedBy` (audit) |
+| `UseOnBehalfOfUserId` | `MappedUserScope.mUserId`, `DirectDebit.UserId`, `DynamicData.UserId`, `DynamicDataAccess.UserId`, `MappedCounterpartyWhereTag.user`, `MappedTag.user`, `MappedWhereTag.user`, `MappedTransactionImage.user`, `MappedCustomerMessage.user`, `MappedKycDocument.user`, `MappedKycStatus.user`, `MappedSocialMedia.user`, `MappedKycCheck.user`, `SignatoryPanel.UserIds`, `ChatMessage.MentionedUserIds` |
+| `Reject` | `Token.userForeignKey` (OAuth token issued to a consent user) |
+| not a user id | `MappedBankAccount.holder`, `MappedTransaction.counterpartyAccountHolder`, `AccountAccessRequest.CheckerComment`, `MappedKycCheck.mStaffName`, `MappedMeeting.mStaffToken`, `MappedEntitlement.mCreatedByProcess`, `ResourceUser.userId_` / `CreatedByConsentId` / `CreatedByUserInvitationId` |
+
+`AccountAccessRequest` is three references (requestor, target, checker). Record-both tables are one
+reference with two fields (`TransactionRequest`). Classes are named as fully-qualified strings, not
+`classOf`, so the file imports nothing and cannot trigger Mapper initialisation.
 
 Rule: **the agent owns nothing durable.** Only the consent's own authorisation rows stay on the consent user.
 
@@ -227,7 +254,7 @@ object UserReference {
 }
 ```
 
-Carrying `mapper` + `fields` on each value is what lets the Phase-5 frozen test tie every
+Carrying `mapper` + `fields` on each value is what lets the Phase-4 frozen test tie every
 reflected Mapper column to exactly one reference (one column may have two references only when
 they differ by process, as `MappedEntitlement.mUserId` does).
 
@@ -279,9 +306,44 @@ they differ by process, as `MappedEntitlement.mUserId` does).
 | 31 | `consent/MappedConsent.mUserId` (consent creating a consent) | nested delegation; 400 at the create endpoints |
 | 32 | `model/OAuth.createdByUserId` (tokens/consumers minted by a consent user) | credentials outlive the consent; 400 |
 
-Phase-2 deliverable: `UserReference.scala` in the **main** tree, one case object per row of the tables above, `all` listing them. Not a database table, and not these markdown tables: the markdown is the working draft, the Scala file is what runs (via `Users.attributionOf`) and what `UserReferenceAttributionPolicyTest` (Phase 5) checks.
+### Phase 1 deliverables (all ✅ 2026-09-02)
 
-## Phase 3 — provider guards (UseOnBehalfOfUserId)
+1. `obp-api/src/main/scala/code/users/UserReference.scala`: `AttributionPolicy`, `Attribution`, and `UserReference` with **one case object per row of the tables above (all 32)** and `all` listing them. Not a database table, and not these markdown tables: the markdown is the working draft, the Scala file is what runs (via `Users.attributionOf`) and what `UserReferenceAttributionPolicyTest` (Phase 4) checks.
+2. `Users` trait: `onBehalfOfUserIdOf`, `actsForSelf`, `attributionOf`, `attributedUserId`.
+3. `LiftUsers`: the implementation, with the cache rule and the `isOriginalUser` check.
+4. `CallContext.onBehalfOfUserId` delegates to the resolver (precedence kept).
+5. `MappedEntitlements.addEntitlement` via `attributedUserId` with `ConsentEntitlementUser` / `EntitlementUser`.
+6. `MappedTransactionRequestProvider` via one `attributionOf(userId, TransactionRequest)` call, both columns.
+7. `AgentDelegationTest` scenarios (Phase 4, item 1) green; grep for any other inline copy of the chain and point it at the resolver.
+
+## Manual tests after Phase 1 (litmus, against a running instance)
+
+Set-up once: a human H logged in (Portal / API Explorer), an OBP-native consent C granted by H
+with roles that let it act (e.g. `CanCreateEntitlementAtOneBank`, `CanCreateAccount`), and the
+consent JWT for C. Calls "as C" send `Consent-JWT: <jwt>` plus the consumer key; calls "as H" use
+H's normal token.
+
+1. **Who am I / on whose behalf.** As C: `GET /obp/v6.0.0/users/current`. Expect `user_id` = C's
+   consent user, `on_behalf_of.user_id` = H. As H: `on_behalf_of` is null. (Row 8 of Phase 0.)
+2. **Entitlement redirect.** As C: `POST /obp/v7.0.0/users/<C's consent user id>/entitlements`
+   with a role C may grant. Expect 201 and the entitlement's `user_id` = H, not C. Then
+   `GET /obp/v6.0.0/users/current` as H shows the role. Log has one WARN from
+   `attribution EntitlementUser` naming C, H, and the consent id.
+3. **Consent-engine exemption.** Create a new consent as H and use it once. The consent user's own
+   rows in `entitlement` (createdByProcess `consent_user`) are on the consent user, not on H.
+4. **Payment attribution.** As C: create a transaction request (`SANDBOX_TAN` is enough) on one of
+   H's accounts. Expect the row in `transactionrequest`: `muserid` = C's consent user,
+   `monbehalfofuserid` = H. Then `GET .../transaction-requests` as H lists it.
+5. **Reject.** As C: `POST /obp/v5.1.0/my/consents/IMPLICIT` (create a consent while being a
+   consent user). Until Phase 3 this still succeeds — it is the litmus that Phase 3 is needed.
+   After Phase 3: 400 `OBP-30107` naming `ConsentCreator`.
+6. **BG late binding (if a BG sandbox is set up).** Create a BG consent via the TPP flow, call
+   `/users/current` with it before authorisation: `on_behalf_of` null. Authorise as H, call again
+   within a minute: `on_behalf_of.user_id` = H (proves the unbound answer was not cached).
+7. **Cache.** Set `on_behalf_of_user_id.cache_ttl_seconds=0` in props, repeat 2: same result, and
+   the log shows the chain walked on every call. Restore the default.
+
+## Phase 2 — provider guards (UseOnBehalfOfUserId)
 
 Pattern, one line at the top of each create/link method, naming the column being written:
 
@@ -293,7 +355,7 @@ for {
 
 Providers that return a plain value rather than a `Box` either grow a `Box` (preferred) or
 `openOr(userId)` with a comment. Both ways to be wrong — forgetting the call, or naming the wrong
-reference — are caught by the Phase-5 sweep; the second is also visible in review.
+reference — are caught by the Phase-4 sweep; the second is also visible in review.
 
 1. Providers that take a `User` (AccountHolders): resolve to id, re-fetch the on-behalf-of `User` once (cached).
 2. Keep endpoint-level `cc.onBehalfOfUserId` uses; they become redundant clarity, not the mechanism.
@@ -301,18 +363,18 @@ reference — are caught by the Phase-5 sweep; the second is also visible in rev
 
 Order of attack (highest strand-risk first): AccountHolders → UserCustomerLink → AccountApplication → UserAuthContext → ApiCollection/UserAttribute → the rest mechanically.
 
-## Phase 4 — explicit-target guards (endpoint 400s)
+## Phase 3 — explicit-target guards (endpoint 400s)
 
 Doctrine (settled 2026-09-01): implicit self → redirect in provider; explicit `USER_ID` naming a consent user → 400 `InvalidUserId … names a consent user`. Already done: addEntitlement (v2.0/v7), addUserToGroup (v6), createAccount (v2.0/v3.1/v4.0/v5.0/v7), grantUserAccessToViewById (v5.1), account access requests (v6), account applications (v3.1). To sweep: createUserCustomerLink, API collections, user attributes, auth contexts, KYC/meeting staff ids, webhooks with explicit ids. `Reject` columns refuse in the provider (`attributionOf` returns Failure); endpoints map that to 400 and may keep an early explicit check for a nicer message, but the floor holds without them.
 
-## Phase 5 — tests
+## Phase 4 — tests
 
 1. **`AgentDelegationTest`** — extend: `onBehalfOfUserIdOf` for original user / consent user / dangling consent (fails closed) / cache hit after consent later bound (BG case) / consent whose user is itself a consent user → Failure; `attributionOf` for each of the three policies.
 2. **`UserReferenceAttributionPolicyTest`** (frozen-style, like `FrozenClassTest`): iterate `ToSchemify.models`, reflect Mapper fields whose name matches `(?i)userid|createdby|grantedby|holder`, assert every (class, field) is named by at least one `UserReference` in `UserReference.all`, and by more than one only where the references differ by process; assert every `UserReference` names real Mapper fields. New tables and renamed columns fail until sorted.
 3. **`OnBehalfOfOwnershipSweepTest`**: mint a consent for a test human with generous roles; call every `UseOnBehalfOfUserId` create endpoint with the consent JWT; assert no row in any such table references the consent user's id, and at least one references the human. Also assert `Reject` endpoints return 400.
 4. Existing `ConsentObpTest` / `ConsentTest` keep passing (35033 now only AnyBank).
 
-## Phase 6 — follow-through
+## Phase 5 — follow-through
 
 1. Portal page `/developers/opey-permissions`: shrink "Attribution Is Not Yet Universal" to one line once the sweep test is green; use the vocabulary above there too.
 2. Memory: write `on-behalf-of-user-id-plan` (none exists yet) pointing at this file, then mark built.

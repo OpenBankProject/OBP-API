@@ -85,6 +85,30 @@ trait Users {
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 
+  // ---- on-behalf-of resolution (ON_BEHALF_OF_USER_ID_PLAN.md, Phase 1) ----------------------
+
+  /** The on-behalf-of user id for `userId`.
+   *  consent user  -> the consent's userId (read at call time: BG/UK consents bind their human
+   *                   only at authorisation, so it is never copied at creation)
+   *  original user -> userId unchanged
+   *  Fails closed: unknown user / dangling consent id / consent with no human yet -> userId (+ WARN).
+   *  Invariant: the result is an original user (isOriginalUser); a consent whose user is itself a
+   *  consent user is a data bug -> WARN + Failure, the one case that cannot fall back.
+   *  Takes only the id on purpose: nothing request-asserted (body/header/query) can steer it. */
+  def onBehalfOfUserIdOf(userId: String): Box[String]
+
+  /** True when `userId` acts for itself and may own durable state. */
+  def actsForSelf(userId: String): Boolean = onBehalfOfUserIdOf(userId).exists(_ == userId)
+
+  /** Attribution for writing the column(s) `ref` names as `userId`. Applies `ref.policy`:
+   *  KeepUserId          -> Full(userId as both), resolver not consulted
+   *  UseOnBehalfOfUserId -> Full(resolved), WARN naming `ref` when delegated
+   *  Reject              -> Full if `userId` acts for itself, else Failure(InvalidUserId ...) */
+  def attributionOf(userId: String, ref: UserReference): Box[Attribution]
+
+  /** Convenience for single-column writers: the one value to store. */
+  def attributedUserId(userId: String, ref: UserReference): Box[String] = attributionOf(userId, ref).map(_.userIdToStore)
+
   def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser]
 
   def deleteResourceUser(userId: Long) : Box[Boolean]

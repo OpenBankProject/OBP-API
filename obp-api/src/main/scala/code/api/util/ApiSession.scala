@@ -242,17 +242,12 @@ case class CallContext(
    * the resolution — identity-sensitive queries (e.g. /my/banks) depend on that.
    */
   def onBehalfOfUserId: String = {
-    val delegatedHumanUserId = consentCreator.or(consenter).map(_.userId).filter(_.nonEmpty)
-    delegatedHumanUserId.openOr {
+    val delegatedUserId = consentCreator.or(consenter).map(_.userId).filter(_.nonEmpty)
+    delegatedUserId.openOr {
       val authenticatedUserId = user.map(_.userId).openOr("")
-      val grantingHumanUserId = for {
-        callerResourceUser <- code.model.dataAccess.ResourceUser.find(
-          net.liftweb.mapper.By(code.model.dataAccess.ResourceUser.userId_, authenticatedUserId))
-        consentId <- net.liftweb.common.Full(callerResourceUser.CreatedByConsentId.get)
-          .filter(id => id != null && id.nonEmpty)
-        consent <- code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
-      } yield consent.userId
-      grantingHumanUserId.filter(_.nonEmpty).openOr(authenticatedUserId)
+      // The resolver (Users.onBehalfOfUserIdOf) owns the consent chain; a Failure there (invariant
+      // broken) is already logged and, at this String-typed level, can only fall back to the caller.
+      code.users.Users.users.vend.onBehalfOfUserIdOf(authenticatedUserId).openOr(authenticatedUserId)
     }
   }
   def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(AuthenticatedUserIsRequired)

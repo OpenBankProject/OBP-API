@@ -4,8 +4,8 @@ import code.api.util.APIUtil.generateUUID
 import code.consent.MappedConsent
 import code.model.dataAccess.ResourceUser
 import code.setup.ServerSetup
-import code.users.Users
-import net.liftweb.common.Full
+import code.users.{AttributionPolicy, UserReference, Users}
+import net.liftweb.common.{Failure, Full}
 import org.scalatest.Tag
 
 /**
@@ -108,6 +108,129 @@ class AgentDelegationTest extends ServerSetup {
         consenter = Full(consenterHuman),
         consentCreator = Full(explicitHuman)
       ).onBehalfOfUserId shouldBe explicitHuman.userId
+    }
+  }
+
+  feature("Users.onBehalfOfUserIdOf — the resolver") {
+
+    scenario("an original user resolves to itself", AgentDelegationTag) {
+      val human = createUser()
+      Users.users.vend.onBehalfOfUserIdOf(human.userId) shouldBe Full(human.userId)
+      Users.users.vend.actsForSelf(human.userId) shouldBe true
+    }
+
+    scenario("a consent user resolves to the consent's user", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(human.userId)
+      Users.users.vend.actsForSelf(agent.userId) shouldBe false
+    }
+
+    scenario("a dangling consent id keeps the caller (fails closed)", AgentDelegationTag) {
+      val agent = createUser(createdByConsentId = Some(generateUUID()))
+      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(agent.userId)
+    }
+
+    scenario("an unknown user id keeps itself (fails closed)", AgentDelegationTag) {
+      val id = generateUUID()
+      Users.users.vend.onBehalfOfUserIdOf(id) shouldBe Full(id)
+    }
+
+    scenario("BG-style: consent with no human yet keeps the caller, and is NOT pinned in the cache", AgentDelegationTag) {
+      val consent = MappedConsent.create.saveMe()   // mUserId empty until authorisation
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(agent.userId)
+      val human = createUser()
+      consent.mUserId(human.userId).saveMe()          // authorisation binds the human
+      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(human.userId)
+    }
+
+    scenario("invariant: a consent whose user is itself a consent user is refused, not resolved", AgentDelegationTag) {
+      val human = createUser()
+      val consent1 = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent1 = createUser(createdByConsentId = Some(consent1.consentId))
+      val consent2 = MappedConsent.create.mUserId(agent1.userId).saveMe()   // names a consent user: data bug
+      val agent2 = createUser(createdByConsentId = Some(consent2.consentId))
+      Users.users.vend.onBehalfOfUserIdOf(agent2.userId) shouldBe a[Failure]
+      // and CallContext falls back to the caller rather than throwing
+      CallContext(user = Full(agent2)).onBehalfOfUserId shouldBe agent2.userId
+    }
+  }
+
+  feature("Users.attributionOf — the policy-aware entry point") {
+
+    scenario("KeepUserId stores the caller and does not consult the resolver", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val a = Users.users.vend.attributionOf(agent.userId, UserReference.ConsentEntitlementUser).openOrThrowException("expected Full")
+      a.userIdToStore shouldBe agent.userId
+      a.onBehalfOfUserId shouldBe agent.userId
+      a.isDelegated shouldBe false
+      a.consentId shouldBe None
+    }
+
+    scenario("UseOnBehalfOfUserId stores the on-behalf-of user and reports the consent", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val a = Users.users.vend.attributionOf(agent.userId, UserReference.EntitlementUser).openOrThrowException("expected Full")
+      a.userId shouldBe agent.userId
+      a.onBehalfOfUserId shouldBe human.userId
+      a.userIdToStore shouldBe human.userId
+      a.isDelegated shouldBe true
+      a.consentId shouldBe Some(consent.consentId)
+      Users.users.vend.attributedUserId(agent.userId, UserReference.EntitlementUser) shouldBe Full(human.userId)
+    }
+
+    scenario("UseOnBehalfOfUserId for an original user is a no-op with no consent", AgentDelegationTag) {
+      val human = createUser()
+      val a = Users.users.vend.attributionOf(human.userId, UserReference.AccountHolderUser).openOrThrowException("expected Full")
+      a.userIdToStore shouldBe human.userId
+      a.isDelegated shouldBe false
+      a.consentId shouldBe None
+    }
+
+    scenario("Reject is Full for an original user and Failure for a consent user", AgentDelegationTag) {
+      val human = createUser()
+      Users.users.vend.attributionOf(human.userId, UserReference.ConsentCreator).map(_.userIdToStore) shouldBe Full(human.userId)
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val rejected = Users.users.vend.attributionOf(agent.userId, UserReference.ConsentCreator)
+      rejected shouldBe a[Failure]
+      rejected.asInstanceOf[Failure].msg should include(ErrorMessages.InvalidUserId)
+    }
+
+    scenario("the policy file is complete: every reference has a policy, a class and at least one field", AgentDelegationTag) {
+      UserReference.all should not be empty
+      UserReference.all.map(_.name).distinct.size shouldBe UserReference.all.size
+      UserReference.all.foreach { r =>
+        r.fields should not be empty
+        Class.forName(r.mapperClass) // resolves, or the reference names a class that does not exist
+      }
+      UserReference.byPolicy(AttributionPolicy.Reject).map(_.name) should contain allOf ("ConsentCreator", "OAuthConsumerCreator")
+    }
+  }
+
+  feature("addEntitlement goes through the attribution policy") {
+
+    scenario("a grant targeting a consent user lands on its on-behalf-of user", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val role = "CanGetConfig"
+      val e = code.entitlement.Entitlement.entitlement.vend.addEntitlement("", agent.userId, role).openOrThrowException("expected the grant")
+      e.userId shouldBe human.userId
+    }
+
+    scenario("the consent engine's own scope copy stays on the consent user", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val role = "CanGetConfig"
+      val e = code.entitlement.Entitlement.entitlement.vend.addEntitlement("", agent.userId, role, createdByProcess = code.api.Constant.consent_user).openOrThrowException("expected the grant")
+      e.userId shouldBe agent.userId
     }
   }
 }

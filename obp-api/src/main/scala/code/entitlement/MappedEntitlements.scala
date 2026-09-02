@@ -172,31 +172,23 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
     // no caller ever passed it, and the check ignored super admins, whose
     // granting rights are virtual and have no rows to find.)
 
-    // On-behalf-of guard: a consent user (the per-consent principal a Consent-JWT
-    // authenticates as; its ResourceUser row carries CreatedByConsentId) must not
-    // accumulate durable roles — they strand when the consent dies, invisible to the
-    // human's next consent (see the simon.bank creator-grant incident, 2026-08-31).
-    // Any grant targeting one is redirected to the consent's granting human. The one
-    // legitimate writer of consent-user rows is the consent engine copying the
-    // consent's own scope, which tags itself Constant.consent_user and is exempt.
-    val targetUserId =
-      if (createdByProcess == code.api.Constant.consent_user) userId
-      else {
-        val grantingHumanUserId = for {
-          resourceUser <- code.model.dataAccess.ResourceUser.find(
-            By(code.model.dataAccess.ResourceUser.userId_, userId))
-          consentId <- Full(resourceUser.CreatedByConsentId.get)
-            .filter(id => id != null && id.nonEmpty)
-          consent <- code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
-          humanUserId <- Full(consent.userId).filter(id => id != null && id.nonEmpty)
-        } yield humanUserId
-        grantingHumanUserId match {
-          case Full(humanUserId) =>
-            logger.warn(s"addEntitlement: target user $userId is a consent user; granting role '$roleName' (bankId '$bankId', createdByProcess '$createdByProcess') to its granting human $humanUserId instead")
-            humanUserId
-          case _ => userId
-        }
-      }
+    // On-behalf-of guard: a consent user (its ResourceUser row carries CreatedByConsentId) must
+    // not accumulate durable roles — they strand when the consent dies, invisible to the
+    // on-behalf-of user's next consent (see the simon.bank creator-grant incident, 2026-08-31).
+    // The attribution policy (code.users.UserReference) decides: the consent engine copying the
+    // consent's own scope tags itself Constant.consent_user and keeps the consent user
+    // (ConsentEntitlementUser); every other grant is written to the on-behalf-of user
+    // (EntitlementUser). The resolver logs the redirect. ON_BEHALF_OF_USER_ID_PLAN.md.
+    val ref =
+      if (createdByProcess == code.api.Constant.consent_user) code.users.UserReference.ConsentEntitlementUser
+      else code.users.UserReference.EntitlementUser
+    val targetUserId = code.users.Users.users.vend.attributedUserId(userId, ref) match {
+      case Full(id) => id
+      case f: Failure => return f
+      case _ => return Failure(s"addEntitlement: could not attribute user $userId")
+    }
+    if (targetUserId != userId)
+      logger.warn(s"addEntitlement: role '$roleName' (bankId '$bankId', createdByProcess '$createdByProcess') requested for consent user $userId is granted to its on-behalf-of user $targetUserId")
 
     def addEntitlementToUser(): Box[MappedEntitlement] = {
       val entitlement = MappedEntitlement.create
