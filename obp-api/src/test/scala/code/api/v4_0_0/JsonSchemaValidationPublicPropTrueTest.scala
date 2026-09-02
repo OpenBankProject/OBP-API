@@ -2,6 +2,7 @@ package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
+import code.api.util.ApiRole
 import code.entitlement.Entitlement
 import code.setup.APIResponse
 import com.openbankproject.commons.model.ErrorMessage
@@ -67,11 +68,11 @@ class JsonSchemaValidationPublicPropTrueTest extends V400ServerSetup {
       |}
       |""".stripMargin
 
-  private def addEntitlement(role: code.api.util.ApiRole) =
+  private def addEntitlement(role: ApiRole) =
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role.toString)
 
   private def addOneValidation(schema: String, operationId: String): APIResponse = {
-    addEntitlement(code.api.util.ApiRole.canCreateJsonSchemaValidation)
+    addEntitlement(ApiRole.canCreateJsonSchemaValidation)
     val request = (v4_0_0_Request / "management" / "json-schema-validations" / operationId).POST <@ user1
     val response = makePostRequest(request, schema)
     response.code should equal(201)
@@ -88,13 +89,28 @@ class JsonSchemaValidationPublicPropTrueTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("Authenticated access (no entitlement needed) succeeds when the prop requires authentication", PropGatedPublicEndpoint, VersionOfApi) {
+    // user2 deliberately: the setup below grants roles to user1, so asserting the 403 as user1
+    // could not tell "the role is required" apart from "some role user1 already holds suffices".
+    scenario("Authenticated access without the role is rejected when the prop requires the role", PropGatedPublicEndpoint, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
 
-      When("We make an authenticated request to the public endpoint")
+      When("We make an authenticated request as a user holding no entitlement")
+      val request = (v4_0_0_Request / "endpoints" / "json-schema-validations").GET <@ user2
+      val response = makeGetRequest(request)
+      Then("We should get a 403 naming the missing role")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should include(
+        ApiRole.canGetJsonSchemaValidation.toString)
+    }
+
+    scenario("Authenticated access with the role succeeds when the prop requires the role", PropGatedPublicEndpoint, VersionOfApi) {
+      addOneValidation(jsonSchemaFooBar, mockOperationId)
+      addEntitlement(ApiRole.canGetJsonSchemaValidation)
+
+      When("We make an authenticated request as a user holding the role")
       val request = (v4_0_0_Request / "endpoints" / "json-schema-validations").GET <@ user1
       val response = makeGetRequest(request)
-      Then("We should get a 200 - roles=None on this ResourceDoc, only authentication is required")
+      Then("We should get a 200")
       response.code should equal(200)
       val validations = response.body \ "json_schema_validations"
       validations shouldBe a[JArray]
