@@ -565,8 +565,16 @@ def cmd_lift(http4s: Path) -> int:
         new_src = new_src[: paren_pos + 1] + block + new_src[k - 1 :]
         patched += 1
 
-    http4s.write_text(new_src)
-    print(f"Patched: {patched}")
+    # Only write when every registration was understood: a non-zero exit that had
+    # already rewritten the file would leave a caller that treats failure as "nothing
+    # changed" with a modified file and no rollback.
+    if unknown_signature:
+        print(f"Refusing to write {http4s.name}: {unknown_signature} registration(s) "
+              f"could not be classified (see the WARNs above). No changes made.",
+              file=sys.stderr)
+    else:
+        http4s.write_text(new_src)
+    print(f"Patched: {patched}" + (" (NOT written)" if unknown_signature else ""))
     print(f"Skipped (already up-to-date): {skipped_unchanged}")
     print(f"Skipped (no liftweb match): {skipped_missing}")
     print(f"Skipped (parse / arg-count): {skipped_short_args}")
