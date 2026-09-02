@@ -441,7 +441,19 @@ def find_pair_for_version(version_dir: Path):
     return pick(api_methods, "APIMethods"), pick(http4s, "Http4s")
 
 
-def collect_resourcedocs(path: Path):
+def collect_resourcedocs_with_stats(path: Path):
+    """Parse a file's ResourceDoc registrations.
+
+    Returns (docs, stats) where stats records what was seen but NOT stored:
+      blocks       — registrations found after comment stripping
+      unparsed     — blocks with no extractable partialFunctionName
+      duplicates   — blocks whose endpoint name was already taken (first wins)
+
+    Callers that are about to treat `docs` as a faithful copy of the file (the
+    baseline export, which then authorises deleting it) need those counts: a
+    digest over `docs` alone cannot reveal a registration that never made it
+    into `docs` in the first place.
+    """
     source = path.read_text(encoding="utf-8")
     active = re.search(r"^\s*(?:static)?[rR]esourceDocs\s*\+=\s*ResourceDoc\s*\(", source, re.M)
     commented = re.search(r"^\s*//\s*(?:static)?[rR]esourceDocs\s*\+=\s*ResourceDoc\s*\(", source, re.M)
@@ -449,15 +461,27 @@ def collect_resourcedocs(path: Path):
         source = uncomment(source)
     source = strip_inline_comments(source)
     docs = OrderedDict()
+    stats = {"blocks": 0, "unparsed": 0, "duplicates": 0, "duplicate_names": []}
     for _, _, body in find_resourcedoc_blocks(source):
+        stats["blocks"] += 1
         args = parse_resourcedoc(body)
         if "partialFunctionName" not in args:
+            stats["unparsed"] += 1
             continue
         name = endpoint_name(args["partialFunctionName"])
         # Key by endpoint name only — URL/verb get compared as fields so
         # intentional renames during migration show up as field diffs rather
         # than "missing" entries.
-        docs.setdefault(name, args)
+        if name in docs:
+            stats["duplicates"] += 1
+            stats["duplicate_names"].append(name)
+            continue
+        docs[name] = args
+    return docs, stats
+
+
+def collect_resourcedocs(path: Path):
+    docs, _ = collect_resourcedocs_with_stats(path)
     return docs
 
 

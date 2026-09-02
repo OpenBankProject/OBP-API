@@ -233,13 +233,20 @@ def cmd_write() -> int:
     BASELINE_DIR.mkdir(parents=True, exist_ok=True)
 
     exported_versions = []
+    coverage_gaps = []
     for v in versions:
         lift_path = find_lift_path(v)
         if lift_path is None:
             continue
-        docs = parity.collect_resourcedocs(lift_path)
+        docs, stats = parity.collect_resourcedocs_with_stats(lift_path)
         if not docs:
             continue
+        # Coverage, not just fidelity: the digest comparison below only proves the
+        # JSON stores what the parser produced. It cannot see a registration the
+        # parser never produced, which is exactly the loss that would matter once
+        # these .scala files are deleted. So account for every block found.
+        if stats["unparsed"] or stats["duplicates"]:
+            coverage_gaps.append((v, lift_path, stats))
         scala_digests.extend(digest_tuples(v, docs))
         baseline = build_version_baseline_json(v, lift_path, docs, git_commit)
         out_path = BASELINE_DIR / f"lift_resource_docs_{v}.json"
@@ -252,6 +259,25 @@ def cmd_write() -> int:
         reloaded = json.loads(out_path.read_text(encoding="utf-8"))
         reloaded_docs = docs_from_baseline_json(reloaded)
         json_digests.extend(digest_tuples(v, reloaded_docs))
+
+    if coverage_gaps:
+        print(
+            "\nEXPORT IS NOT COMPLETE — some ResourceDoc registrations were found in the "
+            "source but not stored, so the digest check below cannot vouch for them:",
+            file=sys.stderr,
+        )
+        for v, path, st in coverage_gaps:
+            print(
+                f"  {v} ({path.relative_to(REPO_ROOT)}): {st['blocks']} registrations found, "
+                f"{st['unparsed']} unparsed, {st['duplicates']} dropped as duplicate names"
+                + (f" ({', '.join(st['duplicate_names'])})" if st["duplicate_names"] else ""),
+                file=sys.stderr,
+            )
+        print(
+            "digest_manifest.json was NOT written. Do not delete the .scala sources.",
+            file=sys.stderr,
+        )
+        return 1
 
     map_scala = to_digest_map(scala_digests)
     map_json = to_digest_map(json_digests)
