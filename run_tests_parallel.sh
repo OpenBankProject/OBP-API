@@ -453,6 +453,10 @@ fi
 # no DB connection pool contention with them; its surefire XML lands in the same
 # obp-api/target/surefire-reports directory the audit below already scans, so no separate
 # reporting path is needed.
+# Shard wall-clock is taken before the sequential step below, so the figure printed
+# next to the per-shard timings covers the same work they do.
+SHARDS_END=$(date +%s)
+
 echo ""
 echo "Running PropGatedPublicEndpoint tests (prop=true JVM)..."
 # Port allocation failure records a failing RC instead of exiting: the four shards
@@ -474,6 +478,9 @@ else
         OBP_HOSTNAME="http://localhost:${PROP_PORT}" \
         OBP_HTTP4S_TEST_PORT="${PROP_HTTP4S_PORT}" \
         OBP_MAIL_TEST_MODE="true" \
+        OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
+        OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
+        OBP_BERLIN_GROUP_V1_3_ALIAS_PATH="0.6/v1" \
         OBP_API_INSTANCE_ID="prop_gated_${PROP_PORT}" \
         OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true" \
         OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true" \
@@ -492,12 +499,14 @@ fi
 RCS+=($PROP_RC)
 
 END=$(date +%s)
-ELAPSED=$(( (END - START) / 60 ))
-SEC=$(( (END - START) % 60 ))
+ELAPSED=$(( (SHARDS_END - START) / 60 ))
+SEC=$(( (SHARDS_END - START) % 60 ))
+TOTAL_ELAPSED=$(( (END - START) / 60 ))
+TOTAL_SEC=$(( (END - START) % 60 ))
 
 echo ""
 echo "══════════════════════════════════════"
-echo "All ${TOTAL_SHARDS} shards done in ${ELAPSED}m ${SEC}s"
+echo "All ${TOTAL_SHARDS} shards done in ${ELAPSED}m ${SEC}s (whole run ${TOTAL_ELAPSED}m ${TOTAL_SEC}s incl. the prop-gated step)"
 echo ""
 
 for (( n=1; n<=TOTAL_SHARDS; n++ )); do

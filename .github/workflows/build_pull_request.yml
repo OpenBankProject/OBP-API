@@ -466,6 +466,20 @@ jobs:
             echo "No failing tests detected in shard ${{ matrix.shard }}."
           fi
 
+          # "No failures" is not "it ran". A shard whose filter matches nothing, or
+          # whose tag override stops taking effect, executes zero tests, matches no
+          # failure pattern and reports green -- the same false green the
+          # process-resources note above guards against, from a different direction.
+          # Shard 10 is the exposed one: its suites only run while
+          # -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= holds.
+          RAN=$(grep -oE "Tests: succeeded [0-9]+" maven-build-shard${{ matrix.shard }}.log \
+                | awk '{s+=$3} END {print s+0}')
+          echo "Shard ${{ matrix.shard }} executed ${RAN} tests."
+          if [ "${RAN}" -eq 0 ]; then
+            echo "Shard ${{ matrix.shard }} ran no tests at all — treating as failure."
+            exit 1
+          fi
+
       - name: Upload Maven build log — shard ${{ matrix.shard }}
         if: always()
         uses: actions/upload-artifact@v4
