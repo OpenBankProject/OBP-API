@@ -8,6 +8,8 @@ import code.api.v2_0_0.EntitlementJSONs
 import code.api.v3_0_0.{UserJsonV300, ViewsJSON300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400, UserAgreementJson}
 import code.api.v6_0_0.{EntitlementsJsonV600, JSONFactory600, UserInfoDetailJsonV600, UserV600}
+import code.apiproductsubscription.ApiProductSubscriptionTrait
+import code.apiproductsubscriptionattribute.ApiProductSubscriptionAttributeTrait
 import code.bankconnectors.Connector
 import code.customer.CustomerX
 import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
@@ -2194,4 +2196,110 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     ),
     everything_as_expected = true
   )
+
+  // ─── API Product Subscription (v7.0.0). See API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
+
+  case class PostApiProductSubscriptionJsonV700(
+    consumer_id: String,
+    start_date: Option[Date],
+    end_date: Option[Date]
+  )
+
+  case class PutApiProductSubscriptionStatusJsonV700(
+    status: String,
+    end_date: Option[Date]
+  )
+
+  case class ApiProductSubscriptionAttributeJsonV700(
+    name: String,
+    `type`: String,
+    value: String,
+    is_active: Option[Boolean]
+  )
+
+  case class ApiProductSubscriptionAttributeResponseJsonV700(
+    api_product_subscription_id: String,
+    api_product_subscription_attribute_id: String,
+    name: String,
+    `type`: String,
+    value: String,
+    is_active: Option[Boolean]
+  )
+
+  case class ApiProductSubscriptionJsonV700(
+    api_product_subscription_id: String,
+    bank_id: String,
+    api_product_code: String,
+    consumer_id: String,
+    status: String,
+    start_date: Date,
+    end_date: Option[Date],
+    created_by_user_id: String,
+    rate_limiting_id: Option[String],
+    created_at: Date,
+    updated_at: Date,
+    attributes: Option[List[ApiProductSubscriptionAttributeResponseJsonV700]]
+  )
+
+  case class ApiProductSubscriptionsJsonV700(api_product_subscriptions: List[ApiProductSubscriptionJsonV700])
+
+  def createApiProductSubscriptionAttributeResponseJsonV700(attribute: ApiProductSubscriptionAttributeTrait): ApiProductSubscriptionAttributeResponseJsonV700 =
+    ApiProductSubscriptionAttributeResponseJsonV700(
+      api_product_subscription_id = attribute.apiProductSubscriptionId,
+      api_product_subscription_attribute_id = attribute.apiProductSubscriptionAttributeId,
+      name = attribute.name,
+      `type` = attribute.attributeType,
+      value = attribute.value,
+      is_active = attribute.isActive
+    )
+
+  def createApiProductSubscriptionJsonV700(subscription: ApiProductSubscriptionTrait, attributes: Option[List[ApiProductSubscriptionAttributeTrait]]): ApiProductSubscriptionJsonV700 =
+    ApiProductSubscriptionJsonV700(
+      api_product_subscription_id = subscription.apiProductSubscriptionId,
+      bank_id = subscription.bankId,
+      api_product_code = subscription.apiProductCode,
+      consumer_id = subscription.consumerId,
+      status = subscription.status,
+      start_date = subscription.startDate,
+      end_date = subscription.endDate,
+      created_by_user_id = subscription.createdByUserId,
+      rate_limiting_id = subscription.rateLimitingId,
+      created_at = subscription.createdAtDate,
+      updated_at = subscription.updatedAtDate,
+      attributes = attributes.map(_.map(createApiProductSubscriptionAttributeResponseJsonV700))
+    )
+
+  def createApiProductSubscriptionsJsonV700(subscriptions: List[ApiProductSubscriptionJsonV700]): ApiProductSubscriptionsJsonV700 =
+    ApiProductSubscriptionsJsonV700(subscriptions)
+
+  // Examples for the resource docs.
+  lazy val postApiProductSubscriptionJsonV700Example = PostApiProductSubscriptionJsonV700(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    start_date = Some(APIUtil.DateWithDayExampleObject),
+    end_date = None
+  )
+  lazy val putApiProductSubscriptionStatusJsonV700Example = PutApiProductSubscriptionStatusJsonV700(status = "active", end_date = None)
+  lazy val apiProductSubscriptionAttributeJsonV700Example = ApiProductSubscriptionAttributeJsonV700(
+    name = "STRIPE_SUBSCRIPTION_ID", `type` = "STRING", value = "sub_1234567890", is_active = Some(true)
+  )
+  lazy val apiProductSubscriptionAttributeResponseJsonV700Example = ApiProductSubscriptionAttributeResponseJsonV700(
+    api_product_subscription_id = "api-product-subscription-id-123",
+    api_product_subscription_attribute_id = "api-product-subscription-attribute-id-123",
+    name = "STRIPE_SUBSCRIPTION_ID", `type` = "STRING", value = "sub_1234567890", is_active = Some(true)
+  )
+  lazy val apiProductSubscriptionJsonV700Example = ApiProductSubscriptionJsonV700(
+    api_product_subscription_id = "api-product-subscription-id-123",
+    bank_id = ExampleValue.bankIdExample.value,
+    api_product_code = ExampleValue.productCodeExample.value,
+    consumer_id = ExampleValue.consumerIdExample.value,
+    status = "active",
+    start_date = APIUtil.DateWithDayExampleObject,
+    end_date = None,
+    created_by_user_id = ExampleValue.userIdExample.value,
+    rate_limiting_id = Some("rate-limiting-id-123"),
+    created_at = APIUtil.DateWithDayExampleObject,
+    updated_at = APIUtil.DateWithDayExampleObject,
+    attributes = Some(List(apiProductSubscriptionAttributeResponseJsonV700Example))
+  )
+  lazy val apiProductSubscriptionsJsonV700Example = ApiProductSubscriptionsJsonV700(List(apiProductSubscriptionJsonV700Example))
 }

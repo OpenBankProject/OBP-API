@@ -14,6 +14,8 @@ import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
 import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.apiproduct.{ApiProductTrait, MappedApiProductsProvider}
 import code.apiproductattribute.{ApiProductAttributeTrait, MappedApiProductAttributesProvider}
+import code.apiproductsubscription.{ApiProductSubscriptionEnforcer, ApiProductSubscriptionStatus, ApiProductSubscriptionTrait, MappedApiProductSubscriptionsProvider}
+import code.apiproductsubscriptionattribute.{ApiProductSubscriptionAttributeTrait, MappedApiProductSubscriptionAttributesProvider}
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
 import code.featuredapicollection.{FeaturedApiCollectionTrait, MappedFeaturedApiCollectionsProvider}
 import code.atmattribute.AtmAttribute
@@ -4145,6 +4147,116 @@ object NewStyle extends MdcLoggable{
     def deleteApiProductAttribute(apiProductAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Future(MappedApiProductAttributesProvider.deleteApiProductAttribute(apiProductAttributeId)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductAttributeError Current API_PRODUCT_ATTRIBUTE_ID($apiProductAttributeId)"), callContext)
+      }
+    }
+
+    // ─── API Product Subscriptions (see API_PRODUCT_SUBSCRIPTION_PLAN.md) ───
+
+    def createApiProductSubscription(
+      bankId: String,
+      apiProductCode: String,
+      consumerId: String,
+      status: String,
+      startDate: java.util.Date,
+      endDate: Option[java.util.Date],
+      createdByUserId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[ApiProductSubscriptionTrait] = {
+      Future(MappedApiProductSubscriptionsProvider.createApiProductSubscription(
+        bankId, apiProductCode, consumerId, status, startDate, endDate, createdByUserId
+      )) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiProductSubscriptionError), callContext)
+      }
+    }
+
+    def getApiProductSubscriptionById(apiProductSubscriptionId: String, callContext: Option[CallContext]): OBPReturnType[ApiProductSubscriptionTrait] = {
+      Future(MappedApiProductSubscriptionsProvider.getApiProductSubscriptionById(apiProductSubscriptionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiProductSubscriptionNotFound Current API_PRODUCT_SUBSCRIPTION_ID($apiProductSubscriptionId)", 404), callContext)
+      }
+    }
+
+    def getApiProductSubscriptionsByConsumerId(consumerId: String, callContext: Option[CallContext]): OBPReturnType[List[ApiProductSubscriptionTrait]] = {
+      Future(MappedApiProductSubscriptionsProvider.getApiProductSubscriptionsByConsumerId(consumerId), callContext)
+    }
+
+    def getApiProductSubscriptionsByConsumerIds(consumerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[ApiProductSubscriptionTrait]] = {
+      Future(MappedApiProductSubscriptionsProvider.getApiProductSubscriptionsByConsumerIds(consumerIds), callContext)
+    }
+
+    def getApiProductSubscriptionsByBankIdAndProductCode(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[List[ApiProductSubscriptionTrait]] = {
+      Future(MappedApiProductSubscriptionsProvider.getApiProductSubscriptionsByBankIdAndProductCode(bankId, apiProductCode), callContext)
+    }
+
+    def getNonCancelledApiProductSubscription(consumerId: String, bankId: String, apiProductCode: String, callContext: Option[CallContext]): Future[Box[ApiProductSubscriptionTrait]] = {
+      Future(MappedApiProductSubscriptionsProvider.getNonCancelledApiProductSubscription(consumerId, bankId, apiProductCode))
+    }
+
+    /**
+     * Validates the status value and the transition (ApiProductSubscriptionStatus), then moves it.
+     * Phase 3 of the plan hooks enforcement (rate limits, scopes) in here.
+     */
+    def updateApiProductSubscriptionStatus(apiProductSubscriptionId: String, newStatus: String, endDate: Option[java.util.Date], callContext: Option[CallContext]): OBPReturnType[ApiProductSubscriptionTrait] = {
+      for {
+        (current, _) <- getApiProductSubscriptionById(apiProductSubscriptionId, callContext)
+        _ <- Helper.booleanToFuture(s"$InvalidApiProductSubscriptionStatus Current value: $newStatus", cc = callContext) {
+          ApiProductSubscriptionStatus.isValid(newStatus)
+        }
+        _ <- Helper.booleanToFuture(
+          s"$InvalidApiProductSubscriptionStatusTransition From ${current.status} to $newStatus. Allowed from ${current.status}: ${ApiProductSubscriptionStatus.allowedFrom(current.status).toList.sorted.mkString(", ")}.",
+          cc = callContext) {
+          ApiProductSubscriptionStatus.canTransition(current.status, newStatus)
+        }
+        updated <- Future(MappedApiProductSubscriptionsProvider.updateApiProductSubscriptionStatus(apiProductSubscriptionId, newStatus, endDate)) map {
+          unboxFullOrFail(_, callContext, UpdateApiProductSubscriptionError)
+        }
+        // Phase 3: apply rate limits and scopes for the new status; returns the refreshed subscription.
+        enforced <- ApiProductSubscriptionEnforcer.onStatusChanged(updated)
+      } yield (enforced, callContext)
+    }
+
+    def deleteApiProductSubscription(apiProductSubscriptionId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Future(MappedApiProductSubscriptionsProvider.deleteApiProductSubscription(apiProductSubscriptionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductSubscriptionError Current API_PRODUCT_SUBSCRIPTION_ID($apiProductSubscriptionId)"), callContext)
+      }
+    }
+
+    def getApiProductSubscriptionAttributes(apiProductSubscriptionId: String, callContext: Option[CallContext]): OBPReturnType[List[ApiProductSubscriptionAttributeTrait]] = {
+      Future(MappedApiProductSubscriptionAttributesProvider.getApiProductSubscriptionAttributes(apiProductSubscriptionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiProductSubscriptionAttributeNotFound Current API_PRODUCT_SUBSCRIPTION_ID($apiProductSubscriptionId)"), callContext)
+      }
+    }
+
+    def getApiProductSubscriptionAttributeById(apiProductSubscriptionAttributeId: String, callContext: Option[CallContext]): OBPReturnType[ApiProductSubscriptionAttributeTrait] = {
+      Future(MappedApiProductSubscriptionAttributesProvider.getApiProductSubscriptionAttributeById(apiProductSubscriptionAttributeId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiProductSubscriptionAttributeNotFound Current API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID($apiProductSubscriptionAttributeId)", 404), callContext)
+      }
+    }
+
+    def createOrUpdateApiProductSubscriptionAttribute(
+      apiProductSubscriptionId: String,
+      apiProductSubscriptionAttributeId: Option[String],
+      name: String,
+      attributeType: String,
+      value: String,
+      isActive: Option[Boolean],
+      callContext: Option[CallContext]
+    ): OBPReturnType[ApiProductSubscriptionAttributeTrait] = {
+      Future(MappedApiProductSubscriptionAttributesProvider.createOrUpdateApiProductSubscriptionAttribute(
+        apiProductSubscriptionId, apiProductSubscriptionAttributeId, name, attributeType, value, isActive
+      )) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiProductSubscriptionAttributeError), callContext)
+      }
+    }
+
+    def deleteApiProductSubscriptionAttribute(apiProductSubscriptionAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Future(MappedApiProductSubscriptionAttributesProvider.deleteApiProductSubscriptionAttribute(apiProductSubscriptionAttributeId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductSubscriptionAttributeError Current API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID($apiProductSubscriptionAttributeId)"), callContext)
+      }
+    }
+
+    def deleteApiProductSubscriptionAttributes(apiProductSubscriptionId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Future(MappedApiProductSubscriptionAttributesProvider.deleteApiProductSubscriptionAttributes(apiProductSubscriptionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductSubscriptionAttributeError Current API_PRODUCT_SUBSCRIPTION_ID($apiProductSubscriptionId)"), callContext)
       }
     }
 

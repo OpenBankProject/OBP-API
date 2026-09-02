@@ -5392,6 +5392,7 @@ object SwaggerDefinitionsJSON {
   )
   lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
 
+
   lazy val productJsonV600 = ProductJsonV600(
     bank_id = bankIdExample.value,
     product_code = productCodeExample.value,

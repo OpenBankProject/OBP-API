@@ -221,9 +221,10 @@ object Glossary extends MdcLoggable  {
 				 |│  │                                                                   │ │
 				 |│  │  Logic:                                                           │ │
 				 |│  │  1. Query RateLimiting table for active records                  │ │
-				 |│  │  2. If found:                                                     │ │
-				 |│  │     • Sum positive values (> 0) for each period                  │ │
-				 |│  │     • Return -1 if no positive values (unlimited)                │ │
+				 |│  │  2. If found, per period:                                         │ │
+				 |│  │     • Ignore -1 values (unlimited rows add nothing)               │ │
+				 |│  │     • Sum the rest; a sum of 0 -> blocked (429 on every call)     │ │
+				 |│  │     • Nothing to sum (all -1) -> -1 (unlimited)                   │ │
 				 |│  │     • Extract rate_limiting_ids                                  │ │
 				 |│  │  3. If not found:                                                 │ │
 				 |│  │     • Return system defaults from props                          │ │
@@ -270,7 +271,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |1. **Rate Limit Records**: Stored in the `RateLimiting` table with date ranges (from_date, to_date)
 				 |2. **Multiple Records**: A consumer can have multiple active rate limit records that overlap
-				 |3. **Aggregation**: When multiple records are active, their limits are summed together (positive values only)
+				 |3. **Aggregation**: When multiple records are active, per period: a `0` in any record blocks the period; otherwise the positive values are summed; otherwise (all `-1`) the period is unlimited
 				 |4. **Enforcement**: On every API request, the system checks Redis counters against the aggregated limits
 				 |
 				 |### Time Periods
@@ -283,7 +284,12 @@ object Glossary extends MdcLoggable  {
 				 |- **per_week_rate_limit**: Maximum requests per week
 				 |- **per_month_rate_limit**: Maximum requests per month
 				 |
-				 |A value of `-1` means unlimited for that period.
+				 |Each value means:
+				 |- `0`: this record grants no calls for that period. Records are summed, so a `0` only blocks the Consumer when the sum over all of its records is 0 (for example when it is the Consumer's only record). A blocked period refuses every call with 429. This is how a suspended API Product Subscription stops a Consumer whose access came from that subscription alone.
+				 |- `-1`: unlimited for that period. Once a record exists, `-1` is literal: the system default for that period does not apply. `-1` records add nothing to the sum.
+				 |- a positive number: the maximum number of calls in that period. Overlapping records are summed.
+				 |
+				 |A Consumer with no records at all gets the system defaults (see below).
 				 |
 				 |### HTTP Headers
 				 |
@@ -320,7 +326,7 @@ object Glossary extends MdcLoggable  {
 				 |- `rate_limiting_per_week`
 				 |- `rate_limiting_per_month`
 				 |
-				 |Default value: `-1` (unlimited)
+				 |Default value: `-1` (unlimited). These defaults apply only to Consumers with no active records; a default of `0` would block every such Consumer.
 				 |
 				 |### Example
 				 |
@@ -329,6 +335,14 @@ object Glossary extends MdcLoggable  {
 				 |- Record 2: 5 requests/second, 50 requests/minute
 				 |
 				 |**Aggregated limits**: 15 requests/second, 150 requests/minute
+				 |
+				 |The same consumer with a third record of 0 requests/second (for example a suspended API Product Subscription) is unchanged, because the 0 adds nothing to the sum:
+				 |
+				 |**Aggregated limits**: 15 requests/second, 150 requests/minute
+				 |
+				 |A consumer whose only record is 0 requests/second:
+				 |
+				 |**Aggregated limits**: 0 requests/second (blocked, 429 on every call)
 				 |
 				 |### Configuration
 				 |
@@ -341,7 +355,7 @@ object Glossary extends MdcLoggable  {
 				 |```
 				 |user_consumer_limit_anonymous_access=1000
 				 |```
-				 |(Default: 1000 requests per hour)
+				 |(Default: 1000 requests per hour. `0` blocks all anonymous access, `-1` removes the limit.)
 				 |
 				 |### Related Concepts
 				 |
@@ -3086,6 +3100,26 @@ object Glossary extends MdcLoggable  {
 |
 |There are over 13 endpoints for controlling Collections.
 |Some of these endpoints require Entitlements to Roles and some operate on your own personal collections such as your favourites.
+|
+ """)
+
+	glossaryItems += GlossaryItem(
+		title = "API Product Subscription",
+		description = s"""An API Product Subscription records that one Consumer (the subscriber) holds one API Product for a period, with a status.
+|
+|The API Product describes the plan: which endpoints (its API Collection), how many calls (six rate limits), the monthly price, and any attributes. The Subscription is the record of who holds it. Its status is what makes the product enforceable:
+|
+|- `requested`: created, nothing granted yet.
+|- `active`: OBP-API has given the Consumer a rate limit record with the product's six limits, and a Scope for each Role required by the endpoints in the product's Collection.
+|- `past_due`: payment is overdue. A grace period; nothing changes for the Consumer.
+|- `suspended`: the subscription's rate limit record is set to `0` in every period, which blocks the Consumer's calls. Scopes are kept so reinstatement is cheap.
+|- `cancelled`: the rate limit record and the derived Scopes are removed. Terminal; a new subscription is a new record.
+|
+|Only the rate limit record and the Scopes created by the subscription are touched. Limits and Scopes granted by hand are never removed. Overlapping rate limit records are summed, so a Consumer holding two products gets both allowances.
+|
+|A developer never needs a Role to subscribe their own Consumer, read their own subscriptions or cancel them. Roles exist for bank staff (enrol a partner's Consumer, approve, suspend, reinstate) and for billing systems (move the status on payment events). Two attributes on the API Product decide the flow: `SELF_SUBSCRIBE` (may developers subscribe their own Consumers; default `true`) and `BILLING_SYSTEM` (`none` activates at once; `manual` waits for a bank admin; `stripe` or `invoice_ninja` waits for that billing system).
+|
+|OBP-API core carries no billing vocabulary: payments, invoices and refunds live in the billing system, which only ever changes the subscription status.
 |
  """)
 

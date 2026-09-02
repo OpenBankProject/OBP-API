@@ -23,6 +23,8 @@ import code.api.v2_0_0.{BasicViewJson, CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
 import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, BanksJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CacheNamespaceJsonV600, CacheNamespacesJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, DatabasePoolInfoJsonV600, FeaturesJsonV600, InMemoryCacheStatusJsonV600, JSONFactory600, RedisCacheStatusJsonV600, StoredProcedureConnectorHealthJsonV600, UserV600}
 import code.api.v6_0_0.JSONFactory600.ViewJsonV600
+import code.api.v7_0_0.JSONFactory700.{ApiProductSubscriptionAttributeJsonV700, ApiProductSubscriptionJsonV700, ApiProductSubscriptionsJsonV700, PostApiProductSubscriptionJsonV700, PutApiProductSubscriptionStatusJsonV700}
+import code.apiproductsubscription.{ApiProductSubscriptionStatus, ApiProductSubscriptionTrait}
 import code.api.cache.Redis
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
@@ -5358,6 +5360,559 @@ object Http4s700 {
       Some(List(ApiRole.canGetDynamicMessageDoc)),
       http4sPartialFunction = Some(getDynamicMessageDocProvenance)
     )
+
+
+    // ─── API Product Subscriptions (see API_PRODUCT_SUBSCRIPTION_PLAN.md) ──────────────────
+    // Rule zero: a developer never needs a role for their own consumers; ownership
+    // (Consumer.createdByUserId == caller) is checked here. Roles are checked at the PRODUCT's
+    // bank (…AtOneBank); a billing adapter serving several banks is granted the role at each.
+    // Docs for the management endpoints declare their roles for the catalog but disable auto
+    // validation, because the bank is the subscription's bank, not a BANK_ID in the path.
+    // The API Product endpoints these extend are v6.0.0; new endpoints go in v7.0.0.
+
+    private def apiProductAttributeValue(attributes: List[code.apiproductattribute.ApiProductAttributeTrait], name: String): Option[String] =
+      attributes.find(a => a.name.equalsIgnoreCase(name) && a.isActive.getOrElse(true)).map(_.value.trim.toLowerCase)
+
+    private def userOwnsConsumer(consumer: code.model.Consumer, userId: String): Boolean =
+      Option(consumer.createdByUserId.get).exists(_ == userId)
+
+    private def userOwnsSubscription(subscription: ApiProductSubscriptionTrait, userId: String): Future[Boolean] =
+      code.consumer.Consumers.consumers.vend.getConsumerByConsumerIdFuture(subscription.consumerId)
+        .map(_.exists(c => userOwnsConsumer(c, userId)))
+
+    private def subscriptionRoleCheck(bankId: String, userId: String, role: ApiRole, cc: CallContext): Future[net.liftweb.common.Box[Unit]] =
+      NewStyle.function.handleEntitlementsAndScopes(bankId, userId, role :: Nil, Some(cc))
+
+    private def subscriptionWithAttributesJson(subscription: ApiProductSubscriptionTrait, cc: CallContext): Future[ApiProductSubscriptionJsonV700] =
+      NewStyle.function.getApiProductSubscriptionAttributes(subscription.apiProductSubscriptionId, Some(cc))
+        .map { case (attributes, _) => JSONFactory700.createApiProductSubscriptionJsonV700(subscription, Some(attributes)) }
+
+    private def subscriptionsWithAttributesJson(subscriptions: List[ApiProductSubscriptionTrait], cc: CallContext): Future[ApiProductSubscriptionsJsonV700] =
+      Future.sequence(subscriptions.map(subscriptionWithAttributesJson(_, cc)))
+        .map(JSONFactory700.createApiProductSubscriptionsJsonV700)
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions (201)
+    val createApiProductSubscription: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "subscriptions" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostApiProductSubscriptionJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostApiProductSubscriptionJsonV700]
+            }
+            consumerId = Option(postJson.consumer_id).map(_.trim).getOrElse("")
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat consumer_id is required: the Consumer to subscribe, never the calling Consumer.", cc = Some(cc)) {
+              consumerId.nonEmpty
+            }
+            (product, _) <- NewStyle.function.getApiProductByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+            (attributes, _) <- NewStyle.function.getApiProductAttributesByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            selfSubscribe = !apiProductAttributeValue(attributes, "SELF_SUBSCRIBE").contains("false")
+            billingSystem = apiProductAttributeValue(attributes, "BILLING_SYSTEM").filter(_.nonEmpty).getOrElse("none")
+            // No role needed when the product is open to self-service AND the caller owns the consumer.
+            _ <- if (selfSubscribe && userOwnsConsumer(consumer, user.userId)) Future.successful(Full(()))
+                 else subscriptionRoleCheck(product.bankId, user.userId, ApiRole.canCreateApiProductSubscriptionAtOneBank, cc)
+            existing <- NewStyle.function.getNonCancelledApiProductSubscription(consumer.consumerId.get, product.bankId, product.apiProductCode, Some(cc))
+            _ <- Helper.booleanToFuture(ApiProductSubscriptionAlreadyExists, 409, Some(cc)) { existing.isEmpty }
+            (created, _) <- NewStyle.function.createApiProductSubscription(
+              product.bankId, product.apiProductCode, consumer.consumerId.get, ApiProductSubscriptionStatus.Requested,
+              postJson.start_date.getOrElse(new java.util.Date()), postJson.end_date, user.userId, Some(cc))
+            // BILLING_SYSTEM none / absent: nobody needs to approve or pay, so it is active at once.
+            (subscription, _) <- if (billingSystem == "none")
+                NewStyle.function.updateApiProductSubscriptionStatus(created.apiProductSubscriptionId, ApiProductSubscriptionStatus.Active, None, Some(cc))
+              else Future.successful((created, Some(cc)))
+          } yield JSONFactory700.createApiProductSubscriptionJsonV700(subscription, None)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createApiProductSubscription),
+      "POST",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions",
+      "Create Api Product Subscription",
+      s"""Subscribe a Consumer to an Api Product.
+        |
+        |The body names the Consumer to subscribe (`consumer_id`); it is never the calling Consumer. A developer
+        |may subscribe a Consumer they created (Consumer.created_by_user_id is the caller) without any Role, as
+        |long as the product's `SELF_SUBSCRIBE` attribute is not `false`. Otherwise one of the roles below is
+        |required at the product's bank, which is how a bank enrols a
+        |partner's Consumer itself.
+        |
+        |The subscription is created with status `requested`. If the product's `BILLING_SYSTEM` attribute is
+        |`none` or absent it becomes `active` at once; `manual` waits for a bank admin; `stripe` / `invoice_ninja`
+        |wait for that billing system to PUT the status.
+        |
+        |Refused with 409 if the Consumer already holds a non-cancelled subscription to this product.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.postApiProductSubscriptionJsonV700Example,
+      JSONFactory700.apiProductSubscriptionJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiProductNotFound, ConsumerNotFoundByConsumerId, ApiProductSubscriptionAlreadyExists, CreateApiProductSubscriptionError, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canCreateApiProductSubscriptionAtOneBank)),
+      http4sPartialFunction = Some(createApiProductSubscription)
+    ).disableAutoValidateRoles()
+
+    // Route: GET /obp/v7.0.0/my/api-product-subscriptions
+    val getMyApiProductSubscriptions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "api-product-subscriptions" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            consumers <- code.consumer.Consumers.consumers.vend.getConsumersByUserIdFuture(user.userId)
+            (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerIds(consumers.map(_.consumerId.get), Some(cc))
+            json <- subscriptionsWithAttributesJson(subscriptions, cc)
+          } yield json
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMyApiProductSubscriptions),
+      "GET",
+      "/my/api-product-subscriptions",
+      "Get My Api Product Subscriptions",
+      s"""Get the Api Product Subscriptions of every Consumer the current User created, with their attributes.
+        |
+        |No Role is required.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.apiProductSubscriptionsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      None,
+      http4sPartialFunction = Some(getMyApiProductSubscriptions)
+    )
+
+    // Route: GET /obp/v7.0.0/my/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID
+    val getMyApiProductSubscription: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "api-product-subscriptions" / apiProductSubscriptionId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            owned <- userOwnsSubscription(subscription, user.userId)
+            // 404, not 403: do not reveal that someone else's subscription exists.
+            _ <- Helper.booleanToFuture(s"$ApiProductSubscriptionNotFound Current API_PRODUCT_SUBSCRIPTION_ID($apiProductSubscriptionId)", 404, Some(cc)) { owned }
+            json <- subscriptionWithAttributesJson(subscription, cc)
+          } yield json
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMyApiProductSubscription),
+      "GET",
+      "/my/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID",
+      "Get My Api Product Subscription",
+      s"""Get one Api Product Subscription of a Consumer the current User created, with its attributes.
+        |
+        |No Role is required. A subscription of a Consumer the User did not create is reported as not found.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.apiProductSubscriptionJsonV700Example,
+      List($AuthenticatedUserIsRequired, ApiProductSubscriptionNotFound, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      None,
+      http4sPartialFunction = Some(getMyApiProductSubscription)
+    )
+
+    // Route: PUT /obp/v7.0.0/my/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status
+    val updateMyApiProductSubscriptionStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "my" / "api-product-subscriptions" / apiProductSubscriptionId / "status" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutApiProductSubscriptionStatusJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutApiProductSubscriptionStatusJsonV700]
+            }
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            owned <- userOwnsSubscription(subscription, user.userId)
+            _ <- Helper.booleanToFuture(ConsumerNotOwnedByUser, 403, Some(cc)) { owned }
+            _ <- Helper.booleanToFuture(s"$InvalidApiProductSubscriptionStatusTransition A developer may only set the status to ${ApiProductSubscriptionStatus.Cancelled}.", cc = Some(cc)) {
+              putJson.status == ApiProductSubscriptionStatus.Cancelled
+            }
+            (updated, _) <- NewStyle.function.updateApiProductSubscriptionStatus(apiProductSubscriptionId, ApiProductSubscriptionStatus.Cancelled, putJson.end_date, Some(cc))
+            json <- subscriptionWithAttributesJson(updated, cc)
+          } yield json
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateMyApiProductSubscriptionStatus),
+      "PUT",
+      "/my/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status",
+      "Cancel My Api Product Subscription",
+      s"""Cancel an Api Product Subscription of a Consumer the current User created.
+        |
+        |No Role is required. The only status a developer may set is `cancelled`; any other value is refused.
+        |`cancelled` is terminal: to subscribe again, create a new subscription.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.putApiProductSubscriptionStatusJsonV700Example,
+      JSONFactory700.apiProductSubscriptionJsonV700Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, ApiProductSubscriptionNotFound, ConsumerNotOwnedByUser, InvalidApiProductSubscriptionStatusTransition, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      None,
+      http4sPartialFunction = Some(updateMyApiProductSubscriptionStatus)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions
+    val getApiProductSubscriptionsByProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "subscriptions" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (product, _) <- NewStyle.function.getApiProductByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+            (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByBankIdAndProductCode(product.bankId, product.apiProductCode, Some(cc))
+            json <- subscriptionsWithAttributesJson(subscriptions, cc)
+          } yield json
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getApiProductSubscriptionsByProduct),
+      "GET",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions",
+      "Get Api Product Subscriptions by Product",
+      s"""Get every Api Product Subscription to this Api Product (the subscribers), with attributes.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.apiProductSubscriptionsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ApiProductNotFound, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canGetApiProductSubscriptionAtOneBank)),
+      http4sPartialFunction = Some(getApiProductSubscriptionsByProduct)
+    )
+
+    // Route: GET /obp/v7.0.0/management/consumers/CONSUMER_ID/api-product-subscriptions
+    val getConsumerApiProductSubscriptions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "api-product-subscriptions" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val role = ApiRole.canGetApiProductSubscriptionAtOneBank
+          for {
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            owner = userOwnsConsumer(consumer, user.userId)
+            (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerId(consumer.consumerId.get, Some(cc))
+            // The owner sees every subscription. Anyone else sees those at the banks where they hold the
+            // role, and is refused outright when they hold it nowhere.
+            visible <- if (owner) Future.successful(subscriptions)
+                       else Future {
+                         val consumerPk = APIUtil.getConsumerPrimaryKey(Some(cc))
+                         val allowedBanks = subscriptions.map(_.bankId).distinct
+                           .filter(bankId => APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankId, user.userId, consumerPk, role :: Nil))
+                           .toSet
+                         subscriptions.filter(s => allowedBanks.contains(s.bankId))
+                       }
+            roleSomewhere <- if (owner || visible.nonEmpty) Future.successful(true)
+                             else Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+                               .map(_.map(_.exists(_.roleName == role.toString)).getOrElse(false))
+            _ <- Helper.booleanToFuture(s"$UserHasMissingRoles$role at a bank of the Consumer's subscriptions, unless you created the Consumer.", 403, Some(cc)) {
+              roleSomewhere
+            }
+            json <- subscriptionsWithAttributesJson(visible, cc)
+          } yield json
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumerApiProductSubscriptions),
+      "GET",
+      "/management/consumers/CONSUMER_ID/api-product-subscriptions",
+      "Get Api Product Subscriptions by Consumer",
+      s"""Get every Api Product Subscription held by a Consumer, at any bank, with attributes.
+        |
+        |A Consumer is not bank-scoped. The caller who created the Consumer sees all of its subscriptions;
+        |anyone else sees the subscriptions at the banks where they hold the role, and gets 403 if they
+        |hold it at none of them.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.apiProductSubscriptionsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canGetApiProductSubscriptionAtOneBank)),
+      http4sPartialFunction = Some(getConsumerApiProductSubscriptions)
+    ).disableAutoValidateRoles()
+
+    // Route: GET /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID
+    val getApiProductSubscription: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "api-product-subscriptions" / apiProductSubscriptionId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            _ <- subscriptionRoleCheck(subscription.bankId, user.userId, ApiRole.canGetApiProductSubscriptionAtOneBank, cc)
+            json <- subscriptionWithAttributesJson(subscription, cc)
+          } yield json
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getApiProductSubscription),
+      "GET",
+      "/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID",
+      "Get Api Product Subscription",
+      s"""Get an Api Product Subscription by API_PRODUCT_SUBSCRIPTION_ID, with attributes.
+        |
+        |The role is checked at the subscription's bank.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.apiProductSubscriptionJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ApiProductSubscriptionNotFound, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canGetApiProductSubscriptionAtOneBank)),
+      http4sPartialFunction = Some(getApiProductSubscription)
+    ).disableAutoValidateRoles()
+
+    // Route: PUT /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status
+    // The one write a billing adapter makes.
+    val updateApiProductSubscriptionStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "api-product-subscriptions" / apiProductSubscriptionId / "status" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutApiProductSubscriptionStatusJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutApiProductSubscriptionStatusJsonV700]
+            }
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            _ <- subscriptionRoleCheck(subscription.bankId, user.userId, ApiRole.canUpdateApiProductSubscriptionStatusAtOneBank, cc)
+            (updated, _) <- NewStyle.function.updateApiProductSubscriptionStatus(apiProductSubscriptionId, putJson.status, putJson.end_date, Some(cc))
+            json <- subscriptionWithAttributesJson(updated, cc)
+          } yield json
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateApiProductSubscriptionStatus),
+      "PUT",
+      "/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status",
+      "Update Api Product Subscription Status",
+      s"""Move an Api Product Subscription to a new status. This is the one write a billing system makes.
+        |
+        |Allowed transitions: `requested` to `active` or `cancelled`; `active` to `past_due`, `suspended` or `cancelled`;
+        |`past_due` to `active`, `suspended` or `cancelled`; `suspended` to `active` or `cancelled`. `cancelled` is terminal.
+        |`end_date`, when given, replaces the stored end date.
+        |
+        |The role is checked at the subscription's bank.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.putApiProductSubscriptionStatusJsonV700Example,
+      JSONFactory700.apiProductSubscriptionJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiProductSubscriptionNotFound, InvalidApiProductSubscriptionStatus, InvalidApiProductSubscriptionStatusTransition, UpdateApiProductSubscriptionError, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canUpdateApiProductSubscriptionStatusAtOneBank)),
+      http4sPartialFunction = Some(updateApiProductSubscriptionStatus)
+    ).disableAutoValidateRoles()
+
+    // Route: DELETE /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID
+    val deleteApiProductSubscription: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "api-product-subscriptions" / apiProductSubscriptionId =>
+        EndpointHelpers.withUserDelete(req) { (user, cc) =>
+          for {
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            _ <- subscriptionRoleCheck(subscription.bankId, user.userId, ApiRole.canDeleteApiProductSubscriptionAtOneBank, cc)
+            // A live subscription is cancelled first so that Phase 3 enforcement releases what it granted.
+            _ <- if (subscription.status == ApiProductSubscriptionStatus.Cancelled) Future.successful(())
+                 else NewStyle.function.updateApiProductSubscriptionStatus(apiProductSubscriptionId, ApiProductSubscriptionStatus.Cancelled, None, Some(cc))
+            _ <- NewStyle.function.deleteApiProductSubscriptionAttributes(apiProductSubscriptionId, Some(cc))
+            _ <- Future(code.apiproductsubscription.MappedApiProductSubscriptionScopesProvider.deleteScopeRecords(apiProductSubscriptionId))
+            _ <- NewStyle.function.deleteApiProductSubscription(apiProductSubscriptionId, Some(cc))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteApiProductSubscription),
+      "DELETE",
+      "/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID",
+      "Delete Api Product Subscription",
+      s"""Delete an Api Product Subscription and its attributes. A live subscription is cancelled first, so anything
+        |it granted to the Consumer is released. Prefer cancelling over deleting: a cancelled subscription is history.
+        |
+        |The role is checked at the subscription's bank.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")}.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ApiProductSubscriptionNotFound, DeleteApiProductSubscriptionError, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canDeleteApiProductSubscriptionAtOneBank)),
+      http4sPartialFunction = Some(deleteApiProductSubscription)
+    ).disableAutoValidateRoles()
+
+    // Route: POST /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attribute (201)
+    val createApiProductSubscriptionAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "api-product-subscriptions" / apiProductSubscriptionId / "attribute" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            _ <- subscriptionRoleCheck(subscription.bankId, user.userId, ApiRole.canCreateApiProductSubscriptionAttributeAtOneBank, cc)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ApiProductSubscriptionAttributeJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ApiProductSubscriptionAttributeJsonV700]
+            }
+            (attribute, _) <- NewStyle.function.createOrUpdateApiProductSubscriptionAttribute(
+              subscription.apiProductSubscriptionId, None, postJson.name, postJson.`type`, postJson.value, postJson.is_active, Some(cc))
+          } yield JSONFactory700.createApiProductSubscriptionAttributeResponseJsonV700(attribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createApiProductSubscriptionAttribute),
+      "POST",
+      "/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attribute",
+      "Create Api Product Subscription Attribute",
+      s"""Create an attribute on an Api Product Subscription. Billing systems store their own identifiers here,
+        |for example `STRIPE_SUBSCRIPTION_ID`.
+        |
+        |The role is checked at the subscription's bank.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.apiProductSubscriptionAttributeJsonV700Example,
+      JSONFactory700.apiProductSubscriptionAttributeResponseJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiProductSubscriptionNotFound, CreateApiProductSubscriptionAttributeError, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canCreateApiProductSubscriptionAttributeAtOneBank)),
+      http4sPartialFunction = Some(createApiProductSubscriptionAttribute)
+    ).disableAutoValidateRoles()
+
+    // Route: PUT /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attributes/API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID
+    val updateApiProductSubscriptionAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "api-product-subscriptions" / apiProductSubscriptionId / "attributes" / attributeId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            _ <- subscriptionRoleCheck(subscription.bankId, user.userId, ApiRole.canUpdateApiProductSubscriptionAttributeAtOneBank, cc)
+            (existing, _) <- NewStyle.function.getApiProductSubscriptionAttributeById(attributeId, Some(cc))
+            _ <- Helper.booleanToFuture(s"$ApiProductSubscriptionAttributeNotFound The attribute does not belong to API_PRODUCT_SUBSCRIPTION_ID($apiProductSubscriptionId)", 404, Some(cc)) {
+              existing.apiProductSubscriptionId == subscription.apiProductSubscriptionId
+            }
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ApiProductSubscriptionAttributeJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ApiProductSubscriptionAttributeJsonV700]
+            }
+            (attribute, _) <- NewStyle.function.createOrUpdateApiProductSubscriptionAttribute(
+              subscription.apiProductSubscriptionId, Some(attributeId), putJson.name, putJson.`type`, putJson.value, putJson.is_active, Some(cc))
+          } yield JSONFactory700.createApiProductSubscriptionAttributeResponseJsonV700(attribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateApiProductSubscriptionAttribute),
+      "PUT",
+      "/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attributes/API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID",
+      "Update Api Product Subscription Attribute",
+      s"""Update an attribute of an Api Product Subscription.
+        |
+        |The role is checked at the subscription's bank.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.apiProductSubscriptionAttributeJsonV700Example,
+      JSONFactory700.apiProductSubscriptionAttributeResponseJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiProductSubscriptionNotFound, ApiProductSubscriptionAttributeNotFound, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canUpdateApiProductSubscriptionAttributeAtOneBank)),
+      http4sPartialFunction = Some(updateApiProductSubscriptionAttribute)
+    ).disableAutoValidateRoles()
+
+    // Route: GET /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attributes
+    val getApiProductSubscriptionAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "api-product-subscriptions" / apiProductSubscriptionId / "attributes" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            _ <- subscriptionRoleCheck(subscription.bankId, user.userId, ApiRole.canGetApiProductSubscriptionAtOneBank, cc)
+            (attributes, _) <- NewStyle.function.getApiProductSubscriptionAttributes(subscription.apiProductSubscriptionId, Some(cc))
+          } yield attributes.map(JSONFactory700.createApiProductSubscriptionAttributeResponseJsonV700)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getApiProductSubscriptionAttributes),
+      "GET",
+      "/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attributes",
+      "Get Api Product Subscription Attributes",
+      s"""Get the attributes of an Api Product Subscription.
+        |
+        |The role is checked at the subscription's bank.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      List(JSONFactory700.apiProductSubscriptionAttributeResponseJsonV700Example),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ApiProductSubscriptionNotFound, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canGetApiProductSubscriptionAtOneBank)),
+      http4sPartialFunction = Some(getApiProductSubscriptionAttributes)
+    ).disableAutoValidateRoles()
+
+    // Route: DELETE /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attributes/API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID
+    val deleteApiProductSubscriptionAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "api-product-subscriptions" / apiProductSubscriptionId / "attributes" / attributeId =>
+        EndpointHelpers.withUserDelete(req) { (user, cc) =>
+          for {
+            (subscription, _) <- NewStyle.function.getApiProductSubscriptionById(apiProductSubscriptionId, Some(cc))
+            _ <- subscriptionRoleCheck(subscription.bankId, user.userId, ApiRole.canDeleteApiProductSubscriptionAttributeAtOneBank, cc)
+            (existing, _) <- NewStyle.function.getApiProductSubscriptionAttributeById(attributeId, Some(cc))
+            _ <- Helper.booleanToFuture(s"$ApiProductSubscriptionAttributeNotFound The attribute does not belong to API_PRODUCT_SUBSCRIPTION_ID($apiProductSubscriptionId)", 404, Some(cc)) {
+              existing.apiProductSubscriptionId == subscription.apiProductSubscriptionId
+            }
+            _ <- NewStyle.function.deleteApiProductSubscriptionAttribute(attributeId, Some(cc))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteApiProductSubscriptionAttribute),
+      "DELETE",
+      "/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/attributes/API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID",
+      "Delete Api Product Subscription Attribute",
+      s"""Delete an attribute of an Api Product Subscription.
+        |
+        |The role is checked at the subscription's bank.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ApiProductSubscriptionNotFound, ApiProductSubscriptionAttributeNotFound, DeleteApiProductSubscriptionAttributeError, UnknownError),
+      apiTagApi :: apiTagApiProductSubscription :: Nil,
+      Some(List(ApiRole.canDeleteApiProductSubscriptionAttributeAtOneBank)),
+      http4sPartialFunction = Some(deleteApiProductSubscriptionAttribute)
+    ).disableAutoValidateRoles()
 
     // All routes combined (without middleware - for direct use).
     //

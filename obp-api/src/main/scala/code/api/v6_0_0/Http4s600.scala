@@ -6189,6 +6189,8 @@ object Http4s600 {
     }
 
 
+
+
     // ─── Phase 2: mandates bucket (10 endpoints) ──────────────────────────
 
     // Parse `yyyy-MM-dd'T'HH:mm:ss'Z'` UTC strings; v6 Lift's exact format.
@@ -14355,6 +14357,19 @@ object Http4s600 {
         s"""
         |Create Rate Limits for a Consumer
         |
+        |Each of the six limits is one of:
+        |
+        |* `0`: this record grants no calls in that period. Records are summed, so the consumer is blocked (every call refused with 429) only when the sum over all of its records for that period is 0.
+        |* `-1`: unlimited for that period, adding nothing to the sum. Once a record exists, the system default for that period no longer applies.
+        |* a positive number: the maximum number of calls in that period. Overlapping records for the consumer are summed.
+        |
+        |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
+        |
+        |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
+        |subscription's next status change and removed when the subscription is cancelled.
+        |
+        |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
+        |
         |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
@@ -14386,9 +14401,22 @@ object Http4s600 {
         |Per Second
         |Per Minute
         |Per Hour
+        |Per Day
         |Per Week
         |Per Month
         |
+        |Each of the six limits is one of:
+        |
+        |* `0`: this record grants no calls in that period. Records are summed, so the consumer is blocked (every call refused with 429) only when the sum over all of its records for that period is 0.
+        |* `-1`: unlimited for that period, adding nothing to the sum. Once a record exists, the system default for that period no longer applies.
+        |* a positive number: the maximum number of calls in that period. Overlapping records for the consumer are summed.
+        |
+        |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
+        |
+        |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
+        |subscription's next status change and removed when the subscription is cancelled.
+        |
+        |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
         |${userAuthenticationMessage(true)}
         |
@@ -14417,6 +14445,8 @@ object Http4s600 {
         s"""
         |Delete a specific Rate Limit by Rate Limiting ID
         |
+        |A record created by an API Product Subscription will be recreated on the subscription's next status change; cancel the subscription instead.
+        |
         |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
@@ -14441,6 +14471,8 @@ object Http4s600 {
         "Get Active Rate Limits (Current)",
         s"""
         |Get the active rate limits for a consumer at the current date/time. Returns the aggregated rate limits from all active records at this moment.
+        |
+        |A value of `0` means the consumer is blocked for that period, `-1` means unlimited, and a consumer with no records shows the system defaults.
         |
         |This is a convenience endpoint that uses the current date/time automatically.
         |
@@ -14470,6 +14502,8 @@ object Http4s600 {
         "Get Active Rate Limits for Hour",
         s"""
         |Get the active rate limits for a consumer for a specific hour. Returns the aggregated rate limits from all active records during that hour.
+        |
+        |A value of `0` means the consumer is blocked for that period, `-1` means unlimited, and a consumer with no records shows the system defaults.
         |
         |Rate limits are cached and queried at hour-level granularity.
         |
@@ -14597,6 +14631,20 @@ object Http4s600 {
         "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
         "Create Api Product",
         s"""Create an Api Product for the Bank.
+        |
+        |An Api Product describes a plan: which endpoints (collection_id), how many calls (the six call limits), the price (monthly_subscription_amount), tiers (parent_api_product_code) and anything else (attributes).
+        |
+        |Call limits: `-1` means unlimited for that period once a consumer subscribes (it is copied literally to the consumer's rate limit record; it does not mean "inherit the system default"). `0` means blocked. A positive number is the maximum number of calls in that period.
+        |
+        |Recognised attribute names (set with the Api Product Attribute endpoints):
+        |
+        |* `SELF_SUBSCRIBE`: `true` (default) or `false`. Whether developers may subscribe their own consumers, or only the bank may enrol them.
+        |* `BILLING_SYSTEM`: `none` (default), `manual`, `stripe` or `invoice_ninja`. Which system moves a subscription from requested to active.
+        |* `INCLUDED_CALLS_PER_MONTH`: calls included in the monthly price.
+        |* `OVERAGE_PRICE_PER_CALL`: price per call above the included calls.
+        |* `TRIAL_DAYS`: free trial length in days.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")} for how subscriptions use these.
         |
         |Authentication is Required.
         |

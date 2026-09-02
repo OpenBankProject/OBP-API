@@ -1158,12 +1158,14 @@ featured_apis=elasticSearchWarehouseV300
 # Default is now true. This property may be removed in a future version.
 # Set to false to use only system-wide defaults (not recommended)
 # use_consumer_limits=true
-# In case isn't defined default value is 60
-# user_consumer_limit_anonymous_access=100
+# Per-hour limit for anonymous calls (no consumer). Default 1000. 0 blocks all anonymous access, -1 removes the limit.
+# user_consumer_limit_anonymous_access=1000
 # For the Rate Limiting feature we use Redis cache instance
 # In case isn't defined default value is root
 # rate_limiting.exclude_endpoints=root
-## Default rate limiting for a new consumer
+## Default rate limits for a consumer that has no rate limit records at all.
+## -1 = unlimited, 0 = blocked, positive = max calls in the period.
+## Once a consumer has any record, the record's values apply instead (its -1 is a literal unlimited).
 # rate_limiting_per_second = -1
 # rate_limiting_per_minute = -1
 # rate_limiting_per_hour = -1

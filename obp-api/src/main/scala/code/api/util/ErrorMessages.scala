@@ -486,6 +486,18 @@ object ErrorMessages {
   val ApiProductAttributeNotFound = "OBP-30503: ApiProductAttribute not found. Please specify a valid value for API_PRODUCT_ATTRIBUTE_ID."
   val CreateApiProductAttributeError = "OBP-30504: Could not create ApiProductAttribute."
   val DeleteApiProductAttributeError = "OBP-30505: Could not delete ApiProductAttribute."
+  // API Product Subscription (OBP-30560 .. OBP-30570)
+  val ApiProductSubscriptionNotFound = "OBP-30560: ApiProductSubscription not found. Please specify a valid value for API_PRODUCT_SUBSCRIPTION_ID."
+  val ApiProductSubscriptionAlreadyExists = "OBP-30561: ApiProductSubscription already exists. The Consumer already holds a non-cancelled subscription to this API Product."
+  val InvalidApiProductSubscriptionStatus = "OBP-30562: Invalid ApiProductSubscription status. Allowed values are: requested, active, past_due, suspended, cancelled."
+  val InvalidApiProductSubscriptionStatusTransition = "OBP-30563: Invalid ApiProductSubscription status transition."
+  val ConsumerNotOwnedByUser = "OBP-30564: The Consumer was not created by the current User. Please specify the CONSUMER_ID of one of your own Consumers."
+  val CreateApiProductSubscriptionError = "OBP-30565: Could not create ApiProductSubscription."
+  val UpdateApiProductSubscriptionError = "OBP-30566: Could not update ApiProductSubscription."
+  val DeleteApiProductSubscriptionError = "OBP-30567: Could not delete ApiProductSubscription."
+  val ApiProductSubscriptionAttributeNotFound = "OBP-30568: ApiProductSubscriptionAttribute not found. Please specify a valid value for API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID."
+  val CreateApiProductSubscriptionAttributeError = "OBP-30569: Could not create ApiProductSubscriptionAttribute."
+  val DeleteApiProductSubscriptionAttributeError = "OBP-30570: Could not delete ApiProductSubscriptionAttribute."
 
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."
