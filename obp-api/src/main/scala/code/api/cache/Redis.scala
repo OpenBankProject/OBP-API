@@ -347,14 +347,33 @@ object Redis extends MdcLoggable {
    * each call site: entries written by another version simply stop being addressable and age out.
    *
    * This matters more on this branch than on develop, not less: the compiler moves to Scala 3
-   * here, which is exactly the axis `scalaBinary` tracks.
+   * here. `versionNumberString` alone does NOT see that move - Scala 3 compiles against the 2.13
+   * standard library, so it reports "2.13" for a Scala 3 build too, and this branch would have
+   * shared develop's namespace on exactly the upgrade the namespace exists to protect. Hence the
+   * probe: `scala.runtime.Scala3RunTime` ships in scala3-library and does not exist in
+   * scala-library 2.13, so its presence is the compiler generation, which
+   * `versionNumberString` cannot report. Both halves are kept, because the encoding depends on
+   * both the compiler that produced the classes and the library they were compiled against.
    *
    * `obp.cache.serialization.version` covers the case the Scala version does not - a dependency
    * upgrade that changes the encoding on its own, which is what chill 0.9.3 to 0.9.5 would have
    * been. Bump it then; the cost is one cold cache.
    */
+  /** True on a Scala 3 build. Deliberately a class probe rather than a version string: see
+   *  serializationNamespace. Any failure to load is read as "not Scala 3", which is the safe
+   *  direction - the 2.13 spelling is what develop already uses. */
+  private[cache] val isScala3Runtime: Boolean =
+    try {
+      Class.forName("scala.runtime.Scala3RunTime", false, getClass.getClassLoader)
+      true
+    } catch {
+      case _: Throwable => false
+    }
+
   private[cache] val serializationNamespace: String = {
-    val scalaBinary = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
+    val libraryBinary = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
+    // A 2.13 build keeps the spelling develop produces, so only the Scala 3 side moves.
+    val scalaBinary = if (isScala3Runtime) s"3-lib$libraryBinary" else libraryBinary
     val manual = APIUtil.getPropsValue("obp.cache.serialization.version", "1")
     s"obpser$manual-scala$scalaBinary"
   }

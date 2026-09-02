@@ -76,10 +76,43 @@ class CacheSerializationNamespaceTest extends AnyFlatSpec with Matchers {
     keyFor(CurrentNamespace, SampleCallerKey) shouldBe keyFor(CurrentNamespace, SampleCallerKey)
   }
 
-  "the namespace this build uses" should "name the Scala binary version it was compiled against" in {
+  "the namespace this build uses" should "separate a Scala 3 build from a Scala 2.13 one" in {
+    // The regression: `scala.util.Properties.versionNumberString` reads the STANDARD LIBRARY,
+    // and Scala 3 compiles against the 2.13 one - so it answers "2.13" on a Scala 3 build and
+    // this branch produced byte-identical keys to develop. Deploying it against a Redis warmed
+    // by the 2.13 build is exactly the collision the namespace exists to prevent, and it was
+    // the one case it could not see.
+    //
+    // The probe here is `scala.runtime.LazyVals$`, NOT the `scala.runtime.Scala3RunTime` the
+    // implementation uses: a test that repeated the production probe would agree with it however
+    // wrong both were. Both classes ship only in scala3-library.
+    val runningOnScala3 =
+      try { Class.forName("scala.runtime.LazyVals$"); true } catch { case _: Throwable => false }
+
+    val libraryBinary = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
+    val whatAScala213BuildProduces = s"obpser1-scala$libraryBinary"
+
+    if (runningOnScala3) {
+      withClue(s"this is a Scala 3 build, but its namespace <$CurrentNamespace> is the one a " +
+               s"Scala 2.13 build produces - the two would read each other's Kryo entries ") {
+        CurrentNamespace should not equal whatAScala213BuildProduces
+      }
+      CurrentNamespace should include("3")
+      keyFor(CurrentNamespace, SampleCallerKey) should not equal
+        keyFor(whatAScala213BuildProduces, SampleCallerKey)
+    } else {
+      // On a 2.13 build the spelling must stay exactly what develop writes, or moving between
+      // develop and this branch would cold-start the cache for no reason.
+      CurrentNamespace shouldBe whatAScala213BuildProduces
+    }
+  }
+
+  it should "name the Scala library version it was compiled against" in {
     // Derived, not asserted verbatim: the point is that it tracks the axis that actually moved.
+    // The library version is present on either build - on its own for a 2.13 one, and after the
+    // compiler generation for a Scala 3 one ("3-lib2.13"), since the encoding depends on both.
     val expected = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
-    CurrentNamespace should include(s"scala$expected")
+    CurrentNamespace should include(expected)
     keyFor(CurrentNamespace, "x") should include(expected)
   }
 
