@@ -92,7 +92,17 @@ def cmd_only_one_side(args, docs_key: str):
     print(json.dumps(entry, indent=2))
 
 
+VALID_FIELDS = sorted(set(parity.POSITIONAL_FIELDS) | parity.NAMED_ARG_FIELDS)
+
+
 def cmd_field_mismatch(args):
+    # Without this an unknown field yields digests over the empty string for BOTH
+    # sides — a well-formed entry that silently matches nothing, leaving the
+    # reviewer to wonder why the audit is still red.
+    if args.field not in VALID_FIELDS:
+        print(f"Unknown field '{args.field}'. Valid fields: {', '.join(VALID_FIELDS)}",
+              file=sys.stderr)
+        sys.exit(2)
     lift_docs, http_docs = get_docs(args.version)
     if args.endpoint not in lift_docs or args.endpoint not in http_docs:
         print(f"'{args.endpoint}' is not shared between Lift and http4s for {args.version} "
