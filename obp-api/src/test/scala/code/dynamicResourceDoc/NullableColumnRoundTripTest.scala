@@ -115,4 +115,54 @@ class NullableColumnRoundTripTest extends ServerSetup {
       }
     }
   }
+
+  feature("a resource doc whose bodies are longer than a legacy varchar(255)") {
+
+    // develop widens examplerequestbody, successresponsebody and errorresponsebodies with
+    // MigrationOfDynamicResourceDocBodyFieldsLength, whose own comment says the value "routinely
+    // exceeds varchar(255)". That migration reads Mapper metadata that does not exist here, so it
+    // was deleted in the develop merge - and unlike the other two deleted migrations it had no
+    // changeset written in its place, leaving the three columns at the baseline's VARCHAR(255).
+    //
+    // 255 is not a generous limit for a JSON response example: a handful of fields reaches it. The
+    // failure is at write time ("Value too long for column" on H2, "value too long for type
+    // character varying(255)" on Postgres), and the endpoints wrap the write, so a caller sees a
+    // generic error rather than a length complaint.
+    scenario("stores and reads back bodies well past 255 characters") {
+      // Shaped like a real response example rather than one long run of 'x', so the failure is
+      // the column width and not something about the content.
+      val longBody =
+        "{" + (1 to 40).map(i => s""""field_number_$i": "value_number_$i"""").mkString(", ") + "}"
+      withClue("the fixture must exceed the legacy limit or this test proves nothing ") {
+        longBody.length should be > 255
+      }
+
+      val id = code.api.util.APIUtil.generateUUID()
+      val inserted = DynamicResourceDoc.insert(
+        dynamicResourceDocId = id,
+        bankId = None,
+        partialFunctionName = s"longBodies_$uniqueSuffix",
+        requestVerb = "POST",
+        requestUrl = s"/long-bodies/$uniqueSuffix",
+        summary = "a summary",
+        description = "a description",
+        exampleRequestBody = Some(longBody),
+        successResponseBody = Some(longBody),
+        errorResponseBodies = longBody,
+        tags = "tag",
+        roles = "role",
+        methodBody = "()",
+        createdByUserId = None, methodBodyHash = None)
+
+      inserted.successResponseBody should equal(Some(longBody))
+
+      DynamicResourceDoc.findById(None, id) match {
+        case Full(found) =>
+          found.exampleRequestBody should equal(Some(longBody))
+          found.successResponseBody should equal(Some(longBody))
+          found.errorResponseBodies should equal(longBody)
+        case other => fail(s"the doc that was just inserted must be readable, got $other")
+      }
+    }
+  }
 }

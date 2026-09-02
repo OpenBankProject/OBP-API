@@ -121,7 +121,8 @@ def main():
         creates_table = "- createTable:" in body
         creates_index = "- createIndex:" in body
         adds_column = "- addColumn:" in body
-        if not (creates_table or creates_index or adds_column):
+        widens_column = "- modifyDataType:" in body
+        if not (creates_table or creates_index or adds_column or widens_column):
             problems.append(f"{cs_id}: none of createTable / createIndex / addColumn - this check "
                             f"does not know what precondition it needs; teach it, do not skip it")
             continue
@@ -145,6 +146,20 @@ def main():
             elif body.count(f"indexName: {index.group(1)}") < 2:
                 problems.append(f"{cs_id}: the precondition names an index other than "
                                 f"{index.group(1)}")
+        elif widens_column:
+            # Neither tableExists nor columnExists can express "is this column still the old
+            # type": both are true before and after. The question is the width, which lives in
+            # information_schema.columns.character_maximum_length - NULL once the type is
+            # unbounded - so a sqlCheck is the only precondition that can answer it. Require one
+            # rather than accepting the changeset unguarded: re-running modifyDataType on a
+            # database that has already been widened is what MARK_RAN exists to avoid.
+            if not re.search(r"^\s*- sqlCheck:$", body, re.M):
+                problems.append(f"{cs_id}: modifyDataType needs a sqlCheck precondition that "
+                                f"detects the OLD type (tableExists/columnExists cannot - the "
+                                f"column is there either way)")
+            elif "information_schema" not in body:
+                problems.append(f"{cs_id}: the sqlCheck does not read information_schema, so it "
+                                f"cannot be testing the column's current type")
         elif adds_column:
             # A column cannot be checked with tableExists - the table is there either way. The
             # precondition has to name one of the columns the changeset adds, so a database that
