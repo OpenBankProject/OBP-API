@@ -595,7 +595,7 @@ def main():
     if not versions:
         versions = sorted(
             d.name for d in API_ROOT.iterdir()
-            if d.is_dir() and re.match(r"^v\d+_\d+_\d+$", d.name)
+            if d.is_dir() and VERSION_RE.match(d.name)
         )
 
     total_endpoints = 0
@@ -631,7 +631,12 @@ def main():
             if p.get("version") != v:
                 continue
             lift_name, http4s_name = p.get("lift_name"), p.get("http4s_name")
-            if lift_name in lift_docs and http4s_name in http_docs:
+            if lift_name in lift_docs and http4s_name in lift_docs:
+                # Remapping would overwrite a real Lift entry and drop it from the
+                # comparison entirely, so any drift inside it would pass unseen.
+                print(f"  ✗ CONFLICTING rename pair {lift_name} -> {http4s_name} ({v}): "
+                      f"both names exist on the Lift side; refusing to remap", file=sys.stderr)
+            elif lift_name in lift_docs and http4s_name in http_docs:
                 lift_entry = lift_docs[lift_name]
                 http_entry = http_docs[http4s_name]
                 lift_id = identity_digest(lift_entry.get("requestVerb", ""), lift_entry.get("requestUrl", ""))
