@@ -8,10 +8,11 @@ import org.scalatest.matchers.should.Matchers
 /**
  * Turning Liquibase on against a database that already has its tables must not fail.
  *
- * This is the whole upgrade path, and it is the same shape as the one Flyway needed: Schemifier
- * creates nothing any more - ToSchemify.models is Nil - so an existing deployment reaching this
- * build has a schema built by something that left no record of itself, whether that was Schemifier
- * or the Flyway scripts. Liquibase's own record is DATABASECHANGELOG, and on such a database it is
+ * This is the whole upgrade path, and it is the same shape as the one Flyway needed: Schemifier is
+ * not called anywhere in obp-api any more - the whole net.liftweb.mapper surface was removed once
+ * the last Mapper entity moved to Doobie - so an existing deployment reaching this build has a
+ * schema built by something that left no record of itself, whether that was Schemifier or the
+ * Flyway scripts. Liquibase's own record is DATABASECHANGELOG, and on such a database it is
  * absent, so a plain `update` would run every createTable in the baseline against tables that are
  * already there and fail on the first one.
  *
@@ -223,8 +224,9 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
       // de-duplications did not cover these two: Boot called
       // Migration.database.deduplicateBeforeUniqueIndexSchemify() for them instead, on the stated
       // grounds that it had to happen before schemifyAll() issued the CREATE UNIQUE INDEX. Neither
-      // half of that holds any more - ToSchemify.models is Nil, so schemifyAll() issues nothing,
-      // and the index comes from Liquibase, which Boot runs FOURTEEN LINES EARLIER. So the
+      // half of that holds any more - schemifyAll() itself is gone (renamed createDefaultChatRoom,
+      // its Schemifier.schemify call removed along with the rest of obp-api's net.liftweb.mapper
+      // surface), and the index comes from Liquibase, which Boot runs FOURTEEN LINES EARLIER. So the
       // de-duplication ran after the index it was there to make creatable.
       //
       // It also named the wrong table: `mapperaccountholder`, where the table is

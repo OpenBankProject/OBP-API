@@ -1186,9 +1186,8 @@ featured_apis=elasticSearchWarehouseV300
 # -------------------------------------------------
 
 # -- Mapper rules -------------------------------
-# Define mapper rules
-# In case isn't defined default value is "false"
-# mapper_rules.create_foreign_keys=false
+# Retired: Schemifier (which read this) is no longer called anywhere in obp-api - see
+# release_notes.md, 03/09/2026. Setting this now has no effect.
 # -----------------------------------------------
 
 # -- Akka connector --------------------------------------------

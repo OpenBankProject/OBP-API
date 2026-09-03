@@ -9,16 +9,15 @@ import doobie.implicits._
 /**
  * The atm table must be empty at the start of every test.
  *
- * Right now that happens for free: MappedAtm is still in Boot.ToSchemify.models, and every reset
- * path loops that list calling bulkDelete_!!. The moment the entity leaves ToSchemify - the next
- * step of this table's migration - the loop stops clearing atm rows and nothing else does, unless
- * an explicit Doobie DELETE is added to all four reset paths (ServerSetup,
- * TestConnectorSetupWithStandardPermissions, LocalMappedConnectorTestSetup, and
- * SandboxDataLoadingTest's own beforeEach).
+ * That happens via an explicit `DELETE FROM mappedatm` in each of the four reset paths
+ * (ServerSetup, TestConnectorSetupWithStandardPermissions, LocalMappedConnectorTestSetup, and
+ * SandboxDataLoadingTest's own beforeEach) - MappedAtm moved off Lift Mapper to Doobie a while
+ * back, and ToSchemify.models (which used to clear it for free, along with every other entity, by
+ * looping the list calling bulkDelete_!!) has been removed entirely since.
  *
- * A leak there does not fail here first. It fails somewhere far away, as a count that is one too
- * high in a suite that never mentions ATMs, hours of bisecting later. This test exists to make the
- * failure land on the change that caused it.
+ * A leak in any one of the four does not fail here first. It fails somewhere far away, as a count
+ * that is one too high in a suite that never mentions ATMs, hours of bisecting later. This test
+ * exists to make the failure land on the change that caused it.
  *
  * It is deliberately written against the raw table rather than the provider: the point is whether
  * the ROWS are gone, not whether a provider method filters them.

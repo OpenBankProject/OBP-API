@@ -63,8 +63,12 @@
       <artifactId>logback-classic</artifactId>
       <version>1.5.18</version>
     </dependency>
-    <!-- No Scala 3 build exists (see docs/scala3-lift-mapper-blocker.md) - pinned to the 2.13
-         line explicitly, both artifactId suffix and version, since the root pom's
+    <!-- obp-api itself has had zero references to net.liftweb.mapper since this migration removed
+         the last of them (docs/scala3-lift-mapper-blocker.md records why that package cannot be
+         ported to Scala 3 - a moot point now, since nothing here uses it). What is still pinned
+         to _2.13 is the ARTIFACT: lift-persistence bundles common+db+mapper+proto+util as one jar,
+         and no Scala 3 build of it exists because mapper cannot compile under Scala 3. Both the
+         artifactId suffix and the version are pinned explicitly here since the root pom's
          dependencyManagement entry for this coordinate is keyed to ${scala.version} (= 3 here)
          and would otherwise not match this _2.13 artifactId at all. -->
     <dependency>

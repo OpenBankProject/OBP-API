@@ -15,8 +15,9 @@ import org.scalatest.matchers.should.Matchers
  * pinned here.
  *
  * 1. **It must be on by default, because nothing else creates a table.**
- *    Schemifier creates nothing (ToSchemify.models is Nil) and Flyway is gone, so "off" does not
- *    mean "something else handles it" - it means the database has no tables. The default is the
+ *    Schemifier is not called anywhere in obp-api any more - the whole net.liftweb.mapper surface
+ *    was removed once the last Mapper entity moved to Doobie - and Flyway is gone, so "off" does
+ *    not mean "something else handles it" - it means the database has no tables. The default is the
  *    CI configuration too: the workflows write their props from scratch and mention no database
  *    prop at all. That is not a hypothetical - when `flyway.enabled` defaulted to false with
  *    Schemifier already empty, every CI shard died on the first table it touched while local runs
@@ -96,11 +97,10 @@ class LiquibaseSchemaSetupTest extends AnyFlatSpec with Matchers {
   }
 
   "the liquibase.enabled default" should "be on, since nothing else creates the schema" in {
-    // Held against ToSchemify.models: while that list is empty, nothing but Liquibase creates a
-    // table, so a default of false means a deployment silently gets no schema at all.
-    withClue("nothing else creates a table while ToSchemify.models is empty: ") {
-      bootstrap.liftweb.ToSchemify.models shouldBe empty
-    }
+    // Used to hold this against ToSchemify.models being empty. That field is gone now - removed
+    // along with the rest of obp-api's net.liftweb.mapper surface - rather than merely empty, so
+    // the invariant this protects (nothing else creates a table) is enforced by the compiler:
+    // there is no Schemifier.schemify call left anywhere in obp-api to accidentally un-empty it.
     LiquibaseSchemaSetup.enabledByDefault should equal(true)
   }
 }

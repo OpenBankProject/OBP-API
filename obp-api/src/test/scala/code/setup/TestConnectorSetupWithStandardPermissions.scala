@@ -1,6 +1,5 @@
 package code.setup
 
-import bootstrap.liftweb.ToSchemify
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.util.APIUtil.isValidCustomViewName

@@ -61,7 +61,6 @@ import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
 import org.json4s.Extraction
-import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 // SiteMap imports removed - API-only mode, no portal pages
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
@@ -161,17 +160,6 @@ class Boot extends MdcLoggable {
     DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier,
       new code.api.util.http4s.RequestAwareConnectionManager(APIUtil.vendor))
 
-    /**
-     * Function that determines if foreign key constraints are
-     * created by Schemifier for the specified connection.
-     *
-     * Note: The chosen driver must also support foreign keys for
-     * creation to happen
-     *
-     * In case of PostgreSQL it works
-     */
-    MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
-
     // Liquibase owns the schema outright - Schemifier creates nothing, ToSchemify.models is Nil -
     // and has to run here, first, because everything below assumes the tables exist. The dedup
     // immediately after reads them, and executeScripts decides "new database or existing one" from
@@ -180,11 +168,12 @@ class Boot extends MdcLoggable {
     code.api.util.liquibase.LiquibaseSchemaSetup.runIfEnabled()
 
     // The natural-key de-duplication that used to sit here is in the changelog now
-    // (db.changelog-dedup.yaml, dedup-mappedentitlement / dedup-mapperaccountholders). It was here
-    // to run before schemifyAll() issued their CREATE UNIQUE INDEX; schemifyAll() issues nothing
-    // any more - ToSchemify.models is Nil - and the index comes from the Liquibase call above, so
-    // this position was already after the thing it existed to precede.
-    schemifyAll()
+    // (db.changelog-dedup.yaml, dedup-mappedentitlement / dedup-mapperaccountholders). It ran
+    // before Schemifier issued its CREATE UNIQUE INDEX statements; Schemifier is gone (obp-api
+    // has had zero live Mapper entities for a while, so it had nothing left to do), and the
+    // index comes from the Liquibase call above, so this position was already after the thing
+    // it existed to precede.
+    createDefaultChatRoom()
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
@@ -536,8 +525,10 @@ class Boot extends MdcLoggable {
     // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
   }
 
-  def schemifyAll() = {
-    Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
+  // Used to also run Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*) here -
+  // a no-op since ToSchemify.models has been Nil since the last Mapper entity moved to Doobie.
+  // Liquibase (see LiquibaseSchemaSetup.runIfEnabled above) is what actually creates the schema.
+  def createDefaultChatRoom() = {
     // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
   }
@@ -826,10 +817,6 @@ class Boot extends MdcLoggable {
 }
 
 object ToSchemify extends MdcLoggable {
-  // Empty: every table is created from the Liquibase changelog now, none by Schemifier. Kept because the
-  // test reset paths still iterate it, and because a future Mapper entity would go here.
-  val models: List[MetaMapper[_]] = Nil
-
   // start grpc server
   // start grpc server (optional)
   val grpcServerOpt: Option[ObpGrpcServer] =

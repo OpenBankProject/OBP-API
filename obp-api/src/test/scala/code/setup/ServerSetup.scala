@@ -29,7 +29,6 @@ package code.setup
 
 import org.json4s._
 import _root_.org.json4s.JsonAST.JObject
-import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, CustomJsonFormats}

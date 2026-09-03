@@ -1,7 +1,6 @@
 package code.bankconnectors.rabbitmq.Adapter
 
 import org.json4s._
-import bootstrap.liftweb.ToSchemify
 import code.api.util.APIUtil
 import code.bankconnectors.rabbitmq.RabbitMQUtils
 import code.bankconnectors.rabbitmq.RabbitMQUtils._
@@ -14,7 +13,6 @@ import com.rabbitmq.client._
 import net.liftweb.db.DB
 import com.openbankproject.commons.util.json
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.Schemifier
 
 import java.util.Date
 import scala.concurrent.Future
@@ -3319,7 +3317,6 @@ object MockedRabbitMqAdapter extends App with MdcLoggable{
   private val RPC_QUEUE_NAME = "obp_rpc_queue"
   
   DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, APIUtil.vendor)
-  Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
   
   
   var connection: Connection = null

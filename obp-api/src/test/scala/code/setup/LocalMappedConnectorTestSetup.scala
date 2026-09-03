@@ -1,6 +1,5 @@
 package code.setup
 
-import bootstrap.liftweb.ToSchemify
 import code.api.JedisMethod
 import code.api.cache.Redis
 import code.api.util.APIUtil

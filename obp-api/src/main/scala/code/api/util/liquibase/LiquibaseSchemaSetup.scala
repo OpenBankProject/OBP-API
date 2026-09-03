@@ -20,15 +20,15 @@ import liquibase.resource.ClassLoaderResourceAccessor
  * data source does. Liquibase describes each change once and generates the dialect per vendor, so
  * those three become configurations that work rather than folders nobody filled in.
  *
- * `liquibase.enabled` defaults to TRUE, because nothing else creates a table: Schemifier creates
- * nothing (ToSchemify.models is Nil) and Flyway is gone. "Off" therefore does not mean "something
- * else handles it", it means the database has no tables - set it to false only to take schema
- * management out of the application entirely and run the migrations yourself. The default is also
- * the CI configuration, since the workflows write their props from scratch and mention no database
- * prop at all; that is how `flyway.enabled` defaulting to false, with Schemifier already empty, put
- * every CI shard on a database with no tables while local runs stayed green off a hand-edited props
- * file. LiquibaseSchemaSetupTest holds the default against ToSchemify.models so the two cannot
- * drift apart again.
+ * `liquibase.enabled` defaults to TRUE, because nothing else creates a table: Schemifier is not
+ * called anywhere in obp-api any more - the whole net.liftweb.mapper surface, ToSchemify.models
+ * included, was removed once the last Mapper entity moved to Doobie - and Flyway is gone too.
+ * "Off" therefore does not mean "something else handles it", it means the database has no tables -
+ * set it to false only to take schema management out of the application entirely and run the
+ * migrations yourself. The default is also the CI configuration, since the workflows write their
+ * props from scratch and mention no database prop at all; that is how `flyway.enabled` defaulting
+ * to false, with Schemifier already empty, put every CI shard on a database with no tables while
+ * local runs stayed green off a hand-edited props file.
  */
 object LiquibaseSchemaSetup extends MdcLoggable {
 
@@ -45,9 +45,9 @@ object LiquibaseSchemaSetup extends MdcLoggable {
   /**
    * Whether Liquibase runs when `liquibase.enabled` is absent from the props.
    *
-   * Named rather than inlined so a test can hold it against ToSchemify.models: while that list is
-   * empty nothing but Liquibase creates a table, so a default of false means a deployment silently
-   * gets no schema.
+   * Named rather than inlined so LiquibaseSchemaSetupTest can assert on it directly: nothing but
+   * Liquibase creates a table any more, so a default of false means a deployment silently gets no
+   * schema.
    */
   val enabledByDefault: Boolean = true
 

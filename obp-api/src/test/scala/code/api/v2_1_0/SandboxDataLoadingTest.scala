@@ -30,7 +30,6 @@ import org.json4s._
 import java.util.Date
 
 import code.api.Constant._
-import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.Constant._
 import code.api.util.APIUtil.OAuth._
