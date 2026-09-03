@@ -1693,6 +1693,23 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     regex: String
   )
 
+  /** The calling Consumer's identity and nothing else: no description, no limits, no counters, no key. */
+  case class CurrentConsumerIdentityJsonV700(
+    consumer_id: String,
+    consumer_name: String
+  )
+
+  def createCurrentConsumerIdentityJsonV700(consumer: code.model.Consumer): CurrentConsumerIdentityJsonV700 =
+    CurrentConsumerIdentityJsonV700(
+      consumer_id = consumer.consumerId.get,
+      consumer_name = Option(consumer.name.get).getOrElse("")
+    )
+
+  lazy val currentConsumerIdentityJsonV700Example = CurrentConsumerIdentityJsonV700(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    consumer_name = "OBP Portal"
+  )
+
   case class PasswordPolicyJsonV700(
     description: String,
     min_length: Int,

@@ -730,6 +730,50 @@ object Http4s700 {
       http4sPartialFunction = Some(getConsentsConfig)
     )
 
+    // Route: GET /obp/v7.0.0/consumers/current/identity
+    // Answers "which Consumer am I?" for whoever is calling: a logged-in User (via their Consumer) or an
+    // Application on its own (client_credentials or a Consumer-Key). No Role: a caller may always learn
+    // its own identity. Unlike GET /obp/v6.0.0/consumers/current it carries no rate limits or call counters.
+    val getCurrentConsumerIdentity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consumers" / "current" / "identity" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            consumer <- Future(cc.consumer match {
+              case Full(c) => Full(c)
+              case _ => net.liftweb.common.Empty
+            }).map(unboxFullOrFail(_, Some(cc), ApplicationNotIdentified, 401))
+          } yield JSONFactory700.createCurrentConsumerIdentityJsonV700(consumer)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getCurrentConsumerIdentity),
+      "GET",
+      "/consumers/current/identity",
+      "Get Current Consumer Identity",
+      s"""Returns the identity of the Consumer making this call: `consumer_id` and `consumer_name`.
+        |
+        |Nothing else is returned: no description, no key, no rate limits, no call counters. For those, see Get Current Consumer (v6.0.0),
+        |which requires a Role.
+        |
+        |No Role is required. The caller must be identifiable as a Consumer, either through a logged-in User (whose
+        |Consumer this is) or as an Application on its own (OAuth2 client credentials, or a Consumer Key).
+        |A call with no credentials gets ${ApplicationNotIdentified}
+        |
+        |Use it from a service (for example the Portal or the API Manager) to show which Consumer it is configured
+        |with, or to check that its client id matches a registered Consumer.
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.currentConsumerIdentityJsonV700Example,
+      List(ApplicationNotIdentified, UnknownError),
+      apiTagConsumer :: apiTagApi :: Nil,
+      None,
+      authMode = UserOrApplication,
+      http4sPartialFunction = Some(getCurrentConsumerIdentity)
+    )
+
     // Route: GET /obp/v7.0.0/public/password-config
     // Anonymous: clients need the policy before they hold credentials, to validate
     // a proposed password locally during signup or password reset. The /public
