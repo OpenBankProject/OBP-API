@@ -181,7 +181,14 @@ if [ "$RUN_BACKGROUND" = true ]; then
     # via `out=$(./flushall_build_and_run.sh --background ...)` never sees EOF
     # — the substitution hangs forever, since the server (and thus the tee
     # process backing the substitution) never exits on its own.
-    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > "$RUNTIME_LOG" 2>&1 &
+    env \
+      OBP_CONNECTOR="${OBP_CONNECTOR:-star}" \
+      OBP_HOSTNAME="${OBP_HOSTNAME:-http://localhost:8080}" \
+      OBP_STARCONNECTOR_SUPPORTED_TYPES="${OBP_STARCONNECTOR_SUPPORTED_TYPES:-mapped,internal,cardano_vJun2025}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADERS="${OBP_BERLIN_GROUP_MANDATORY_HEADERS:-}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT="${OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT:-}" \
+      OBP_API_INSTANCE_ID="${OBP_API_INSTANCE_ID:-local}" \
+      nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > "$RUNTIME_LOG" 2>&1 &
     SERVER_PID=$!
     # Report the port the server will actually bind (dev.port in props), so callers
     # that capture this script's output (e.g. smoke_test.sh) can parse it out.
@@ -199,5 +206,12 @@ else
     echo "Press Ctrl+C to stop the server"
     echo "Runtime log also written to: $RUNTIME_LOG"
     echo ""
-    java $JAVA_OPTS -jar obp-api/target/obp-api.jar 2>&1 | tee "$RUNTIME_LOG"
+    env \
+      OBP_CONNECTOR="${OBP_CONNECTOR:-star}" \
+      OBP_HOSTNAME="${OBP_HOSTNAME:-http://localhost:8080}" \
+      OBP_STARCONNECTOR_SUPPORTED_TYPES="${OBP_STARCONNECTOR_SUPPORTED_TYPES:-mapped,internal,cardano_vJun2025}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADERS="${OBP_BERLIN_GROUP_MANDATORY_HEADERS:-}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT="${OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT:-}" \
+      OBP_API_INSTANCE_ID="${OBP_API_INSTANCE_ID:-local}" \
+      java $JAVA_OPTS -jar obp-api/target/obp-api.jar 2>&1 | tee "$RUNTIME_LOG"
 fi

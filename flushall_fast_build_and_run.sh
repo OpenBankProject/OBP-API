@@ -371,7 +371,14 @@ JAVA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED \
 
 if [ "$RUN_BACKGROUND" = true ]; then
     # Run in background with output to log file
-    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > http4s-server.log 2>&1 &
+    env \
+      OBP_CONNECTOR="${OBP_CONNECTOR:-star}" \
+      OBP_HOSTNAME="${OBP_HOSTNAME:-http://localhost:8080}" \
+      OBP_STARCONNECTOR_SUPPORTED_TYPES="${OBP_STARCONNECTOR_SUPPORTED_TYPES:-mapped,internal,cardano_vJun2025}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADERS="${OBP_BERLIN_GROUP_MANDATORY_HEADERS:-}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT="${OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT:-}" \
+      OBP_API_INSTANCE_ID="${OBP_API_INSTANCE_ID:-local}" \
+      nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > http4s-server.log 2>&1 &
     SERVER_PID=$!
     # Report the port the server will actually bind (dev.port in props), so callers
     # that capture this script's output (e.g. smoke_test.sh) can parse it out.
@@ -387,7 +394,14 @@ else
     # Run in foreground (Ctrl+C to stop)
     echo "Press Ctrl+C to stop the server"
     echo ""
-    java $JAVA_OPTS -jar obp-api/target/obp-api.jar
+    env \
+      OBP_CONNECTOR="${OBP_CONNECTOR:-star}" \
+      OBP_HOSTNAME="${OBP_HOSTNAME:-http://localhost:8080}" \
+      OBP_STARCONNECTOR_SUPPORTED_TYPES="${OBP_STARCONNECTOR_SUPPORTED_TYPES:-mapped,internal,cardano_vJun2025}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADERS="${OBP_BERLIN_GROUP_MANDATORY_HEADERS:-}" \
+      OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT="${OBP_BERLIN_GROUP_MANDATORY_HEADER_CONSENT:-}" \
+      OBP_API_INSTANCE_ID="${OBP_API_INSTANCE_ID:-local}" \
+      java $JAVA_OPTS -jar obp-api/target/obp-api.jar
 fi
 
 ################################################################################

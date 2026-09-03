@@ -20,7 +20,7 @@
     <!-- v1.0.5 is the first tag published for both Scala versions. Up to v1.0.4 JitPack ran its
          default `sbt clean publishM2`, which publishes only the default Scala version, so
          lift-persistence_2.13 did not exist however the tag was numbered. -->
-    <lift.version>v1.0.5</lift.version>
+    <lift.version>3.5.0-lift-persistence-dev-20260903</lift.version>
     <http4s.version>0.23.30</http4s.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -178,7 +178,7 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.github.OpenBankProject.lift-persistence</groupId>
+        <groupId>net.liftweb</groupId>
         <artifactId>lift-persistence_${scala.version}</artifactId>
         <version>${lift.version}</version>
       </dependency>

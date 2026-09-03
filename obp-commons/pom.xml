@@ -15,7 +15,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.OpenBankProject.lift-persistence</groupId>
+            <groupId>net.liftweb</groupId>
             <artifactId>lift-persistence_${scala.version}</artifactId>
         </dependency>
         <dependency>
