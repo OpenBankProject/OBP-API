@@ -303,7 +303,10 @@ case class UserJsonV600(
     username: String,
     entitlements: EntitlementsJsonV600,
     views: Option[ViewsJSON300],
-    on_behalf_of: Option[UserJsonV300]
+    on_behalf_of: Option[UserJsonV300],
+    // The `my_resources` block of the Consent in play (the on-behalf-of User's own resources the
+    // caller may act on); null without an OBP Consent.
+    my_resources: Option[code.api.v5_1_0.PostConsentMyResourcesJson]
 )
 
 case class UserV600(
@@ -1450,7 +1453,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createUserInfoJSON(
       current_user: UserV600,
-      onBehalfOfUser: Option[UserV600]
+      onBehalfOfUser: Option[UserV600],
+      consentMyResources: Option[code.api.v5_1_0.PostConsentMyResourcesJson] = None
   ): UserJsonV600 = {
     UserJsonV600(
       user_id = current_user.user.userId,
@@ -1504,7 +1508,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
             )
           )
         )
-      }
+      },
+      my_resources = consentMyResources
     )
   }
 

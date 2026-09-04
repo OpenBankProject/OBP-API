@@ -214,7 +214,7 @@ object Http4s600 {
                 val perms = Views.views.vend.getPermissionForUser(u).toOption
                 Some(UserV600(u, ents, perms))
               } else None
-            JSONFactory600.createUserInfoJSON(currentUser, onBehalfOfUser)
+            JSONFactory600.createUserInfoJSON(currentUser, onBehalfOfUser, cc.consentMyResources.map(code.api.util.ConsentMyResources.toJson))
           }
         }
     }
@@ -6503,7 +6503,16 @@ object Http4s600 {
         "GET",
         "/users/current",
         "Get User (Current)",
-        s"""Get the logged in user
+        // Description deliberately extends the Lift v6 text (documentation of behaviour that
+        // already exists; the parity audit will flag this field).
+        s"""Get the logged in user.
+           |
+           |`entitlements.list` is every Role the User can rely on for a direct call, in two kinds:
+           |
+           |* stored Entitlements: `entitlement_id` set, `bank_id` set for bank-level Roles, `created_by_process` says how the row came to exist (`manual`, `create_just_in_time_entitlements`, `consent_user`, ...).
+           |* virtual Entitlements: `entitlement_id` empty, `bank_id` empty, `created_by_process` names the props entry that grants them: `super_admin_user_ids` or `oidc_operator_user_ids`. On this instance super admins hold ${APIUtil.superAdminVirtualRoles.mkString(", ")} and OIDC operators hold ${APIUtil.oidcOperatorVirtualRoles.mkString(", ")}. A virtual Entitlement is not a row, so it cannot be deleted, and it cannot be delegated: a Consent may only carry stored Entitlements of its creator, so a super admin who wants an agent to hold a Role must first grant it to themselves (Add Entitlement, targeting their own USER_ID), then create the Consent.
+           |
+           |`on_behalf_of` is null unless the call is made with a Consent. Then `user_id` is the consent user and `on_behalf_of` is the User who granted the Consent, the owner of anything durable the call creates.
            |
            |${userAuthenticationMessage(true)}
         """.stripMargin,

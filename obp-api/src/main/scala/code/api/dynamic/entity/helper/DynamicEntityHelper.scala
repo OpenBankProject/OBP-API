@@ -3,7 +3,7 @@ package code.api.dynamic.entity.helper
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, userAuthenticationMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired, ConsentMyResourcesMissing}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
@@ -432,8 +432,11 @@ object DynamicEntityHelper {
 
     if(hasPersonalEntity){ //only hasPersonalEntity == true, then create the myEndpoints
       val personalRequiresRole = dynamicEntityInfo.personalRequiresRole
-      val myErrorMessages = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError) else List(AuthenticatedUserIsRequired, UnknownError)
-      val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError)
+      val myErrorMessages = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, ConsentMyResourcesMissing, UnknownError) else List(AuthenticatedUserIsRequired, ConsentMyResourcesMissing, UnknownError)
+      val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, ConsentMyResourcesMissing, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, ConsentMyResourcesMissing, InvalidJsonFormat, UnknownError)
+      val myConsentUserNote =
+        "With a Consent: the consent user may use this endpoint only if the Consent lists this entity in `my_resources.personal_dynamic_entities` with the needed action (`read` for GET, `write` otherwise); rows written with a Consent belong to the User who granted it." +
+        (if (personalRequiresRole) " The role is required in addition." else "")
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
         implementedInApiVersion,
@@ -449,6 +452,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
            |""".stripMargin,
@@ -474,6 +479,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getSingleExample,
@@ -498,6 +505,8 @@ object DynamicEntityHelper {
            |
            |${userAuthenticationMessage(true)}
            |
+           |$myConsentUserNote
+           |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
         dynamicEntityInfo.getSingleExample,
@@ -521,6 +530,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
@@ -549,6 +560,8 @@ object DynamicEntityHelper {
            |
            |${userAuthenticationMessage(true)}
            |
+           |$myConsentUserNote
+           |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
@@ -569,6 +582,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,

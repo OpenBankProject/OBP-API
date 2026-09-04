@@ -502,11 +502,17 @@ object Http4s700 {
             _ <- Helper.booleanToFuture(
               failMsg = if (role.requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
               cc = Some(cc))(role.requiresBankId == body.bank_id.nonEmpty)
+            // The granting role is scoped to the body's bank_id, which the middleware cannot see
+            // (no BANK_ID in the URL): the doc keeps the roles for the catalog but
+            // disableAutoValidateRoles, and the check runs here against body.bank_id. Without
+            // this, a caller holding only CanCreateEntitlementAtOneBank at that bank was 403'd
+            // by the middleware's bank-less check (only super admins got through).
+            grantingRoles = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
             _ <- if (APIUtil.isSuperAdmin(user.userId)) Future.successful(())
-                 else NewStyle.function.hasAtLeastOneEntitlement(
-                   UserHasMissingRoles + s" $canCreateEntitlementAtOneBank or $canCreateEntitlementAtAnyBank")(
-                   body.bank_id, user.userId,
-                   canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil, Some(cc)).map(_ => ())
+                 else Helper.booleanToFuture(
+                   UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
+                   APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
+                 }
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
             entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(
@@ -530,7 +536,7 @@ object Http4s700 {
       apiTagEntitlement :: apiTagRole :: apiTagUser :: Nil,
       Some(List(canCreateEntitlementAtOneBank, canCreateEntitlementAtAnyBank)),
       http4sPartialFunction = Some(addEntitlement)
-    )
+    ).disableAutoValidateRoles() // roles are bank-scoped by body.bank_id; checked in the handler
 
     // ── Account Access Trace ────────────────────────────────────────────────
     //

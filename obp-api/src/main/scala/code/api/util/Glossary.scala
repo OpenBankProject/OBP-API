@@ -521,6 +521,26 @@ object Glossary extends MdcLoggable  {
 			s"""<ol>${ApiRole.availableRoles.sorted.map(i => "<li>" + i + "</li>").mkString}</ol>""".stripMargin
 	)
 
+	glossaryItems += GlossaryItem(
+		title = "Virtual Entitlements",
+		description =
+			s"""A virtual Entitlement is a Role a User holds because their USER_ID is listed in an instance props entry, not because an Entitlement row exists.
+				 |
+				 |Two props entries grant them:
+				 |
+				 |* `super_admin_user_ids`: ${APIUtil.superAdminVirtualRoles.mkString(", ")}
+				 |* `oidc_operator_user_ids`: ${APIUtil.oidcOperatorVirtualRoles.mkString(", ")}
+				 |
+				 |Where they appear: `GET /my/entitlements` and `GET /users/current` list them next to stored Entitlements with an empty `entitlement_id` and an empty `bank_id`; in v6.0.0 and later `created_by_process` names the props entry.
+				 |
+				 |What they do: a virtual Entitlement satisfies the Role check of a direct call exactly as a stored one would. Super admins additionally bypass the granting-Role check of Add Entitlement, so they can grant any Role to any User (including themselves) at any Bank.
+				 |
+				 |What they do not do: they are not rows, so they cannot be deleted or listed per Bank, and they cannot be delegated. A Consent may only carry stored Entitlements of the User creating it, so a super admin who wants an agent (a consent user) to hold a Role must first grant that Role to their own USER_ID with Add Entitlement, then create the Consent that carries it. The "just in time" grant (`create_just_in_time_entitlements`) likewise honours only stored granting Roles.
+				 |
+				 |See also [Roles of Open Bank Project](/glossary#Roles-of-Open-Bank-Project) and [Consent](/glossary#Consent).
+			""".stripMargin
+	)
+
 
 
 
@@ -1372,6 +1392,16 @@ object Glossary extends MdcLoggable  {
 |7) The consent will be signed using JWT.
 |
 |This increases the security of the claims contained in the consent.
+|
+|**What an OBP Consent carries**
+|
+|| key | nature | check when the Consent is created |
+||---|---|---|
+|| `views` | the User's own account access (owned) | the User has the view |
+|| `entitlements` | Roles at a Bank or the system (granted) | the User holds the stored Entitlement; virtual Entitlements do not count |
+|| `my_resources` | the User's own personal resources (owned), one typed list per kind, e.g. `personal_dynamic_entities` | the kind and instance exist; no Role, the User owns these rows |
+|
+|`my_resources` example: `{"personal_dynamic_entities": [{"bank_id": "", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
 |
 |
 |
@@ -3234,7 +3264,7 @@ object Glossary extends MdcLoggable  {
 |
 |**IMPORTANT - JSON Structure:**
 |
-|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. The root object can contain at most TWO fields: your entity name and optionally "hasPersonalEntity".
+|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. Besides the entity name, the root object may only contain the access flags: "hasPersonalEntity", "personalRequiresRole", "hasPublicAccess", "hasCommunityAccess", "useRowLevelAccess" and "authMode" (see ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}).
 |
 |**Common mistake - DO NOT do this:**
 |```json
@@ -3438,6 +3468,58 @@ object Glossary extends MdcLoggable  {
 |```
 |
 """.stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic-Entity-Access-Model",
+		description =
+			s"""
+|A Dynamic Entity definition carries six access flags. Together they decide who may create, read, edit and delete rows, and through which route. This page is the reference; the flags are set in the definition JSON next to the entity name (see ${getGlossaryItemLink("Dynamic-Entities")}).
+|
+|**The five routes on one entity**
+|
+|| Route | Exists when | Who may read | Who may write | Which rows |
+||---|---|---|---|---|
+|| System: `/obp/dynamic-entity/ENTITY` or `/obp/dynamic-entity/banks/BANK_ID/ENTITY` | always | holders of the entity Get role | holders of the Create, Update and Delete roles | the shared pool: rows created here; never personal rows |
+|| Personal: `/obp/dynamic-entity/my/ENTITY` | `hasPersonalEntity` | any authenticated User; a role only if `personalRequiresRole`; a consent user in addition only if its Consent lists the entity in `my_resources` | same rule | the caller's own rows only, keyed by the on-behalf-of user |
+|| Community: `/obp/dynamic-entity/community/ENTITY` | `hasCommunityAccess` | authenticated holders of the Get role | nobody (read only) | every row, personal rows included |
+|| Public: `/obp/dynamic-entity/public/ENTITY` | `hasPublicAccess` | anyone, no login | nobody (read only) | the shared pool only |
+|| Row level: the System routes with `useRowLevelAccess` | `useRowLevelAccess` | per row, whoever the access list marks readable; lists are filtered | per row, access list Update and Delete; the creator is granted read, update, delete and grant on their own row | whatever the access list says |
+|
+|The entity roles are named after the entity: `CanCreateDynamicEntity_SystemENTITY`, `CanGetDynamicEntity_SystemENTITY`, `CanUpdateDynamicEntity_SystemENTITY`, `CanDeleteDynamicEntity_SystemENTITY` (without `System` for bank level entities, held at the bank).
+|
+|Two settings apply on top of the routes:
+|
+|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserOrApplication`, `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
+|* Field roles: a field with a `read_role` is omitted from every response unless the caller holds that role; a field with a `write_role` is only changed by PATCH from a holder (POST ignores it, PUT preserves its value).
+|
+|**Authorship and editing by actor**
+|
+|| Actor | Shared pool | Own rows via `my` | Other Users' personal rows |
+||---|---|---|---|
+|| Anonymous | read, if `hasPublicAccess` | none | none |
+|| Authenticated User, no role | none | create, edit, delete (unless `personalRequiresRole`) | none |
+|| Get role holder | read | as above | read them all via `community`, if `hasCommunityAccess` |
+|| Create, Update, Delete role holders | write | as above | none: personal rows are invisible to the System route |
+|| Row access list grantee | per row | as above | per row, if granted |
+|| Consent user (a User minted by a Consent) | as the roles its Consent carries | only if the Consent lists the entity in `my_resources.personal_dynamic_entities` with the needed action (plus the role when `personalRequiresRole`); rows it writes belong to the User who granted the Consent | none |
+|
+|**Patterns**
+|
+|| Pattern | Flags | Behaviour |
+||---|---|---|
+|| Curated reference data | personal off, public on | role holders maintain it, everyone reads it |
+|| Restricted registry | personal off, public off, community off | role holders only |
+|| Team space | personal on, `personalRequiresRole` on, community on | members write their own rows, the whole team reads everything; the entity roles define the team |
+|| User owned records | personal on, `personalRequiresRole` off, community off, public off | each User has their own rows; an agent reaches them only through a Consent whose `my_resources` lists the entity |
+|| Shared records with per row sharing | `useRowLevelAccess` on | the creator owns the row and grants others read, update, delete or grant |
+|
+|One combination deserves care: personal on, `personalRequiresRole` off, community on. It shows every User's personal rows to any holder of the Get role, which is rarely intended.
+|
+|`personalRequiresRole` gates the `my` route with the entity's own roles, the same roles that open the shared pool. It therefore suits the team space pattern, where the users of `my` are the role holders anyway. It is not a way to restrict ordinary Users' personal use: giving a User the Get role so they may use `my` also lets them read the shared pool.
+|
+|See also ${getGlossaryItemLink("My-Dynamic-Entities")}, ${getGlossaryItemLink("Consent")} and ${getGlossaryItemLink("Virtual Entitlements")}.
+|"""
+	)
 
 	glossaryItems += GlossaryItem(
 		title = "My-Dynamic-Entities",

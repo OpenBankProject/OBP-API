@@ -1,10 +1,11 @@
 # On-behalf-of user id — making ownership-by-the-human automatic
 
 Written 2026-09-02 evening, for pickup 2026-09-03. This is the only document: no separate
-checklist. Track progress here by marking items done in place. **Status: Phases 0 and 1 done 2026-09-02 (uncommitted). Clean build green; `AgentDelegationTest`
-(22), `ApiSessionTest`, `ConsentOwnershipTests`, `ConsentObpTest`, `ConsentTest`, `EntitlementTests`
-all pass. `AbacRuleTests` fails locally for an unrelated props reason (see Phase 1 note 2). Phase 2
-next; manual litmus tests under Phase 1.** Background and the reasoning are on the Portal page `/developers/opey-permissions`
+checklist. Track progress here by marking items done in place. **Status: Phases 0 and 1 committed 2026-09-02 (`2d86f4e9e`, `715989c11`). Litmus tests 1–5 run
+2026-09-03 against the local instance (results inline under "Manual tests after Phase 1"); litmus 2
+exposed a v7 `addEntitlement` middleware bug, fixed in the working tree. Phase 2 item 1
+(AccountHolders) done 2026-09-03 (working tree). Next: Phase 2 item 2 (UserCustomerLink) and the
+Phase 4 frozen policy test.** `AbacRuleTests` fails locally for an unrelated props reason (see Phase 1 note 2). Background and the reasoning are on the Portal page `/developers/opey-permissions`
 (OBP-Frontend, uncommitted) and in `OBP-Frontend/CONSENT_ESCALATION_GAP.md`.
 
 Working rules: the user commits, the assistant never does. The provider is the mechanism;
@@ -316,7 +317,21 @@ they differ by process, as `MappedEntitlement.mUserId` does).
 6. `MappedTransactionRequestProvider` via one `attributionOf(userId, TransactionRequest)` call, both columns.
 7. `AgentDelegationTest` scenarios (Phase 4, item 1) green; grep for any other inline copy of the chain and point it at the resolver.
 
-## Manual tests after Phase 1 (litmus, against a running instance)
+## Manual tests after Phase 1 (litmus, against a running instance) — **run 2026-09-03**
+
+Run against the local instance on :8080 (commit `73cceba36`, which includes Phase 1), H = the
+Opey DirectLogin user (a super admin), C = an IMPLICIT consent on bank `simonopey` carrying
+`CanCreateEntitlementAtOneBank` and `CanCreateAccount`, granted to Opey's consumer. Results:
+
+| # | result |
+|---|---|
+| 1 | ✅ as C: `user_id` = consent user, `on_behalf_of.user_id` = H. As H: `on_behalf_of` null. Observation: `on_behalf_of` embeds H's full entitlement and view lists (large); not this plan's concern. |
+| 2 | ✅ as written the step is stale: v2.0.0 and v7.0.0 `addEntitlement` both refuse an explicit consent-user `USER_ID` with 400 `OBP-30107` (Phase 3 doctrine, already in place), so the provider redirect is not reachable from the endpoint; it is covered by `AgentDelegationTest`. **Bug found**: v7 returned 403 `UserHasMissingRoles` for C although C held `CanCreateEntitlementAtOneBank@simonopey` — the v7 doc declared the roles, so the middleware checked them without a bank (no `BANK_ID` in the URL) and only super admins got through. Fixed: doc `.disableAutoValidateRoles()`, handler checks against `body.bank_id` with 403 (same as v2.0.0, whose doc has `None`). |
+| 3 | ✅ C's only `mappedentitlement` rows are its two `consent_user` rows. Also found: 11 pre-fix strand rows dated 2026-08-31 (`manual` grants on consent users, e.g. `CanCreateBank`, `CanCreateEntitlementAtOneBank@simon.bank`) — the incident this plan came from; clean-up by hand is the operator's call (Phase 5 item 3). |
+| 4 | ✅ `mappedtransactionrequest` row: `muserid` = C, `monbehalfofuserid` = H; one WARN `attribution TransactionRequest: … writing on-behalf-of user H`. Listed as H under `transaction_requests_with_charges`. |
+| 5 | ✅ (confirms the gap) as C, `POST /obp/v5.1.0/my/consents/IMPLICIT` returned 201 with a consent whose `mUserId` is C. Row deleted by hand afterwards. Phase 3 makes this a 400. |
+| 6 | ⏭ no BG sandbox; the not-cached case is covered by `AgentDelegationTest` ("BG-style: … NOT pinned in the cache"). |
+| 7 | ⏭ needs a props change and a restart of the shared local instance; not done. |
 
 Set-up once: a human H logged in (Portal / API Explorer), an OBP-native consent C granted by H
 with roles that let it act (e.g. `CanCreateEntitlementAtOneBank`, `CanCreateAccount`), and the
@@ -362,6 +377,22 @@ reference — are caught by the Phase-4 sweep; the second is also visible in rev
 3. `KeepUserId` writers that share a provider method with a `UseOnBehalfOfUserId` path (views materialiser, consent entitlements) pass a different `UserReference` (e.g. `ConsentEntitlementUser` vs `EntitlementUser`); no more string-typed exemptions.
 
 Order of attack (highest strand-risk first): AccountHolders → UserCustomerLink → AccountApplication → UserAuthContext → ApiCollection/UserAttribute → the rest mechanically.
+
+Progress:
+
+| # | provider | status |
+|---|---|---|
+| 1 | `MapperAccountHolders.getOrCreateAccountHolder` (`AccountHolderUser`) | ✅ 2026-09-03. Resolves `user.userId` via `attributedUserId`, re-fetches the on-behalf-of `User` once when delegated, writes the row for it. All five callers (v5/v7 createAccount via `BankAccountCreation`, holding accounts, `AfterApiAuth`, `AuthUser.refreshUser`, sandbox import) go through it. `AgentDelegationTest` has three scenarios (consent user → human holds; original user unchanged; unbound consent fails closed). Endpoint-level `cc.onBehalfOfUserId` in v5/v7 createAccount stays as clarity. |
+| 2 | `MappedUserCustomerLink.createUserCustomerLink` | next |
+| 3 | `DynamicData.UserId` (`DynamicDataUser`), `DynamicEntity.UserId` (`DynamicEntityUser`) | ✅ 2026-09-04 (working tree). Provider `MappedDynamicDataProvider` resolves the caller on **every** entry point (save, update, get, getAll, delete, existsData): personal rows are keyed by the same column on reads and writes, so the redirect must be symmetric or a consent user could not read back what it wrote. Definition creator resolved in `MappedDynamicEntityProvider.createOrUpdate`. **Decided 2026-09-04 (access control): a consent user gets no `personal_requires_role=false` waiver** — on `/my` endpoints it must hold the entity's role, so a Consent has to name the entity explicitly before its holder reaches the human's personal rows (`Http4sDynamicEntity.personalRoleWaived`); the projection read path resolves the owner the same way (`personalRowOwner`). Doc strings of the six My endpoints say so; `UserHasMissingRoles` is now always in their error lists. Tests: `AgentDelegationTest` (provider + definition) and `DynamicEntityConsentUserTest` (HTTP: human no role → 201; consent without role → 403 naming the role; consent with roles → 201, row readable by both, stored on the human). Consumer: the Portal / API Manager Opey conversation entities (`obp_portal_opey_conversation`, `obp_manager_opey_conversation`); the apps write those as the human; **built 2026-09-04 in OBP-Frontend** (definitions, startup bootstrap, `ConversationRecorder`, rows under My Data). **Out of scope here: row-level (ACL) entities** — `DynamicDataAccess.UserId` bootstrap grant and the `allows` checks both stay on the consent user (consistent with each other: rows strand, nothing leaks); `DynamicDataAccessUser` is a later Phase 2 row. |
+| — | `MappedBank.CreatedByUserId` (`BankCreator`) | seen in the wild 2026-09-03: a bank created through Opey under a temporary consent has `createdbyuserid` = the consent user (the creator *grant* went to the human, the *column* did not). `createMyBank`'s self-service limit already counts via `humanAndAgentUserIds`, so nothing breaks today, but "banks created by me" style reads will miss it. Do with the mechanical batch. |
+
+**After Phase 2 — the third set of things a Consent carries.** Personal resources are owned, not
+granted, so delegating them through entity Roles over-grants. Design settled 2026-09-04 in
+`ideas/CONSENT_MY_RESOURCES.md` (`my_resources` wrapper with `personal_dynamic_entities`,
+`api_collections`, ... as typed lists). **Built 2026-09-04 (working tree) for `personal_dynamic_entities`**; the
+interim entity-Role gate is replaced by the `my_resources` check (`Http4sDynamicEntity.consentCoversPersonalResource`).
+Client side (OBP-MCP, Opey, OBP-Frontend) built 2026-09-04 too, see the note.
 
 ## Phase 3 — explicit-target guards (endpoint 400s)
 

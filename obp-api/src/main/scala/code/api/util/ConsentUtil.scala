@@ -70,7 +70,8 @@ case class ConsentJWT(createdByUserId: String,
                       email: Option[String],
                       entitlements: List[Role],
                       views: List[ConsentView],
-                      access: Option[ConsentAccessJson]) {
+                      access: Option[ConsentAccessJson],
+                      my_resources: Option[ConsentMyResources] = None) {
   def toConsent(): Consent = {
     Consent(
       createdByUserId=this.createdByUserId, 
@@ -94,6 +95,30 @@ case class ConsentJWT(createdByUserId: String,
 case class Role(role_name: String, 
                 bank_id: String
                )
+/** JWT claim: one personal dynamic entity the consent user may act on for the granting User. */
+case class ConsentPersonalDynamicEntity(bank_id: String, entity_name: String, actions: List[String]) {
+  def bankIdOpt: Option[String] = Option(bank_id).filter(_.nonEmpty)
+  def covers(bankId: Option[String], entityName: String, action: String): Boolean =
+    entity_name == entityName && bankIdOpt == bankId && actions.contains(action)
+}
+/** JWT claim `my_resources`: the User's own resources the Consent may act on. ideas/CONSENT_MY_RESOURCES.md */
+case class ConsentMyResources(personal_dynamic_entities: List[ConsentPersonalDynamicEntity]) {
+  def coversPersonalDynamicEntity(bankId: Option[String], entityName: String, action: String): Boolean =
+    personal_dynamic_entities.exists(_.covers(bankId, entityName, action))
+}
+object ConsentMyResources {
+  val actionRead = "read"
+  val actionWrite = "write"
+  val actions: Set[String] = Set(actionRead, actionWrite)
+  def fromJson(json: code.api.v5_1_0.PostConsentMyResourcesJson): ConsentMyResources =
+    ConsentMyResources(
+      json.personal_dynamic_entities.getOrElse(Nil).map(e =>
+        ConsentPersonalDynamicEntity(Option(e.bank_id).getOrElse(""), e.entity_name, e.actions)))
+  def toJson(claim: ConsentMyResources): code.api.v5_1_0.PostConsentMyResourcesJson =
+    code.api.v5_1_0.PostConsentMyResourcesJson(
+      Some(claim.personal_dynamic_entities.map(e =>
+        code.api.v5_1_0.PostConsentPersonalDynamicEntityJson(e.bank_id, e.entity_name, e.actions))))
+}
 case class ConsentView(bank_id: String, 
                        account_id: String,
                        view_id : String,
@@ -569,11 +594,12 @@ object Consent extends MdcLoggable {
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
       val temp = callContext
       // updated context if createdByUserId is present
+      val ccWithMyResources = temp.copy(consentMyResources = consent.my_resources)
       val ccWithOnBehalf = if (consent.createdByUserId.nonEmpty) {
         val consentCreator = Users.users.vend.getUserByUserId(consent.createdByUserId)
-        temp.copy(consentCreator = consentCreator.toOption)
+        ccWithMyResources.copy(consentCreator = consentCreator.toOption)
       } else {
-        temp
+        ccWithMyResources
       }
       // Stamp the consent_reference_id on the CallContext so the metric writer can record it.
       val cc = Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
@@ -1290,7 +1316,8 @@ object Consent extends MdcLoggable {
                        validFrom: Option[Date],
                        timeToLive: Long,
                        helperInfo: Option[HelperInfoJson], //this is only used for VRP consent, all the others are NONE.
-                       preComputedViews: Option[List[ConsentView]] = None // bypass Doobie view lookup (e.g. for VRP consent where the view was just created in the same transaction)
+                       preComputedViews: Option[List[ConsentView]] = None, // bypass Doobie view lookup (e.g. for VRP consent where the view was just created in the same transaction)
+                       myResources: Option[code.api.v5_1_0.PostConsentMyResourcesJson] = None // v5.1.0+ bodies only; STABLE bodies have no such field
   ): String = {
 
     lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
@@ -1369,13 +1396,39 @@ object Consent extends MdcLoggable {
       email=None,
       entitlements=entitlementsToAdd.toList,
       views=viewsToAdd.toList,
-      access = None
+      access = None,
+      // 3. Add the User's own resources (owned, not granted; validated by validateMyResources).
+      my_resources = myResources.map(ConsentMyResources.fromJson)
     )
     
     implicit val formats = CustomJsonFormats.formats
     val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
+  }
+
+  /**
+   * Validate the `my_resources` block of a consent body. These are the granting User's own
+   * resources, so no Role is checked: an entry is valid when the kind and shape are known and the
+   * instance exists with personal endpoints. ideas/CONSENT_MY_RESOURCES.md
+   */
+  def validateMyResources(myResources: Option[code.api.v5_1_0.PostConsentMyResourcesJson], callContext: Option[CallContext]): Future[Box[Unit]] = {
+    val problems: List[String] = myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
+      val bankId = Option(entry.bank_id).filter(_.nonEmpty)
+      val where = s"personal_dynamic_entities entry (bank_id '${Option(entry.bank_id).getOrElse("")}', entity_name '${entry.entity_name}')"
+      val definition = code.api.dynamic.entity.helper.DynamicEntityHelper.definitionsMap.get((bankId, entry.entity_name))
+      List(
+        if (entry.entity_name == null || entry.entity_name.isEmpty) Some(s"$where: entity_name is required") else None,
+        if (entry.actions == null || entry.actions.isEmpty) Some(s"$where: actions must name at least one of ${ConsentMyResources.actions.mkString(", ")}") else None,
+        Option(entry.actions).getOrElse(Nil).filterNot(ConsentMyResources.actions.contains) match {
+          case Nil => None
+          case unknown => Some(s"$where: unknown actions ${unknown.mkString(", ")}")
+        },
+        if (definition.isEmpty) Some(s"$where: no such dynamic entity") else None,
+        if (definition.exists(!_.hasPersonalEntity)) Some(s"$where: the entity has no personal (my) endpoints") else None
+      ).flatten
+    }
+    Helper.booleanToFuture(s"$ConsentMyResourcesInvalid ${problems.mkString("; ")}", cc = callContext) { problems.isEmpty }
   }
 
   def createBerlinGroupConsentJWT(user: Option[User],

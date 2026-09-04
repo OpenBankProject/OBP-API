@@ -1,11 +1,15 @@
 package code.api.util
 
+import code.accountholders.AccountHolders
 import code.api.util.APIUtil.generateUUID
 import code.consent.MappedConsent
 import code.model.dataAccess.ResourceUser
 import code.setup.ServerSetup
 import code.users.{AttributionPolicy, UserReference, Users}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.{Failure, Full}
+import org.json4s.JObject
+import org.json4s.JsonDSL._
 import org.scalatest.Tag
 
 /**
@@ -231,6 +235,85 @@ class AgentDelegationTest extends ServerSetup {
       val role = "CanGetConfig"
       val e = code.entitlement.Entitlement.entitlement.vend.addEntitlement("", agent.userId, role, createdByProcess = code.api.Constant.consent_user).openOrThrowException("expected the grant")
       e.userId shouldBe agent.userId
+    }
+  }
+
+  feature("getOrCreateAccountHolder goes through the attribution policy (AccountHolderUser)") {
+
+    scenario("an account created by a consent user is held by its on-behalf-of user", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val account = BankIdAccountId(BankId("agent-delegation-bank"), AccountId(generateUUID()))
+      val holder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(agent, account).openOrThrowException("expected the holder row")
+      holder.user.get shouldBe human.userPrimaryKey.value
+      AccountHolders.accountHolders.vend.getAccountHolders(account.bankId, account.accountId).map(_.userId) shouldBe Set(human.userId)
+      AccountHolders.accountHolders.vend.getAccountsHeldByUser(agent) should not contain account
+      AccountHolders.accountHolders.vend.getAccountsHeldByUser(human) should contain(account)
+    }
+
+    scenario("an account created by an original user is held by that user", AgentDelegationTag) {
+      val human = createUser()
+      val account = BankIdAccountId(BankId("agent-delegation-bank"), AccountId(generateUUID()))
+      val holder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(human, account).openOrThrowException("expected the holder row")
+      holder.user.get shouldBe human.userPrimaryKey.value
+      AccountHolders.accountHolders.vend.getAccountHolders(account.bankId, account.accountId).map(_.userId) shouldBe Set(human.userId)
+    }
+
+    scenario("a consent user whose consent has no human yet keeps the row on itself (fails closed)", AgentDelegationTag) {
+      val consent = MappedConsent.create.mUserId("").saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val account = BankIdAccountId(BankId("agent-delegation-bank"), AccountId(generateUUID()))
+      val holder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(agent, account).openOrThrowException("expected the holder row")
+      holder.user.get shouldBe agent.userPrimaryKey.value
+    }
+  }
+
+  feature("DynamicData rows go through the attribution policy (DynamicDataUser), reads and writes alike") {
+
+    val entityName = "agent_delegation_note"
+    def noteJson(id: String): JObject = (s"${entityName}_id" -> id) ~ ("name" -> "written by an agent")
+    def dynamicData = code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend
+
+    scenario("a personal row written by a consent user belongs to its on-behalf-of user and is read back for both", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val id = generateUUID()
+      val saved = dynamicData.save(None, entityName, noteJson(id), Some(agent.userId), isPersonalEntity = true).openOrThrowException("expected the row")
+      saved.userId shouldBe Some(human.userId)
+      dynamicData.get(None, entityName, id, Some(agent.userId), isPersonalEntity = true).isDefined shouldBe true
+      dynamicData.get(None, entityName, id, Some(human.userId), isPersonalEntity = true).isDefined shouldBe true
+      dynamicData.getAll(None, entityName, Some(agent.userId), isPersonalEntity = true).flatMap(_.dynamicDataId) should contain(id)
+      dynamicData.existsData(None, entityName, Some(agent.userId), isPersonalEntity = true) shouldBe true
+      val updated = dynamicData.update(None, entityName, noteJson(id) merge (("name" -> "edited by the agent"): JObject), id, Some(agent.userId), isPersonalEntity = true).openOrThrowException("expected the update")
+      updated.userId shouldBe Some(human.userId)
+      dynamicData.delete(None, entityName, id, Some(agent.userId), isPersonalEntity = true) shouldBe Full(true)
+      dynamicData.get(None, entityName, id, Some(human.userId), isPersonalEntity = true).isDefined shouldBe false
+    }
+
+    scenario("a personal row written by an original user stays on that user", AgentDelegationTag) {
+      val human = createUser()
+      val id = generateUUID()
+      val saved = dynamicData.save(None, entityName, noteJson(id), Some(human.userId), isPersonalEntity = true).openOrThrowException("expected the row")
+      saved.userId shouldBe Some(human.userId)
+      dynamicData.delete(None, entityName, id, Some(human.userId), isPersonalEntity = true) shouldBe Full(true)
+    }
+
+    scenario("a dynamic entity definition created by a consent user is owned by its on-behalf-of user (DynamicEntityUser)", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      // DynamicEntityCommons takes the stored shape: one root key named after the entity, flags beside it.
+      val definition: JObject =
+        (s"agent_delegation_def_${generateUUID().take(8)}" ->
+          (("description" -> "definition created by an agent") ~ ("required" -> List("name")) ~
+           ("properties" -> ("name" -> (("type" -> "string") ~ ("example" -> "x")))))) ~
+        ("hasPersonalEntity" -> true)
+      val provider = code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
+      val created = provider.createOrUpdate(code.dynamicEntity.DynamicEntityCommons(definition, None, agent.userId, None)).openOrThrowException("expected the definition")
+      try created.userId shouldBe human.userId
+      finally provider.delete(created)
     }
   }
 }

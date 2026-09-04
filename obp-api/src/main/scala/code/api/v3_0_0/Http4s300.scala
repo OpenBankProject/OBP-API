@@ -1868,8 +1868,11 @@ object Http4s300 {
       "GET",
       "/my/entitlements",
       "Get Entitlements for the current User",
+      // Description deliberately extends the Lift v3.0.0 text (documentation of behaviour that
+      // already exists; the parity audit will flag this field).
       s"""Get Entitlements for the current User.
        |
+       |Stored Entitlements have an `entitlement_id`. Entries with an empty `entitlement_id` and empty `bank_id` are virtual: Roles the User holds because their USER_ID is listed in the props entry `super_admin_user_ids` (${APIUtil.superAdminVirtualRoles.mkString(", ")}) or `oidc_operator_user_ids` (${APIUtil.oidcOperatorVirtualRoles.mkString(", ")}). Virtual Entitlements satisfy direct calls but cannot be placed in a Consent; `GET /users/current` (v6.0.0 and later) also reports which props entry grants each of them in `created_by_process`.
        |
        |${userAuthenticationMessage(true)}
        |

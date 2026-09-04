@@ -51,6 +51,10 @@ case class CallContext(
                         // populates the one whose source is authoritative for it. Kept as two fields on purpose
                         // (decided 2026-09-02): explicit about which standard bound the human.
                         consenter: Box[User] = Empty,
+                        // The `my_resources` claim of the OBP consent in play: the granting User's own
+                        // resources the consent user may act on. None without a consent, or for BG/UK
+                        // consents. Read by personal (my) endpoints. ideas/CONSENT_MY_RESOURCES.md
+                        consentMyResources: Option[ConsentMyResources] = None,
                         consumer: Box[Consumer] = Empty,
                         ipAddress: String = "",
                         resourceDocument: Option[ResourceDoc] = None,
