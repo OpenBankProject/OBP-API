@@ -497,6 +497,120 @@ endpoint	v5.0.0	root
 endpoint	v5.0.0	updateBank
 endpoint	v5.0.0	updateCustomerAccountLinkById
 endpoint	v5.0.0	updateSystemView
+endpoint	v5.1.0	accountAccessUniqueIndexCheck
+endpoint	v5.1.0	accountCurrencyCheck
+endpoint	v5.1.0	addSystemViewPermission
+endpoint	v5.1.0	authoriseUKConsent
+endpoint	v5.1.0	authoriseUKConsentChallenge
+endpoint	v5.1.0	createAgent
+endpoint	v5.1.0	createAtm
+endpoint	v5.1.0	createAtmAttribute
+endpoint	v5.1.0	createBankAccountBalance
+endpoint	v5.1.0	createConsent
+endpoint	v5.1.0	createConsumer
+endpoint	v5.1.0	createConsumerDynamicRegistration
+endpoint	v5.1.0	createCounterpartyLimit
+endpoint	v5.1.0	createCustomView
+endpoint	v5.1.0	createMyConsumer
+endpoint	v5.1.0	createNonPersonalUserAttribute
+endpoint	v5.1.0	createRegulatedEntity
+endpoint	v5.1.0	createRegulatedEntityAttribute
+endpoint	v5.1.0	createUserWithAccountAccessById
+endpoint	v5.1.0	createVRPConsentRequest
+endpoint	v5.1.0	customViewNamesCheck
+endpoint	v5.1.0	deleteAtm
+endpoint	v5.1.0	deleteAtmAttribute
+endpoint	v5.1.0	deleteBankAccountBalance
+endpoint	v5.1.0	deleteCounterpartyLimit
+endpoint	v5.1.0	deleteCustomView
+endpoint	v5.1.0	deleteNonPersonalUserAttribute
+endpoint	v5.1.0	deleteRegulatedEntity
+endpoint	v5.1.0	deleteRegulatedEntityAttribute
+endpoint	v5.1.0	deleteSystemViewPermission
+endpoint	v5.1.0	getAccountAccessByUserId
+endpoint	v5.1.0	getAccountsHeldByUser
+endpoint	v5.1.0	getAccountsHeldByUserAtBank
+endpoint	v5.1.0	getAgent
+endpoint	v5.1.0	getAgents
+endpoint	v5.1.0	getAggregateMetrics
+endpoint	v5.1.0	getAllApiCollections
+endpoint	v5.1.0	getAllBankAccountBalances
+endpoint	v5.1.0	getAllRegulatedEntityAttributes
+endpoint	v5.1.0	getApiTags
+endpoint	v5.1.0	getAtm
+endpoint	v5.1.0	getAtmAttribute
+endpoint	v5.1.0	getAtmAttributes
+endpoint	v5.1.0	getAtms
+endpoint	v5.1.0	getBankAccountBalanceById
+endpoint	v5.1.0	getBankAccountBalances
+endpoint	v5.1.0	getBankAccountsBalances
+endpoint	v5.1.0	getBankAccountsBalancesThroughView
+endpoint	v5.1.0	getBanks
+endpoint	v5.1.0	getCallsLimit
+endpoint	v5.1.0	getConsentByConsentId
+endpoint	v5.1.0	getConsentByConsentIdViaConsumer
+endpoint	v5.1.0	getConsents
+endpoint	v5.1.0	getConsentsAtBank
+endpoint	v5.1.0	getConsumer
+endpoint	v5.1.0	getConsumers
+endpoint	v5.1.0	getCoreAccountByIdThroughView
+endpoint	v5.1.0	getCounterpartyLimit
+endpoint	v5.1.0	getCounterpartyLimitStatus
+endpoint	v5.1.0	getCurrenciesAtBank
+endpoint	v5.1.0	getCustomView
+endpoint	v5.1.0	getCustomersByLegalName
+endpoint	v5.1.0	getCustomersForUserIdsOnly
+endpoint	v5.1.0	getEntitlementsAndPermissions
+endpoint	v5.1.0	getMetrics
+endpoint	v5.1.0	getMyConsents
+endpoint	v5.1.0	getMyConsentsByBank
+endpoint	v5.1.0	getNonPersonalUserAttributes
+endpoint	v5.1.0	getOAuth2ServerWellKnown
+endpoint	v5.1.0	getRegulatedEntityAttributeById
+endpoint	v5.1.0	getRegulatedEntityById
+endpoint	v5.1.0	getTransactionRequestById
+endpoint	v5.1.0	getTransactionRequests
+endpoint	v5.1.0	getUserByProviderAndUsername
+endpoint	v5.1.0	getUserLockStatus
+endpoint	v5.1.0	getWebUiProps
+endpoint	v5.1.0	grantUserAccessToViewById
+endpoint	v5.1.0	lockUserByProviderAndUsername
+endpoint	v5.1.0	logCacheAllEndpoint
+endpoint	v5.1.0	logCacheDebugEndpoint
+endpoint	v5.1.0	logCacheErrorEndpoint
+endpoint	v5.1.0	logCacheInfoEndpoint
+endpoint	v5.1.0	logCacheTraceEndpoint
+endpoint	v5.1.0	logCacheWarningEndpoint
+endpoint	v5.1.0	mtlsClientCertificateInfo
+endpoint	v5.1.0	orphanedAccountCheck
+endpoint	v5.1.0	regulatedEntities
+endpoint	v5.1.0	revokeConsentAtBank
+endpoint	v5.1.0	revokeMyConsent
+endpoint	v5.1.0	revokeUserAccessToViewById
+endpoint	v5.1.0	root
+endpoint	v5.1.0	selfRevokeConsent
+endpoint	v5.1.0	suggestedSessionTimeout
+endpoint	v5.1.0	syncExternalUser
+endpoint	v5.1.0	systemViewNamesCheck
+endpoint	v5.1.0	unlockUserByProviderAndUsername
+endpoint	v5.1.0	updateAgentStatus
+endpoint	v5.1.0	updateAtm
+endpoint	v5.1.0	updateAtmAttribute
+endpoint	v5.1.0	updateBankAccountBalance
+endpoint	v5.1.0	updateConsentAccountAccessByConsentId
+endpoint	v5.1.0	updateConsentStatusByConsent
+endpoint	v5.1.0	updateConsentUserIdByConsentId
+endpoint	v5.1.0	updateConsumerCertificate
+endpoint	v5.1.0	updateConsumerLogoURL
+endpoint	v5.1.0	updateConsumerName
+endpoint	v5.1.0	updateConsumerRedirectURL
+endpoint	v5.1.0	updateCounterpartyLimit
+endpoint	v5.1.0	updateCustomView
+endpoint	v5.1.0	updateMyApiCollection
+endpoint	v5.1.0	updateRegulatedEntityAttribute
+endpoint	v5.1.0	updateTransactionRequestStatus
+endpoint	v5.1.0	validateUserByUserId
+endpoint	v5.1.0	waitingForGodot
 field	code.TransactionTypes.TransactionType.TransactionType	bankId	com.openbankproject.commons.model.BankId
 field	code.TransactionTypes.TransactionType.TransactionType	charge	com.openbankproject.commons.model.AmountOfMoney
 field	code.TransactionTypes.TransactionType.TransactionType	description	String
@@ -508,10 +622,47 @@ field	code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.SeverJWK	kid	String
 field	code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.SeverJWK	kty	String
 field	code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.SeverJWK	n	String
 field	code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.SeverJWK	use	String
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson	bban	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson	currency	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson	iban	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson	maskedPan	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson	msisdn	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson	pan	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson	accounts	Option[List[code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson]]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson	allPsd2	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson	availableAccounts	Option[String]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson	balances	Option[List[code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson]]
+field	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson	transactions	Option[List[code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessAccountsJson]]
 field	code.api.util.APIUtil.BooleanBody	value	Boolean
 field	code.api.util.APIUtil.EndpointInfo	name	String
 field	code.api.util.APIUtil.EndpointInfo	version	String
-field	code.api.util.APIUtil.JArrayBody	value	org.json4s.JArray
+field	code.api.util.APIUtil.HTTPParam	name	String
+field	code.api.util.APIUtil.HTTPParam	values	List[String]
+field	code.api.util.ConsentJWT	access	Option[code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson]
+field	code.api.util.ConsentJWT	aud	String
+field	code.api.util.ConsentJWT	createdByUserId	String
+field	code.api.util.ConsentJWT	email	Option[String]
+field	code.api.util.ConsentJWT	entitlements	List[code.api.util.Role]
+field	code.api.util.ConsentJWT	exp	Long
+field	code.api.util.ConsentJWT	iat	Long
+field	code.api.util.ConsentJWT	iss	String
+field	code.api.util.ConsentJWT	jti	String
+field	code.api.util.ConsentJWT	my_resources	Option[code.api.util.ConsentMyResources]
+field	code.api.util.ConsentJWT	name	Option[String]
+field	code.api.util.ConsentJWT	nbf	Long
+field	code.api.util.ConsentJWT	request_headers	List[code.api.util.APIUtil.HTTPParam]
+field	code.api.util.ConsentJWT	sub	String
+field	code.api.util.ConsentJWT	views	List[code.api.util.ConsentView]
+field	code.api.util.ConsentMyResources	personal_dynamic_entities	List[code.api.util.ConsentPersonalDynamicEntity]
+field	code.api.util.ConsentPersonalDynamicEntity	actions	List[String]
+field	code.api.util.ConsentPersonalDynamicEntity	bank_id	String
+field	code.api.util.ConsentPersonalDynamicEntity	entity_name	String
+field	code.api.util.ConsentView	account_id	String
+field	code.api.util.ConsentView	bank_id	String
+field	code.api.util.ConsentView	helper_info	Option[code.api.v5_0_0.HelperInfoJson]
+field	code.api.util.ConsentView	view_id	String
+field	code.api.util.Role	bank_id	String
+field	code.api.util.Role	role_name	String
 field	code.api.v1_2_1.APIInfoJSON	connector	String
 field	code.api.v1_2_1.APIInfoJSON	git_commit	String
 field	code.api.v1_2_1.APIInfoJSON	hosted_by	code.api.v1_2_1.HostedBy
@@ -3098,6 +3249,378 @@ field	code.api.v5_0_0.ViewJsonV500	metadata_view	String
 field	code.api.v5_0_0.ViewJsonV500	short_name	String
 field	code.api.v5_0_0.ViewsIdsJsonV500	views	List[code.api.v5_0_0.ViewIdJsonV500]
 field	code.api.v5_0_0.ViewsJsonV500	views	List[code.api.v5_0_0.ViewJsonV500]
+field	code.api.v5_1_0.AgentJsonV510	agent_id	String
+field	code.api.v5_1_0.AgentJsonV510	agent_number	String
+field	code.api.v5_1_0.AgentJsonV510	bank_id	String
+field	code.api.v5_1_0.AgentJsonV510	currency	String
+field	code.api.v5_1_0.AgentJsonV510	is_confirmed_agent	Boolean
+field	code.api.v5_1_0.AgentJsonV510	is_pending_agent	Boolean
+field	code.api.v5_1_0.AgentJsonV510	legal_name	String
+field	code.api.v5_1_0.AgentJsonV510	mobile_phone_number	String
+field	code.api.v5_1_0.AllConsentJsonV510	api_standard	String
+field	code.api.v5_1_0.AllConsentJsonV510	api_version	String
+field	code.api.v5_1_0.AllConsentJsonV510	consent_reference_id	String
+field	code.api.v5_1_0.AllConsentJsonV510	consumer_id	String
+field	code.api.v5_1_0.AllConsentJsonV510	created_by_user_id	String
+field	code.api.v5_1_0.AllConsentJsonV510	frequency_per_day	Option[Int]
+field	code.api.v5_1_0.AllConsentJsonV510	jwt_payload	net.liftweb.common.Box[code.api.util.ConsentJWT]
+field	code.api.v5_1_0.AllConsentJsonV510	last_action_date	String
+field	code.api.v5_1_0.AllConsentJsonV510	last_usage_date	String
+field	code.api.v5_1_0.AllConsentJsonV510	note	String
+field	code.api.v5_1_0.AllConsentJsonV510	provider	Option[String]
+field	code.api.v5_1_0.AllConsentJsonV510	provider_id	Option[String]
+field	code.api.v5_1_0.AllConsentJsonV510	remaining_requests	Option[Int]
+field	code.api.v5_1_0.AllConsentJsonV510	status	String
+field	code.api.v5_1_0.AtmAttributeJsonV510	is_active	Option[Boolean]
+field	code.api.v5_1_0.AtmAttributeJsonV510	name	String
+field	code.api.v5_1_0.AtmAttributeJsonV510	type	String
+field	code.api.v5_1_0.AtmAttributeJsonV510	value	String
+field	code.api.v5_1_0.AtmAttributeResponseJsonV510	atm_attribute_id	String
+field	code.api.v5_1_0.AtmAttributeResponseJsonV510	atm_id	String
+field	code.api.v5_1_0.AtmAttributeResponseJsonV510	bank_id	String
+field	code.api.v5_1_0.AtmAttributeResponseJsonV510	is_active	Option[Boolean]
+field	code.api.v5_1_0.AtmAttributeResponseJsonV510	name	String
+field	code.api.v5_1_0.AtmAttributeResponseJsonV510	type	String
+field	code.api.v5_1_0.AtmAttributeResponseJsonV510	value	String
+field	code.api.v5_1_0.AtmAttributesResponseJsonV510	atm_attributes	List[code.api.v5_1_0.AtmAttributeResponseJsonV510]
+field	code.api.v5_1_0.AtmJsonV510	accessibility_features	List[String]
+field	code.api.v5_1_0.AtmJsonV510	address	code.api.v3_0_0.AddressJsonV300
+field	code.api.v5_1_0.AtmJsonV510	atm_type	String
+field	code.api.v5_1_0.AtmJsonV510	attributes	Option[List[code.api.v5_1_0.AtmAttributeResponseJsonV510]]
+field	code.api.v5_1_0.AtmJsonV510	balance_inquiry_fee	String
+field	code.api.v5_1_0.AtmJsonV510	bank_id	String
+field	code.api.v5_1_0.AtmJsonV510	branch_identification	String
+field	code.api.v5_1_0.AtmJsonV510	cash_withdrawal_international_fee	String
+field	code.api.v5_1_0.AtmJsonV510	cash_withdrawal_national_fee	String
+field	code.api.v5_1_0.AtmJsonV510	friday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.AtmJsonV510	has_deposit_capability	String
+field	code.api.v5_1_0.AtmJsonV510	id	Option[String]
+field	code.api.v5_1_0.AtmJsonV510	is_accessible	String
+field	code.api.v5_1_0.AtmJsonV510	located_at	String
+field	code.api.v5_1_0.AtmJsonV510	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
+field	code.api.v5_1_0.AtmJsonV510	location_categories	List[String]
+field	code.api.v5_1_0.AtmJsonV510	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
+field	code.api.v5_1_0.AtmJsonV510	minimum_withdrawal	String
+field	code.api.v5_1_0.AtmJsonV510	monday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.AtmJsonV510	more_info	String
+field	code.api.v5_1_0.AtmJsonV510	name	String
+field	code.api.v5_1_0.AtmJsonV510	notes	List[String]
+field	code.api.v5_1_0.AtmJsonV510	phone	String
+field	code.api.v5_1_0.AtmJsonV510	saturday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.AtmJsonV510	services	List[String]
+field	code.api.v5_1_0.AtmJsonV510	site_identification	String
+field	code.api.v5_1_0.AtmJsonV510	site_name	String
+field	code.api.v5_1_0.AtmJsonV510	sunday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.AtmJsonV510	supported_currencies	List[String]
+field	code.api.v5_1_0.AtmJsonV510	supported_languages	List[String]
+field	code.api.v5_1_0.AtmJsonV510	thursday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.AtmJsonV510	tuesday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.AtmJsonV510	wednesday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.AtmsJsonV510	atms	List[code.api.v5_1_0.AtmJsonV510]
+field	code.api.v5_1_0.BankAccountBalanceRequestJsonV510	balance_amount	String
+field	code.api.v5_1_0.BankAccountBalanceRequestJsonV510	balance_type	String
+field	code.api.v5_1_0.BankAccountBalanceResponseJsonV510	account_id	String
+field	code.api.v5_1_0.BankAccountBalanceResponseJsonV510	balance_amount	String
+field	code.api.v5_1_0.BankAccountBalanceResponseJsonV510	balance_id	String
+field	code.api.v5_1_0.BankAccountBalanceResponseJsonV510	balance_type	String
+field	code.api.v5_1_0.BankAccountBalanceResponseJsonV510	bank_id	String
+field	code.api.v5_1_0.BankAccountBalancesJsonV510	balances	List[code.api.v5_1_0.BankAccountBalanceResponseJsonV510]
+field	code.api.v5_1_0.CallLimitJson510	created_at	java.util.Date
+field	code.api.v5_1_0.CallLimitJson510	from_date	java.util.Date
+field	code.api.v5_1_0.CallLimitJson510	per_day_call_limit	String
+field	code.api.v5_1_0.CallLimitJson510	per_hour_call_limit	String
+field	code.api.v5_1_0.CallLimitJson510	per_minute_call_limit	String
+field	code.api.v5_1_0.CallLimitJson510	per_month_call_limit	String
+field	code.api.v5_1_0.CallLimitJson510	per_second_call_limit	String
+field	code.api.v5_1_0.CallLimitJson510	per_week_call_limit	String
+field	code.api.v5_1_0.CallLimitJson510	rate_limiting_id	String
+field	code.api.v5_1_0.CallLimitJson510	to_date	java.util.Date
+field	code.api.v5_1_0.CallLimitJson510	updated_at	java.util.Date
+field	code.api.v5_1_0.CallLimitsJson510	limits	List[code.api.v5_1_0.CallLimitJson510]
+field	code.api.v5_1_0.CertificateInfoJsonV510	issuer_domain_name	String
+field	code.api.v5_1_0.CertificateInfoJsonV510	not_after	String
+field	code.api.v5_1_0.CertificateInfoJsonV510	not_before	String
+field	code.api.v5_1_0.CertificateInfoJsonV510	roles	Option[List[String]]
+field	code.api.v5_1_0.CertificateInfoJsonV510	roles_info	Option[String]
+field	code.api.v5_1_0.CertificateInfoJsonV510	subject_domain_name	String
+field	code.api.v5_1_0.CheckSystemIntegrityJsonV510	debug_info	Option[String]
+field	code.api.v5_1_0.CheckSystemIntegrityJsonV510	success	Boolean
+field	code.api.v5_1_0.ConsentInfoJsonV510	api_standard	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	api_version	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	consent_id	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	consent_reference_id	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	consumer_id	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	created_by_user_id	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	jwt	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	jwt_expires_at	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	jwt_payload	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	last_action_date	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	last_usage_date	String
+field	code.api.v5_1_0.ConsentInfoJsonV510	status	String
+field	code.api.v5_1_0.ConsentJsonV510	consent_id	String
+field	code.api.v5_1_0.ConsentJsonV510	consent_request_id	Option[String]
+field	code.api.v5_1_0.ConsentJsonV510	consumer_id	String
+field	code.api.v5_1_0.ConsentJsonV510	jwt	String
+field	code.api.v5_1_0.ConsentJsonV510	scopes	Option[List[code.api.util.Role]]
+field	code.api.v5_1_0.ConsentJsonV510	status	String
+field	code.api.v5_1_0.ConsentRequestFromAccountJson	account_routing	com.openbankproject.commons.model.AccountRoutingJsonV121
+field	code.api.v5_1_0.ConsentRequestFromAccountJson	bank_routing	code.api.v1_2_1.BankRoutingJsonV121
+field	code.api.v5_1_0.ConsentRequestFromAccountJson	branch_routing	com.openbankproject.commons.model.BranchRoutingJsonV141
+field	code.api.v5_1_0.ConsentRequestToAccountJson	account_routing	com.openbankproject.commons.model.AccountRoutingJsonV121
+field	code.api.v5_1_0.ConsentRequestToAccountJson	bank_routing	code.api.v1_2_1.BankRoutingJsonV121
+field	code.api.v5_1_0.ConsentRequestToAccountJson	branch_routing	com.openbankproject.commons.model.BranchRoutingJsonV141
+field	code.api.v5_1_0.ConsentRequestToAccountJson	counterparty_name	String
+field	code.api.v5_1_0.ConsentRequestToAccountJson	limit	code.api.v5_1_0.PostCounterpartyLimitV510
+field	code.api.v5_1_0.ConsentsInfoJsonV510	consents	List[code.api.v5_1_0.ConsentInfoJsonV510]
+field	code.api.v5_1_0.ConsentsJsonV510	consents	List[code.api.v5_1_0.AllConsentJsonV510]
+field	code.api.v5_1_0.ConsentsJsonV510	number_of_rows	Long
+field	code.api.v5_1_0.ConsumerCertificateJson	certificate	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	app_name	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	app_type	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	certificate_info	Option[code.api.v5_1_0.CertificateInfoJsonV510]
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	certificate_pem	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	company	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	consumer_id	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	consumer_key	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	consumer_secret	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	created	java.util.Date
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	created_by_user	code.api.v2_1_0.ResourceUserJSON
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	description	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	developer_email	String
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	enabled	Boolean
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	logo_url	Option[String]
+field	code.api.v5_1_0.ConsumerJsonOnlyForPostResponseV510	redirect_url	String
+field	code.api.v5_1_0.ConsumerJsonV510	app_name	String
+field	code.api.v5_1_0.ConsumerJsonV510	app_type	String
+field	code.api.v5_1_0.ConsumerJsonV510	certificate_info	Option[code.api.v5_1_0.CertificateInfoJsonV510]
+field	code.api.v5_1_0.ConsumerJsonV510	certificate_pem	String
+field	code.api.v5_1_0.ConsumerJsonV510	company	String
+field	code.api.v5_1_0.ConsumerJsonV510	consumer_id	String
+field	code.api.v5_1_0.ConsumerJsonV510	consumer_key	String
+field	code.api.v5_1_0.ConsumerJsonV510	created	java.util.Date
+field	code.api.v5_1_0.ConsumerJsonV510	created_by_user	code.api.v2_1_0.ResourceUserJSON
+field	code.api.v5_1_0.ConsumerJsonV510	description	String
+field	code.api.v5_1_0.ConsumerJsonV510	developer_email	String
+field	code.api.v5_1_0.ConsumerJsonV510	enabled	Boolean
+field	code.api.v5_1_0.ConsumerJsonV510	logo_url	Option[String]
+field	code.api.v5_1_0.ConsumerJsonV510	redirect_url	String
+field	code.api.v5_1_0.ConsumerJwtPostJsonV510	jwt	String
+field	code.api.v5_1_0.ConsumerLogoUrlJson	logo_url	String
+field	code.api.v5_1_0.ConsumerNameJson	app_name	String
+field	code.api.v5_1_0.ConsumersJsonV510	consumers	List[code.api.v5_1_0.ConsumerJsonV510]
+field	code.api.v5_1_0.CounterpartyLimitStatus	currency_status	String
+field	code.api.v5_1_0.CounterpartyLimitStatus	max_monthly_amount_status	String
+field	code.api.v5_1_0.CounterpartyLimitStatus	max_number_of_monthly_transactions_status	Int
+field	code.api.v5_1_0.CounterpartyLimitStatus	max_number_of_transactions_status	Int
+field	code.api.v5_1_0.CounterpartyLimitStatus	max_number_of_yearly_transactions_status	Int
+field	code.api.v5_1_0.CounterpartyLimitStatus	max_total_amount_status	String
+field	code.api.v5_1_0.CounterpartyLimitStatus	max_yearly_amount_status	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	account_id	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	bank_id	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	counterparty_id	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	counterparty_limit_id	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	currency	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	max_monthly_amount	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	max_number_of_monthly_transactions	Int
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	max_number_of_transactions	Int
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	max_number_of_yearly_transactions	Int
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	max_single_amount	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	max_total_amount	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	max_yearly_amount	String
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	status	code.api.v5_1_0.CounterpartyLimitStatus
+field	code.api.v5_1_0.CounterpartyLimitStatusV510	view_id	String
+field	code.api.v5_1_0.CounterpartyLimitV510	account_id	String
+field	code.api.v5_1_0.CounterpartyLimitV510	bank_id	String
+field	code.api.v5_1_0.CounterpartyLimitV510	counterparty_id	String
+field	code.api.v5_1_0.CounterpartyLimitV510	counterparty_limit_id	String
+field	code.api.v5_1_0.CounterpartyLimitV510	currency	String
+field	code.api.v5_1_0.CounterpartyLimitV510	max_monthly_amount	String
+field	code.api.v5_1_0.CounterpartyLimitV510	max_number_of_monthly_transactions	Int
+field	code.api.v5_1_0.CounterpartyLimitV510	max_number_of_transactions	Int
+field	code.api.v5_1_0.CounterpartyLimitV510	max_number_of_yearly_transactions	Int
+field	code.api.v5_1_0.CounterpartyLimitV510	max_single_amount	String
+field	code.api.v5_1_0.CounterpartyLimitV510	max_total_amount	String
+field	code.api.v5_1_0.CounterpartyLimitV510	max_yearly_amount	String
+field	code.api.v5_1_0.CounterpartyLimitV510	view_id	String
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	app_name	String
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	app_type	String
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	client_certificate	Option[String]
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	company	String
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	description	String
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	developer_email	String
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	enabled	Boolean
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	logo_url	Option[String]
+field	code.api.v5_1_0.CreateConsumerRequestJsonV510	redirect_url	String
+field	code.api.v5_1_0.CreateCustomViewJson	allowed_permissions	List[String]
+field	code.api.v5_1_0.CreateCustomViewJson	description	String
+field	code.api.v5_1_0.CreateCustomViewJson	hide_metadata_if_alias_used	Boolean
+field	code.api.v5_1_0.CreateCustomViewJson	is_public	Boolean
+field	code.api.v5_1_0.CreateCustomViewJson	metadata_view	String
+field	code.api.v5_1_0.CreateCustomViewJson	name	String
+field	code.api.v5_1_0.CreateCustomViewJson	which_alias_to_use	String
+field	code.api.v5_1_0.CreateViewPermissionJson	extra_data	Option[List[String]]
+field	code.api.v5_1_0.CreateViewPermissionJson	permission_name	String
+field	code.api.v5_1_0.CurrenciesJsonV510	currencies	List[code.api.v5_1_0.CurrencyJsonV510]
+field	code.api.v5_1_0.CurrencyJsonV510	alphanumeric_code	String
+field	code.api.v5_1_0.CustomViewJsonV510	alias	String
+field	code.api.v5_1_0.CustomViewJsonV510	allowed_permissions	List[String]
+field	code.api.v5_1_0.CustomViewJsonV510	description	String
+field	code.api.v5_1_0.CustomViewJsonV510	hide_metadata_if_alias_used	Boolean
+field	code.api.v5_1_0.CustomViewJsonV510	id	String
+field	code.api.v5_1_0.CustomViewJsonV510	is_public	Boolean
+field	code.api.v5_1_0.CustomViewJsonV510	metadata_view	String
+field	code.api.v5_1_0.CustomViewJsonV510	name	String
+field	code.api.v5_1_0.MetricJsonV510	app_name	String
+field	code.api.v5_1_0.MetricJsonV510	consumer_id	String
+field	code.api.v5_1_0.MetricJsonV510	correlation_id	String
+field	code.api.v5_1_0.MetricJsonV510	date	java.util.Date
+field	code.api.v5_1_0.MetricJsonV510	developer_email	String
+field	code.api.v5_1_0.MetricJsonV510	duration	Long
+field	code.api.v5_1_0.MetricJsonV510	implemented_by_partial_function	String
+field	code.api.v5_1_0.MetricJsonV510	implemented_in_version	String
+field	code.api.v5_1_0.MetricJsonV510	response_body	org.json4s.JValue
+field	code.api.v5_1_0.MetricJsonV510	source_ip	String
+field	code.api.v5_1_0.MetricJsonV510	target_ip	String
+field	code.api.v5_1_0.MetricJsonV510	url	String
+field	code.api.v5_1_0.MetricJsonV510	user_id	String
+field	code.api.v5_1_0.MetricJsonV510	user_name	String
+field	code.api.v5_1_0.MetricJsonV510	verb	String
+field	code.api.v5_1_0.MetricsJsonV510	metrics	List[code.api.v5_1_0.MetricJsonV510]
+field	code.api.v5_1_0.MinimalAgentJsonV510	agent_id	String
+field	code.api.v5_1_0.MinimalAgentJsonV510	agent_number	String
+field	code.api.v5_1_0.MinimalAgentJsonV510	legal_name	String
+field	code.api.v5_1_0.MinimalAgentsJsonV510	agents	List[code.api.v5_1_0.MinimalAgentJsonV510]
+field	code.api.v5_1_0.PostAccountAccessJsonV510	user_id	String
+field	code.api.v5_1_0.PostAccountAccessJsonV510	view_id	String
+field	code.api.v5_1_0.PostAgentJsonV510	agent_number	String
+field	code.api.v5_1_0.PostAgentJsonV510	currency	String
+field	code.api.v5_1_0.PostAgentJsonV510	legal_name	String
+field	code.api.v5_1_0.PostAgentJsonV510	mobile_phone_number	String
+field	code.api.v5_1_0.PostAtmJsonV510	accessibility_features	List[String]
+field	code.api.v5_1_0.PostAtmJsonV510	address	code.api.v3_0_0.AddressJsonV300
+field	code.api.v5_1_0.PostAtmJsonV510	atm_type	String
+field	code.api.v5_1_0.PostAtmJsonV510	balance_inquiry_fee	String
+field	code.api.v5_1_0.PostAtmJsonV510	bank_id	String
+field	code.api.v5_1_0.PostAtmJsonV510	branch_identification	String
+field	code.api.v5_1_0.PostAtmJsonV510	cash_withdrawal_international_fee	String
+field	code.api.v5_1_0.PostAtmJsonV510	cash_withdrawal_national_fee	String
+field	code.api.v5_1_0.PostAtmJsonV510	friday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.PostAtmJsonV510	has_deposit_capability	String
+field	code.api.v5_1_0.PostAtmJsonV510	id	Option[String]
+field	code.api.v5_1_0.PostAtmJsonV510	is_accessible	String
+field	code.api.v5_1_0.PostAtmJsonV510	located_at	String
+field	code.api.v5_1_0.PostAtmJsonV510	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
+field	code.api.v5_1_0.PostAtmJsonV510	location_categories	List[String]
+field	code.api.v5_1_0.PostAtmJsonV510	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
+field	code.api.v5_1_0.PostAtmJsonV510	minimum_withdrawal	String
+field	code.api.v5_1_0.PostAtmJsonV510	monday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.PostAtmJsonV510	more_info	String
+field	code.api.v5_1_0.PostAtmJsonV510	name	String
+field	code.api.v5_1_0.PostAtmJsonV510	notes	List[String]
+field	code.api.v5_1_0.PostAtmJsonV510	phone	String
+field	code.api.v5_1_0.PostAtmJsonV510	saturday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.PostAtmJsonV510	services	List[String]
+field	code.api.v5_1_0.PostAtmJsonV510	site_identification	String
+field	code.api.v5_1_0.PostAtmJsonV510	site_name	String
+field	code.api.v5_1_0.PostAtmJsonV510	sunday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.PostAtmJsonV510	supported_currencies	List[String]
+field	code.api.v5_1_0.PostAtmJsonV510	supported_languages	List[String]
+field	code.api.v5_1_0.PostAtmJsonV510	thursday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.PostAtmJsonV510	tuesday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.PostAtmJsonV510	wednesday	code.api.v3_0_0.OpeningTimesV300
+field	code.api.v5_1_0.PostCounterpartyLimitV510	currency	String
+field	code.api.v5_1_0.PostCounterpartyLimitV510	max_monthly_amount	String
+field	code.api.v5_1_0.PostCounterpartyLimitV510	max_number_of_monthly_transactions	Int
+field	code.api.v5_1_0.PostCounterpartyLimitV510	max_number_of_transactions	Int
+field	code.api.v5_1_0.PostCounterpartyLimitV510	max_number_of_yearly_transactions	Int
+field	code.api.v5_1_0.PostCounterpartyLimitV510	max_single_amount	String
+field	code.api.v5_1_0.PostCounterpartyLimitV510	max_total_amount	String
+field	code.api.v5_1_0.PostCounterpartyLimitV510	max_yearly_amount	String
+field	code.api.v5_1_0.PostCustomerLegalNameJsonV510	legal_name	String
+field	code.api.v5_1_0.PostTransactionRequestStatusJsonV510	status	String
+field	code.api.v5_1_0.PostUKConsentAuthoriseJsonV510	account_ids	List[String]
+field	code.api.v5_1_0.PostUKConsentAuthoriseJsonV510	answer	String
+field	code.api.v5_1_0.PostUKConsentAuthoriseJsonV510	challenge_id	String
+field	code.api.v5_1_0.PostVRPConsentRequestJsonV510	email	Option[String]
+field	code.api.v5_1_0.PostVRPConsentRequestJsonV510	from_account	code.api.v5_1_0.ConsentRequestFromAccountJson
+field	code.api.v5_1_0.PostVRPConsentRequestJsonV510	phone_number	Option[String]
+field	code.api.v5_1_0.PostVRPConsentRequestJsonV510	time_to_live	Option[Long]
+field	code.api.v5_1_0.PostVRPConsentRequestJsonV510	to_account	code.api.v5_1_0.ConsentRequestToAccountJson
+field	code.api.v5_1_0.PostVRPConsentRequestJsonV510	valid_from	Option[java.util.Date]
+field	code.api.v5_1_0.PutAgentJsonV510	is_confirmed_agent	Boolean
+field	code.api.v5_1_0.PutAgentJsonV510	is_pending_agent	Boolean
+field	code.api.v5_1_0.PutConsentPayloadJsonV510	access	code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson
+field	code.api.v5_1_0.RegulatedEntitiesJsonV510	entities	List[code.api.v5_1_0.RegulatedEntityJsonV510]
+field	code.api.v5_1_0.RegulatedEntityAttributeRequestJsonV510	attribute_type	String
+field	code.api.v5_1_0.RegulatedEntityAttributeRequestJsonV510	is_active	Option[Boolean]
+field	code.api.v5_1_0.RegulatedEntityAttributeRequestJsonV510	name	String
+field	code.api.v5_1_0.RegulatedEntityAttributeRequestJsonV510	value	String
+field	code.api.v5_1_0.RegulatedEntityAttributeResponseJsonV510	attribute_type	String
+field	code.api.v5_1_0.RegulatedEntityAttributeResponseJsonV510	is_active	Option[Boolean]
+field	code.api.v5_1_0.RegulatedEntityAttributeResponseJsonV510	name	String
+field	code.api.v5_1_0.RegulatedEntityAttributeResponseJsonV510	regulated_entity_attribute_id	String
+field	code.api.v5_1_0.RegulatedEntityAttributeResponseJsonV510	regulated_entity_id	String
+field	code.api.v5_1_0.RegulatedEntityAttributeResponseJsonV510	value	String
+field	code.api.v5_1_0.RegulatedEntityAttributesJsonV510	attributes	List[code.api.v5_1_0.RegulatedEntityAttributeResponseJsonV510]
+field	code.api.v5_1_0.RegulatedEntityJsonV510	attributes	Option[List[com.openbankproject.commons.model.RegulatedEntityAttributeSimple]]
+field	code.api.v5_1_0.RegulatedEntityJsonV510	certificate_authority_ca_owner_id	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_address	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_certificate_public_key	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_code	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_country	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_id	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_name	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_post_code	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_town_city	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_type	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	entity_web_site	String
+field	code.api.v5_1_0.RegulatedEntityJsonV510	services	org.json4s.JValue
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	attributes	Option[List[com.openbankproject.commons.model.RegulatedEntityAttributeSimple]]
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	certificate_authority_ca_owner_id	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_address	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_certificate_public_key	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_code	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_country	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_name	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_post_code	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_town_city	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_type	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	entity_web_site	String
+field	code.api.v5_1_0.RegulatedEntityPostJsonV510	services	org.json4s.JValue
+field	code.api.v5_1_0.SuggestedSessionTimeoutV510	timeout_in_seconds	String
+field	code.api.v5_1_0.UKConsentScaChallengeJsonV510	challenge_id	String
+field	code.api.v5_1_0.UKConsentScaChallengeJsonV510	sca_method	String
+field	code.api.v5_1_0.UKConsentScaChallengeJsonV510	sca_status	String
+field	code.api.v5_1_0.UpdateCustomViewJson	allowed_permissions	List[String]
+field	code.api.v5_1_0.UpdateCustomViewJson	description	String
+field	code.api.v5_1_0.UpdateCustomViewJson	hide_metadata_if_alias_used	Boolean
+field	code.api.v5_1_0.UpdateCustomViewJson	is_public	Boolean
+field	code.api.v5_1_0.UpdateCustomViewJson	metadata_view	String
+field	code.api.v5_1_0.UpdateCustomViewJson	which_alias_to_use	String
+field	code.api.v5_1_0.UserAttributeJsonV510	name	String
+field	code.api.v5_1_0.UserAttributeJsonV510	type	String
+field	code.api.v5_1_0.UserAttributeJsonV510	value	String
+field	code.api.v5_1_0.UserAttributeResponseJsonV510	insert_date	java.util.Date
+field	code.api.v5_1_0.UserAttributeResponseJsonV510	is_personal	Boolean
+field	code.api.v5_1_0.UserAttributeResponseJsonV510	name	String
+field	code.api.v5_1_0.UserAttributeResponseJsonV510	type	String
+field	code.api.v5_1_0.UserAttributeResponseJsonV510	user_attribute_id	String
+field	code.api.v5_1_0.UserAttributeResponseJsonV510	value	String
+field	code.api.v5_1_0.UserValidatedJson	is_validated	Boolean
+field	code.api.v5_1_0.UserWithNamesJsonV510	agreements	Option[List[code.api.v4_0_0.UserAgreementJson]]
+field	code.api.v5_1_0.UserWithNamesJsonV510	email	String
+field	code.api.v5_1_0.UserWithNamesJsonV510	entitlements	code.api.v2_0_0.EntitlementJSONs
+field	code.api.v5_1_0.UserWithNamesJsonV510	first_name	String
+field	code.api.v5_1_0.UserWithNamesJsonV510	is_deleted	Boolean
+field	code.api.v5_1_0.UserWithNamesJsonV510	is_locked	Boolean
+field	code.api.v5_1_0.UserWithNamesJsonV510	last_marketing_agreement_signed_date	Option[java.util.Date]
+field	code.api.v5_1_0.UserWithNamesJsonV510	last_name	String
+field	code.api.v5_1_0.UserWithNamesJsonV510	provider	String
+field	code.api.v5_1_0.UserWithNamesJsonV510	provider_id	String
+field	code.api.v5_1_0.UserWithNamesJsonV510	user_id	String
+field	code.api.v5_1_0.UserWithNamesJsonV510	username	String
+field	code.api.v5_1_0.UserWithNamesJsonV510	views	Option[code.api.v3_0_0.ViewsJSON300]
+field	code.api.v5_1_0.WaitingForGodotJsonV510	sleep_in_milliseconds	Long
 field	code.authtypevalidation.JsonAuthTypeValidation	authTypes	List[code.api.util.AuthenticationType]
 field	code.authtypevalidation.JsonAuthTypeValidation	operationId	String
 field	code.connectormethod.JsonConnectorMethod	connectorMethodId	Option[String]
@@ -3306,6 +3829,9 @@ field	com.openbankproject.commons.model.OrderObjectJson	order_id	String
 field	com.openbankproject.commons.model.OrderObjectJson	shipping_code	String
 field	com.openbankproject.commons.model.OrderObjectJson	status	String
 field	com.openbankproject.commons.model.PaymentAccount	iban	String
+field	com.openbankproject.commons.model.RegulatedEntityAttributeSimple	attributeType	String
+field	com.openbankproject.commons.model.RegulatedEntityAttributeSimple	name	String
+field	com.openbankproject.commons.model.RegulatedEntityAttributeSimple	value	String
 field	com.openbankproject.commons.model.SepaCreditTransfers	creditorAccount	com.openbankproject.commons.model.PaymentAccount
 field	com.openbankproject.commons.model.SepaCreditTransfers	creditorName	String
 field	com.openbankproject.commons.model.SepaCreditTransfers	debtorAccount	com.openbankproject.commons.model.PaymentAccount
