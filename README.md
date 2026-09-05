@@ -946,8 +946,17 @@ If it is required for a "STABLE" api to be changed, then the class metadata must
 
 ### Steps to freeze an API
 
-- Run the FrozenClassUtil to regenerate persist file of frozen apis information, the file is `PROJECT_ROOT_PATH/obp-api/src/test/resources/frozen_type_meta_data`
-- push the file `frozen_type_meta_data` to github
+- Set the version's `versionStatus` to `ApiVersionStatus.STABLE` in both places it is defined (`OBPAPIx_y_z` and `Http4sXYZ`).
+- Regenerate the snapshot and its text rendering from Maven, on the reactor classpath:
+
+  ```sh
+  FROZEN_REGENERATE=true mvn -pl obp-api -am test -DwildcardSuites=code.util.FrozenSnapshotGenerate
+  ```
+
+  Without `FROZEN_REGENERATE=true` the suite cancels, so a normal test run never rewrites the snapshot.
+- Review `git diff obp-api/src/test/resources/` (the `.txt` shows the endpoints and fields that entered or left the freeze), run `code.util.FrozenClassTest` and `code.util.FrozenMetaDataTextTest`, then commit `frozen_type_meta_data` together with `frozen_type_meta_data.txt`.
+
+Running the generator as a plain JVM main (`code.util.FrozenClassUtil`, then `code.util.FrozenMetaDataText`) still works but needs care: put `obp-api/target/test-classes` first on the classpath (the output path is derived from the first classpath root, or set `-Dfrozen.metadata.path=...`), and build the classpath from the reactor rather than `dependency:build-classpath`, which resolves `obp-commons` from `~/.m2` and can drag in a stale build with Scala 2.12 dependencies. Reinstall `obp-commons` (`mvn install -pl obp-commons -DskipTests`) whenever it changes.
 
 There is a video about the detail: [demonstrate the detail of the feature](https://www.youtube.com/watch?v=m9iYCSM0bKA)
 

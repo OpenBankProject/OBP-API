@@ -81,8 +81,9 @@ object FrozenMetaDataText {
   /** blobPath + ".txt" - the text sits beside the blob it describes rather than somewhere central. */
   def textPathOf(blobPath: String): String = blobPath + ".txt"
 
-  def main(args: Array[String]): Unit = {
-    val written = List(
+  /** (Re)write the text rendering next to each blob. Callable from a suite; returns what was written. */
+  def writeAll(): List[java.nio.file.Path] =
+    List(
       FrozenClassUtil.persistFilePath -> renderFrozenApiInfo(FrozenClassUtil.persistFilePath),
       RestConnector_vMar2019_FrozenUtil.persistFilePath -> renderConnectorInfo(RestConnector_vMar2019_FrozenUtil.persistFilePath)
     ).map { case (blobPath, text) =>
@@ -90,7 +91,9 @@ object FrozenMetaDataText {
       Files.write(target, text.getBytes(StandardCharsets.UTF_8))
       target
     }
-    written.foreach(p => println(s"wrote $p"))
+
+  def main(args: Array[String]): Unit = {
+    writeAll().foreach(p => println(s"wrote $p"))
     println("review the diff, then commit each blob with its text")
   }
 }

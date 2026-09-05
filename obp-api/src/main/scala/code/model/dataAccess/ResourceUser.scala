@@ -95,12 +95,6 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   object LastUsedLocale extends MappedString(this, 10) {
     override def defaultValue = null
   }
-  object IsNaturalPerson extends MappedBoolean(this) {
-    override def defaultValue = true
-  }
-  object PrincipalUserId extends MappedString(this, 100) {
-    override def defaultValue = null
-  }
   // Deliberately NOT unique — several users may share a number
   object MobilePhoneNumber extends MappedString(this, 50) {
     override def defaultValue = null
@@ -139,8 +133,6 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   override def isDeleted: Option[Boolean] = if(IsDeleted.jdbcFriendly(IsDeleted.calcFieldName) == null) None else Some(IsDeleted.get) // null --> None
   override def lastMarketingAgreementSignedDate: Option[Date] = if(IsDeleted.jdbcFriendly(LastMarketingAgreementSignedDate.calcFieldName) == null) None else Some(LastMarketingAgreementSignedDate.get) // null --> None
   override def lastUsedLocale: Option[String] = if(LastUsedLocale.get == null) None else Some(LastUsedLocale.get) // null --> None
-  override def isNaturalPerson: Boolean = IsNaturalPerson.get
-  override def principalUserIdOption: Option[String] = if(PrincipalUserId.get == null) None else if (PrincipalUserId.get.isEmpty) None else Some(PrincipalUserId.get)
   override def mobilePhoneNumber: Option[String] = if(MobilePhoneNumber.get == null) None else if (MobilePhoneNumber.get.isEmpty) None else Some(MobilePhoneNumber.get)
   override def mobilePhoneNumberIsValidated: Option[Boolean] = if(MobilePhoneNumberIsValidated.jdbcFriendly(MobilePhoneNumberIsValidated.calcFieldName) == null) None else Some(MobilePhoneNumberIsValidated.get) // null --> None
   override def mobilePhoneNumberValidatedDate: Option[Date] = if(MobilePhoneNumberValidatedDate.get == null) None else Some(MobilePhoneNumberValidatedDate.get)
@@ -149,7 +141,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     // userId_ is deliberately NOT declared here: MigrationOfUserIdIndexes creates a stronger
     // UNIQUE index on it (resourceuser_userid_unique). CreatedByConsentId is the delegation
-    // registry — consent-agent fan-down (/my/metrics, /my/banks) and accountableUserId join
+    // registry — consent-agent fan-down (/my/metrics, /my/banks) and onBehalfOfUserId join
     // through it; nothing else indexes it, which matters on consent-heavy instances where every
     // consent mints a user row.
     override def dbIndexes = UniqueIndex(provider_, providerId) :: Index(CreatedByConsentId) :: super.dbIndexes

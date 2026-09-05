@@ -82,13 +82,16 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
         val saved = entityToPersist
           .EntityName(dynamicEntity.entityName)
           .MetadataJson(dynamicEntity.metadataJson)
-          .UserId(dynamicEntity.userId)
+          // Definition creator resolves to the on-behalf-of user (UserReference.DynamicEntityUser):
+          // a consent user owns nothing durable. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+          .UserId(code.users.Users.users.vend.attributedUserId(dynamicEntity.userId, code.users.UserReference.DynamicEntityUser).openOr(dynamicEntity.userId))
           .BankId(dynamicEntity.bankId.getOrElse(null))
           .HasPersonalEntity(dynamicEntity.hasPersonalEntity)
           .HasPublicAccess(dynamicEntity.hasPublicAccess)
           .HasCommunityAccess(dynamicEntity.hasCommunityAccess)
           .PersonalRequiresRole(dynamicEntity.personalRequiresRole)
           .UseRowLevelAccess(dynamicEntity.useRowLevelAccess)
+          .AuthMode(DynamicEntityAuthMode.normalise(dynamicEntity.authMode))
           .saveMe()
         // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
         // Guarded by projectionEnabled (default off); best-effort (a failure leaves the definition saved
@@ -98,7 +101,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           try {
             val info = code.api.dynamic.entity.helper.DynamicEntityInfo(
               dynamicEntity.metadataJson, dynamicEntity.entityName, dynamicEntity.bankId,
-              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole, dynamicEntity.useRowLevelAccess)
+              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole, dynamicEntity.useRowLevelAccess, dynamicEntity.authMode)
             val scalar = code.api.dynamic.entity.projection.ProjectionProvisioner.scalarFieldsOf(info.indexedFields)
             if (scalar.nonEmpty)
               code.api.dynamic.entity.projection.ProjectionProvisioner
@@ -144,6 +147,8 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   object HasCommunityAccess extends MappedBoolean(this)
   object PersonalRequiresRole extends MappedBoolean(this)
   object UseRowLevelAccess extends MappedBoolean(this)
+  // Name of an EndpointAuthMode; null for rows created before the column existed (read as UserOnly).
+  object AuthMode extends MappedString(this, 32)
 
   override def dynamicEntityId: Option[String] = Option(DynamicEntityId.get)
   override def entityName: String = EntityName.get
@@ -155,6 +160,7 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   override def hasCommunityAccess: Boolean = HasCommunityAccess.get
   override def personalRequiresRole: Boolean = PersonalRequiresRole.get
   override def useRowLevelAccess: Boolean = UseRowLevelAccess.get
+  override def authMode: String = DynamicEntityAuthMode.normalise(AuthMode.get)
 }
 
 object DynamicEntity extends DynamicEntity with LongKeyedMetaMapper[DynamicEntity] {

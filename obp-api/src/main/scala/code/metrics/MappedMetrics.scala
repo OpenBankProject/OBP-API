@@ -435,7 +435,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       // The LEFT JOIN attributes consent-borne calls to the granting (on-behalf-of) human:
       // metric.userid records the AUTHENTICATED principal, which under a consent is the
       // consent's own shadow user. COALESCE(consent.muserid, metric.userid) resolves such rows
-      // to the granting human at read time, mirroring CallContext.accountableUserId. (Rows
+      // to the granting human at read time, mirroring CallContext.onBehalfOfUserId. (Rows
       // written 2026-08 only, while toLight briefly recorded the human, resolve identically.)
       // The consent side of the join is unique-indexed on consent_reference_id, so the join
       // cannot fan out rows.

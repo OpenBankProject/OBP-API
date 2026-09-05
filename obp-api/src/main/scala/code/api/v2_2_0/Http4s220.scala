@@ -468,7 +468,7 @@ object Http4s220 {
             )
             // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
-            humanUserId = cc.accountableUserId
+            humanUserId = cc.onBehalfOfUserId
             entitlements <- Future {
               unboxFullOrFail(
                 code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(humanUserId),

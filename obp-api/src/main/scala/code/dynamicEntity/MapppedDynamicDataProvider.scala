@@ -21,16 +21,29 @@ import org.apache.commons.lang3.StringUtils
  * This provides a unified view of a user's data whether it was created via /my/ or non-/my/ endpoints.
  */
 object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonFormats{
+
+  /**
+   * The user a row belongs to: the caller, or the user its consent names (attribution policy
+   * UserReference.DynamicDataUser). Applied on every entry point that takes a userId, for
+   * reads as well as writes, so a consent user reads, updates and deletes the same rows it
+   * writes. The resolver logs each redirect; a Failure (invariant broken) keeps the caller.
+   * The endpoint decides who may reach this provider (a consent user needs the entity's role,
+   * see Http4sDynamicEntity.personalRoleWaived). ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+   */
+  private def ownerOf(userId: Option[String]): Option[String] =
+    userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicDataUser).openOr(id))
+
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
     val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
     val dynamicData: DynamicData = DynamicData.create.DynamicDataId(idValue)
-    val result = saveOrUpdate(bankId, entityName, requestBody, userId, isPersonalEntity, dynamicData)
+    val result = saveOrUpdate(bankId, entityName, requestBody, ownerOf(userId), isPersonalEntity, dynamicData)
     result
   }
   override def update(bankId: Option[String], entityName: String, requestBody: JObject, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
-    val dynamicData = get(bankId, entityName, id, userId, isPersonalEntity).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id").asInstanceOf[DynamicData]
-    saveOrUpdate(bankId, entityName, requestBody, userId, isPersonalEntity, dynamicData)
+    val owner = ownerOf(userId)
+    val dynamicData = get(bankId, entityName, id, owner, isPersonalEntity).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id").asInstanceOf[DynamicData]
+    saveOrUpdate(bankId, entityName, requestBody, owner, isPersonalEntity, dynamicData)
   }
 
   // Separate method for reference validation - only checks ID and entity name exist
@@ -44,7 +57,8 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     exists
   }
 
-  override def get(bankId: Option[String],entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
+  override def get(bankId: Option[String],entityName: String, id: String, callerUserId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
+    val userId = ownerOf(callerUserId)
     if(bankId.isEmpty && !isPersonalEntity ){ //isPersonalEntity == false, get all the data, no need for specific userId.
       //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
       DynamicData.find(
@@ -97,7 +111,8 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       .map(_.asInstanceOf[JObject])
   }
 
-  override def getAll(bankId: Option[String], entityName: String, userId: Option[String], isPersonalEntity: Boolean): List[DynamicDataT] = {
+  override def getAll(bankId: Option[String], entityName: String, callerUserId: Option[String], isPersonalEntity: Boolean): List[DynamicDataT] = {
+    val userId = ownerOf(callerUserId)
     if(bankId.isEmpty && !isPersonalEntity){ //isPersonalEntity == false, get all the data, no need for specific userId.
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
@@ -194,7 +209,8 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     }
   }
 
-  override def existsData(bankId: Option[String], dynamicEntityName: String, userId: Option[String], isPersonalEntity: Boolean): Boolean = {
+  override def existsData(bankId: Option[String], dynamicEntityName: String, callerUserId: Option[String], isPersonalEntity: Boolean): Boolean = {
+    val userId = ownerOf(callerUserId)
     if(bankId.isEmpty && !isPersonalEntity){//isPersonalEntity == false, get all the data, no need for specific userId.
       DynamicData.find(
         By(DynamicData.DynamicEntityName, dynamicEntityName),

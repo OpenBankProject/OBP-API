@@ -130,11 +130,11 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
     }
 
     // The differently-named fields are a deliberate projection, pinned here by hand:
-    // userId/userName come from the AUTHENTICATED principal (CallContext.user), never from
-    // a resolved human. Under a consent the principal is the consent's shadow user; the
-    // human stays on the context as consenter/onBehalfOfUser and is resolved at read time
-    // via the consent table, never baked into stored rows.
-    scenario("userId and userName carry the AUTHENTICATED principal, even when consenter and onBehalfOfUser are set")
+    // userId/userName come from the AUTHENTICATED user (CallContext.user), never from
+    // the resolved on-behalf-of user. Under a consent the authenticated user is the consent
+    // user; the on-behalf-of user stays on the context as consenter/consentCreator and is
+    // resolved at read time via the consent table, never baked into stored rows.
+    scenario("userId and userName carry the AUTHENTICATED user, even when consenter and consentCreator are set")
     {
       val principal = ResourceUser.create.userId_("principal-user-id").name_("principal-name")
       val human = ResourceUser.create.userId_("human-user-id").name_("human-name")
@@ -142,7 +142,7 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
       val light = CallContext(
         user = Full(principal),
         consenter = Full(human),
-        onBehalfOfUser = Full(human),
+        consentCreator = Full(human),
         directLoginParams = Map("token" -> "dl-token")
       ).toLight
 

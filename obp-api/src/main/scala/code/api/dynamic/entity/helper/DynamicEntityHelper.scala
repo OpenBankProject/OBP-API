@@ -3,7 +3,7 @@ package code.api.dynamic.entity.helper
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, userAuthenticationMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired, ConsentMyResourcesMissing}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
@@ -148,7 +148,7 @@ object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess))).toMap
+  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap { dEntity =>
     val baseRoles = DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId)
@@ -274,7 +274,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.GET_ONE, splitNameWithBankId) -> ResourceDoc(
@@ -301,7 +302,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, splitNameWithBankId) -> ResourceDoc(
@@ -330,7 +332,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, splitNameWithBankId) -> ResourceDoc(
@@ -359,7 +362,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.PATCH, splitNameWithBankId) -> ResourceDoc(
@@ -395,7 +399,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, splitNameWithBankId) -> ResourceDoc(
@@ -421,13 +426,17 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     if(hasPersonalEntity){ //only hasPersonalEntity == true, then create the myEndpoints
       val personalRequiresRole = dynamicEntityInfo.personalRequiresRole
-      val myErrorMessages = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError) else List(AuthenticatedUserIsRequired, UnknownError)
-      val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError)
+      val myErrorMessages = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, ConsentMyResourcesMissing, UnknownError) else List(AuthenticatedUserIsRequired, ConsentMyResourcesMissing, UnknownError)
+      val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, ConsentMyResourcesMissing, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, ConsentMyResourcesMissing, InvalidJsonFormat, UnknownError)
+      val myConsentUserNote =
+        "With a Consent: the consent user may use this endpoint only if the Consent lists this entity in `my_resources.personal_dynamic_entities` with the needed action (`read` for GET, `write` otherwise); rows written with a Consent belong to the User who granted it." +
+        (if (personalRequiresRole) " The role is required in addition." else "")
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
         implementedInApiVersion,
@@ -443,6 +452,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
            |""".stripMargin,
@@ -468,6 +479,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getSingleExample,
@@ -492,6 +505,8 @@ object DynamicEntityHelper {
            |
            |${userAuthenticationMessage(true)}
            |
+           |$myConsentUserNote
+           |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
         dynamicEntityInfo.getSingleExample,
@@ -515,6 +530,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
@@ -543,6 +560,8 @@ object DynamicEntityHelper {
            |
            |${userAuthenticationMessage(true)}
            |
+           |$myConsentUserNote
+           |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
@@ -563,6 +582,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
@@ -742,7 +763,15 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false, useRowLevelAccess: Boolean = false) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false, useRowLevelAccess: Boolean = false, authMode: String = code.dynamicEntity.DynamicEntityAuthMode.default) {
+
+  /** The entity's auth mode as the framework type; unknown or empty values read as UserOnly. */
+  val endpointAuthMode: code.api.util.APIUtil.EndpointAuthMode = authMode match {
+    case code.dynamicEntity.DynamicEntityAuthMode.ApplicationOnly => code.api.util.APIUtil.ApplicationOnly
+    case code.dynamicEntity.DynamicEntityAuthMode.UserOrApplication => code.api.util.APIUtil.UserOrApplication
+    case code.dynamicEntity.DynamicEntityAuthMode.UserAndApplication => code.api.util.APIUtil.UserAndApplication
+    case _ => code.api.util.APIUtil.UserOnly
+  }
 
   import com.openbankproject.commons.util.json
   import code.api.dynamic.entity.query.FieldSpec

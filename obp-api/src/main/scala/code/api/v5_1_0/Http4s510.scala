@@ -92,6 +92,9 @@ case class UKConsentScaChallengeJsonV510(challenge_id: String, sca_status: Strin
 case class PostUKConsentAuthoriseJsonV510(challenge_id: String, answer: String, account_ids: List[String])
 
 object Http4s510 {
+  /** The shared consent description, reused by the v6.0.0 create-consent doc. */
+  def generalObpConsentTextForV600: String = Implementations5_1_0.generalObpConsentText
+
 
   type HttpF[A] = OptionT[IO, A]
 
@@ -99,7 +102,7 @@ object Http4s510 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_1_0
-  val versionStatus: String = ApiVersionStatus.BLEEDING_EDGE.toString
+  val versionStatus: String = ApiVersionStatus.STABLE.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
   object Implementations5_1_0 {
@@ -4713,11 +4716,11 @@ object Http4s510 {
           for {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
-            // cc.humanUser, not cc.userId: under consent authentication the principal is the
-            // per-consent shadow user, so comparing it against the consent's PSU never matched and
+            // cc.onBehalfOfUser, not cc.userId: under consent authentication the authenticated user
+            // is the consent user, so comparing it against the consent's PSU never matched and
             // the PSU got a 404 for their own consent. See Consent.checkObpConsentUserAccess for
             // why an unbound consent stays readable.
-            _ <- Consent.checkObpConsentUserAccess(consent.userId, cc.humanUser.toOption.map(_.userId)) match {
+            _ <- Consent.checkObpConsentUserAccess(consent.userId, cc.onBehalfOfUser.toOption.map(_.userId)) match {
               case Some(reason) => Helper.booleanToFuture(failMsg = reason, failCode = 404, cc = Some(cc))(false)
               case None => Future.successful(true)
             }
@@ -4867,7 +4870,7 @@ object Http4s510 {
       http4sPartialFunction = Some(selfRevokeConsent)
     )
 
-    private val generalObpConsentText: String =
+    val generalObpConsentText: String =
       s"""
          |
          |An OBP Consent allows the holder of the Consent to call one or more endpoints.
@@ -4994,6 +4997,13 @@ object Http4s510 {
               }
             }
             requestedEntitlements = consentJson.entitlements
+            // Reject CanCreateEntitlementAtAnyBank explicitly (same rule as the consent-request flow).
+            // createConsentJWT drops it anyway, but silently omitting a requested role is worse
+            // than a 400: the caller must never believe a consent carries a role it does not.
+            // CanCreateEntitlementAtOneBank is allowed, see createConsentByConsentRequestId.
+            _ <- Helper.booleanToFuture(RolesForbiddenInConsent, cc = callContextOpt) {
+              !requestedEntitlements.map(_.role_name).contains(canCreateEntitlementAtAnyBank.toString())
+            }
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContextOpt) {
               requestedEntitlements.forall(re =>
@@ -5142,7 +5152,7 @@ object Http4s510 {
       |""",
       postConsentImplicitJsonV310, consentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
-        RolesAllowedInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+        RolesAllowedInConsent, RolesForbiddenInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
         MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,

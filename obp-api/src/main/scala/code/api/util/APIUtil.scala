@@ -2247,6 +2247,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
+  /**
+   * A consent user (the per-consent principal a Consent-JWT authenticates as) never gets
+   * just-in-time entitlements. Its roles come from the consent alone: a consent may carry
+   * CanCreateEntitlementAtOneBank so the agent can grant bank roles to humans, and
+   * addEntitlement redirects any grant aimed at a consent user to its granting human. Without
+   * this guard the JIT path would call addEntitlement, see the redirected row as a success,
+   * and let the consent user through with a role the consent never named.
+   */
+  def isConsentUser(userId: String): Boolean =
+    Users.users.vend.getUserByUserId(userId).exists(_.isConsentUser)
+
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
     case role =>
@@ -2316,7 +2327,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       def userHasTheRoles: Boolean = {
         val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
         userHasTheRole || {
-          getPropsAsBoolValue("create_just_in_time_entitlements", false) && {
+          getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
             // If a user is trying to use a Role and the user could grant them selves the required Role(s),
             // then just automatically grant the Role(s)!
             (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
@@ -2377,7 +2388,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         def userHasTheRoles: Boolean = {
           val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
           userHasTheRole || {
-            getPropsAsBoolValue("create_just_in_time_entitlements", false) && {
+            getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
               (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
                 hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
                 roles.forall { role =>
@@ -3743,6 +3754,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:48123"),
     "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
     "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
+    "public_obp_stripe_url" -> getPropsValue("public_obp_stripe_url").openOr("http://localhost:4242"),
     "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")
   )
   val publicAppUrlPropNames: List[String] = publicAppUrlDefaults.keys.toList.sorted

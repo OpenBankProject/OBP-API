@@ -55,6 +55,8 @@ import code.apicollection.ApiCollection
 import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apiproduct.ApiProduct
 import code.apiproductattribute.ApiProductAttribute
+import code.apiproductsubscription.{ApiProductSubscription, ApiProductSubscriptionScope}
+import code.apiproductsubscriptionattribute.ApiProductSubscriptionAttribute
 import code.atmattribute.AtmAttribute
 import code.atms.MappedAtm
 import code.authtypevalidation.AuthenticationTypeValidation
@@ -996,6 +998,9 @@ object ToSchemify extends MdcLoggable {
     ApiCollectionEndpoint,
     ApiProduct,
     ApiProductAttribute,
+    ApiProductSubscription,
+    ApiProductSubscriptionScope,
+    ApiProductSubscriptionAttribute,
     FeaturedApiCollection,
     JsonSchemaValidation,
     AuthenticationTypeValidation,

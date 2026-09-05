@@ -117,7 +117,12 @@ object Caching extends MdcLoggable {
    * @return Number of cache keys deleted
    */
   def invalidateRateLimitCache(consumerId: String): Int = {
-    val pattern = s"${RATE_LIMIT_ACTIVE_PREFIX}${consumerId}_*"
+    // scalacache stores the entry as
+    //   <serialization namespace>:code.api.cache.Redis.memoizeSyncWithRedis(Some(<our cache key>))()()
+    // so the glob must be unanchored at the front, as "*getMethodRoutings*" is. Without the
+    // leading "*" this deleted nothing (silently) and a new or changed rate limit only took
+    // effect when the hour cache expired. Pinned by CacheKeyFormatTest.
+    val pattern = s"*${RATE_LIMIT_ACTIVE_PREFIX}${consumerId}_*"
     Redis.deleteKeysByPattern(pattern)
   }
 
@@ -128,7 +133,7 @@ object Caching extends MdcLoggable {
    * @return Number of cache keys deleted
    */
   def invalidateAllRateLimitCache(): Int = {
-    val pattern = s"${RATE_LIMIT_ACTIVE_PREFIX}*"
+    val pattern = s"*${RATE_LIMIT_ACTIVE_PREFIX}*"
     Redis.deleteKeysByPattern(pattern)
   }
 

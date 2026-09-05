@@ -486,6 +486,18 @@ object ErrorMessages {
   val ApiProductAttributeNotFound = "OBP-30503: ApiProductAttribute not found. Please specify a valid value for API_PRODUCT_ATTRIBUTE_ID."
   val CreateApiProductAttributeError = "OBP-30504: Could not create ApiProductAttribute."
   val DeleteApiProductAttributeError = "OBP-30505: Could not delete ApiProductAttribute."
+  // API Product Subscription (OBP-30560 .. OBP-30570)
+  val ApiProductSubscriptionNotFound = "OBP-30560: ApiProductSubscription not found. Please specify a valid value for API_PRODUCT_SUBSCRIPTION_ID."
+  val ApiProductSubscriptionAlreadyExists = "OBP-30561: ApiProductSubscription already exists. The Consumer already holds a non-cancelled subscription to this API Product."
+  val InvalidApiProductSubscriptionStatus = "OBP-30562: Invalid ApiProductSubscription status. Allowed values are: requested, active, past_due, suspended, cancelled."
+  val InvalidApiProductSubscriptionStatusTransition = "OBP-30563: Invalid ApiProductSubscription status transition."
+  val ConsumerNotOwnedByUser = "OBP-30564: The Consumer was not created by the current User. Please specify the CONSUMER_ID of one of your own Consumers."
+  val CreateApiProductSubscriptionError = "OBP-30565: Could not create ApiProductSubscription."
+  val UpdateApiProductSubscriptionError = "OBP-30566: Could not update ApiProductSubscription."
+  val DeleteApiProductSubscriptionError = "OBP-30567: Could not delete ApiProductSubscription."
+  val ApiProductSubscriptionAttributeNotFound = "OBP-30568: ApiProductSubscriptionAttribute not found. Please specify a valid value for API_PRODUCT_SUBSCRIPTION_ATTRIBUTE_ID."
+  val CreateApiProductSubscriptionAttributeError = "OBP-30569: Could not create ApiProductSubscriptionAttribute."
+  val DeleteApiProductSubscriptionAttributeError = "OBP-30570: Could not delete ApiProductSubscriptionAttribute."
 
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."
@@ -776,7 +788,7 @@ object ErrorMessages {
   val ConsumerKeyIsInvalid = "OBP-35030: The Consumer Key must be alphanumeric. (A-Z, a-z, 0-9)"
   val ConsumerKeyIsToLong = "OBP-35031: The Consumer Key max length <= 512"
   val ConsentHeaderValueInvalid = "OBP-35032: The Consent's Request Header value is not formatted as UUID or JWT."
-  val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain the following Roles: ${canCreateEntitlementAtOneBank} and ${canCreateEntitlementAtAnyBank}."
+  val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain the following Roles: ${canCreateEntitlementAtAnyBank}."
   val UserAuthContextUpdateRequestAllowedScaMethods = "OBP-35034: Unsupported as SCA method. "
   val ConsentIdClaimMissing = "OBP-35035: The access token is not bound to a Consent. The identity provider must include a consent_id claim in access tokens issued via the consent authorisation flow. "
   val ConsentDoesNotMatchStandard = "OBP-35036: The Consent was created by a different API standard than the endpoint using it. A consent may only be used by endpoints of the standard that created it. "
@@ -784,6 +796,8 @@ object ErrorMessages {
   val InvalidUKConsentPermissions = "OBP-35038: The Permissions array is not a valid combination for UK Open Banking. "
   val BerlinGroupPsuNotIdentified = "OBP-35039: The PSU this authorisation is for cannot be identified. Send the PSU-ID header, or authenticate as the PSU. "
   val ConsentNamesNoAccount = "OBP-35040: The Consent names no account, so it grants no access. It was authorised before consents were bound to accounts; re-authorise it to select which accounts it applies to. "
+  val ConsentMyResourcesInvalid = "OBP-35042: The Consent's my_resources block is invalid. "
+  val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "
 
   //Authorisations
