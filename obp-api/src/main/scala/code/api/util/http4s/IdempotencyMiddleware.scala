@@ -31,11 +31,16 @@ import java.util.Base64
  *   - Concurrent replay while the original is still in flight: 409 Conflict.
  *   - 5xx responses are NOT cached; clients can retry.
  *
- * Scope: the key is namespaced by SHA-256 of (consumer id, or — when
- * unauthenticated — the Authorization header) AND the resolved operation id. This prevents key
- * reuse across consumers AND across endpoints: a client accidentally or deliberately reusing one
- * Idempotency-Key against two different operations gets two independent dedup slots instead of
- * the second operation being treated as a replay of the first and never executed.
+ * Scope: the key is namespaced by SHA-256 of the authenticated user id, the consumer id (or —
+ * when unauthenticated — the Authorization header), the resolved operation id AND the concrete
+ * request path. All four are needed, and each was a real defect while it was missing:
+ *   - user, because one Consumer serves many users, so keying on the consumer alone let user B
+ *     be served user A's cached response for a key A had already used;
+ *   - consumer/Authorization, so a key cannot be reused across consumers;
+ *   - operation id, so one key used against two different operations gets two dedup slots
+ *     instead of the second being treated as a replay of the first and never executed;
+ *   - path, because the operation id is the ResourceDoc TEMPLATE — BANK_ID/ACCOUNT_ID are never
+ *     substituted into it — so without it one key covered every resource under an operation.
  *
  * Validation: 8..255 printable-ASCII characters.  Anything else → 400, regardless of whether this
  * tier serves the path -- a malformed header is a client error no matter where it resolves.
@@ -167,7 +172,19 @@ object IdempotencyMiddleware extends MdcLoggable {
       case Right(None) =>
         IO.blocking(tryAcquireLock(lockKey)).attempt.flatMap {
           case Right(true) =>
-            runAndCache(req, routes, responseKey, lockKey, requestBodyHash)
+            // guaranteeCase, because runAndCache releases the lock only on the paths where it
+            // completes normally. ResourceDocMiddleware wraps every endpoint in
+            // `timeoutTo(endpointTimeoutMs, ...)`, which CANCELS the fiber holding this lock --
+            // so a slow POST answered 504 used to leave idem:lock:<scope>:<key> in Redis for its
+            // full 60s TTL, and the client doing the right thing (retrying with the same key)
+            // was told "409 Idempotent operation already in flight" for up to a minute although
+            // nothing was in flight. Releasing on cancellation and on an error raised out of
+            // routes.run gives the retry the 5xx branch below was written to guarantee. Deleting
+            // a key runAndCache has already deleted is a no-op, so the paths cannot conflict.
+            runAndCache(req, routes, responseKey, lockKey, requestBodyHash).guaranteeCase {
+              case Outcome.Succeeded(_) => IO.unit
+              case _ => IO.blocking(deleteKey(lockKey)).attempt.void
+            }
           case Right(false) =>
             conflictResponse(
               "Idempotent operation already in flight for this Idempotency-Key."
@@ -252,6 +269,16 @@ object IdempotencyMiddleware extends MdcLoggable {
 
   private def scopeFor(req: Request[IO]): String = {
     val ccOpt = req.attributes.lookup(Http4sRequestAttributes.callContextKey)
+    // The USER first, then the consumer, then the raw Authorization header. Keying on the
+    // consumer alone was wrong for the common deployment: one Consumer (API Explorer, the
+    // Portal, a bank's mobile app) serves many users, so user B reusing a key that user A had
+    // already used on the same operation was served A's cached 201 -- B's mutation never ran and
+    // B read back A's identifiers. Both are included rather than just the user because an
+    // unauthenticated caller has no user id at all.
+    val principal = ccOpt
+      .flatMap(_.user.map(_.userId).toOption)
+      .filter(_.nonEmpty)
+      .getOrElse("anonymous-user")
     val consumerOrAuth = ccOpt
       .flatMap(_.consumer.map(_.consumerId).toOption)
       .filter(_.nonEmpty)
@@ -266,7 +293,13 @@ object IdempotencyMiddleware extends MdcLoggable {
     val endpoint = ccOpt
       .flatMap(_.operationId)
       .getOrElse(s"${req.method.name} ${req.uri.path.renderString}")
-    sha256Hex(s"$consumerOrAuth|$endpoint").take(16)
+    // The operation id is the ResourceDoc TEMPLATE ("OBPv5.1.0-deleteAtm"): BANK_ID and ATM_ID
+    // are never substituted into it. Without the concrete path here, one key covered every
+    // resource under an operation -- and for a DELETE, whose body hash is sha256("") for every
+    // request, that was the ONLY discriminator left, so deleting atm-1 and then atm-2 under one
+    // key deleted only the first and replayed its 204 for the second.
+    val path = req.uri.path.renderString
+    sha256Hex(s"$principal|$consumerOrAuth|$endpoint|$path").take(16)
   }
 
   // ── Body hash ──────────────────────────────────────────────────────────
