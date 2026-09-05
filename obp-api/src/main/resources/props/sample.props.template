@@ -849,10 +849,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # "OBPv3.1.0" or "v3.1.0"
 # "OBPv3.0.0" or "v3.0.0"
 # "BGv1.3" or "v1.3"
-# "PAPIv2.1.1.1" or "v2.1.1.1"
-# "STETv1.4" or "v1.4"
 # "UKv2.0" or "v2.0"
-# "AUv1.0.0" or "v1.0.0"
 # "UKv3.1" or "v3.1"
 #
 # Note: we recommend to use the fullyQualifiedVersion. The apiShortVersion is depreciated here.

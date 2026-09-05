@@ -100,7 +100,7 @@ java --add-opens java.base/java.lang=ALL-UNNAMED \
      -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 ```
 
-[Note: How to run via IntelliJ IDEA](obp-api/src/main/docs/glossary/Run_via_IntelliJ_IDEA.md)
+[Note: How to run via IntelliJ IDEA](obp-api/src/main/resources/docs/glossary/Run_via_IntelliJ_IDEA.md)
 
 ## Run some tests
 

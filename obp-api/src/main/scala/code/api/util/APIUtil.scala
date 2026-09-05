@@ -49,8 +49,7 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v6_0_0.OBPAPI6_0_0
+import code.api.v2_2_0.Http4s220.Implementations2_2_0
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -715,8 +714,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val jsonAst: JValue = {
       val partialFunctionName = callContext.map(_.resourceDocument.map(_.partialFunctionName)).flatten.getOrElse("")
       if (
-        nameOf(code.api.v5_1_0.APIMethods510.Implementations5_1_0.getMetrics).equals(partialFunctionName) ||
-        nameOf(code.api.v5_0_0.APIMethods500.Implementations5_0_0.getMetricsAtBank).equals(partialFunctionName) ||
+        nameOf(code.api.v5_1_0.Http4s510.Implementations5_1_0.getMetrics).equals(partialFunctionName) ||
+        nameOf(code.api.v5_0_0.Http4s500.Implementations5_0_0.getMetricsAtBank).equals(partialFunctionName) ||
         nameOf(Implementations2_2_0.getConnectorMetrics).equals(partialFunctionName)
       ) {
         ApiSession.processJson(Extraction.decompose(cc)(CustomJsonFormats.losslessFormats), callContext)
@@ -2667,7 +2666,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /*
   If a version is allowed, enable its endpoints.
-  Note a version such as v3_0_0.OBPAPI3_0_0 may well include routes from other earlier versions.
+  Note a version such as v3.0.0 may well include routes from other earlier versions.
    */
 
   def enableVersionIfAllowed(version: ScannedApiVersion) : Boolean = {
@@ -4320,17 +4319,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       canRevokeAccessToAllSystemTargetViews
     } else {//if both allCanRevokeAccessToViews and allSystemTargetViewIs are empty,
       false
-    }
-  }
-
-  def getJValueFromJsonFile(path: String) = {
-    val stream = getClass().getClassLoader().getResourceAsStream(path)
-    try {
-      val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
-      val jsonStringFromFile = bufferedSource.mkString
-      json.parse(jsonStringFromFile);
-    } finally {
-      stream.close()
     }
   }
 

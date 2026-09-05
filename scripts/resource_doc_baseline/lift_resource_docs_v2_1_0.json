@@ -1,0 +1,359 @@
+{
+  "schema_version": 1,
+  "version": "v2_1_0",
+  "source_file": "obp-api/src/main/scala/code/api/v2_1_0/APIMethods210.scala",
+  "exported_from_git_commit": "e198c922328095b9abbd1370056fb5ee002f7980",
+  "endpoint_count": 28,
+  "endpoints": {
+    "root": {
+      "partial_function_name_raw": "\"root\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/root\"",
+      "summary": "\"Get API Info (root)\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API version\n       |* Hosted by information\n       |* Git Commit\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiInfoJSON",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi :: Nil"
+    },
+    "sandboxDataImport": {
+      "partial_function_name_raw": "\"sandboxDataImport\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/sandbox/data-import\"",
+      "summary": "\"Create sandbox\"",
+      "description": "s\"\"\"Import bulk data into the sandbox (Authenticated access).\n        |\n        |This call can be used to create banks, users, accounts and transactions which are stored in the local RDBMS.\n        |\n        |The user needs to have CanCreateSandbox entitlement.\n        |\n        |Note: This is a monolithic call. You could also use a combination of endpoints including create bank, create user, create account and create transaction request to create similar data.\n        |\n        |An example of an import set of data (json) can be found [here](https://raw.githubusercontent.com/OpenBankProject/OBP-API/develop/obp-api/src/main/scala/code/api/sandbox/example_data/2016-04-28/example_import.json)\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "SandboxData.importJson",
+      "success_response_body": "successMessage",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       DataImportDisabled,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagSandbox)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateSandbox))"
+      }
+    },
+    "getTransactionRequestTypesSupportedByBank": {
+      "partial_function_name_raw": "\"getTransactionRequestTypesSupportedByBank\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/transaction-request-types\"",
+      "summary": "\"Get Transaction Request Types at Bank\"",
+      "description": "s\"\"\"Get the list of the Transaction Request Types supported by the bank.\n        |\n        |${userAuthenticationMessage(!getTransactionRequestTypesIsPublic)}\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "transactionRequestTypesJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagTransactionRequest, apiTagBank)"
+    },
+    "createTransactionRequestSandboxTan": {
+      "partial_function_name_raw": "\"createTransactionRequestSandboxTan\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SANDBOX_TAN/transaction-requests\"",
+      "summary": "\"Create Transaction Request (SANDBOX_TAN)\"",
+      "description": "s\"\"\"When using SANDBOX_TAN, the payee is set in the request body.\n        |\n        |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.\n        |\n        |$transactionRequestGeneralText\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "transactionRequestBodyJsonV200",
+      "success_response_body": "transactionRequestWithChargeJSON210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       AuthenticatedUserIsRequired,\n       InvalidBankIdFormat,\n       InvalidAccountIdFormat,\n       InvalidJsonFormat,\n       BankNotFound,\n       AccountNotFound,\n       ViewNotFound,\n       InsufficientAuthorisationToCreateTransactionRequest,\n       UserNoPermissionAccessView,\n       InvalidTransactionRequestType,\n       InvalidJsonFormat,\n       InvalidNumber,\n       NotPositiveAmount,\n       InvalidTransactionRequestCurrency,\n       TransactionDisabled,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)"
+    },
+    "createTransactionRequestCounterparty": {
+      "partial_function_name_raw": "\"createTransactionRequestCounterparty\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests\"",
+      "summary": "\"Create Transaction Request (COUNTERPARTY)\"",
+      "description": "s\"\"\"\n        |Special instructions for COUNTERPARTY:\n        |\n        |When using a COUNTERPARTY to create a Transaction Request, specificy the counterparty_id in the body of the request.\n        |The routing details of the counterparty will be forwarded for the transfer.\n        |\n        |$transactionRequestGeneralText\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "transactionRequestBodyCounterpartyJSON",
+      "success_response_body": "transactionRequestWithChargeJSON210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       AuthenticatedUserIsRequired,\n       InvalidBankIdFormat,\n       InvalidAccountIdFormat,\n       InvalidJsonFormat,\n       BankNotFound,\n       AccountNotFound,\n       ViewNotFound,\n       InsufficientAuthorisationToCreateTransactionRequest,\n       UserNoPermissionAccessView,\n       InvalidTransactionRequestType,\n       InvalidJsonFormat,\n       InvalidNumber,\n       NotPositiveAmount,\n       InvalidTransactionRequestCurrency,\n       TransactionDisabled,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)"
+    },
+    "createTransactionRequestSepa": {
+      "partial_function_name_raw": "\"createTransactionRequestSepa\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests\"",
+      "summary": "\"Create Transaction Request (SEPA)\"",
+      "description": "s\"\"\"\n        |Special instructions for SEPA:\n        |\n        |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.\n        |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.\n        |\n        |$transactionRequestGeneralText\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "transactionRequestBodySEPAJSON",
+      "success_response_body": "transactionRequestWithChargeJSON210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       AuthenticatedUserIsRequired,\n       InvalidBankIdFormat,\n       InvalidAccountIdFormat,\n       InvalidJsonFormat,\n       BankNotFound,\n       AccountNotFound,\n       ViewNotFound,\n       InsufficientAuthorisationToCreateTransactionRequest,\n       UserNoPermissionAccessView,\n       InvalidTransactionRequestType,\n       InvalidJsonFormat,\n       InvalidNumber,\n       NotPositiveAmount,\n       InvalidTransactionRequestCurrency,\n       TransactionDisabled,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)"
+    },
+    "createTransactionRequestFreeForm": {
+      "partial_function_name_raw": "\"createTransactionRequestFreeForm\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests\"",
+      "summary": "\"Create Transaction Request (FREE_FORM).\"",
+      "description": "s\"\"\"$transactionRequestGeneralText\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "transactionRequestBodyFreeFormJSON",
+      "success_response_body": "transactionRequestWithChargeJSON210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       AuthenticatedUserIsRequired,\n       InvalidBankIdFormat,\n       InvalidAccountIdFormat,\n       InvalidJsonFormat,\n       BankNotFound,\n       AccountNotFound,\n       ViewNotFound,\n       InsufficientAuthorisationToCreateTransactionRequest,\n       UserNoPermissionAccessView,\n       InvalidTransactionRequestType,\n       InvalidJsonFormat,\n       InvalidNumber,\n       NotPositiveAmount,\n       InvalidTransactionRequestCurrency,\n       TransactionDisabled,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateAnyTransactionRequest))"
+      }
+    },
+    "answerTransactionRequestChallenge": {
+      "partial_function_name_raw": "\"answerTransactionRequestChallenge\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge\"",
+      "summary": "\"Answer Transaction Request Challenge\"",
+      "description": "\"\"\"In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.\n       |\n       |This endpoint expects the following data as provided in the createTransactionRequest response body:\n       |\n       |1)`TRANSACTION_REQUEST_TYPE` : as per the selected createTransactionRequest type, part of the request URL.\n       |\n       |2)`TRANSACTION_REQUEST_ID` : the value of the `id` field of the createTransactionRequest response body.\n       |\n       |3) `id` :  the value of `challenge.id` in the createTransactionRequest response body. \n       |\n       |4) `answer` : Defaults to `123`, if running in sandbox mode. In production mode, the value will be sent via the configured SCA method.\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "challengeAnswerJSON",
+      "success_response_body": "transactionRequestWithChargeJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidBankIdFormat,\n       InvalidAccountIdFormat,\n       InvalidJsonFormat,\n       BankNotFound,\n       UserNoPermissionAccessView,\n       TransactionRequestStatusNotInitiated,\n       TransactionRequestTypeHasChanged,\n       InvalidTransactionRequestChallengeId,\n       AllowedAttemptsUsedUp,\n       TransactionDisabled,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)"
+    },
+    "getTransactionRequests": {
+      "partial_function_name_raw": "\"getTransactionRequests\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests\"",
+      "summary": "\"Get Transaction Requests.\"",
+      "description": "\"\"\"Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.\n       |\n       |The VIEW_ID specified must be 'owner' and the user must have access to this view.\n       |\n       |Version 2.0.0 now returns charge information.\n       |\n       |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:\n       |\n       |* Transaction Request Id\n       |* Type\n       |* Status (INITIATED, COMPLETED)\n       |* Challenge (in order to confirm the request)\n       |* From Bank / Account\n       |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)\n       |* Related Transactions\n       |\n       |PSD2 Context: PSD2 requires transparency of charges to the customer.\n       |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.\n       |The customer can proceed with the Transaction by answering the security challenge.\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "transactionRequestWithChargeJSONs210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       AccountNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle)"
+    },
+    "getRoles": {
+      "partial_function_name_raw": "\"getRoles\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/roles\"",
+      "summary": "\"Get Roles\"",
+      "description": "s\"\"\"Returns all available roles\n        |\n        |${userAuthenticationMessage(true)}\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "availableRolesJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagRole)"
+    },
+    "getEntitlementsByBankAndUser": {
+      "partial_function_name_raw": "\"getEntitlementsByBankAndUser\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/users/USER_ID/entitlements\"",
+      "summary": "\"Get Entitlements for User at Bank\"",
+      "description": "s\"\"\"\n        |\n        |Get Entitlements specified by BANK_ID and USER_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "entitlementJSONs",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagRole, apiTagEntitlement, apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetEntitlementsForAnyUserAtOneBank, canGetEntitlementsForAnyUserAtAnyBank))"
+      }
+    },
+    "getConsumer": {
+      "partial_function_name_raw": "\"getConsumer\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID\"",
+      "summary": "\"Get Consumer\"",
+      "description": "s\"\"\"Get the Consumer specified by CONSUMER_ID.\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consumerJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidConsumerId,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetConsumers))"
+      }
+    },
+    "getConsumers": {
+      "partial_function_name_raw": "\"getConsumers\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/consumers\"",
+      "summary": "\"Get Consumers\"",
+      "description": "s\"\"\"Get the all Consumers.\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consumersJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetConsumers))"
+      }
+    },
+    "enableDisableConsumers": {
+      "partial_function_name_raw": "\"enableDisableConsumers\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID\"",
+      "summary": "\"Enable or Disable Consumers\"",
+      "description": "s\"\"\"Enable/Disable a Consumer specified by CONSUMER_ID.\n        |\n        |\"\"\"",
+      "example_request_body": "putEnabledJSON",
+      "success_response_body": "putEnabledJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canEnableConsumers,canDisableConsumers))"
+      }
+    },
+    "addCardsForBank": {
+      "partial_function_name_raw": "\"addCardsForBank\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/cards\"",
+      "summary": "\"Create Card\"",
+      "description": "s\"\"\"Create Card at bank specified by BANK_ID .\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "postPhysicalCardJSON",
+      "success_response_body": "physicalCardJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       AllowedValuesAre,\n       UnknownError\n     )",
+      "tags": "List(apiTagCard)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateCardsForBank))"
+      }
+    },
+    "getUsers": {
+      "partial_function_name_raw": "\"getUsers\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users\"",
+      "summary": "\"Get all Users\"",
+      "description": "s\"\"\"Get all users\n        |\n        |Login is required.\n        |CanGetAnyUser entitlement is required,\n        |\n        |${urlParametersDocument(false, false)}\n        |* locked_status (if null ignore)\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "usersJsonV200",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAnyUser))"
+      }
+    },
+    "createTransactionType": {
+      "partial_function_name_raw": "\"createTransactionType\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/transaction-types\"",
+      "summary": "\"Create Transaction Type at bank\"",
+      "description": "s\"\"\"Create Transaction Types for the bank specified by BANK_ID:\n        |\n        |  * id : Unique transaction type id across the API instance. SHOULD be a UUID. MUST be unique.\n        |  * bank_id : The bank that supports this TransactionType\n        |  * short_code : A short code (SHOULD have no-spaces) which MUST be unique across the bank. May be stored with Transactions to link here\n        |  * summary : A succinct summary\n        |  * description : A longer description\n        |  * charge : The charge to the customer for each one of these\n        |\n        |${userAuthenticationMessage(getTransactionTypesIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "transactionTypeJsonV200",
+      "success_response_body": "transactionType",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InvalidJsonFormat,\n       InsufficientAuthorisationToCreateTransactionType,\n       UnknownError\n     )",
+      "tags": "List(apiTagBank)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateTransactionType))"
+      }
+    },
+    "getAtm": {
+      "partial_function_name_raw": "\"getAtm\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID\"",
+      "summary": "\"Get Bank ATM\"",
+      "description": "s\"\"\"Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:\n        |\n        |* Address\n        |* Geo Location\n        |* License the data under this endpoint is released under\n        |\n        |${userAuthenticationMessage(!getAtmsIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "atmJson",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError)",
+      "tags": "List(apiTagATM, apiTagOldStyle)"
+    },
+    "getBranch": {
+      "partial_function_name_raw": "\"getBranch\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/branches/BRANCH_ID\"",
+      "summary": "\"Get Bank Branch\"",
+      "description": "s\"\"\"Returns information about branches for a single bank specified by BANK_ID and BRANCH_ID including:\n        | meta.license.id and eta.license.name fields must not be empty. \n        |\n        |* Name\n        |* Address\n        |* Geo Location\n        |* License the data under this endpoint is released under\n        |\n        |${userAuthenticationMessage(!getBranchesIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "branchJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BranchNotFoundByBranchId,\n       UnknownError\n     )",
+      "tags": "List(apiTagBranch, apiTagOldStyle)"
+    },
+    "getProduct": {
+      "partial_function_name_raw": "\"getProduct\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/products/PRODUCT_CODE\"",
+      "summary": "\"Get Bank Product\"",
+      "description": "s\"\"\"Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:\n        |\n        |* Name\n        |* Code\n        |* Category\n        |* Family\n        |* Super Family\n        |* More info URL\n        |* Description\n        |* Terms and Conditions\n        |* License the data under this endpoint is released under\n        |${userAuthenticationMessage(!getProductsIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "productJsonV210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       ProductNotFoundByProductCode,\n       UnknownError\n     )",
+      "tags": "List(apiTagProduct)"
+    },
+    "getProducts": {
+      "partial_function_name_raw": "\"getProducts\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/products\"",
+      "summary": "\"Get Bank Products\"",
+      "description": "s\"\"\"Returns information about the financial products offered by a bank specified by BANK_ID including:\n        |\n        |* Name\n        |* Code\n        |* Category\n        |* Family\n        |* Super Family\n        |* More info URL\n        |* Description\n        |* Terms and Conditions\n        |* License the data under this endpoint is released under\n        |${userAuthenticationMessage(!getProductsIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "productsJsonV210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       ProductNotFoundByProductCode,\n       UnknownError\n     )",
+      "tags": "List(apiTagProduct)"
+    },
+    "createCustomer": {
+      "partial_function_name_raw": "\"createCustomer\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customers\"",
+      "summary": "\"Create Customer\"",
+      "description": "s\"\"\"Add a customer linked to the user specified by user_id\n        |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.\n        |Dates need to be in the format 2013-01-21T23:08:00Z\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |$createCustomeEntitlementsRequiredText\n        |\"\"\"",
+      "example_request_body": "postCustomerJsonV210",
+      "success_response_body": "customerJsonV210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InvalidJsonFormat,\n       CustomerNumberAlreadyExists,\n       UserNotFoundById,\n       CustomerAlreadyExistsForUser,\n       CreateConsumerError,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagPerson, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateCustomer,canCreateUserCustomerLink,canCreateCustomerAtAnyBank,canCreateUserCustomerLinkAtAnyBank))"
+      }
+    },
+    "getCustomersForUser": {
+      "partial_function_name_raw": "\"getCustomersForUser\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/current/customers\"",
+      "summary": "\"Get Customers for Current User\"",
+      "description": "\"\"\"Gets all Customers that are linked to a User.\n       |\n       |Authentication via OAuth is required.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerJsonV210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagUser, apiTagOldStyle)"
+    },
+    "getCustomersForCurrentUserAtBank": {
+      "partial_function_name_raw": "\"getCustomersForCurrentUserAtBank\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customers\"",
+      "summary": "\"Get Customers for current User at Bank\"",
+      "description": "s\"\"\"Returns a list of Customers at the Bank that are linked to the currently authenticated User.\n        |\n        |\n        |${userAuthenticationMessage(true)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerJSONs",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       UserCustomerLinksNotFoundForUser,\n       UserCustomerLinksNotFoundForUser,\n       CustomerNotFoundByCustomerId,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer)"
+    },
+    "updateBranch": {
+      "partial_function_name_raw": "\"updateBranch\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/branches/BRANCH_ID\"",
+      "summary": "\"Update Branch\"",
+      "description": "s\"\"\"Update an existing branch for a bank account (Authenticated access).\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "branchJsonPut",
+      "success_response_body": "branchJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InvalidJsonFormat,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagBranch)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateBranch))"
+      }
+    },
+    "createBranch": {
+      "partial_function_name_raw": "\"createBranch\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/branches\"",
+      "summary": "\"Create Branch\"",
+      "description": "s\"\"\"Create branch for the bank (Authenticated access).\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "branchJsonPost",
+      "success_response_body": "branchJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InvalidJsonFormat,\n       InsufficientAuthorisationToCreateBranch,\n       UnknownError\n     )",
+      "tags": "List(apiTagBranch, apiTagOpenData)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateBranch, canCreateBranchAtAnyBank))"
+      }
+    },
+    "updateConsumerRedirectUrl": {
+      "partial_function_name_raw": "\"updateConsumerRedirectUrl\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID/consumer/redirect_url\"",
+      "summary": "\"Update Consumer RedirectUrl\"",
+      "description": "s\"\"\"Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.\n        |\n        | CONSUMER_ID can be obtained after you register the application. \n        | \n        | Or use the endpoint 'Get Consumers' to get it  \n        | \n      \"\"\".stripMargin",
+      "example_request_body": "consumerRedirectUrlJSON",
+      "success_response_body": "consumerJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsumerRedirectUrl))"
+      }
+    },
+    "getMetrics": {
+      "partial_function_name_raw": "\"getMetrics\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/metrics\"",
+      "summary": "\"Get Metrics\"",
+      "description": "s\"\"\"Get the all metrics\n        |\n        |require CanReadMetrics role\n        |\n        |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics\n        |\n        |Should be able to filter on the following metrics fields\n        |\n        |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2\n        |\n        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString\n        |\n        |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString\n        |\n        |3 limit (for pagination: defaults to 50)  eg:limit=200\n        |\n        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |5 sort_by (defaults to date field) eg: sort_by=date\n        |  possible values:\n        |    \"url\",\n        |    \"date\",\n        |    \"username\" (or \"user_name\" for backward compatibility),\n        |    \"app_name\",\n        |    \"developer_email\",\n        |    \"implemented_by_partial_function\",\n        |    \"implemented_in_version\",\n        |    \"consumer_id\",\n        |    \"verb\"\n        |\n        |6 direction (defaults to date desc) eg: direction=desc\n        |\n        |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78\n        |\n        |Other filters:\n        |\n        |7 consumer_id  (if null ignore)\n        |\n        |8 user_id (if null ignore)\n        |\n        |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)\n        |\n        |10 url (if null ignore), note: can not contain '&'.\n        |\n        |11 app_name (if null ignore)\n        |\n        |12 implemented_by_partial_function (if null ignore),\n        |\n        |13 implemented_in_version (if null ignore)\n        |\n        |14 verb (if null ignore)\n        |\n        |15 correlation_id (if null ignore)\n        |\n        |16 duration (if null ignore) non digit chars will be silently omitted\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "metricsJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagMetric, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canReadMetrics))"
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@ package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.consumer.Consumers
 import code.scope.Scope
 import code.setup.DefaultUsers

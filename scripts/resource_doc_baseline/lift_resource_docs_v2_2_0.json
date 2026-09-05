@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "version": "v2_2_0",
+  "source_file": "obp-api/src/main/scala/code/api/v2_2_0/APIMethods220.scala",
+  "exported_from_git_commit": "e198c922328095b9abbd1370056fb5ee002f7980",
+  "endpoint_count": 18,
+  "endpoints": {
+    "root": {
+      "partial_function_name_raw": "\"root\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/root\"",
+      "summary": "\"Get API Info (root)\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API version\n       |* Hosted by information\n       |* Git Commit\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiInfoJSON",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi :: Nil"
+    },
+    "getViewsForBankAccount": {
+      "partial_function_name_raw": "\"getViewsForBankAccount\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views\"",
+      "summary": "\"Get Views for Account\"",
+      "description": "s\"\"\"#Views\n        |\n        |\n        |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. \n        |Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.\n        |\n        |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.\n        |\n        |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.\n        |\n        |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.\n        |\n        |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.\n        |\n        |**Metadata:**\n        |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.\n        |\n        |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).\n        |\n        |# All\n        |*Optional*\n        |\n        |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.\n        |\n        |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "viewsJSONV220",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankAccountNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagView, apiTagAccount)"
+    },
+    "createViewForBankAccount": {
+      "partial_function_name_raw": "\"createViewForBankAccount\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views\"",
+      "summary": "\"Create View\"",
+      "description": "s\"\"\"#Create a view on bank account\n        |\n        | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\n        | The 'alias' field in the JSON can take one of three values:\n        |\n        | * _public_: to use the public alias if there is one specified for the other account.\n        | * _private_: to use the private alias if there is one specified for the other account.\n        |\n        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.\n        |\n        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.\n        |\n        | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.\n        |\n        | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally\n        | \"\"\"",
+      "example_request_body": "createViewJsonV121",
+      "success_response_body": "viewJSONV220",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       BankAccountNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagView, apiTagOldStyle)"
+    },
+    "updateViewForBankAccount": {
+      "partial_function_name_raw": "\"updateViewForBankAccount\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID\"",
+      "summary": "\"Update View\"",
+      "description": "s\"\"\"Update an existing view on a bank account\n        |\n        |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\n        |\n        |The json sent is the same as during view creation (above), with one difference: the 'name' field\n        |of a view is not editable (it is only set when a view is created)\"\"\"",
+      "example_request_body": "updateViewJsonV121",
+      "success_response_body": "viewJSONV220",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       AuthenticatedUserIsRequired,\n       BankAccountNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagView, apiTagOldStyle)"
+    },
+    "getCurrentFxRate": {
+      "partial_function_name_raw": "\"getCurrentFxRate\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE\"",
+      "summary": "\"Get Current FxRate\"",
+      "description": "\"\"\"Get the latest FX rate specified by BANK_ID, FROM_CURRENCY_CODE and TO_CURRENCY_CODE\n       |\n       |OBP may try different sources of FX rate information depending on the Connector in operation.\n       |\n       |For example we want to convert EUR => USD:\n       |\n       |OBP will:\n       |1st try - Connector (database, core banking system or external FX service)\n       |2nd try part 1 - fallbackexchangerates/eur.json\n       |2nd try part 2 - fallbackexchangerates/usd.json (the inverse rate is used)\n       |3rd try - Hardcoded map of FX rates.\n       |\n       |![FX Flow](https://user-images.githubusercontent.com/485218/60005085-1eded600-966e-11e9-96fb-798b102d9ad0.png)\n       |\n       |**Public Access:** This endpoint can be made publicly accessible (no authentication required) by setting the property `apiOptions.getCurrentFxRateIsPublic=true` in the props file.\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "fXRateJSON",
+      "error_response_bodies": "List(InvalidISOCurrencyCode,AuthenticatedUserIsRequired,FXCurrencyCodeCombinationsNotSupported, UnknownError)",
+      "tags": "List(apiTagFx)"
+    },
+    "getExplicitCounterpartiesForAccount": {
+      "partial_function_name_raw": "\"getExplicitCounterpartiesForAccount\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties\"",
+      "summary": "\"Get Counterparties (Explicit)\"",
+      "description": "s\"\"\"This endpoints gets the explicit Counterparties on an Account / View.\n        |\n        |For a general introduction to Counterparties in OBP, see ${Glossary.getGlossaryItemLink(\"Counterparties\")}\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "counterpartiesJsonV220",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankAccountNotFound,\n       ViewNotFound,\n       NoViewPermission,\n       UserNoPermissionAccessView,\n       UnknownError\n     )",
+      "tags": "List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2)"
+    },
+    "getExplicitCounterpartyById": {
+      "partial_function_name_raw": "\"getExplicitCounterpartyById\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID\"",
+      "summary": "\"Get Counterparty by Counterparty Id (Explicit)\"",
+      "description": "s\"\"\"Information returned about the Counterparty specified by COUNTERPARTY_ID:\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "counterpartyWithMetadataJson",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, BankNotFound, UnknownError)",
+      "tags": "List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)"
+    },
+    "getMessageDocs": {
+      "partial_function_name_raw": "\"getMessageDocs\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/message-docs/CONNECTOR\"",
+      "summary": "\"Get Message Docs\"",
+      "description": "\"\"\"These message docs provide example messages sent by OBP to the (RabbitMq) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.\n       | Integrators can use these messages to build Adapters that provide core banking services to OBP.\n       |\n       | Note: API Explorer provides a Message Docs page where these messages are displayed.\n       | \n       | `CONNECTOR`: rest_vMar2019, stored_procedure_vDec2019 ...\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "messageDocsJson",
+      "error_response_bodies": "List(InvalidConnector, UnknownError)",
+      "tags": "List(apiTagMessageDoc, apiTagDocumentation, apiTagApi)"
+    },
+    "createBank": {
+      "partial_function_name_raw": "\"createBank\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks\"",
+      "summary": "\"Create Bank\"",
+      "description": "s\"\"\"Create a new bank (Authenticated access).\n        |${userAuthenticationMessage(true) }\n        |\"\"\"",
+      "example_request_body": "bankJSONV220",
+      "success_response_body": "bankJSONV220",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       AuthenticatedUserIsRequired,\n       InsufficientAuthorisationToCreateBank,\n       UnknownError\n     )",
+      "tags": "List(apiTagBank, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateBank))"
+      }
+    },
+    "createBranch": {
+      "partial_function_name_raw": "\"createBranch\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/branches\"",
+      "summary": "\"Create Branch\"",
+      "description": "s\"\"\"Create Branch for the Bank.\n        |\n        |${userAuthenticationMessage(true) }\n        |\n        |\"\"\"",
+      "example_request_body": "branchJsonV220",
+      "success_response_body": "branchJsonV220",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InsufficientAuthorisationToCreateBranch,\n       UnknownError\n     )",
+      "tags": "List(apiTagBranch, apiTagOpenData)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateBranch,canCreateBranchAtAnyBank))"
+      }
+    },
+    "createAtm": {
+      "partial_function_name_raw": "\"createAtm\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/atms\"",
+      "summary": "\"Create ATM\"",
+      "description": "s\"\"\"Create ATM for the Bank.\n        |\n        |${userAuthenticationMessage(true) }\n        |\n        |\"\"\"",
+      "example_request_body": "atmJsonV220",
+      "success_response_body": "atmJsonV220",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateAtm,canCreateAtmAtAnyBank))"
+      }
+    },
+    "createProduct": {
+      "partial_function_name_raw": "\"createProduct\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/products\"",
+      "summary": "\"Create Product\"",
+      "description": "s\"\"\"Create or Update Product for the Bank.\n        |\n        |${userAuthenticationMessage(true) }\n        |\n        |\"\"\"",
+      "example_request_body": "productJsonV220",
+      "success_response_body": "productJsonV220",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagProduct)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateProduct, canCreateProductAtAnyBank))"
+      }
+    },
+    "createFx": {
+      "partial_function_name_raw": "\"createFx\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/fx\"",
+      "summary": "\"Create Fx\"",
+      "description": "s\"\"\"Create or Update Fx for the Bank.\n        |\n        |Example:\n        |\n        |“from_currency_code”:“EUR”,\n        |“to_currency_code”:“USD”,\n        |“conversion_value”: 1.136305,\n        |“inverse_conversion_value”: 1 / 1.136305 = 0.8800454103431737,\n        |\n        | Thus 1 Euro = 1.136305 US Dollar\n        | and\n        | 1 US Dollar = 0.8800 Euro\n        |\n        |\n        |${userAuthenticationMessage(true) }\n        |\n        |\"\"\"",
+      "example_request_body": "fxJsonV220",
+      "success_response_body": "fxJsonV220",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagFx)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateFxRate, canCreateFxRateAtAnyBank))"
+      }
+    },
+    "createAccount": {
+      "partial_function_name_raw": "\"createAccount\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID\"",
+      "summary": "\"Create Account\"",
+      "description": "\"\"\"Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.\n       |\n       |\n       |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.\n       |\n       |If USER_ID is not specified the account will be owned by the logged in User.\n       |\n       |The type field should be a product_code from Product.\n       |\n       |Note: The Amount must be zero.\"\"\".stripMargin",
+      "example_request_body": "createAccountJSONV220",
+      "success_response_body": "createAccountJSONV220",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       BankNotFound,\n       AuthenticatedUserIsRequired,\n       InvalidUserId,\n       InvalidAccountIdFormat,\n       InvalidBankIdFormat,\n       UserNotFoundById,\n       UserHasMissingRoles,\n       InvalidAccountBalanceAmount,\n       InvalidAccountInitialBalance,\n       InitialBalanceMustBeZero,\n       InvalidAccountBalanceCurrency,\n       AccountIdAlreadyExists,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount,apiTagOnboarding)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateAccount))"
+      }
+    },
+    "config": {
+      "partial_function_name_raw": "\"config\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/config\"",
+      "summary": "\"Get API Configuration\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API Config\n       |* Akka ports\n       |* Elastic search ports\n       |* Cached function \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "configurationJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "apiTagApi  :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canGetConfig))"
+      }
+    },
+    "getConnectorMetrics": {
+      "partial_function_name_raw": "\"getConnectorMetrics\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/connector/metrics\"",
+      "summary": "\"Get Connector Metrics\"",
+      "description": "s\"\"\"Get the all metrics\n        |\n        |require CanGetConnectorMetrics role\n        |\n        |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/connector/metrics\n        |\n        |Should be able to filter on the following metrics fields\n        |\n        |eg: /management/connector/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2\n        |\n        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString\n        |\n        |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString\n        |\n        |3 limit (for pagination: defaults to 1000)  eg:limit=2000\n        |\n        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |eg: /management/connector/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=100&offset=300\n        |\n        |Other filters:\n        |\n        |5 connector_name  (if null ignore)\n        |\n        |6 function_name (if null ignore)\n        |\n        |7 correlation_id (if null ignore)\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "connectorMetricsJson",
+      "error_response_bodies": "List(\n       InvalidDateFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagMetric, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetConnectorMetrics))"
+      }
+    },
+    "createConsumer": {
+      "partial_function_name_raw": "\"createConsumer\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/management/consumers\"",
+      "summary": "\"Post a Consumer\"",
+      "description": "s\"\"\"Create a Consumer (Authenticated access).\n        |\n        |\"\"\"",
+      "example_request_body": "ConsumerPostJSON(\n       \"Test\",\n       \"Test\",\n       \"Description\",\n       \"some@email.com\",\n       \"redirecturl\",\n       \"createdby\",\n       true,\n       new Date(),\n       \"\"\"-----BEGIN CERTIFICATE-----\n         |client_certificate_content\n         |-----END CERTIFICATE-----\"\"\".stripMargin\n     )",
+      "success_response_body": "ConsumerPostJSON(\n       \"Some app name\",\n       \"App type\",\n       \"Description\",\n       \"some.email@example.com\",\n       \"Some redirect url\",\n       \"Created by UUID\",\n       true,\n       new Date(),\n       \"\"\"-----BEGIN CERTIFICATE-----\n         |client_certificate_content\n         |-----END CERTIFICATE-----\"\"\".stripMargin\n     )",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateConsumer))"
+      }
+    },
+    "createCounterparty": {
+      "partial_function_name_raw": "\"createCounterparty\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties\"",
+      "summary": "\"Create Counterparty (Explicit)\"",
+      "description": "s\"\"\"Create Counterparty (Explicit) for an Account.\n        |\n        |In OBP, there are two types of Counterparty.\n        |\n        |* Explicit Counterparties (those here) which we create explicitly and are used in COUNTERPARTY Transaction Requests\n        |\n        |* Implicit Counterparties (AKA Other Accounts) which are generated automatically from the other sides of Transactions.\n        |\n        |Explicit Counterparties are created for the account / view\n        |They are how the user of the view (e.g. account owner) refers to the other side of the transaction\n        |\n        |name : the human readable name (e.g. Piano teacher, Miss Nipa)\n        |\n        |description : the human readable name (e.g. Piano teacher, Miss Nipa)\n        |\n        |bank_routing_scheme : eg: bankId or bankCode or any other strings\n        |\n        |bank_routing_address : eg: `gh.29.uk`, must be valid sandbox bankIds\n        |\n        |account_routing_scheme : eg: AccountId or AccountNumber or any other strings\n        |\n        |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds\n        |\n        |other_account_secondary_routing_scheme : eg: IBan or any other strings\n        |\n        |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty. \n        |\n        |other_branch_routing_scheme : eg: branchId or any other strings or you can leave it empty, not useful in sandbox mode.\n        |\n        |other_branch_routing_address : eg: `branch-id-123` or you can leave it empty, not useful in sandbox mode.\n        |\n        |is_beneficiary : must be set to `true` in order to send payments to this counterparty\n        |\n        |bespoke: It supports a list of key-value, you can add it to the counterparty.\n        |\n        |bespoke.key : any info-key you want to add to this counterparty\n        | \n        |bespoke.value : any info-value you want to add to this counterparty\n        |\n        |The view specified by VIEW_ID must have the canAddCounterparty permission\n        |\n        |A minimal example for TransactionRequestType == COUNTERPARTY\n        | {\n        |  \"name\": \"Tesobe1\",\n        |  \"description\": \"Good Company\",\n        |  \"other_bank_routing_scheme\": \"OBP\",\n        |  \"other_bank_routing_address\": \"gh.29.uk\",\n        |  \"other_account_routing_scheme\": \"OBP\",\n        |  \"other_account_routing_address\": \"8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0\",\n        |  \"is_beneficiary\": true,\n        |  \"other_account_secondary_routing_scheme\": \"\",\n        |  \"other_account_secondary_routing_address\": \"\",\n        |  \"other_branch_routing_scheme\": \"\",\n        |  \"other_branch_routing_address\": \"\",\n        |  \"bespoke\": []\n        |}\n        |\n        | \n        |A minimal example for TransactionRequestType == SEPA\n        | \n        | {\n        |  \"name\": \"Tesobe2\",\n        |  \"description\": \"Good Company\",\n        |  \"other_bank_routing_scheme\": \"OBP\",\n        |  \"other_bank_routing_address\": \"gh.29.uk\",\n        |  \"other_account_routing_scheme\": \"OBP\",\n        |  \"other_account_routing_address\": \"8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0\",\n        |  \"other_account_secondary_routing_scheme\": \"IBAN\",\n        |  \"other_account_secondary_routing_address\": \"DE89 3704 0044 0532 0130 00\",\n        |  \"is_beneficiary\": true,\n        |  \"other_branch_routing_scheme\": \"\",\n        |  \"other_branch_routing_address\": \"\",\n        |  \"bespoke\": []\n        |}\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "postCounterpartyJSON",
+      "success_response_body": "counterpartyWithMetadataJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidAccountIdFormat,\n       InvalidBankIdFormat,\n       BankNotFound,\n       AccountNotFound,\n       InvalidJsonFormat,\n       ViewNotFound,\n       CounterpartyAlreadyExists,\n       UnknownError\n     )",
+      "tags": "List(apiTagCounterparty, apiTagAccount)"
+    }
+  }
+}

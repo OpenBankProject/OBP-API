@@ -35,7 +35,7 @@ import code.api.util.APIUtil.OAuth._
 import com.openbankproject.commons.util.ApiVersion
 import code.api.v1_2_1.{APIInfoJSON, PermissionJSON, PermissionsJSON}
 import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}

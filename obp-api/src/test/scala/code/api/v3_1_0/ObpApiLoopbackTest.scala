@@ -26,7 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import code.api.util.ErrorMessages.{MandatoryPropertyIsNotSet, NotImplemented}
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion

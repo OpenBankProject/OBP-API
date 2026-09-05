@@ -1,0 +1,1319 @@
+{
+  "schema_version": 1,
+  "rename_pairs": [
+    {
+      "version": "v2_1_0",
+      "lift_name": "addCardsForBank",
+      "http4s_name": "addCardForBank",
+      "reason": "Renamed during http4s migration (plural -> singular); same POST /banks/BANK_ID/cards endpoint",
+      "lift_identity_digest": "2489414a4e028dfd96561e799236ee005f5e053c2beaff2cb851a28ae5132c2f",
+      "http4s_identity_digest": "2489414a4e028dfd96561e799236ee005f5e053c2beaff2cb851a28ae5132c2f"
+    },
+    {
+      "version": "v5_1_0",
+      "lift_name": "createConsentImplicit",
+      "http4s_name": "createConsent",
+      "reason": "Renamed during http4s migration (Implicit qualifier dropped); same POST /my/consents/IMPLICIT endpoint",
+      "lift_identity_digest": "c02bfcf72b542dc309204ecebda8155e0bdbafdc6d9515cd609c1e3ec87f1969",
+      "http4s_identity_digest": "c02bfcf72b542dc309204ecebda8155e0bdbafdc6d9515cd609c1e3ec87f1969"
+    }
+  ],
+  "only_in_lift": [
+    {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionRequestCounterparty",
+      "reason": "COUNTERPARTY transaction-request type variant retired from the v2.1.0 http4s surface; superseded by newer-version transaction-request endpoints",
+      "identity_digest": "c59853d817f9e8334eca95f295d4fc803c908a0d9261e713d822c2b1314d3985"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionRequestFreeForm",
+      "reason": "FREE_FORM transaction-request type variant retired from the v2.1.0 http4s surface",
+      "identity_digest": "15442f69a71f79960fd182727b90bfc44e2ca1364884489fe275c9a0807c4937"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionRequestSandboxTan",
+      "reason": "SANDBOX_TAN transaction-request type variant retired from the v2.1.0 http4s surface; http4s v2.1.0 keeps a generic createTransactionRequest instead",
+      "identity_digest": "5a22860803dd4b940ef818f59b59d563398e92bf62540b431624426e039d75a1"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionRequestSepa",
+      "reason": "SEPA transaction-request type variant retired from the v2.1.0 http4s surface",
+      "identity_digest": "6997d91d6b25fdd28a7b6b73ab81c07fdfd297095da796fd4fd8832e54366a11"
+    }
+  ],
+  "only_in_http4s": [
+    {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionRequest",
+      "reason": "Generic http4s v2.1.0 createTransactionRequest replaces the per-type Lift variants (COUNTERPARTY/FREE_FORM/SANDBOX_TAN/SEPA) with one endpoint keyed by a GRANT_VIEW_ID template variable",
+      "identity_digest": "25a8fbc231f1c00856a8ecd8b208b154489fff97595fafd5b9c37a70f39efb0a"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createBankLevelDynamicEntity",
+      "reason": "New in http4s v4.0.0, no Lift predecessor: bank-level dynamic entity creation",
+      "identity_digest": "aa7306a25d88e7df6ce7fa6da0acafa9249a684e22d1e7889c7f4c84663581da"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createSystemDynamicEntity",
+      "reason": "New in http4s v4.0.0, no Lift predecessor: system-level dynamic entity creation",
+      "identity_digest": "46440bce5d9cf100fd14f61894ca6c2377ca996f1988cc125f781495ad25b780"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "reason": "New in http4s v4.0.0, no Lift predecessor: bank-level dynamic entity update",
+      "identity_digest": "85ab9abe7952c0a22217b5af5728f8fe4da2e9734193a09e381246a477e9f79c"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "reason": "New in http4s v4.0.0, no Lift predecessor: user-level dynamic entity update",
+      "identity_digest": "f63ba06e281f0bb37a6690a1dcad81cf307efd11ca52eedb8cd6961619e7a136"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "reason": "New in http4s v4.0.0, no Lift predecessor: system-level dynamic entity update",
+      "identity_digest": "1a063aacee0d3755f92c5eecf639307106d7cbda22f18e5db539845ec145cc69"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "getBanks",
+      "reason": "New in http4s v5.0.0, no Lift predecessor",
+      "identity_digest": "0c0073bfd65b757d2c2cbe055d6114e000aa34d0c62d58a4e3dce61e374ecad2"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "getProduct",
+      "reason": "New in http4s v5.0.0, no Lift predecessor",
+      "identity_digest": "ce968619327cdde42204fcf1b4a2848955b330e5604f4ff51fcc3f62e4fce033"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "getProducts",
+      "reason": "New in http4s v5.0.0, no Lift predecessor",
+      "identity_digest": "44688378313bff70cacf4fc60468cb8dc3c4194bfe65953dc30aa45389a5f902"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "authoriseUKConsent",
+      "reason": "New in http4s v5.1.0, no Lift predecessor: UK Open Banking consent authorisation (SCA)",
+      "identity_digest": "b0d8ddad27d7da4ae2ead23364b278c3ce3efae511539e3ed5972b6338d95bc5"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "authoriseUKConsentChallenge",
+      "reason": "New in http4s v5.1.0, no Lift predecessor: UK Open Banking consent authorisation challenge (OTP)",
+      "identity_digest": "e347f03f48a1a3f3aeb9933659b7c75ada943fb1a2331cda4b088ced1145ab7b"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getBanks",
+      "reason": "New in http4s v5.1.0, no Lift predecessor",
+      "identity_digest": "0c0073bfd65b757d2c2cbe055d6114e000aa34d0c62d58a4e3dce61e374ecad2"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createWebUiProps",
+      "reason": "New in http4s v6.0.0, no Lift predecessor",
+      "identity_digest": "14a08784273c1af4165296c2f246d7544e5aae28208a5f02591b115aa032623e"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createConsent",
+      "reason": "v6.0.0 now registers its own explicit ResourceDoc for POST /my/consents/IMPLICIT (previously served only via the v5.1.0 doc through version aggregation); real, deliberate addition, not drift.",
+      "identity_digest": "c02bfcf72b542dc309204ecebda8155e0bdbafdc6d9515cd609c1e3ec87f1969"
+    }
+  ],
+  "field_mismatches": [
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteExplicitCounterparty",
+      "field": "requestVerb",
+      "reason": "Lift's doc wrongly listed POST for a delete operation; http4s DELETE is the correct verb (RESTful bug fix)",
+      "lift_digest": "e46d3ae943664116b752137af856edb5f377c6d8012a39e3ef7f39f80a802cac",
+      "http4s_digest": "a5655ec6126f28a76720a61f3e0a6eff066cff954c4003c3dc6def846451db76"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "revokeMyConsent",
+      "field": "requestVerb",
+      "reason": "Lift's doc used inconsistent casing (\"Delete\"); http4s DELETE matches the actual HTTP verb",
+      "lift_digest": "b26de372b4b0eaac60202884a72db98a6be6e9036e785ea867ea01c5f7921098",
+      "http4s_digest": "a5655ec6126f28a76720a61f3e0a6eff066cff954c4003c3dc6def846451db76"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createBankLevelDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "http4s example JSON schema shows more field-level ACL properties (indexed/write_role_required/write_role/read_role_required/read_role) documenting features added after the Lift example was written",
+      "lift_digest": "12358da4874cc249de326eda073e5abaf943936049ea3304889c8997cefb004d",
+      "http4s_digest": "b02d422e514e88338bcbb469bea59e068515d19f888a8b43bba9daba215a4319"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createBankLevelDynamicEntity",
+      "field": "successResponseBody",
+      "reason": "Same schema-example enrichment as its exampleRequestBody sibling",
+      "lift_digest": "dba0b1e9992bbd7a883412d8d71f671b457b26e95d8e713d5945b6f74fcb1446",
+      "http4s_digest": "61b2aca2a9079a7707d10c856d02f2ffd99cd8557b76eaa7b177d00455f2a45c"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createSystemDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "12358da4874cc249de326eda073e5abaf943936049ea3304889c8997cefb004d",
+      "http4s_digest": "b02d422e514e88338bcbb469bea59e068515d19f888a8b43bba9daba215a4319"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createSystemDynamicEntity",
+      "field": "successResponseBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "4fce8fffae95f1b3dca1d79feea13c84f40b85907aca358a03b2985435aa665c",
+      "http4s_digest": "75788e83e165d9b5abd1f9add45afb5f65cbfb17f9e732eda4d3353df388b845"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "fa95539cf3af3d8a9e502c790505c4437120e4b96461f942c880f0f25960d770"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "field": "successResponseBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "fb39e7460ca2805f706bb8ac37ae375df3195a146a4fd4f1423670c60068c460",
+      "http4s_digest": "30f9e1b59a65ab6d20447ad8ff2e417fcd34c418a6c0b935db7b39daadb64828"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "fa95539cf3af3d8a9e502c790505c4437120e4b96461f942c880f0f25960d770"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "field": "successResponseBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "30dea326337d124762eb3a45a7e36bdd6307858b4acca6c765144f7e11cce19e",
+      "http4s_digest": "92739c84cab456c0d5933c5c7c255439134982c9edaa84c741621936eb8a05ba"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "fa95539cf3af3d8a9e502c790505c4437120e4b96461f942c880f0f25960d770"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "successResponseBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "30dea326337d124762eb3a45a7e36bdd6307858b4acca6c765144f7e11cce19e",
+      "http4s_digest": "92739c84cab456c0d5933c5c7c255439134982c9edaa84c741621936eb8a05ba"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAccountDirectory",
+      "field": "successResponseBody",
+      "reason": "account_routings example type updated from the retired FastFirehoseRoutings shape to the current AccountRoutingJsonV121 shape, matching what the endpoint actually returns",
+      "lift_digest": "a731dc9dc5694b48e40fb020a937af6e748d5deabbe3dc42394dfd076d600a42",
+      "http4s_digest": "c2cf57a9b35bb8e84b08116a0fb76a02dac4579faa29de3495960e9a21ebd681"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "successResponseBody",
+      "reason": "Example type name updated from the v3.0.0-era aggregateMetricsJSONV300 to the current v6.0.0 aggregateMetricJsonV600 naming convention",
+      "lift_digest": "99c94399498c012a60c8f2a3982127a223c6edbcd6828f70ecd2a40950042b9d",
+      "http4s_digest": "8ae6de43be70acf76b41fe63e0261e02546e46129e6eeab3a53051b5bbf811e0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getGroupEntitlements",
+      "field": "successResponseBody",
+      "reason": "Field renamed for clarity: process: Option[String] -> created_by_process: String",
+      "lift_digest": "3d55ed555557072dd24ed04bf49a7eeb8f48dcc1fb53ec219a5289da3203085b",
+      "http4s_digest": "49437a835a7f4ffd355ae0bc76fbc45507fc6a20feca00ca6f6292188da40b14"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "resetPasswordUrl",
+      "field": "summary",
+      "reason": "Wording tweak: \"Send Email\" -> \"Send by Email\"",
+      "lift_digest": "236476344a07802368d79d1c55fde730bf55bec5011e04f623529ef42e2d2de2",
+      "http4s_digest": "6632a5a75a9f2013add36c2c15ab08caab0a36848b805cb1d1c3b9c4ce81749b"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "resetPasswordUrl",
+      "field": "successResponseBody",
+      "reason": "Response redesigned for security: no longer echoes the raw reset URL in the API response body (ResetPasswordUrlJsonV600), instead confirms delivery only (ResetPasswordEmailSentJsonV600 status+to) since the URL is sent by email",
+      "lift_digest": "cb3f6f29cd8711ac89badeec1ac62f89c578a7eade9f36bdfe9ba0edf12aa444",
+      "http4s_digest": "afd0caab8f6b023367e1742719a7bc65d6d6bc734fec8c121ec6432250995ac8"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addCounterpartyMoreInfo",
+      "field": "description",
+      "reason": "Typo fix: \"perpestive\"->\"perspective\", \"counter party\"->\"counterparty\".",
+      "lift_digest": "48df4b08f5ebf314618db2a42265e2a047e664240828a80cfadd4f349e32265a",
+      "http4s_digest": "15a6614589916c33bc84247d10f66e29aab0236490d0fb28abc76bf81e702d2a"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addCounterpartyOpenCorporatesUrl",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "7800e24b40933e1ff7fb307910b8323651e04035b44fe668a5f863ec49ee63cb",
+      "http4s_digest": "37a80c382c77ecb996e2e70905760655ae38460cb19dab35b11e0a4ea42ef6d1"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addCounterpartyPublicAlias",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "fb690d675c1572cc32c0044c435a434f516769717e7bae392eba62e30a569c57",
+      "http4s_digest": "70625637e3c2122bc67d72ebc7a1576a07f89dbca71b13223a43a8f2f297b6ef"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addCounterpartyPublicAlias",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "8e6b933943bcb0841b678881492d54dbecc9a4ab4ed872e9d3b076cf26fb7c6b",
+      "http4s_digest": "2d8dbf4f30316a46c363a8c46a61da63a9fcffad53af51266bbdf2e841ff016a"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addOtherAccountPrivateAlias",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "67de055c35766cac190351999913d89d81058661b54a4f602d66999b9e9aae0c",
+      "http4s_digest": "d13f59a73ff9c8983964e4e43befe11bad83531696b18ee5b1f8e826e130f96e"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addPermissionForUserForBankAccountForOneView",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route. (ACCOUNT_ID/VIEW_ID -> BANK_ACCOUNT_ID/GRANT_VIEW_ID)",
+      "lift_digest": "f1a5ceefc4a1fd9b891e9543f8a39bae0518229744d3a1f94fc4b07aea32d47e",
+      "http4s_digest": "b8fd69e5333ec06e3e7ee3df67ea52fe682fda6d301f176c77decf6f3b63ca09"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addTransactionNarrative",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "491951d96369f48046b63a46f97972a77aa384aaf99862bce960e0453e4742dc",
+      "http4s_digest": "371fe5c23a8981c5d94bf62aab43dceda330872db8390209c312995ad1a7a396"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "addTransactionNarrative",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "219c5ead06fe720f59e87ddf4550c060b70c7c1cbcb0d738c7489445c9a1796e",
+      "http4s_digest": "a12683aa13bafb349a69332a382fa3b613f67592c7eea2cef9424053a0deade3"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "createViewForBankAccount",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route. (ACCOUNT_ID -> BANK_ACCOUNT_ID)",
+      "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
+      "http4s_digest": "48eb6cec7bca0cd448d5a206ac9bfc211f62c75db93235032dd09a9ead719de9"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "deleteCounterpartyImageUrl",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "03874bf0b9ffdc9efb2d3127db59563174dfa562b545f42ef57360d3e625d060",
+      "http4s_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "deleteCounterpartyPrivateAlias",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "5f0dce05efeb0f88e03057f560ce939464af39f34ff71d65ed55efb47e551248",
+      "http4s_digest": "6be8b754d16f1cfd2d09b047ced5cb17856a12730a011cc771d652c265fc6d3b"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "deleteCounterpartyPublicAlias",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "0c3feaf3c9855c5a1777bab1fd73a0a0b47e7afdf689539d4d577d78ae9a22e1",
+      "http4s_digest": "b5f0dd9338389d87715f48f71a41df6129a3ba4e6c3e3b7d51241bd82142883e"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "deleteCounterpartyPublicAlias",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "fd3b564f0a9efb185dab944ddb2a20e0290e83b921acddfa6c7e9df1cd93fa06",
+      "http4s_digest": "0f3c82e1ed1da033932c44a4bf00a8463ea1d51f8c3bbde7f87c8440ff5457c4"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "deleteTagForViewOnTransaction",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "d04e11db56936459e99048c613c3820027230feb388ad8aec18050969a5445e8",
+      "http4s_digest": "915c45a6b6f52af47079425b883d431fa702e42cbdfa5a60b9a109201ea853a3"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "deleteViewForBankAccount",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
+      "lift_digest": "7ff8ab9d5f5380b422cd7e8e46bc1a4beaa86e5eec2aea467285384a2593404a",
+      "http4s_digest": "04e78c3b02fef79fb86ea5555090669801dc4b0dec7ea8fdb1d95de1553d472b"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getOtherAccountByIdForBankAccount",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "09d35c2ef09c2f3f6b1265b5f135d2a12bfc2a253ff0dbad6523d5cf907f33f4",
+      "http4s_digest": "5eed1fbc7ad89a78c45028f625e0c98ba971b85d3fc422fa982b3b740b117715"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getOtherAccountByIdForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "edd1d3001f6969196bfdb42134be81735f1d78b74fdab9e47a7821061bdd6b4e",
+      "http4s_digest": "c2bd6aa796b42db71e8632b789921f9a43e424e5c0d63adda61cc65a62665205"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getOtherAccountForTransaction",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "edd1d3001f6969196bfdb42134be81735f1d78b74fdab9e47a7821061bdd6b4e",
+      "http4s_digest": "c2bd6aa796b42db71e8632b789921f9a43e424e5c0d63adda61cc65a62665205"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getOtherAccountPrivateAlias",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "3de650955e69360b443d7ef7e343a48101ffb79b86aaf941f7c28d451a8354d4",
+      "http4s_digest": "10b6013eac75de3d94f4b8d36e73abfee850225129b903330d07aa9cd42e33c6"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getTagsForViewOnTransaction",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "311bd8e8d58266a4a4a00b4edc9c9f42c138113e78ff9a5f151ea3c46862f7df",
+      "http4s_digest": "126a2f01634ce256a1898464f617b6dc4a644740000fb5ddfb00c69e8acf2f38"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getTransactionByIdForBankAccount",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
+      "lift_digest": "ecabd6bfbde5f98c5da6e0413ffde0dcd617fdcc166fecd2803ee3b554f960cb",
+      "http4s_digest": "2e20911e48ab9772e4e13bc1f2d29ff32970bed6e724ac92d4e6c18284a57284"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getTransactionNarrative",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "311bd8e8d58266a4a4a00b4edc9c9f42c138113e78ff9a5f151ea3c46862f7df",
+      "http4s_digest": "126a2f01634ce256a1898464f617b6dc4a644740000fb5ddfb00c69e8acf2f38"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getTransactionsForBankAccount",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
+      "lift_digest": "73dc537489a60231085b37593010bc93359c2ad4b06e6a5ac7173a27142290bf",
+      "http4s_digest": "d7baff984c5e02a1f06124418933c95ad8fb2e530a3ca654751fbcf80a57d4da"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getWhereTagForViewOnTransaction",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "311bd8e8d58266a4a4a00b4edc9c9f42c138113e78ff9a5f151ea3c46862f7df",
+      "http4s_digest": "126a2f01634ce256a1898464f617b6dc4a644740000fb5ddfb00c69e8acf2f38"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "publicAccountsAtOneBank",
+      "field": "errorResponseBodies",
+      "reason": "Lift's own doc self-contradicted (titled \"Anonymous access\", text said \"OAuth not required\", yet still listed AuthenticatedUserIsRequired); http4s removed the contradictory entry to match the documented anonymous behavior.",
+      "lift_digest": "61ff620adb6336c3a7c4c28f758678ddeba477e465318974705a3930e399ce08",
+      "http4s_digest": "2a5c6f70f7dfd24677ad2bfb3c3a69512f12336f6f7cb9084fce8d681f8b8fea"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateCounterpartyImageUrl",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "c4b5be6aaa6cd8c0c547e3a048c7fef428fe5474c67efd0d6a66fc54e7b1a871",
+      "http4s_digest": "e8ea2f8c0afb29c0e0e9daa835156f7ade0dd27899510739f1d7c08d7d2c008d"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateCounterpartyMoreInfo",
+      "field": "description",
+      "reason": "Typo fix, same pattern as addCounterpartyMoreInfo.",
+      "lift_digest": "3362535f561ad61e3818b18abdfdc3b1381db78ebb33e657fa0eec8d5e2e4c51",
+      "http4s_digest": "3025ecfd6fe10dcda43a56de6ac9e36e4a9e38bea21544fc6854aee628465798"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateCounterpartyPrivateAlias",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "b078053afc69a1b1a22ce9a1ca0151c1a4f8f5c36ef8400ba84d6c54d7587f2c",
+      "http4s_digest": "b919050bf14fdaf9582d1c91a4027190b106bfcd5f0c4e321fb5a2c4662aee83"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateCounterpartyPublicAlias",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "705c7c0b079cb48311a40bb9cfaef8eb05ea3cc6b2c080b50839ee0da7b88bec",
+      "http4s_digest": "cca062fc7b422a4e2a4cf052bf08e3b5b1f64c52734fb1c1ef2099de80c9b7dc"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateTransactionNarrative",
+      "field": "errorResponseBodies",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "219c5ead06fe720f59e87ddf4550c060b70c7c1cbcb0d738c7489445c9a1796e",
+      "http4s_digest": "a12683aa13bafb349a69332a382fa3b613f67592c7eea2cef9424053a0deade3"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateViewForBankAccount",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
+      "lift_digest": "7ff8ab9d5f5380b422cd7e8e46bc1a4beaa86e5eec2aea467285384a2593404a",
+      "http4s_digest": "04e78c3b02fef79fb86ea5555090669801dc4b0dec7ea8fdb1d95de1553d472b"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getTransactionRequestTypes",
+      "field": "errorResponseBodies",
+      "reason": "Dropped error strings (\"account not found at bank\" / \"user does not have access to owner view\") are never thrown by any code path in the repo -- dead text carried over in the Lift doc, not a real error the endpoint could return.",
+      "lift_digest": "8c5828c463304c3fcb69cda98086bcff545babae1545868b54b20af7803a5990",
+      "http4s_digest": "e1f18afff1272cce9d549efeea6fbea5784789c38d46bee6c54168f4a4a5ac15"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createAccount",
+      "field": "requestUrl",
+      "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID: this repo's documented convention for a PUT-creates-account URL (see CLAUDE.md's \"Use NEW_ACCOUNT_ID for PUT-creates-account URLs\" gotcha).",
+      "lift_digest": "1c0ca8143e3e026ebd7129941384db521bac7e280dc0bcf11399e89a1575a6e5",
+      "http4s_digest": "996f7a532a9fd29d5a20500f888ca982522856316442612d4ce4087702ae1c3b"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createUser",
+      "field": "errorResponseBodies",
+      "reason": "Lift's own doc self-contradicted (\"No authorisation required\", handler has no auth call, yet listed AuthenticatedUserIsRequired); http4s removed the contradictory entry.",
+      "lift_digest": "bc316dc21d8e67f81a6313e119c9a1b1d021cb7b9399429a4545cb39e57b8930",
+      "http4s_digest": "f2a1b24fe00e6ab31696e04709874f481a2b92117e4ba0d8e34e09571b1368f7"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "answerTransactionRequestChallenge",
+      "field": "requestUrl",
+      "reason": "Lift generates one ResourceDoc per known transaction-request type via a .foreach loop over a literal-typed list (SANDBOX_TAN/COUNTERPARTY/SEPA/FREE_FORM, all in the recognized ALL_CAPS literal set) -- the parity tool's string-only parser can't evaluate that interpolation; the actual generated URL matches http4s.",
+      "lift_digest": "93db47095d4c55c632da47a706d21a79de188a6ad808f2c570b54b1a131747b2",
+      "http4s_digest": "20c01ec634b06a02892080510d3a07026e5a2d029cdff45006a723b53aa6fa5a"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createAccount",
+      "field": "requestUrl",
+      "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID, same PUT-creates-account convention as v2.0.0.",
+      "lift_digest": "1c0ca8143e3e026ebd7129941384db521bac7e280dc0bcf11399e89a1575a6e5",
+      "http4s_digest": "996f7a532a9fd29d5a20500f888ca982522856316442612d4ce4087702ae1c3b"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createViewForBankAccount",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
+      "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
+      "http4s_digest": "69ccaef44e7ddda887462c6431f0ffe7b0f0a4a91f4e12bb5f207dffb3d3dc20"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "updateViewForBankAccount",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> UPD_VIEW_ID, documented bypass-variable convention for a view-update URL.",
+      "lift_digest": "7ff8ab9d5f5380b422cd7e8e46bc1a4beaa86e5eec2aea467285384a2593404a",
+      "http4s_digest": "cf5294172b6fea51500e1502a5dcb8efc1818f5c5216d0eb022e2fce18149f92"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "createViewForBankAccount",
+      "field": "requestUrl",
+      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
+      "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
+      "http4s_digest": "69ccaef44e7ddda887462c6431f0ffe7b0f0a4a91f4e12bb5f207dffb3d3dc20"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAtms",
+      "field": "errorResponseBodies",
+      "reason": "Dropped \"No ATMs available. License may not be set.\" -- verified even Lift's own handler only ever throws the plain atmsNotFound message, never this license-specific variant; the string was already dead in Lift.",
+      "lift_digest": "099baa28c79568b066fdbbd51ef7e3772365d9b427445e03d0e4f89b8be168c6",
+      "http4s_digest": "266858573788363b20c268a76fb993e29a82e884667ec1a8f2ec8d27a9b88700"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getFirehoseAccountsAtOneBank",
+      "field": "requestUrl",
+      "reason": "BANK_ID/VIEW_ID -> FIREHOSE_BANK_ID/FIREHOSE_VIEW_ID, this repo's documented firehose-pattern bypass convention (prop check before role check before bank lookup).",
+      "lift_digest": "3cb31cd0d359a4d9cd387dcf9d99ed93d806828aaaf55a1daf682ea58fbe9d11",
+      "http4s_digest": "cff4cca2eb8ca403c84fbcd0e70a60c30e68d9d5c4499be8c75f6b3036a72166"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getFirehoseTransactionsForBankAccount",
+      "field": "requestUrl",
+      "reason": "Same firehose bypass convention.",
+      "lift_digest": "9cb3633ad4dd326014aa955880c1eeacaa964d010e8603e514bbfc2925486ee0",
+      "http4s_digest": "0ef0bb4cc1bbfd07431bc2888af2111f53940ec2f13968b5aa088db8c1a60f21"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "updateViewForBankAccount",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> UPD_VIEW_ID convention.",
+      "lift_digest": "7ff8ab9d5f5380b422cd7e8e46bc1a4beaa86e5eec2aea467285384a2593404a",
+      "http4s_digest": "cf5294172b6fea51500e1502a5dcb8efc1818f5c5216d0eb022e2fce18149f92"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createAccount",
+      "field": "requestUrl",
+      "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID, PUT-creates-account convention.",
+      "lift_digest": "1c0ca8143e3e026ebd7129941384db521bac7e280dc0bcf11399e89a1575a6e5",
+      "http4s_digest": "996f7a532a9fd29d5a20500f888ca982522856316442612d4ce4087702ae1c3b"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "deleteSystemView",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> SYS_VIEW_ID rename, same shape (system views have no per-account scoping).",
+      "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
+      "http4s_digest": "9a09487c0a48159914955edf656a8c22cd1b959f54216841b08dcc5bb7f56130"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getFirehoseCustomers",
+      "field": "requestUrl",
+      "reason": "BANK_ID -> FIREHOSE_BANK_ID, firehose bypass convention.",
+      "lift_digest": "acdae6ea339535a30fc3202a587ef2400204bdde069534b12db279f23266e4fc",
+      "http4s_digest": "e4afad2ec15fdef8baa230a79ca71ff47388b2ce598fbe022c2c31518edac0ff"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getObpConnectorLoopback",
+      "field": "description",
+      "reason": "Verified the Lift handler actually calls anonymousAccess (no auth), despite Lift's own doc wrongly claiming auth was required -- code carries an explicit fix-commit reference; http4s's doc corrects it to match real (and correct) behavior.",
+      "lift_digest": "eaae2d835b5a88d035e26697549f705d6a1d67a4cee855d3b90dbd23fde0ff01",
+      "http4s_digest": "5a0d17aff0006e43bc63109c8b6a2efaec1b4f7c832a9ab034b45c6bd1d502e4"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getSystemView",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> SYS_VIEW_ID rename.",
+      "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
+      "http4s_digest": "9a09487c0a48159914955edf656a8c22cd1b959f54216841b08dcc5bb7f56130"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getTransactionByIdForBankAccount",
+      "field": "description",
+      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
+      "lift_digest": "1cd8e44d4596ded79ce9f0c90015ed4effc3893d297a0645a3c781663a607db7",
+      "http4s_digest": "af12e5dc10c9e841ac07aab24f7289abef384fa807f286eb0b2860d4c1868a94"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "updateSystemView",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> SYS_VIEW_ID rename.",
+      "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
+      "http4s_digest": "9a09487c0a48159914955edf656a8c22cd1b959f54216841b08dcc5bb7f56130"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "answerTransactionRequestChallenge",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> GRANT_VIEW_ID: checkAuthorisationToCreateTransactionRequest handles the view/role authorisation logic internally, matching this repo's documented bypass convention.",
+      "lift_digest": "93db47095d4c55c632da47a706d21a79de188a6ad808f2c570b54b1a131747b2",
+      "http4s_digest": "218a317170806d0f4303f5f1a91e49acbe2c6ca2a1ec43672365bb03aae1d35a"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAccount",
+      "field": "requestUrl",
+      "reason": "Literal \"ACCOUNT\" segment generalized to a TRANSACTION_REQUEST_TYPE wildcard + GRANT_VIEW_ID: a single generic http4s handler now serves what were 9 separate per-type Lift doc aliases (confirmed by a matching code comment).",
+      "lift_digest": "f05f20b524d4f6546c826d4c69d9e40f785c624e77956c9fb0389160a03054ca",
+      "http4s_digest": "dc93a9444e21bd6540d25ed64b94db928463b2cb6468129c8dd92b8316f53886"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAccountOtp",
+      "field": "requestUrl",
+      "reason": "GRANT_VIEW_ID bypass convention, same generic-handler consolidation as createTransactionRequestAccount.",
+      "lift_digest": "e77cc0608c5a2a6a7770aca934834974e7899b83bb5b4618b218840579644829",
+      "http4s_digest": "ffe3b0b3afeefb7d9ed88c9b974bb6e2c15fd98a1eb1f537cc5743bc9d98bc7d"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAgentCashWithDrawal",
+      "field": "requestUrl",
+      "reason": "GRANT_VIEW_ID bypass convention, same consolidation.",
+      "lift_digest": "50bc6cf2192b86d510bdec7bfd81c02d1541cddd9ddd2f50e048ce745162b1e4",
+      "http4s_digest": "1266145a5230a2e755ffd14605dd987737b457b67f76129dfc251583b9c228b6"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCounterparty",
+      "field": "requestUrl",
+      "reason": "GRANT_VIEW_ID bypass convention, same consolidation.",
+      "lift_digest": "a3f0c9fce8ae738505b0e20c97d3648da1fcb187a0b5f882a60caf9ebe79b9a6",
+      "http4s_digest": "d02b2af1bacce08ef5a482be184b94b216efea06c0717ceeabf2a80184798fc3"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestFreeForm",
+      "field": "requestUrl",
+      "reason": "GRANT_VIEW_ID bypass convention, same consolidation.",
+      "lift_digest": "b075c9ace06aabc8bc5fae482b1854cc1d70eaae8300facc7e9df87a84dfc1e3",
+      "http4s_digest": "5b2c676937629c0e8abd8a742ee19b253d14d26e0e759ad6ea2e1020af5d1b74"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestRefund",
+      "field": "requestUrl",
+      "reason": "GRANT_VIEW_ID bypass convention, same consolidation.",
+      "lift_digest": "314639471d56a3faa5c84d4ed57ede9a609d43989a5a5567f560d45a4251c310",
+      "http4s_digest": "7e792d6e14b9b951747e90f337a97d7ff32748fd36d3aa777830fff5b2548ade"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestSepa",
+      "field": "requestUrl",
+      "reason": "GRANT_VIEW_ID bypass convention, same consolidation.",
+      "lift_digest": "8f55f7f99b1c8fa0a93af70f485ad07ce813bf8f614209649bbd39a8682e89ed",
+      "http4s_digest": "3093af72b9bb849cb55140b25e6ecfa88d63887ccd7ffaf6bbe73a76b48d6375"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestSimple",
+      "field": "requestUrl",
+      "reason": "GRANT_VIEW_ID bypass convention, same consolidation.",
+      "lift_digest": "41bc774398ad113f466233d4db2d380e476d687c0699734b046182fa8a677897",
+      "http4s_digest": "73cbb5f0f358d93b738be2acbc34f75438dae36186482f2650a5ba8dcee9c5f2"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteBankLevelDynamicResourceDoc",
+      "field": "requestUrl",
+      "reason": "Lift's \"DYNAMIC-RESOURCE-DOC-ID\" used hyphens, which the URL-template-variable matcher's regex (upper/underscore/digit only) can't recognize as a variable -- a genuine broken Lift template; http4s's underscore form is the fix.",
+      "lift_digest": "88d3999f8d4a15b904b69b597c770539efcee05cf149c0eb47cba88e4134bce8",
+      "http4s_digest": "ab7e41da4bb607ed2e1f5008352a6914ce993c1bb231d21e183bb53e78988da7"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteCustomerAttribute",
+      "field": "requestUrl",
+      "reason": "Lift's own documented URL didn't even match Lift's own real route pattern (verified against the actual case match); http4s's URL matches the real route on both sides.",
+      "lift_digest": "596f6923d80a84c96905e8d5136b3ac8a470d10bcb4ca657c73e3fbd5213f3f9",
+      "http4s_digest": "deed8faaba6ece8aae3ce965522969e224a3a312842acd8a144efdd496189fbd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteDynamicResourceDoc",
+      "field": "requestUrl",
+      "reason": "Same hyphen-vs-underscore template bug fix as deleteBankLevelDynamicResourceDoc.",
+      "lift_digest": "1121e061bb57d86b7b28c331cfd46382f6bc01b163301a62871d5c95b0240eab",
+      "http4s_digest": "1216685612894e081ee8c9fa73e16bec14351fa08675b4c15c7f5043a3578c03"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteExplicitCounterparty",
+      "field": "requestUrl",
+      "reason": "COUNTERPARTY_ID -> COUNTERPARTY_ID_PARAM rename, same shape.",
+      "lift_digest": "921d75d9e3f3f8829417e01b547c83bb66305f39e6125d07641d70228ba12762",
+      "http4s_digest": "f17aeac76f848755b702722badaf8024590ced0c796cdf6467cc8f3ca0cabf2e"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteUser",
+      "field": "description",
+      "reason": "Expanded description accurately documents verified soft-delete/PII-scramble behavior (AuthUser.scrambleAuthUser, scrambleDataOfResourceUser in the real handler).",
+      "lift_digest": "f2e1d5e50e5b129805fcae2dbfe8e6fc681605ba65c67c1b734bf3f3a14a66d4",
+      "http4s_digest": "017005c0edb02ebf0b68a20c3e82936cdb06b2febe71dbd87c49799ff6396d8d"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteUser",
+      "field": "errorResponseBodies",
+      "reason": "Added UserNotFoundById matches NewStyle.function.findByUserId's real 404 throw path.",
+      "lift_digest": "cb07b8a8074c71a21a64f9030e412d57858383e4f503c2444c6c7000be5f4030",
+      "http4s_digest": "a003e5f03ffb40b5f4a181a71c84a68bef06dbb387a7eacfcc268329f2bc3f63"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getApiCollectionEndpoints",
+      "field": "description",
+      "reason": "Handler uses EndpointHelpers.withUser (mandatory auth); Lift's error list already declared AuthenticatedUserIsRequired despite the doc prose saying \"optional\" -- wording-only fix.",
+      "lift_digest": "da56c88584e174c7ba38ccc3ec17ee09b8b04419ddea5c9d30dbf56f745b5405",
+      "http4s_digest": "9f052c622860ce2c8b975130944309ef48373a8d2dc20f26b5d790c6c04ab478"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getBankLevelDynamicResourceDoc",
+      "field": "requestUrl",
+      "reason": "Hyphen -> underscore template fix, same pattern as deleteBankLevelDynamicResourceDoc.",
+      "lift_digest": "88d3999f8d4a15b904b69b597c770539efcee05cf149c0eb47cba88e4134bce8",
+      "http4s_digest": "ab7e41da4bb607ed2e1f5008352a6914ce993c1bb231d21e183bb53e78988da7"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getCounterpartyByIdForAnyAccount",
+      "field": "requestUrl",
+      "reason": "COUNTERPARTY_ID_PARAM rename.",
+      "lift_digest": "10cc23745c9f2e446f7128aebff01d4cd79e7390299d1ff9d53782c8e199a0c8",
+      "http4s_digest": "ca07ee2eaee48c958711ac6e697032ac41035a9fdfe4ee4cdc71ff6ea4412cb9"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getDynamicResourceDoc",
+      "field": "requestUrl",
+      "reason": "Hyphen -> underscore template fix.",
+      "lift_digest": "1121e061bb57d86b7b28c331cfd46382f6bc01b163301a62871d5c95b0240eab",
+      "http4s_digest": "1216685612894e081ee8c9fa73e16bec14351fa08675b4c15c7f5043a3578c03"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getExplicitCounterpartyById",
+      "field": "requestUrl",
+      "reason": "EXPLICIT_COUNTERPARTY_ID rename.",
+      "lift_digest": "921d75d9e3f3f8829417e01b547c83bb66305f39e6125d07641d70228ba12762",
+      "http4s_digest": "51b5c4487bf594005cbd5895f0fa7f8f2ef4ed246386e9cd2fb154c386d5289b"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getFirehoseAccountsAtOneBank",
+      "field": "requestUrl",
+      "reason": "FIREHOSE_* bypass convention.",
+      "lift_digest": "3cb31cd0d359a4d9cd387dcf9d99ed93d806828aaaf55a1daf682ea58fbe9d11",
+      "http4s_digest": "cff4cca2eb8ca403c84fbcd0e70a60c30e68d9d5c4499be8c75f6b3036a72166"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getMyApiCollectionEndpoint",
+      "field": "description",
+      "reason": "Same withUser-mandatory-auth wording fix as getApiCollectionEndpoints.",
+      "lift_digest": "8237405b9168c43679498d41aab3e252520db73a10e161ba9b00cde41c183fda",
+      "http4s_digest": "3ed2f6d19d0896daf0ede47fbd5183192052f4ef0354140c3c8320ea420e2c96"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateBankLevelDynamicResourceDoc",
+      "field": "requestUrl",
+      "reason": "Hyphen -> underscore template fix.",
+      "lift_digest": "88d3999f8d4a15b904b69b597c770539efcee05cf149c0eb47cba88e4134bce8",
+      "http4s_digest": "ab7e41da4bb607ed2e1f5008352a6914ce993c1bb231d21e183bb53e78988da7"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateDynamicResourceDoc",
+      "field": "requestUrl",
+      "reason": "Hyphen -> underscore template fix.",
+      "lift_digest": "1121e061bb57d86b7b28c331cfd46382f6bc01b163301a62871d5c95b0240eab",
+      "http4s_digest": "1216685612894e081ee8c9fa73e16bec14351fa08675b4c15c7f5043a3578c03"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createAccount",
+      "field": "requestUrl",
+      "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID, PUT-creates-account convention.",
+      "lift_digest": "1c0ca8143e3e026ebd7129941384db521bac7e280dc0bcf11399e89a1575a6e5",
+      "http4s_digest": "996f7a532a9fd29d5a20500f888ca982522856316442612d4ce4087702ae1c3b"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createConsentByConsentRequestIdEmail",
+      "field": "errorResponseBodies",
+      "reason": "The compared text differs only because one side references a shared error-list val the parity tool's string-only parser can't expand; the expanded error sets are identical between Lift and http4s.",
+      "lift_digest": "73f681411b6caa8d703781d5e2ffa8d4adc252fe915861d9620d52ba70157489",
+      "http4s_digest": "4e326ecc2fd12e943dbc15696a9619302b28d7c6b7405f61807855d3c538b979"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createConsentByConsentRequestIdImplicit",
+      "field": "errorResponseBodies",
+      "reason": "Same shared-val expansion artifact as createConsentByConsentRequestIdEmail; expanded sets are identical.",
+      "lift_digest": "1cb5a60be98c8388253c1855e0b351469e254c5dee7ab2f42d388fe6c213da14",
+      "http4s_digest": "7affd9a379cb014033cdab59e2f4c7df80fbcb89ee3b14b126ae3fc11f20747f"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createConsentByConsentRequestIdSms",
+      "field": "errorResponseBodies",
+      "reason": "Same shared-val expansion artifact; expanded sets are identical.",
+      "lift_digest": "1cb5a60be98c8388253c1855e0b351469e254c5dee7ab2f42d388fe6c213da14",
+      "http4s_digest": "7affd9a379cb014033cdab59e2f4c7df80fbcb89ee3b14b126ae3fc11f20747f"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createSystemView",
+      "field": "errorResponseBodies",
+      "reason": "Lift's own handler already calls booleanToFuture(SystemViewCannotBePublicError) and booleanToFuture(InvalidSystemViewFormat), but Lift's doc never listed either; http4s's doc now matches Lift's actual (previously undocumented) behavior.",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "86b918e0ba878c05794b6c96846058bb96884bac0750b422ba186cf57d2fbde7"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "deleteSystemView",
+      "field": "errorResponseBodies",
+      "reason": "System views are global (no per-account scoping) and Lift's handler does no bank/account lookup or owner-check; \"BankAccountNotFound\"/owner-access errors were stale copy-paste from the per-account view doc. SystemViewNotFound is the accurate error.",
+      "lift_digest": "3cbdd13dcb3b9c6dbb79a6002c7327fe8e948e54c347632b8f6cf7007354f726",
+      "http4s_digest": "972bae654c5326034add61dfd146950777ee0dbca6520278a267fd90bba0ef1f"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "getSystemView",
+      "field": "errorResponseBodies",
+      "reason": "Lift's handler (ViewNewStyle.systemView) does no bank lookup at all -- BankNotFound was never reachable/stale. SystemViewNotFound is accurate.",
+      "lift_digest": "8ffb72b0f6f2bd94179e19b1bd970a051ad05b0f6bf0050671b0e87026f74da4",
+      "http4s_digest": "972bae654c5326034add61dfd146950777ee0dbca6520278a267fd90bba0ef1f"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "updateSystemView",
+      "field": "errorResponseBodies",
+      "reason": "Same as deleteSystemView, plus SystemViewCannotBePublicError added to match a check present in Lift's own handler but missing from Lift's doc.",
+      "lift_digest": "b79eb9fab21789a0fdc429074f4eb69cb0a23e86d7473d8baed55c7d54ec96df",
+      "http4s_digest": "9ebff8506d69c4ce6383902d5d832f903e4b0a3a9a1298917c919a418ffaf349"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "backupBankLevelDynamicEntity",
+      "field": "description",
+      "reason": "Markdown fix: literal <BackupEntityName> (renders as broken/stripped HTML) -> {BackupEntityName}.",
+      "lift_digest": "de00efcfa1254232a9f5790b53695dc09e402ac41ed964097ffff58d132c7839",
+      "http4s_digest": "841d99862cc813c235593fc43d722692084dfca390ccc07c2c0dc054ded772a2"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "backupSystemDynamicEntity",
+      "field": "description",
+      "reason": "Same markdown fix as backupBankLevelDynamicEntity.",
+      "lift_digest": "172ecd180e7c87fd9080d231736f8ea1e5d130fdc9224adb017d69494edba066",
+      "http4s_digest": "5f61128bd66efed0f37498698f7819d75cc2dcbb4501d09e96fd74769eeb4c55"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCounterpartyAttribute",
+      "field": "requestUrl",
+      "reason": "COUNTERPARTY_ID_PARAM rename.",
+      "lift_digest": "4afc1baca0551e1cb89611a42c0d7652e3040468728f465d9061052414e6e1a9",
+      "http4s_digest": "5f2aedc26f7688fd913b6f9dffe12c6858fb3814c7515530861a1613afb8a5b5"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createPersonalDataField",
+      "field": "description",
+      "reason": "Additive clarification (USER_ATTRIBUTE_ID identity, non-unique name, PUT-to-update guidance); nothing removed.",
+      "lift_digest": "4cc47e93f3737a605729f4aaf7b439d5ee8e99b737185fe1239487b30980d412",
+      "http4s_digest": "ae08eb6afbbace39d0834e20610b06ac5d4e50422f84dad91c471a3370267788"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createTransactionRequestCardano",
+      "field": "requestUrl",
+      "reason": "Verified Lift's own real route already captures a generic ViewId(viewId) -- Lift's doc hardcoding the literal \"owner\" was already inaccurate; http4s's VIEW_ID reflects the real route.",
+      "lift_digest": "ff4ed15c0eaf5e7e2220254098f7cf17ce2a19d0134205675a0db48f8992c396",
+      "http4s_digest": "62ff5fec9efa48f21dc32d5f95fd9f23d8eecf6d94ad047bb81464748b4047c2"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createTransactionRequestHold",
+      "field": "requestUrl",
+      "reason": "Same real-route verification as createTransactionRequestCardano.",
+      "lift_digest": "f171234e229c0a8c5636773ff0eef555a86cc86cbce6dd89854d72157d56c76a",
+      "http4s_digest": "4f6ba60ae9bfce501646d1311bfb1d544d3ecbf02b4b5e522e8da293d3407c04"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteCounterpartyAttribute",
+      "field": "requestUrl",
+      "reason": "COUNTERPARTY_ID_PARAM rename.",
+      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
+      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deletePersonalDataField",
+      "field": "description",
+      "reason": "Additive clarification, same pattern as createPersonalDataField.",
+      "lift_digest": "eb5db36d3a298202c0a5f1d2ef27caf84107946fa4a0a3712b334e8039285f59",
+      "http4s_digest": "c7d6e21871a9248a21ab00a16518158d065ba56348343324b92043604c7b6e0c"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteSignalChannel",
+      "field": "description",
+      "reason": "Verified, deliberate security fix: a CanDeleteSignalChannel role gate was genuinely added post-migration (previously any authenticated user could destroy any channel, including another user's in-flight messages) -- documented in a matching code comment.",
+      "lift_digest": "917926fcd80c03907fa711563a9a14e93ebcb58164ae4d28b869226a1bd4795b",
+      "http4s_digest": "59f207ff74781112cf7d6f795dc62b6824c06e7dd8b85495e9704ac78f60bc47"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteSignalChannel",
+      "field": "errorResponseBodies",
+      "reason": "UserHasMissingRoles addition matches the real new role gate (ResourceDoc declares Some(canDeleteSignalChannel :: Nil)).",
+      "lift_digest": "a83dad7a55122752ac89cc9f7e9b5fbcbba8692801ad864d6e1aebcfd2dfa9f4",
+      "http4s_digest": "6605e62014a3fc89bda9d1b256974c9dfaba58289dc0d461f832cd5af575e843"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "description",
+      "reason": "Documents real new response fields (distinct_user_count etc.) verified present in MappedMetrics.scala.",
+      "lift_digest": "21e12b117560d354f2ee58bb845e9a5d39d9f47721da8195868cf7a6ed9a216d",
+      "http4s_digest": "7e83ca3e1b2c02edfe20ecd786d397abb899fe37bc5bf42028fb03734cb627cd"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAllApiProductsV600",
+      "field": "description",
+      "reason": "Verified handler uses EndpointHelpers.withUser (mandatory auth) unconditionally; \"Required\" is accurate -- the conditional getApiProductsIsPublic flag governs a different sibling endpoint, not this one.",
+      "lift_digest": "9940ac8e6f7dbf5a4e4e5d8a65635722e8ce8839f7954ad39f99c1eee3f12865",
+      "http4s_digest": "b8f6c80d7d9aab5c1954d93d78e4e9caaf55bbba86cedc57b614c7350f5d8fda"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAllCounterpartyAttributes",
+      "field": "requestUrl",
+      "reason": "COUNTERPARTY_ID_PARAM rename.",
+      "lift_digest": "4afc1baca0551e1cb89611a42c0d7652e3040468728f465d9061052414e6e1a9",
+      "http4s_digest": "5f2aedc26f7688fd913b6f9dffe12c6858fb3814c7515530861a1613afb8a5b5"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAllProductsV600",
+      "field": "description",
+      "reason": "Same withUser-mandatory-auth verification as getAllApiProductsV600.",
+      "lift_digest": "95a38b38425c735bb39869aa81cf43011fd62525ce53a1f78b40b3fe6eec69df",
+      "http4s_digest": "11fdd7cf9a24c1a824bd01884b06c118332ca5219720b8bf76a5d177fb500800"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAppDirectory",
+      "field": "description",
+      "reason": "Additive clarification, nothing removed.",
+      "lift_digest": "d92aec65916179b76ddfe8cc8040465ac06c69dff9fea5a0ed7aea28c0f926a3",
+      "http4s_digest": "16f6e6359454b25aeca6f6dd13945d5987010cce18385360cfed9308037d3e22"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getConfigProps",
+      "field": "description",
+      "reason": "Plain-text \"Authentication is Required.\" reworded to an interpolated form with identical meaning.",
+      "lift_digest": "a4886b5dc349fd22cec6ffc735bd9fb47f5637a426c6365640cf5e486d81e8ef",
+      "http4s_digest": "a4f95be6ce6e6f5e56619c0d756f60f701d9f8edfb88adc03fff38ed790eb364"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getConnectorTraces",
+      "field": "description",
+      "reason": "Same wording normalization as getConfigProps.",
+      "lift_digest": "f41cdd1dbacdfd52a114a2dc76487367b4b20746184d32d3b0709bd858b8363d",
+      "http4s_digest": "835e4890e3775490f00f47ca65a16e63acc63d6cf1961976712b585b643e54e2"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getCounterpartyAttributeById",
+      "field": "requestUrl",
+      "reason": "COUNTERPARTY_ID_PARAM rename.",
+      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
+      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getMetrics",
+      "field": "description",
+      "reason": "Documents real new filter params (consent_reference_id, certificate_trust) verified present in MappedMetrics.scala.",
+      "lift_digest": "04c081020abb8a0f0bfe1b9a850c30151dac9a1cd69f4ea1cbb896388b4237f2",
+      "http4s_digest": "3e6c35656f1605ba23ae225187a4038f9f4ae48195824e5f4166840c325ec81a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getPersonalDataFieldById",
+      "field": "description",
+      "reason": "Additive clarification.",
+      "lift_digest": "290b6ad436ac0625f810898115e248aef2bc9d8814ef659809e27419cb63d5cf",
+      "http4s_digest": "2e3f2ce3c000cbccff0a3b96948b66e08712a5158877a2e54ef69673cead249d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getPersonalDataFields",
+      "field": "description",
+      "reason": "Additive clarification.",
+      "lift_digest": "9e55700ce5e99e758f29e91cb5bf6b2939bad37d02f2f6f282de1abfba3de90f",
+      "http4s_digest": "d0ffb88559c1a7e37d340f7667b9a7da1d37ed833c7330a031a28c58fb96af85"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSystemViewById",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> SYS_VIEW_ID rename.",
+      "lift_digest": "0041a7317dbcf01050bd9bedab8ab4ed75743b5841291cf748d3ec332e2be432",
+      "http4s_digest": "f6d3e0bc564c56c7e746900443347a83592bc0eb586d0e4293ab62eccb8726e5"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getUserGroupMemberships",
+      "field": "description",
+      "reason": "Deliberate, reasoned simplification (documented in a matching code comment): filtering by group_id alone is functionally equivalent to the old group_id + process==\"GROUP_MEMBERSHIP\" conjunct, since group_id is only ever set for that process.",
+      "lift_digest": "00695d674cb901c588ec78f9a5c33e065363fa0a5ea55ae23bde960ac464aec4",
+      "http4s_digest": "cd76da70acd6a5991f43506b12bbdd5c4c07416e092afe8ff293c0d1ed1a889c"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "publishSignalMessage",
+      "field": "description",
+      "reason": "Documents real new validation (maxPayloadLength, dangerous-character rejection) verified in SignalContentPolicy.scala/ErrorMessages.scala.",
+      "lift_digest": "5ee1e8d3e9a6d9addd3df03feda6a334c1ec4ce29bb23d60b9bbb476e476668c",
+      "http4s_digest": "53f2730fe6b58ed7efc2bffaf0f4add0f877277efbb891167f3f7c9c8d1629e3"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "publishSignalMessage",
+      "field": "errorResponseBodies",
+      "reason": "SignalMessageTooLong/SignalMessageContainsDangerousCharacters are real error constants (OBP-39019/39020) added as part of the same security-hardening change as the description update.",
+      "lift_digest": "d5760e39031ad664c98048b6474337b031c016d1de1e9a7181a5681696688f51",
+      "http4s_digest": "14bbd867d2ae350be174e3b4f07a2cda9a2213196855f8bfc766dbbbbf3811d0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "removeBankReaction",
+      "field": "requestUrl",
+      "reason": "EMOJI -> EMOJI_REACTION rename.",
+      "lift_digest": "39346f6586aefc697ac096a6bd598f12899890d32e788d9f15d4c54584f3ccdb",
+      "http4s_digest": "f59d4a76a03f8fd5f4367e2231b8c4496fbbd1eff06755f7f5a25396e1c0bb77"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "removeSystemReaction",
+      "field": "requestUrl",
+      "reason": "EMOJI -> EMOJI_REACTION rename.",
+      "lift_digest": "9f48c024ba049e62a14e2ec97c2aede0bbcdd952047dc5ab5a1cfa01f95c6c06",
+      "http4s_digest": "7da8a4231ed6d8738a9bce3e56608f05e6947c97c11ef8dd2e7c27c983b67991"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "removeUserFromGroup",
+      "field": "description",
+      "reason": "Same deliberate group_id-only simplification as getUserGroupMemberships, verified via the same matching code comment.",
+      "lift_digest": "7ed803789f6d7fb0ee0622523f4e3835ab7cbc166efd9c2454882836224db13f",
+      "http4s_digest": "9e2a740a07e70eb3bdd0b54afe2406fa70aab3a7941fa88d02970657d5f8ee21"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "resetPasswordUrl",
+      "field": "description",
+      "reason": "Verified the handler genuinely no longer returns the reset URL in the response body (only {\"status\":\"sent\",\"to\":email}) -- a documented, reasoned security fix closing an account-takeover vector (see also the successResponseBody allowlist entry for this same endpoint).",
+      "lift_digest": "dca0922381fb4c5f1fb34ab5a531d440b068f2170fd933c3c2eeddb4c52eaf94",
+      "http4s_digest": "f0bea922b31c331bae138d58990bf31a6bc5ca0099055f4cff4fdaf62c0a6263"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateCounterpartyAttribute",
+      "field": "requestUrl",
+      "reason": "COUNTERPARTY_ID_PARAM rename.",
+      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
+      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updatePersonalDataField",
+      "field": "description",
+      "reason": "Additive clarification.",
+      "lift_digest": "b2a8abcba137c01ec9e67c4c58eb5d7c6596508a12219f87092c5773c29916b3",
+      "http4s_digest": "85090153d93338f56d26c549900bdba3c2467269c740ef4f9752c7ad88d806dc"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemView",
+      "field": "requestUrl",
+      "reason": "VIEW_ID -> UPD_VIEW_ID convention.",
+      "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
+      "http4s_digest": "dad3bc411251667d1a364b7fd8e45c54de3ef9d4d3d54f52e90e6264d53a948d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createBankLevelDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
+      "http4s_digest": "0e74005a596c6d3fe6cf4a0372b7c26a8df71a64ed261dae9952acf38dad9681"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createSystemDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
+      "http4s_digest": "a04f57e1840396c8b740ed334710ae8f40a7386daf194bdd2e6e2276de80c6ff"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
+      "http4s_digest": "2d9a3632bcd0ef2d6211e26bdcbed1671a2c1919b5e57a4dfbcbfe276d2c960f"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
+      "http4s_digest": "f3afa0db1a4fa3d9cb51755653a847fd316ebdbd6629599a01758b2adb2a0ed0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
+      "http4s_digest": "e7578c9f3348cc71091e23a11f3837f421ff8139891b71f53f7a5a0d243a3d4f"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getEntitlementsForCurrentUser",
+      "field": "description",
+      "reason": "Expanded to document virtual entitlements (super_admin_user_ids/oidc_operator_user_ids) alongside stored ones; same feature as getCurrentUser's entitlements.list doc.",
+      "lift_digest": "2fd8ababd5a262cd46adacf29ab76aff060291bc9d7d2a48e90d7e316b613a1a",
+      "http4s_digest": "582926a1182a2409d05f72678949e700822e24fcd013aadcaec229d8c2a72727"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createConsentEmail",
+      "field": "errorResponseBodies",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "lift_digest": "73f681411b6caa8d703781d5e2ffa8d4adc252fe915861d9620d52ba70157489",
+      "http4s_digest": "f8b17b4d7af9672c5a18db6530fb69dc9cf1e0ee381bb9704c21d9275b7c8740"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createConsentImplicit",
+      "field": "errorResponseBodies",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
+      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createConsentSms",
+      "field": "errorResponseBodies",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
+      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createConsent",
+      "field": "errorResponseBodies",
+      "reason": "Same RolesForbiddenInConsent addition as the v3.1.0 consent-creation endpoints (real check, verified in source). Digest computed against the rename-paired Lift name createConsentImplicit.",
+      "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
+      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createApiProduct",
+      "field": "description",
+      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) — real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
+      "lift_digest": "a0a19cc5100424e4e1824f1d1c70dc4329971051689338c8559c988e334ddab7",
+      "http4s_digest": "585ffe0ecaab1b7ee5d333fffc55aca0016497dba502ad9ebc446dd3a4c92ade"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCallLimits",
+      "field": "description",
+      "reason": "Documents the six-limit semantics (0=blocked, summed across records); same rate-limiting feature expansion as the other rate-limit endpoints below.",
+      "lift_digest": "668028ad86321b68b01406fb570d1dafca545c3c45bc2a3e3c0d04dd1a5b69af",
+      "http4s_digest": "a70426ea3f7d3e3305f066057d548d5f810f4920a78ea5c1cc02fce5afd74208"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteCallLimits",
+      "field": "description",
+      "reason": "Notes that a record created by an Api Product Subscription is recreated on the subscription's next status change; cross-references the new subscription feature.",
+      "lift_digest": "ee5101d21cd7e4c75dc6a13247504bd50b6f5d9bc990d0040df4688351ddd06c",
+      "http4s_digest": "d3615986ed35f67bd8b5f61f28421b4420324436dde9554f011a7cfb3f38ab82"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getActiveRateLimitsAtDate",
+      "field": "description",
+      "reason": "Documents the 0=blocked semantics for the aggregated rate-limit value; same rate-limiting doc expansion.",
+      "lift_digest": "f76972227ab4e68e210c189294d83c2e93c21fa731448b98b44c47f804f9a124",
+      "http4s_digest": "e5e0a64387460166429b531b7f18bbe270a2a68065947084c69b4f2955a69f96"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getActiveRateLimitsNow",
+      "field": "description",
+      "reason": "Same rate-limiting doc expansion as getActiveRateLimitsAtDate.",
+      "lift_digest": "2f93ab9f7422c605789f3c006f57ab363a1dd25adb98c57b7ee5b76aa4a27f78",
+      "http4s_digest": "c815f6f640d20e3e883f4e4e06a6d5755d087ca651f0f5c2b39e22110abb8ef7"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getCurrentUser",
+      "field": "description",
+      "reason": "Documents stored vs virtual Entitlements (created_by_process, super_admin_user_ids/oidc_operator_user_ids) and on_behalf_of consent semantics; file's own comment marks this as a deliberate extension of the Lift text. Verified in full against the live source.",
+      "lift_digest": "03774e46d0c75b2f68bf848a5aa16c0aa1239b007e345d7bb6093773744934b1",
+      "http4s_digest": "a132b82d8380cef202e8e5aefe5c20bde8d4537ad5f1c50735eaa05a2f11674d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateRateLimits",
+      "field": "description",
+      "reason": "Same rate-limiting doc expansion as the other call-limit endpoints.",
+      "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
+      "http4s_digest": "229b587b60d0eec166b7f962703514c81e5d176ee65dd70de0c131efc221bd8c"
+    }
+  ]
+}

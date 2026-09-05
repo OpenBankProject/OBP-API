@@ -5,7 +5,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Box

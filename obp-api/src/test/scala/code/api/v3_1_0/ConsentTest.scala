@@ -33,8 +33,8 @@ import code.api.util.{APIUtil, Consent}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.v3_0_0.{APIMethods300, UserJsonV300}
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_0_0.{Http4s300, UserJsonV300}
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -66,7 +66,7 @@ class ConsentTest extends V310ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.answerConsentChallenge))
 
   object VersionOfApi2 extends Tag(ApiVersion.v3_0_0.toString)
-  object ApiEndpoint3 extends Tag(nameOf(APIMethods300.Implementations3_0_0.getUserByUserId))
+  object ApiEndpoint3 extends Tag(nameOf(Http4s300.Implementations3_0_0.getUserByUserId))
 
   val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
 

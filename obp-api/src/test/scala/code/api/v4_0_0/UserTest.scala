@@ -5,7 +5,7 @@ import java.util.UUID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, attemptedToOpenAnEmptyBox}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.model.UserX
 import code.users.Users

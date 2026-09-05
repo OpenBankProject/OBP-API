@@ -28,14 +28,13 @@ package code.api.dynamic.endpoint
 
 import APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint
 import code.api.OBPRestHelper
-import code.api.util.VersionedOBPApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 
 /*
 This file defines which endpoints from all the versions are available in v4.0.0
  */
-object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable with VersionedOBPApis{
+object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable {
 
   val version : ApiVersion = ApiVersion.`dynamic-endpoint`
 

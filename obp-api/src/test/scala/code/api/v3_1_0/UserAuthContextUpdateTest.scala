@@ -31,7 +31,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateCustomer, CanGetUserAuthContext, CanGetUserCustomerLink}
 import code.api.util.ApiRole
 import code.api.v2_0_0.UserCustomerLinksJson
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.consumer.Consumers
 import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement

@@ -31,7 +31,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, DynamicResourceDocAlreadyExists, DynamicResourceDocNotFound, UserHasMissingRoles}
 import code.api.util.ApiRole
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf

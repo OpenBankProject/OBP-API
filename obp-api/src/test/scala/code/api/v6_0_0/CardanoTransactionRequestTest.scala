@@ -41,7 +41,7 @@ import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
+import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.entitlement.Entitlement
 
 

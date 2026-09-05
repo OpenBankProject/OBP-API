@@ -30,7 +30,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateProduct, CanMaintainProductCollection}
 import com.openbankproject.commons.util.ApiVersion
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import org.json4s.native.Serialization.write

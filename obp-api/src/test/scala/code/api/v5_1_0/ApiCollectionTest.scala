@@ -30,9 +30,9 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v4_0_0.{ApiCollectionJson400, ApiCollectionsJson400}
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage

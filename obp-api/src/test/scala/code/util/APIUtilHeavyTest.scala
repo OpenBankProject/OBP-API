@@ -32,7 +32,7 @@ import code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310AccountAccess
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.Http4sBGv13AIS
 import code.api.util._
-import code.api.v4_0_0.{Http4s400, OBPAPI4_0_0, V400ServerSetup}
+import code.api.v4_0_0.{Http4s400, V400ServerSetup}
 import code.setup.PropsReset
 import code.views.system.ViewDefinition
 import com.openbankproject.commons.util.ApiVersion

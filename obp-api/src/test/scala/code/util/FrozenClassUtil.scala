@@ -5,7 +5,7 @@ import java.net.URI
 
 import code.TestServer
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.VersionedOBPApis
+import code.api.util.http4s.Http4sResourceDocAggregation
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.Loggable
 import org.apache.commons.io.IOUtils
@@ -59,18 +59,21 @@ object FrozenClassUtil extends Loggable{
     * @return frozen api information, include api names of given api version and frozen class metadata
     */
   def getFrozenApiInfo: (List[(ApiVersion, Set[String])], Map[String, Map[String, String]]) = {
-    val versionedOBPApisList: List[VersionedOBPApis] = ClassScanUtils.getSubTypeObjects[VersionedOBPApis]
-      .filter(_.versionStatus == "STABLE")
+    // Was a classpath scan for VersionedOBPApis implementors, which meant the OBPAPIx_x_x
+    // aggregator objects. Those are gone; Http4sResourceDocAggregation.allVersions is the same
+    // enumeration made explicit, carrying each version's status and cumulative doc catalog.
+    val stableVersions: List[Http4sResourceDocAggregation.VersionedCatalog] =
+      Http4sResourceDocAggregation.allVersions.filter(_.versionStatus == "STABLE")
 
-    val versionToEndpointNames: List[(ApiVersion, Set[String])] = versionedOBPApisList
+    val versionToEndpointNames: List[(ApiVersion, Set[String])] = stableVersions
       .map(it => {
         val version = it.version
-        val currentVersionApis = it.allResourceDocs.filter(version == _.implementedInApiVersion).toSet
+        val currentVersionApis = it.docs().filter(version == _.implementedInApiVersion).toSet
         (version, currentVersionApis.map(_.partialFunctionName))
       })
 
-    val allFreezingTypes: Set[Type] = versionedOBPApisList
-      .flatMap(_.allResourceDocs)
+    val allFreezingTypes: Set[Type] = stableVersions
+      .flatMap(_.docs())
       .flatMap(it => it.exampleRequestBody :: it.successResponseBody :: Nil)
       .filter(ReflectUtils.isObpObject(_))
       .map(ReflectUtils.getType(_))

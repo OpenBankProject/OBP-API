@@ -12,9 +12,9 @@ import code.api.util.ApiRole
 import code.api.v2_0_0.BasicAccountJSON
 import code.api.v2_2_0.CreateAccountJSONV220
 import code.api.v3_0_0.{CoreAccountsJsonV300, ModeratedCoreAccountJsonV300}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
+import code.api.v2_0_0.Http4s200.Implementations2_0_0
 import code.entitlement.Entitlement
 import code.model.dataAccess.BankAccountRouting
 import code.setup.DefaultUsers

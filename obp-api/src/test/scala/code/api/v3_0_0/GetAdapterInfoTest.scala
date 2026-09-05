@@ -27,7 +27,7 @@ package code.api.v3_0_0
 
 import code.api.util.ApiRole.canGetAdapterInfoAtOneBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.api.util.APIUtil.OAuth._
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers

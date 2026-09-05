@@ -5,7 +5,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import code.api.util.ErrorMessages.{AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles}
 import code.api.util.{APIUtil, ErrorMessages}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
 

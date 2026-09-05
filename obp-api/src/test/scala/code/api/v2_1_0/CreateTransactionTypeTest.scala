@@ -5,8 +5,8 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateTransactionType
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v2_0_0.{TransactionTypeJsonV200, TransactionTypesJsonV200}
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_0_0
-import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
+import code.api.v2_0_0.Http4s200.Implementations2_0_0
+import code.api.v2_1_0.Http4s210.Implementations2_1_0
 import code.setup.DefaultUsers
 import code.transaction_types.MappedTransactionType
 import com.github.dwickern.macros.NameOf.nameOf

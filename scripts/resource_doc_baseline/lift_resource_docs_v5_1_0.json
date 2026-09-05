@@ -1,0 +1,1430 @@
+{
+  "schema_version": 1,
+  "version": "v5_1_0",
+  "source_file": "obp-api/src/main/scala/code/api/v5_1_0/APIMethods510.scala",
+  "exported_from_git_commit": "e198c922328095b9abbd1370056fb5ee002f7980",
+  "endpoint_count": 111,
+  "endpoints": {
+    "root": {
+      "partial_function_name_raw": "nameOf(root)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/root\"",
+      "summary": "\"Get API Info (root)\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API version\n       |* Hosted by information\n       |* Hosted at information\n       |* Energy source information\n       |* Git Commit\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiInfoJson400",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi  :: Nil"
+    },
+    "suggestedSessionTimeout": {
+      "partial_function_name_raw": "nameOf(suggestedSessionTimeout)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/ui/suggested-session-timeout\"",
+      "summary": "\"Get Suggested Session Timeout\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* Suggested session timeout in case of a user inactivity\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "SuggestedSessionTimeoutV510(\"300\")",
+      "error_response_bodies": "List(UnknownError)",
+      "tags": "apiTagApi  :: Nil"
+    },
+    "getOAuth2ServerWellKnown": {
+      "partial_function_name_raw": "\"getOAuth2ServerWellKnown\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/well-known\"",
+      "summary": "\"Get Well Known URIs\"",
+      "description": "\"\"\"Get the OAuth2 server's public Well Known URIs.\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "oAuth2ServerJwksUrisJson",
+      "error_response_bodies": "List(\n       UnknownError\n     )",
+      "tags": "List(apiTagApi)"
+    },
+    "regulatedEntities": {
+      "partial_function_name_raw": "nameOf(regulatedEntities)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/regulated-entities\"",
+      "summary": "\"Get Regulated Entities\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* Regulated Entities\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "regulatedEntitiesJsonV510",
+      "error_response_bodies": "List(UnknownError)",
+      "tags": "apiTagDirectory :: apiTagApi  :: Nil"
+    },
+    "logCacheTraceEndpoint": {
+      "partial_function_name_raw": "nameOf(logCacheTraceEndpoint)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system/log-cache/trace\"",
+      "summary": "\"Get Trace Level Log Cache\"",
+      "description": "\"\"\"Returns TRACE level logs from the system log cache.\n       |\n       |This endpoint supports pagination via the following optional query parameters:\n       |* limit - Maximum number of log entries to return\n       |* offset - Number of log entries to skip (for pagination)\n       |\n       |Example: GET /system/log-cache/trace?limit=50&offset=100\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll))"
+      }
+    },
+    "logCacheDebugEndpoint": {
+      "partial_function_name_raw": "nameOf(logCacheDebugEndpoint)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system/log-cache/debug\"",
+      "summary": "\"Get Debug Level Log Cache\"",
+      "description": "\"\"\"Returns DEBUG level logs from the system log cache.\n       |\n       |This endpoint supports pagination via the following optional query parameters:\n       |* limit - Maximum number of log entries to return\n       |* offset - Number of log entries to skip (for pagination)\n       |\n       |Example: GET /system/log-cache/debug?limit=50&offset=100\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll))"
+      }
+    },
+    "logCacheInfoEndpoint": {
+      "partial_function_name_raw": "nameOf(logCacheInfoEndpoint)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system/log-cache/info\"",
+      "summary": "\"Get Info Level Log Cache\"",
+      "description": "\"\"\"Returns INFO level logs from the system log cache.\n       |\n       |This endpoint supports pagination via the following optional query parameters:\n       |* limit - Maximum number of log entries to return\n       |* offset - Number of log entries to skip (for pagination)\n       |\n       |Example: GET /system/log-cache/info?limit=50&offset=100\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll))"
+      }
+    },
+    "logCacheWarningEndpoint": {
+      "partial_function_name_raw": "nameOf(logCacheWarningEndpoint)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system/log-cache/warning\"",
+      "summary": "\"Get Warning Level Log Cache\"",
+      "description": "\"\"\"Returns WARNING level logs from the system log cache.\n       |\n       |This endpoint supports pagination via the following optional query parameters:\n       |* limit - Maximum number of log entries to return\n       |* offset - Number of log entries to skip (for pagination)\n       |\n       |Example: GET /system/log-cache/warning?limit=50&offset=100\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll))"
+      }
+    },
+    "logCacheErrorEndpoint": {
+      "partial_function_name_raw": "nameOf(logCacheErrorEndpoint)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system/log-cache/error\"",
+      "summary": "\"Get Error Level Log Cache\"",
+      "description": "\"\"\"Returns ERROR level logs from the system log cache.\n       |\n       |This endpoint supports pagination via the following optional query parameters:\n       |* limit - Maximum number of log entries to return\n       |* offset - Number of log entries to skip (for pagination)\n       |\n       |Example: GET /system/log-cache/error?limit=50&offset=100\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll))"
+      }
+    },
+    "logCacheAllEndpoint": {
+      "partial_function_name_raw": "nameOf(logCacheAllEndpoint)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system/log-cache/all\"",
+      "summary": "\"Get All Level Log Cache\"",
+      "description": "\"\"\"Returns logs of all levels from the system log cache.\n       |\n       |This endpoint supports pagination via the following optional query parameters:\n       |* limit - Maximum number of log entries to return\n       |* offset - Number of log entries to skip (for pagination)\n       |\n       |Example: GET /system/log-cache/all?limit=50&offset=100\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemLogCacheAll))"
+      }
+    },
+    "getRegulatedEntityById": {
+      "partial_function_name_raw": "nameOf(getRegulatedEntityById)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/regulated-entities/REGULATED_ENTITY_ID\"",
+      "summary": "\"Get Regulated Entity\"",
+      "description": "\"\"\"Get Regulated Entity By REGULATED_ENTITY_ID\n       \"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "regulatedEntityJsonV510",
+      "error_response_bodies": "List(UnknownError)",
+      "tags": "apiTagDirectory :: apiTagApi  :: Nil"
+    },
+    "createRegulatedEntity": {
+      "partial_function_name_raw": "nameOf(createRegulatedEntity)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/regulated-entities\"",
+      "summary": "\"Create Regulated Entity\"",
+      "description": "s\"\"\"Create Regulated Entity\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "regulatedEntityPostJsonV510",
+      "success_response_body": "regulatedEntityJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagDirectory, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateRegulatedEntity))"
+      }
+    },
+    "deleteRegulatedEntity": {
+      "partial_function_name_raw": "nameOf(deleteRegulatedEntity)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/regulated-entities/REGULATED_ENTITY_ID\"",
+      "summary": "\"Delete Regulated Entity\"",
+      "description": "s\"\"\"Delete Regulated Entity specified by REGULATED_ENTITY_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "List(apiTagDirectory, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteRegulatedEntity))"
+      }
+    },
+    "waitingForGodot": {
+      "partial_function_name_raw": "nameOf(waitingForGodot)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/waiting-for-godot\"",
+      "summary": "\"Waiting For Godot\"",
+      "description": "\"\"\"Waiting For Godot\n       |\n       |Uses query parameter \"sleep\" in milliseconds.\n       |For instance: .../waiting-for-godot?sleep=50 means postpone response in 50 milliseconds.\n       |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "WaitingForGodotJsonV510(sleep_in_milliseconds = 50)",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi  :: Nil"
+    },
+    "getAllApiCollections": {
+      "partial_function_name_raw": "nameOf(getAllApiCollections)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/api-collections\"",
+      "summary": "\"Get All API Collections\"",
+      "description": "s\"\"\"Get All API Collections.\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiCollectionsJson400",
+      "error_response_bodies": "List(\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagApiCollection)",
+      "extra_named_args": {
+        "roles": "Some(canGetAllApiCollections :: Nil)"
+      }
+    },
+    "createAgent": {
+      "partial_function_name_raw": "nameOf(createAgent)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/agents\"",
+      "summary": "\"Create Agent\"",
+      "description": "s\"\"\"\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "postAgentJsonV510",
+      "success_response_body": "agentJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       AgentNumberAlreadyExists,\n       CreateAgentError,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagPerson)"
+    },
+    "updateAgentStatus": {
+      "partial_function_name_raw": "nameOf(updateAgentStatus)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/agents/AGENT_ID\"",
+      "summary": "\"Update Agent status\"",
+      "description": "s\"\"\"\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "putAgentJsonV510",
+      "success_response_body": "agentJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       AgentNotFound,\n       AgentAccountLinkNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagPerson)",
+      "extra_named_args": {
+        "roles": "Some(canUpdateAgentStatusAtAnyBank :: canUpdateAgentStatusAtOneBank :: Nil)"
+      }
+    },
+    "getAgent": {
+      "partial_function_name_raw": "nameOf(getAgent)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/agents/AGENT_ID\"",
+      "summary": "\"Get Agent\"",
+      "description": "s\"\"\"Get Agent.\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "agentJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       AgentNotFound,\n       AgentAccountLinkNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount)"
+    },
+    "createNonPersonalUserAttribute": {
+      "partial_function_name_raw": "nameOf(createNonPersonalUserAttribute)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/users/USER_ID/non-personal/attributes\"",
+      "summary": "\"Create Non Personal User Attribute\"",
+      "description": "s\"\"\" Create Non Personal User Attribute\n        |\n        |The type field must be one of \"STRING\", \"INTEGER\", \"DOUBLE\" or DATE_WITH_DAY\"\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "userAttributeJsonV510",
+      "success_response_body": "userAttributeResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateNonPersonalUserAttribute))"
+      }
+    },
+    "deleteNonPersonalUserAttribute": {
+      "partial_function_name_raw": "nameOf(deleteNonPersonalUserAttribute)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/users/USER_ID/non-personal/attributes/USER_ATTRIBUTE_ID\"",
+      "summary": "\"Delete Non Personal User Attribute\"",
+      "description": "s\"\"\"Delete the Non Personal User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteNonPersonalUserAttribute))"
+      }
+    },
+    "getNonPersonalUserAttributes": {
+      "partial_function_name_raw": "nameOf(getNonPersonalUserAttributes)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_ID/non-personal/attributes\"",
+      "summary": "\"Get Non Personal User Attributes\"",
+      "description": "s\"\"\"Get Non Personal User Attribute for a user specified by USER_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetNonPersonalUserAttributes))"
+      }
+    },
+    "syncExternalUser": {
+      "partial_function_name_raw": "nameOf(syncExternalUser)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/users/PROVIDER/PROVIDER_ID/sync\"",
+      "summary": "\"Sync User\"",
+      "description": "s\"\"\"The endpoint is used to create or sync an OBP User with User from an external identity provider.\n     |PROVIDER is the host of the provider e.g. a Keycloak Host.\n     |PROVIDER_ID is the unique identifier for the User at the PROVIDER.\n     |At the end of the process, a User will exist in OBP with the Account Access records defined by the CBS.\n     |\n     |${userAuthenticationMessage(true)}\n     |\n     |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "refresUserJson",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canSyncUser))"
+      }
+    },
+    "getAccountsHeldByUserAtBank": {
+      "partial_function_name_raw": "nameOf(getAccountsHeldByUserAtBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_ID/banks/BANK_ID/accounts-held\"",
+      "summary": "\"Get Accounts Held By User\"",
+      "description": "s\"\"\"Get Accounts held by the User if even the User has not been assigned the owner View yet.\n        |\n        |Can be used to onboard the account to the API - since all other account and transaction endpoints require views to be assigned.\n        |\n        |${accountTypeFilterText(\"/users/USER_ID/banks/BANK_ID/accounts-held\")}\n        |\n        |\n        |\n       \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "coreAccountsHeldJsonV300",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserNotFoundByUserId,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAccountsHeldAtOneBank, canGetAccountsHeldAtAnyBank))"
+      }
+    },
+    "getAccountsHeldByUser": {
+      "partial_function_name_raw": "nameOf(getAccountsHeldByUser)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_ID/accounts-held\"",
+      "summary": "\"Get Accounts Held By User\"",
+      "description": "s\"\"\"Get Accounts held by the User if even the User has not been assigned the owner View yet.\n        |\n        |Can be used to onboard the account to the API - since all other account and transaction endpoints require views to be assigned.\n        |\n        |${accountTypeFilterText(\"/users/USER_ID/accounts-held\")}\n        |\n        |\n        |\n       \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "coreAccountsHeldJsonV300",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserNotFoundByUserId,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAccountsHeldAtAnyBank))"
+      }
+    },
+    "getEntitlementsAndPermissions": {
+      "partial_function_name_raw": "nameOf(getEntitlementsAndPermissions)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_ID/entitlements-and-permissions\"",
+      "summary": "\"Get Entitlements and Permissions for a User\"",
+      "description": "s\"\"\"\n        |\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "userJsonV300",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserNotFoundByUserId,\n       UserHasMissingRoles,\n       UnknownError)",
+      "tags": "List(apiTagRole, apiTagEntitlement, apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetEntitlementsForAnyUserAtAnyBank))"
+      }
+    },
+    "customViewNamesCheck": {
+      "partial_function_name_raw": "nameOf(customViewNamesCheck)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/system/integrity/custom-view-names-check\"",
+      "summary": "\"Check Custom View Names\"",
+      "description": "s\"\"\"Check custom view names.\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "CheckSystemIntegrityJsonV510(true)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemIntegrity)",
+      "extra_named_args": {
+        "roles": "Some(canGetSystemIntegrity :: Nil)"
+      }
+    },
+    "systemViewNamesCheck": {
+      "partial_function_name_raw": "nameOf(systemViewNamesCheck)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/system/integrity/system-view-names-check\"",
+      "summary": "\"Check System View Names\"",
+      "description": "s\"\"\"Check system view names.\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "CheckSystemIntegrityJsonV510(true)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemIntegrity)",
+      "extra_named_args": {
+        "roles": "Some(canGetSystemIntegrity :: Nil)"
+      }
+    },
+    "accountAccessUniqueIndexCheck": {
+      "partial_function_name_raw": "nameOf(accountAccessUniqueIndexCheck)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/system/integrity/account-access-unique-index-1-check\"",
+      "summary": "\"Check Unique Index at Account Access\"",
+      "description": "s\"\"\"Check unique index at account access table.\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "CheckSystemIntegrityJsonV510(true)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemIntegrity)",
+      "extra_named_args": {
+        "roles": "Some(canGetSystemIntegrity :: Nil)"
+      }
+    },
+    "accountCurrencyCheck": {
+      "partial_function_name_raw": "nameOf(accountCurrencyCheck)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/system/integrity/banks/BANK_ID/account-currency-check\"",
+      "summary": "\"Check for Sensible Currencies\"",
+      "description": "s\"\"\"Check for sensible currencies at Bank Account model\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "CheckSystemIntegrityJsonV510(true)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemIntegrity)",
+      "extra_named_args": {
+        "roles": "Some(canGetSystemIntegrity :: Nil)"
+      }
+    },
+    "getCurrenciesAtBank": {
+      "partial_function_name_raw": "nameOf(getCurrenciesAtBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/currencies\"",
+      "summary": "\"Get Currencies at a Bank\"",
+      "description": "\"\"\"Get Currencies specified by BANK_ID\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "currenciesJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UnknownError\n     )",
+      "tags": "List(apiTagFx)"
+    },
+    "orphanedAccountCheck": {
+      "partial_function_name_raw": "nameOf(orphanedAccountCheck)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/system/integrity/banks/BANK_ID/orphaned-account-check\"",
+      "summary": "\"Check for Orphaned Accounts\"",
+      "description": "s\"\"\"Check for orphaned accounts at Bank Account model\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "CheckSystemIntegrityJsonV510(true)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemIntegrity)",
+      "extra_named_args": {
+        "roles": "Some(canGetSystemIntegrity :: Nil)"
+      }
+    },
+    "createAtmAttribute": {
+      "partial_function_name_raw": "nameOf(createAtmAttribute)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID/attributes\"",
+      "summary": "\"Create ATM Attribute\"",
+      "description": "s\"\"\" Create ATM Attribute\n        |\n        |The type field must be one of \"STRING\", \"INTEGER\", \"DOUBLE\" or DATE_WITH_DAY\"\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "atmAttributeJsonV510",
+      "success_response_body": "atmAttributeResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM, apiTagAtmAttribute, apiTagAttribute)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateAtmAttribute, canCreateAtmAttributeAtAnyBank))"
+      }
+    },
+    "getAgents": {
+      "partial_function_name_raw": "nameOf(getAgents)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/agents\"",
+      "summary": "\"Get Agents at Bank\"",
+      "description": "s\"\"\"Get Agents at Bank.\n        |\n        |${userAuthenticationMessage(false)}\n        |\n        |${urlParametersDocument(true, true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "minimalAgentsJsonV510",
+      "error_response_bodies": "List(\n       $BankNotFound,\n       AgentsNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount)"
+    },
+    "getAtmAttributes": {
+      "partial_function_name_raw": "nameOf(getAtmAttributes)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID/attributes\"",
+      "summary": "\"Get ATM Attributes\"",
+      "description": "s\"\"\" Get ATM Attributes\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "atmAttributesResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM, apiTagAtmAttribute, apiTagAttribute)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))"
+      }
+    },
+    "getAtmAttribute": {
+      "partial_function_name_raw": "nameOf(getAtmAttribute)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID\"",
+      "summary": "\"Get ATM Attribute By ATM_ATTRIBUTE_ID\"",
+      "description": "s\"\"\" Get ATM Attribute By ATM_ATTRIBUTE_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "atmAttributeResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM, apiTagAtmAttribute, apiTagAttribute)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))"
+      }
+    },
+    "updateAtmAttribute": {
+      "partial_function_name_raw": "nameOf(updateAtmAttribute)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID\"",
+      "summary": "\"Update ATM Attribute\"",
+      "description": "s\"\"\" Update ATM Attribute.\n        |\n        |Update an ATM Attribute by its id.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "atmAttributeJsonV510",
+      "success_response_body": "atmAttributeResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM, apiTagAtmAttribute, apiTagAttribute)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateAtmAttribute, canUpdateAtmAttributeAtAnyBank))"
+      }
+    },
+    "deleteAtmAttribute": {
+      "partial_function_name_raw": "nameOf(deleteAtmAttribute)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID\"",
+      "summary": "\"Delete ATM Attribute\"",
+      "description": "s\"\"\" Delete ATM Attribute\n        |\n        |Delete a Atm Attribute by its id.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM, apiTagAtmAttribute, apiTagAttribute)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteAtmAttribute, canDeleteAtmAttributeAtAnyBank))"
+      }
+    },
+    "updateConsentStatusByConsent": {
+      "partial_function_name_raw": "nameOf(updateConsentStatusByConsent)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/banks/BANK_ID/consents/CONSENT_ID\"",
+      "summary": "\"Update Consent Status by CONSENT_ID\"",
+      "description": "s\"\"\"\n        |\n        |\n        |This endpoint is used to update the Status of Consent.\n        |\n        |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(\", \")}.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "PutConsentStatusJsonV400(status = \"AUTHORISED\")",
+      "success_response_body": "ConsentChallengeJsonV310(\n       consent_id = \"9d429899-24f5-42c8-8565-943ffa6a7945\",\n       jwt = \"eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4\",\n       status = \"AUTHORISED\"\n     )",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       ConsentNotFound,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsentStatusAtOneBank, canUpdateConsentStatusAtAnyBank))"
+      }
+    },
+    "updateConsentAccountAccessByConsentId": {
+      "partial_function_name_raw": "nameOf(updateConsentAccountAccessByConsentId)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/banks/BANK_ID/consents/CONSENT_ID/account-access\"",
+      "summary": "\"Update Consent Account Access by CONSENT_ID\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint is used to update the Account Access of Consent.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "PutConsentPayloadJsonV510(\n       access = ConsentAccessJson(\n         accounts = Option(List(ConsentAccessAccountsJson(\n           iban = Some(ExampleValue.ibanExample.value),\n           bban = None,\n           pan = None,\n           maskedPan = None,\n           msisdn = None,\n           currency = None,\n         )))\n       )\n     )",
+      "success_response_body": "ConsentChallengeJsonV310(\n       consent_id = \"9d429899-24f5-42c8-8565-943ffa6a7945\",\n       jwt = \"eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4\",\n       status = \"AUTHORISED\"\n     )",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       ConsentNotFound,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsentAccountAccessAtOneBank, canUpdateConsentAccountAccessAtAnyBank))"
+      }
+    },
+    "updateConsentUserIdByConsentId": {
+      "partial_function_name_raw": "nameOf(updateConsentUserIdByConsentId)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/banks/BANK_ID/consents/CONSENT_ID/created-by-user\"",
+      "summary": "\"Update Created by User of Consent by CONSENT_ID\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint is used to Update the User bound to a consent.\n        |\n        |In general we would not expect for a management user to set the User bound to a consent, but there may be\n        |some use cases where this workflow is useful.\n        |\n        |If successful, the \"Created by User ID\" field in the OBP Consent table will be updated.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "PutConsentUserJsonV400(user_id = \"ed7a7c01-db37-45cc-ba12-0ae8891c195c\")",
+      "success_response_body": "ConsentChallengeJsonV310(\n       consent_id = \"9d429899-24f5-42c8-8565-943ffa6a7945\",\n       jwt = \"eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4\",\n       status = \"AUTHORISED\"\n     )",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       ConsentNotFound,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: Nil",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsentUserAtOneBank, canUpdateConsentUserAtAnyBank))"
+      }
+    },
+    "getMyConsentsByBank": {
+      "partial_function_name_raw": "nameOf(getMyConsentsByBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/my/consents\"",
+      "summary": "\"Get My Consents at Bank\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint gets the Consents created by a current User at the specified Bank.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |1 limit (for pagination: defaults to 50)  eg:limit=200\n        |\n        |2 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |3 status  (ignore if omitted)\n        |\n        |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc\n        |\n        |Note: This endpoint only returns consents that explicitly reference the specified BANK_ID.\n        |Consents created before the consent_item join table was introduced will not appear in results.\n        |\n        |eg: /banks/BANK_ID/my/consents?limit=10&offset=0&sort_by=created_date:desc\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentsInfoJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "getMyConsents": {
+      "partial_function_name_raw": "nameOf(getMyConsents)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/my/consents\"",
+      "summary": "\"Get My Consents\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint gets the Consents created by the current User.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |1 limit (for pagination: defaults to 50)  eg:limit=200\n        |\n        |2 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |3 status  (ignore if omitted)\n        |\n        |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc\n        |\n        |eg: /my/consents?limit=10&offset=0&sort_by=created_date:desc\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentsInfoJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "getConsentsAtBank": {
+      "partial_function_name_raw": "nameOf(getConsentsAtBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/consents/banks/BANK_ID\"",
+      "summary": "\"Get Consents at Bank\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint gets the Consents at Bank by BANK_ID.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |1 limit (for pagination: defaults to 50)  eg:limit=200\n        |\n        |2 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |3 consumer_id  (ignore if omitted)\n        |\n        |4 user_id  (ignore if omitted)\n        |\n        |5 status  (ignore if omitted)\n        |\n        |eg: /management/consents/banks/BANK_ID?&consumer_id=78&limit=10&offset=10\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentsJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetConsentsAtOneBank, canGetConsentsAtAnyBank))"
+      }
+    },
+    "getConsents": {
+      "partial_function_name_raw": "nameOf(getConsents)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/consents\"",
+      "summary": "\"Get Consents\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint gets the Consents.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |1 limit (for pagination: defaults to 50)  eg:limit=200\n        |\n        |2 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |3 consumer_id  (ignore if omitted)\n        |\n        |4 consent_id  (ignore if omitted)\n        |\n        |5 user_id  (ignore if omitted)\n        |\n        |6 status  (ignore if omitted)\n        |\n        |7 bank_id  (ignore if omitted)\n        |\n        |8 provider_provider_id  (ignore if omitted)\n        |provider and provider_id values are separated by pipe char\n        |eg: provider_provider_id=http%3A%2F%2Flocalhost%3A7070%2Frealms%2Fmaster|7837ee9c-3446-4d8c-9b90-301a52b4851d\n        |\n        |eg:/management/consents?consumer_id=78&limit=10&offset=10\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentsJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetConsentsAtAnyBank))"
+      }
+    },
+    "getConsentByConsentId": {
+      "partial_function_name_raw": "nameOf(getConsentByConsentId)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/user/current/consents/CONSENT_ID\"",
+      "summary": "\"Get Consent By Consent Id via User\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint gets the Consent By consent id.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "getConsentByConsentIdViaConsumer": {
+      "partial_function_name_raw": "nameOf(getConsentByConsentIdViaConsumer)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/consumer/current/consents/CONSENT_ID\"",
+      "summary": "\"Get Consent By Consent Id via Consumer\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint gets the Consent By consent id.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentJsonV500",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "revokeConsentAtBank": {
+      "partial_function_name_raw": "nameOf(revokeConsentAtBank)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/banks/BANK_ID/consents/CONSENT_ID\"",
+      "summary": "\"Revoke Consent at Bank\"",
+      "description": "s\"\"\"\n        |Revoke Consent specified by CONSENT_ID\n        |\n        |There are a few reasons you might need to revoke an application’s access to a user’s account:\n        |  - The user explicitly wishes to revoke the application’s access\n        |  - You as the service provider have determined an application is compromised or malicious, and want to disable it\n        |  - etc.\n        ||\n        |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.\n        |The status of the token is changed to \"REVOKED\" so the next time the revoked client makes a request, their token will fail to validate.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "revokedConsentJsonV310",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)",
+      "extra_named_args": {
+        "roles": "Some(List(canRevokeConsentAtBank))"
+      }
+    },
+    "selfRevokeConsent": {
+      "partial_function_name_raw": "nameOf(selfRevokeConsent)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/my/consent/current\"",
+      "summary": "\"Revoke Consent used in the Current Call\"",
+      "description": "s\"\"\"\n        |Revoke Consent specified by Consent-Id at Request Header\n        |\n        |There are a few reasons you might need to revoke an application’s access to a user’s account:\n        |  - The user explicitly wishes to revoke the application’s access\n        |  - You as the service provider have determined an application is compromised or malicious, and want to disable it\n        |  - etc.\n        ||\n        |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.\n        |The status of the token is changed to \"REVOKED\" so the next time the revoked client makes a request, their token will fail to validate.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "revokedConsentJsonV310",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "revokeMyConsent": {
+      "partial_function_name_raw": "nameOf(revokeMyConsent)",
+      "request_verb": "\"Delete\"",
+      "request_url": "\"/my/consents/CONSENT_ID\"",
+      "summary": "\"Revoke My Consent\"",
+      "description": "s\"\"\"\n        |Revoke Consent for current user specified by CONSENT_ID\n        |\n        |There are a few reasons you might need to revoke an application’s access to a user’s account:\n        |  - The user explicitly wishes to revoke the application’s access\n        |  - You as the service provider have determined an application is compromised or malicious, and want to disable it\n        |  - etc.\n        |\n        |Please note that this endpoint only supports the case:: \"The user explicitly wishes to revoke the application’s access\"\n        |\n        |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.\n        |The status of the token is changed to \"REVOKED\" so the next time the revoked client makes a request, their token will fail to validate.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "revokedConsentJsonV310",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "createConsentImplicit": {
+      "partial_function_name_raw": "nameOf(createConsentImplicit)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/my/consents/IMPLICIT\"",
+      "summary": "\"Create Consent (IMPLICIT)\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint starts the process of creating a Consent.\n        |\n        |The Consent is created in an ${ConsentStatus.INITIATED} state.\n        |\n        |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD\n        |SCA_METHOD is typically \"SMS\",\"EMAIL\" or \"IMPLICIT\". \"EMAIL\" is used for testing purposes. OBP mapped mode \"IMPLICIT\" is \"EMAIL\".\n        |Other mode, bank can decide it in the connector method 'getConsentImplicitSCA'.\n        |\n        |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.\n        |\n        |$generalObpConsentText\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |Example 1:\n        |{\n        |  \"everything\": true,\n        |  \"views\": [],\n        |  \"entitlements\": [],\n        |  \"consumer_id\": \"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh\",\n        |}\n        |\n        |Please note that consumer_id is optional field\n        |Example 2:\n        |{\n        |  \"everything\": true,\n        |  \"views\": [],\n        |  \"entitlements\": [],\n        |}\n        |\n        |Please note if everything=false you need to explicitly specify views and entitlements\n        |Example 3:\n        |{\n        |  \"everything\": false,\n        |  \"views\": [\n        |    {\n        |      \"bank_id\": \"GENODEM1GLS\",\n        |      \"account_id\": \"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0\",\n        |      \"view_id\": \"${Constant.SYSTEM_OWNER_VIEW_ID}\"\n        |    }\n        |  ],\n        |  \"entitlements\": [\n        |    {\n        |      \"bank_id\": \"GENODEM1GLS\",\n        |      \"role_name\": \"CanGetCustomersAtOneBank\"\n        |    }\n        |  ],\n        |  \"consumer_id\": \"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh\",\n        |}\n        |\n        |\"\"\"",
+      "example_request_body": "postConsentImplicitJsonV310",
+      "success_response_body": "consentJsonV310",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InvalidJsonFormat,\n       ConsentAllowedScaMethods,\n       RolesAllowedInConsent,\n       ViewsAllowedInConsent,\n       ConsumerNotFoundByConsumerId,\n       ConsumerIsDisabled,\n       MissingPropsValueAtThisInstance,\n       SmsServerNotResponding,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil"
+    },
+    "mtlsClientCertificateInfo": {
+      "partial_function_name_raw": "nameOf(mtlsClientCertificateInfo)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/my/mtls/certificate/current\"",
+      "summary": "\"Provide client's certificate info of a current call\"",
+      "description": "s\"\"\"\n        |Provide client's certificate info of a current call specified by PSD2-CERT value at Request Header\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "certificateInfoJsonV510",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "updateMyApiCollection": {
+      "partial_function_name_raw": "nameOf(updateMyApiCollection)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/my/api-collections/API_COLLECTION_ID\"",
+      "summary": "\"Update My Api Collection By API_COLLECTION_ID\"",
+      "description": "s\"\"\"Update Api Collection for logged in user.\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\".stripMargin",
+      "example_request_body": "postApiCollectionJson400",
+      "success_response_body": "apiCollectionJson400",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       UserNotFoundByUserId,\n       UnknownError\n     )",
+      "tags": "List(apiTagApiCollection)"
+    },
+    "getUserByProviderAndUsername": {
+      "partial_function_name_raw": "nameOf(getUserByProviderAndUsername)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/provider/PROVIDER/username/USERNAME\"",
+      "summary": "\"Get User by USERNAME\"",
+      "description": "s\"\"\"Get user by PROVIDER and USERNAME\n        |\n        |Get a User by their authentication provider and username.\n        |\n        |**URL Parameters:**\n        |\n        |* PROVIDER - The authentication provider (e.g., http://127.0.0.1:8080, google.com, OBP)\n        |* USERNAME - The username at that provider (e.g., obpstripe, john.doe)\n        |\n        |**Important:** The PROVIDER parameter can contain special characters like slashes and colons.\n        |For example, if the provider is \"http://127.0.0.1:8080\", the full URL would be:\n        |\n        |`GET /obp/v5.1.0/users/provider/http://127.0.0.1:8080/username/obpstripe`\n        |\n        |The API will correctly parse the provider value even with these special characters.\n        |\n        |**To find valid providers**, use the GET /obp/v6.0.0/providers endpoint (available in API version 6.0.0).\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |CanGetAnyUser entitlement is required.\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "userWithNamesJsonV510",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError)",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAnyUser))"
+      }
+    },
+    "getUserLockStatus": {
+      "partial_function_name_raw": "nameOf(getUserLockStatus)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/PROVIDER/USERNAME/lock-status\"",
+      "summary": "\"Get User Lock Status\"",
+      "description": "s\"\"\"\n        |Get User Login Status.\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "badLoginStatusJson",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canReadUserLockedStatus))"
+      }
+    },
+    "unlockUserByProviderAndUsername": {
+      "partial_function_name_raw": "nameOf(unlockUserByProviderAndUsername)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/users/PROVIDER/USERNAME/lock-status\"",
+      "summary": "\"Unlock the user\"",
+      "description": "s\"\"\"\n        |Unlock a User.\n        |\n        |(Perhaps the user was locked due to multiple failed login attempts)\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "badLoginStatusJson",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canUnlockUser))"
+      }
+    },
+    "lockUserByProviderAndUsername": {
+      "partial_function_name_raw": "nameOf(lockUserByProviderAndUsername)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/users/PROVIDER/USERNAME/locks\"",
+      "summary": "\"Lock the user\"",
+      "description": "s\"\"\"\n        |Lock a User.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "userLockStatusJson",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canLockUser))"
+      }
+    },
+    "validateUserByUserId": {
+      "partial_function_name_raw": "nameOf(validateUserByUserId)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/users/USER_ID\"",
+      "summary": "\"Validate a user\"",
+      "description": "s\"\"\"\n        |Manually validate a User by USER_ID.\n        |\n        |This is an administrative endpoint that marks a user's account as validated (i.e. sets is_validated to true).\n        |\n        |This is useful when an administrator needs to validate a user on their behalf,\n        |for example if the user did not receive the validation email, or if the email validation token has expired.\n        |\n        |For self-service email validation, see the Validate User Email endpoint (POST /users/email-validation).\n        |\n        |Authentication is Required and the user must have the canValidateUser role.\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "UserValidatedJson(is_validated = true)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserNotFoundByUserId,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canValidateUser))"
+      }
+    },
+    "getAggregateMetrics": {
+      "partial_function_name_raw": "nameOf(getAggregateMetrics)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/aggregate-metrics\"",
+      "summary": "\"Get Aggregate Metrics\"",
+      "description": "s\"\"\"Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.\n        |\n        |Should be able to filter on the following fields\n        |\n        |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5\n        |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount\n        |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions\n        |&verb=GET&anon=false&app_name=MapperPostman\n        |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null\n        |\n        |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString\n        |\n        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString\n        |\n        |3 consumer_id  (if null ignore)\n        |\n        |4 user_id (if null ignore)\n        |\n        |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)\n        |\n        |6 url (if null ignore), note: can not contain '&'.\n        |\n        |7 app_name (if null ignore)\n        |\n        |8 implemented_by_partial_function (if null ignore),\n        |\n        |9 implemented_in_version (if null ignore)\n        |\n        |10 verb (if null ignore)\n        |\n        |11 correlation_id (if null ignore)\n        |\n        |12 include_app_names (if null ignore).eg: &include_app_names=API-EXPLORER,API-Manager,SOFI,null\n        |\n        |13 include_url_patterns (if null ignore).you can design you own SQL LIKE pattern. eg: &include_url_patterns=%management/metrics%,%management/aggregate-metrics%\n        |\n        |14 include_implemented_by_partial_functions (if null ignore).eg: &include_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics\n        |\n        |15 http_status_code (if null ignore) - Filter by HTTP status code. eg: http_status_code=200 returns only successful calls, http_status_code=500 returns server errors\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "aggregateMetricsJSONV300",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagMetric, apiTagAggregateMetrics)",
+      "extra_named_args": {
+        "roles": "Some(List(canReadAggregateMetrics))"
+      }
+    },
+    "getMetrics": {
+      "partial_function_name_raw": "nameOf(getMetrics)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/metrics\"",
+      "summary": "\"Get Metrics\"",
+      "description": "s\"\"\"Get API metrics rows. These are records of each REST API call.\n        |\n        |require CanReadMetrics role\n        |\n        |**IMPORTANT: Smart Caching & Performance**\n        |\n        |This endpoint uses intelligent two-tier caching to optimize performance:\n        |\n        |**Stable Data Cache (Long TTL):**\n        |- Metrics older than ${APIUtil.getPropsValue(\"MappedMetrics.stable.boundary.seconds\", \"600\")} seconds (${APIUtil.getPropsValue(\"MappedMetrics.stable.boundary.seconds\", \"600\").toInt / 60} minutes) are considered immutable/stable\n        |- These are cached for ${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getStableMetrics\", \"86400\")} seconds (${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getStableMetrics\", \"86400\").toInt / 3600} hours)\n        |- Used when your query's from_date is older than the stable boundary\n        |\n        |**Recent Data Cache (Short TTL):**\n        |- Recent metrics (within the stable boundary) are cached for ${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getAllMetrics\", \"7\")} seconds\n        |- Used when your query includes recent data or has no from_date\n        |\n        |**STRONGLY RECOMMENDED: Always specify from_date in your queries!**\n        |\n        |**Why from_date matters:**\n        |- Queries WITH from_date older than ${APIUtil.getPropsValue(\"MappedMetrics.stable.boundary.seconds\", \"600\").toInt / 60} mins → cached for ${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getStableMetrics\", \"86400\").toInt / 3600} hours (fast!)\n        |- Queries WITHOUT from_date → cached for only ${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getAllMetrics\", \"7\")} seconds (slower)\n        |\n        |**Examples:**\n        |- `from_date=2025-01-01T00:00:00.000Z` → Uses ${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getStableMetrics\", \"86400\").toInt / 3600} hours cache (historical data)\n        |- `from_date=$DateWithMsExampleString` (recent date) → Uses ${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getAllMetrics\", \"7\")} seconds cache (recent data)\n        |- No from_date (e.g., `?limit=50`) → Uses ${APIUtil.getPropsValue(\"MappedMetrics.cache.ttl.seconds.getAllMetrics\", \"7\")} seconds cache (assumes recent data)\n        |\n        |For best performance on historical/reporting queries, always include a from_date parameter!\n        |\n        |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics\n        |\n        |You can filter by the following fields by applying url parameters\n        |\n        |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2\n        |\n        |1 from_date e.g.:from_date=$DateWithMsExampleString Defaults to the Unix Epoch i.e. ${theEpochTime}\n        |   **IMPORTANT**: Including from_date enables long-term caching for historical data queries!\n        |\n        |2 to_date e.g.:to_date=$DateWithMsExampleString Defaults to a far future date i.e. ${APIUtil.ToDateInFuture}\n        |\n        |3 limit (for pagination: defaults to 50)  eg:limit=200\n        |\n        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |5 sort_by (defaults to date field) eg: sort_by=date\n        |  possible values:\n        |    \"url\",\n        |    \"date\",\n        |    \"username\" (or \"user_name\" for backward compatibility),\n        |    \"app_name\",\n        |    \"developer_email\",\n        |    \"implemented_by_partial_function\",\n        |    \"implemented_in_version\",\n        |    \"consumer_id\",\n        |    \"verb\",\n        |    \"http_status_code\"\n        |\n        |6 direction (defaults to date desc) eg: direction=desc\n        |\n        |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78\n        |\n        |Other filters:\n        |\n        |7 consumer_id  (if null ignore)\n        |\n        |8 user_id (if null ignore)\n        |\n        |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)\n        |\n        |10 url (if null ignore), note: can not contain '&'.\n        |\n        |11 app_name (if null ignore)\n        |\n        |12 implemented_by_partial_function (if null ignore),\n        |\n        |13 implemented_in_version (if null ignore)\n        |\n        |14 verb (if null ignore)\n        |\n        |15 correlation_id (if null ignore)\n        |\n        |16 duration (if null ignore) - Returns calls where duration > specified value (in milliseconds). Use this to find slow API calls. eg: duration=5000 returns calls taking more than 5 seconds\n        |\n        |17 http_status_code (if null ignore) - Returns calls with specific HTTP status code. eg: http_status_code=200 returns only successful calls, http_status_code=500 returns server errors\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "metricsJsonV510",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagMetric, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canReadMetrics))"
+      }
+    },
+    "getCustomersForUserIdsOnly": {
+      "partial_function_name_raw": "nameOf(getCustomersForUserIdsOnly)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/current/customers/customer_ids\"",
+      "summary": "\"Get Customers for Current User (IDs only)\"",
+      "description": "s\"\"\"Gets all Customers Ids that are linked to a User.\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customersWithAttributesJsonV300",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagUser)"
+    },
+    "getCustomersByLegalName": {
+      "partial_function_name_raw": "nameOf(getCustomersByLegalName)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customers/legal-name\"",
+      "summary": "\"Get Customers by Legal Name\"",
+      "description": "s\"\"\"Gets the Customers specified by Legal Name.\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "postCustomerLegalNameJsonV510",
+      "success_response_body": "customerJsonV310",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagKyc)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomersAtOneBank))"
+      }
+    },
+    "createAtm": {
+      "partial_function_name_raw": "nameOf(createAtm)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/atms\"",
+      "summary": "\"Create ATM\"",
+      "description": "s\"\"\"Create ATM.\"\"\"",
+      "example_request_body": "postAtmJsonV510",
+      "success_response_body": "atmJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateAtm, canCreateAtmAtAnyBank))"
+      }
+    },
+    "updateAtm": {
+      "partial_function_name_raw": "nameOf(updateAtm)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID\"",
+      "summary": "\"UPDATE ATM\"",
+      "description": "s\"\"\"Update ATM.\"\"\"",
+      "example_request_body": "atmJsonV510.copy(id = None, attributes = None)",
+      "success_response_body": "atmJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateAtm, canUpdateAtmAtAnyBank))"
+      }
+    },
+    "getAtms": {
+      "partial_function_name_raw": "nameOf(getAtms)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/atms\"",
+      "summary": "\"Get Bank ATMS\"",
+      "description": "s\"\"\"Returns information about ATMs for a single bank specified by BANK_ID including:\n        |\n        |* Address\n        |* Geo Location\n        |* License the data under this endpoint is released under\n        |\n        |Pagination:\n        |\n        |By default, 100 records are returned.\n        |\n        |You can use the url query parameters *limit* and *offset* for pagination\n        |\n        |${userAuthenticationMessage(!getAtmsIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "atmsJsonV510",
+      "error_response_bodies": "List(\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM)"
+    },
+    "getAtm": {
+      "partial_function_name_raw": "nameOf(getAtm)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID\"",
+      "summary": "\"Get Bank ATM\"",
+      "description": "s\"\"\"Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:\n        |\n        |* Address\n        |* Geo Location\n        |* License the data under this endpoint is released under\n        |* ATM Attributes\n        |\n        |\n        |\n        |${userAuthenticationMessage(!getAtmsIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "atmJsonV510",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError)",
+      "tags": "List(apiTagATM)"
+    },
+    "deleteAtm": {
+      "partial_function_name_raw": "nameOf(deleteAtm)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/banks/BANK_ID/atms/ATM_ID\"",
+      "summary": "\"Delete ATM\"",
+      "description": "s\"\"\"Delete ATM.\n        |\n        |This will also delete all its attributes.\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteAtmAtAnyBank, canDeleteAtm))"
+      }
+    },
+    "createConsumerDynamicRegistration": {
+      "partial_function_name_raw": "nameOf(createConsumerDynamicRegistration)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/dynamic-registration/consumers\"",
+      "summary": "\"Create a Consumer(Dynamic Registration)\"",
+      "description": "s\"\"\"Create a Consumer with full certificate validation (mTLS access) - **Recommended for PSD2/Berlin Group compliance**.\n        |\n        |This endpoint provides **secure, validated consumer registration** unlike the standard `/management/consumers` endpoint.\n        |\n        |**How it works (for comprehension flow):**\n        |\n        |1. **Extract JWT from request**: Parse the signed JWT from the request body\n        |2. **Extract certificate**: Get certificate from `PSD2-CERT` header in PEM format\n        |3. **Verify JWT signature**: Validate JWT is signed with the certificate's private key (proves possession)\n        |4. **Parse JWT payload**: Extract consumer details (description, app_name, app_type, developer_email, redirect_url)\n        |5. **Extract certificate info**: Parse certificate to get Common Name, Email, Organization\n        |6. **Validate against Regulated Entity**: Check certificate exists in Regulated Entity registry (PSD2 requirement)\n        |7. **Create consumer**: Generate credentials and create consumer record with validated certificate\n        |8. **Return consumer with certificate info**: Returns consumer details including parsed certificate information\n        |\n        |**Certificate Validation (CRITICAL SECURITY DIFFERENCE from regular creation):**\n        |\n        |[YES] **JWT Signature Verification**: JWT must be signed with certificate's private key - proves TPP owns the certificate\n        |[YES] **Regulated Entity Check**: Certificate must match a pre-registered Regulated Entity in the database\n        |[YES] **Certificate Binding**: Certificate is permanently bound to the consumer at creation time\n        |[YES] **CA Validation**: Certificate chain can be validated against trusted root CAs during API requests\n        |[YES] **PSD2 Compliance**: Meets EU regulatory requirements for TPP registration\n        |\n        |**Security benefits vs regular consumer creation:**\n        |\n        || Feature | Regular Creation | Dynamic Registration |\n        ||---------|-----------------|---------------------|\n        || Certificate validation | [NO] None | [YES] Full validation |\n        || Regulated Entity check | [NO] Not required | [YES] Required |\n        || JWT signature proof | [NO] Not required | [YES] Required (proves private key possession) |\n        || Self-signed certs | [YES] Accepted | [NO] Rejected |\n        || PSD2 compliant | [NO] No | [YES] Yes |\n        || Rogue TPP prevention | [NO] No | [YES] Yes |\n        |\n        |**Prerequisites:**\n        |1. TPP must be registered as a Regulated Entity with their certificate\n        |2. Certificate must be provided in `PSD2-CERT` request header (PEM format)\n        |3. JWT must be signed with the private key corresponding to the certificate\n        |4. Trust store must be configured with trusted root CAs\n        |\n        |**JWT Payload Structure:**\n        |\n        |Minimal:\n        |```json\n        |{ \"description\":\"TPP Application Description\" }\n        |```\n        |\n        |Full:\n        |```json\n        |{\n        |  \"description\": \"Payment Initiation Service\",\n        |  \"app_name\": \"Tesobe GmbH\",\n        |  \"app_type\": \"Confidential\",\n        |  \"developer_email\": \"contact@tesobe.com\",\n        |  \"redirect_url\": \"https://tpp.example.com/callback\"\n        |}\n        |```\n        |\n        |**Note:** JWT must be signed with the private key that corresponds to the public key in the certificate sent via `PSD2-CERT` header.\n        |\n        |**Certificate Information Extraction:**\n        |\n        |The endpoint automatically extracts information from the certificate:\n        |- Common Name (CN) → used as app_name if not provided in JWT\n        |- Email Address → used as developer_email if not provided\n        |- Organization (O) → used as company\n        |- Certificate validity period\n        |- Issuer information\n        |\n        |**Configuration Required:**\n        |- `truststore.path.tpp_signature` - Path to trust store for CA validation\n        |- `truststore.password.tpp_signature` - Trust store password\n        |- Regulated Entity must be pre-registered with certificate public key\n        |\n        |**Error Scenarios:**\n        |- JWT signature invalid → `PostJsonIsNotSigned` (400)\n        |- Certificate not in Regulated Entity registry → `RegulatedEntityNotFoundByCertificate` (400)\n        |- Invalid JWT format → `InvalidJsonFormat` (400)\n        |- Missing PSD2-CERT header → Signature verification fails\n        |\n        |**This is the SECURE way to register consumers for production PSD2/Berlin Group implementations.**\n        |\n        |\"\"\"",
+      "example_request_body": "ConsumerJwtPostJsonV510(\"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXNjcmlwdGlvbiI6IlRQUCBkZXNjcmlwdGlvbiJ9.c5gPPsyUmnVW774y7h2xyLXg0wdtu25nbU2AvOmyzcWa7JTdCKuuy3CblxueGwqYkQDDQIya1Qny4blyAvh_a1Q28LgzEKBcH7Em9FZXerhkvR9v4FWbCC5AgNLdQ7sR8-rUQdShmJcGDKdVmsZjuO4XhY2Zx0nFnkcvYfsU9bccoAvkKpVJATXzwBqdoEOuFlplnbxsMH1wWbAd3hbcPPWTdvO43xavNZTB5ybgrXVDEYjw8D-98_ZkqxS0vfvhJ4cGefHViaFzp6zXm7msdBpcE__O9rFbdl9Gvup_bsMbrHJioIrmc2d15Yc-tTNTF9J4qjD_lNxMRlx5o2TZEw\")",
+      "success_response_body": "consumerJsonV510",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagDirectory, apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(Nil)"
+      }
+    },
+    "createConsumer": {
+      "partial_function_name_raw": "nameOf(createConsumer)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/management/consumers\"",
+      "summary": "\"Create a Consumer\"",
+      "description": "s\"\"\"Create a Consumer (Authenticated access).\n        |\n        |A Consumer represents an application that uses the Open Bank Project API. Each Consumer has:\n        |- A unique **key** (40 character random string) - used as the client ID for authentication\n        |- A unique **secret** (40 character random string) - used for secure authentication\n        |- An **app_type** (Confidential or Public) - determines OAuth2 flow requirements\n        |- Metadata like app_name, description, developer_email, company, etc.\n        |\n        |**How it works (for comprehension flow):**\n        |\n        |1. **Extract authenticated user**: Retrieves the currently logged-in user who is creating the consumer\n        |2. **Parse and validate JSON request**: Extracts the CreateConsumerRequestJsonV510 from the request body\n        |3. **Determine app_type**: Converts the string \"Confidential\" or \"Public\" to the AppType enum\n        |4. **Generate credentials**: Creates random 40-character key and secret for the new consumer\n        |5. **Create consumer record**: Calls createConsumerNewStyle with all parameters:\n        |   - Auto-generated key and secret\n        |   - enabled flag (controls if consumer is active)\n        |   - app_name, description, developer_email, company\n        |   - redirect_url (for OAuth flows)\n        |   - client_certificate (optional, for certificate-based auth)\n        |   - logo_url (optional)\n        |   - createdByUserId (the authenticated user's ID)\n        |6. **Return response**: Returns the newly created consumer with HTTP 201 Created status\n        |\n        |**Client Certificate (Optional but Recommended for PSD2/Berlin Group):**\n        |\n        |The `client_certificate` field provides enhanced security through X.509 certificate validation.\n        |\n        |**IMPORTANT SECURITY NOTE:**\n        |- **This endpoint does NOT validate the certificate at creation time** - any certificate can be provided\n        |- The certificate is simply stored with the consumer record without checking if it's from a trusted CA\n        |- For PSD2/Berlin Group compliance with certificate validation, use the **Dynamic Registration** endpoint instead\n        |- Dynamic Registration validates certificates against registered Regulated Entities and trusted CAs\n        |\n        |**How certificates are used (after creation):**\n        |- Certificate is stored in PEM format (Base64-encoded X.509) with the consumer record\n        |- On subsequent API requests, the certificate from the `PSD2-CERT` header is compared against the stored certificate\n        |- If certificates don't match, access is denied even with valid OAuth2 tokens\n        |- First request populates the certificate if not set; subsequent requests must match that certificate\n        |\n        |**Certificate validation process (during API requests, NOT at consumer creation):**\n        |1. Certificate from `PSD2-CERT` header is compared to stored certificate (simple string match)\n        |2. Certificate is parsed from PEM format to X.509Certificate object\n        |3. Validated against a configured trust store (PKCS12 format) containing trusted root CAs\n        |4. Certificate chain is verified using PKIX validation\n        |5. Optional CRL (Certificate Revocation List) checking if enabled via `use_tpp_signature_revocation_list`\n        |6. Public key from certificate can verify signed requests (Berlin Group requirement)\n        |\n        |**Note:** Steps 3-6 only apply during API request validation, NOT during consumer creation via this endpoint.\n        |\n        |**Security benefits (when properly configured):**\n        |- **Certificate binding**: Links consumer to a specific certificate (prevents token reuse with different certs)\n        |- **Request verification**: Certificate's public key can verify signed requests\n        |- **Non-repudiation**: Certificate-based signatures prove request origin\n        |\n        |**Security limitations of this endpoint:**\n        |- **No validation at creation**: Any certificate (even self-signed or expired) can be stored\n        |- **No CA verification**: Certificate is not checked against trusted root CAs during creation\n        |- **No Regulated Entity check**: Does not verify the TPP is registered\n        |- **Use Dynamic Registration instead** for proper PSD2/Berlin Group compliance with full certificate validation\n        |\n        |**For proper PSD2 compliance:**\n        |Use the **Dynamic Consumer Registration** endpoint (`POST /obp/v5.1.0/dynamic-registration/consumers`) which:\n        |- Requires JWT-signed request using the certificate's private key\n        |- Validates certificate against Regulated Entity registry\n        |- Checks certificate is from a trusted CA using the configured trust store\n        |- Ensures proper QWAC/eIDAS compliance for EU TPPs\n        |\n        |**Configuration properties (for runtime validation):**\n        |- `truststore.path.tpp_signature` - Path to trust store for certificate validation during API requests\n        |- `truststore.password.tpp_signature` - Trust store password\n        |- `use_tpp_signature_revocation_list` - Enable/disable CRL checking during requests (default: true)\n        |- `consumer_validation_method_for_consent` - Set to \"CONSUMER_CERTIFICATE\" for cert-based validation\n        |- `bypass_tpp_signature_validation` - Emergency bypass (default: false, use only for testing)\n        |\n        |**Important**: The key and secret are only shown once in the response. Save them securely as they cannot be retrieved later.\n        |\n        |${consumerDisabledText()}\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "createConsumerRequestJsonV510",
+      "success_response_body": "consumerJsonOnlyForPostResponseV510",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "authMode": "UserOrApplication",
+        "roles": "Some(List(canCreateConsumer))"
+      }
+    },
+    "createMyConsumer": {
+      "partial_function_name_raw": "nameOf(createMyConsumer)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/my/consumers\"",
+      "summary": "\"Create a Consumer\"",
+      "description": "s\"\"\"Create a Consumer (Authenticated access).\n        |\n        |\"\"\"",
+      "example_request_body": "createConsumerRequestJsonV510",
+      "success_response_body": "consumerJsonV510",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)"
+    },
+    "getCallsLimit": {
+      "partial_function_name_raw": "nameOf(getCallsLimit)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID/consumer/rate-limits\"",
+      "summary": "\"Get Rate Limits for a Consumer\"",
+      "description": "s\"\"\"\n        |Get Calls limits per Consumer.\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "callLimitsJson510Example",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       InvalidConsumerId,\n       ConsumerNotFoundByConsumerId,\n       UserHasMissingRoles,\n       UpdateConsumerError,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(List(canReadCallLimits))"
+      }
+    },
+    "updateConsumerRedirectURL": {
+      "partial_function_name_raw": "nameOf(updateConsumerRedirectURL)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID/consumer/redirect_url\"",
+      "summary": "\"Update Consumer RedirectURL\"",
+      "description": "s\"\"\"Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.\n        |\n        | ${consumerDisabledText()}\n        |\n        | CONSUMER_ID can be obtained after you register the application.\n        |\n        | Or use the endpoint 'Get Consumers' to get it\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "consumerRedirectUrlJSON",
+      "success_response_body": "consumerJSON",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsumerRedirectUrl))"
+      }
+    },
+    "updateConsumerLogoURL": {
+      "partial_function_name_raw": "nameOf(updateConsumerLogoURL)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID/consumer/logo_url\"",
+      "summary": "\"Update Consumer LogoURL\"",
+      "description": "s\"\"\"Update an existing logoURL for a Consumer specified by CONSUMER_ID.\n        |\n        | ${consumerDisabledText()}\n        |\n        | CONSUMER_ID can be obtained after you register the application.\n        |\n        | Or use the endpoint 'Get Consumers' to get it\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "consumerLogoUrlJson",
+      "success_response_body": "consumerJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsumerLogoUrl))"
+      }
+    },
+    "updateConsumerCertificate": {
+      "partial_function_name_raw": "nameOf(updateConsumerCertificate)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID/consumer/certificate\"",
+      "summary": "\"Update Consumer Certificate\"",
+      "description": "s\"\"\"Update a Certificate for a Consumer specified by CONSUMER_ID.\n        |\n        | ${consumerDisabledText()}\n        |\n        | CONSUMER_ID can be obtained after you register the application.\n        |\n        | Or use the endpoint 'Get Consumers' to get it\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "consumerCertificateJson",
+      "success_response_body": "consumerJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsumerCertificate))"
+      }
+    },
+    "updateConsumerName": {
+      "partial_function_name_raw": "nameOf(updateConsumerName)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID/consumer/name\"",
+      "summary": "\"Update Consumer Name\"",
+      "description": "s\"\"\"Update an existing name for a Consumer specified by CONSUMER_ID.\n        |\n        | ${consumerDisabledText()}\n        |\n        | CONSUMER_ID can be obtained after you register the application.\n        |\n        | Or use the endpoint 'Get Consumers' to get it\n        |\n      \"\"\".stripMargin",
+      "example_request_body": "consumerNameJson",
+      "success_response_body": "consumerJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateConsumerName))"
+      }
+    },
+    "getConsumer": {
+      "partial_function_name_raw": "nameOf(getConsumer)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/consumers/CONSUMER_ID\"",
+      "summary": "\"Get Consumer\"",
+      "description": "s\"\"\"Get the Consumer specified by CONSUMER_ID.\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consumerJSON",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       ConsumerNotFoundByConsumerId,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetConsumers))"
+      }
+    },
+    "getConsumers": {
+      "partial_function_name_raw": "nameOf(getConsumers)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/consumers\"",
+      "summary": "\"Get Consumers\"",
+      "description": "s\"\"\"Get the all Consumers.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |${urlParametersDocument(true, true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consumersJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagConsumer)",
+      "extra_named_args": {
+        "authMode": "UserOrApplication",
+        "roles": "Some(List(canGetConsumers))"
+      }
+    },
+    "grantUserAccessToViewById": {
+      "partial_function_name_raw": "nameOf(grantUserAccessToViewById)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/grant\"",
+      "summary": "\"Grant User access to View\"",
+      "description": "s\"\"\"Grants the User identified by USER_ID access to the view on a bank account identified by VIEW_ID.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |**Permission Requirements:**\n        |The requesting user must have access to the source VIEW_ID and must possess specific grant permissions:\n        |\n        |**For System Views (e.g., owner, accountant, auditor, public etc.):**\n        |- The user's current view must have the target view listed in its `canGrantAccessToViews` field\n        |- Example: If granting access to \"accountant\" view, the user's view must include \"accountant\" in `canGrantAccessToViews`\n        |\n        |**For Custom Views (account-specific views):**\n        |- The user's current view must have the `can_grant_access_to_custom_views` permission in its `allowed_actions` field\n        |- This permission allows granting access to any custom view on the account\n        |\n        |**Security Checks Performed:**\n        |1. User authentication validation\n        |2. JSON format validation (USER_ID and VIEW_ID required)\n        |3. Permission authorization via `APIUtil.canGrantAccessToView()`\n        |4. Target user existence verification\n        |5. Target view existence and type validation (system vs custom)\n        |6. Final access grant operation in database\n        |\n        |**Final Database Operation:**\n        |The system creates an `AccountAccess` record linking the user to the view if one doesn't already exist.\n        |This operation includes:\n        |- Duplicate check: Prevents creating duplicate access records (idempotent operation)\n        |- Public view restriction: Blocks access to public views if disabled instance-wide\n        |- Database constraint validation: Ensures referential integrity\n        |\n        |**Note:** The permission model ensures users can only delegate access rights they themselves possess or are explicitly authorized to grant.\n        |\n        |\"\"\"",
+      "example_request_body": "postAccountAccessJsonV510",
+      "success_response_body": "viewJsonV300",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,\n       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,\n       InvalidJsonFormat,\n       UserNotFoundById,\n       SystemViewNotFound,\n       ViewNotFound,\n       CannotGrantAccountAccess,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired)"
+    },
+    "revokeUserAccessToViewById": {
+      "partial_function_name_raw": "nameOf(revokeUserAccessToViewById)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/revoke\"",
+      "summary": "\"Revoke User access to View\"",
+      "description": "s\"\"\"Revoke the User identified by USER_ID access to the view identified.\n        |\n        |${userAuthenticationMessage(true)}.\n        |\n        |\"\"\"",
+      "example_request_body": "postAccountAccessJsonV510",
+      "success_response_body": "revokedJsonV400",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount,\n       UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount,\n       InvalidJsonFormat,\n       UserNotFoundById,\n       SystemViewNotFound,\n       ViewNotFound,\n       CannotRevokeAccountAccess,\n       CannotFindAccountAccess,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired)"
+    },
+    "createUserWithAccountAccessById": {
+      "partial_function_name_raw": "nameOf(createUserWithAccountAccessById)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/user-account-access\"",
+      "summary": "\"Create (DAuth) User with Account Access\"",
+      "description": "s\"\"\"This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.\n        |\n        |Put the smart contract address in username\n        |\n        |For provider use \"dauth\"\n        |\n        |This endpoint will create the (DAuth) User with username and provider if the User does not already exist.\n        |\n        |${userAuthenticationMessage(true)} and the logged in user needs to be account holder.\n        |\n        |For information about DAuth see below:\n        |\n        |${Glossary.getGlossaryItem(\"DAuth\")}\n        |\n        |\"\"\"",
+      "example_request_body": "postCreateUserAccountAccessJsonV400",
+      "success_response_body": "List(viewJsonV300)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,\n       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,\n       InvalidJsonFormat,\n       SystemViewNotFound,\n       ViewNotFound,\n       CannotGrantAccountAccess,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth)"
+    },
+    "getTransactionRequestById": {
+      "partial_function_name_raw": "nameOf(getTransactionRequestById)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/transaction-requests/TRANSACTION_REQUEST_ID\"",
+      "summary": "\"Get Transaction Request by ID.\"",
+      "description": "\"\"\"Returns transaction request for transaction specified by TRANSACTION_REQUEST_ID.\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "transactionRequestWithChargeJSON210",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       GetTransactionRequestsException,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetTransactionRequestAtOneBank, canGetTransactionRequestAtAnyBank))"
+      }
+    },
+    "getTransactionRequests": {
+      "partial_function_name_raw": "nameOf(getTransactionRequests)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests\"",
+      "summary": "\"Get Transaction Requests.\"",
+      "description": "\"\"\"Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.\n       |\n       |The VIEW_ID specified must be 'owner' and the user must have access to this view.\n       |\n       |Version 2.0.0 now returns charge information.\n       |\n       |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:\n       |\n       |* Transaction Request Id\n       |* Type\n       |* Status (INITIATED, COMPLETED)\n       |* Challenge (in order to confirm the request)\n       |* From Bank / Account\n       |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)\n       |* Related Transactions\n       |\n       |PSD2 Context: PSD2 requires transparency of charges to the customer.\n       |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.\n       |The customer can proceed with the Transaction by answering the security challenge.\n       |\n       |We support query transaction request by attribute\n       |URL params example:/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests?invoiceNumber=123&referenceNumber=456\n       |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "transactionRequestWithChargeJSONs210",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       BankAccountNotFound,\n       UserNoPermissionAccessView,\n       ViewDoesNotPermitAccess,\n       GetTransactionRequestsException,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS)"
+    },
+    "updateTransactionRequestStatus": {
+      "partial_function_name_raw": "nameOf(updateTransactionRequestStatus)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/management/transaction-requests/TRANSACTION_REQUEST_ID\"",
+      "summary": "\"Update Transaction Request Status\"",
+      "description": "s\"\"\" Update Transaction Request Status\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString)",
+      "success_response_body": "PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagTransactionRequest)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateTransactionRequestStatusAtOneBank, canUpdateTransactionRequestStatusAtAnyBank))"
+      }
+    },
+    "getAccountAccessByUserId": {
+      "partial_function_name_raw": "nameOf(getAccountAccessByUserId)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_ID/account-access\"",
+      "summary": "\"Get Account Access by USER_ID\"",
+      "description": "s\"\"\"Get Account Access by USER_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "accountsMinimalJson400",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserNotFoundByUserId,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount)",
+      "extra_named_args": {
+        "roles": "Some(List(canSeeAccountAccessForAnyUser))"
+      }
+    },
+    "getApiTags": {
+      "partial_function_name_raw": "nameOf(getApiTags)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/tags\"",
+      "summary": "\"Get API Tags\"",
+      "description": "s\"\"\"Get API TagsGet API Tags\n        |\n        |${userAuthenticationMessage(false)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "accountsMinimalJson400",
+      "error_response_bodies": "List(\n       UnknownError\n     )",
+      "tags": "List(apiTagApi)"
+    },
+    "getCoreAccountByIdThroughView": {
+      "partial_function_name_raw": "nameOf(getCoreAccountByIdThroughView)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID\"",
+      "summary": "\"Get Account by Id (Core) through the VIEW_ID\"",
+      "description": "s\"\"\"Information returned about the account through VIEW_ID :\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "moderatedCoreAccountJsonV400",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, $BankAccountNotFound,UnknownError)",
+      "tags": "apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "getBankAccountBalances": {
+      "partial_function_name_raw": "nameOf(getBankAccountBalances)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/balances\"",
+      "summary": "\"Get Account Balances by BANK_ID and ACCOUNT_ID through the VIEW_ID\"",
+      "description": "\"\"\"Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID through the VIEW_ID.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "accountBalanceV400",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       UserNoPermissionAccessView,\n       UnknownError\n     )",
+      "tags": "apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "getBankAccountsBalances": {
+      "partial_function_name_raw": "nameOf(getBankAccountsBalances)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/balances\"",
+      "summary": "\"Get Account Balances by BANK_ID\"",
+      "description": "\"\"\"Get the Balances for the Account specified by BANK_ID.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "accountBalancesV400Json",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "getBankAccountsBalancesThroughView": {
+      "partial_function_name_raw": "nameOf(getBankAccountsBalancesThroughView)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/views/VIEW_ID/balances\"",
+      "summary": "\"Get Account Balances by BANK_ID through the VIEW_ID\"",
+      "description": "\"\"\"Get the Balances for the Account specified by BANK_ID.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "accountBalancesV400Json",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "createCounterpartyLimit": {
+      "partial_function_name_raw": "nameOf(createCounterpartyLimit)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits\"",
+      "summary": "\"Create Counterparty Limit\"",
+      "description": "s\"\"\"Create limits (for single or recurring payments) for a counterparty specified by the COUNTERPARTY_ID.\n        |\n        |Using this endpoint, we can attach a limit record to a Counterparty referenced by its counterparty_id (a UUID).\n        |\n        |For more information on Counterparty Limits, see ${Glossary.getGlossaryItemLink(\"Counterparty-Limits\")}\n        |\n        |For an introduction to Counterparties in OBP, see ${Glossary.getGlossaryItemLink(\"Counterparties\")}\n        |\n        |You can automate the process of creating counterparty limits and consents for VRP with this ${Glossary.getApiExplorerLink(\"endpoint\", \"OBPv5.1.0-createVRPConsentRequest\")}.\n        |\n        |\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "postCounterpartyLimitV510",
+      "success_response_body": "counterpartyLimitV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       $CounterpartyNotFoundByCounterpartyId,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagCounterpartyLimits)"
+    },
+    "updateCounterpartyLimit": {
+      "partial_function_name_raw": "nameOf(updateCounterpartyLimit)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits\"",
+      "summary": "\"Update Counterparty Limit\"",
+      "description": "s\"\"\"Update Counterparty Limit.\"\"\"",
+      "example_request_body": "postCounterpartyLimitV510",
+      "success_response_body": "counterpartyLimitV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       $CounterpartyNotFoundByCounterpartyId,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagCounterpartyLimits)"
+    },
+    "getCounterpartyLimit": {
+      "partial_function_name_raw": "nameOf(getCounterpartyLimit)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits\"",
+      "summary": "\"Get Counterparty Limit\"",
+      "description": "s\"\"\"Get Counterparty Limit.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "counterpartyLimitV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       $CounterpartyNotFoundByCounterpartyId,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagCounterpartyLimits)"
+    },
+    "getCounterpartyLimitStatus": {
+      "partial_function_name_raw": "nameOf(getCounterpartyLimitStatus)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limit-status\"",
+      "summary": "\"Get Counterparty Limit Status\"",
+      "description": "s\"\"\"Get Counterparty Limit Status.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "counterpartyLimitStatusV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       $CounterpartyNotFoundByCounterpartyId,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagCounterpartyLimits)"
+    },
+    "deleteCounterpartyLimit": {
+      "partial_function_name_raw": "nameOf(deleteCounterpartyLimit)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits\"",
+      "summary": "\"Delete Counterparty Limit\"",
+      "description": "s\"\"\"Delete Counterparty Limit.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       $CounterpartyNotFoundByCounterpartyId,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagCounterpartyLimits)"
+    },
+    "createCustomView": {
+      "partial_function_name_raw": "nameOf(createCustomView)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views\"",
+      "summary": "\"Create Custom View\"",
+      "description": "s\"\"\"Create a custom view on bank account\n        |\n        | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\n        | The 'alias' field in the JSON can take one of three values:\n        |\n        | * _public_: to use the public alias if there is one specified for the other account.\n        | * _private_: to use the private alias if there is one specified for the other account.\n        |\n        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.\n        |\n        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.\n        |\n        | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.\n        |\n        | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.\n        |\n        | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).\n        | \"\"\"",
+      "example_request_body": "createCustomViewJson",
+      "success_response_body": "customViewJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagView, apiTagAccount)"
+    },
+    "updateCustomView": {
+      "partial_function_name_raw": "nameOf(updateCustomView)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID\"",
+      "summary": "\"Update Custom View\"",
+      "description": "s\"\"\"Update an existing custom view on a bank account\n        |\n        |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\n        |\n        |The json sent is the same as during view creation (above), with one difference: the 'name' field\n        |of a view is not editable (it is only set when a view is created)\"\"\"",
+      "example_request_body": "updateCustomViewJson",
+      "success_response_body": "customViewJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagView, apiTagAccount)"
+    },
+    "getCustomView": {
+      "partial_function_name_raw": "nameOf(getCustomView)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID\"",
+      "summary": "\"Get Custom View\"",
+      "description": "s\"\"\"#Views\n        |\n        |\n        |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.\n        |\n        |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.\n        |\n        |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.\n        |\n        |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.\n        |\n        |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.\n        |\n        |**Metadata:**\n        |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.\n        |\n        |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).\n        |\n        |# All\n        |*Optional*\n        |\n        |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.\n        |\n        |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customViewJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       UnknownError\n     )",
+      "tags": "List(apiTagView, apiTagAccount)"
+    },
+    "deleteCustomView": {
+      "partial_function_name_raw": "nameOf(deleteCustomView)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID\"",
+      "summary": "\"Delete Custom View\"",
+      "description": "\"Deletes the custom view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       $BankAccountNotFound,\n       $UserNoPermissionAccessView,\n       UnknownError\n     )",
+      "tags": "List(apiTagView, apiTagAccount)"
+    },
+    "createVRPConsentRequest": {
+      "partial_function_name_raw": "nameOf(createVRPConsentRequest)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/consumer/vrp-consent-requests\"",
+      "summary": "\"Create Consent Request VRP\"",
+      "description": "s\"\"\"\n        |This endpoint is used to begin the process of creating a consent that may be used for Variable Recurring Payments (VRPs).\n        |\n        |VRPs are useful in situations when a beneficiary needs to be paid different amounts on a regular basis.\n        |\n        |Once granted, the consent allows its holder to initiate multiple Transaction Requests to the Counterparty defined in this endpoint as long as the\n        |Counterparty Limits linked to this particular consent are respected.\n        |\n        |Client, Consumer or Application Authentication is mandatory for this endpoint.\n        |\n        |i.e. the caller of this endpoint is the API Client, Consumer or Application rather than a specific User.\n        |\n        |At the end of the process the following objects are created in OBP or connected backend systems:\n        | - An automatically generated View which controls access.\n        | - A Counterparty that is the Beneficiary of the Variable Recurring Payments. The Counterparty specifies the Bank Account number or other routing address.\n        | - Limits for the Counterparty which constrain the amount of money that can be sent to it in various periods (yearly, monthly, weekly).\n        |\n        |The Account holder may modify the Counterparty or Limits e.g. to increase or decrease the maximum possible payment amounts or the frequencey of the payments.\n        |\n        |\n        |In the case of a public client we use the client_id and private key to obtain an access token, otherwise we use the client_id and client_secret.\n        |The obtained access token is used in the HTTP Authorization header of the request as follows:\n        |\n        |Example:\n        |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0\n        |\n        |After successfully creating the VRP consent request, you need to call the `Create Consent By CONSENT_REQUEST_ID` endpoint to finalize the consent using the CONSENT_REQUEST_ID returned by this endpoint.\n        |\n        |${applicationAccessMessage(true)}\n        |\n        |${userAuthenticationMessage(false)}\n        |\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "postVRPConsentRequestJsonV510",
+      "success_response_body": "vrpConsentRequestResponseJson",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       ConsentMaxTTL,\n       X509CannotGetCertificate,\n       X509GeneralError,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "apiTagConsent :: apiTagVrp :: apiTagTransactionRequest  :: Nil"
+    },
+    "createRegulatedEntityAttribute": {
+      "partial_function_name_raw": "nameOf(createRegulatedEntityAttribute)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/regulated-entities/REGULATED_ENTITY_ID/attributes\"",
+      "summary": "\"Create Regulated Entity Attribute\"",
+      "description": "s\"\"\"\n        | Create a new Regulated Entity Attribute for a given REGULATED_ENTITY_ID.\n        |\n        | The type field must be one of \"STRING\", \"INTEGER\", \"DOUBLE\" or \"DATE_WITH_DAY\".\n        | ${userAuthenticationMessage(true)}\n        |\n    \"\"\".stripMargin",
+      "example_request_body": "regulatedEntityAttributeRequestJsonV510",
+      "success_response_body": "regulatedEntityAttributeResponseJsonV510",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError)",
+      "tags": "List(apiTagDirectory, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateRegulatedEntityAttribute))"
+      }
+    },
+    "deleteRegulatedEntityAttribute": {
+      "partial_function_name_raw": "nameOf(deleteRegulatedEntityAttribute)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID\"",
+      "summary": "\"Delete Regulated Entity Attribute\"",
+      "description": "s\"\"\"\n        | Delete a Regulated Entity Attribute specified by REGULATED_ENTITY_ATTRIBUTE_ID.\n        |\n        | ${userAuthenticationMessage(true)}\n        |\n    \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagDirectory, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteRegulatedEntityAttribute))"
+      }
+    },
+    "getRegulatedEntityAttributeById": {
+      "partial_function_name_raw": "nameOf(getRegulatedEntityAttributeById)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID\"",
+      "summary": "\"Get Regulated Entity Attribute By ID\"",
+      "description": "s\"\"\"\n        | Get a specific Regulated Entity Attribute by its REGULATED_ENTITY_ATTRIBUTE_ID.\n        |\n        | ${userAuthenticationMessage(true)}\n        |\n    \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "regulatedEntityAttributeResponseJsonV510",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired,UnknownError)",
+      "tags": "List(apiTagDirectory, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetRegulatedEntityAttribute))"
+      }
+    },
+    "getAllRegulatedEntityAttributes": {
+      "partial_function_name_raw": "nameOf(getAllRegulatedEntityAttributes)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/regulated-entities/REGULATED_ENTITY_ID/attributes\"",
+      "summary": "\"Get All Regulated Entity Attributes\"",
+      "description": "s\"\"\"\n        | Get all attributes for the specified Regulated Entity.\n        |\n        | ${userAuthenticationMessage(true)}\n        |\n    \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "regulatedEntityAttributesJsonV510",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagDirectory, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetRegulatedEntityAttributes))"
+      }
+    },
+    "updateRegulatedEntityAttribute": {
+      "partial_function_name_raw": "nameOf(updateRegulatedEntityAttribute)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID\"",
+      "summary": "\"Update Regulated Entity Attribute\"",
+      "description": "s\"\"\"\n        | Update an existing Regulated Entity Attribute specified by ATTRIBUTE_ID.\n        |\n        | ${userAuthenticationMessage(true)}\n        |\n    \"\"\".stripMargin",
+      "example_request_body": "regulatedEntityAttributeRequestJsonV510",
+      "success_response_body": "regulatedEntityAttributeResponseJsonV510",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError)",
+      "tags": "List(apiTagDirectory, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateRegulatedEntityAttribute))"
+      }
+    },
+    "createBankAccountBalance": {
+      "partial_function_name_raw": "nameOf(createBankAccountBalance)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/balances\"",
+      "summary": "\"Create Bank Account Balance\"",
+      "description": "s\"\"\"Create a new Balance for a Bank Account.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "bankAccountBalanceRequestJsonV510",
+      "success_response_body": "bankAccountBalanceResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagBalance)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateBankAccountBalance))"
+      }
+    },
+    "getBankAccountBalanceById": {
+      "partial_function_name_raw": "nameOf(getBankAccountBalanceById)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID\"",
+      "summary": "\"Get Bank Account Balance By ID\"",
+      "description": "s\"\"\"Get a specific Bank Account Balance by its BALANCE_ID.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "bankAccountBalanceResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagBalance)"
+    },
+    "getAllBankAccountBalances": {
+      "partial_function_name_raw": "nameOf(getAllBankAccountBalances)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/balances\"",
+      "summary": "\"Get All Bank Account Balances\"",
+      "description": "s\"\"\"Get all Balances for a Bank Account.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "bankAccountBalancesJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagBalance)"
+    },
+    "updateBankAccountBalance": {
+      "partial_function_name_raw": "nameOf(updateBankAccountBalance)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID\"",
+      "summary": "\"Update Bank Account Balance\"",
+      "description": "s\"\"\"Update an existing Bank Account Balance specified by BALANCE_ID.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "bankAccountBalanceRequestJsonV510",
+      "success_response_body": "bankAccountBalanceResponseJsonV510",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagBalance)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateBankAccountBalance))"
+      }
+    },
+    "deleteBankAccountBalance": {
+      "partial_function_name_raw": "nameOf(deleteBankAccountBalance)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID\"",
+      "summary": "\"Delete Bank Account Balance\"",
+      "description": "s\"\"\"Delete a Bank Account Balance specified by BALANCE_ID.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount, apiTagBalance)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteBankAccountBalance))"
+      }
+    },
+    "getWebUiProps": {
+      "partial_function_name_raw": "nameOf(getWebUiProps)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/webui-props\"",
+      "summary": "\"Get WebUiProps\"",
+      "description": "s\"\"\"\n        |\n        |Get the all WebUiProps key values, those props key with \"webui_\" can be stored in DB, this endpoint get all from DB.\n        |\n        |url query parameter:\n        |active: It must be a boolean string. and If active = true, it will show\n        |          combination of explicit (inserted) + implicit (default)  method_routings.\n        |\n        |eg:\n        |${getObpApiRoot}/v5.1.0/webui-props\n        |${getObpApiRoot}/v5.1.0/webui-props?active=true\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "ListResult(\n       \"webui-props\",\n       (List(WebUiPropsCommons(\"webui_api_explorer_url\", \"https://apiexplorer.openbankproject.com\", Some(\"web-ui-props-id\"))))\n     )",
+      "error_response_bodies": "List(\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagWebUiProps)"
+    },
+    "addSystemViewPermission": {
+      "partial_function_name_raw": "nameOf(addSystemViewPermission)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/system-views/VIEW_ID/permissions\"",
+      "summary": "\"Add Permission to a System View\"",
+      "description": "\"\"\"Add Permission to a System View.\"\"\"",
+      "example_request_body": "createViewPermissionJson",
+      "success_response_body": "entitlementJSON",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       IncorrectRoleName,\n       EntitlementAlreadyExists,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemView)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateSystemViewPermission))"
+      }
+    },
+    "deleteSystemViewPermission": {
+      "partial_function_name_raw": "nameOf(deleteSystemViewPermission)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/system-views/VIEW_ID/permissions/PERMISSION_NAME\"",
+      "summary": "\"Delete Permission to a System View\"",
+      "description": "\"\"\"Delete Permission to a System View\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagSystemView)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteSystemViewPermission))"
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "version": "v1_3_0",
+  "source_file": "obp-api/src/main/scala/code/api/v1_3_0/APIMethods130.scala",
+  "exported_from_git_commit": "e198c922328095b9abbd1370056fb5ee002f7980",
+  "endpoint_count": 3,
+  "endpoints": {
+    "root": {
+      "partial_function_name_raw": "\"root\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/root\"",
+      "summary": "\"Get API Info (root)\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API version\n       |* Hosted by information\n       |* Git Commit\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiInfoJSON",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi :: Nil"
+    },
+    "getCards": {
+      "partial_function_name_raw": "\"getCards\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/cards\"",
+      "summary": "\"Get cards for the current user\"",
+      "description": "\"Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "physicalCardsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagCard)"
+    },
+    "getCardsForBank": {
+      "partial_function_name_raw": "\"getCardsForBank\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/cards\"",
+      "summary": "\"Get cards for the specified bank\"",
+      "description": "\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "physicalCardsJSON",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired,BankNotFound, UnknownError)",
+      "tags": "List(apiTagCard)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCardsForBank))"
+      }
+    }
+  }
+}

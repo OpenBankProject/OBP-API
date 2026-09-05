@@ -7,7 +7,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{DynamicEndpointExists, EndpointMappingNotFoundByOperationId, InvalidMyDynamicEndpointUser, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.ExampleValue
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.dynamic.endpoint.APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf

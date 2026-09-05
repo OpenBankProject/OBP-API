@@ -2,9 +2,9 @@ package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v4_0_0.OBPAPI4_0_0
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.{FlatSpec, Matchers}
+import code.api.util.http4s.Http4sResourceDocAggregation
 
 /**
  * Two claims the Scala 2.13 migration made about generated documentation, neither of which any
@@ -29,7 +29,7 @@ class SwaggerPathOrderAndArrayBodyTest extends FlatSpec with Matchers {
   /** Real docs rather than synthetic ones: the ordering only matters for what actually ships. */
   private lazy val swagger: SwaggerJSONFactory.SwaggerResourceDoc = {
     val docs = JSONFactory1_4_0
-      .createResourceDocsJson(OBPAPI4_0_0.allResourceDocs.toList, isVersion4OrHigher = true, None)
+      .createResourceDocsJson(Http4sResourceDocAggregation.v400.toList, isVersion4OrHigher = true, None)
       .resource_docs
     SwaggerJSONFactory.createSwaggerResourceDoc(docs, ApiVersion.v4_0_0)
   }

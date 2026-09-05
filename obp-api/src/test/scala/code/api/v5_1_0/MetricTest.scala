@@ -4,7 +4,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadAggregateMetrics
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_0_0.AggregateMetricJSON
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import code.metrics.MetricBatchWriter
 import com.github.dwickern.macros.NameOf.nameOf

@@ -244,7 +244,7 @@ object Glossary extends MdcLoggable  {
 				 |               │                               │
 				 |    ┌──────────▼──────────┐         ┌──────────▼──────────┐
 				 |    │                     │         │                     │
-				 |    │  AfterApiAuth.scala │         │ APIMethods600.scala │
+				 |    │  AfterApiAuth.scala │         │ Http4s600.scala     │
 				 |    │                     │         │                     │
 				 |    │  checkRateLimiting()│         │ getActiveCallLimits │
 				 |    │                     │         │ AtDate              │
@@ -5797,7 +5797,7 @@ object Glossary extends MdcLoggable  {
 				 |- `Connector.scala` — `checkExternalUserCredentials()` abstract method
 				 |- `AkkaConnector_vDec2018.scala` — Akka connector implementation
 				 |- `StoredProcedureConnector_vDec2019.scala` — Stored procedure connector implementation
-				 |- `APIMethods600.scala` — `verifyUserCredentials` endpoint definition
+				 |- `Http4s600.scala` — `verifyUserCredentials` endpoint definition
 				 |
 """)
 

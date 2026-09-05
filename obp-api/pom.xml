@@ -14,6 +14,15 @@
   <packaging>jar</packaging>
   <name>Open Bank Project API</name>
 
+  <properties>
+    <!-- Referenced (not hardcoded) in the scalatest-maven-plugin config below, so a
+         command-line -Dtest.tagsToExclude= override actually takes effect: Maven only lets
+         -D override a POM-declared value when the config element is a ${property}
+         expression, not a fixed string literal. Default excludes PropGatedPublicEndpoint
+         (see run_tests_parallel.sh / the CI job that overrides this to include it). -->
+    <test.tagsToExclude>code.external,GetBanksPerf,PropGatedPublicEndpoint</test.tagsToExclude>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>com.tesobe</groupId>
@@ -595,7 +604,18 @@
                  InaccessibleObjectException that only reproduces in whichever environment
                  is missing it. -->
             <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1g -Xms1g -Xmx2g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED</argLine>
-            <tagsToExclude>code.external,GetBanksPerf</tagsToExclude>
+            <!-- PropGatedPublicEndpoint: JsonSchemaValidationPublicPropTrueTest /
+                 AuthenticationTypeValidationPublicPropTrueTest need
+                 read_json_schema_validation_requires_role /
+                 read_authentication_type_validation_requires_role forced true, which is baked
+                 into Http4s400's ResourceDoc at object-init time; a value only one JVM can
+                 observe. Excluded here by default (every ordinary shard/local/IDE run boots with
+                 the props unset, i.e. false) and run separately with -Dtest.tagsToExclude=
+                 -DtagsToInclude=PropGatedPublicEndpoint plus the two OBP_READ_*_REQUIRES_ROLE
+                 env vars set true (see run_tests_parallel.sh and the CI job that runs them);
+                 see the ${test.tagsToExclude} property declared above for why this is not a
+                 plain literal. -->
+            <tagsToExclude>${test.tagsToExclude}</tagsToExclude>
             <testFailureIgnore>${maven.test.failure.ignore}</testFailureIgnore>
         </configuration>
         <executions>

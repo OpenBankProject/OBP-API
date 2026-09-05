@@ -92,7 +92,7 @@ object RateLimitingUtil extends MdcLoggable {
     */
   /** THE SINGLE SOURCE OF TRUTH for active rate limits.
     * This is the ONLY function that should be called to get active rate limits.
-    * Used by BOTH enforcement (AfterApiAuth) and API reporting (APIMethods600).
+    * Used by BOTH enforcement (AfterApiAuth) and API reporting (Http4s600).
     *
     * @param consumerId The consumer ID
     * @param date The date to check active limits for

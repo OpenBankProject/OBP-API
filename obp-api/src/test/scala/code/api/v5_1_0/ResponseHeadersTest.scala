@@ -6,7 +6,7 @@ import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
-import code.api.v5_1_0.APIMethods510.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.api.{RequestHeader, ResponseHeader}
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}

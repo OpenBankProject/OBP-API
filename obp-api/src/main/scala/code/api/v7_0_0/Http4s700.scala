@@ -108,7 +108,7 @@ object Http4s700 {
    * Aggregated resource docs from all API versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0)
    *
    * This method implements the resource docs aggregation pattern for v7.0.0:
-   * 1. Takes OBPAPI6_0_0.allResourceDocs (which already contains v6.0.0 + v5.1.0 + ... + v1.3.0)
+   * 1. Takes Http4sResourceDocAggregation.v600 (which already contains v6.0.0 + v5.1.0 + ... + v1.3.0)
    * 2. Adds v7.0.0's own resourceDocs
    * 3. Deduplicates by (requestUrl, requestVerb), keeping the newest version
    * 4. Filters out explicitly excluded old endpoints

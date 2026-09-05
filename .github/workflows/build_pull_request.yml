@@ -194,6 +194,18 @@ jobs:
             # discovery excludes this same prefix so no test runs in both shards.
             test_filter: >-
               code.api.v4_0_0.Dynamic
+          - shard: 10
+            name: "PropGatedPublicEndpoint (read_*_requires_role=true)"
+            # JsonSchemaValidationPublicPropTrueTest / AuthenticationTypeValidationPublicPropTrueTest
+            # need read_json_schema_validation_requires_role /
+            # read_authentication_type_validation_requires_role forced true, which is baked into
+            # Http4s400's ResourceDoc error list at object-init time -- a value only one JVM can
+            # observe. Every other shard boots with these props unset (false, the default) and
+            # the pom.xml default tagsToExclude skips this tag there. This shard is the only place
+            # the true branch is exercised; see the "Run tests" step's shard-10 special case below.
+            test_filter: >-
+              code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest
+              code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest
 
     services:
       redis:
@@ -377,6 +389,18 @@ jobs:
             FILTER="${FILTER}${EXTRAS}"
           fi
 
+          # Shard 10: PropGatedPublicEndpoint tests need read_json_schema_validation_requires_role /
+          # read_authentication_type_validation_requires_role forced true and the
+          # PropGatedPublicEndpoint tag included (pom.xml's default tagsToExclude skips it
+          # everywhere else). These two OBP_* env vars and the tag override apply only to this
+          # shard's mvn invocation below.
+          EXTRA_MVN_ARGS=""
+          if [ "${{ matrix.shard }}" = "10" ]; then
+            export OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true"
+            export OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true"
+            EXTRA_MVN_ARGS="-DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude="
+          fi
+
           # `mvn process-resources scalatest:test` — run process-resources (copies the
           # dynamically-generated props from src/main/resources onto the classpath at
           # target/classes/props) then the scalatest:test goal. This SKIPS the
@@ -395,7 +419,7 @@ jobs:
           set +e
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
             timeout 1500 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
-              -DwildcardSuites="$FILTER" \
+              -DwildcardSuites="$FILTER" $EXTRA_MVN_ARGS \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?
           set -e
@@ -440,6 +464,20 @@ jobs:
             exit 1
           else
             echo "No failing tests detected in shard ${{ matrix.shard }}."
+          fi
+
+          # "No failures" is not "it ran". A shard whose filter matches nothing, or
+          # whose tag override stops taking effect, executes zero tests, matches no
+          # failure pattern and reports green -- the same false green the
+          # process-resources note above guards against, from a different direction.
+          # Shard 10 is the exposed one: its suites only run while
+          # -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= holds.
+          RAN=$(grep -oE "Tests: succeeded [0-9]+" maven-build-shard${{ matrix.shard }}.log \
+                | awk '{s+=$3} END {print s+0}')
+          echo "Shard ${{ matrix.shard }} executed ${RAN} tests."
+          if [ "${RAN}" -eq 0 ]; then
+            echo "Shard ${{ matrix.shard }} ran no tests at all — treating as failure."
+            exit 1
           fi
 
       - name: Upload Maven build log — shard ${{ matrix.shard }}

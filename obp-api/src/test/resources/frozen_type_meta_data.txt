@@ -309,6 +309,7 @@ endpoint	v4.0.0	getAccountByAccountRouting
 endpoint	v4.0.0	getAccountsByAccountRoutingRegex
 endpoint	v4.0.0	getAccountsMinimalByCustomerId
 endpoint	v4.0.0	getAllAuthenticationTypeValidations
+endpoint	v4.0.0	getAllAuthenticationTypeValidationsPublic
 endpoint	v4.0.0	getAllBankLevelDynamicMessageDocs
 endpoint	v4.0.0	getAllBankLevelDynamicResourceDocs
 endpoint	v4.0.0	getAllBankLevelEndpointMappings
@@ -317,6 +318,7 @@ endpoint	v4.0.0	getAllDynamicMessageDocs
 endpoint	v4.0.0	getAllDynamicResourceDocs
 endpoint	v4.0.0	getAllEndpointMappings
 endpoint	v4.0.0	getAllJsonSchemaValidations
+endpoint	v4.0.0	getAllJsonSchemaValidationsPublic
 endpoint	v4.0.0	getApiCollectionEndpoints
 endpoint	v4.0.0	getApiCollectionsForUser
 endpoint	v4.0.0	getAtm

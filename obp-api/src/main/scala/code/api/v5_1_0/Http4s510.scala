@@ -134,11 +134,11 @@ object Http4s510 {
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` =>
         EndpointHelpers.executeFuture(req) {
-          Future.successful(JSONFactory510.getApiInfoJSON(OBPAPI5_1_0.version, OBPAPI5_1_0.versionStatus))
+          Future.successful(JSONFactory510.getApiInfoJSON(ApiVersion.v5_1_0, versionStatus))
         }
       case req @ GET -> `prefixPath` / "root" =>
         EndpointHelpers.executeFuture(req) {
-          Future.successful(JSONFactory510.getApiInfoJSON(OBPAPI5_1_0.version, OBPAPI5_1_0.versionStatus))
+          Future.successful(JSONFactory510.getApiInfoJSON(ApiVersion.v5_1_0, versionStatus))
         }
     }
 

@@ -2,7 +2,7 @@ package code.api.v5_0_0
 
 import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion

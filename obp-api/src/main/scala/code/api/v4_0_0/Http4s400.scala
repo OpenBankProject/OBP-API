@@ -8105,6 +8105,11 @@ object Http4s400 {
         }
     }
 
+    // Public counterpart of getAllJsonSchemaValidations, registered under its own name so the
+    // /endpoints/... case can carry its own ResourceDoc (see initBatch2ResourceDocs), distinct
+    // from the /management/... variant's. Same underlying route.
+    lazy val getAllJsonSchemaValidationsPublic = getAllJsonSchemaValidations
+
     lazy val getAuthenticationTypeValidation: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "authentication-type-validations" / operationId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
@@ -8128,6 +8133,11 @@ object Http4s400 {
           } yield com.openbankproject.commons.model.ListResult("authentication_types_validations", atvs)
         }
     }
+
+    // Public counterpart of getAllAuthenticationTypeValidations, registered under its own name so
+    // the /endpoints/... case can carry its own ResourceDoc (see initBatch2ResourceDocs), distinct
+    // from the /management/... variant's. Same underlying route.
+    lazy val getAllAuthenticationTypeValidationsPublic = getAllAuthenticationTypeValidations
 
     lazy val getConnectorMethod: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "connector-methods" / connectorMethodId =>
@@ -8411,6 +8421,34 @@ object Http4s400 {
         http4sPartialFunction = Some(getAllJsonSchemaValidations)
       )
 
+      // read_json_schema_validation_requires_role gates the public /endpoints/... variant below.
+      // Recovered from the commented-out Lift ResourceDoc that used to live in APIMethods400.scala
+      // (see git history for that file), which declared UserHasMissingRoles in its error list —
+      // so the intent was a role gate, not merely a login gate. The role therefore rides the same
+      // prop as the error entry: off (the default) leaves the route public, on requires
+      // canGetJsonSchemaValidation, which is what the prop's name says and what the
+      // /management/... twin enforces unconditionally.
+      val jsonSchemaValidationRequiresRole: Boolean =
+        APIUtil.getPropsAsBoolValue("read_json_schema_validation_requires_role", false)
+
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(getAllJsonSchemaValidationsPublic),
+        "GET",
+        "/endpoints/json-schema-validations",
+        "Get all JSON Schema Validations - public",
+        s"""Get all JSON Schema Validations - public.
+           |
+           |""".stripMargin,
+        EmptyBody,
+        ListResult("json_schema_validations", responseJsonSchema :: Nil),
+        (if (jsonSchemaValidationRequiresRole) List($AuthenticatedUserIsRequired) else Nil) :::
+          List(UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(apiTagJsonSchemaValidation),
+        if (jsonSchemaValidationRequiresRole) Some(List(canGetJsonSchemaValidation)) else None,
+        http4sPartialFunction = Some(getAllJsonSchemaValidationsPublic)
+      )
+
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getAuthenticationTypeValidation),
@@ -8446,6 +8484,34 @@ object Http4s400 {
         List(apiTagAuthenticationTypeValidation),
         Some(List(canGetAuthenticationTypeValidation)),
         http4sPartialFunction = Some(getAllAuthenticationTypeValidations)
+      )
+
+      // read_authentication_type_validation_requires_role gates the public /endpoints/... variant
+      // below. Same reasoning as read_json_schema_validation_requires_role above: the recovered
+      // Lift doc declared UserHasMissingRoles, so the role rides the prop rather than the route
+      // being merely login-gated when the prop is on.
+      val authenticationTypeValidationRequiresRole: Boolean =
+        APIUtil.getPropsAsBoolValue("read_authentication_type_validation_requires_role", false)
+
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(getAllAuthenticationTypeValidationsPublic),
+        "GET",
+        "/endpoints/authentication-type-validations",
+        "Get all Authentication Type Validations - public",
+        s"""Get all Authentication Type Validations - public.
+           |
+           |""".stripMargin,
+        EmptyBody,
+        ListResult(
+          "authentication_types_validations",
+          List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))
+        ),
+        (if (authenticationTypeValidationRequiresRole) List($AuthenticatedUserIsRequired) else Nil) :::
+          List(UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(apiTagAuthenticationTypeValidation),
+        if (authenticationTypeValidationRequiresRole) Some(List(canGetAuthenticationTypeValidation)) else None,
+        http4sPartialFunction = Some(getAllAuthenticationTypeValidationsPublic)
       )
 
       staticResourceDocs += ResourceDoc(
@@ -11163,7 +11229,6 @@ object Http4s400 {
     lazy val createTransactionRequestRefund             = createTransactionRequest
     lazy val createTransactionRequestSepa               = createTransactionRequest
     lazy val createTransactionRequestSimple             = createTransactionRequest
-    lazy val getAllAuthenticationTypeValidationsPublic   = getAllAuthenticationTypeValidations
 
     // ─── path-rewriting bridge: /obp/v4.0.0/… → /obp/v3.1.0/… ──────────────
 

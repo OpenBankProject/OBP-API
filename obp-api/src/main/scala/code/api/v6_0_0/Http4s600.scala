@@ -132,7 +132,7 @@ object Http4s600 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
     // Local config flag referenced by some lifted product-endpoint descriptions.
-    // Mirrors the same `val` in `code.api.v2_1_0.{APIMethods210, Http4s210}`.
+    // Mirrors the same `val` in `code.api.v2_1_0.Http4s210`.
     val getProductsIsPublic =
       APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
@@ -15460,7 +15460,7 @@ object Http4s600 {
   private lazy val v6ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
     ResourceDocMatcher.buildIndex(resourceDocs)
 
-  // `lazy val`, not `val`: `OBPAPI6_0_0` and `APIMethods600` reference
+  // `lazy val`, not `val`: other objects reference
   // `Http4s600.Implementations6_0_0` directly via getstatic. When either is loaded
   // first (during Lift's Boot), the JVM triggers `Implementations6_0_0.<clinit>`
   // before `Http4s600.<clinit>`. Resource-doc registrations inside Impl6.<init>
