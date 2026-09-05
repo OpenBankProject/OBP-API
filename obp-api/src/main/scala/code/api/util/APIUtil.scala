@@ -4310,17 +4310,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def getJValueFromJsonFile(path: String) = {
-    val stream = getClass().getClassLoader().getResourceAsStream(path)
-    try {
-      val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
-      val jsonStringFromFile = bufferedSource.mkString
-      json.parse(jsonStringFromFile);
-    } finally {
-      stream.close()
-    }
-  }
-
   lazy val loginButtonText = getWebUiPropsValue("webui_login_button_text", "Log In")
 
   // the follow PartialFunction just delegate one method, in this way will be compiled to a class, in order to trace call whitch connector methods
