@@ -63,24 +63,24 @@ class ConsentOwnershipTests extends V510ServerSetup with PropsReset {
   private val psu = "psu-user-id"
   private val otherPsu = "someone-else-user-id"
 
-  feature("Consent.checkObpConsentUserAccess") {
+  Feature("Consent.checkObpConsentUserAccess") {
 
-    scenario("the PSU a consent is bound to may read it", ConsentOwnership) {
+    Scenario("the PSU a consent is bound to may read it", ConsentOwnership) {
       Consent.checkObpConsentUserAccess(psu, Some(psu)) should equal(None)
     }
 
-    scenario("a different human may not read a bound consent", ConsentOwnership) {
+    Scenario("a different human may not read a bound consent", ConsentOwnership) {
       Consent.checkObpConsentUserAccess(psu, Some(otherPsu)) should equal(Some(ConsentNotFound))
     }
 
-    scenario("a caller with no human at all may not read a bound consent", ConsentOwnership) {
+    Scenario("a caller with no human at all may not read a bound consent", ConsentOwnership) {
       Consent.checkObpConsentUserAccess(psu, None) should equal(Some(ConsentNotFound))
     }
 
     // Deliberate, and load-bearing: this endpoint is where a PSU inspects a consent before deciding
     // to authorise it, and the app doing the inspecting belongs to the PSU, not to the TPP that
     // lodged the consent. See the Berlin Group SCA regression in AccountInformationServiceAISApiTest.
-    scenario("a consent with no PSU yet is readable", ConsentOwnership) {
+    Scenario("a consent with no PSU yet is readable", ConsentOwnership) {
       Consent.checkObpConsentUserAccess("", Some(psu)) should equal(None)
       Consent.checkObpConsentUserAccess(null, None) should equal(None)
       Consent.checkObpConsentUserAccess("   ", Some(otherPsu)) should equal(None)
@@ -96,7 +96,7 @@ class ConsentOwnershipTests extends V510ServerSetup with PropsReset {
   private lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, Constant.SYSTEM_OWNER_VIEW_ID))
   private lazy val postConsentImplicitJsonV310 = SwaggerDefinitionsJSON.postConsentImplicitJsonV310
     .copy(entitlements = entitlements)
-    .copy(consumer_id = Some(testConsumer.consumerId.get))
+    .copy(consumer_id = Some(testConsumer.consumerId))
     .copy(views = views)
 
   // Lodge an OBP-native consent for resourceUser1 and take it through SCA, so it ends up ACCEPTED
@@ -118,9 +118,9 @@ class ConsentOwnershipTests extends V510ServerSetup with PropsReset {
     (consentId, jwt)
   }
 
-  feature("Consent-authenticated reads of GET /user/current/consents/CONSENT_ID") {
+  Feature("Consent-authenticated reads of GET /user/current/consents/CONSENT_ID") {
 
-    scenario("The PSU may read their own consent when the consent itself is the credential", CreateConsent, VersionOfApi, ConsentOwnership) {
+    Scenario("The PSU may read their own consent when the consent itself is the credential", CreateConsent, VersionOfApi, ConsentOwnership) {
       setPropsValues("consumer_validation_method_for_consent" -> "CONSUMER_KEY_VALUE")
       val (consentId, jwt) = acceptedConsentOfUser1()
 
@@ -136,7 +136,7 @@ class ConsentOwnershipTests extends V510ServerSetup with PropsReset {
       setPropsValues("consumer_validation_method_for_consent" -> "CONSUMER_CERTIFICATE")
     }
 
-    scenario("Another user still cannot read a consent bound to someone else", CreateConsent, VersionOfApi, ConsentOwnership) {
+    Scenario("Another user still cannot read a consent bound to someone else", CreateConsent, VersionOfApi, ConsentOwnership) {
       setPropsValues("consumer_validation_method_for_consent" -> "CONSUMER_KEY_VALUE")
       val (consentId, _) = acceptedConsentOfUser1()
 

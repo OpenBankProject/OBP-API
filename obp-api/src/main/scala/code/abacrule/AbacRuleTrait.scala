@@ -1,9 +1,11 @@
 package code.abacrule
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, DoobieUtil}
 import com.openbankproject.commons.model._
-import net.liftweb.common.Box
-import net.liftweb.mapper._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
 
 import java.util.Date
@@ -19,34 +21,97 @@ trait AbacRuleTrait {
   def updatedByUserId: String
 }
 
-class AbacRule extends AbacRuleTrait with LongKeyedMapper[AbacRule] with IdPK with CreatedUpdated {
-  def getSingleton = AbacRule
+/**
+ * One ABAC rule.
+ *
+ * `policy` is a comma-joined tag list in a single column, which is why the by-policy queries filter
+ * in memory rather than in SQL — a LIKE would match a policy name that is a substring of another.
+ *
+ * The table has three plain indexes and no unique one, though abacRuleId is the handle the update
+ * and delete key off and getAbacRuleByName reads by rulename, so two rules may share a name.
+ * Pre-existing; the lookups pin id ASC so which row wins is deterministic.
+ */
+case class AbacRule(
+  abacRuleId: String,
+  ruleName: String,
+  ruleCode: String,
+  isActive: Boolean,
+  description: String,
+  policy: String,
+  createdByUserId: String,
+  updatedByUserId: String
+) extends AbacRuleTrait
 
-  object AbacRuleId extends MappedString(this, 255) {
-    override def defaultValue = APIUtil.generateUUID()
+object AbacRule {
+
+  private val selectColumns =
+    fr"""SELECT abacruleid, rulename, rulecode, isactive, description, policy, createdbyuserid,
+                updatedbyuserid
+         FROM abacrule"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[Boolean],
+    Option[String], Option[String], Option[String], Option[String])
+
+  private def fromRow(row: Row): AbacRule = row match {
+    case (abacRuleId, ruleName, ruleCode, isActive, description, policy, createdByUserId,
+          updatedByUserId) =>
+        // MappedBoolean read a NULL column as false - `data openOr false`, with a NULL
+        // setting `data = Empty` - so it never failed the read and never returned the
+        // field's declared defaultValue. Binding the column as Option keeps both halves.
+      AbacRule(abacRuleId.orNull, ruleName.orNull, ruleCode.orNull, isActive.getOrElse(false),
+        description.orNull, policy.orNull, createdByUserId.orNull, updatedByUserId.orNull)
   }
-  object RuleName extends MappedString(this, 255) 
-  object RuleCode extends MappedText(this) 
-  object IsActive extends MappedBoolean(this) {
-    override def defaultValue = true
+
+  private def query(condition: Fragment): List[AbacRule] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def one(condition: Fragment): Box[AbacRule] =
+    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def insert(ruleName: String, ruleCode: String, description: String, policy: String,
+             isActive: Boolean, createdBy: String): AbacRule = {
+    val abacRuleId = APIUtil.generateUUID()
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO abacrule
+            (abacruleid, rulename, rulecode, isactive, description, policy, createdbyuserid,
+             updatedbyuserid, createdat, updatedat)
+            VALUES ($abacRuleId, $ruleName, $ruleCode, $isActive, $description, $policy,
+             $createdBy, $createdBy, $now, $now)"""
+        .update.run)
+    AbacRule(abacRuleId, ruleName, ruleCode, isActive, description, policy, createdBy, createdBy)
   }
-  object Description extends MappedText(this) 
-  object Policy extends MappedText(this)
-  object CreatedByUserId extends MappedString(this, 255) 
-  object UpdatedByUserId extends MappedString(this, 255)
 
-  override def abacRuleId: String = AbacRuleId.get
-  override def ruleName: String = RuleName.get
-  override def ruleCode: String = RuleCode.get
-  override def isActive: Boolean = IsActive.get
-  override def description: String = Description.get
-  override def policy: String = Policy.get
-  override def createdByUserId: String = CreatedByUserId.get
-  override def updatedByUserId: String = UpdatedByUserId.get
-}
+  /** createdByUserId is deliberately left alone — only updatedByUserId moves on an edit. */
+  def update(abacRuleId: String, ruleName: String, ruleCode: String, description: String,
+             policy: String, isActive: Boolean, updatedBy: String): Box[AbacRule] = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE abacrule SET rulename = $ruleName, rulecode = $ruleCode,
+              description = $description, policy = $policy, isactive = $isActive,
+              updatedbyuserid = $updatedBy,
+              updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())}
+            WHERE abacruleid = $abacRuleId""".update.run)
+    findById(abacRuleId)
+  }
 
-object AbacRule extends AbacRule with LongKeyedMetaMapper[AbacRule] {
-  override def dbIndexes: List[BaseIndex[AbacRule]] = Index(AbacRuleId) :: Index(RuleName) :: Index(CreatedByUserId) :: super.dbIndexes
+  def findById(abacRuleId: String): Box[AbacRule] = one(fr"WHERE abacruleid = $abacRuleId")
+
+  def findByName(ruleName: String): Box[AbacRule] = one(fr"WHERE rulename = $ruleName")
+
+  def findAll(): List[AbacRule] = query(fr"ORDER BY id ASC")
+
+  def findAllActive(): List[AbacRule] = query(fr"WHERE isactive = true ORDER BY id ASC")
+
+  def delete(abacRuleId: String): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM abacrule WHERE abacruleid = $abacRuleId".update.run) > 0
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM abacrule".update.run)
+    ()
+  }
 }
 
 trait AbacRuleProvider {
@@ -77,34 +142,26 @@ trait AbacRuleProvider {
 }
 
 object MappedAbacRuleProvider extends AbacRuleProvider {
-  
-  override def getAbacRuleById(ruleId: String): Box[AbacRuleTrait] = {
-    AbacRule.find(By(AbacRule.AbacRuleId, ruleId))
-  }
 
-  override def getAbacRuleByName(ruleName: String): Box[AbacRuleTrait] = {
-    AbacRule.find(By(AbacRule.RuleName, ruleName))
-  }
+  override def getAbacRuleById(ruleId: String): Box[AbacRuleTrait] = AbacRule.findById(ruleId)
 
-  override def getAllAbacRules(): List[AbacRuleTrait] = {
-    AbacRule.findAll()
-  }
+  override def getAbacRuleByName(ruleName: String): Box[AbacRuleTrait] = AbacRule.findByName(ruleName)
 
-  override def getActiveAbacRules(): List[AbacRuleTrait] = {
-    AbacRule.findAll(By(AbacRule.IsActive, true))
-  }
+  override def getAllAbacRules(): List[AbacRuleTrait] = AbacRule.findAll()
 
-  override def getAbacRulesByPolicy(policy: String): List[AbacRuleTrait] = {
+  override def getActiveAbacRules(): List[AbacRuleTrait] = AbacRule.findAllActive()
+
+  // policy is a comma-joined tag list in one column, so membership is decided in memory: a SQL LIKE
+  // would also match a policy name that is a substring of another.
+  override def getAbacRulesByPolicy(policy: String): List[AbacRuleTrait] =
     AbacRule.findAll().filter { rule =>
       Option(rule.policy).exists(_.split(",").map(_.trim).contains(policy))
     }
-  }
 
-  override def getActiveAbacRulesByPolicy(policy: String): List[AbacRuleTrait] = {
-    AbacRule.findAll(By(AbacRule.IsActive, true)).filter { rule =>
+  override def getActiveAbacRulesByPolicy(policy: String): List[AbacRuleTrait] =
+    AbacRule.findAllActive().filter { rule =>
       Option(rule.policy).exists(_.split(",").map(_.trim).contains(policy))
     }
-  }
 
   override def createAbacRule(
     ruleName: String,
@@ -113,19 +170,8 @@ object MappedAbacRuleProvider extends AbacRuleProvider {
     policy: String,
     isActive: Boolean,
     createdBy: String
-  ): Box[AbacRuleTrait] = {
-    tryo {
-      AbacRule.create
-        .RuleName(ruleName)
-        .RuleCode(ruleCode)
-        .Description(description)
-        .Policy(policy)
-        .IsActive(isActive)
-        .CreatedByUserId(createdBy)
-        .UpdatedByUserId(createdBy)
-        .saveMe()
-    }
-  }
+  ): Box[AbacRuleTrait] =
+    tryo(AbacRule.insert(ruleName, ruleCode, description, policy, isActive, createdBy))
 
   override def updateAbacRule(
     ruleId: String,
@@ -135,26 +181,16 @@ object MappedAbacRuleProvider extends AbacRuleProvider {
     policy: String,
     isActive: Boolean,
     updatedBy: String
-  ): Box[AbacRuleTrait] = {
+  ): Box[AbacRuleTrait] =
     for {
-      rule <- AbacRule.find(By(AbacRule.AbacRuleId, ruleId))
-      updatedRule <- tryo {
-        rule
-          .RuleName(ruleName)
-          .RuleCode(ruleCode)
-          .Description(description)
-          .Policy(policy)
-          .IsActive(isActive)
-          .UpdatedByUserId(updatedBy)
-          .saveMe()
-      }
+      _ <- AbacRule.findById(ruleId)
+      updatedRule <- tryo(AbacRule.update(ruleId, ruleName, ruleCode, description, policy, isActive,
+        updatedBy)).flatMap(identity)
     } yield updatedRule
-  }
 
-  override def deleteAbacRule(ruleId: String): Box[Boolean] = {
+  override def deleteAbacRule(ruleId: String): Box[Boolean] =
     for {
-      rule <- AbacRule.find(By(AbacRule.AbacRuleId, ruleId))
-      deleted <- tryo(rule.delete_!)
+      _ <- AbacRule.findById(ruleId)
+      deleted <- tryo(AbacRule.delete(ruleId))
     } yield deleted
-  }
 }

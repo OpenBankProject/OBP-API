@@ -1,38 +1,64 @@
 package code.CustomerDependants
 
-import code.customer.MappedCustomer
+import java.util.Date
+
+import code.api.util.DoobieUtil
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.CustomerDependant
-import net.liftweb.mapper.{MappedDateTime, _}
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+
 import scala.collection.immutable.List
 
-class MappedCustomerDependant extends LongKeyedMapper[MappedCustomerDependant] with IdPK {
-  def getSingleton = MappedCustomerDependant
-  
-  object mCustomer extends MappedLongForeignKey(this, MappedCustomer)
-  object mDateOfBirth extends MappedDateTime(this)
-  
-}
-object MappedCustomerDependant extends MappedCustomerDependant with LongKeyedMetaMapper[MappedCustomerDependant]{}
+/**
+ * A dependant's date of birth, hanging off a customer.
+ *
+ * `customerKey` is MAPPEDCUSTOMER's numeric primary key, not the public customer_id — the callers
+ * already pass that key in, which is why it appears in the signatures below unchanged.
+ */
+case class MappedCustomerDependant(
+  customerKey: Long,
+  dateOfBirth: Date
+)
 
+object MappedCustomerDependant {
 
-object MappedCustomerDependants extends CustomerDependants with MdcLoggable{
-  
-  def createCustomerDependants(mapperCustomerPrimaryKey: Long, customerDependants: List[CustomerDependant]): List[MappedCustomerDependant]= {
-    customerDependants.map(
-      customerDependant =>
-        MappedCustomerDependant
-          .create
-          .mCustomer(mapperCustomerPrimaryKey)
-          .mDateOfBirth(customerDependant.dateOfBirth)
-          .saveMe()
-    )
+  private val selectColumns = fr"SELECT mcustomer, mdateofbirth FROM mappedcustomerdependant"
+
+  private def query(condition: Fragment): List[MappedCustomerDependant] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[(Long, java.sql.Timestamp)].to[List])
+      .map { case (customerKey, dateOfBirth) => MappedCustomerDependant(customerKey, dateOfBirth) }
+
+  def insert(customerKey: Long, dateOfBirth: Date): MappedCustomerDependant = {
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO mappedcustomerdependant (mcustomer, mdateofbirth)
+            VALUES ($customerKey, ${new java.sql.Timestamp(dateOfBirth.getTime)})"""
+        .update.run)
+    MappedCustomerDependant(customerKey, dateOfBirth)
   }
-  
+
+  def findAllByCustomerKey(customerKey: Long): List[MappedCustomerDependant] =
+    query(fr"WHERE mcustomer = $customerKey ORDER BY id ASC")
+
+  def deleteByCustomerKey(customerKey: Long): Boolean = {
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedcustomerdependant WHERE mcustomer = $customerKey".update.run)
+    true
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomerdependant".update.run)
+    ()
+  }
+}
+
+object MappedCustomerDependants extends CustomerDependants with MdcLoggable {
+
+  def createCustomerDependants(mapperCustomerPrimaryKey: Long,
+                               customerDependants: List[CustomerDependant]): List[MappedCustomerDependant] =
+    customerDependants.map(d => MappedCustomerDependant.insert(mapperCustomerPrimaryKey, d.dateOfBirth))
+
   def getCustomerDependantsByCustomerPrimaryKey(mapperCustomerPrimaryKey: Long): List[MappedCustomerDependant] =
-    MappedCustomerDependant
-      .findAll(
-        By(MappedCustomerDependant.mCustomer, mapperCustomerPrimaryKey)
-      )
-  
+    MappedCustomerDependant.findAllByCustomerKey(mapperCustomerPrimaryKey)
 }

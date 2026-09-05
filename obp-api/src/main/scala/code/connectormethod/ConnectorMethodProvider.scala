@@ -10,7 +10,7 @@ object ConnectorMethodProvider extends SimpleInjector {
 
   val provider = new Inject(() => buildOne) {}
 
-  def buildOne: MappedConnectorMethodProvider.type = MappedConnectorMethodProvider
+  def buildOne: DoobieConnectorMethodProvider.type = DoobieConnectorMethodProvider
 }
 
 case class JsonConnectorMethod(connectorMethodId: Option[String], methodName: String, methodBody: String, programmingLang: String="Scala") extends JsonFieldReName{
@@ -34,3 +34,18 @@ trait ConnectorMethodProvider {
   def deleteById(connectorMethodId: String): Box[Boolean]
 
 }
+
+/**
+ * A connector method plus the provenance columns, for the v7.0.0 read-only endpoints.
+ *
+ * Kept separate from JsonConnectorMethod because that one is the request/response contract for
+ * create and update, and adding server-set fields to it would let a caller submit them.
+ */
+case class ConnectorMethodWithProvenance(
+  connectorMethod: JsonConnectorMethod,
+  createdByUserId: Option[String],
+  updatedByUserId: Option[String],
+  methodBodyHash: Option[String],
+  createdAt: Option[java.util.Date],
+  updatedAt: Option[java.util.Date]
+)

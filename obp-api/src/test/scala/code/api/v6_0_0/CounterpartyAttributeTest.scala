@@ -42,23 +42,23 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
     response.body.extract[CounterpartyAttributeResponseJsonV600].counterparty_attribute_id
   }
 
-  feature("Create Counterparty Attribute") {
+  Feature("Create Counterparty Attribute") {
 
-    scenario("401 Unauthorized", Create, VersionOfApi) {
+    Scenario("401 Unauthorized", Create, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST
       val response = makePostRequest(request, write(counterpartyAttributeRequestJsonV600))
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("403 Forbidden (no role)", Create, VersionOfApi) {
+    Scenario("403 Forbidden (no role)", Create, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST <@ user1
       val response = makePostRequest(request, write(counterpartyAttributeRequestJsonV600))
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserHasMissingRoles + CanCreateCounterpartyAttribute)
     }
 
-    scenario("201 Success + Field Echo", Create, VersionOfApi) {
+    Scenario("201 Success + Field Echo", Create, VersionOfApi) {
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST <@ user1
       val response = makePostRequest(request, write(counterpartyAttributeRequestJsonV600))
@@ -70,7 +70,7 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
 
-    scenario("400 Invalid Type", Create, VersionOfApi) {
+    Scenario("400 Invalid Type", Create, VersionOfApi) {
       val badJson = counterpartyAttributeRequestJsonV600.copy(attribute_type = "UNSUPPORTED")
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST <@ user1
@@ -81,21 +81,21 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Update Counterparty Attribute") {
+  Feature("Update Counterparty Attribute") {
 
-    scenario("401 Unauthorized", Update, VersionOfApi) {
+    Scenario("401 Unauthorized", Update, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).PUT
       val response = makePutRequest(request, write(counterpartyAttributeRequestJsonV600))
       response.code should equal(401)
     }
 
-    scenario("403 Forbidden", Update, VersionOfApi) {
+    Scenario("403 Forbidden", Update, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).PUT <@ user1
       val response = makePutRequest(request, write(counterpartyAttributeRequestJsonV600))
       response.code should equal(403)
     }
 
-    scenario("200 Success", Update, VersionOfApi) {
+    Scenario("200 Success", Update, VersionOfApi) {
       lazy val counterpartyId = createMockCounterparty()
       lazy val attributeId = createMockAttribute(counterpartyId)
 
@@ -107,22 +107,22 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Delete Counterparty Attribute") {
+  Feature("Delete Counterparty Attribute") {
     lazy val counterpartyId = createMockCounterparty()
     lazy val attributeId = createMockAttribute(counterpartyId)
-    scenario("401 Unauthorized", Delete, VersionOfApi) {
+    Scenario("401 Unauthorized", Delete, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).DELETE
       val response = makeDeleteRequest(request)
       response.code should equal(401)
     }
 
-    scenario("403 Forbidden", Delete, VersionOfApi) {
+    Scenario("403 Forbidden", Delete, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).DELETE <@ user1
       val response = makeDeleteRequest(request)
       response.code should equal(403)
     }
 
-    scenario("204 Success", Delete, VersionOfApi) {
+    Scenario("204 Success", Delete, VersionOfApi) {
       lazy val counterpartyId = createMockCounterparty()
       lazy val attributeId = createMockAttribute(counterpartyId)
 
@@ -134,22 +134,22 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Get All Counterparty Attributes") {
+  Feature("Get All Counterparty Attributes") {
     lazy val counterpartyId = createMockCounterparty()
     lazy val attributeId = createMockAttribute(counterpartyId)
-    scenario("401 Unauthorized", GetAll, VersionOfApi) {
+    Scenario("401 Unauthorized", GetAll, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").GET
       val response = makeGetRequest(request)
       response.code should equal(401)
     }
 
-    scenario("403 Forbidden", GetAll, VersionOfApi) {
+    Scenario("403 Forbidden", GetAll, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").GET <@ user1
       val response = makeGetRequest(request)
       response.code should equal(403)
     }
 
-    scenario("200 Success", GetAll, VersionOfApi) {
+    Scenario("200 Success", GetAll, VersionOfApi) {
       lazy val counterpartyId = createMockCounterparty()
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCounterpartyAttributes.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").GET <@ user1
@@ -159,22 +159,22 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Get Counterparty Attribute by ID") {
+  Feature("Get Counterparty Attribute by ID") {
     lazy val counterpartyId = createMockCounterparty()
 
-    scenario("401 Unauthorized", GetOne, VersionOfApi) {
+    Scenario("401 Unauthorized", GetOne, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).GET
       val response = makeGetRequest(request)
       response.code should equal(401)
     }
 
-    scenario("403 Forbidden", GetOne, VersionOfApi) {
+    Scenario("403 Forbidden", GetOne, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).GET <@ user1
       val response = makeGetRequest(request)
       response.code should equal(403)
     }
 
-    scenario("200 Success", GetOne, VersionOfApi) {
+    Scenario("200 Success", GetOne, VersionOfApi) {
       lazy val counterpartyId = createMockCounterparty()
       lazy val attributeId = createMockAttribute(counterpartyId)
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCounterpartyAttribute.toString)

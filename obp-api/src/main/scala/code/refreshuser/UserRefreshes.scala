@@ -7,7 +7,7 @@ object UserRefreshes extends SimpleInjector {
 
   val UserRefreshes = new Inject(() => buildOne) {}
 
-  def buildOne: UserRefreshesProvider = MappedUserRefreshesProvider
+  def buildOne: UserRefreshesProvider = DoobieUserRefreshesProvider
 }
 
 //This is used to control the refresh user process.

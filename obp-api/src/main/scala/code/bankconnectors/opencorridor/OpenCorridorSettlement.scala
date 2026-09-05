@@ -8,7 +8,7 @@ import code.api.util.{CallContext, NewStyle}
 import code.api.v7_0_0.JSONFactory700.{OpenCorridorSettleResultJsonV700, OpenCorridorSettlementMessageJsonV700, OpenCorridorSettlementStatusJsonV700}
 import code.bankconnectors.DoobieTransactionRequestQueries
 import code.messageoutbox.MessageOutbox
-import code.transactionRequestAttribute.TransactionRequestAttribute
+import code.transactionRequestAttribute.DoobieTransactionRequestAttributeProvider
 import code.transactionrequests.{MappedTransactionRequest, TransactionRequests}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -17,9 +17,9 @@ import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
+import org.json4s.jvalue2monadic
 
 import scala.concurrent.Future
 
@@ -56,7 +56,7 @@ object OpenCorridorSettlement extends MdcLoggable {
   val AttrSettledByTransactionIds = "settled_by_transaction_ids"
   val AttrSettledByTransactionRequestId = "settled_by_transaction_request_id"
 
-  private implicit val wireFormats = Serialization.formats(NoTypeHints)
+  private implicit val wireFormats: org.json4s.Formats = Serialization.formats(NoTypeHints)
 
   def settlePair(
     user: User,
@@ -67,13 +67,9 @@ object OpenCorridorSettlement extends MdcLoggable {
   ): Future[(OpenCorridorSettleResultJsonV700, Option[CallContext])] = {
 
     def pendingPromises(fromBank: String, toBank: String): List[MappedTransactionRequest] =
-      MappedTransactionRequest.findAll(
-        By(MappedTransactionRequest.mType, TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString),
-        By(MappedTransactionRequest.mStatus, TransactionRequestStatus.PENDING.toString),
-        By(MappedTransactionRequest.mFrom_BankId, fromBank),
-        By(MappedTransactionRequest.mTo_BankId, toBank),
-        By(MappedTransactionRequest.mBody_Value_Currency, currency)
-      )
+      MappedTransactionRequest.findAllByTypeStatusBanksAndCurrency(
+        TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString,
+        TransactionRequestStatus.PENDING.toString, fromBank, toBank, currency)
 
     for {
       // Settlement is pairwise between two DIFFERENT banks; a same-bank pair
@@ -88,7 +84,7 @@ object OpenCorridorSettlement extends MdcLoggable {
       }
       covered <- Future {
         candidates.flatMap { row =>
-          val trId = row.mTransactionRequestId.get
+          val trId = row.transactionRequestId
           if (DoobieTransactionRequestQueries.lockTransactionRequest(trId).isEmpty) {
             logger.warn(s"Open Corridor settle: could not lock promise TR $trId — skipping")
             None
@@ -100,8 +96,8 @@ object OpenCorridorSettlement extends MdcLoggable {
             logger.info(s"Open Corridor settle: promise TR $trId has no on-chain evidence yet — skipping")
             None
           } else {
-            MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, trId))
-              .filter(_.mStatus.get == TransactionRequestStatus.PENDING.toString)
+            MappedTransactionRequest.findByTransactionRequestId(trId)
+              .filter(_.status == TransactionRequestStatus.PENDING.toString)
           }
         }
       }
@@ -135,11 +131,11 @@ object OpenCorridorSettlement extends MdcLoggable {
     callContext: Option[CallContext]
   ): Future[(OpenCorridorSettleResultJsonV700, Option[CallContext])] = {
 
-    val aToB = covered.filter(_.mFrom_BankId.get == bankIdA)
-    val bToA = covered.filter(_.mFrom_BankId.get == bankIdB)
+    val aToB = covered.filter(_.fromBankId == bankIdA)
+    val bToA = covered.filter(_.fromBankId == bankIdB)
 
-    val sumAToB = aToB.map(row => BigDecimal(row.mBody_Value_Amount.get)).sum
-    val sumBToA = bToA.map(row => BigDecimal(row.mBody_Value_Amount.get)).sum
+    val sumAToB = aToB.map(row => BigDecimal(row.bodyValueAmount)).sum
+    val sumBToA = bToA.map(row => BigDecimal(row.bodyValueAmount)).sum
     val net = sumAToB - sumBToA
 
     val (debtorBankId, creditorBankId) = if (net >= 0) (bankIdA, bankIdB) else (bankIdB, bankIdA)
@@ -221,7 +217,7 @@ object OpenCorridorSettlement extends MdcLoggable {
 
       // Discharge every covered promise: linkage attributes + PENDING → COMPLETED.
       _ <- Future.sequence(covered.map { row =>
-        val promiseTrId = TransactionRequestId(row.mTransactionRequestId.get)
+        val promiseTrId = TransactionRequestId(row.transactionRequestId)
         val linkage =
           TransactionRequestAttributeJsonV400(AttrSettledByTransactionRequestId, TransactionRequestAttributeType.STRING.toString, settlementTrId) ::
           (if (netTransactionId.nonEmpty)
@@ -229,7 +225,7 @@ object OpenCorridorSettlement extends MdcLoggable {
           else Nil)
         for {
           (_, _) <- NewStyle.function.createTransactionRequestAttributes(
-            BankId(row.mFrom_BankId.get), promiseTrId, linkage, isPersonal = false, callContext)
+            BankId(row.fromBankId), promiseTrId, linkage, isPersonal = false, callContext)
           _ <- Future(TransactionRequests.transactionRequestProvider.vend
             .saveTransactionRequestStatusImpl(promiseTrId, TransactionRequestStatus.COMPLETED.toString))
         } yield ()
@@ -241,17 +237,17 @@ object OpenCorridorSettlement extends MdcLoggable {
       // bank. Idempotent per TR id — a re-settle cannot double-charge.
       _ <- Future {
         covered.foreach { row =>
-          val isReturn = scala.util.Try(org.json4s.native.JsonMethods.parse(row.mDetails.get))
+          val isReturn = scala.util.Try(org.json4s.native.JsonMethods.parse(row.details))
             .toOption.exists(_ \ "return_of" match {
               case org.json4s.JString(s) => s.trim.nonEmpty
               case _ => false
             })
           if (!isReturn) {
             code.opencorridorfees.OpenCorridorFeeAccrual.accrue(
-              debtorBankId = row.mFrom_BankId.get,
-              transactionRequestId = row.mTransactionRequestId.get,
-              currency = row.mCharge_Currency.get,
-              amount = row.mCharge_Amount.get,
+              debtorBankId = row.fromBankId,
+              transactionRequestId = row.transactionRequestId,
+              currency = row.chargeCurrency,
+              amount = row.chargeAmount,
               coveredBySettlementId = settlementTrId
             )
           }
@@ -272,7 +268,7 @@ object OpenCorridorSettlement extends MdcLoggable {
           net_amount = netAbs.toString(),
           debtor_bank_id = debtorBankId,
           creditor_bank_id = creditorBankId,
-          covered_transaction_request_ids = covered.map(_.mTransactionRequestId.get),
+          covered_transaction_request_ids = covered.map(_.transactionRequestId),
           idempotency_key = settlementTrId
         )
         Set(bankIdA, bankIdB).map { partyBankId =>
@@ -311,7 +307,7 @@ object OpenCorridorSettlement extends MdcLoggable {
         creditor_bank_id = creditorBankId,
         currency = currency,
         net_amount = netAbs.toString(),
-        covered_transaction_request_ids = covered.map(_.mTransactionRequestId.get),
+        covered_transaction_request_ids = covered.map(_.transactionRequestId),
         settlement_advices_enqueued = settlementAdviceCount,
         settlement_instructions_enqueued = settlementInstructionCount
       ), callContext)
@@ -321,10 +317,8 @@ object OpenCorridorSettlement extends MdcLoggable {
   /** True once the promise's on-chain evidence was attached (report-back done) —
     * the precondition for the beneficiary having been notified and paid out. */
   private def hasPromiseEvidence(trId: String): Boolean =
-    TransactionRequestAttribute.find(
-      By(TransactionRequestAttribute.Name, OpenCorridorProcessor.PromiseAttributeCommitment),
-      By(TransactionRequestAttribute.TransactionRequestId, trId)
-    ).isDefined
+    DoobieTransactionRequestAttributeProvider.existsByNameAndTransactionRequestIdSync(
+      OpenCorridorProcessor.PromiseAttributeCommitment, trId)
 
   /**
    * The GET view of one settlement (the resource minted by settlePair).
@@ -347,16 +341,14 @@ object OpenCorridorSettlement extends MdcLoggable {
     callContext: Option[CallContext]
   ): Future[(OpenCorridorSettlementStatusJsonV700, Option[CallContext])] = Future {
     val settlementTr = unboxFullOrFail(
-      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, settlementId))
-        .filter(_.mType.get == TransactionRequestTypes.OPEN_CORRIDOR_SETTLEMENT.toString)
-        .filter(row => row.mFrom_BankId.get == bankId || row.mTo_BankId.get == bankId),
+      MappedTransactionRequest.findByTransactionRequestId(settlementId)
+        .filter(_.transactionType == TransactionRequestTypes.OPEN_CORRIDOR_SETTLEMENT.toString)
+        .filter(row => row.fromBankId == bankId || row.toBankId == bankId),
       callContext, OpenCorridorSettlementNotFound, 404)
 
     val outboxRows = MessageOutbox.bySubjectId(settlementId)
-    val coveredTrIds = TransactionRequestAttribute.findAll(
-      By(TransactionRequestAttribute.Name, AttrSettledByTransactionRequestId),
-      By(TransactionRequestAttribute.`Value`, settlementId)
-    ).map(_.TransactionRequestId.get).distinct
+    val coveredTrIds = DoobieTransactionRequestAttributeProvider.transactionRequestIdsByNameAndValueSync(
+      AttrSettledByTransactionRequestId, settlementId)
 
     val instructionRow = outboxRows.find(_.operationName == "obp_settlement_instruction")
     val (settlementStatus, settlementDepth) = instructionRow match {
@@ -372,12 +364,12 @@ object OpenCorridorSettlement extends MdcLoggable {
 
     (OpenCorridorSettlementStatusJsonV700(
       settlement_id = settlementId,
-      debtor_bank_id = settlementTr.mFrom_BankId.get,
-      creditor_bank_id = settlementTr.mTo_BankId.get,
-      currency = settlementTr.mBody_Value_Currency.get,
-      net_amount = settlementTr.mBody_Value_Amount.get,
-      transaction_id = settlementTr.mTransactionIDs.get,
-      ledger_status = settlementTr.mStatus.get,
+      debtor_bank_id = settlementTr.fromBankId,
+      creditor_bank_id = settlementTr.toBankId,
+      currency = settlementTr.bodyValueCurrency,
+      net_amount = settlementTr.bodyValueAmount,
+      transaction_id = settlementTr.transactionIds,
+      ledger_status = settlementTr.status,
       settlement_status = settlementStatus,
       settlement_depth = settlementDepth,
       covered_transaction_request_ids = coveredTrIds,
@@ -386,7 +378,7 @@ object OpenCorridorSettlement extends MdcLoggable {
         target_bank_id = row.targetId,
         delivery_status = row.status,
         attempts = row.attempts,
-        last_error = row.LastError.get
+        last_error = row.lastError
       ))
     ), callContext)
   }
@@ -394,7 +386,7 @@ object OpenCorridorSettlement extends MdcLoggable {
   /** Extract one field of the node's last reply (`data.<field>` of the §4.2
     * envelope recorded on the outbox row); None when no reply is recorded. */
   private def nodeReportedField(row: MessageOutbox, field: String): Option[String] = {
-    Option(row.LastReplyJson.get).filter(_.nonEmpty).flatMap { replyJson =>
+    Option(row.lastReplyJson).filter(_.nonEmpty).flatMap { replyJson =>
       scala.util.Try(org.json4s.native.JsonMethods.parse(replyJson) \ "data" \ field).toOption
     }.flatMap {
       case org.json4s.JString(s) => Some(s)

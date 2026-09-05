@@ -15,8 +15,8 @@ only for resource-doc aggregation and the Lift dispatch registry.
  */
 object OBPAPI2_2_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis {
 
-  val version: ApiVersion = ApiVersion.v2_2_0
-  val versionStatus = ApiVersionStatus.STABLE.toString
+  lazy val version: ApiVersion = ApiVersion.v2_2_0
+  lazy val versionStatus = ApiVersionStatus.STABLE.toString
 
   val Implementations2_2_0 = Http4s220.Implementations2_2_0
   val Implementations2_0_0 = Http4s200.Implementations2_0_0

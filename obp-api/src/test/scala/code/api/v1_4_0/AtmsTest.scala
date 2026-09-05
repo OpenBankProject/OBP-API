@@ -1,6 +1,7 @@
 package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.OBPQueryParam
 import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.atms.{Atms, AtmsProvider}
@@ -162,7 +163,12 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
     // Mock a badly behaving connector that returns data that doesn't have license.
     override protected def getAtmFromProvider(bank: BankId, AtmId: AtmId): Option[AtmT] = {
-      AtmId match {
+      // matches on bank, not the AtmId parameter, to mirror getAtmsFromProvider above - this
+      // parameter is confusingly also named AtmId, shadowing the AtmId type, which is why the
+      // match previously targeted the wrong parameter (it always fell through to None, since
+      // AtmId's type can never equal a BankId pattern; Scala 3's stricter pattern-type checking
+      // catches the mismatch that Scala 2 accepted silently).
+      bank match {
          case `bankWithLicense` => Some(fakeAtm1)
          case `bankWithoutLicense`=> Some(fakeAtm3) // In case the connector returns, the API should guard
         case _ => None
@@ -176,6 +182,24 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     override def deleteAtm(atm: AtmT): Box[Boolean] = {
       Atms.atmsProvider.vend.deleteAtm(atm)
     }
+
+    // Widened trait members. This mock exists to exercise the licence filtering in the v1.4.0
+    // endpoint, which only calls the two getAtm* methods above, so these delegate like the two
+    // pre-existing write methods do rather than inventing separate mock behaviour.
+    override def getAllAtms(queryParams: List[OBPQueryParam]): List[AtmT] =
+      Atms.atmsProvider.vend.getAllAtms(queryParams)
+    override def updateAtmSupportedLanguages(bankId: BankId, atmId: AtmId, v: List[String]): Box[AtmT] =
+      Atms.atmsProvider.vend.updateAtmSupportedLanguages(bankId, atmId, v)
+    override def updateAtmSupportedCurrencies(bankId: BankId, atmId: AtmId, v: List[String]): Box[AtmT] =
+      Atms.atmsProvider.vend.updateAtmSupportedCurrencies(bankId, atmId, v)
+    override def updateAtmAccessibilityFeatures(bankId: BankId, atmId: AtmId, v: List[String]): Box[AtmT] =
+      Atms.atmsProvider.vend.updateAtmAccessibilityFeatures(bankId, atmId, v)
+    override def updateAtmServices(bankId: BankId, atmId: AtmId, v: List[String]): Box[AtmT] =
+      Atms.atmsProvider.vend.updateAtmServices(bankId, atmId, v)
+    override def updateAtmNotes(bankId: BankId, atmId: AtmId, v: List[String]): Box[AtmT] =
+      Atms.atmsProvider.vend.updateAtmNotes(bankId, atmId, v)
+    override def updateAtmLocationCategories(bankId: BankId, atmId: AtmId, v: List[String]): Box[AtmT] =
+      Atms.atmsProvider.vend.updateAtmLocationCategories(bankId, atmId, v)
 
   }
 
@@ -209,9 +233,9 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     Atms.atmsProvider.default.set(Atms.buildOne)
   }
 
-  feature("Getting bank ATMs") {
+  Feature("Getting bank ATMs") {
 
-    scenario("We try to get ATMs for a bank without a data license for ATM information") {
+    Scenario("We try to get ATMs for a bank without a data license for ATM information") {
 
       When("We make a request")
       val request = (v1_4Request / "banks" / bankWithoutLicense.value / "atms").GET <@ user1
@@ -222,7 +246,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get ATMs for a bank with a data license for ATM information") {
+    Scenario("We try to get ATMs for a bank with a data license for ATM information") {
       When("We make a request")
       val request = (v1_4Request / "banks" / bankWithLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)

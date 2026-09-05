@@ -6,7 +6,6 @@ import code.views.system.AccountAccess
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
-import net.liftweb.mapper.By
 import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
@@ -89,12 +88,10 @@ trait Views {
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
   final def getAllFirehoseAccounts(bankId: BankId)= {
-    MappedBankAccount.findAll(
-      By(MappedBankAccount.bank, bankId.value)
-    )
+    MappedBankAccount.findAllByBankId(bankId.value)
   }
-  final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
-  final def getPrivateBankAccounts(user : User, viewIds: List[ViewId]) : List[BankIdAccountId] =  privateViewsUserCanAccess(user, viewIds)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
+  final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct 
+  final def getPrivateBankAccounts(user : User, viewIds: List[ViewId]) : List[BankIdAccountId] =  privateViewsUserCanAccess(user, viewIds)._2.map(a => BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct 
   final def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user)}
   final def getPrivateBankAccountsFuture(user : User, viewIds: List[ViewId]) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, viewIds)}
   final def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId] = getPrivateBankAccounts(user).filter(_.bankId == bankId).distinct

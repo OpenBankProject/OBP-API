@@ -1,6 +1,7 @@
 package code.api.v6_0_0
 
 import code.api.dynamic.entity.projection.{IndexingCapabilities, ProjectionProvisioner}
+import org.json4s.jvalue2monadic
 import code.api.dynamic.entity.projection.PostgresProjectionBackend
 import code.api.dynamic.entity.query._
 import code.api.util.APIUtil
@@ -66,8 +67,8 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
   private val activeTrue = List(Filter("active", FilterOp.Eq, List("true")))
   private val activeNotTrue = List(Filter("active", FilterOp.Ne, List("true")))
 
-  feature("DE one-hop EXISTS / NOT EXISTS join queries on Postgres") {
-    scenario("three meanings of (non-)existence, has-any/none, NULL-safety, and user-scoped ACL") {
+  Feature("DE one-hop EXISTS / NOT EXISTS join queries on Postgres") {
+    Scenario("three meanings of (non-)existence, has-any/none, NULL-safety, and user-scoped ACL") {
       if (!APIUtil.getPropsAsBoolValue("test.projection.postgres", false) || IndexingCapabilities.vendor != IndexingCapabilities.Postgres)
         cancel("Postgres projection integration tests disabled (set test.projection.postgres=true with a Postgres db.url).")
 

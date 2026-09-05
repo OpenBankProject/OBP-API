@@ -1,6 +1,7 @@
 package code.api.v5_0_0
 
 import org.scalatest.Ignore
+import org.json4s.jvalue2extractable
 import code.api.v4_0_0.{APIInfoJson400, BanksJson400}
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
@@ -10,9 +11,9 @@ class RootAndBanksTest extends V500ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
 
-  feature(s"V500 public read endpoints - $VersionOfApi") {
+  Feature(s"V500 public read endpoints - $VersionOfApi") {
 
-    scenario("GET /root returns API info", VersionOfApi) {
+    Scenario("GET /root returns API info", VersionOfApi) {
       val request = (v5_0_0_Request / "root").GET
       val response = makeGetRequest(request)
       response.code should equal(200)
@@ -23,7 +24,7 @@ class RootAndBanksTest extends V500ServerSetup {
       apiInfo.connector.nonEmpty shouldBe true
     }
 
-    scenario("GET /banks returns banks list", VersionOfApi) {
+    Scenario("GET /banks returns banks list", VersionOfApi) {
       val request = (v5_0_0_Request / "banks").GET
       val response = makeGetRequest(request)
       response.code should equal(200)

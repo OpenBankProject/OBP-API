@@ -37,9 +37,9 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
   def dauthRequest = baseRequest / "obp" / "v2.0.0" / "users" /"current" 
   def dauthNonBlockingRequest = baseRequest / "obp" / "v3.0.0" / "users" / "current"
 
-  feature("DAuth Testing") {
+  Feature("DAuth Testing") {
 
-    scenario("Missing parameter token in a blocking way") {
+    Scenario("Missing parameter token in a blocking way") {
       When("We try to login without parameter token in a Header")
 
         When("We try to login with an invalid JWT")

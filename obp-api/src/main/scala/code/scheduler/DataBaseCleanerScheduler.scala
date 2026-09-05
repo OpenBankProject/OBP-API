@@ -7,7 +7,6 @@ import code.api.util.APIUtil
 import code.nonce.Nonces
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, By_<=}
 
 import java.util.concurrent.TimeUnit
 import java.util.Date
@@ -18,7 +17,7 @@ import code.token.Tokens
 object DataBaseCleanerScheduler extends MdcLoggable {
 
   private lazy val actorSystem = ObpActorSystem.localActorSystem
-  implicit lazy val executor = actorSystem.dispatcher
+  implicit lazy val executor: scala.concurrent.ExecutionContextExecutor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
   private val oneDayInMillis: Long = 86400000
   //in scala DataBaseCleanerScheduler.getClass.getSimpleName ==> DataBaseCleanerScheduler$
@@ -30,35 +29,35 @@ object DataBaseCleanerScheduler extends MdcLoggable {
 
     logger.info(s"--------- Clean up Jobs ---------")
     logger.info(s"Delete all Jobs created by api_instance_id=$apiInstanceId")
-    JobScheduler.findAll(By(JobScheduler.Name, apiInstanceId)).map { i =>
+    // Matches Name against apiInstanceId, which never hits: lock rows store Name=jobName and
+    // ApiInstanceId=apiInstanceId. MetricsArchiveScheduler carries a comment describing this exact
+    // mismatch and was fixed to key on ApiInstanceId; this scheduler was not. Preserved verbatim -
+    // correcting it here would change self-heal-on-redeploy behaviour under cover of a storage swap.
+    JobScheduler.findAllByName(apiInstanceId).map { i =>
       logger.info(s"Job name: ${i.name}, Date: ${i.createdAt}")
       i
-    }.map(_.delete_!)
+    }.map(JobScheduler.delete)
     logger.info(s"Delete all Jobs older than 5 days")
     val fiveDaysAgo: Date = new Date(new Date().getTime - (oneDayInMillis * 5))
-    JobScheduler.findAll(By_<=(JobScheduler.createdAt, fiveDaysAgo)).map { i =>
+    JobScheduler.findAllCreatedOnOrBefore(fiveDaysAgo).map { i =>
       logger.info(s"Job name: ${i.name}, Date: ${i.createdAt}, api_instance_id: ${apiInstanceId}")
       i
-    }.map(_.delete_!)
+    }.map(JobScheduler.delete)
     
     scheduler.schedule(
       initialDelay = Duration(intervalInSeconds, TimeUnit.SECONDS),
       interval = Duration(intervalInSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
         def run(): Unit = {
-          JobScheduler.find(By(JobScheduler.Name, jobName)) match {
+          JobScheduler.findByName(jobName) match {
             case Full(job) => // There is an ongoing/hanging job
-              logger.info(s"Cannot start $jobName.start.run due to ongoing job. Job ID: ${job.JobId}")
+              logger.info(s"Cannot start $jobName.start.run due to ongoing job. Job ID: ${job.jobId}")
             case _ => // Start a new job
               val uniqueId = generateUUID()
-              val job = JobScheduler.create
-                .JobId(uniqueId)
-                .Name(jobName)
-                .ApiInstanceId(apiInstanceId)
-                .saveMe()
+              val job = JobScheduler.createJob(uniqueId, jobName, apiInstanceId)
               logger.info(s"Starting $jobName.Job ID: $uniqueId")
               deleteExpiredTokensAndNonces()
-              JobScheduler.delete_!(job) // Allow future jobs
+              JobScheduler.delete(job) // Allow future jobs
               logger.info(s"End of $jobName.Job ID: $uniqueId")
           }
         } 

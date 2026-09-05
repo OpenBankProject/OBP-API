@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanReadCallLimits
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
@@ -85,12 +86,12 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
   val callLimitJsonMonth: CallLimitPostJsonV400 = callLimitJsonInitial.copy(per_month_call_limit = "100")
     
 
-  feature("Rate Limit - " + ApiCallsLimit + " - " + ApiVersion400) {
+  Feature("Rate Limit - " + ApiCallsLimit + " - " + ApiVersion400) {
 
-    scenario("We will try to get calls limit per minute for a Consumer - unauthorized access", ApiCallsLimit, ApiVersion510) {
+    Scenario("We will try to get calls limit per minute for a Consumer - unauthorized access", ApiCallsLimit, ApiVersion510) {
       When(s"We make a request $ApiVersion510")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").GET
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
@@ -98,10 +99,10 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       And("error should be " + AuthenticatedUserIsRequired)
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario("We will try to get calls limit per minute without a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
+    Scenario("We will try to get calls limit per minute without a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").GET <@ (user1)
       val response510 = makeGetRequest(request510)
       Then("We should get a 403")
@@ -109,7 +110,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       And("error should be " + UserHasMissingRoles + CanReadCallLimits)
       response510.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanReadCallLimits)
     }
-    scenario("We will try to get calls limit per minute with a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
+    Scenario("We will try to get calls limit per minute with a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
 
       When("We make a request v5.1.0 with a Role " + ApiRole.canUpdateRateLimits)
       val response01 = setRateLimiting(user1, callLimitJsonMonth)
@@ -118,7 +119,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
 
       When(s"We make a request v$ApiVersion510 with a Role " + ApiRole.canReadCallLimits)
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanReadCallLimits.toString)
       val request510 = (v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").GET <@ (user1)
       val response510 = makeGetRequest(request510)

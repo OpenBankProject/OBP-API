@@ -194,8 +194,12 @@ trait OBPRestHelper extends MdcLoggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
 
-  val version : ApiVersion
-  val versionStatus : String // TODO this should be property of ApiVersion
+  // lazy: Scala 3 does not allow a lazy val to override an abstract strict val. ScannedApis
+  // (mixed into the UK Open Banking / Berlin Group helpers) and three of the OBPAPI*_*_* objects
+  // implement these with `lazy val version`/`lazy val versionStatus`; the rest use a strict val,
+  // which still satisfies an abstract lazy val, so this widens the contract without breaking them.
+  lazy val version : ApiVersion
+  lazy val versionStatus : String // TODO this should be property of ApiVersion
   //def vDottedVersion = vDottedApiVersion(version)
 
   /**

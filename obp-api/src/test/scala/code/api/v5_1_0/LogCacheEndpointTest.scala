@@ -23,8 +23,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.logCacheInfoEndpoint))
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "system" / "log-cache" / "info").GET
       val response = makeGetRequest(request)
@@ -34,8 +34,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing entitlement") {
-    scenario("We will call the endpoint with user credentials but without proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing entitlement") {
+    Scenario("We will call the endpoint with user credentials but without proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "system" / "log-cache" / "info").GET <@(user1)
       val response = makeGetRequest(request)
@@ -47,8 +47,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access without pagination") {
-    scenario("We get log cache without pagination parameters", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access without pagination") {
+    Scenario("We get log cache without pagination parameters", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -65,8 +65,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with limit parameter") {
-    scenario("We get log cache with limit parameter only", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with limit parameter") {
+    Scenario("We get log cache with limit parameter only", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -84,8 +84,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with offset parameter") {
-    scenario("We get log cache with offset parameter only", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with offset parameter") {
+    Scenario("We get log cache with offset parameter only", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -102,8 +102,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with both parameters") {
-    scenario("We get log cache with both limit and offset parameters", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with both parameters") {
+    Scenario("We get log cache with both limit and offset parameters", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -121,8 +121,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Edge cases") {
-    scenario("We get error with zero limit (invalid parameter)", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Edge cases") {
+    Scenario("We get error with zero limit (invalid parameter)", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -139,7 +139,7 @@ class LogCacheEndpointTest extends V510ServerSetup {
       message should include("wrong value for obp_limit parameter")
     }
 
-    scenario("We get log cache with large offset", ApiEndpoint1, VersionOfApi) {
+    Scenario("We get log cache with large offset", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -156,7 +156,7 @@ class LogCacheEndpointTest extends V510ServerSetup {
       entries.values.asInstanceOf[List[_]].size should be >= 0
     }
 
-    scenario("We get log cache with minimum valid limit", ApiEndpoint1, VersionOfApi) {
+    Scenario("We get log cache with minimum valid limit", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -174,8 +174,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Different log levels") {
-    scenario("We test different log levels with pagination", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Different log levels") {
+    Scenario("We test different log levels with pagination", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -196,8 +196,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Invalid log level") {
-    scenario("We get error for invalid log level", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Invalid log level") {
+    Scenario("We get error for invalid log level", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       
@@ -210,8 +210,8 @@ class LogCacheEndpointTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Invalid parameters") {
-    scenario("We test invalid pagination parameters", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Invalid parameters") {
+    Scenario("We test invalid pagination parameters", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with proper entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemLogCacheAll.toString)
       

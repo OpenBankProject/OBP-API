@@ -6,12 +6,14 @@ import com.nimbusds.jose.crypto.MACSigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import net.liftweb.common.{Failure, Full}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
 
 import java.net.URI
 import scala.jdk.CollectionConverters._
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
-class OAuth2AudienceValidationTest extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
+class OAuth2AudienceValidationTest extends AnyFeatureSpec with Matchers with GivenWhenThen with PropsReset {
 
   // Lift's Props.lockedProviders is a lazy val; PropsReset.beforeAll reads its backing
   // field via reflection, which is null until first forced. Suites with ServerSetup
@@ -55,72 +57,72 @@ class OAuth2AudienceValidationTest extends FeatureSpec with Matchers with GivenW
     jwt.serialize()
   }
 
-  feature("audience allowlist disabled (backward compatibility)") {
-    scenario("props not set: any audience is accepted") {
+  Feature("audience allowlist disabled (backward compatibility)") {
+    Scenario("props not set: any audience is accepted") {
       restrictedProvider.validateAudiencePublic(jwtWithAud(List(foreignClientId))) should be(Full(()))
     }
-    scenario("props set to empty string: any audience is accepted") {
+    Scenario("props set to empty string: any audience is accepted") {
       setPropsValues(audiencePropsName -> "")
       restrictedProvider.validateAudiencePublic(jwtWithAud(List(foreignClientId))) should be(Full(()))
     }
-    scenario("provider without an allowlist props ignores the props entirely") {
+    Scenario("provider without an allowlist props ignores the props entirely") {
       setPropsValues(audiencePropsName -> ourClientId)
       unrestrictedProvider.validateAudiencePublic(jwtWithAud(List(foreignClientId))) should be(Full(()))
     }
   }
 
-  feature("audience allowlist enforced") {
-    scenario("aud matches the single allowed value") {
+  Feature("audience allowlist enforced") {
+    Scenario("aud matches the single allowed value") {
       setPropsValues(audiencePropsName -> ourClientId)
       restrictedProvider.validateAudiencePublic(jwtWithAud(List(ourClientId))) should be(Full(()))
     }
-    scenario("multi-valued aud is accepted when any value matches") {
+    Scenario("multi-valued aud is accepted when any value matches") {
       setPropsValues(audiencePropsName -> ourClientId)
       restrictedProvider.validateAudiencePublic(jwtWithAud(List(foreignClientId, ourClientId))) should be(Full(()))
     }
-    scenario("allowlist entries are trimmed") {
+    Scenario("allowlist entries are trimmed") {
       setPropsValues(audiencePropsName -> s" $foreignClientId , $ourClientId ")
       restrictedProvider.validateAudiencePublic(jwtWithAud(List(ourClientId))) should be(Full(()))
     }
-    scenario("aud not in the allowlist is rejected") {
+    Scenario("aud not in the allowlist is rejected") {
       setPropsValues(audiencePropsName -> ourClientId)
       restrictedProvider.validateAudiencePublic(jwtWithAud(List(foreignClientId))) should be(Failure(ErrorMessages.Oauth2TokenAudienceNotAllowed))
     }
-    scenario("missing aud claim is rejected") {
+    Scenario("missing aud claim is rejected") {
       setPropsValues(audiencePropsName -> ourClientId)
       restrictedProvider.validateAudiencePublic(jwtWithAud(Nil)) should be(Failure(ErrorMessages.Oauth2TokenAudienceNotAllowed))
     }
-    scenario("matching is case-sensitive (client IDs are case-sensitive)") {
+    Scenario("matching is case-sensitive (client IDs are case-sensitive)") {
       setPropsValues(audiencePropsName -> ourClientId)
       restrictedProvider.validateAudiencePublic(jwtWithAud(List(ourClientId.toUpperCase))) should be(Failure(ErrorMessages.Oauth2TokenAudienceNotAllowed))
     }
   }
 
-  feature("provider enablement via oauth2.oidc_provider") {
-    scenario("props not set: provider is enabled (backward compatibility)") {
+  Feature("provider enablement via oauth2.oidc_provider") {
+    Scenario("props not set: provider is enabled (backward compatibility)") {
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
-    scenario("props set to empty string: all providers are enabled") {
+    Scenario("props set to empty string: all providers are enabled") {
       setPropsValues(oidcProviderPropsName -> "")
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
-    scenario("provider listed: enabled") {
+    Scenario("provider listed: enabled") {
       setPropsValues(oidcProviderPropsName -> "obp-oidc,keycloak,google")
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
-    scenario("entries are trimmed and matched case-insensitively") {
+    Scenario("entries are trimmed and matched case-insensitively") {
       setPropsValues(oidcProviderPropsName -> " obp-oidc , Google ")
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
-    scenario("provider not listed: rejected") {
+    Scenario("provider not listed: rejected") {
       setPropsValues(oidcProviderPropsName -> "obp-oidc,keycloak")
       enablementProvider.validateProviderEnabledPublic should be(Failure(ErrorMessages.Oauth2ProviderNotEnabled))
     }
-    scenario("props set to none: public providers are rejected") {
+    Scenario("props set to none: public providers are rejected") {
       setPropsValues(oidcProviderPropsName -> "none")
       enablementProvider.validateProviderEnabledPublic should be(Failure(ErrorMessages.Oauth2ProviderNotEnabled))
     }
-    scenario("provider without an oidc provider name is never subject to enforcement") {
+    Scenario("provider without an oidc provider name is never subject to enforcement") {
       setPropsValues(oidcProviderPropsName -> "obp-oidc")
       unrestrictedProvider.validateProviderEnabledPublic should be(Full(()))
     }

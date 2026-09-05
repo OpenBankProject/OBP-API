@@ -34,10 +34,9 @@ class UserTest extends V300ServerSetup with DefaultUsers {
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.getUserByUsername))
 
   
-  feature("Assuring that endpoint Get all Users works as expected - v3.0.0") 
-  {
+  Feature("Assuring that endpoint Get all Users works as expected - v3.0.0") {
 
-    scenario("We try to get all roles without credentials - Get all Users", VersionOfApi, ApiEndpoint1) {
+    Scenario("We try to get all roles without credentials - Get all Users", VersionOfApi, ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v3_0Request / "users").GET
       val responseGet = makeGetRequest(requestGet)
@@ -48,8 +47,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get all roles with credentials but no roles- Get all Users", VersionOfApi, ApiEndpoint1) 
-    {
+    Scenario("We try to get all roles with credentials but no roles- Get all Users", VersionOfApi, ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v3_0Request / "users").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -60,8 +58,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
     }
   
   
-    scenario(s"We try to get all roles with credentials with ${ApiRole.canGetAnyUser} roles- Get all Users", VersionOfApi, ApiEndpoint1)
-    {
+    Scenario(s"We try to get all roles with credentials with ${ApiRole.canGetAnyUser} roles- Get all Users", VersionOfApi, ApiEndpoint1) {
       When(s"We first grant the ${ApiRole.canGetAnyUser} to the User1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString())
       
@@ -75,10 +72,9 @@ class UserTest extends V300ServerSetup with DefaultUsers {
   }
   
   
-  feature("Assuring that Get users by email and Get user by USER_ID works as expected - v3.0.0") 
-  {
+  Feature("Assuring that Get users by email and Get user by USER_ID works as expected - v3.0.0") {
 
-    scenario("We try to get user data by email without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint2){
+    Scenario("We try to get user data by email without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint2){
 
       When("We have to find it by endpoint getUsersByEmail")
       val requestGet = (v3_0Request / "users" / "email" / "some@email.com"/ "terminator").GET <@ (user1)
@@ -89,7 +85,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
-    scenario("We try to get all user data without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint1){
+    Scenario("We try to get all user data without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint1){
 
       When("We have to find it by endpoint getUsers")
       val requestGet = (v3_0Request / "users").GET <@ (user1)
@@ -100,7 +96,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
-    scenario("We try to get user data by USER_ID without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint3){
+    Scenario("We try to get user data by USER_ID without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint3){
 
       When("We have to find it by endpoint getUsersByUserId")
       val requestGet = (v3_0Request / "users" / "user_id" / "Arbitrary USER_ID value").GET <@ (user1)
@@ -111,7 +107,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
-    scenario("We try to get user data by USERNAME without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint4){
+    Scenario("We try to get user data by USERNAME without required role " + CanGetAnyUser, VersionOfApi, ApiEndpoint4){
 
       When("We have to find it by endpoint getUsersByUsername")
       val requestGet = (v3_0Request / "users" / "username" / "Arbitrary USERNAE value").GET <@ (user1)
@@ -122,7 +118,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
-    scenario("We create an user and get it by EMAIL and USER_ID", VersionOfApi, ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4) {
+    Scenario("We create an user and get it by EMAIL and USER_ID", VersionOfApi, ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4) {
 
       When("We create a new user")
       val firstName = randomString(8).toLowerCase

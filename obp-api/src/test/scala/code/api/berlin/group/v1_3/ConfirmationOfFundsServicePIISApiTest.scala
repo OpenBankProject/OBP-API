@@ -7,13 +7,13 @@ import code.api.berlin.group.v1_3.{Http4sBGv13PIIS => APIMethods_ConfirmationOfF
 import code.api.util.APIUtil.OAuth._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{BankAccountNotFound, BankAccountNotFoundByIban, InvalidJsonContent, InvalidJsonFormat}
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.MappedBankAccount
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.json
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
@@ -34,8 +34,8 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
     }
   
 
-  feature(s"BG v1.3 - ${checkAvailabilityOfFunds.name}") {
-    scenario("Failed Case, invalid Iban", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+  Feature(s"BG v1.3 - ${checkAvailabilityOfFunds.name}") {
+    Scenario("Failed Case, invalid Iban", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val requestPost = (V1_3_BG / "funds-confirmations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(checkAvailabilityOfFundsJsonBody))
 
@@ -45,7 +45,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BankAccountNotFoundByIban)
     }
 
-    scenario("Failed Case, invalid post json", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+    Scenario("Failed Case, invalid post json", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val requestPost = (V1_3_BG / "funds-confirmations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, "")
 
@@ -54,8 +54,8 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(InvalidJsonFormat)
     }
     
-    scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
-      val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    Scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+      val accountsIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val iban = accountsIban.head.accountRouting.address
       
       val checkAvailabilityOfFundsJsonBody = json.parse(
@@ -78,12 +78,10 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       (response.body \ "fundsAvailable").extract[Boolean] should be (true)
     }
 
-    scenario("Success case - Not Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
-      val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    Scenario("Success case - Not Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+      val accountsIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val iban = accountsIban.head.accountRouting.address
-      val account = MappedBankAccount.find(
-        By(MappedBankAccount.bank, accountsIban.head.bankId.value),
-        By(MappedBankAccount.theAccountId, accountsIban.head.accountId.value)).openOrThrowException("Can not be empty here")
+      val account = MappedBankAccount.find(accountsIban.head.bankId.value, accountsIban.head.accountId.value).openOrThrowException("Can not be empty here")
       val balance = account.balance
       val laggerbalance = balance +1000
 

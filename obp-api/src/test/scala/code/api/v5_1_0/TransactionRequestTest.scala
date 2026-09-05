@@ -57,9 +57,8 @@ class TransactionRequestTest extends V510ServerSetup {
   object GetTransactionRequestById extends Tag(nameOf(Implementations5_1_0.getTransactionRequestById))
   object UpdateTransactionRequestStatus extends Tag(nameOf(Implementations5_1_0.updateTransactionRequestStatus))
 
-  feature("Get Transaction Requests - v5.1.0")
-  {
-    scenario("We will Get Transaction Requests - user is NOT logged in", GetTransactionRequests, VersionOfApi) {
+  Feature("Get Transaction Requests - v5.1.0") {
+    Scenario("We will Get Transaction Requests - user is NOT logged in", GetTransactionRequests, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / testBankId1.value  / "accounts" / testAccountId0.value / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET
       val response510 = makeGetRequest(request510)
@@ -68,7 +67,7 @@ class TransactionRequestTest extends V510ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response510.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will Get Transaction Requests - user is logged in", GetTransactionRequests, VersionOfApi) {
+    Scenario("We will Get Transaction Requests - user is logged in", GetTransactionRequests, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / testBankId1.value  / "accounts" / testAccountId0.value / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET <@(user1)
       val response510 = makeGetRequest(request510)
@@ -76,7 +75,7 @@ class TransactionRequestTest extends V510ServerSetup {
       response510.code should equal(200)
       response510.body.extract[TransactionRequestsJsonV510]
     }
-    scenario("We will try to Get Transaction Requests for someone else account - user is logged in", GetTransactionRequests, VersionOfApi) {
+    Scenario("We will try to Get Transaction Requests for someone else account - user is logged in", GetTransactionRequests, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (
         v5_1_0_Request / "banks" / testBankId1.value  / "accounts" / testAccountId0.value / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET <@ (user2)
@@ -87,7 +86,7 @@ class TransactionRequestTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
     }
 
-    scenario("We will try to Get Transaction Requests with Attributes", GetTransactionRequests, CreateTransactionRequestCounterparty, VersionOfApi) {
+    Scenario("We will try to Get Transaction Requests with Attributes", GetTransactionRequests, CreateTransactionRequestCounterparty, VersionOfApi) {
       val bankId = testBankId1.value
       val accountId = testAccountId1.value
       val ownerView = Constant.SYSTEM_OWNER_VIEW_ID
@@ -171,8 +170,8 @@ class TransactionRequestTest extends V510ServerSetup {
     }
   }
 
-  feature(s"$GetTransactionRequestById - $VersionOfApi") {
-    scenario(s"We will $GetTransactionRequestById - user is NOT logged in", GetTransactionRequestById, VersionOfApi) {
+  Feature(s"$GetTransactionRequestById - $VersionOfApi") {
+    Scenario(s"We will $GetTransactionRequestById - user is NOT logged in", GetTransactionRequestById, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "management" / "transaction-requests" / "TRANSACTION_REQUEST_ID").GET
       val response510 = makeGetRequest(request510)
@@ -181,7 +180,7 @@ class TransactionRequestTest extends V510ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario(s"We will $GetTransactionRequestById - user is logged in", GetTransactionRequestById, VersionOfApi) {
+    Scenario(s"We will $GetTransactionRequestById - user is logged in", GetTransactionRequestById, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "management" / "transaction-requests" / "TRANSACTION_REQUEST_ID").GET <@(user1)
       val response510 = makeGetRequest(request510)
@@ -194,8 +193,8 @@ class TransactionRequestTest extends V510ServerSetup {
 
 
 
-  feature(s"$UpdateTransactionRequestStatus - $VersionOfApi") {
-    scenario(s"We will $UpdateTransactionRequestStatus - user is NOT logged in", UpdateTransactionRequestStatus, VersionOfApi) {
+  Feature(s"$UpdateTransactionRequestStatus - $VersionOfApi") {
+    Scenario(s"We will $UpdateTransactionRequestStatus - user is NOT logged in", UpdateTransactionRequestStatus, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "management" / "transaction-requests" / "TRANSACTION_REQUEST_ID").PUT
       val putJson = PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString)
@@ -205,7 +204,7 @@ class TransactionRequestTest extends V510ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario(s"We will $UpdateTransactionRequestStatus - user is logged in", UpdateTransactionRequestStatus, VersionOfApi) {
+    Scenario(s"We will $UpdateTransactionRequestStatus - user is logged in", UpdateTransactionRequestStatus, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "management" / "transaction-requests" / "TRANSACTION_REQUEST_ID").PUT <@(user1)
       val putJson = PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString)

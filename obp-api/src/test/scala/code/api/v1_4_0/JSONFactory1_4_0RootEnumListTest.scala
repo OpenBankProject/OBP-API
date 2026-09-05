@@ -3,7 +3,9 @@ package code.api.v1_4_0
 import code.api.util.AuthenticationType
 import org.json4s.JsonAST.{JNothing, JString, JValue}
 import org.json4s.native.JsonMethods.parse
-import org.scalatest.{FlatSpec, Matchers}
+import org.json4s.jvalue2monadic
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * A bare list of enumeration values must publish the enumeration, not an anonymous object.
@@ -25,7 +27,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * and updateAuthenticationTypeValidation in five API versions. Nothing had compared them: the
  * contract suite records typed_request_body in its baseline but only ever diffs the response side.
  */
-class JSONFactory1_4_0RootEnumListTest extends FlatSpec with Matchers {
+class JSONFactory1_4_0RootEnumListTest extends AnyFlatSpec with Matchers {
 
   private def schema(entity: Any): JValue = parse(JSONFactory1_4_0.translateEntity(entity, false))
 

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanGetMigrations
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
@@ -46,8 +47,8 @@ class MigrationsTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.getMigrations))
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0")
       val request600 = (v6_0_0_Request / "system" / "migrations").GET
       val response600 = makeGetRequest(request600)
@@ -57,8 +58,8 @@ class MigrationsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without proper Role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without proper Role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without a proper role")
       val request600 = (v6_0_0_Request / "system" / "migrations").GET <@ (user1)
       val response600 = makeGetRequest(request600)
@@ -68,7 +69,7 @@ class MigrationsTest extends V600ServerSetup {
       response600.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetMigrations)
     }
 
-    scenario("We will call the endpoint with proper Role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with proper Role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 with a proper role")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetMigrations.toString)
       val request600 = (v6_0_0_Request / "system" / "migrations").GET <@ (user1)
@@ -82,8 +83,8 @@ class MigrationsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Response validation") {
-    scenario("We will verify the response structure contains expected fields", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Response validation") {
+    Scenario("We will verify the response structure contains expected fields", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetMigrations.toString)
       When("We make a request v6.0.0")
       val request600 = (v6_0_0_Request / "system" / "migrations").GET <@ (user1)

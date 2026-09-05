@@ -1,5 +1,6 @@
 package code.api.sweep
 
+import org.json4s._
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil.ResourceDoc

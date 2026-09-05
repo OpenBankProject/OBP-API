@@ -209,7 +209,7 @@
 //  }
 //
 //  private def getOrCreateAuthUser(user: User): Box[AuthUser] = {
-//    AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)) match {
+//    AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value) match {
 //      case Full(user) => Full(user)
 //      case _ => createAuthUser(user)
 //    }
@@ -244,7 +244,7 @@
 //    }
 //  }
 //  private def createAuthUser(user: User): Box[AuthUser] = tryo {
-//    val newUser = AuthUser.create
+//    val newUser = AuthUser()
 //      .firstName(user.name)
 //      .email(user.emailAddress)
 //      .user(user.userPrimaryKey.value)

@@ -1,6 +1,7 @@
 package code.setup
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.exceptions.{TestCanceledException, TestFailedException}
 
 /**
@@ -15,7 +16,7 @@ import org.scalatest.exceptions.{TestCanceledException, TestFailedException}
  * cannot be changed from inside a running JVM -- which is why RedisTestTarget takes it as a
  * parameter in the first place.
  */
-class RedisTestTargetTest extends FlatSpec with Matchers {
+class RedisTestTargetTest extends AnyFlatSpec with Matchers {
 
   /** Arbitrary label passed as `what`; only its identity across calls matters, not its text. */
   private val CheckLabel = "a check"

@@ -60,8 +60,8 @@ class UserAuthContextTest extends V500ServerSetup {
   val postUserAuthContextJsonV310 = SwaggerDefinitionsJSON.postUserAuthContextJson
   val postUserAuthContextJsonV5002 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key="TOKEN")
 
-  feature("Add/Get Auth Context v5.0.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Add/Get Auth Context v5.0.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
       val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST
       val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
@@ -70,7 +70,7 @@ class UserAuthContextTest extends V500ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
       val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
       val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
@@ -80,7 +80,7 @@ class UserAuthContextTest extends V500ServerSetup {
       response500.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateUserAuthContext)
     }
 
-    scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.0.0")
       val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET
       val response500 = makeGetRequest(request500)
@@ -89,7 +89,7 @@ class UserAuthContextTest extends V500ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.0.0")
       val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
       val response500 = makeGetRequest(request500)
@@ -100,7 +100,7 @@ class UserAuthContextTest extends V500ServerSetup {
     }
 
 
-    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2,  VersionOfApi) {
+    Scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2,  VersionOfApi) {
       When("We try to create the UserAuthContext v5.0.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateUserAuthContext.toString)
       val requestUserAuthContext500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
@@ -124,14 +124,14 @@ class UserAuthContextTest extends V500ServerSetup {
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
       userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
-      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId ==) shouldBe (true)
     }
 
 
   }
   
-  feature("Add/Get User Auth Context Update Request v5.0.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature("Add/Get User Auth Context Update Request v5.0.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.0.0")
       val request500 = (v5_0_0_Request / "banks"/testBankId1.value /  "users" / "current" / "auth-context-updates" / "SMS").POST
       val response500 = makePostRequest(request500, write(postUserAuthContextJson))
@@ -141,7 +141,7 @@ class UserAuthContextTest extends V500ServerSetup {
       response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the Get endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v5.0.0")
       val request500 = (v5_0_0_Request / "banks"/testBankId1.value /  "users" / "current" / "auth-context-updates" / "123"/"challenge").POST
       val response500 = makePostRequest(request500, write(postUserAuthContextUpdateJsonV310))
@@ -151,7 +151,7 @@ class UserAuthContextTest extends V500ServerSetup {
       response500.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
 
       When("We need to prepare the bankId first.")
       val requestCreateCustomer = (v5_0_0_Request / "banks" / testBankId1.value / "customers").POST <@(user1)
@@ -187,7 +187,7 @@ class UserAuthContextTest extends V500ServerSetup {
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
       userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
-      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId ==) shouldBe (true)
     }
     
     

@@ -49,7 +49,10 @@ sealed class RequiredFields
 object FieldNameApiVersions extends RequiredFields with JsonAble {
   val `data.bankId`: List[String] = List(ApiVersion.v2_2_0.toString, ApiVersion.v3_1_0.toString)
 
-  override def toJValue(implicit format: Formats): JObject = "data.bankId" -> JArray(this.`data.bankId`.map(JString(_)))
+  // Signature uses the json.* aliases, not org.json4s directly - see ApiVersion.scala's toJValue
+  // override for why (a ScalaSig-pickled signature naming org.json4s.JsonAST.JValue directly
+  // becomes unreadable once json4s-native_2.13 is off obp-api's classpath).
+  override def toJValue(implicit format: json.Formats): json.JObject = "data.bankId" -> JArray(this.`data.bankId`.map(JString(_)))
 }
 
 /**
@@ -58,7 +61,7 @@ object FieldNameApiVersions extends RequiredFields with JsonAble {
  */
 case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields with JsonAble {
 
-  override def toJValue(implicit format: Formats): JObject = {
+  override def toJValue(implicit format: json.Formats): json.JObject = {
     val jFields = requiredArgs
         .toList
         .map(info => JField(
@@ -238,7 +241,7 @@ case class RequiredArgs(fieldPath:String, include: Array[ApiVersion],
     case RequiredArgs(path, inc, exc) => Objects.equals(fieldPath, path) && include.sameElements(inc) && exclude.sameElements(exc)
     case _ => false
   }
-  override def toJValue(implicit format: Formats): JArray = toJson
+  override def toJValue(implicit format: json.Formats): json.JArray = toJson
 
   private val toJson: JArray = (include, exclude) match {
     case (_, Array()) =>

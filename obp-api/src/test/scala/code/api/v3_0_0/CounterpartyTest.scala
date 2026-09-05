@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.Constant._
+import org.json4s.jvalue2extractable
 import com.openbankproject.commons.util.ApiVersion
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import com.github.dwickern.macros.NameOf.nameOf
@@ -18,8 +19,8 @@ class CounterpartyTest extends V300ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.getOtherAccountsForBankAccount))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getOtherAccountByIdForBankAccount))
   
-  feature("Get Other Accounts of one Account.and Get Other Account by Id. - V300") {
-    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+  Feature("Get Other Accounts of one Account.and Get Other Account by Id. - V300") {
+    Scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
       Given("We prepare all the parameters, just check the response")
       val bankId = randomBankId
       val accountId = randomPrivateAccountId(bankId)

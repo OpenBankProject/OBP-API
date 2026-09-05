@@ -40,7 +40,7 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
   // Mock connector that only overrides checkExternalUserCredentials.
   // Accepts one known username+password pair; rejects everything else.
   object MockExternalAuthConnector extends Connector with MdcLoggable {
-    implicit override val nameOfConnector = "MockExternalAuthConnector"
+    implicit override val nameOfConnector: String = "MockExternalAuthConnector"
 
     override def checkExternalUserCredentials(
       username: String,
@@ -76,9 +76,9 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
     super.afterAll()
   }
 
-  feature(s"Verify External User Credentials - POST /obp/v6.0.0/users/verify-credentials - $VersionOfApi") {
+  Feature(s"Verify External User Credentials - POST /obp/v6.0.0/users/verify-credentials - $VersionOfApi") {
 
-    scenario("Successfully verify external user credentials via connector", ApiEndpoint, VersionOfApi) {
+    Scenario("Successfully verify external user credentials via connector", ApiEndpoint, VersionOfApi) {
       setPropsValues("connector.user.authentication" -> "true")
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -104,7 +104,7 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
       (json \ "provider").extract[String] should equal(externalProvider)
     }
 
-    scenario("Fail to verify external user with wrong password", ApiEndpoint, VersionOfApi) {
+    Scenario("Fail to verify external user with wrong password", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify external credentials with wrong password")
@@ -126,7 +126,7 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
-    scenario("Successful external login should reset bad login attempts for that provider", ApiEndpoint, VersionOfApi) {
+    Scenario("Successful external login should reset bad login attempts for that provider", ApiEndpoint, VersionOfApi) {
       setPropsValues("connector.user.authentication" -> "true")
       
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
@@ -174,7 +174,7 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
       }
     }
 
-    scenario("External user should be locked after too many failed attempts", ApiEndpoint, VersionOfApi) {
+    Scenario("External user should be locked after too many failed attempts", ApiEndpoint, VersionOfApi) {
       // max.bad.login.attempts defaults to 5, locking triggers at > 5 (i.e. 6+).
       // After locking, even correct credentials should fail.
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
@@ -213,18 +213,16 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
       }
     }
 
-    scenario("External user locking should not lock local user with same username", ApiEndpoint, VersionOfApi) {
+    Scenario("External user locking should not lock local user with same username", ApiEndpoint, VersionOfApi) {
       // Lock the external user, then verify the local user is unaffected.
       val localPassword = "LocalPassword123!"
-      val localUser = AuthUser.create
-        .email(externalUsername + "@local.example.com")
-        .username(externalUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Local")
-        .lastName("User")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = externalUsername + "@local.example.com",
+        username = externalUsername,
+        validated = true,
+        firstName = "Local",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -266,18 +264,16 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
       }
     }
 
-    scenario("External auth failure should not affect local user with same username", ApiEndpoint, VersionOfApi) {
+    Scenario("External auth failure should not affect local user with same username", ApiEndpoint, VersionOfApi) {
       // Create a local user with the same username as the external user
       val localPassword = "LocalPassword123!"
-      val localUser = AuthUser.create
-        .email(externalUsername + "@local.example.com")
-        .username(externalUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Local")
-        .lastName("User")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = externalUsername + "@local.example.com",
+        username = externalUsername,
+        validated = true,
+        firstName = "Local",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 

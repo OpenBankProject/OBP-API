@@ -7,7 +7,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MetricArchive
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 /**
  * Widen `metricarchive.correlationid` from varchar(36) to varchar(256) so it matches
@@ -30,7 +29,7 @@ object MigrationOfMetricArchiveTable {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnCorrelationidLength(name: String): Boolean = {
-    DbFunction.tableExists(MetricArchive)
+    DbFunction.tableExistsByName("metricarchive")
     match {
       case true =>
         val startDate = System.currentTimeMillis()
@@ -38,7 +37,7 @@ object MigrationOfMetricArchiveTable {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -68,7 +67,7 @@ object MigrationOfMetricArchiveTable {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MetricArchive._dbTableNameLC} table does not exist""".stripMargin
+          s"""metricarchive table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

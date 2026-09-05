@@ -1,19 +1,20 @@
 package code.api.berlin.group.v1_3
 
 import code.api.Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{AuthorisationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, PostSigningBasketJsonV13, ScaStatusJsonV13, SigningBasketGetResponseJson, SigningBasketResponseJson, StartPaymentAuthorisationJson}
 import code.api.berlin.group.v1_3.model.TransactionStatus
 import code.api.berlin.group.v1_3.{Http4sBGv13SigningBaskets => APIMethods_SigningBasketsApi}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
-import code.model.dataAccess.BankAccountRouting
+import code.bankconnectors.DoobieBankAccountRoutingQueries
 import code.setup.{APIResponse, DefaultUsers}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ViewId
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, StrongCustomerAuthenticationStatus, TransactionRequestTypes}
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
@@ -29,7 +30,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
 
   // Helper: create a real SEPA payment via BG PIS API and return its paymentId
   private def createRealPaymentId(): String = {
-    val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
     val ibanFrom = accountsRoutingIban.head
     val ibanTo = accountsRoutingIban.last
     Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)).foreach(view =>
@@ -50,8 +51,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     payment.paymentId
   }
 
-  feature(s"test the BG v1.3 - ${createSigningBasket.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature(s"test the BG v1.3 - ${createSigningBasket.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, createSigningBasket) {
       val postJson =
         s"""{
            |  "consentIds": [
@@ -70,8 +71,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
-  feature(s"test the BG v1.3 -${createSigningBasket.name}") {
-    scenario("Failed Case - Wrong Json format Body", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature(s"test the BG v1.3 -${createSigningBasket.name}") {
+    Scenario("Failed Case - Wrong Json format Body", BerlinGroupV1_3, SBS, createSigningBasket) {
       val wrongFieldNameJson =
         s"""{
            |  "wrongFieldName": [
@@ -90,8 +91,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
    }
 
-  feature(s"test the BG v1.3 -${createSigningBasket.name}") {
-    scenario("Success Case - 201 with real paymentId and response body validation", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature(s"test the BG v1.3 -${createSigningBasket.name}") {
+    Scenario("Success Case - 201 with real paymentId and response body validation", BerlinGroupV1_3, SBS, createSigningBasket) {
       val realPaymentId = createRealPaymentId()
       val postJson =
         s"""{
@@ -114,8 +115,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
   }
 
 
-  feature(s"test the BG v1.3 - ${getSigningBasket.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasket) {
+  Feature(s"test the BG v1.3 - ${getSigningBasket.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasket) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -124,7 +125,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       And("error should be " + error)
       responseGet.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
-    scenario("Success Case - 200 with multiple real paymentIds and payment status validation", BerlinGroupV1_3, SBS, getSigningBasket) {
+    Scenario("Success Case - 200 with multiple real paymentIds and payment status validation", BerlinGroupV1_3, SBS, getSigningBasket) {
       // Create two real payments, then create a basket referencing both
       val paymentId1 = createRealPaymentId()
       val paymentId2 = createRealPaymentId()
@@ -163,8 +164,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
-  feature(s"test the BG v1.3 - ${getSigningBasketStatus.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketStatus) {
+  Feature(s"test the BG v1.3 - ${getSigningBasketStatus.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketStatus) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId" / "status").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -175,8 +176,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
-  feature(s"test the BG v1.3 - ${deleteSigningBasket.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, deleteSigningBasket) {
+  Feature(s"test the BG v1.3 - ${deleteSigningBasket.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, deleteSigningBasket) {
       val request = (V1_3_BG / "signing-baskets" / "basketId").DELETE
       val response = makeDeleteRequest(request)
       Then("We should get a 401 ")
@@ -187,8 +188,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
-  feature(s"test the BG v1.3 - ${startSigningBasketAuthorisation.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+  Feature(s"test the BG v1.3 - ${startSigningBasketAuthorisation.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
       val postJson = s"""{}""".stripMargin
       val request = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations").POST
       val response = makePostRequest(request, postJson)
@@ -200,8 +201,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
-  feature(s"test the BG v1.3 - ${getSigningBasketScaStatus.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketScaStatus) {
+  Feature(s"test the BG v1.3 - ${getSigningBasketScaStatus.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketScaStatus) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations" / "authorisationId").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -212,8 +213,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
-  feature(s"test the BG v1.3 - ${getSigningBasketAuthorisation.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketAuthorisation) {
+  Feature(s"test the BG v1.3 - ${getSigningBasketAuthorisation.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketAuthorisation) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -224,8 +225,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
     }
   }
 
-  feature(s"test the BG v1.3 - ${updateSigningBasketPsuData.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+  Feature(s"test the BG v1.3 - ${updateSigningBasketPsuData.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val putJson = s"""{"scaAuthenticationData":"123"}""".stripMargin
       val request = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations" / "authorisationId").PUT
       val response = makePutRequest(request, putJson)
@@ -238,8 +239,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
   }
 
 
-  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation, $updateSigningBasketPsuData") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, startSigningBasketAuthorisation, getSigningBasketAuthorisation, updateSigningBasketPsuData) {
+  Feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation, $updateSigningBasketPsuData") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, startSigningBasketAuthorisation, getSigningBasketAuthorisation, updateSigningBasketPsuData) {
       // Create Signing Basket
       val postJson =
         s"""{

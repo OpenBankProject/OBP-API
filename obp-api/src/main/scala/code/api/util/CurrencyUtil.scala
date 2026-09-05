@@ -4,7 +4,7 @@ import org.json4s._
 import com.openbankproject.commons.util.JsonAliases.parse
 
 object CurrencyUtil {
-  implicit val formats = CustomJsonFormats.formats
+  implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
   case class CurrenciesJson(currencies: List[CurrencyJson])
   case class CurrencyJson(entity: String,
                           currency: String,
@@ -20,7 +20,7 @@ object CurrencyUtil {
   }
   
   def getCurrencyCodes(): List[String] = {
-    getCurrencies.map(_.currencies
+    getCurrencies().map(_.currencies
       .filter(_.alphanumeric_code.isDefined)
       .map(_.alphanumeric_code.getOrElse(""))).headOption.getOrElse(Nil)
   }

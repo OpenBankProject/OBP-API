@@ -21,9 +21,9 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature("Assuring that endpoint 'Create counterparty for an account' works as expected - v2.1.0") {
+  Feature("Assuring that endpoint 'Create counterparty for an account' works as expected - v2.1.0") {
 
-    scenario("There is a user has the owner view and the BankAccount") {
+    Scenario("There is a user has the owner view and the BankAccount") {
 
       Given("The user owner access and BankAccount")
       val testBank = createBank("transactions-test-bank1")
@@ -83,7 +83,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
 
     }
 
-    scenario("No BankAccount in Database") {
+    Scenario("No BankAccount in Database") {
       Given("The user, but no BankAccount")
 
       val testBank = createBank("transactions-test-bank")
@@ -102,7 +102,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.BankAccountNotFound)
     }
 
-    scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
+    Scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
       Given("The user owner access and BankAccount")
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId

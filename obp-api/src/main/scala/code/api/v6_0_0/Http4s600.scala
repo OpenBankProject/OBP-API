@@ -69,7 +69,7 @@ import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
 import code.api.v6_0_0.JSONFactory600.UpdateViewJsonV600
 import code.model._
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.{Users, DoobieUserQueries}
 import code.api.util.DynamicUtil
 import code.util.Helper.SILENCE_IS_GOLDEN
@@ -87,7 +87,6 @@ import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.views.Views
-import net.liftweb.mapper.{By, NullRef}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{BankId, BankIdAccountId, CustomerId, ListResult, ViewId}
@@ -294,7 +293,11 @@ object Http4s600 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(user.userId))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            // dynamicEntities is List[DynamicEntityT] - the provider trait, not necessarily
+            // DynamicEntityCommons - so this can't be a blind asInstanceOf cast; it goes through
+            // DynamicEntityCommons's own ConverterWithType conversion (same reflection machinery
+            // as ReflectUtils.toOther, fixed for Scala 3 case-class-val sources this session).
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities)
             JSONFactory600.createMyDynamicEntitiesJson(listCommons)
           }
         }
@@ -308,13 +311,10 @@ object Http4s600 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
+            // See getSystemDynamicEntities above for why this isn't a blind asInstanceOf cast.
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities.sortBy(_.entityName))
             val entitiesWithCounts = listCommons.map { entity =>
-              val recordCount = DynamicData.count(
-                By(DynamicData.DynamicEntityName, entity.entityName),
-                By(DynamicData.IsPersonalEntity, false),
-                if (entity.bankId.isEmpty) NullRef(DynamicData.BankId) else By(DynamicData.BankId, entity.bankId.get)
-              )
+              val recordCount = DynamicData.countImpersonal(entity.bankId, entity.entityName)
               (entity, recordCount)
             }
             JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts)
@@ -330,13 +330,10 @@ object Http4s600 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bankIdStr), false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
+            // See getSystemDynamicEntities above for why this isn't a blind asInstanceOf cast.
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities.sortBy(_.entityName))
             val entitiesWithCounts = listCommons.map { entity =>
-              val recordCount = DynamicData.count(
-                By(DynamicData.DynamicEntityName, entity.entityName),
-                By(DynamicData.IsPersonalEntity, false),
-                By(DynamicData.BankId, bankIdStr)
-              )
+              val recordCount = DynamicData.countImpersonal(Some(bankIdStr), entity.entityName)
               (entity, recordCount)
             }
             JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts)
@@ -351,9 +348,9 @@ object Http4s600 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, cc.callContext)
-            currentConsumerCallCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            currentConsumerCallCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
             date = new java.util.Date()
-            (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+            (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId, date)
             activeRateLimitsJson = JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, rateLimitIds, date)
             callCountersJson = JSONFactory600.createRedisCallCountersJson(currentConsumerCallCounters)
           } yield {
@@ -758,7 +755,7 @@ object Http4s600 {
                 .getAccountIdsByParams(bank.bankId, filteredParams)
                 .map { boxedAccountIds =>
                   val accountIds = boxedAccountIds.getOrElse(Nil)
-                  privateAccountAccess.filter(aa => accountIds.contains(aa.account_id.get))
+                  privateAccountAccess.filter(aa => accountIds.contains(aa.accountId))
                 }
             (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess2, Some(cc))
           } yield {
@@ -959,22 +956,21 @@ object Http4s600 {
           APIUtil.fullPasswordValidation(password)
         }
         _ <- Helper.booleanToFuture(DuplicateUsername, 409, Some(cc)) {
-          AuthUser.find(net.liftweb.mapper.By(AuthUser.username, username)).isEmpty
+          AuthUser.findByUsername(username).isEmpty
         }
         userCreated <- Future {
-          AuthUser.create
-            .firstName(firstName).lastName(lastName)
-            .username(username).email(email)
-            .password(password)
-            .validated(APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false))
+          // Doobie: AuthUser is a case class here, not a Mapper entity, so the fields are set at
+          // construction and withPassword returns a new instance rather than mutating one.
+          AuthUser(
+            firstName = firstName, lastName = lastName,
+            username = username, email = email,
+            validated = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
+          ).withPassword(password)
         }
-        _ <- Helper.booleanToFuture(InvalidJsonFormat + userCreated.validate.map(_.msg).mkString(";"), 400, Some(cc)) {
-          userCreated.validate.size == 0
+        _ <- Helper.booleanToFuture(InvalidJsonFormat + AuthUser.validate(userCreated).mkString(";"), 400, Some(cc)) {
+          AuthUser.validate(userCreated).isEmpty
         }
         savedUser <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { userCreated.saveMe() }
-        _ <- Helper.booleanToFuture(s"$UnknownError Error occurred during user creation.", 400, Some(cc)) {
-          userCreated.saved_?
-        }
       } yield savedUser
     }
 
@@ -989,21 +985,21 @@ object Http4s600 {
         val portalMissing = portalUrlBox.isEmpty
         val senderIsDefault = senderAddress == "noreply@example.com"
         if (portalMissing) {
-          logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — public_obp_portal_url (or legacy portal_external_url) is not set. The user will be unable to validate via email. They can use POST /obp/v7.0.0/users/validation-emails to retry once the prop is configured.")
+          logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username}' — public_obp_portal_url (or legacy portal_external_url) is not set. The user will be unable to validate via email. They can use POST /obp/v7.0.0/users/validation-emails to retry once the prop is configured.")
         } else if (senderIsDefault) {
-          logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address).")
+          logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username}' — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address).")
         } else {
           val portalUrl = portalUrlBox.openOr("")
           val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
           val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-            .subject(savedUser.uniqueId.get)
+            .subject(savedUser.uniqueId)
             .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
             .issueTime(new java.util.Date()).build()
           val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
           val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
           val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
             from = senderAddress,
-            to = List(savedUser.email.get),
+            to = List(savedUser.email),
             bcc = AuthUser.bccEmail.toList,
             subject = "Sign up confirmation",
             textContent = Some(s"Welcome! Please validate your account: $emailLink"),
@@ -1011,9 +1007,9 @@ object Http4s600 {
           ))
           sendOutcome match {
             case Right(msgId) =>
-              logger.info(s"createUser says: validation email sent to '${savedUser.email.get}' messageId=$msgId")
+              logger.info(s"createUser says: validation email sent to '${savedUser.email}' messageId=$msgId")
             case Left(e) =>
-              logger.warn(s"createUser says: validation email send FAILED for user '${savedUser.username.get}' (${savedUser.email.get}): ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}. The user can retry via POST /obp/v7.0.0/users/validation-emails once the SMTP issue is resolved.")
+              logger.warn(s"createUser says: validation email send FAILED for user '${savedUser.username}' (${savedUser.email}): ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}. The user can retry via POST /obp/v7.0.0/users/validation-emails once the SMTP issue is resolved.")
           }
         }
       }
@@ -1080,11 +1076,11 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.api.v6_0_0.JSONFactory600.PostResetPasswordUrlJsonV600]
             }
             authUserBox <- Future {
-              AuthUser.find(net.liftweb.mapper.By(AuthUser.username, postedData.username))
+              AuthUser.findByUsername(postedData.username)
             }
             authUser <- NewStyle.function.tryons(s"$UnknownError User not found or validation failed", 400, Some(cc)) {
               authUserBox match {
-                case Full(user) if user.validated.get && user.email.get == postedData.email =>
+                case Full(user) if user.validated && user.email == postedData.email =>
                   Users.users.vend.getUserByUserId(postedData.user_id) match {
                     case Full(resourceUser) if resourceUser.name == postedData.username &&
                                                resourceUser.emailAddress == postedData.email => user
@@ -1095,12 +1091,12 @@ object Http4s600 {
             }
             portalUrl <- resolveResetPasswordPortalUrl(APIUtil.getPortalUrl)
             resetLink <- Future {
-              val user: AuthUser = authUser
-              user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
+              val user: AuthUser = authUser.copy(
+                uniqueId = java.util.UUID.randomUUID().toString.replace("-", ""))
               user.save
               val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
               val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                .subject(user.uniqueId.get)
+                .subject(user.uniqueId)
                 .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
                 .issueTime(new java.util.Date()).build()
               val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
@@ -1111,9 +1107,9 @@ object Http4s600 {
             // cannot be sent, say so instead of reporting "sent".
             _ <- CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
               from = AuthUser.emailFrom,
-              to = List(authUser.email.get),
+              to = List(authUser.email),
               bcc = AuthUser.bccEmail.toList,
-              subject = "Reset your password - " + authUser.username.get,
+              subject = "Reset your password - " + authUser.username,
               textContent = Some(s"Please reset your password: $resetLink"),
               htmlContent = Some(s"<p>Please reset your password: <a href='$resetLink'>$resetLink</a></p>")
             )) match {
@@ -1129,7 +1125,7 @@ object Http4s600 {
             // it would let any caller with canCreateResetPasswordUrl complete a reset
             // without controlling the target mailbox, defeating the email-proves-
             // mailbox-ownership property of the flow. The link goes via email only.
-            JSONFactory600.ResetPasswordEmailSentJsonV600(status = "sent", to = authUser.email.get)
+            JSONFactory600.ResetPasswordEmailSentJsonV600(status = "sent", to = authUser.email)
           }
         }
     }
@@ -1255,7 +1251,7 @@ object Http4s600 {
 
 
     val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
         root(req)
           .orElse(getScannedApiVersions(req))
           .orElse(getCurrentUser(req))
@@ -1694,11 +1690,13 @@ object Http4s600 {
             val orphaned = code.api.util.DiagnosticDynamicEntityCheck.checkOrphanedRecords(definitions)
             var totalDeleted: Long = 0
             orphaned.foreach { orphan =>
-              val records = if (orphan.bankId.isEmpty)
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), NullRef(DynamicData.BankId))
-              else
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), By(DynamicData.BankId, orphan.bankId))
-              records.foreach { r => r.delete_!; totalDeleted += 1 }
+              // Community scoping is right here: an orphaned entity's records go regardless of
+              // owner or personal flag.
+              // orphan.bankId is a String where empty means system-level, so it is narrowed to the
+              // Option the store takes.
+              val orphanBankId = if (orphan.bankId.isEmpty) None else Some(orphan.bankId)
+              val records = DynamicData.findAllCommunity(orphanBankId, orphan.entityName)
+              records.foreach { r => DynamicData.delete(r.dynamicDataId.getOrElse("")); totalDeleted += 1 }
             }
             val orphanedJson = orphaned.map(o => JSONFactory600.OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount))
             JSONFactory600.CleanupOrphanedDynamicEntityResponseJsonV600(orphanedJson, totalDeleted)
@@ -1854,12 +1852,12 @@ object Http4s600 {
               }
             }
           } yield {
-            val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
+            val redirectUris = Option(consumer.redirectURL).filter(_.nonEmpty)
               .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList).getOrElse(List.empty)
             GetOidcClientResponseJsonV600(
-              client_id = clientId, client_name = consumer.name.get,
-              consumer_id = consumer.consumerId.get,
-              redirect_uris = redirectUris, enabled = consumer.isActive.get)
+              client_id = clientId, client_name = consumer.name,
+              consumer_id = consumer.consumerId,
+              redirect_uris = redirectUris, enabled = consumer.isActive)
           }
         }
     }
@@ -1876,13 +1874,13 @@ object Http4s600 {
             consumerBox <- Future(code.consumer.Consumers.consumers.vend.getConsumerByConsumerKey(postedData.client_id))
           } yield {
             consumerBox match {
-              case Full(consumer) if consumer.isActive.get && consumer.secret.get == postedData.client_secret =>
-                val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
+              case Full(consumer) if consumer.isActive && consumer.secret == postedData.client_secret =>
+                val redirectUris = Option(consumer.redirectURL).filter(_.nonEmpty)
                   .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
                 VerifyOidcClientResponseJsonV600(
                   valid = true,
                   client_id = Some(postedData.client_id),
-                  consumer_id = Some(consumer.consumerId.get),
+                  consumer_id = Some(consumer.consumerId),
                   redirect_uris = redirectUris)
               case _ => VerifyOidcClientResponseJsonV600(valid = false)
             }
@@ -2053,7 +2051,8 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "personal-dynamic-entities" / "available" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(NewStyle.function.getDynamicEntities(None, true))
-            .map(all => JSONFactory600.createMyDynamicEntitiesJson(all.filter(_.hasPersonalEntity)))
+            // See getSystemDynamicEntities above for why this isn't a blind asInstanceOf cast.
+            .map(all => JSONFactory600.createMyDynamicEntitiesJson(DynamicEntityCommons.toCommonsList(all.filter(_.hasPersonalEntity))))
         }
     }
 
@@ -2229,7 +2228,9 @@ object Http4s600 {
             case Full(aa) => JSONFactory600.HasAccountAccessJsonV600(
               has_account_access = true,
               access_source = "ACCOUNT_ACCESS",
-              account_access_id = aa.id.get.toString,
+              // The row has no surrogate id in the store; the unique index is its identity, so
+              // the five-column tuple stands in for the numeric key the JSON used to carry.
+              account_access_id = s"${aa.bankId}-${aa.accountId}-${aa.viewId}-${aa.userPrimaryKey}-${aa.consumerId}",
               abac_rule_id = "")
             case _ => JSONFactory600.HasAccountAccessJsonV600(
               has_account_access = false, access_source = "",
@@ -2692,7 +2693,10 @@ object Http4s600 {
             (count, ttl) <- info match {
               case Some((c, t)) => Future.successful((c, t))
               case None =>
-                NewStyle.function.tryons(s"$SignalChannelNotFound Channel '$channelName' not found.", 404, Some(cc)) {
+                // Explicit type parameter: the block's only expression is a throw, which infers
+                // as Nothing, and tryons needs a Manifest for its result type.
+                NewStyle.function.tryons[(Long, Long)](
+                  s"$SignalChannelNotFound Channel '$channelName' not found.", 404, Some(cc)) {
                   throw new NoSuchElementException(channelName)
                 }
             }
@@ -2745,7 +2749,7 @@ object Http4s600 {
                 postJson.message_type.forall(messageType => !code.util.DangerousCharacters.containsAny(messageType))
             }
             published <- Future {
-              val consumerId = cc.consumer match { case Full(c) => c.consumerId.get; case _ => "" }
+              val consumerId = cc.consumer match { case Full(c) => c.consumerId; case _ => "" }
               val messageId = randomUUID().toString
               val sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
               sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
@@ -4291,16 +4295,16 @@ object Http4s600 {
               authUser.openOrThrowException("User not found")
             }
             _ <- Helper.booleanToFuture(s"$UserAlreadyValidated User email is already validated", cc = Some(cc)) {
-              !user.validated.get
+              !user.validated
             }
             validatedUser <- Future(code.model.dataAccess.AuthUser.validateAndResetToken(user))
             _ <- Future(code.model.dataAccess.AuthUser.grantDefaultEntitlementsToAuthUser(validatedUser))
           } yield JSONFactory600.ValidateUserEmailResponseJsonV600(
-            user_id = validatedUser.user.obj.map(_.userId).getOrElse(""),
-            email = validatedUser.email.get,
-            username = validatedUser.username.get,
-            provider = validatedUser.provider.get,
-            validated = validatedUser.validated.get,
+            user_id = ResourceUser.findByPrimaryKey(validatedUser.user).map(_.userId).getOrElse(""),
+            email = validatedUser.email,
+            username = validatedUser.username,
+            provider = validatedUser.provider,
+            validated = validatedUser.validated,
             message = "Email validated successfully")
         }
     }
@@ -4339,9 +4343,9 @@ object Http4s600 {
               authUserBox.openOrThrowException("User not found")
             }
           } yield {
-            user.password.set(postedData.new_password)
-            user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
-            user.save
+            user.withPassword(postedData.new_password)
+              .copy(uniqueId = java.util.UUID.randomUUID().toString.replace("-", ""))
+              .save
             JSONFactory600.ResetPasswordCompleteResponseJsonV600("Password has been reset successfully.")
           }
         }
@@ -4358,37 +4362,36 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostResetPasswordUrlAnonymousJsonV600]
             }
           } yield {
-            val authUserBox = code.model.dataAccess.AuthUser.find(
-              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.username, postedData.username),
-              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.provider, Constant.localIdentityProvider))
+            val authUserBox = code.model.dataAccess.AuthUser.findByUsernameAndProvider(
+              postedData.username, Constant.localIdentityProvider)
             val portalUrlBox = APIUtil.getPortalUrl
             val senderAddress = code.model.dataAccess.AuthUser.emailFrom
             val portalMissing = portalUrlBox.isEmpty
             val senderIsDefault = senderAddress == "noreply@example.com"
             (authUserBox, portalMissing, senderIsDefault) match {
-              case (Full(u), false, false) if u.validated.get && u.email.get == postedData.email =>
+              case (Full(found), false, false) if found.validated && found.email == postedData.email =>
                 val portalUrl = portalUrlBox.openOr("")
-                u.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
+                val u = found.copy(uniqueId = java.util.UUID.randomUUID().toString.replace("-", ""))
                 u.save
                 val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
                 val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                  .subject(u.uniqueId.get)
+                  .subject(u.uniqueId)
                   .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
                   .issueTime(new java.util.Date()).build()
                 val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
                 val resetLink = portalUrl + "/reset-password/" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
                 val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
                   from = senderAddress,
-                  to = List(u.email.get),
+                  to = List(u.email),
                   bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
-                  subject = "Reset your password - " + u.username.get,
+                  subject = "Reset your password - " + u.username,
                   textContent = Some(s"Please use the following link to reset your password: $resetLink"),
                   htmlContent = Some(s"<p>Please use the following link to reset your password:</p><p><a href='$resetLink'>$resetLink</a></p>")))
                 sendOutcome match {
                   case Right(msgId) =>
-                    logger.info(s"resetPasswordUrlAnonymous says: reset email sent to '${u.email.get}' messageId=$msgId")
+                    logger.info(s"resetPasswordUrlAnonymous says: reset email sent to '${u.email}' messageId=$msgId")
                   case Left(e) =>
-                    logger.warn(s"resetPasswordUrlAnonymous says: SMTP send failed for user '${u.username.get}': ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}")
+                    logger.warn(s"resetPasswordUrlAnonymous says: SMTP send failed for user '${u.username}': ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}")
                 }
               case (_, true, _) =>
                 logger.warn("resetPasswordUrlAnonymous says: skipped — public_obp_portal_url (or legacy portal_external_url) not set; cannot build reset link. Response returned as if successful (anti-enumeration).")
@@ -4715,20 +4718,17 @@ object Http4s600 {
               if (all.isEmpty) None else Some(all)
             }
             isLocked = code.loginattempts.LoginAttempt.userIsLocked(user.provider, user.name)
-            authUser = code.model.dataAccess.AuthUser.find(
-              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value))
+            authUser = code.model.dataAccess.AuthUser.findByResourceUserPrimaryKey(
+              user.userPrimaryKey.value)
             userMetrics <- Future {
-              code.metrics.MappedMetric.findAll(
-                By(code.metrics.MappedMetric.userId, userId),
-                net.liftweb.mapper.OrderBy(code.metrics.MappedMetric.date, net.liftweb.mapper.Descending),
-                net.liftweb.mapper.MaxRows(5))
+              code.metrics.MappedMetric.findNewestByUserId(userId, 5)
             }
             lastActivityDate = userMetrics.headOption.map(_.getDate())
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
           } yield JSONFactory600.createUserInfoJsonV600(
             user,
-            authUser.map(_.firstName.get).getOrElse(""),
-            authUser.map(_.lastName.get).getOrElse(""),
+            authUser.map(_.firstName).getOrElse(""),
+            authUser.map(_.lastName).getOrElse(""),
             entitlements, agreements, isLocked, lastActivityDate, recentOperationIds)
         }
     }
@@ -5480,11 +5480,11 @@ object Http4s600 {
               case Full(c) => Full(c)
               case _ => Empty
             }).map(unboxFullOrFail(_, Some(cc), InvalidConsumerCredentials, 401))
-            counters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            counters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
             date = new java.util.Date()
-            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId, date)
           } yield CurrentConsumerJsonV600(
-            consumer.name.get, consumer.appType.get, consumer.description.get, consumer.consumerId.get,
+            consumer.name, consumer.appType, consumer.description, consumer.consumerId,
             JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, ids, date),
             JSONFactory600.createRedisCallCountersJson(counters))
         }
@@ -7028,6 +7028,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7097,6 +7098,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7166,6 +7168,9 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7226,6 +7231,9 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7292,6 +7300,9 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(

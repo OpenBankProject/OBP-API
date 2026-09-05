@@ -25,8 +25,8 @@ class ProjectionDataPlaneIntegrationTest extends V600ServerSetup {
   private def ids(plan: QueryPlan): List[String] =
     run(ProjectionDb.run(ProjectionSql.selectDataIds(table, plan, columnOf, sqlTypeOf).get.query[String].to[List]))
 
-  feature("DE projection data-plane on Postgres") {
-    scenario("create table, upsert rows, then filter / sort / paginate via compiled SQL") {
+  Feature("DE projection data-plane on Postgres") {
+    Scenario("create table, upsert rows, then filter / sort / paginate via compiled SQL") {
       // Postgres-only: this test runs Postgres-specific SQL (ON CONFLICT) that H2 cannot execute.
       // Gated OFF by default so CI / H2 / developer workstations skip it (canceled, not failed).
       // Enable locally with `test.projection.postgres=true` in test.default.props AND a Postgres db.url.

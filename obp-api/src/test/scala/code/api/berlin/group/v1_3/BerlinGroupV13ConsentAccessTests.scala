@@ -1,6 +1,7 @@
 package code.api.berlin.group.v1_3
 
 import code.api.berlin.group.ConstantsBG
+import org.json4s.jvalue2extractable
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.model.ScaStatusResponse
 import code.api.util.APIUtil
@@ -46,44 +47,44 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // The rule is unit-tested as well as driven over HTTP because the interesting caller shapes -- a
   // session with no PSU at all -- cannot be produced by an OAuth1-signed test request, which always
   // attaches a user. Same reasoning as UKOpenBankingV401ConsentAccessTests.
-  feature("Consent.checkBerlinGroupConsentAccess") {
+  Feature("Consent.checkBerlinGroupConsentAccess") {
 
-    scenario("the TPP that lodged an unowned consent may authorise it", BerlinGroupV13ConsentAccess) {
+    Scenario("the TPP that lodged an unowned consent may authorise it", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
-    scenario("a second TPP may not authorise a consent it did not lodge", BerlinGroupV13ConsentAccess) {
+    Scenario("a second TPP may not authorise a consent it did not lodge", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
-    scenario("a PSU-less call may drive a consent its own Consumer lodged", BerlinGroupV13ConsentAccess) {
+    Scenario("a PSU-less call may drive a consent its own Consumer lodged", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess("", tpp, None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
       Consent.checkBerlinGroupConsentAccess(psu, tpp, None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
-    scenario("a PSU-less call from a second TPP is still refused", BerlinGroupV13ConsentAccess) {
+    Scenario("a PSU-less call from a second TPP is still refused", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess("", tpp, None, Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
       Consent.checkBerlinGroupConsentAccess(psu, tpp, None, Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
-    scenario("a PSU-less call with no Consumer at all is refused", BerlinGroupV13ConsentAccess) {
+    Scenario("a PSU-less call with no Consumer at all is refused", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(psu, tpp, None, None, callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
-    scenario("the PSU a consent is already bound to may re-authorise it", BerlinGroupV13ConsentAccess) {
+    Scenario("the PSU a consent is already bound to may re-authorise it", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
-    scenario("a different PSU may not re-bind a consent that is already owned", BerlinGroupV13ConsentAccess) {
+    Scenario("a different PSU may not re-bind a consent that is already owned", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(tpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
     }
 
-    scenario("the PSU check wins over the Consumer once a consent is bound", BerlinGroupV13ConsentAccess) {
+    Scenario("the PSU check wins over the Consumer once a consent is bound", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
     }
@@ -94,12 +95,12 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // One TPP's mandate over a consent is not another's -- the same principle the payment guard in
     // Http4sBGv13PIS states, and IG 4.11's "may only apply to resources which have been created by
     // the same TPP before" admits no PSU exception.
-    scenario("a second TPP holding a session for the consent's own PSU is still refused", BerlinGroupV13ConsentAccess) {
+    Scenario("a second TPP holding a session for the consent's own PSU is still refused", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
-    scenario("blank ids count as absent, not as a value to match", BerlinGroupV13ConsentAccess) {
+    Scenario("blank ids count as absent, not as a value to match", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess("   ", tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some("  "), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
@@ -117,14 +118,14 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // Group today, by accident -- the hand-rolled `null == "None"` compare in the five reads is
     // false for everyone -- so refusing them here changes nothing for those callers and only stops
     // the UK pair, and the reads once they move onto this rule, from opening up.
-    scenario("a consent that records no lodging TPP belongs to nobody", BerlinGroupV13ConsentAccess) {
+    Scenario("a consent that records no lodging TPP belongs to nobody", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
       Consent.checkBerlinGroupConsentAccess(null, "  ", Some(psu), Some(tpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
-    scenario("an operator can restore the old behaviour for a migration window", BerlinGroupV13ConsentAccess) {
+    Scenario("an operator can restore the old behaviour for a migration window", BerlinGroupV13ConsentAccess) {
       setPropsValues("consent_allow_legacy_unrecorded_tpp" -> "true")
       Consent.checkBerlinGroupConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should equal(None)
     }
@@ -136,26 +137,26 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // ceremony outright. Nothing in the request separates that front end from a second TPP holding a
   // PSU session, so it is declared rather than inferred; these pin that the declaration is the only
   // thing that changes, and that it does not reach the PSU half.
-  feature("Consent.checkBerlinGroupConsentAccess and the ASPSP's declared SCA front end") {
+  Feature("Consent.checkBerlinGroupConsentAccess and the ASPSP's declared SCA front end") {
 
-    scenario("a declared front end may start an authorisation on a consent it did not lodge", BerlinGroupV13ConsentAccess) {
+    Scenario("a declared front end may start an authorisation on a consent it did not lodge", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
       Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = true) should
         equal(None)
     }
 
-    scenario("a declared front end still cannot re-bind another PSU's consent", BerlinGroupV13ConsentAccess) {
+    Scenario("a declared front end still cannot re-bind another PSU's consent", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(otherTpp), callerIsScaFrontEnd = true) should
         equal(Some(ConsentDoesNotMatchUser))
     }
 
-    scenario("a declared front end acting for the consent's own PSU is fine", BerlinGroupV13ConsentAccess) {
+    Scenario("a declared front end acting for the consent's own PSU is fine", BerlinGroupV13ConsentAccess) {
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = true) should
         equal(None)
     }
 
-    scenario("the declaration is by consumer id and nothing else", BerlinGroupV13ConsentAccess) {
+    Scenario("the declaration is by consumer id and nothing else", BerlinGroupV13ConsentAccess) {
       // Empty config is the default, and it must leave the same-TPP rule applying to everyone.
       Consent.isScaFrontEnd(Some(otherTpp)) should equal(false)
       Consent.isScaFrontEnd(None) should equal(false)
@@ -173,8 +174,8 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // should tell them. Under consent authentication the principal is the consent's own shadow
   // user, so putting its id in the message hands the TPP an internal identifier it cannot act
   // on and was never party to.
-  feature("BG v1.3 - a view refusal does not disclose the internal principal") {
-    scenario("the refusal names the view and the account, and no user id", BerlinGroupV13ConsentAccess) {
+  Feature("BG v1.3 - a view refusal does not disclose the internal principal") {
+    Scenario("the refusal names the view and the account, and no user id", BerlinGroupV13ConsentAccess) {
       // user2 holds no Berlin Group view on testAccountId1, so this is a real refusal.
       val response = makeGetRequest((V1_3_BG / "accounts" / testAccountId1.value / "balances").GET <@ (user2))
       response.code should equal(403)
@@ -192,13 +193,13 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // AfterApiAuth.checkUserIsDeletedOrLocked never runs on this path. A lock says the ASPSP has
   // decided this user may not authenticate; resolving them here anyway routes around that decision,
   // and every later check passes because the accounts really are theirs.
-  feature("Consent.findPsuByPsuId only resolves a user who may still act") {
+  Feature("Consent.findPsuByPsuId only resolves a user who may still act") {
 
-    scenario("a live user resolves", BerlinGroupV13ConsentAccess) {
+    Scenario("a live user resolves", BerlinGroupV13ConsentAccess) {
       Consent.findPsuByPsuId(resourceUser1.name).map(_.userId) should equal(Full(resourceUser1.userId))
     }
 
-    scenario("a locked user does not resolve", BerlinGroupV13ConsentAccess) {
+    Scenario("a locked user does not resolve", BerlinGroupV13ConsentAccess) {
       UserLocksProvider.lockUser(resourceUser2.provider, resourceUser2.name)
       try {
         Consent.findPsuByPsuId(resourceUser2.name) should equal(Empty)
@@ -213,23 +214,23 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // header into UserNotFoundByProviderAndUsername at 401, and a locked user must get that same
     // answer. Telling the two apart would hand a TPP a way to confirm that a username exists, which
     // is the oracle the consent reads were unified to close.
-    scenario("the refusal does not say which of the two it was", BerlinGroupV13ConsentAccess) {
+    Scenario("the refusal does not say which of the two it was", BerlinGroupV13ConsentAccess) {
       Consent.findPsuByPsuId("no-such-user-at-all") should equal(Empty)
     }
   }
 
-  feature("Consent.genuinePsu") {
+  Feature("Consent.genuinePsu") {
 
-    scenario("a session with no user at all has no PSU", BerlinGroupV13ConsentAccess) {
+    Scenario("a session with no user at all has no PSU", BerlinGroupV13ConsentAccess) {
       Consent.genuinePsu(CallContext(user = Empty, consumer = Full(testConsumer))) should equal(None)
     }
 
-    scenario("the Consumer's own pseudo-identity is not a PSU", BerlinGroupV13ConsentAccess) {
+    Scenario("the Consumer's own pseudo-identity is not a PSU", BerlinGroupV13ConsentAccess) {
       Consent.genuinePsu(
         CallContext(user = Full(pseudoUserOfTestConsumer), consumer = Full(testConsumer))) should equal(None)
     }
 
-    scenario("a real person authenticated in the session is a PSU", BerlinGroupV13ConsentAccess) {
+    Scenario("a real person authenticated in the session is a PSU", BerlinGroupV13ConsentAccess) {
       Consent.genuinePsu(CallContext(user = Full(resourceUser1), consumer = Full(testConsumer)))
         .map(_.userId) should equal(Some(resourceUser1.userId))
     }
@@ -237,7 +238,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // Degenerate, and it fails closed rather than open: with no Consumer identified there is no key
     // to compare against, so the pseudo-user survives the filter -- but callerConsumerId is None
     // too, so a bound consent is refused on the PSU half and an unbound one on the Consumer half.
-    scenario("with no Consumer on the call there is no key to filter against", BerlinGroupV13ConsentAccess) {
+    Scenario("with no Consumer on the call there is no key to filter against", BerlinGroupV13ConsentAccess) {
       Consent.genuinePsu(CallContext(user = Full(pseudoUserOfTestConsumer), consumer = Empty))
         .map(_.userId) should equal(Some(pseudoUserOfTestConsumer.userId))
 
@@ -251,24 +252,24 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // The interesting cases here are absences -- no PSU in the session, no header, or both -- and an
   // OAuth1-signed test request always attaches a user, so the rule is pinned directly as well as
   // driven over HTTP. Same reasoning as the two blocks above.
-  feature("Consent.resolveBerlinGroupPsu") {
+  Feature("Consent.resolveBerlinGroupPsu") {
 
-    scenario("a consent that already names a PSU answers for itself", BerlinGroupV13ConsentAccess) {
+    Scenario("a consent that already names a PSU answers for itself", BerlinGroupV13ConsentAccess) {
       Consent.resolveBerlinGroupPsu(psu, None, None) should equal(Right(psu))
       Consent.resolveBerlinGroupPsu(psu, None, Some(psu)) should equal(Right(psu))
     }
 
-    scenario("an unbound consent takes the PSU from the session, which is the Redirect approach", BerlinGroupV13ConsentAccess) {
+    Scenario("an unbound consent takes the PSU from the session, which is the Redirect approach", BerlinGroupV13ConsentAccess) {
       Consent.resolveBerlinGroupPsu("", Some(psu), None) should equal(Right(psu))
     }
 
-    scenario("with no PSU in the session the PSU-ID header names one, which is Embedded", BerlinGroupV13ConsentAccess) {
+    Scenario("with no PSU in the session the PSU-ID header names one, which is Embedded", BerlinGroupV13ConsentAccess) {
       Consent.resolveBerlinGroupPsu("", None, Some(psu)) should equal(Right(psu))
     }
 
     // Not a defensive branch: a conforming client-credentials call that omitted the header lands
     // here, and there is genuinely no one to mint the challenge for or send the OTP to.
-    scenario("with none of the three there is nobody to authorise for", BerlinGroupV13ConsentAccess) {
+    Scenario("with none of the three there is nobody to authorise for", BerlinGroupV13ConsentAccess) {
       Consent.resolveBerlinGroupPsu("", None, None) should equal(Left(BerlinGroupPsuNotIdentified))
       Consent.resolveBerlinGroupPsu("  ", None, Some("  ")) should equal(Left(BerlinGroupPsuNotIdentified))
     }
@@ -276,12 +277,12 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // "the ASPSP might check whether PSU-ID and token match" -- Implementation Guidelines V1.3.12,
     // section 6.3.1, p.134. Refused rather than resolved by precedence: otherwise a lodging TPP
     // could name a third party and have the bound PSU's OTP mailed to them instead.
-    scenario("a PSU-ID contradicting what the ASPSP already knows is refused", BerlinGroupV13ConsentAccess) {
+    Scenario("a PSU-ID contradicting what the ASPSP already knows is refused", BerlinGroupV13ConsentAccess) {
       Consent.resolveBerlinGroupPsu(psu, None, Some(otherPsu)) should equal(Left(ConsentDoesNotMatchUser))
       Consent.resolveBerlinGroupPsu("", Some(psu), Some(otherPsu)) should equal(Left(ConsentDoesNotMatchUser))
     }
 
-    scenario("the consent outranks the session when both are present", BerlinGroupV13ConsentAccess) {
+    Scenario("the consent outranks the session when both are present", BerlinGroupV13ConsentAccess) {
       Consent.resolveBerlinGroupPsu(psu, Some(psu), None) should equal(Right(psu))
     }
   }
@@ -291,8 +292,8 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // testConsumer2, so it would be refused on the Consumer half first.
   private lazy val secondPsuOfTestConsumerToken = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id.get),
-    Some(resourceUser2.id.get),
+    Some(testConsumer.id),
+    Some(resourceUser2.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
@@ -302,7 +303,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   ).openOrThrowException("test second PSU token creation failed")
 
   private lazy val secondPsuOfTestConsumerSession =
-    Some(consumer, Token(secondPsuOfTestConsumerToken.key.get, secondPsuOfTestConsumerToken.secret.get))
+    Some(consumer, Token(secondPsuOfTestConsumerToken.key, secondPsuOfTestConsumerToken.secret))
 
   private def startAuthorisation(
     consentId: String,
@@ -342,14 +343,14 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       makeGetRequest((V1_3_BG / "consents" / consentId / "authorisations" / "any-authorisation-id").GET <@ (session))
   )
 
-  feature("BG v1.3 - the consent reads apply the same ownership rule as the authorisation pair") {
+  Feature("BG v1.3 - the consent reads apply the same ownership rule as the authorisation pair") {
 
     // A caller not entitled to a consent must not be able to tell "there is no such consent" from
     // "that one is not yours", or the endpoint confirms which ids are real. Four of these five reads
     // were unified to a bare ConsentNotFound; getConsentScaStatus kept spelling the id back, because
     // the replacement matched the default-status-code spelling and this site already passed 403
     // explicitly. Same status either way, different body -- so the oracle survived at one endpoint.
-    scenario("every read answers a missing consent exactly as it answers a foreign one", BerlinGroupV13ConsentAccess) {
+    Scenario("every read answers a missing consent exactly as it answers a foreign one", BerlinGroupV13ConsentAccess) {
       val someoneElses = createUnclaimedBerlinGroupConsent().consentId
       val missing = "no-such-consent-at-all"
 
@@ -376,7 +377,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("the lodging TPP acting for a second PSU cannot read a consent bound to the first", BerlinGroupV13ConsentAccess) {
+    Scenario("the lodging TPP acting for a second PSU cannot read a consent bound to the first", BerlinGroupV13ConsentAccess) {
       val consentId = createUnclaimedBerlinGroupConsent().consentId
       Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
 
@@ -408,9 +409,9 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature("BG v1.3 - a consent's authorisation sub-resources answer only to the TPP that lodged it") {
+  Feature("BG v1.3 - a consent's authorisation sub-resources answer only to the TPP that lodged it") {
 
-    scenario("A second TPP cannot start an authorisation on a consent it did not lodge", BerlinGroupV13ConsentAccess) {
+    Scenario("A second TPP cannot start an authorisation on a consent it did not lodge", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -426,7 +427,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       consent.status should be (ConsentStatus.received.toString)
     }
 
-    scenario("A second TPP cannot answer an authorisation the lodging TPP started", BerlinGroupV13ConsentAccess) {
+    Scenario("A second TPP cannot answer an authorisation the lodging TPP started", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -445,7 +446,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       Option(consent.userId).forall(_.isBlank) should be (true)
     }
 
-    scenario("A second PSU of the lodging TPP cannot re-bind a consent another PSU authorised", BerlinGroupV13ConsentAccess) {
+    Scenario("A second PSU of the lodging TPP cannot re-bind a consent another PSU authorised", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -468,9 +469,9 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature("BG v1.3 - the guard does not bite the flows Berlin Group actually describes") {
+  Feature("BG v1.3 - the guard does not bite the flows Berlin Group actually describes") {
 
-    scenario("The lodging TPP's PSU completes SCA and the consent is bound to them", BerlinGroupV13ConsentAccess) {
+    Scenario("The lodging TPP's PSU completes SCA and the consent is bound to them", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -493,7 +494,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // consent's real owner and a legitimate TPP poll on its own bound consent turns into a 403 --
     // which is exactly what Berlin Group's Redirect approach does, the PSU having authenticated at
     // the ASPSP rather than through the TPP.
-    scenario("The lodging TPP may still drive a bound consent on a client-credentials session", BerlinGroupV13ConsentAccess) {
+    Scenario("The lodging TPP may still drive a bound consent on a client-credentials session", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -522,13 +523,13 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
    * p.195). It is not in the body: the psuData object carries passwords only and no identifier at
    * all.
    */
-  feature("BG v1.3 - an Embedded SCA challenge belongs to the PSU, not to the TPP relaying it") {
+  Feature("BG v1.3 - an Embedded SCA challenge belongs to the PSU, not to the TPP relaying it") {
 
     // The refusal has to land before the challenge is minted, not after. Starting an authorisation
     // sends an OTP to the person PSU-ID names, out of band -- so a locked user being resolvable here
     // means the ASPSP messages somebody it has already decided may not authenticate, and the TPP is
     // one answered code away from binding their accounts to a consent.
-    scenario("A locked PSU named in PSU-ID gets no challenge at all", BerlinGroupV13ConsentAccess) {
+    Scenario("A locked PSU named in PSU-ID gets no challenge at all", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -556,7 +557,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // throws inside Box.map instead and already fails closed with a 500. An empty string is the
     // shape a real instance produces: createConsent writes the consent row before computing and
     // storing the JWT, so a consent whose JWT generation failed persists with none.
-    scenario("the accounts-held guard refuses a PSU who does not hold the consent's accounts", BerlinGroupV13ConsentAccess) {
+    Scenario("the accounts-held guard refuses a PSU who does not hold the consent's accounts", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -568,7 +569,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       refused.code should equal(403)
     }
 
-    scenario("a consent whose JWT cannot be read grants nobody the benefit of the doubt", BerlinGroupV13ConsentAccess) {
+    Scenario("a consent whose JWT cannot be read grants nobody the benefit of the doubt", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
       Consents.consentProvider.vend.setJsonWebToken(consentId, "")
@@ -586,7 +587,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("A client-credentials TPP completes SCA for the PSU it names in PSU-ID", BerlinGroupV13ConsentAccess) {
+    Scenario("A client-credentials TPP completes SCA for the PSU it names in PSU-ID", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -611,7 +612,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       consent.status should be (ConsentStatus.valid.toString)
     }
 
-    scenario("With no PSU in the session and no PSU-ID there is nobody to mint the challenge for", BerlinGroupV13ConsentAccess) {
+    Scenario("With no PSU in the session and no PSU-ID there is nobody to mint the challenge for", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -626,7 +627,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       consent.status should be (ConsentStatus.received.toString)
     }
 
-    scenario("A PSU-ID the ASPSP cannot resolve is refused", BerlinGroupV13ConsentAccess) {
+    Scenario("A PSU-ID the ASPSP cannot resolve is refused", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -642,7 +643,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     // this case the ASPSP might check whether PSU-ID and token match, according to ASPSP
     // documentation" -- Implementation Guidelines V1.3.12, section 6.3.1, p.134. Taken up here, and
     // extended to the consent's own PSU, which is the same fact recorded a step earlier.
-    scenario("A PSU-ID naming someone other than the consent's PSU cannot redirect the OTP", BerlinGroupV13ConsentAccess) {
+    Scenario("A PSU-ID naming someone other than the consent's PSU cannot redirect the OTP", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -664,7 +665,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
 
     // The consent already records who it belongs to, which is the "not yet contained in a pre-ceeding
     // request" case the standard makes PSU-ID conditional on (section 7.2.1, p.206).
-    scenario("A bound consent needs no PSU-ID: the consent itself already names the PSU", BerlinGroupV13ConsentAccess) {
+    Scenario("A bound consent needs no PSU-ID: the consent itself already names the PSU", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUnclaimedBerlinGroupConsent().consentId
 
@@ -682,7 +683,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
         .expectedUserId should be (resourceUser1.userId)
     }
 
-    scenario("A challenge minted on one consent cannot be answered on another", BerlinGroupV13ConsentAccess) {
+    Scenario("A challenge minted on one consent cannot be answered on another", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val firstConsentId = createUnclaimedBerlinGroupConsent().consentId
       val secondConsentId = createUnclaimedBerlinGroupConsent().consentId
@@ -708,7 +709,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // Pinned because nothing else would notice a revert -- these keep working for as long as OAuth2
   // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
   // that stops.
-  feature("BG v1.3 - the consent authorisation pair accepts a client-credentials caller") {
+  Feature("BG v1.3 - the consent authorisation pair accepts a client-credentials caller") {
     val authorisationDocs = List(
       "startConsentAuthorisationTransactionAuthorisation",
       "startConsentAuthorisationUpdatePsuAuthentication",
@@ -719,7 +720,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       "updateConsentsPsuDataUpdateAuthorisationConfirmation"
     )
     for (name <- authorisationDocs) {
-      scenario(s"$name declares UserOrApplication", BerlinGroupV13ConsentAccess) {
+      Scenario(s"$name declares UserOrApplication", BerlinGroupV13ConsentAccess) {
         val docs = APIUtil.ResourceDoc.getResourceDocs(
           List(APIUtil.buildOperationId(ConstantsBG.berlinGroupVersion1, name)))
         docs should not be empty

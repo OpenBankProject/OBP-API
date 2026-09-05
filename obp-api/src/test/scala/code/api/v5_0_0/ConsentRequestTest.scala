@@ -74,7 +74,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       address = testAccountId1.value), Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
-    .copy(consumer_id=Some(testConsumer.consumerId.get))
+    .copy(consumer_id=Some(testConsumer.consumerId))
     .copy(bank_id=Some(bankId))
     .copy(account_access=accountAccess)
 
@@ -87,8 +87,8 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
   def createConsentByConsentRequestIdImplicit(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"IMPLICIT"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
-  feature("Create/Get Consent Request v5.0.0") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create/Get Consent Request v5.0.0") {
+    Scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
       val response500 = makePostRequest(createConsentRequestWithoutLoginUrl, write(postConsentRequestJson))
       Then("We should get a 401")
@@ -96,7 +96,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       response500.body.extract[ErrorMessage].message should equal (ApplicationNotIdentified)
     }
 
-    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
       Then("We should get a 201")
@@ -171,7 +171,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
     }
 
-    scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
       Then("We should get a 201")
@@ -245,7 +245,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
     }
 
-    scenario(s"Check the forbidden roles ${CanCreateEntitlementAtAnyBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario(s"Check the forbidden roles ${CanCreateEntitlementAtAnyBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val postJsonForbiddenEntitlementAtAnyBank = postConsentRequestJson.copy(entitlements = Some(forbiddenEntitlementAnyBank))
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postJsonForbiddenEntitlementAtAnyBank))
@@ -262,7 +262,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       forbiddenRoleResponse.body.extract[ErrorMessage].message should equal (RolesForbiddenInConsent)
     }
 
-    scenario(s"Check the forbidden roles ${CanCreateEntitlementAtOneBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario(s"Check the forbidden roles ${CanCreateEntitlementAtOneBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val postJsonForbiddenEntitlementAtOneBank = postConsentRequestJson.copy(entitlements = Some(forbiddenEntitlementOneBank))
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postJsonForbiddenEntitlementAtOneBank))

@@ -1,14 +1,96 @@
 package code.metrics
 
 import java.util.Date
-import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
 import code.api.util._
-import code.util.{MappedUUID}
-import com.tesobe.CacheKeyFromArguments
-import net.liftweb.mapper._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+
 import scala.concurrent.duration._
+
+/**
+ * One connector method call.
+ *
+ * The table is append-only from the application's side: ConnectorMetricBatchWriter batches the
+ * inserts and nothing updates a row afterwards. Five plain indexes and no unique one is correct —
+ * a connector may call the same function under the same correlation id more than once, and each
+ * call is its own row.
+ */
+case class MappedConnectorMetric(
+  private val connectorName: String,
+  private val functionName: String,
+  private val correlationId: String,
+  private val date: Date,
+  private val duration: Long,
+  private val requestParams: String,
+  private val isSuccessful: Boolean,
+  private val apiInstanceId: String
+) extends ConnectorMetric {
+  override def getConnectorName(): String = connectorName
+  override def getFunctionName(): String = functionName
+  override def getCorrelationId(): String = correlationId
+  override def getDate(): Date = date
+  override def getDuration(): Long = duration
+  override def getRequestParams(): String = requestParams
+  override def getIsSuccessful(): Boolean = isSuccessful
+  override def getApiInstanceId(): String = apiInstanceId
+}
+
+object MappedConnectorMetric {
+
+  // date is stored as date_c: DATE collides with a SQL reserved word.
+  private val selectColumns =
+    fr"""SELECT connectorname, functionname, correlationid, date_c, duration, requestparams,
+                issuccessful, apiinstanceid
+         FROM mappedconnectormetric"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[java.sql.Timestamp],
+    Option[Long], Option[String], Option[Boolean], Option[String])
+
+  private def fromRow(row: Row): MappedConnectorMetric = row match {
+    case (connectorName, functionName, correlationId, date, duration, requestParams, isSuccessful,
+          apiInstanceId) =>
+      MappedConnectorMetric(connectorName.orNull, functionName.orNull, correlationId.orNull,
+        date.orNull, duration.getOrElse(0L), requestParams.orNull, isSuccessful.getOrElse(false),
+        apiInstanceId.orNull)
+  }
+
+  /**
+   * Filters, ordering, limit and offset are applied only when supplied, matching the Mapper
+   * QueryParam list. When no ordering is requested the id order stands in for the database's scan
+   * order, which is what Mapper returned and what makes LIMIT/OFFSET deterministic.
+   */
+  def findAllFiltered(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] = {
+    val conditions = List(
+      queryParams.collectFirst { case OBPFromDate(date) =>
+        fr"date_c >= ${new java.sql.Timestamp(date.getTime)}" },
+      queryParams.collectFirst { case OBPToDate(date) =>
+        fr"date_c <= ${new java.sql.Timestamp(date.getTime)}" },
+      queryParams.collectFirst { case OBPCorrelationId(value) => fr"correlationid = $value" },
+      queryParams.collectFirst { case OBPFunctionName(value) => fr"functionname = $value" },
+      queryParams.collectFirst { case OBPConnectorName(value) => fr"connectorname = $value" }
+    ).flatten
+    val where =
+      if (conditions.isEmpty) Fragment.empty
+      else fr"WHERE " ++ conditions.reduce((a, b) => a ++ fr"AND" ++ b)
+    // We don't care about the intended sort field and only sort on finish date for now.
+    val ordering = queryParams.collectFirst {
+      case OBPOrdering(_, OBPAscending) => fr"ORDER BY date_c ASC, id ASC"
+      case OBPOrdering(_, OBPDescending) => fr"ORDER BY date_c DESC, id DESC"
+    }.getOrElse(fr"ORDER BY id ASC")
+    val limit = queryParams.collectFirst { case OBPLimit(value) => fr"LIMIT $value" }.getOrElse(Fragment.empty)
+    val offset = queryParams.collectFirst { case OBPOffset(value) => fr"OFFSET $value" }.getOrElse(Fragment.empty)
+    DoobieUtil.runQuery(
+      (selectColumns ++ where ++ ordering ++ limit ++ offset).query[Row].to[List]).map(fromRow)
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedconnectormetric".update.run)
+    ()
+  }
+}
 
 object ConnectorMetrics extends ConnectorMetricsProvider {
 
@@ -31,66 +113,18 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
   }
 
   override def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] = {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value field with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey { 
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllConnectorMetrics.days){
-          val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedConnectorMetric](value) }.headOption
-          val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedConnectorMetric](value) }.headOption
-          val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedConnectorMetric.date, date) }.headOption
-          val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedConnectorMetric.date, date) }.headOption
-          val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MappedConnectorMetric.correlationId, value) }.headOption
-          val functionName = queryParams.collect { case OBPFunctionName(value) => By(MappedConnectorMetric.functionName, value) }.headOption
-          val connectorName = queryParams.collect { case OBPConnectorName(value) => By(MappedConnectorMetric.connectorName, value) }.headOption
-          val ordering = queryParams.collect {
-            //we don't care about the intended sort field and only sort on finish date for now
-            case OBPOrdering(_, direction) =>
-              direction match {
-                case OBPAscending => OrderBy(MappedConnectorMetric.date, Ascending)
-                case OBPDescending => OrderBy(MappedConnectorMetric.date, Descending)
-              }
-          }
-          val optionalParams : Seq[QueryParam[MappedConnectorMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering,
-                                                                            correlationId.toSeq, functionName.toSeq, connectorName.toSeq).flatten
-    
-          MappedConnectorMetric.findAll(optionalParams: _*)
-      }
+    val cacheKey = ("code.metrics.ConnectorMetrics", "getAllConnectorMetrics", List(queryParams).mkString("_"))
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllConnectorMetrics.days) {
+      MappedConnectorMetric.findAllFiltered(queryParams)
     }
   }
 
+  // Deletes MappedMetric, not MappedConnectorMetric. That is a pre-existing defect — the method
+  // named bulkDeleteConnectorMetrics empties the API-metric table and leaves connector metrics
+  // untouched — and it is preserved verbatim rather than corrected under a storage swap, because
+  // any caller relying on it today is relying on the API metrics being cleared.
   override def bulkDeleteConnectorMetrics(): Boolean = {
-    MappedMetric.bulkDelete_!!()
+    MappedMetric.deleteAll()
+    true
   }
-
-}
-
-class MappedConnectorMetric extends ConnectorMetric with LongKeyedMapper[MappedConnectorMetric] with IdPK {
-  override def getSingleton = MappedConnectorMetric
-
-  object connectorName extends MappedString(this, 64) // TODO Enforce max lenght of this when we get the Props connector
-  object functionName extends MappedString(this, 64)
-  object correlationId extends MappedUUID(this)
-  object date extends MappedDateTime(this)
-  object duration extends MappedLong(this)
-  object requestParams extends MappedString(this, 1024)
-  object isSuccessful extends MappedBoolean(this)
-  object apiInstanceId extends MappedString(this, 255)
-
-  override def getConnectorName(): String = connectorName.get
-  override def getFunctionName(): String = functionName.get
-  override def getCorrelationId(): String = correlationId.get
-  override def getDate(): Date = date.get
-  override def getDuration(): Long = duration.get
-  override def getRequestParams(): String = requestParams.get
-  override def getIsSuccessful(): Boolean = isSuccessful.get
-  override def getApiInstanceId(): String = apiInstanceId.get
-}
-
-object MappedConnectorMetric extends MappedConnectorMetric with LongKeyedMetaMapper[MappedConnectorMetric] {
-  override def dbIndexes = Index(connectorName) :: Index(functionName) :: Index(date) :: Index(correlationId) :: Index(isSuccessful) :: super.dbIndexes
 }

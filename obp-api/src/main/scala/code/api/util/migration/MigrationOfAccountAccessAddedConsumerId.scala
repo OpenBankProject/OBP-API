@@ -6,7 +6,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
 import code.views.system.AccountAccess
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import java.time.format.DateTimeFormatter
@@ -19,14 +18,14 @@ object MigrationOfAccountAccessAddedConsumerId {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def addAccountAccessConsumerId(name: String): Boolean = {
-    DbFunction.tableExists(AccountAccess) match {
+    DbFunction.tableExistsByName("accountaccess") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             val dbDriver = APIUtil.getPropsValue("db.driver","org.h2.Driver")
             () => s"""
                |${Helper.addColumnIfNotExists(dbDriver,"accountaccess", "consumer_id", ALL_CONSUMERS)}
@@ -49,7 +48,7 @@ object MigrationOfAccountAccessAddedConsumerId {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${AccountAccess._dbTableNameLC} table does not exist""".stripMargin
+          "accountaccess table does not exist"
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

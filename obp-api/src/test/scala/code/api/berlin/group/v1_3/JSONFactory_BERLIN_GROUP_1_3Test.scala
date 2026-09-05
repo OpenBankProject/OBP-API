@@ -33,15 +33,17 @@ import code.setup.PropsReset
 import com.openbankproject.commons.model._
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 
-class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
+class JSONFactory_BERLIN_GROUP_1_3Test extends AnyFeatureSpec with Matchers with GivenWhenThen with PropsReset {
 
-    implicit val formats = CustomJsonFormats.formats
+    implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
   
-    feature("test createTransactionJSON method") {
-    scenario("createTransactionJSON should return a valid JSON object") {
+    Feature("test createTransactionJSON method") {
+    Scenario("createTransactionJSON should return a valid JSON object") {
       def mockModeratedTransaction(): ModeratedTransaction = {
         val mockThisBankAccount = new code.model.ModeratedBankAccount(
           accountId = AccountId("test-account-id"),

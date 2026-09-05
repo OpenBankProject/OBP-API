@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.concurrency
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2monadic
 
 import scala.concurrent.duration._
 
@@ -44,9 +45,9 @@ import scala.concurrent.duration._
  */
 class ConcurrentConnectionMechanismTest extends ConcurrentRaceSetup {
 
-  feature("Request-scoped connection management under concurrency") {
+  Feature("Request-scoped connection management under concurrency") {
 
-    scenario("G1: concurrent requests exceeding the pool must all complete (queue, not deadlock)", ConcurrencyRace) {
+    Scenario("G1: concurrent requests exceeding the pool must all complete (queue, not deadlock)", ConcurrencyRace) {
       Given("more concurrent authenticated requests than the hikari pool size (test pool = 20)")
       val n = 30
 
@@ -63,7 +64,7 @@ class ConcurrentConnectionMechanismTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("G2: high concurrency must not bleed request context across connections", ConcurrencyRace) {
+    Scenario("G2: high concurrency must not bleed request context across connections", ConcurrencyRace) {
       Given("many concurrent GET /users/current as user1")
       val n              = 20
       val expectedUserId = resourceUser1.userId

@@ -81,8 +81,8 @@ class ProductTest extends V400ServerSetup {
     product
   }
   
-  feature("Create Product v4.0.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create Product v4.0.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT
       val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
@@ -91,7 +91,7 @@ class ProductTest extends V400ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
       val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
@@ -102,7 +102,7 @@ class ProductTest extends V400ServerSetup {
       And("error should be " + createProductEntitlementsRequiredText)
       response400.body.extract[ErrorMessage].message contains (createProductEntitlementsRequiredText) should be (true)
     }
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
 
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
 
@@ -132,7 +132,7 @@ class ProductTest extends V400ServerSetup {
       products.products.size shouldBe 3
 
     }
-    scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
+    Scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
       When("We need to first create the products ")
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)

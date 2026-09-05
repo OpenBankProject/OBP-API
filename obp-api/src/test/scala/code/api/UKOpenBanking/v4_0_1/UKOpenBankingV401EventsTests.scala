@@ -11,43 +11,43 @@ class UKOpenBankingV401EventsTests extends UKOpenBankingV401ServerSetup {
   object UKOpenBankingV401Events extends Tag("UKOpenBankingV401Events")
   val emptyBody = "{}"
 
-  feature("UKOB v4.0.1 GET /event-subscriptions") {
-    scenario("authenticated -> 200", UKOpenBankingV401Events) {
+  Feature("UKOB v4.0.1 GET /event-subscriptions") {
+    Scenario("authenticated -> 200", UKOpenBankingV401Events) {
       getAuthed("event-subscriptions").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
       getUnauthed("event-subscriptions").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 POST /event-subscriptions") {
-    scenario("authenticated -> 201", UKOpenBankingV401Events) {
+  Feature("UKOB v4.0.1 POST /event-subscriptions") {
+    Scenario("authenticated -> 201", UKOpenBankingV401Events) {
       postAuthed(emptyBody, "event-subscriptions").code should equal(201)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
       postUnauthed(emptyBody, "event-subscriptions").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 PUT /event-subscriptions/EVENT_SUBSCRIPTION_ID") {
-    scenario("authenticated -> 201", UKOpenBankingV401Events) {
+  Feature("UKOB v4.0.1 PUT /event-subscriptions/EVENT_SUBSCRIPTION_ID") {
+    Scenario("authenticated -> 201", UKOpenBankingV401Events) {
       putAuthed(emptyBody, "event-subscriptions", "fake-eventsubscriptionid").code should equal(201)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
       putUnauthed(emptyBody, "event-subscriptions", "fake-eventsubscriptionid").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 DELETE /event-subscriptions/EVENT_SUBSCRIPTION_ID") {
-    scenario("authenticated -> 204", UKOpenBankingV401Events) {
+  Feature("UKOB v4.0.1 DELETE /event-subscriptions/EVENT_SUBSCRIPTION_ID") {
+    Scenario("authenticated -> 204", UKOpenBankingV401Events) {
       deleteAuthed("event-subscriptions", "fake-eventsubscriptionid").code should equal(204)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
       deleteUnauthed("event-subscriptions", "fake-eventsubscriptionid").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 POST /events") {
-    scenario("authenticated -> 201", UKOpenBankingV401Events) {
+  Feature("UKOB v4.0.1 POST /events") {
+    Scenario("authenticated -> 201", UKOpenBankingV401Events) {
       postAuthed(emptyBody, "events").code should equal(201)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401Events) {
       postUnauthed(emptyBody, "events").code should equal(401)
     }
   }

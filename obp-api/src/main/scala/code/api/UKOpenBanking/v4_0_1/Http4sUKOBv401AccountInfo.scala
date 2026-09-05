@@ -25,7 +25,7 @@ import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, Tr
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.openbankproject.commons.util.JsonAliases
 import net.liftweb.common.{Box, Full}
-import org.json4s.{Formats, JObject}
+import org.json4s.{Formats, JObject, jvalue2extractable}
 import org.http4s._
 import org.http4s.dsl.io._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -112,7 +112,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           // consent's owner (it would permanently block the real PSU's authorise-time
           // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
           createdByUser = cc.user.toOption
-            .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
+            .filterNot(u => cc.consumer.map(_.key).contains(u.idGivenByProvider))
           consentJson <- Future.fromTry(scala.util.Try(
             JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
@@ -137,7 +137,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
               Helper.booleanToFuture(s"$InvalidUKConsentPermissions$reason", 400, Some(cc))(false)
             case None => Future.successful(true)
           }
-          consumerId = cc.consumer.map(_.consumerId.get)
+          consumerId = cc.consumer.map(_.consumerId)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
             createdByUser,

@@ -647,7 +647,10 @@ object JSONFactory220 {
 
   def createConsumerJSON(c: Consumer): ConsumerJson = {
 
-    val resourceUserJSON =  Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+    // consumer.createdbyuserid is nullable and reads back as null, as MappedString did. This
+    // used to call .toString() on the Mapper FIELD, whose toString maps null to "" - now it
+    // is a raw String, so the same call threw. "" reproduces the old lookup, which found none.
+    val resourceUserJSON =  Users.users.vend.getUserByUserId(Option(c.createdByUserId).getOrElse("")) match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
         email = resourceUser.emailAddress,
@@ -658,18 +661,21 @@ object JSONFactory220 {
       case _ => null
     }
 
-    ConsumerJson(consumer_id=c.id.get,
-      key=c.key.get,
-      secret=c.secret.get,
-      app_name=c.name.get,
-      app_type=c.appType.toString(),
-      description=c.description.get,
-      developer_email=c.developerEmail.get,
-      redirect_url=c.redirectURL.get,
-      created_by_user_id =c.createdByUserId.get,
+    ConsumerJson(consumer_id=c.id,
+      key=c.key,
+      secret=c.secret,
+      app_name=c.name,
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type=Option(c.appType).getOrElse(""),
+      description=c.description,
+      developer_email=c.developerEmail,
+      redirect_url=c.redirectURL,
+      created_by_user_id =c.createdByUserId,
       created_by_user =resourceUserJSON,
-      enabled=c.isActive.get,
-      created=c.createdAt.get
+      enabled=c.isActive,
+      created=c.createdAt
     )
   }
 
@@ -679,10 +685,10 @@ object JSONFactory220 {
 
     var basicUser = BasicUserJsonV220(
       user_id = user.userId,
-      email = user.email.get,
+      email = user.emailAddress,
       provider_id = user.idGivenByProvider,
       provider = user.provider,
-      username = user.name_.get // TODO Double check this is the same as AuthUser.username ??
+      username = user.name // TODO Double check this is the same as AuthUser.username ??
     )
 
     val basicCustomer = BasicCustomerJsonV220(
@@ -844,7 +850,7 @@ object JSONFactory220 {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))
   }
 
-  private implicit val formats = CustomJsonFormats.formats + OptionalFieldSerializer
+  private implicit val formats: org.json4s.Formats = CustomJsonFormats.formats + OptionalFieldSerializer
 
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     val inBoundType = ReflectUtils.getType(md.exampleInboundMessage)

@@ -26,7 +26,7 @@ import scala.concurrent.Future
 
 object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
-  implicit override val nameOfConnector = AkkaConnector_vDec2018.toString
+  implicit override val nameOfConnector: String = AkkaConnector_vDec2018.toString
   val messageFormat: String = "Dec2018"
 
   lazy val southSideActor = ObpLookupSystem.getAkkaConnectorActor(AkkaConnectorHelperActor.actorName)
@@ -168,7 +168,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
-  override def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) = {
+  override def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): scala.concurrent.Future[(net.liftweb.common.Full[com.openbankproject.commons.model.BankAccountCommons], Option[code.api.util.CallContext])] = {
     val req = OutBoundCheckBankAccountExists(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
     val response: Future[InBoundCheckBankAccountExists] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExists] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data), callContext))

@@ -265,8 +265,31 @@ object InternalConnector {
     dynamicMethods
   }
 
-  private lazy val methodNameToSymbols: Map[String, MethodSymbol] = typeOf[Connector].decls.collect {
-    case t: TermSymbol if t.isMethod && t.isPublic && !t.isConstructor && !t.isVal && !t.isVar =>
+  // typeOf[Connector] needs the Scala 2 compiler to synthesise a TypeTag for Connector, which
+  // Scala 3 does not implement; ReflectUtils.forType builds the same Type at runtime from the
+  // class name instead, needing no synthesis under either compiler.
+  //
+  // isVal/isVar are unreliable here and the filter below cannot rely on them alone: they read
+  // from ScalaSig, which only a Scala 2-compiled class carries, and Connector is now Scala
+  // 3-compiled (TASTy). A val getter and a genuine zero-arg def compile to the identical JVM
+  // shape (an interface accessor method), so nothing overridable/isPublic/isMethod can tell them
+  // apart either - the distinction is source-level information a Scala 2 reader simply cannot
+  // recover from a Scala 3 classfile. Connector declares exactly two public vals directly in its
+  // trait body (`implicit val formats`, `val messageDocs`) - both named explicitly here rather
+  // than left to a flag that silently stopped working. Named for documentation/defence-in-depth,
+  // but the real, general guard is the zero-arg-parameter check below: every genuine
+  // dynamic-dispatch connector method operates on some entity (BankId, AccountId, ...) plus
+  // CallContext, so it always takes at least one parameter - the same convention
+  // Connector.scala's own connectorMethods filters on for the identical problem. A val/def added
+  // to Connector later without updating this Set still gets excluded as long as it is zero-arg
+  // like formats/messageDocs are, so this list stopping short of exhaustive isn't a silent gap.
+  private val knownConnectorVals = Set("formats", "messageDocs")
+
+  private lazy val methodNameToSymbols: Map[String, MethodSymbol] =
+    ReflectUtils.forType("code.bankconnectors.Connector").decls.collect {
+    case t: TermSymbol if t.isMethod && t.isPublic && !t.isConstructor && !t.isVal && !t.isVar
+      && t.asMethod.paramLists.nonEmpty && t.asMethod.paramLists.head.nonEmpty
+      && !knownConnectorVals.contains(t.name.decodedName.toString.trim) =>
       val methodName = t.name.decodedName.toString.trim
       val method = t.asMethod
       methodName -> method

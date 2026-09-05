@@ -7,8 +7,9 @@ import code.api.util.{CertificateUtil, PeerTrust}
 import code.api.util.SelfSignedCertificateUtil.generateSelfSignedCert
 import org.http4s.{Method, Request}
 import org.http4s.server.{SecureSession, ServerRequestKeys}
-import org.scalatest.{FlatSpec, Matchers}
 import org.typelevel.ci.CIString
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * The http4s half of the caller-resolution rule: that the two inputs are collected from the right
@@ -19,7 +20,7 @@ import org.typelevel.ci.CIString
  * middleware replaced. They are the "OBP is the TLS edge" row of the table, and keeping them is how
  * we know that deployment did not change behaviour when the rule was generalised.
  */
-class CallerCertificateTest extends FlatSpec with Matchers {
+class CallerCertificateTest extends AnyFlatSpec with Matchers {
 
   private val psd2CertHeader = CIString("PSD2-CERT")
 

@@ -1,57 +1,71 @@
 package code.productcollection
 
+import code.api.util.DoobieUtil
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.ProductCollection
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common._
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object MappedProductCollectionProvider extends ProductCollectionProvider {
-  override def getProductCollection(collectionCode: String): Future[Box[List[ProductCollection]]] = Future {
-    tryo(MappedProductCollection.findAll(By(MappedProductCollection.mCollectionCode, collectionCode)))
+/** One product's membership of a named collection. */
+case class MappedProductCollection(
+  collectionCode: String,
+  productCode: String
+) extends ProductCollection
+
+object MappedProductCollection {
+
+  private val selectColumns =
+    fr"SELECT mcollectioncode, mproductcode FROM mappedproductcollection"
+
+  private def query(condition: Fragment): List[MappedProductCollection] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[(String, String)].to[List])
+      .map { case (collectionCode, productCode) =>
+        MappedProductCollection(collectionCode, productCode) }
+
+  def findAllByCollectionCode(collectionCode: String): List[MappedProductCollection] =
+    query(fr"WHERE mcollectioncode = $collectionCode")
+
+  def deleteByCollectionCode(collectionCode: String): Int =
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedproductcollection WHERE mcollectioncode = $collectionCode".update.run)
+
+  def insert(collectionCode: String, productCode: String): MappedProductCollection = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO mappedproductcollection
+            (mcollectioncode, mproductcode, createdat, updatedat)
+            VALUES ($collectionCode, $productCode, $now, $now)"""
+        .update.run)
+    MappedProductCollection(collectionCode, productCode)
   }
 
-  override def getOrCreateProductCollection(collectionCode: String, productCodes: List[String]): Future[Box[List[ProductCollection]]] = Future {
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedproductcollection".update.run)
+    ()
+  }
+}
+
+object MappedProductCollectionProvider extends ProductCollectionProvider {
+
+  override def getProductCollection(collectionCode: String): Future[Box[List[ProductCollection]]] = Future {
+    tryo(MappedProductCollection.findAllByCollectionCode(collectionCode))
+  }
+
+  /**
+   * Replaces the collection wholesale: the existing rows go, then the supplied product codes are
+   * inserted. The unique index on (mcollectioncode, mproductcode) means a caller passing the same
+   * code twice in one list fails the whole call rather than silently storing a duplicate.
+   */
+  override def getOrCreateProductCollection(collectionCode: String,
+                                            productCodes: List[String]): Future[Box[List[ProductCollection]]] = Future {
     tryo {
-      val deleted = 
-        for {
-          item <- MappedProductCollection.findAll(By(MappedProductCollection.mCollectionCode, collectionCode))
-        } yield item.delete_!
-  
-      val result: List[MappedProductCollection] = deleted.forall(_ == true) match {
-        case true =>
-          for {
-            productCode <- productCodes
-          } yield {
-            MappedProductCollection
-              .create
-              .mProductCode(productCode)
-              .mCollectionCode(collectionCode)
-              .saveMe
-          }
-        case false =>
-          Nil
-      }
-      result
+      MappedProductCollection.deleteByCollectionCode(collectionCode)
+      productCodes.map(MappedProductCollection.insert(collectionCode, _))
     }
   }
-}
-
-class MappedProductCollection extends ProductCollection with LongKeyedMapper[MappedProductCollection] with IdPK with CreatedUpdated {
-  
-  def getSingleton = MappedProductCollection
-
-  object mCollectionCode extends MappedString(this, 50)
-  object mProductCode extends MappedString(this, 50)
-
-  override def collectionCode: String = mCollectionCode.get
-  override def productCode: String = mProductCode.get
-  
-}
-
-
-object MappedProductCollection extends MappedProductCollection with LongKeyedMetaMapper[MappedProductCollection] {
-  override def dbIndexes: List[BaseIndex[MappedProductCollection]] = UniqueIndex(mCollectionCode, mProductCode) :: super.dbIndexes
 }

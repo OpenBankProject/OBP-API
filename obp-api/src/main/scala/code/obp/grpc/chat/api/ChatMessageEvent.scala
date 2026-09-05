@@ -5,6 +5,8 @@
 
 package code.obp.grpc.chat.api
 
+/** Fields match ChatMessageJsonV600 exactly, plus event_type for stream events
+  */
 @SerialVersionUID(0L)
 final case class ChatMessageEvent(
     eventType: _root_.scala.Predef.String = "",
@@ -22,121 +24,202 @@ final case class ChatMessageEvent(
     threadId: _root_.scala.Predef.String = "",
     isDeleted: _root_.scala.Boolean = false,
     createdAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
-    updatedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
-    ) extends scalapb.GeneratedMessage with scalapb.Message[ChatMessageEvent] with scalapb.lenses.Updatable[ChatMessageEvent] {
+    updatedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
+    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ChatMessageEvent] {
     @transient
-    private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-    private[this] def __computeSerializedValue(): _root_.scala.Int = {
+    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+    private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
-      if (eventType != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, eventType) }
-      if (chatMessageId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, chatMessageId) }
-      if (chatRoomId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, chatRoomId) }
-      if (senderUserId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, senderUserId) }
-      if (senderConsumerId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, senderConsumerId) }
-      if (senderUsername != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(6, senderUsername) }
-      if (senderProvider != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(7, senderProvider) }
-      if (senderConsumerName != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(8, senderConsumerName) }
-      if (content != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(9, content) }
-      if (messageType != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(10, messageType) }
+      
+      {
+        val __value = eventType
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+        }
+      };
+      
+      {
+        val __value = chatMessageId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+        }
+      };
+      
+      {
+        val __value = chatRoomId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
+        }
+      };
+      
+      {
+        val __value = senderUserId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
+        }
+      };
+      
+      {
+        val __value = senderConsumerId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
+        }
+      };
+      
+      {
+        val __value = senderUsername
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(6, __value)
+        }
+      };
+      
+      {
+        val __value = senderProvider
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(7, __value)
+        }
+      };
+      
+      {
+        val __value = senderConsumerName
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(8, __value)
+        }
+      };
+      
+      {
+        val __value = content
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(9, __value)
+        }
+      };
+      
+      {
+        val __value = messageType
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(10, __value)
+        }
+      };
       mentionedUserIds.foreach { __item =>
-        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(11, __item)
+        val __value = __item
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(11, __value)
       }
-      if (replyToMessageId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(12, replyToMessageId) }
-      if (threadId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(13, threadId) }
-      if (isDeleted != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(14, isDeleted) }
+      
+      {
+        val __value = replyToMessageId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(12, __value)
+        }
+      };
+      
+      {
+        val __value = threadId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(13, __value)
+        }
+      };
+      
+      {
+        val __value = isDeleted
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(14, __value)
+        }
+      };
       if (createdAt.isDefined) {
-        val __v = createdAt.get
-        val __s = __v.serializedSize
-        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__s) + __s
-      }
+        val __value = createdAt.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
       if (updatedAt.isDefined) {
-        val __v = updatedAt.get
-        val __s = __v.serializedSize
-        __size += 2 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__s) + __s
-      }
+        val __value = updatedAt.get
+        __size += 2 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
+      __size += unknownFields.serializedSize
       __size
     }
-    final override def serializedSize: _root_.scala.Int = {
-      var read = __serializedSizeCachedValue
-      if (read == 0) {
-        read = __computeSerializedValue()
-        __serializedSizeCachedValue = read
+    override def serializedSize: _root_.scala.Int = {
+      var __size = __serializedSizeMemoized
+      if (__size == 0) {
+        __size = __computeSerializedSize() + 1
+        __serializedSizeMemoized = __size
       }
-      read
+      __size - 1
+      
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
         val __v = eventType
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
       };
       {
         val __v = chatMessageId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(2, __v)
         }
       };
       {
         val __v = chatRoomId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(3, __v)
         }
       };
       {
         val __v = senderUserId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(4, __v)
         }
       };
       {
         val __v = senderConsumerId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(5, __v)
         }
       };
       {
         val __v = senderUsername
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(6, __v)
         }
       };
       {
         val __v = senderProvider
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(7, __v)
         }
       };
       {
         val __v = senderConsumerName
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(8, __v)
         }
       };
       {
         val __v = content
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(9, __v)
         }
       };
       {
         val __v = messageType
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(10, __v)
         }
       };
       mentionedUserIds.foreach { __v =>
-        _output__.writeString(11, __v)
+        val __m = __v
+        _output__.writeString(11, __m)
       };
       {
         val __v = replyToMessageId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(12, __v)
         }
       };
       {
         val __v = threadId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(13, __v)
         }
       };
@@ -147,94 +230,19 @@ final case class ChatMessageEvent(
         }
       };
       createdAt.foreach { __v =>
+        val __m = __v
         _output__.writeTag(15, 2)
-        _output__.writeUInt32NoTag(__v.serializedSize)
-        __v.writeTo(_output__)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
       };
       updatedAt.foreach { __v =>
+        val __m = __v
         _output__.writeTag(16, 2)
-        _output__.writeUInt32NoTag(__v.serializedSize)
-        __v.writeTo(_output__)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
       };
+      unknownFields.writeTo(_output__)
     }
-    def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.ChatMessageEvent = {
-      var __eventType = this.eventType
-      var __chatMessageId = this.chatMessageId
-      var __chatRoomId = this.chatRoomId
-      var __senderUserId = this.senderUserId
-      var __senderConsumerId = this.senderConsumerId
-      var __senderUsername = this.senderUsername
-      var __senderProvider = this.senderProvider
-      var __senderConsumerName = this.senderConsumerName
-      var __content = this.content
-      var __messageType = this.messageType
-      val __mentionedUserIds = (_root_.scala.collection.immutable.Vector.newBuilder[_root_.scala.Predef.String] ++= this.mentionedUserIds)
-      var __replyToMessageId = this.replyToMessageId
-      var __threadId = this.threadId
-      var __isDeleted = this.isDeleted
-      var __createdAt = this.createdAt
-      var __updatedAt = this.updatedAt
-      var _done__ = false
-      while (!_done__) {
-        val _tag__ = _input__.readTag()
-        _tag__ match {
-          case 0 => _done__ = true
-          case 10 =>
-            __eventType = _input__.readString()
-          case 18 =>
-            __chatMessageId = _input__.readString()
-          case 26 =>
-            __chatRoomId = _input__.readString()
-          case 34 =>
-            __senderUserId = _input__.readString()
-          case 42 =>
-            __senderConsumerId = _input__.readString()
-          case 50 =>
-            __senderUsername = _input__.readString()
-          case 58 =>
-            __senderProvider = _input__.readString()
-          case 66 =>
-            __senderConsumerName = _input__.readString()
-          case 74 =>
-            __content = _input__.readString()
-          case 82 =>
-            __messageType = _input__.readString()
-          case 90 =>
-            __mentionedUserIds += _input__.readString()
-          case 98 =>
-            __replyToMessageId = _input__.readString()
-          case 106 =>
-            __threadId = _input__.readString()
-          case 112 =>
-            __isDeleted = _input__.readBool()
-          case 122 =>
-            __createdAt = _root_.scala.Option(_root_.scalapb.LiteParser.readMessage(_input__, __createdAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)))
-          case 130 =>
-            __updatedAt = _root_.scala.Option(_root_.scalapb.LiteParser.readMessage(_input__, __updatedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)))
-          case tag => _input__.skipField(tag)
-        }
-      }
-      code.obp.grpc.chat.api.ChatMessageEvent(
-          eventType = __eventType,
-          chatMessageId = __chatMessageId,
-          chatRoomId = __chatRoomId,
-          senderUserId = __senderUserId,
-          senderConsumerId = __senderConsumerId,
-          senderUsername = __senderUsername,
-          senderProvider = __senderProvider,
-          senderConsumerName = __senderConsumerName,
-          content = __content,
-          messageType = __messageType,
-          mentionedUserIds = __mentionedUserIds.result(),
-          replyToMessageId = __replyToMessageId,
-          threadId = __threadId,
-          isDeleted = __isDeleted,
-          createdAt = __createdAt,
-          updatedAt = __updatedAt
-      )
-    }
-    def getCreatedAt: com.google.protobuf.timestamp.Timestamp = createdAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
-    def getUpdatedAt: com.google.protobuf.timestamp.Timestamp = updatedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
     def withEventType(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(eventType = __v)
     def withChatMessageId(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(chatMessageId = __v)
     def withChatRoomId(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(chatRoomId = __v)
@@ -245,17 +253,22 @@ final case class ChatMessageEvent(
     def withSenderConsumerName(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(senderConsumerName = __v)
     def withContent(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(content = __v)
     def withMessageType(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(messageType = __v)
+    def clearMentionedUserIds = copy(mentionedUserIds = _root_.scala.Seq.empty)
+    def addMentionedUserIds(__vs: _root_.scala.Predef.String *): ChatMessageEvent = addAllMentionedUserIds(__vs)
+    def addAllMentionedUserIds(__vs: Iterable[_root_.scala.Predef.String]): ChatMessageEvent = copy(mentionedUserIds = mentionedUserIds ++ __vs)
     def withMentionedUserIds(__v: _root_.scala.Seq[_root_.scala.Predef.String]): ChatMessageEvent = copy(mentionedUserIds = __v)
-    def addMentionedUserIds(__vs: _root_.scala.Predef.String*): ChatMessageEvent = addAllMentionedUserIds(__vs)
-    def addAllMentionedUserIds(__vs: _root_.scala.Iterable[_root_.scala.Predef.String]): ChatMessageEvent = copy(mentionedUserIds = mentionedUserIds ++ __vs)
     def withReplyToMessageId(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(replyToMessageId = __v)
     def withThreadId(__v: _root_.scala.Predef.String): ChatMessageEvent = copy(threadId = __v)
     def withIsDeleted(__v: _root_.scala.Boolean): ChatMessageEvent = copy(isDeleted = __v)
+    def getCreatedAt: com.google.protobuf.timestamp.Timestamp = createdAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
     def clearCreatedAt: ChatMessageEvent = copy(createdAt = _root_.scala.None)
-    def withCreatedAt(__v: com.google.protobuf.timestamp.Timestamp): ChatMessageEvent = copy(createdAt = _root_.scala.Option(__v))
+    def withCreatedAt(__v: com.google.protobuf.timestamp.Timestamp): ChatMessageEvent = copy(createdAt = Option(__v))
+    def getUpdatedAt: com.google.protobuf.timestamp.Timestamp = updatedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
     def clearUpdatedAt: ChatMessageEvent = copy(updatedAt = _root_.scala.None)
-    def withUpdatedAt(__v: com.google.protobuf.timestamp.Timestamp): ChatMessageEvent = copy(updatedAt = _root_.scala.Option(__v))
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+    def withUpdatedAt(__v: com.google.protobuf.timestamp.Timestamp): ChatMessageEvent = copy(updatedAt = Option(__v))
+    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
           val __t = eventType
@@ -315,7 +328,7 @@ final case class ChatMessageEvent(
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      require(__field.containingMessage eq companion.scalaDescriptor)
+      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(eventType)
         case 2 => _root_.scalapb.descriptors.PString(chatMessageId)
@@ -327,7 +340,7 @@ final case class ChatMessageEvent(
         case 8 => _root_.scalapb.descriptors.PString(senderConsumerName)
         case 9 => _root_.scalapb.descriptors.PString(content)
         case 10 => _root_.scalapb.descriptors.PString(messageType)
-        case 11 => _root_.scalapb.descriptors.PRepeated(mentionedUserIds.iterator.map(_root_.scalapb.descriptors.PString).toVector)
+        case 11 => _root_.scalapb.descriptors.PRepeated(mentionedUserIds.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
         case 12 => _root_.scalapb.descriptors.PString(replyToMessageId)
         case 13 => _root_.scalapb.descriptors.PString(threadId)
         case 14 => _root_.scalapb.descriptors.PBoolean(isDeleted)
@@ -336,67 +349,146 @@ final case class ChatMessageEvent(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.ChatMessageEvent
+    def companion: code.obp.grpc.chat.api.ChatMessageEvent.type = code.obp.grpc.chat.api.ChatMessageEvent
+    // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.chat.g1.ChatMessageEvent])
 }
 
 object ChatMessageEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.ChatMessageEvent] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.ChatMessageEvent] = this
-  def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.chat.api.ChatMessageEvent = {
-    require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-    val __fields = javaDescriptor.getFields
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.ChatMessageEvent = {
+    var __eventType: _root_.scala.Predef.String = ""
+    var __chatMessageId: _root_.scala.Predef.String = ""
+    var __chatRoomId: _root_.scala.Predef.String = ""
+    var __senderUserId: _root_.scala.Predef.String = ""
+    var __senderConsumerId: _root_.scala.Predef.String = ""
+    var __senderUsername: _root_.scala.Predef.String = ""
+    var __senderProvider: _root_.scala.Predef.String = ""
+    var __senderConsumerName: _root_.scala.Predef.String = ""
+    var __content: _root_.scala.Predef.String = ""
+    var __messageType: _root_.scala.Predef.String = ""
+    val __mentionedUserIds: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
+    var __replyToMessageId: _root_.scala.Predef.String = ""
+    var __threadId: _root_.scala.Predef.String = ""
+    var __isDeleted: _root_.scala.Boolean = false
+    var __createdAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
+    var __updatedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
+    var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+    var _done__ = false
+    while (!_done__) {
+      val _tag__ = _input__.readTag()
+      _tag__ match {
+        case 0 => _done__ = true
+        case 10 =>
+          __eventType = _input__.readStringRequireUtf8()
+        case 18 =>
+          __chatMessageId = _input__.readStringRequireUtf8()
+        case 26 =>
+          __chatRoomId = _input__.readStringRequireUtf8()
+        case 34 =>
+          __senderUserId = _input__.readStringRequireUtf8()
+        case 42 =>
+          __senderConsumerId = _input__.readStringRequireUtf8()
+        case 50 =>
+          __senderUsername = _input__.readStringRequireUtf8()
+        case 58 =>
+          __senderProvider = _input__.readStringRequireUtf8()
+        case 66 =>
+          __senderConsumerName = _input__.readStringRequireUtf8()
+        case 74 =>
+          __content = _input__.readStringRequireUtf8()
+        case 82 =>
+          __messageType = _input__.readStringRequireUtf8()
+        case 90 =>
+          __mentionedUserIds += _input__.readStringRequireUtf8()
+        case 98 =>
+          __replyToMessageId = _input__.readStringRequireUtf8()
+        case 106 =>
+          __threadId = _input__.readStringRequireUtf8()
+        case 112 =>
+          __isDeleted = _input__.readBool()
+        case 122 =>
+          __createdAt = _root_.scala.Option(__createdAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 130 =>
+          __updatedAt = _root_.scala.Option(__updatedAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case tag =>
+          if (_unknownFields__ == null) {
+            _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+          }
+          _unknownFields__.parseField(tag, _input__)
+      }
+    }
     code.obp.grpc.chat.api.ChatMessageEvent(
-      __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(2), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(3), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(4), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(5), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(6), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(7), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(8), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(9), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(10), Nil).asInstanceOf[_root_.scala.Seq[_root_.scala.Predef.String]],
-      __fieldsMap.getOrElse(__fields.get(11), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(12), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(13), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.get(__fields.get(14)).asInstanceOf[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]],
-      __fieldsMap.get(__fields.get(15)).asInstanceOf[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]
+        eventType = __eventType,
+        chatMessageId = __chatMessageId,
+        chatRoomId = __chatRoomId,
+        senderUserId = __senderUserId,
+        senderConsumerId = __senderConsumerId,
+        senderUsername = __senderUsername,
+        senderProvider = __senderProvider,
+        senderConsumerName = __senderConsumerName,
+        content = __content,
+        messageType = __messageType,
+        mentionedUserIds = __mentionedUserIds.result(),
+        replyToMessageId = __replyToMessageId,
+        threadId = __threadId,
+        isDeleted = __isDeleted,
+        createdAt = __createdAt,
+        updatedAt = __updatedAt,
+        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.chat.api.ChatMessageEvent] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       code.obp.grpc.chat.api.ChatMessageEvent(
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(14).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(15).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(16).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]])
+        eventType = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        chatMessageId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        chatRoomId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        senderUserId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        senderConsumerId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        senderUsername = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        senderProvider = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        senderConsumerName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        content = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        messageType = __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        mentionedUserIds = __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
+        replyToMessageId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        threadId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        isDeleted = __fieldsMap.get(scalaDescriptor.findFieldByNumber(14).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        createdAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(15).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
+        updatedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(16).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]])
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes.get(1)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = throw new UnsupportedOperationException("scalaDescriptor not available")
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes().get(1)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ChatProto.scalaDescriptor.messages(1)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
+    var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
-      case 15 => com.google.protobuf.timestamp.Timestamp
-      case 16 => com.google.protobuf.timestamp.Timestamp
+      case 15 => __out = com.google.protobuf.timestamp.Timestamp
+      case 16 => __out = com.google.protobuf.timestamp.Timestamp
     }
+    __out
   }
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.chat.api.ChatMessageEvent(
+    eventType = "",
+    chatMessageId = "",
+    chatRoomId = "",
+    senderUserId = "",
+    senderConsumerId = "",
+    senderUsername = "",
+    senderProvider = "",
+    senderConsumerName = "",
+    content = "",
+    messageType = "",
+    mentionedUserIds = _root_.scala.Seq.empty,
+    replyToMessageId = "",
+    threadId = "",
+    isDeleted = false,
+    createdAt = _root_.scala.None,
+    updatedAt = _root_.scala.None
   )
   implicit class ChatMessageEventLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.chat.api.ChatMessageEvent]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.chat.api.ChatMessageEvent](_l) {
     def eventType: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.eventType)((c_, f_) => c_.copy(eventType = f_))
@@ -418,20 +510,56 @@ object ChatMessageEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
     def updatedAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getUpdatedAt)((c_, f_) => c_.copy(updatedAt = _root_.scala.Option(f_)))
     def optionalUpdatedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.updatedAt)((c_, f_) => c_.copy(updatedAt = f_))
   }
-  final val EVENTTYPE_FIELD_NUMBER = 1
-  final val CHATMESSAGEID_FIELD_NUMBER = 2
-  final val CHATROOMID_FIELD_NUMBER = 3
-  final val SENDERUSERID_FIELD_NUMBER = 4
-  final val SENDERCONSUMERID_FIELD_NUMBER = 5
-  final val SENDERUSERNAME_FIELD_NUMBER = 6
-  final val SENDERPROVIDER_FIELD_NUMBER = 7
-  final val SENDERCONSUMERNAME_FIELD_NUMBER = 8
+  final val EVENT_TYPE_FIELD_NUMBER = 1
+  final val CHAT_MESSAGE_ID_FIELD_NUMBER = 2
+  final val CHAT_ROOM_ID_FIELD_NUMBER = 3
+  final val SENDER_USER_ID_FIELD_NUMBER = 4
+  final val SENDER_CONSUMER_ID_FIELD_NUMBER = 5
+  final val SENDER_USERNAME_FIELD_NUMBER = 6
+  final val SENDER_PROVIDER_FIELD_NUMBER = 7
+  final val SENDER_CONSUMER_NAME_FIELD_NUMBER = 8
   final val CONTENT_FIELD_NUMBER = 9
-  final val MESSAGETYPE_FIELD_NUMBER = 10
-  final val MENTIONEDUSERIDS_FIELD_NUMBER = 11
-  final val REPLYTOMESSAGEID_FIELD_NUMBER = 12
-  final val THREADID_FIELD_NUMBER = 13
-  final val ISDELETED_FIELD_NUMBER = 14
-  final val CREATEDAT_FIELD_NUMBER = 15
-  final val UPDATEDAT_FIELD_NUMBER = 16
+  final val MESSAGE_TYPE_FIELD_NUMBER = 10
+  final val MENTIONED_USER_IDS_FIELD_NUMBER = 11
+  final val REPLY_TO_MESSAGE_ID_FIELD_NUMBER = 12
+  final val THREAD_ID_FIELD_NUMBER = 13
+  final val IS_DELETED_FIELD_NUMBER = 14
+  final val CREATED_AT_FIELD_NUMBER = 15
+  final val UPDATED_AT_FIELD_NUMBER = 16
+  def of(
+    eventType: _root_.scala.Predef.String,
+    chatMessageId: _root_.scala.Predef.String,
+    chatRoomId: _root_.scala.Predef.String,
+    senderUserId: _root_.scala.Predef.String,
+    senderConsumerId: _root_.scala.Predef.String,
+    senderUsername: _root_.scala.Predef.String,
+    senderProvider: _root_.scala.Predef.String,
+    senderConsumerName: _root_.scala.Predef.String,
+    content: _root_.scala.Predef.String,
+    messageType: _root_.scala.Predef.String,
+    mentionedUserIds: _root_.scala.Seq[_root_.scala.Predef.String],
+    replyToMessageId: _root_.scala.Predef.String,
+    threadId: _root_.scala.Predef.String,
+    isDeleted: _root_.scala.Boolean,
+    createdAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
+    updatedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]
+  ): _root_.code.obp.grpc.chat.api.ChatMessageEvent = _root_.code.obp.grpc.chat.api.ChatMessageEvent(
+    eventType,
+    chatMessageId,
+    chatRoomId,
+    senderUserId,
+    senderConsumerId,
+    senderUsername,
+    senderProvider,
+    senderConsumerName,
+    content,
+    messageType,
+    mentionedUserIds,
+    replyToMessageId,
+    threadId,
+    isDeleted,
+    createdAt,
+    updatedAt
+  )
+  // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.chat.g1.ChatMessageEvent])
 }

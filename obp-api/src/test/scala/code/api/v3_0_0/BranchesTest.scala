@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanDeleteBranchAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.OBPQueryParam
@@ -292,7 +293,10 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
 
     // Mock a badly behaving connector that returns data that doesn't have license.
     override protected def getBranchFromProvider(bankId: BankId, branchId: BranchId): Option[BranchT] = {
-      branchId match {
+      // matches on bankId, not branchId, to mirror getBranchesFromProvider above - branchId can
+      // never equal a BankId pattern, so this previously always fell through to None; Scala 3's
+      // stricter pattern-type checking catches the mismatch Scala 2 accepted silently.
+      bankId match {
         case BankWithLicense => Some(fakeBranch1)
         case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API should guard
         case _ => None
@@ -329,9 +333,9 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(OBPAPI3_0_0.Implementations3_0_0.getBranches))
 
-  feature("getBranches -- /banks/BANK_ID/branches -- V300") {
+  Feature("getBranches -- /banks/BANK_ID/branches -- V300") {
 
-    scenario("We try to get bank branches for a bank without a data license for branch information", VersionOfApi, ApiEndpoint) {
+    Scenario("We try to get bank branches for a bank without a data license for branch information", VersionOfApi, ApiEndpoint) {
 
       When("We make a request v3.0.0")
       val request300 = (v3_0Request / "banks" / BankWithoutBranches.value / "branches").GET <@(user1)
@@ -343,7 +347,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     }
 
 
-    scenario("We try to get bank branches those all not deleted", VersionOfApi, ApiEndpoint) {
+    Scenario("We try to get bank branches those all not deleted", VersionOfApi, ApiEndpoint) {
       Connector.connector.vend.createOrUpdateBank(bankId, "exists bank", "bank", "string", "string", "string", "string", "string", "string", None)
       When("We make a request v3.0.0")
       val request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
@@ -357,7 +361,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     }
 
 
-    scenario("We try to get bank branches query by city", VersionOfApi, ApiEndpoint) {
+    Scenario("We try to get bank branches query by city", VersionOfApi, ApiEndpoint) {
 
       When("We make a request v3.0.0")
       var request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
@@ -373,7 +377,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
       result.branches(0).address.city should be (existsBranch1.address.city)
     }
 
-    scenario("We try to get bank branches query by distance fond one branch", VersionOfApi, ApiEndpoint) {
+    Scenario("We try to get bank branches query by distance fond one branch", VersionOfApi, ApiEndpoint) {
 
       When("We make a request v3.0.0")
       var request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
@@ -387,7 +391,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get bank branches query by distance fond none branch", VersionOfApi, ApiEndpoint) {
+    Scenario("We try to get bank branches query by distance fond none branch", VersionOfApi, ApiEndpoint) {
 
       When("We make a request v3.0.0")
       var request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
@@ -409,7 +413,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     object VersionOfApi_3_1_0 extends Tag(ApiVersion.v3_1_0.toString)
     object ApiEndpoint_delete_branch extends Tag(nameOf(OBPAPI3_1_0.Implementations3_1_0.deleteBranch))
 
-    scenario("We try to delete bank branche", VersionOfApi_3_1_0, ApiEndpoint_delete_branch) {
+    Scenario("We try to delete bank branche", VersionOfApi_3_1_0, ApiEndpoint_delete_branch) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteBranchAtAnyBank.toString())
       When("We make a request v3.0.0")
       val requestDelete = (baseRequest / "obp" / "v3.1.0" / "banks" / bankId / "branches"/ existsBranch1.branchId.value).DELETE <@(user1)

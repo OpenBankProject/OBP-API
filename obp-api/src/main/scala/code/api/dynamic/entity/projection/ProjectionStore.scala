@@ -16,20 +16,20 @@ import doobie.implicits._
 object ProjectionStore {
 
   // Real DB identifiers of the canonical blob table (Lift-mapped).
-  val blobTable: String       = DynamicData.dbTableName
-  val idColumn: String        = DynamicData.DynamicDataId.dbColumnName
-  val jsonColumn: String      = DynamicData.DataJson.dbColumnName
-  val entityNameColumn: String = DynamicData.DynamicEntityName.dbColumnName
-  val bankIdColumn: String    = DynamicData.BankId.dbColumnName
-  val userIdColumn: String    = DynamicData.UserId.dbColumnName
-  val personalColumn: String  = DynamicData.IsPersonalEntity.dbColumnName
+  val blobTable: String       = DynamicData.tableName
+  val idColumn: String        = DynamicData.idColumnName
+  val jsonColumn: String      = DynamicData.jsonColumnName
+  val entityNameColumn: String = DynamicData.entityNameColumnName
+  val bankIdColumn: String    = DynamicData.bankIdColumnName
+  val userIdColumn: String    = DynamicData.userIdColumnName
+  val personalColumn: String  = DynamicData.personalColumnName
 
-  // Row-level access ACL table (Lift-mapped), for user-scoped EXISTS / NOT EXISTS join evaluation:
+  // Row-level access ACL table, for user-scoped EXISTS / NOT EXISTS join evaluation:
   // a join onto a row-level child counts only child rows the caller can read.
-  val aclTable: String         = code.DynamicData.DynamicDataAccess.dbTableName
-  val aclDataIdColumn: String  = code.DynamicData.DynamicDataAccess.DynamicDataId.dbColumnName
-  val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.UserId.dbColumnName
-  val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.CanRead.dbColumnName
+  val aclTable: String         = code.DynamicData.DynamicDataAccess.tableName
+  val aclDataIdColumn: String  = code.DynamicData.DynamicDataAccess.dataIdColumn
+  val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.userIdColumn
+  val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.canReadColumn
 
   /** One indexed field's value for a record: safe column, SQL type, coerced text (None => NULL). */
   case class ColumnValue(safeColumn: String, sqlType: String, value: Option[String])

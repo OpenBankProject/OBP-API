@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadAggregateMetrics
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
@@ -68,7 +69,7 @@ class AggregateMetricsTest extends V600ServerSetup {
 
       When("We query aggregate-metrics filtered to user1's consumer and the traffic url")
       val request = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
-        ("include_app_names", testConsumer.name.get),
+        ("include_app_names", testConsumer.name),
         ("url", trafficUrl))
       val response = makeGetRequest(request)
       Then("We get a successful response with the v6.0.0 fields")
@@ -84,7 +85,7 @@ class AggregateMetricsTest extends V600ServerSetup {
 
       When("We query aggregate-metrics across both consumers for the traffic url")
       val request2 = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
-        ("include_app_names", s"${testConsumer.name.get},${testConsumer2.name.get}"),
+        ("include_app_names", s"${testConsumer.name},${testConsumer2.name}"),
         ("url", trafficUrl))
       val response2 = makeGetRequest(request2)
       Then("We get a successful response covering both users")

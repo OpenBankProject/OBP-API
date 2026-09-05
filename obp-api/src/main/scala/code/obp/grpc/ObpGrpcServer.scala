@@ -159,7 +159,7 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
 
   object ObpServiceImpl extends ObpServiceGrpc.ObpService {
 
-    implicit val formats =  code.api.util.CustomJsonFormats.formats
+    implicit val formats: org.json4s.Formats =  code.api.util.CustomJsonFormats.formats
 
     override def getBanks(request: Empty): Future[BanksJson400Grpc] = {
       val callContext: Option[CallContext] = Some(CallContext())

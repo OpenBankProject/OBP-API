@@ -3,12 +3,11 @@ package code.products
 import com.openbankproject.commons.model.Product
 import code.setup.ServerSetup
 import com.openbankproject.commons.model.BankId
-import net.liftweb.mapper.By
 
 class MappedProductsProviderTest extends ServerSetup {
 
   private def delete(): Unit = {
-    MappedProduct.bulkDelete_!!()
+    MappedProduct.deleteAll()
   }
 
   override def beforeAll() = {
@@ -29,49 +28,62 @@ class MappedProductsProviderTest extends ServerSetup {
 
       // 3 products for bank X (one product does not have a license)
 
-      val unlicensedProduct = MappedProduct.create
-        .mBankId(bankIdX)
-        .mCode("code-unlicensed")
-        .mName("Name Unlicensed")
-        .mCategory("Cat U")
-        .mFamily("Family U")
-        .mSuperFamily("Super Fam U")
-        .mMoreInfoUrl("www.example.com/moreu")
-        .mLicenseId("") // Note: The license is not set
-        .mLicenseName("") // Note: The license is not set
-        .saveMe()
+      // Note: The license is not set
+      val unlicensedProduct =
+      MappedProduct.createOrUpdate(
+        bankId = bankIdX,
+        code = "code-unlicensed",
+        parentProductCode = None,
+        name = "Name Unlicensed",
+        category = "Cat U",
+        family = "Family U",
+        superFamily = "Super Fam U",
+        moreInfoUrl = "www.example.com/moreu",
+        termsAndConditionsUrl = "",
+        details = "",
+        description = "",
+        licenseId = "",
+        licenseName = "")
 
 
 
-      val product1 = MappedProduct.create
-        .mBankId(bankIdX)
-        .mCode("code-1")
-        .mName("Product Name 1")
-        .mCategory("Cat 1")
-        .mFamily("Family 1")
-        .mSuperFamily("Super Fam 1")
-        .mMoreInfoUrl("www.example.com/more1")
-        .mLicenseId("some-license")
-        .mLicenseName("Some License")
-        .saveMe()
+      val product1 =
+      MappedProduct.createOrUpdate(
+        bankId = bankIdX,
+        code = "code-1",
+        parentProductCode = None,
+        name = "Product Name 1",
+        category = "Cat 1",
+        family = "Family 1",
+        superFamily = "Super Fam 1",
+        moreInfoUrl = "www.example.com/more1",
+        termsAndConditionsUrl = "",
+        details = "",
+        description = "",
+        licenseId = "some-license",
+        licenseName = "Some License")
 
-      val product2 = MappedProduct.create
-        .mBankId(bankIdX)
-        .mCode("code-2")
-        .mName("Product Name 2")
-        .mCategory("Cat 2")
-        .mFamily("Family 2")
-        .mSuperFamily("Super Fam 2")
-        .mMoreInfoUrl("www.example.com/more2")
-        .mLicenseId("some-license")
-        .mLicenseName("Some License")
-        .saveMe()
+      val product2 =
+      MappedProduct.createOrUpdate(
+        bankId = bankIdX,
+        code = "code-2",
+        parentProductCode = None,
+        name = "Product Name 2",
+        category = "Cat 2",
+        family = "Family 2",
+        superFamily = "Super Fam 2",
+        moreInfoUrl = "www.example.com/more2",
+        termsAndConditionsUrl = "",
+        details = "",
+        description = "",
+        licenseId = "some-license",
+        licenseName = "Some License")
     }
 
 
-  feature("MappedProductsProvider") {
+  Feature("MappedProductsProvider") {
 
-    scenario("We try to get Products") {
+    Scenario("We try to get Products") {
 
       val fixture = defaultSetup()
 
@@ -80,7 +92,7 @@ class MappedProductsProviderTest extends ServerSetup {
 
 
       Given("the bank in question has Products")
-      MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdX)).isDefined should equal(true)
+      MappedProduct.findAllByBankId(fixture.bankIdX).nonEmpty should equal(true)
 
       When("we try to get the Products for that bank")
       val productsOpt: Option[List[Product]] = MappedProductsProvider.getProducts(BankId(fixture.bankIdX))
@@ -96,13 +108,13 @@ class MappedProductsProviderTest extends ServerSetup {
       products.sortBy(_.code.value) should equal (expectedProducts.sortBy(_.code.value))
     }
 
-    scenario("We try to get Products for a bank that doesn't have any") {
+    Scenario("We try to get Products for a bank that doesn't have any") {
 
       val fixture = defaultSetup()
 
       Given("we don't have any Products")
 
-      MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdY)).isDefined should equal(false)
+      MappedProduct.findAllByBankId(fixture.bankIdY).nonEmpty should equal(false)
 
       When("we try to get the Products for that bank")
       val productsOpt = MappedProductsProvider.getProducts(BankId(fixture.bankIdY))

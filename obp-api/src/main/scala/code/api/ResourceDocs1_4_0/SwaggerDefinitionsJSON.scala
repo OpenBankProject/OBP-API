@@ -46,7 +46,7 @@ import java.util.Date
   */
 object SwaggerDefinitionsJSON {
 
-  implicit def convertStringToBoolean(value:String) = value.toBoolean
+  implicit def convertStringToBoolean(value:String): Boolean = value.toBoolean
 
   lazy val regulatedEntitiesJsonV510: RegulatedEntitiesJsonV510 = RegulatedEntitiesJsonV510(List(regulatedEntityJsonV510))
   lazy val regulatedEntityJsonV510: RegulatedEntityJsonV510 = RegulatedEntityJsonV510(
@@ -361,6 +361,10 @@ object SwaggerDefinitionsJSON {
   lazy val updateViewJsonV300 = UpdateViewJsonV300(
     description = "this is for family",
     is_public = true,
+    // An Option[Boolean] left at its None default publishes as a $ref to a definition that does not
+    // exist - see refineErasedTypeArgument in SwaggerJSONFactory. The value is what the field's
+    // documented type is derived from, so it has to be present.
+    is_firehose = Some(false),
     metadata_view = SYSTEM_OWNER_VIEW_ID,
     which_alias_to_use = "family",
     hide_metadata_if_alias_used = true,
@@ -3325,6 +3329,7 @@ object SwaggerDefinitionsJSON {
     description = "description",
     metadata_view = SYSTEM_OWNER_VIEW_ID,
     is_public = true,
+    is_firehose = Some(false),
     is_system = true,
     alias = "No",
     hide_metadata_if_alias_used = true,
@@ -3691,6 +3696,7 @@ object SwaggerDefinitionsJSON {
     description = "description",
     metadata_view = SYSTEM_OWNER_VIEW_ID,
     is_public = true,
+    is_firehose = Some(false),
     is_system = true,
     alias = "No",
     hide_metadata_if_alias_used = true,
@@ -4637,6 +4643,11 @@ object SwaggerDefinitionsJSON {
     api_standard = "Berlin Group",
     api_version = "v1.3",
     jwt_payload = Some(consentJWT),
+    // An Option[Int] left at its None default publishes as a $ref to a definition that does not
+    // exist - see refineErasedTypeArgument in SwaggerJSONFactory. The value is what the field's
+    // documented type is derived from, so it has to be present.
+    frequency_per_day = Some(4),
+    remaining_requests = Some(3),
     note = """Tue, 15 Jul 2025 19:16:22
              ||---> Changed status from received to rejected for consent ID: 398""".stripMargin
   )
@@ -6500,9 +6511,24 @@ object SwaggerDefinitionsJSON {
   
   lazy val notSupportedYet = NotSupportedYet()
 
+  /**
+   * The nested example entities SwaggerJSONFactory turns into definitions.
+   *
+   * Restricted to OBP entities rather than "anything non-null": the consumer is
+   * `SwaggerJSONFactory.translateEntity`, which reads an entity's constructor arguments, so it
+   * only has meaning for a case class. Several members here are plain values - a PEM certificate
+   * string among them - and handing those to it throws.
+   *
+   * That mismatch was invisible while `ReflectUtils.getValues` could not see this object's members
+   * at all (Scala 3 declaration metadata lives in TASTy, which scala-reflect cannot read; every
+   * member of this object is a lazy val, so the collector returned an empty list and everything
+   * downstream mapped over nothing). Fixing the collector made the mismatch reachable for the
+   * first time. SwaggerFactoryUnitTest now asserts a floor on the size so it cannot fall back to
+   * empty unnoticed.
+   */
   lazy val allFields: Seq[AnyRef] ={
     lazy val allFieldsThisFile = ReflectUtils.getValues(this, List(nameOf(allFields)))
-                            .filter(it => it != null && it.isInstanceOf[AnyRef])
+                            .filter(ReflectUtils.isObpObject)
                             .map(_.asInstanceOf[AnyRef])
     allFieldsThisFile //++ JSONFactoryCustom300.allFields ++ SandboxData.allFields 
   }

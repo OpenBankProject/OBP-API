@@ -5,27 +5,27 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.customerattribute.MappedCustomerAttribute
 import code.model.{AppType, Consumer}
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.{DefaultConnectionIdentifier, Helpers}
 
 object MigrationOfCustomerAttributes {
-  
+
+  private val customerAttributeTableName = "mappedcustomerattribute"
+
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
-  
+
   def alterColumnValue(name: String): Boolean = {
-    DbFunction.tableExists(MappedCustomerAttribute) match {
+    DbFunction.tableExistsByName(customerAttributeTableName) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue varchar(2000);"
@@ -51,34 +51,36 @@ object MigrationOfCustomerAttributes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedCustomerAttribute._dbTableNameLC} table does not exist""".stripMargin
+          s"""$customerAttributeTableName table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
-  }  
+  }
   def populateAzpAndSub(name: String): Boolean = {
-    DbFunction.tableExists(Consumer) match {
+    DbFunction.tableExistsByName("consumer") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
-        val emptyNameConsumers = 
+        // Mapper compared the MappedString field object - not the value it holds - against null,
+        // so neither filter ever matched and this migration has always been a no-op. It is kept
+        // that way deliberately: comparing values instead would make a migration that databases
+        // recorded as run years ago start rewriting azp and sub on them.
+        val comparesTheFieldObject = (_: Consumer) => false
+
+        val emptyNameConsumers =
           for {
-            consumer <- Consumer.findAll() if consumer.azp.equals(null)
+            consumer <- Consumer.findAll() if comparesTheFieldObject(consumer)
           } yield {
-            consumer
-              .azp(APIUtil.generateUUID())
-              .saveMe()
+            Consumer.update(consumer.copy(azp = APIUtil.generateUUID()))
           }
 
         val emptyAppTypeConsumers =
           for {
-            consumer <- Consumer.findAll() if consumer.sub.equals(null)
+            consumer <- Consumer.findAll() if comparesTheFieldObject(consumer)
           } yield {
-            consumer
-              .sub(APIUtil.generateUUID())
-              .saveMe()
+            Consumer.update(consumer.copy(sub = APIUtil.generateUUID()))
           }
         
         val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
@@ -97,7 +99,7 @@ object MigrationOfCustomerAttributes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          s"""consumer table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

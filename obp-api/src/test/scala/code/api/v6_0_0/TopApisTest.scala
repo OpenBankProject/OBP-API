@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanReadMetrics
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
@@ -53,8 +54,8 @@ class TopApisTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.getTopAPIs))
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0")
       val request = (v6_0_0_Request / "management" / "metrics" / "top-apis").GET
       val response = makeGetRequest(request)
@@ -64,8 +65,8 @@ class TopApisTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access without role") {
-    scenario("We will call the endpoint with user credentials but without proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access without role") {
+    Scenario("We will call the endpoint with user credentials but without proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0")
       val request = (v6_0_0_Request / "management" / "metrics" / "top-apis").GET <@(user1)
       val response = makeGetRequest(request)
@@ -75,8 +76,8 @@ class TopApisTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
-    scenario("We will call the endpoint with user credentials and proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
+    Scenario("We will call the endpoint with user credentials and proper entitlement", ApiEndpoint1, VersionOfApi) {
       // Enable metrics writing so API calls are recorded
       setPropsValues("write_metrics" -> "true")
 
@@ -106,8 +107,8 @@ class TopApisTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Response structure with operation_id") {
-    scenario("We verify the response includes operation_id field", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Response structure with operation_id") {
+    Scenario("We verify the response includes operation_id field", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 
@@ -140,8 +141,8 @@ class TopApisTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Filter parameters") {
-    scenario("We test filtering by limit parameter", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Filter parameters") {
+    Scenario("We test filtering by limit parameter", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 
@@ -163,7 +164,7 @@ class TopApisTest extends V600ServerSetup {
       topApisJson.top_apis.size should be <= 1
     }
 
-    scenario("We test filtering by implemented_by_partial_function parameter", ApiEndpoint1, VersionOfApi) {
+    Scenario("We test filtering by implemented_by_partial_function parameter", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 
@@ -186,7 +187,7 @@ class TopApisTest extends V600ServerSetup {
       }
     }
 
-    scenario("We test filtering by verb parameter", ApiEndpoint1, VersionOfApi) {
+    Scenario("We test filtering by verb parameter", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 
@@ -201,7 +202,7 @@ class TopApisTest extends V600ServerSetup {
       topApisJson.top_apis should not be null
     }
 
-    scenario("We test filtering by exclude_app_names parameter", ApiEndpoint1, VersionOfApi) {
+    Scenario("We test filtering by exclude_app_names parameter", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 
@@ -216,7 +217,7 @@ class TopApisTest extends V600ServerSetup {
       topApisJson.top_apis should not be null
     }
 
-    scenario("We test filtering by date range parameters", ApiEndpoint1, VersionOfApi) {
+    Scenario("We test filtering by date range parameters", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 
@@ -233,8 +234,8 @@ class TopApisTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Multiple filter parameters") {
-    scenario("We test combining multiple filter parameters", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Multiple filter parameters") {
+    Scenario("We test combining multiple filter parameters", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 

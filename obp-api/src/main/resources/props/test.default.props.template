@@ -77,10 +77,35 @@ End of minimum settings
 
 # if connector is mapped, set a database backend. If not set, this will be set to an in-memory h2 database by default
 # you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
-# Please note that since update o version 2.1.214 we use NON_KEYWORDS=VALUE to bypass reserved word issue in SQL statements
+# NON_KEYWORDS=VALUE is required, not optional: the changelog declares an unquoted `value` column
+# on several tables and VALUE is a keyword in H2 2.x, so CREATE TABLE fails without it.
 # IMPORTANT: For tests, use test_only_lift_proto.db so the cleanup script can safely delete it
 #db.driver=org.h2.Driver
 #db.url=jdbc:h2:./test_only_lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
+
+# ── Running the suite on Postgres ─────────────────────────────────────────────
+# Worth doing whenever the data layer changes: H2 is forgiving in ways Postgres is not, and the
+# Postgres DDL is generated from the changelog at boot rather than read from a script anybody has
+# checked. Liquibase emits each vendor's dialect from the same changelog, so nothing else changes.
+#
+# For a SINGLE test class or suite, uncomment these two lines and create the database first with
+# `scripts/create_test_db.sh` (it defaults to obp_test_only, which is the name the suite's
+# disposable-database guard admits):
+#
+#db.driver=org.postgresql.Driver
+#db.url=jdbc:postgresql://localhost:5432/obp_test_only?user=obp_test_only&password=changeme
+#
+# For the WHOLE suite, do NOT set them here - use `./run_tests_parallel.sh --db=postgres`. The
+# shards run in parallel and every test class opens with ~140 DELETE FROM, so four shards sharing
+# one database wipe each other mid-run. The runner gives each shard a database of its own
+# (obp_suite_shard_N), creates them, and drops them at the end.
+#
+# Postgres needs headroom either way: four shards at hikari.maximumPoolSize=20 want 80 connections
+# on top of anything else connected, and max_connections defaults to 100 on a Homebrew install.
+#
+# Only a throwaway database will be accepted. code.setup.DisposableDatabaseGuard refuses anything
+# that is not jdbc:h2:mem:*, obp_suite_*, obp_liquibase_migration_test or obp_test_only, before
+# Boot runs - so pointing this at obp-mapped by mistake stops the suite rather than emptying it.
 
 #set this to false if you don't want the api payments call to work
 payments_enabled=false
@@ -153,6 +178,13 @@ hikari.maximumPoolSize=20
 # DynamicCodeKillSwitchTest's ON scenarios can compile/execute dynamic code locally.
 allow_user_generated_scala_code=true
 
+# The suite runs on a JDK where SecurityManager has been removed (JEP 486), so the sandbox
+# below enforces nothing and compileScalaCode refuses to run without this second, explicit
+# acceptance. The test environment is exactly the case the second switch is written for:
+# knowingly unsandboxed, on throwaway data. Without this line the whole dynamic-code tier
+# fails with OBP-50021.
+allow_user_generated_scala_code_without_sandbox=true
+
 # Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox.
 # Mirrors default.props / production.default.props. Required so dynamic resource-doc bodies can do
 # JSON extraction (reflection) and read OBP props (getenv); without it the sandbox denies these and
@@ -167,3 +199,7 @@ dynamic_code_sandbox_permissions=[\
     new java.lang.RuntimePermission("accessDeclaredMembers"),\
     new java.lang.RuntimePermission("getClassLoader")\
 ]
+
+# Flyway owns the schema for tables whose Lift Mapper entity has been removed. Default false:
+# Schemifier is still the authority for every entity that remains.
+liquibase.enabled=true

@@ -5,7 +5,9 @@ import code.util.Helper.MdcLoggable
 import org.json4s.{Extraction, Formats}
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import code.api.util.CustomJsonFormats
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Feature: berlin-group-v2-http4s, Property 2: JSON factory output schema compliance
@@ -19,7 +21,7 @@ import org.scalatest.{FlatSpec, Matchers, Tag}
  * Property-based approach: uses random UUID/string generators with multiple iterations
  * to verify schema compliance regardless of input values.
  */
-class JSONFactoryBGv2Test extends FlatSpec with Matchers with MdcLoggable {
+class JSONFactoryBGv2Test extends AnyFlatSpec with Matchers with MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 

@@ -52,9 +52,9 @@ object OBPAPI6_0_0 extends OBPRestHelper
   with MdcLoggable
   with VersionedOBPApis{
 
-  val version : ApiVersion = ApiVersion.v6_0_0
+  lazy val version : ApiVersion = ApiVersion.v6_0_0
 
-  val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
+  lazy val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
 
   // Re-export so tests that import OBPAPI6_0_0.Implementations6_0_0 still compile.
   val Implementations6_0_0 = Http4s600.Implementations6_0_0

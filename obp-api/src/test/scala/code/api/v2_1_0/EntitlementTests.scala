@@ -1,6 +1,7 @@
 package code.api.v2_1_0
 
 import code.api.v2_1_0.Http4s210
+import org.json4s.jvalue2extractable
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
@@ -26,9 +27,9 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag(nameOf(Http4s210.Implementations2_1_0.getEntitlementsByBankAndUser))
   object ApiEndpoint2 extends Tag(nameOf(Http4s210.Implementations2_1_0.getRoles))
 
-  feature("Assuring that endpoint getRoles works as expected - v2.1.0") {
+  Feature("Assuring that endpoint getRoles works as expected - v2.1.0") {
 
-    scenario("We try to get all roles without credentials - getRoles", VersionOfApi, ApiEndpoint2) {
+    Scenario("We try to get all roles without credentials - getRoles", VersionOfApi, ApiEndpoint2) {
       When("We make the request")
       val requestGet = (v2_1Request / "roles").GET
       val responseGet = makeGetRequest(requestGet)
@@ -39,7 +40,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get all roles with credentials - getRoles", VersionOfApi, ApiEndpoint2) {
+    Scenario("We try to get all roles with credentials - getRoles", VersionOfApi, ApiEndpoint2) {
       When("We make the request")
       val requestGet = (v2_1Request / "roles").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -48,9 +49,9 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Assuring that endpoint getEntitlementsByBankAndUser works as expected - v2.1.0") {
+  Feature("Assuring that endpoint getEntitlementsByBankAndUser works as expected - v2.1.0") {
 
-    scenario("We try to get entitlements without login - getEntitlementsByBankAndUser", VersionOfApi, ApiEndpoint1) {
+    Scenario("We try to get entitlements without login - getEntitlementsByBankAndUser", VersionOfApi, ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v2_1Request / "banks" / testBankId1.value / "users" / resourceUser1.userId / "entitlements").GET
       val responseGet = makeGetRequest(requestGet)
@@ -61,7 +62,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get entitlements without credentials - getEntitlementsByBankAndUser", VersionOfApi, ApiEndpoint1) {
+    Scenario("We try to get entitlements without credentials - getEntitlementsByBankAndUser", VersionOfApi, ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v2_1Request / "banks" / testBankId1.value / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -75,7 +76,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + requiredEntitlementsTxt)
     }
 
-    scenario("We try to get entitlements with credentials - getEntitlementsByBankAndUser", VersionOfApi, ApiEndpoint1) {
+    Scenario("We try to get entitlements with credentials - getEntitlementsByBankAndUser", VersionOfApi, ApiEndpoint1) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
       And("We make the request")

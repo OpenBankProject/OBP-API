@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadMetrics
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
@@ -72,10 +73,10 @@ class TopConsumersTest extends V600ServerSetup {
       val topConsumers = response.body.extract[TopConsumersJsonV700].top_consumers
       topConsumers.length shouldBe 2
       topConsumers.head.count shouldBe 5
-      topConsumers.head.consumer_id shouldBe testConsumer.consumerId.get
-      topConsumers.head.app_name shouldBe testConsumer.name.get
+      topConsumers.head.consumer_id shouldBe testConsumer.consumerId
+      topConsumers.head.app_name shouldBe testConsumer.name
       topConsumers(1).count shouldBe 3
-      topConsumers(1).consumer_id shouldBe testConsumer2.consumerId.get
+      topConsumers(1).consumer_id shouldBe testConsumer2.consumerId
 
       When("We query with limit=1")
       val request2 = (v7_0_0_Request / "management" / "metrics" / "top-consumers").GET <@ (user1) <<? List(
@@ -86,7 +87,7 @@ class TopConsumersTest extends V600ServerSetup {
       response2.code should equal(200)
       val topConsumers2 = response2.body.extract[TopConsumersJsonV700].top_consumers
       topConsumers2.length shouldBe 1
-      topConsumers2.head.consumer_id shouldBe testConsumer.consumerId.get
+      topConsumers2.head.consumer_id shouldBe testConsumer.consumerId
     }
   }
 }

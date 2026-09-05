@@ -1,14 +1,16 @@
 package code.api.dynamic.entity.query
 
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import org.json4s.jvalue2monadic
 import org.json4s.JsonAST.JObject
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pure unit tests for the DE_indexing query core: param parser, definition-driven planner,
  * and the in-memory executor (the portable floor + oracle). No server / DB.
  */
-class QuerySpec extends FlatSpec with Matchers {
+class QuerySpec extends AnyFlatSpec with Matchers {
 
   private def params(kvs: (String, String)*): Map[String, List[String]] =
     kvs.groupBy(_._1).map { case (k, vs) => k -> vs.map(_._2).toList }

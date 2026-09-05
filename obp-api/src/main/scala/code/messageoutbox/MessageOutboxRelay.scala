@@ -42,7 +42,7 @@ import scala.concurrent.duration._
  */
 object MessageOutboxRelay extends MdcLoggable {
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   /** Base backoff between attempts for a row; doubles per attempt, capped. */
   private val baseBackoff = 10.seconds
@@ -83,7 +83,7 @@ object MessageOutboxRelay extends MdcLoggable {
     val now = System.currentTimeMillis()
     val due = MessageOutbox.pending().filter { row =>
       val backoff = (baseBackoff * math.pow(2, math.min(row.attempts, 6)).toLong).min(maxBackoff)
-      row.UpdatedAt.get.getTime + backoff.toMillis <= now || row.attempts == 0
+      row.updatedAt.getTime + backoff.toMillis <= now || row.attempts == 0
     }
     if (due.nonEmpty) logger.debug(s"message outbox relay: ${due.size} row(s) due")
     due.foreach(relayRow)
@@ -92,9 +92,9 @@ object MessageOutboxRelay extends MdcLoggable {
   def relayRow(row: MessageOutbox): Unit = row.outboxType match {
     case MessageOutbox.TYPE_OPEN_CORRIDOR => relayOpenCorridorRow(row)
     case other =>
-      row.Status(MessageOutbox.STATUS_STICKY).Attempts(row.attempts + 1)
-        .LastError(s"no publisher registered for outbox_type '$other'").saveMe()
-      logger.error(s"message outbox row ${row.id.get}: unknown outbox_type '$other' — STICKY")
+      MessageOutbox.markSticky(row.id, row.attempts + 1,
+        s"no publisher registered for outbox_type '$other'")
+      logger.error(s"message outbox row ${row.id}: unknown outbox_type '$other' — STICKY")
   }
 
   private def relayOpenCorridorRow(row: MessageOutbox): Unit = {
@@ -119,21 +119,20 @@ object MessageOutboxRelay extends MdcLoggable {
             else ""
           if (row.operationName == "obp_settlement_instruction" && settlementStatus != "FINAL") {
             // Broadcast but not final — keep polling by redelivery (§4.4).
-            row.Attempts(row.attempts + 1).LastError("").LastReplyJson(replyJson).saveMe()
-            logger.info(s"message outbox row ${row.id.get}: settlement ${row.subjectId} status '$settlementStatus' — will re-poll")
+            MessageOutbox.recordAttempt(row.id, row.attempts + 1, "", replyJson)
+            logger.info(s"message outbox row ${row.id}: settlement ${row.subjectId} status '$settlementStatus' — will re-poll")
           } else {
-            row.Status(MessageOutbox.STATUS_DELIVERED).LastError("").LastReplyJson(replyJson).saveMe()
-            logger.info(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} DELIVERED")
+            MessageOutbox.markDelivered(row.id, replyJson)
+            logger.info(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} DELIVERED")
           }
         } else if (openCorridorStickyErrorCodes.exists(errorCode.startsWith)) {
-          row.Status(MessageOutbox.STATUS_STICKY).Attempts(row.attempts + 1)
-            .LastError(errorCode).LastReplyJson(replyJson).saveMe()
-          logger.error(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} " +
+          MessageOutbox.markSticky(row.id, row.attempts + 1, errorCode, replyJson)
+          logger.error(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
             s"STICKY error $errorCode — operator reconciliation required (subject ${row.subjectId})")
         } else {
           // Retryable business failure (e.g. SETTLEMENT-FAILED, CBS-DELIVERY-FAILED).
-          row.Attempts(row.attempts + 1).LastError(errorCode).LastReplyJson(replyJson).saveMe()
-          logger.warn(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} " +
+          MessageOutbox.recordAttempt(row.id, row.attempts + 1, errorCode, replyJson)
+          logger.warn(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
             s"replied $errorCode — will retry")
         }
       case failure =>
@@ -141,8 +140,8 @@ object MessageOutboxRelay extends MdcLoggable {
           case Failure(msg, _, _) => msg
           case _ => "no reply"
         }
-        row.Attempts(row.attempts + 1).LastError(error.take(2000)).saveMe()
-        logger.warn(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} " +
+        MessageOutbox.recordAttempt(row.id, row.attempts + 1, error.take(2000))
+        logger.warn(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
           s"transport failure (attempt ${row.attempts}): $error")
     }
   }

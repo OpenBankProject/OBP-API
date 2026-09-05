@@ -1,69 +1,143 @@
 package code.bankaccountbalance
 
-import code.model.dataAccess.MappedBankAccount
+import code.api.util.DoobieUtil
+import code.util.Helper
 import code.util.Helper.MdcLoggable
-import code.util.{Helper, MappedUUID}
 import com.openbankproject.commons.model.{AccountId, BalanceId, BankAccountBalanceTrait, BankId}
-import net.liftweb.common.{Empty, Failure, Full}
-import net.liftweb.mapper._
-import net.liftweb.util.Helpers.tryo
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 
 import java.util.Date
 
-class BankAccountBalance extends BankAccountBalanceTrait
-  with KeyedMapper[String, BankAccountBalance]
-  with CreatedUpdated
-  with MdcLoggable {
+/**
+ * One stored balance for an account.
+ *
+ * The name is kept from the Lift entity rather than becoming DoobieBankAccountBalance: the
+ * concrete type is what BankAccountBalanceProviderTrait's signatures are written in, so renaming
+ * would ripple through the provider and its LocalMappedConnector call sites for no gain. (The
+ * Connector trait itself is already stated in terms of the obp-commons BankAccountBalanceTrait,
+ * so nothing leaks that far.)
+ *
+ * `currency` is carried on the row so balanceAmount can be converted out of the smallest
+ * currency unit it is stored in. Under Mapper this was a per-row `val` that ran its own
+ * MappedBankAccount lookup on construction - an N+1 - defaulting to "EUR" when the account was
+ * missing. Here the same first-match-or-EUR resolution is done as a correlated subquery in the
+ * one SELECT, which is the same answer without the extra round trips.
+ */
+case class BankAccountBalance(
+  balanceId: BalanceId,
+  bankId: BankId,
+  accountId: AccountId,
+  balanceType: String,
+  balanceAmount: BigDecimal,
+  referenceDate: Option[String],
+  lastChangeDateTime: Option[Date],
+  // Storage detail rather than part of the trait: the column holds the amount in the smallest
+  // currency unit, and writes need it back in that form.
+  balanceAmountSmallestUnit: Long,
+  currency: String
+) extends BankAccountBalanceTrait with MdcLoggable
 
-  override def getSingleton = BankAccountBalance
+object BankAccountBalance {
 
-  // Define BalanceId_ as the primary key
-  override def primaryKeyField = BalanceId_.asInstanceOf[KeyedMetaMapper[String, BankAccountBalance]].primaryKeyField
-  
-  object BankId_ extends MappedUUID(this)
-  object AccountId_ extends MappedUUID(this)
-  object BalanceId_ extends MappedUUID(this)
-  object BalanceType extends MappedString(this, 255)
-  //this is the smallest unit of currency! eg. cents, yen, pence, øre, etc.
-  object BalanceAmount extends MappedLong(this)
-  object ReferenceDate extends MappedDate(this)
+  /**
+   * Resolves the account currency inline, matching Mapper's
+   * `MappedBankAccount.find(By(theAccountId, ...)).map(_.currency).getOrElse("EUR")`:
+   * first matching account row, or "EUR" when there is none.
+   */
+  private val selectColumns =
+    fr"""SELECT b.balanceid_, b.bankid_, b.accountid_, b.balancetype, b.balanceamount,
+                COALESCE((SELECT a.accountcurrency FROM mappedbankaccount a
+                          WHERE a.theaccountid = b.accountid_ LIMIT 1), 'EUR'),
+                b.referencedate, b.updatedat
+         FROM bankaccountbalance b"""
 
-  val foreignMappedBankAccountCurrency = tryo{code.model.dataAccess.MappedBankAccount
-    .find(
-      By(MappedBankAccount.theAccountId, AccountId_.get))
-    .map(_.currency)
-    .getOrElse("EUR")
-  }.getOrElse("EUR")
-  
-  override def bankId: BankId = BankId(BankId_.get)
-  override def accountId: AccountId = AccountId(AccountId_.get)
-  override def balanceId: BalanceId = BalanceId(BalanceId_.get)
-  override def balanceType: String = BalanceType.get
-  override def balanceAmount: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(BalanceAmount.get, foreignMappedBankAccountCurrency)
-  override def lastChangeDateTime: Option[Date] = Some(this.updatedAt.get)
-  override def referenceDate: Option[String] = {
-    net.liftweb.util.Helpers.tryo {
-      Option(ReferenceDate.get) match {
-        case Some(d) => Some(d.toString)
-        case None =>
-          logger.warn(s"ReferenceDate is missing for BalanceId=${BalanceId_.get}, AccountId=${AccountId_.get}, BankId=${BankId_.get}")
-          None
-      }
-    } match {
-      case Full(v) => v
-      case f: Failure =>
-        // extract throwable if present; otherwise create one from the message
-        val t = f.exception.openOr(new RuntimeException(f.msg))
-        logger.error(s"Error while retrieving referenceDate for BalanceId=${BalanceId_.get}, AccountId=${AccountId_.get}, BankId=${BankId_.get}: ${f.msg}", t)
-        None
-      case Empty =>
-        // Defensive: treat as missing
-        None
+  private type Row = (String, String, String, Option[String], Option[Long], String,
+    Option[java.sql.Date], Option[java.sql.Timestamp])
+
+  private def fromRow(row: Row): BankAccountBalance = row match {
+    case (balanceId, bankId, accountId, balanceType, amount, currency, referenceDate, updatedAt) =>
+      val amountSmallestUnit = amount.getOrElse(0L)
+      BankAccountBalance(
+        balanceId = BalanceId(balanceId),
+        bankId = BankId(bankId),
+        accountId = AccountId(accountId),
+        balanceType = balanceType.orNull,
+        balanceAmount = Helper.smallestCurrencyUnitToBigDecimal(amountSmallestUnit, currency),
+        referenceDate = referenceDate.map(_.toString),
+        // A java.sql.Timestamp put straight into a field typed java.util.Date serializes as {};
+        // convert it.
+        lastChangeDateTime = updatedAt.map(t => new Date(t.getTime)),
+        balanceAmountSmallestUnit = amountSmallestUnit,
+        currency = currency)
+  }
+
+  private def query(condition: Fragment): List[BankAccountBalance] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def findAllByAccountId(accountId: String): List[BankAccountBalance] =
+    query(fr"WHERE b.accountid_ = $accountId")
+
+  def findAllByAccountIds(accountIds: List[String]): List[BankAccountBalance] =
+    if (accountIds.isEmpty) Nil
+    else {
+      val inFrag = Fragments.in(fr"b.accountid_", cats.data.NonEmptyList.fromListUnsafe(accountIds.distinct))
+      query(fr"WHERE " ++ inFrag)
     }
+
+  def findByBalanceId(balanceId: String): Box[BankAccountBalance] =
+    query(fr"WHERE b.balanceid_ = $balanceId LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  /** The currency of the account this balance belongs to, or "EUR" when the account is unknown. */
+  def accountCurrency(accountId: String): String =
+    DoobieUtil.runQuery(
+      sql"SELECT accountcurrency FROM mappedbankaccount WHERE theaccountid = $accountId LIMIT 1"
+        .query[String].option
+    ).getOrElse("EUR")
+
+  def insert(balanceId: String, bankId: String, accountId: String, balanceType: String,
+             amountSmallestUnit: Long): BankAccountBalance = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO bankaccountbalance
+            (balanceid_, bankid_, accountid_, balancetype, balanceamount, createdat, updatedat)
+            VALUES ($balanceId, $bankId, $accountId, $balanceType, $amountSmallestUnit, $now, $now)"""
+        .update.run)
+    val currency = accountCurrency(accountId)
+    BankAccountBalance(
+      balanceId = BalanceId(balanceId),
+      bankId = BankId(bankId),
+      accountId = AccountId(accountId),
+      balanceType = balanceType,
+      balanceAmount = Helper.smallestCurrencyUnitToBigDecimal(amountSmallestUnit, currency),
+      referenceDate = None,
+      lastChangeDateTime = Some(new Date(now.getTime)),
+      balanceAmountSmallestUnit = amountSmallestUnit,
+      currency = currency)
+  }
+
+  def update(balanceId: String, bankId: String, accountId: String, balanceType: String,
+             amountSmallestUnit: Long): Unit = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE bankaccountbalance
+            SET bankid_ = $bankId, accountid_ = $accountId, balancetype = $balanceType,
+                balanceamount = $amountSmallestUnit, updatedat = $now
+            WHERE balanceid_ = $balanceId"""
+        .update.run)
+    ()
+  }
+
+  def deleteByBalanceId(balanceId: String): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM bankaccountbalance WHERE balanceid_ = $balanceId".update.run) > 0
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM bankaccountbalance".update.run)
+    ()
   }
 }
-
-object BankAccountBalance
-  extends BankAccountBalance
-    with KeyedMetaMapper[String, BankAccountBalance]
-    with CreatedUpdated {}

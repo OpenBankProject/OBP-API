@@ -2,83 +2,111 @@ package code.directdebit
 
 import java.util.Date
 
-import code.api.util.APIUtil
-import code.util.UUIDString
+import code.api.util.{APIUtil, DoobieUtil}
 import com.openbankproject.commons.model.DirectDebitTrait
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common.Box
-import net.liftweb.mapper._
+
+/**
+ * A direct debit mandate on an account.
+ *
+ * `dateCancelled` is written by no code path, so it is always NULL and reads back as null. The
+ * trait types it as a bare Date rather than an Option, so the absent value is surfaced as null
+ * rather than pretended present.
+ */
+case class DirectDebit(
+  directDebitId: String,
+  bankId: String,
+  accountId: String,
+  customerId: String,
+  userId: String,
+  counterpartyId: String,
+  dateSigned: Date,
+  dateCancelled: Date,
+  dateStarts: Date,
+  dateExpires: Date,
+  active: Boolean
+) extends DirectDebitTrait
+
+object DirectDebit {
+
+  private val selectColumns =
+    fr"""SELECT directdebitid, bankid, accountid, customerid, userid, counterpartyid, datesigned,
+                datecancelled, datestarts, dateexpires, active
+         FROM directdebit"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Boolean])
+
+  private def fromRow(row: Row): DirectDebit = row match {
+    case (directDebitId, bankId, accountId, customerId, userId, counterpartyId, dateSigned,
+          dateCancelled, dateStarts, dateExpires, active) =>
+      DirectDebit(directDebitId.orNull, bankId.orNull, accountId.orNull, customerId.orNull,
+        userId.orNull, counterpartyId.orNull, dateSigned.orNull, dateCancelled.orNull,
+        dateStarts.orNull, dateExpires.orNull, active.getOrElse(false))
+  }
+
+  private def query(condition: Fragment): List[DirectDebit] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  /**
+   * The unique index on (bankid, accountid, customerid, counterpartyid) is what stops a second
+   * mandate being set up for the same customer and counterparty on one account; the caller's tryo
+   * turns the violation into a Failure.
+   */
+  def insert(bankId: String, accountId: String, customerId: String, userId: String,
+             counterpartyId: String, dateSigned: Date, dateStarts: Date,
+             dateExpires: Option[Date]): DirectDebit = {
+    val directDebitId = APIUtil.generateUUID()
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    val signed = new java.sql.Timestamp(dateSigned.getTime)
+    val starts = new java.sql.Timestamp(dateStarts.getTime)
+    val expires = dateExpires.map(d => new java.sql.Timestamp(d.getTime))
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO directdebit
+            (directdebitid, bankid, accountid, customerid, userid, counterpartyid, datesigned,
+             datestarts, dateexpires, active, createdat, updatedat)
+            VALUES ($directDebitId, $bankId, $accountId, $customerId, $userId, $counterpartyId,
+             $signed, $starts, $expires, true, $now, $now)"""
+        .update.run)
+    DirectDebit(directDebitId, bankId, accountId, customerId, userId, counterpartyId, dateSigned,
+      null, dateStarts, dateExpires.orNull, active = true)
+  }
+
+  // Newest first — updatedat orders every listing below, so any future write must stamp it.
+  def findAllByBankAccount(bankId: String, accountId: String): List[DirectDebit] =
+    query(fr"WHERE bankid = $bankId AND accountid = $accountId ORDER BY updatedat DESC, id DESC")
+
+  def findAllByCustomerId(customerId: String): List[DirectDebit] =
+    query(fr"WHERE customerid = $customerId ORDER BY updatedat DESC, id DESC")
+
+  def findAllByUserId(userId: String): List[DirectDebit] =
+    query(fr"WHERE userid = $userId ORDER BY updatedat DESC, id DESC")
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM directdebit".update.run)
+    ()
+  }
+}
 
 object MappedDirectDebitProvider extends DirectDebitProvider {
-  def createDirectDebit(bankId: String,
-                        accountId: String,
-                        customerId: String,
-                        userId: String,
-                        counterpartyId: String,
-                        dateSigned: Date,
-                        dateStarts: Date,
-                        dateExpires: Option[Date]
-                       ): Box[DirectDebit] = Box.tryo {
-    DirectDebit.create
-      .BankId(bankId)
-      .AccountId(accountId)
-      .CustomerId(customerId)
-      .UserId(userId)
-      .CounterpartyId(counterpartyId)
-      .DateSigned(dateSigned)
-      .DateStarts(dateStarts)
-      .DateExpires(if (dateExpires.isDefined) dateExpires.get else null)
-      .Active(true)
-      .saveMe()
-  }
-  def getDirectDebitsByBankAccount(bankId: String, accountId: String): List[DirectDebit] = {
-    DirectDebit.findAll(
-      By(DirectDebit.BankId, bankId),
-      By(DirectDebit.AccountId, accountId),
-      OrderBy(DirectDebit.updatedAt, Descending))
-  }
-  def getDirectDebitsByCustomer(customerId: String): List[DirectDebit] = {
-    DirectDebit.findAll(
-      By(DirectDebit.CustomerId, customerId),
-      OrderBy(DirectDebit.updatedAt, Descending))
-  }
-  def getDirectDebitsByUser(userId: String): List[DirectDebit] = {
-    DirectDebit.findAll(
-      By(DirectDebit.UserId, userId),
-      OrderBy(DirectDebit.updatedAt, Descending))
-  }
-}
 
-class DirectDebit extends DirectDebitTrait with LongKeyedMapper[DirectDebit] with IdPK with CreatedUpdated {
-
-  def getSingleton: DirectDebit.type = DirectDebit
-
-  object DirectDebitId extends UUIDString(this) {
-    override def defaultValue = APIUtil.generateUUID()
+  def createDirectDebit(bankId: String, accountId: String, customerId: String, userId: String,
+                        counterpartyId: String, dateSigned: Date, dateStarts: Date,
+                        dateExpires: Option[Date]): Box[DirectDebit] = Box.tryo {
+    DirectDebit.insert(bankId, accountId, customerId, userId, counterpartyId, dateSigned,
+      dateStarts, dateExpires)
   }
-  object BankId extends UUIDString(this)
-  object AccountId extends UUIDString(this)
-  object CustomerId extends UUIDString(this)
-  object UserId extends UUIDString(this)
-  object CounterpartyId extends UUIDString(this)
-  object DateSigned extends MappedDateTime(this)
-  object DateCancelled extends MappedDateTime(this)
-  object DateStarts extends MappedDateTime(this)
-  object DateExpires extends MappedDateTime(this)
-  object Active extends MappedBoolean(this)
-  
-  override def directDebitId: String = DirectDebitId.get
-  override def bankId: String = BankId.get
-  override def accountId: String = AccountId.get
-  override def customerId: String = CustomerId.get
-  override def userId: String = UserId.get
-  override def counterpartyId: String = CounterpartyId.get
-  override def dateSigned: Date = DateSigned.get
-  override def dateCancelled: Date = DateCancelled.get
-  override def dateExpires: Date = DateExpires.get
-  override def dateStarts: Date = DateStarts.get
-  override def active: Boolean = Active.get
-}
 
-object DirectDebit extends DirectDebit with LongKeyedMetaMapper[DirectDebit] {
-  override def dbIndexes: List[BaseIndex[DirectDebit]] = UniqueIndex(BankId, AccountId, CustomerId, CounterpartyId) :: super.dbIndexes
+  def getDirectDebitsByBankAccount(bankId: String, accountId: String): List[DirectDebit] =
+    DirectDebit.findAllByBankAccount(bankId, accountId)
+
+  def getDirectDebitsByCustomer(customerId: String): List[DirectDebit] =
+    DirectDebit.findAllByCustomerId(customerId)
+
+  def getDirectDebitsByUser(userId: String): List[DirectDebit] =
+    DirectDebit.findAllByUserId(userId)
 }

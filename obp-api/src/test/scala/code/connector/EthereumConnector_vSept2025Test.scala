@@ -40,9 +40,9 @@
 //    override def accountRules: List[AccountRule] = Nil
 //  }
 //
-//  feature("Anvil local Ethereum Node, need to start the Anvil, and set `ethereum.rpc.url=http://127.0.0.1:8545` in props, and prepare the from, to account") {
+//  Feature("Anvil local Ethereum Node, need to start the Anvil, and set `ethereum.rpc.url=http://127.0.0.1:8545` in props, and prepare the from, to account") {
 ////    setPropsValues("ethereum.rpc.url"-> "https://nkotb.openbankproject.com")
-//    scenario("successful case", ConnectorTestTag) {
+//    Scenario("successful case", ConnectorTestTag) {
 //      val from = StubBankAccount("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
 //      val to = StubBankAccount("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 //      val amount = BigDecimal("0.0001")
@@ -73,9 +73,9 @@
 //    }
 //  }
 //  
-//  feature("need to start the Anvil, and set `ethereum.rpc.url=https://nkotb.openbankproject.com` in props, and prepare the from, to accounts and the rawTx") {
+//  Feature("need to start the Anvil, and set `ethereum.rpc.url=https://nkotb.openbankproject.com` in props, and prepare the from, to accounts and the rawTx") {
 ////    setPropsValues("ethereum.rpc.url"-> "http://127.0.0.1:8545")
-//    scenario("successful case", ConnectorTestTag) {
+//    Scenario("successful case", ConnectorTestTag) {
 //
 //      val from = StubBankAccount("0xf17f52151EbEF6C7334FAD080c5704D77216b732")
 //      val to   = StubBankAccount("0x627306090abaB3A6e1400e9345bC60c78a8BEf57")

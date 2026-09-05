@@ -2,7 +2,6 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import net.liftweb.mapper.Schemifier
 
 /**
  * Forward migration that removes the fast-firehose SQL objects created by
@@ -28,7 +27,7 @@ object MigrationOfDropFastFireHoseViews {
     var isSuccessful = false
 
     val executedSql =
-      DbFunction.maybeWrite(true, Schemifier.infoF _) {
+      DbFunction.maybeWrite(true) {
         APIUtil.getPropsValue("db.driver") openOr ("org.h2.Driver") match {
           case value if value.contains("postgresql") =>
             () =>

@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadMetrics
 import code.entitlement.Entitlement

@@ -2,12 +2,13 @@ package code.bankconnectors.rabbitmq
 
 import com.rabbitmq.client.AMQP.BasicProperties
 import com.rabbitmq.client.{Channel, Delivery, Envelope}
-import org.scalatest.{FlatSpec, Matchers}
 
 import java.lang.reflect.{InvocationHandler, Method, Proxy}
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * O3: ResponseCallback.handle must complete the promise even when closing the channel fails.
@@ -21,7 +22,7 @@ import scala.concurrent.duration._
  * No broker needed: `channel` is a dynamic proxy whose `close()` always throws, verifying the
  * promise still resolves with the delivered message body.
  */
-class RabbitMQUtilsResponseCallbackTest extends FlatSpec with Matchers {
+class RabbitMQUtilsResponseCallbackTest extends AnyFlatSpec with Matchers {
 
   private def channelWithFailingClose(): Channel = {
     val handler = new InvocationHandler {

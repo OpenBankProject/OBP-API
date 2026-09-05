@@ -55,9 +55,9 @@ class WebUiPropsTest extends V510ServerSetup {
   val wrongEntity = WebUiPropsCommons("hello_api_explorer_url", "https://apiexplorer.openbankproject.com") // name not start with "webui_"
 
   
-  feature("Get WebUiPropss v5.1.0 ") {
+  Feature("Get WebUiPropss v5.1.0 ") {
     
-    scenario("successful case", VersionOfApi) {
+    Scenario("successful case", VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We make a request v3.1.0")
       val request510 = (v5_1_0_Request / "management" / "webui_props").POST <@(user1)

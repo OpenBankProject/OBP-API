@@ -1,6 +1,6 @@
 package code.model
 
-import code.UserRefreshes.MappedUserRefreshes
+import code.UserRefreshes.DoobieUserRefreshesProvider
 import code.accountholders.MapperAccountHolders
 import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, SYSTEM_STAGE_ONE_VIEW_ID, SYSTEM_STANDARD_VIEW_ID}
 import code.bankconnectors.Connector
@@ -10,7 +10,6 @@ import code.setup.{DefaultUsers, PropsReset, ServerSetup}
 import code.views.MapperViews
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.InboundAccountCommons
-import net.liftweb.mapper.By
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -30,10 +29,10 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     super.beforeAll()
     Connector.connector.default.set(MockedCbsConnector)
     net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-      ViewDefinition.bulkDelete_!!()
-      MapperAccountHolders.bulkDelete_!!()
-      AccountAccess.bulkDelete_!!()
-      MappedUserRefreshes.bulkDelete_!!()
+      ViewDefinition.deleteAll()
+      MapperAccountHolders.deleteAll()
+      AccountAccess.deleteAll()
+      DoobieUserRefreshesProvider.bulkDelete()
       conn.connection.commit()
     }
   }
@@ -42,10 +41,10 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     super.afterEach()
     Connector.connector.default.set(Connector.buildOne)
     net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-      ViewDefinition.bulkDelete_!!()
-      MapperAccountHolders.bulkDelete_!!()
-      AccountAccess.bulkDelete_!!()
-      MappedUserRefreshes.bulkDelete_!!()
+      ViewDefinition.deleteAll()
+      MapperAccountHolders.deleteAll()
+      AccountAccess.deleteAll()
+      DoobieUserRefreshesProvider.bulkDelete()
       conn.connection.commit()
     }
   }
@@ -53,29 +52,13 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
   val bankIdAccountId1 = MockedCbsConnector.bankIdAccountId
   val bankIdAccountId2 = MockedCbsConnector.bankIdAccountId2
 
-  def account1Access = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId1.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId1.accountId.value),
-  )
+  def account1Access = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId1.bankId, bankIdAccountId1.accountId, resourceUser1.userPrimaryKey)
   
-  def account2Access = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId2.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId2.accountId.value),
-  )
+  def account2Access = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId2.bankId, bankIdAccountId2.accountId, resourceUser1.userPrimaryKey)
   
-  def account1AccessUser2 = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser2.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId1.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId1.accountId.value),
-  )
+  def account1AccessUser2 = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId1.bankId, bankIdAccountId1.accountId, resourceUser2.userPrimaryKey)
   
-  def account2AccessUser2 = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser2.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId2.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId2.accountId.value),
-  )
+  def account2AccessUser2 = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId2.bankId, bankIdAccountId2.accountId, resourceUser2.userPrimaryKey)
 
   def accountholder1 = MapperAccountHolders.getAccountHolders(bankIdAccountId1.bankId, bankIdAccountId1.accountId)
   def accountholder2 = MapperAccountHolders.getAccountHolders(bankIdAccountId2.bankId, bankIdAccountId2.accountId)
@@ -83,7 +66,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
   def allViewsForAccount1 = MapperViews.availableViewsForAccount(bankIdAccountId1)
   def allViewsForAccount2 = MapperViews.availableViewsForAccount(bankIdAccountId2)
   
-  def mappedUserRefreshesLength= MappedUserRefreshes.findAll().length
+  def mappedUserRefreshesLength= DoobieUserRefreshesProvider.count()
 
 
   val accountsHeldEmpty = List()
@@ -226,8 +209,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
   )
   
   
-  feature("Test the refreshUser method") {
-    scenario("we fake the output from getBankAccounts(), and check the functions there") {
+  Feature("Test the refreshUser method") {
+    Scenario("we fake the output from getBankAccounts(), and check the functions there") {
 
       When("We call the method use resourceUser1")
       val result = AuthUser.refreshUserLegacy(resourceUser1, None)
@@ -260,8 +243,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     }
   }
   
-  feature("Test the refreshViewsAccountAccessAndHolders method") {
-    scenario("Test one account views,account access and account holder") {
+  Feature("Test the refreshViewsAccountAccessAndHolders method") {
+    Scenario("Test one account views,account access and account holder") {
       
       When("1st Step: no accounts in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -279,7 +262,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (0)
+      DoobieUserRefreshesProvider.count() should be (0)
 
       Then("2rd Step: there is 1st account in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
@@ -297,7 +280,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
       Then("3rd: we remove the accounts ")
       val accountsHeld = List()
@@ -316,11 +299,11 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
     }
     
-    scenario("Test two accounts views,account access and account holder") {
+    Scenario("Test two accounts views,account access and account holder") {
 
       When("1rd Step: no accounts in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -338,7 +321,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (0)
+      DoobieUserRefreshesProvider.count() should be (0)
       
       When("2rd block, we prepare one account")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
@@ -356,7 +339,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
       Then("3rd:  we have two accounts in the accountsHeld")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, twoAccountsHeld, None)
@@ -374,7 +357,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(1)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
         
 
       When("4th, we removed the 1rd account, only have 2rd account there.")
@@ -393,7 +376,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(1)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
       
       When("5th, we do not have any accounts ")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -411,11 +394,11 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
     }
 
-    scenario("Test two users, account views,account access and account holder") {
+    Scenario("Test two users, account views,account access and account holder") {
 
       When("1st Step: no accounts in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -433,7 +416,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (0)
+      DoobieUserRefreshesProvider.count() should be (0)
 
       Then("2rd Step: 1st user and  1st account in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
@@ -453,7 +436,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2AccessUser2.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
 
       Then("3rd Step: 2rd user and 1st account in the List")
@@ -474,7 +457,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2AccessUser2.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (2)
+      DoobieUserRefreshesProvider.count() should be (2)
 
       When("4th, User1 we do not have any accounts ")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -494,11 +477,11 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account2AccessUser2.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (2)
+      DoobieUserRefreshesProvider.count() should be (2)
 
     }
     
-    scenario("Test one user, but change the `viewsToGenerate` from `StageOne` to `Owner`, and check all the view accesses. ") {
+    Scenario("Test one user, but change the `viewsToGenerate` from `StageOne` to `Owner`, and check all the view accesses. ") {
 
       When("1st Step: we create the `StageOneView` ")
       net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
@@ -514,10 +497,10 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the AccountAccess")
       account1Access.length should be (1)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
       
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
       Then("2rd Step: we create the `Owner` and remove the `StageOne` view")
       net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
@@ -535,10 +518,10 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
       Then("3rd Step: we removed the all the views ")
       net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
@@ -550,7 +533,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account1Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
       Then("4th Step: we create both the views: owner and StageOne ")
       net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
@@ -568,11 +551,11 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the AccountAccess")
       account1Access.length should equal(2)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
       
       Then("5th Step: we removed all the  views  ")
@@ -588,7 +571,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       account1Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
-      MappedUserRefreshes.findAll().length should be (1)
+      DoobieUserRefreshesProvider.count() should be (1)
 
     }
   }

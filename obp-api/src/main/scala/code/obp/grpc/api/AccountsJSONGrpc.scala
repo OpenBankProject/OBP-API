@@ -7,83 +7,93 @@ package code.obp.grpc.api
 
 @SerialVersionUID(0L)
 final case class AccountsJSONGrpc(
-    accounts: _root_.scala.collection.Seq[code.obp.grpc.api.AccountJSONGrpc] = _root_.scala.collection.Seq.empty
-    ) extends scalapb.GeneratedMessage with scalapb.Message[AccountsJSONGrpc] with scalapb.lenses.Updatable[AccountsJSONGrpc] {
+    accounts: _root_.scala.Seq[code.obp.grpc.api.AccountJSONGrpc] = _root_.scala.Seq.empty,
+    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[AccountsJSONGrpc] {
     @transient
-    private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-    private[this] def __computeSerializedValue(): _root_.scala.Int = {
+    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+    private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
-      accounts.foreach(accounts => __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(accounts.serializedSize) + accounts.serializedSize)
+      accounts.foreach { __item =>
+        val __value = __item
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      }
+      __size += unknownFields.serializedSize
       __size
     }
-    final override def serializedSize: _root_.scala.Int = {
-      var read = __serializedSizeCachedValue
-      if (read == 0) {
-        read = __computeSerializedValue()
-        __serializedSizeCachedValue = read
+    override def serializedSize: _root_.scala.Int = {
+      var __size = __serializedSizeMemoized
+      if (__size == 0) {
+        __size = __computeSerializedSize() + 1
+        __serializedSizeMemoized = __size
       }
-      read
+      __size - 1
+      
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       accounts.foreach { __v =>
+        val __m = __v
         _output__.writeTag(1, 2)
-        _output__.writeUInt32NoTag(__v.serializedSize)
-        __v.writeTo(_output__)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
       };
+      unknownFields.writeTo(_output__)
     }
-    def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.AccountsJSONGrpc = {
-      val __accounts = (_root_.scala.collection.immutable.Vector.newBuilder[code.obp.grpc.api.AccountJSONGrpc] ++= this.accounts)
-      var _done__ = false
-      while (!_done__) {
-        val _tag__ = _input__.readTag()
-        _tag__ match {
-          case 0 => _done__ = true
-          case 10 =>
-            __accounts += _root_.scalapb.LiteParser.readMessage(_input__, code.obp.grpc.api.AccountJSONGrpc.defaultInstance)
-          case tag => _input__.skipField(tag)
-        }
-      }
-      code.obp.grpc.api.AccountsJSONGrpc(
-          accounts = __accounts.result()
-      )
-    }
-    def clearAccounts = copy(accounts = _root_.scala.collection.Seq.empty)
-    def addAccounts(__vs: code.obp.grpc.api.AccountJSONGrpc*): AccountsJSONGrpc = addAllAccounts(__vs)
-    def addAllAccounts(__vs: TraversableOnce[code.obp.grpc.api.AccountJSONGrpc]): AccountsJSONGrpc = copy(accounts = accounts ++ __vs)
-    def withAccounts(__v: _root_.scala.collection.Seq[code.obp.grpc.api.AccountJSONGrpc]): AccountsJSONGrpc = copy(accounts = __v)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+    def clearAccounts = copy(accounts = _root_.scala.Seq.empty)
+    def addAccounts(__vs: code.obp.grpc.api.AccountJSONGrpc *): AccountsJSONGrpc = addAllAccounts(__vs)
+    def addAllAccounts(__vs: Iterable[code.obp.grpc.api.AccountJSONGrpc]): AccountsJSONGrpc = copy(accounts = accounts ++ __vs)
+    def withAccounts(__v: _root_.scala.Seq[code.obp.grpc.api.AccountJSONGrpc]): AccountsJSONGrpc = copy(accounts = __v)
+    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => accounts
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      require(__field.containingMessage eq companion.scalaDescriptor)
+      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PRepeated(accounts.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.AccountsJSONGrpc
+    def companion: code.obp.grpc.api.AccountsJSONGrpc.type = code.obp.grpc.api.AccountsJSONGrpc
+    // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.AccountsJSONGrpc])
 }
 
 object AccountsJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.AccountsJSONGrpc] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.AccountsJSONGrpc] = this
-  def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.AccountsJSONGrpc = {
-    require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-    val __fields = javaDescriptor.getFields
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.AccountsJSONGrpc = {
+    val __accounts: _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.AccountJSONGrpc] = new _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.AccountJSONGrpc]
+    var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+    var _done__ = false
+    while (!_done__) {
+      val _tag__ = _input__.readTag()
+      _tag__ match {
+        case 0 => _done__ = true
+        case 10 =>
+          __accounts += _root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.AccountJSONGrpc](_input__)
+        case tag =>
+          if (_unknownFields__ == null) {
+            _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+          }
+          _unknownFields__.parseField(tag, _input__)
+      }
+    }
     code.obp.grpc.api.AccountsJSONGrpc(
-      __fieldsMap.getOrElse(__fields.get(0), Nil).asInstanceOf[_root_.scala.collection.Seq[code.obp.grpc.api.AccountJSONGrpc]]
+        accounts = __accounts.result(),
+        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.AccountsJSONGrpc] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       code.obp.grpc.api.AccountsJSONGrpc(
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.collection.Seq[code.obp.grpc.api.AccountJSONGrpc]]).getOrElse(_root_.scala.collection.Seq.empty)
+        accounts = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Seq[code.obp.grpc.api.AccountJSONGrpc]]).getOrElse(_root_.scala.Seq.empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ApiProto.javaDescriptor.getMessageTypes.get(1)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ApiProto.javaDescriptor.getMessageTypes().get(1)
   def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ApiProto.scalaDescriptor.messages(1)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
@@ -95,9 +105,16 @@ object AccountsJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.api.AccountsJSONGrpc(
+    accounts = _root_.scala.Seq.empty
   )
   implicit class AccountsJSONGrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.AccountsJSONGrpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.AccountsJSONGrpc](_l) {
-    def accounts: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.Seq[code.obp.grpc.api.AccountJSONGrpc]] = field(_.accounts)((c_, f_) => c_.copy(accounts = f_))
+    def accounts: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[code.obp.grpc.api.AccountJSONGrpc]] = field(_.accounts)((c_, f_) => c_.copy(accounts = f_))
   }
   final val ACCOUNTS_FIELD_NUMBER = 1
+  def of(
+    accounts: _root_.scala.Seq[code.obp.grpc.api.AccountJSONGrpc]
+  ): _root_.code.obp.grpc.api.AccountsJSONGrpc = _root_.code.obp.grpc.api.AccountsJSONGrpc(
+    accounts
+  )
+  // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.AccountsJSONGrpc])
 }

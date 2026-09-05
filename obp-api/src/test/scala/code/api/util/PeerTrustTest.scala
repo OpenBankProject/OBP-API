@@ -4,7 +4,8 @@ import java.security.cert.X509Certificate
 
 import code.api.util.PeerTrust._
 import code.api.util.SelfSignedCertificateUtil.generateSelfSignedCert
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * The decision table of docs/MTLS_TOPOLOGIES.md §3, one test per row.
@@ -13,7 +14,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * rather than in middleware — the branch that matters most in production (a forwarded header
  * arriving over a hop with no client certificate) is otherwise the hardest one to exercise.
  */
-class PeerTrustTest extends FlatSpec with Matchers {
+class PeerTrustTest extends AnyFlatSpec with Matchers {
 
   private val ProxyCn = "CN=nginx-prod-1"
 

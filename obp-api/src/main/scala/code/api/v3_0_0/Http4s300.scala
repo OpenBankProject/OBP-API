@@ -2107,10 +2107,10 @@ object Http4s300 {
               x => unboxFullOrFail(x, Some(cc), s"$ScopeNotFound Current Value is $scopeIdStr")
             }
             _ <- Future {
-              NewStyle.function.hasEntitlementAndScope(scope.bankId, user.userId, consumer.id.get.toString, canDeleteScopeAtOneBank, Some(cc))
+              NewStyle.function.hasEntitlementAndScope(scope.bankId, user.userId, consumer.id.toString, canDeleteScopeAtOneBank, Some(cc))
             } map (fullBoxOrException(_)) recoverWith {
               case _ => Future {
-                NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank, Some(cc))
+                NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.toString, canDeleteScopeAtAnyBank, Some(cc))
               } map (fullBoxOrException(_))
             }
             _ <- code.util.Helper.booleanToFuture(ConsumerDoesNotHaveScope, cc = Some(cc)) { scope.scopeId == scopeIdStr }
@@ -2150,7 +2150,7 @@ object Http4s300 {
               x => unboxFullOrFail(x, Some(cc), InvalidConsumerCredentials)
             }
             _ <- Future {
-              NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank, Some(cc))
+              NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.toString, canGetEntitlementsForAnyUserAtAnyBank, Some(cc))
             } flatMap { unboxFullAndWrapIntoFuture(_) }
             scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerIdStr) } map { unboxFull(_) }
           } yield JSONFactory300.createScopeJSONs(scopes)

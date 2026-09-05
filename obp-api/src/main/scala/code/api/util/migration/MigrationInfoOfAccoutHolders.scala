@@ -9,7 +9,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.dataAccess.MappedBankAccount
 import code.views.system.AccountAccess
-import net.liftweb.mapper.{By, ByList, DB}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object BankAccountHoldersAndOwnerViewAccess {
@@ -19,7 +18,7 @@ object BankAccountHoldersAndOwnerViewAccess {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name: String): Boolean = {
-    DbFunction.tableExists(MapperAccountHolders) match {
+    DbFunction.tableExistsByName("mapperaccountholders") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -27,12 +26,9 @@ object BankAccountHoldersAndOwnerViewAccess {
         val accountHolderInfo =
           for {
             bankAccount <- MappedBankAccount.findAll()
-            accountHolder = MapperAccountHolders.findAll(
-              By(MapperAccountHolders.accountBankPermalink, bankAccount.bankId.value),
-              By(MapperAccountHolders.accountPermalink, bankAccount.accountId.value)
-            )
+            holderCount = MapperAccountHolders.count(bankAccount.bankId.value, bankAccount.accountId.value)
           } yield {
-            (bankAccount.bankId.value, bankAccount.accountId.value, accountHolder.size > 0)
+            (bankAccount.bankId.value, bankAccount.accountId.value, holderCount > 0)
           }
         val isSuccessful = true
         val bankAccountsWithoutAnHolder = accountHolderInfo.filter(_._3 == false)
@@ -40,11 +36,10 @@ object BankAccountHoldersAndOwnerViewAccess {
         val ownerViewInfo =
           for {
             (bankId, accountId, _) <- bankAccountsWithoutAnHolder
-            ownerViewAccess = AccountAccess.findAll(
-              By(AccountAccess.bank_id, bankId),
-              By(AccountAccess.account_id, accountId),
-              ByList(AccountAccess.view_id, List(Constant.SYSTEM_OWNER_VIEW_ID, "_owner"))
-            )
+            ownerViewAccess = AccountAccess
+              .findAllByBankIdAccountId(com.openbankproject.commons.model.BankId(bankId),
+                com.openbankproject.commons.model.AccountId(accountId))
+              .filter(a => a.viewId == Constant.SYSTEM_OWNER_VIEW_ID || a.viewId == "_owner")
           } yield {
             (bankId, accountId, ownerViewAccess.size > 0)
           }

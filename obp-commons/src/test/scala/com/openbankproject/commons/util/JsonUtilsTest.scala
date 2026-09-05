@@ -8,12 +8,14 @@ import org.json4s.Extraction.decompose
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import org.json4s.JsonAST.JValue
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
 
 import java.text.SimpleDateFormat
 import scala.collection.immutable.{List, Nil}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class JsonUtilsTest extends FlatSpec with Matchers {
+class JsonUtilsTest extends AnyFlatSpec with Matchers {
   object FunctionsTag extends Tag("JsonUtils")
   implicit def formats: Formats = org.json4s.DefaultFormats
 

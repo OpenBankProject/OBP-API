@@ -1,6 +1,10 @@
 package code.opencorridorfees
 
-import net.liftweb.mapper._
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 
 /**
  * Platform fee accrual ledger for Open Corridor (design: WIP/NEXT_TODO.md
@@ -20,53 +24,32 @@ import net.liftweb.mapper._
  * creditor = the platform's incoming settlement account. `FeeSettlementId`
  * marks a row swept; NULL rows are the bank's open fee balance.
  */
-class OpenCorridorFeeAccrual extends LongKeyedMapper[OpenCorridorFeeAccrual] with IdPK {
-  def getSingleton = OpenCorridorFeeAccrual
-
-  /** The bank that OWES the fee — the promise's originating (from) bank. */
-  object DebtorBankId extends MappedString(this, 255) {
-    override def dbColumnName = "debtor_bank_id"
-  }
-  /** The covered promise this fee is for. Unique — accrual is idempotent. */
-  object TransactionRequestId extends MappedString(this, 64) {
-    override def dbColumnName = "transaction_request_id"
-  }
-  object Currency extends MappedString(this, 8) {
-    override def dbColumnName = "currency"
-  }
-  /** The TR's charge amount, verbatim (major units, decimal string). */
-  object Amount extends MappedString(this, 32) {
-    override def dbColumnName = "amount"
-  }
-  /** The settlement that made the fee due (the netting cycle's id). */
-  object CoveredBySettlementId extends MappedString(this, 64) {
-    override def dbColumnName = "covered_by_settlement_id"
-  }
-  /** NULL until swept; then the fee settlement's id. */
-  object FeeSettlementId extends MappedString(this, 64) {
-    override def dbColumnName = "fee_settlement_id"
-  }
-  object AccruedAt extends MappedDateTime(this) {
-    override def dbColumnName = "accrued_at"
-    override def defaultValue = new java.util.Date()
-  }
-
-  def debtorBankId: String = DebtorBankId.get
-  def transactionRequestId: String = TransactionRequestId.get
-  def currency: String = Currency.get
-  def amount: String = Amount.get
-  def feeSettlementId: String = FeeSettlementId.get
+trait OpenCorridorFeeAccrualTrait {
+  def debtorBankId: String
+  def transactionRequestId: String
+  def currency: String
+  def amount: String
+  def feeSettlementId: String
 }
 
-object OpenCorridorFeeAccrual
-  extends OpenCorridorFeeAccrual
-  with LongKeyedMetaMapper[OpenCorridorFeeAccrual] {
+case class OpenCorridorFeeAccrualRow(
+  debtorBankId: String,
+  transactionRequestId: String,
+  currency: String,
+  amount: String,
+  feeSettlementId: String
+) extends OpenCorridorFeeAccrualTrait
 
-  override def dbTableName = "open_corridor_fee_accrual"
+object OpenCorridorFeeAccrual {
 
-  override def dbIndexes: List[BaseIndex[OpenCorridorFeeAccrual]] =
-    UniqueIndex(TransactionRequestId) :: Index(DebtorBankId) ::
-      Index(FeeSettlementId) :: super.dbIndexes
+  private val selectColumns =
+    fr"SELECT debtor_bank_id, transaction_request_id, currency, amount, fee_settlement_id FROM open_corridor_fee_accrual"
+
+  private def fromRow(row: (String, String, String, String, String)): OpenCorridorFeeAccrualTrait =
+    row match {
+      case (debtorBankId, transactionRequestId, currency, amount, feeSettlementId) =>
+        OpenCorridorFeeAccrualRow(debtorBankId, transactionRequestId, currency, amount, feeSettlementId)
+    }
 
   /** Accrue the fee for one covered promise. Idempotent on the TR id (a
     * re-settle of the same promise cannot double-charge); zero/empty charges
@@ -77,28 +60,44 @@ object OpenCorridorFeeAccrual
     currency: String,
     amount: String,
     coveredBySettlementId: String
-  ): Option[OpenCorridorFeeAccrual] = {
+  ): Option[OpenCorridorFeeAccrualTrait] = {
     val zero = scala.util.Try(BigDecimal(amount)).map(_ <= 0).getOrElse(true)
-    if (zero) None
-    else if (find(By(TransactionRequestId, transactionRequestId)).isDefined) None
-    else Some(
-      OpenCorridorFeeAccrual.create
-        .DebtorBankId(debtorBankId)
-        .TransactionRequestId(transactionRequestId)
-        .Currency(currency)
-        .Amount(amount)
-        .CoveredBySettlementId(coveredBySettlementId)
-        .saveMe()
-    )
+    val alreadyAccrued = find(transactionRequestId).isDefined
+    if (zero || alreadyAccrued) None
+    else {
+      DoobieUtil.runUpdate(
+        sql"""INSERT INTO open_corridor_fee_accrual
+              (debtor_bank_id, transaction_request_id, currency, amount, covered_by_settlement_id, fee_settlement_id, accrued_at)
+              VALUES
+              ($debtorBankId, $transactionRequestId, $currency, $amount, $coveredBySettlementId, '', CURRENT_TIMESTAMP)"""
+          .update.run)
+      Some(OpenCorridorFeeAccrualRow(debtorBankId, transactionRequestId, currency, amount, ""))
+    }
   }
 
   /** A bank's unswept accruals in one currency, oldest first. (MappedString
     * defaults to the empty string, so "unswept" is an empty FeeSettlementId.) */
-  def unswept(debtorBankId: String, currency: String): List[OpenCorridorFeeAccrual] =
-    findAll(
-      By(DebtorBankId, debtorBankId),
-      By(Currency, currency),
-      By(FeeSettlementId, ""),
-      OrderBy(AccruedAt, Ascending)
-    )
+  def unswept(debtorBankId: String, currency: String): List[OpenCorridorFeeAccrualTrait] =
+    DoobieUtil.runQuery(
+      (selectColumns ++ fr"WHERE debtor_bank_id = $debtorBankId AND currency = $currency AND fee_settlement_id = '' ORDER BY accrued_at ASC")
+        .query[(String, String, String, String, String)].to[List]
+    ).map(fromRow)
+
+  def find(transactionRequestId: String): Box[OpenCorridorFeeAccrualTrait] =
+    DoobieUtil.runQuery(
+      (selectColumns ++ fr"WHERE transaction_request_id = $transactionRequestId")
+        .query[(String, String, String, String, String)].option
+    ) match {
+      case Some(row) => Full(fromRow(row))
+      case None => Empty
+    }
+
+  /** Stamp one accrued fee as swept. */
+  def markSwept(transactionRequestId: String, feeSettlementId: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE open_corridor_fee_accrual SET fee_settlement_id = $feeSettlementId
+            WHERE transaction_request_id = $transactionRequestId"""
+        .update.run)
+    ()
+  }
 }

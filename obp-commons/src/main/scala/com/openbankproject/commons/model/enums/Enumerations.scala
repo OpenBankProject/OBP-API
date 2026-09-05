@@ -1,6 +1,6 @@
 package com.openbankproject.commons.model.enums
 
-import com.openbankproject.commons.util.{EnumValue, JsonAble, OBPEnumeration}
+import com.openbankproject.commons.util.{EnumValue, JsonAble, OBPEnumeration, json}
 import net.liftweb.common.Box
 import org.json4s.JsonAST.{JNothing, JString}
 import org.json4s._
@@ -362,7 +362,10 @@ object I18NResourceDocField extends Enumeration {
 
 //-------------------simple enum definition, just some sealed trait way, start-------------
 trait SimpleEnum extends JsonAble {
-  override def toJValue(implicit format: Formats): JValue = {
+  // Signature uses the json.* aliases, not org.json4s directly - see ApiVersion.scala's toJValue
+  // override for why (a ScalaSig-pickled signature naming org.json4s.JsonAST.JValue directly
+  // becomes unreadable once json4s-native_2.13 is off obp-api's classpath).
+  override def toJValue(implicit format: json.Formats): json.JValue = {
     val simpleName = this.getClass.getSimpleName.replaceFirst("\\$$", "")
     JString(simpleName)
   }

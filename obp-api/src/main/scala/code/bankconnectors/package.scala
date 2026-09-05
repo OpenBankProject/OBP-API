@@ -20,7 +20,7 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.ThreadGlobal
 
 import scala.concurrent.Future
-import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
+import scala.reflect.runtime.universe.{MethodSymbol, Type, WildcardType, appliedType, typeOf}
 import scala.util.{Try, Success => TrySuccess, Failure => TryFailure}
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 import com.openbankproject.commons.util.ReflectUtils._
@@ -337,6 +337,38 @@ package object bankconnectors extends MdcLoggable {
     }
   }
 
+  // These mix net.liftweb.common.Box / stdlib tuples with code.api.util.CallContext, an obp-api-only
+  // type - so, unlike SwaggerTypes, they can't be precomputed in obp-commons (wrong dependency
+  // direction). typeOf[T] for a parameterized type needs the Scala 2 compiler's TypeTag synthesis,
+  // which Scala 3 does not implement, so these are built at runtime instead via
+  // ReflectUtils.forType + appliedType (WildcardType stands in for `_`), same technique as
+  // ConnectorUtils.scala/ConnectorEndpoints.scala.
+  private val boxTycon = ReflectUtils.forType("net.liftweb.common.Box").typeConstructor
+  private val tuple2Tycon = ReflectUtils.forType("scala.Tuple2").typeConstructor
+  private val tuple3Tycon = ReflectUtils.forType("scala.Tuple3").typeConstructor
+  private val optionTycon = ReflectUtils.forType("scala.Option").typeConstructor
+  private val someTycon = ReflectUtils.forType("scala.Some").typeConstructor
+  private val iterableTycon = ReflectUtils.forType("scala.collection.Iterable").typeConstructor
+  private val callContextType = ReflectUtils.forType("code.api.util.CallContext")
+  private val optionCallContextType = appliedType(optionTycon, callContextType)
+  private val someCallContextType = appliedType(someTycon, callContextType)
+
+  // Box[(_, Option[CallContext])]
+  private val boxTupleWildcardOptionCallContextType =
+    appliedType(boxTycon, appliedType(tuple2Tycon, WildcardType, optionCallContextType))
+  // (_, _, Iterable[_])
+  private val tuple3WildcardWildcardIterableWildcardType =
+    appliedType(tuple3Tycon, WildcardType, WildcardType, appliedType(iterableTycon, WildcardType))
+  // (Box[_], Option[CallContext])
+  private val tupleBoxWildcardOptionCallContextType =
+    appliedType(tuple2Tycon, appliedType(boxTycon, WildcardType), optionCallContextType)
+  // Box[_]
+  private val boxWildcardType = appliedType(boxTycon, WildcardType)
+  // (_, Some[CallContext])
+  private val tupleWildcardSomeCallContextType = appliedType(tuple2Tycon, WildcardType, someCallContextType)
+  // (_, _)
+  private val tupleWildcardWildcardType = appliedType(tuple2Tycon, WildcardType, WildcardType)
+
   private def validateRequiredFields(value: AnyRef, returnType: Type, apiVersion: ApiVersion): AnyRef = {
     value match {
       // when method return one of Unit, null, EmptyBox, None, empty Array, empty collection,
@@ -358,13 +390,13 @@ package object bankconnectors extends MdcLoggable {
         validate(value, elementTpe, coll, apiVersion, None, false)
 
       case Full((coll: Iterable[_], cc: Option[_]))
-        if coll.nonEmpty && returnType <:< typeOf[Box[(_, Option[CallContext])]] =>
+        if coll.nonEmpty && returnType <:< boxTupleWildcardOptionCallContextType =>
         val elementTpe = getNestTypeArg(returnType, 0, 0, 0)
         val callContext = cc.asInstanceOf[Option[CallContext]]
         validate(value, elementTpe, coll, apiVersion, callContext)
 
       case Full((v, cc: Option[_]))
-        if returnType <:< typeOf[Box[(_, Option[CallContext])]] =>
+        if returnType <:< boxTupleWildcardOptionCallContextType =>
         val elementTpe = getNestTypeArg(returnType, 0, 0)
         val callContext = cc.asInstanceOf[Option[CallContext]]
         validate(value, elementTpe, v, apiVersion, callContext)
@@ -377,7 +409,7 @@ package object bankconnectors extends MdcLoggable {
       // return type is: Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]
       case Full(coll: Iterable[_])
         if coll.nonEmpty &&
-          getNestTypeArg(returnType, 0, 0) <:< typeOf[(_, _, Iterable[_])] =>
+          getNestTypeArg(returnType, 0, 0) <:< tuple3WildcardWildcardIterableWildcardType =>
         val tpe1 = getNestTypeArg(returnType, 0, 0, 0)
         val tpe2 = getNestTypeArg(returnType, 0, 0, 1)
         val tpe3 = getNestTypeArg(returnType, 0, 0, 2, 0)
@@ -397,8 +429,8 @@ package object bankconnectors extends MdcLoggable {
 
       // if returnType is OBPReturnType, returnType is f's type, So need check returnType <:< typeOf[Box[_]]
       case (f @Full(v), cc: Option[_])
-        if returnType <:< typeOf[(Box[_], Option[CallContext])] || returnType <:< typeOf[Box[_]] =>
-        val elementTpe = if(returnType <:< typeOf[(Box[_], Option[CallContext])] ) {
+        if returnType <:< tupleBoxWildcardOptionCallContextType || returnType <:< boxWildcardType =>
+        val elementTpe = if(returnType <:< tupleBoxWildcardOptionCallContextType) {
           getNestTypeArg(returnType, 0, 0)
         } else {
           returnType.typeArgs.head
@@ -409,8 +441,8 @@ package object bankconnectors extends MdcLoggable {
 
       // if returnType is OBPReturnType, returnType is v's type, So need check !(returnType <:< typeOf[(_, _)])
       case (v, cc: Option[_])
-        if returnType <:< typeOf[(_, Some[CallContext])] || !(returnType <:< typeOf[(_, _)]) =>
-        val elementTpe = if(returnType <:< typeOf[(_, Some[CallContext])]) {
+        if returnType <:< tupleWildcardSomeCallContextType || !(returnType <:< tupleWildcardWildcardType) =>
+        val elementTpe = if(returnType <:< tupleWildcardSomeCallContextType) {
           returnType.typeArgs.head
         } else {
           returnType
@@ -427,16 +459,22 @@ package object bankconnectors extends MdcLoggable {
 
   }
 
-  private def validate[T: Manifest](originValue: AnyRef,
+  // Neither method ever used its T - a call-site type argument was never supplied anywhere in the
+  // codebase, so it was always inferred, and with nothing in either signature constraining it,
+  // inference had nothing to pin it to. Scala 2 quietly resolved that to Nothing and moved on;
+  // Scala 3 refuses to synthesise a Manifest[Nothing] for an unconstrained inference and hard
+  // errors instead. Dropping the dead parameter removes the inference rather than fixing what it
+  // resolved to.
+  private def validate(originValue: AnyRef,
                                          validateType: Type,
                                          any: Any,
                                          apiVersion: ApiVersion,
                                          cc: Option[CallContext] = None,
                                          resultIsBox: Boolean = true): AnyRef =
-    validateMultiple[T](originValue, apiVersion, cc, resultIsBox)(any -> validateType)
+    validateMultiple(originValue, apiVersion, cc, resultIsBox)(any -> validateType)
 
 
-  private def validateMultiple[T: Manifest](originValue: AnyRef,
+  private def validateMultiple(originValue: AnyRef,
                                          apiVersion: ApiVersion,
                                          cc: Option[CallContext] = None,
                                          resultIsBox: Boolean = true)(valueAndType: (Any, Type)*): AnyRef = {

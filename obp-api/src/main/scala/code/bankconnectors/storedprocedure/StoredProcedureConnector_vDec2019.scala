@@ -51,7 +51,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
   import com.openbankproject.commons.model.{AmountOfMoney, CreditLimit, CreditRating, CustomerFaceImage}
 
-  implicit override val nameOfConnector = StoredProcedureConnector_vDec2019.toString
+  implicit override val nameOfConnector: String = StoredProcedureConnector_vDec2019.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
   // Use Case Classes (e.g. Inbound... Outbound... as below to describe the message structures.
@@ -7542,7 +7542,11 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     result
   }
 
-  private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](procedureName: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
+  // T: TypeTag was never used in this method's body - the downstream call
+  // (StoredProcedureUtils.callProcedure[T]) and everything it in turn calls only
+  // need T: Manifest. Scala 3 does not implement TypeTag synthesis; dropping the unused bound
+  // fixes that without touching the Manifest this method actually relies on.
+  private[this] def sendRequest[T <: InBoundTrait[_]: Manifest](procedureName: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     Helper.convertToReference(outBound)
     Future{

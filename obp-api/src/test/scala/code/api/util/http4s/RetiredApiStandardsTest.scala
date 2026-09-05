@@ -43,9 +43,9 @@ class RetiredApiStandardsTest extends V400ServerSetup {
     "code.api.MxOF."
   )
 
-  feature("Retired API standards stay retired") {
+  Feature("Retired API standards stay retired") {
 
-    scenario("ScannedApis registry must not contain any object from a retired-standard package", RetiredStandardsTag) {
+    Scenario("ScannedApis registry must not contain any object from a retired-standard package", RetiredStandardsTag) {
       Given("`ScannedApis.versionMapScannedApis` is built via `ClassScanUtils.getSubTypeObjects`")
       val scanned = ScannedApis.versionMapScannedApis.values.toList
 

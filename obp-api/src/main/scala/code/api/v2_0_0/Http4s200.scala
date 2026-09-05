@@ -37,7 +37,6 @@ import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedAp
 import net.liftweb.common._
 import org.json4s.JsonAST.JValue
 import org.json4s.{Extraction, Formats}
-import net.liftweb.mapper.By
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -950,32 +949,32 @@ object Http4s200 {
               fullPasswordValidation(body.password)
             }
             _ <- code.util.Helper.booleanToFuture(DuplicateUsername, failCode = 409, cc = Some(cc)) {
-              AuthUser.find(By(AuthUser.username, body.username)).isEmpty
+              AuthUser.findByUsername(body.username).isEmpty
             }
             userCreated <- Future {
-              AuthUser.create
-                .firstName(body.first_name)
-                .lastName(body.last_name)
-                .username(body.username)
-                .email(body.email)
-                .password(body.password)
-                .validated(APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false))
+              AuthUser(
+                firstName = body.first_name,
+                lastName = body.last_name,
+                username = body.username,
+                email = body.email,
+                validated = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
+              ).withPassword(body.password)
             }
             _ <- code.util.Helper.booleanToFuture(
-              InvalidJsonFormat + userCreated.validate.map(_.msg).mkString(";"), cc = Some(cc)) {
-              userCreated.validate.isEmpty
+              InvalidJsonFormat + AuthUser.validate(userCreated).mkString(";"), cc = Some(cc)) {
+              AuthUser.validate(userCreated).isEmpty
             }
             savedUser <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               userCreated.saveMe()
             }
             _ <- code.util.Helper.booleanToFuture(s"$UnknownError Error occurred during user creation.", cc = Some(cc)) {
-              userCreated.saved_?
+              savedUser.id > 0
             }
           } yield {
             val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
             if (!skipEmailValidation) AuthUser.sendValidationEmail(savedUser)
             AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
-            createUserJSONfromAuthUser(userCreated)
+            createUserJSONfromAuthUser(savedUser)
           }
         }
     }
@@ -1116,7 +1115,7 @@ object Http4s200 {
               APIUtil.hasEntitlement("", user.userId, canGetAnyUser)
             }
             users <- Future {
-              AuthUser.getResourceUsersByEmail(userEmail)
+              Users.users.vend.getUserByEmail(userEmail).getOrElse(Nil)
             }
           } yield JSONFactory200.createUserJSONs(users)
         }

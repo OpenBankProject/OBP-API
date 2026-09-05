@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.APIUtil.OAuth._
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
 import com.github.dwickern.macros.NameOf.nameOf
@@ -38,9 +40,9 @@ class AppDirectoryTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations6_0_0.getAppDirectory))
 
-  feature("Get App Directory v6.0.0") {
+  Feature("Get App Directory v6.0.0") {
 
-    scenario("We get app directory without authentication - should succeed", VersionOfApi, ApiEndpoint) {
+    Scenario("We get app directory without authentication - should succeed", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint without authentication")
       val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
@@ -49,7 +51,7 @@ class AppDirectoryTest extends V600ServerSetup {
       response.code should equal(200)
     }
 
-    scenario("We get app directory with authentication - should also succeed", VersionOfApi, ApiEndpoint) {
+    Scenario("We get app directory with authentication - should also succeed", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint with authentication")
       val request = (v6_0_0_Request / "app-directory").GET <@(user1)
       val response = makeGetRequest(request)
@@ -58,7 +60,7 @@ class AppDirectoryTest extends V600ServerSetup {
       response.code should equal(200)
     }
 
-    scenario("Response only contains public_*_url keys", VersionOfApi, ApiEndpoint) {
+    Scenario("Response only contains public_*_url keys", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
       val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
@@ -77,7 +79,7 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("Response does not contain sensitive keywords in keys", VersionOfApi, ApiEndpoint) {
+    Scenario("Response does not contain sensitive keywords in keys", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
       val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
@@ -95,7 +97,7 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("Response does not contain sensitive keywords in values", VersionOfApi, ApiEndpoint) {
+    Scenario("Response does not contain sensitive keywords in values", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
       val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
@@ -115,7 +117,7 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("Response does not expose internal infrastructure props", VersionOfApi, ApiEndpoint) {
+    Scenario("Response does not expose internal infrastructure props", VersionOfApi, ApiEndpoint) {
       When("We call the apps-directory endpoint")
       val request = (v6_0_0_Request / "app-directory").GET
       val response = makeGetRequest(request)
@@ -136,9 +138,9 @@ class AppDirectoryTest extends V600ServerSetup {
     }
   }
 
-  feature("App Directory unit-level checks v6.0.0") {
+  Feature("App Directory unit-level checks v6.0.0") {
 
-    scenario("maskSensitivePropValue masks keys containing sensitive keywords", VersionOfApi, ApiEndpoint) {
+    Scenario("maskSensitivePropValue masks keys containing sensitive keywords", VersionOfApi, ApiEndpoint) {
       APIUtil.maskSensitivePropValue("db_password", "mysecretpw") should equal("****")
       APIUtil.maskSensitivePropValue("oauth_token_url", "https://example.com") should equal("****")
       APIUtil.maskSensitivePropValue("api_secret", "abc123") should equal("****")
@@ -148,18 +150,18 @@ class AppDirectoryTest extends V600ServerSetup {
       APIUtil.maskSensitivePropValue("authorization_header", "Bearer xyz") should equal("****")
     }
 
-    scenario("maskSensitivePropValue masks values containing sensitive keywords", VersionOfApi, ApiEndpoint) {
+    Scenario("maskSensitivePropValue masks values containing sensitive keywords", VersionOfApi, ApiEndpoint) {
       APIUtil.maskSensitivePropValue("some_prop", "contains_password_here") should equal("****")
       APIUtil.maskSensitivePropValue("some_prop", "jdbc:postgresql://localhost") should equal("****")
     }
 
-    scenario("maskSensitivePropValue does not mask safe values", VersionOfApi, ApiEndpoint) {
+    Scenario("maskSensitivePropValue does not mask safe values", VersionOfApi, ApiEndpoint) {
       APIUtil.maskSensitivePropValue("hostname", "https://api.example.com") should equal("https://api.example.com")
       APIUtil.maskSensitivePropValue("webui_api_explorer_url", "https://explorer.example.com") should equal("https://explorer.example.com")
       APIUtil.maskSensitivePropValue("api_port", "8080") should equal("8080")
     }
 
-    scenario("getAppDiscoveryPairs only returns public_*_url keys", VersionOfApi, ApiEndpoint) {
+    Scenario("getAppDiscoveryPairs only returns public_*_url keys", VersionOfApi, ApiEndpoint) {
       val pairs = APIUtil.getAppDiscoveryPairs
       pairs.foreach { case (key, _) =>
         withClue(s"Key '$key' should match public_*_url: ") {
@@ -169,7 +171,7 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("getAppDiscoveryPairs does not return keys with sensitive keywords", VersionOfApi, ApiEndpoint) {
+    Scenario("getAppDiscoveryPairs does not return keys with sensitive keywords", VersionOfApi, ApiEndpoint) {
       val pairs = APIUtil.getAppDiscoveryPairs
       pairs.foreach { case (key, _) =>
         APIUtil.sensitiveKeywords.foreach { keyword =>
@@ -180,7 +182,7 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("getAppDiscoveryPairs values are never raw sensitive data", VersionOfApi, ApiEndpoint) {
+    Scenario("getAppDiscoveryPairs values are never raw sensitive data", VersionOfApi, ApiEndpoint) {
       val pairs = APIUtil.getAppDiscoveryPairs
       pairs.foreach { case (key, value) =>
         if (value != "****") {
@@ -193,7 +195,7 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("publicAppUrlPropNames contains expected app URLs", VersionOfApi, ApiEndpoint) {
+    Scenario("publicAppUrlPropNames contains expected app URLs", VersionOfApi, ApiEndpoint) {
       APIUtil.publicAppUrlPropNames should contain("public_obp_api_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_portal_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_api_explorer_url")
@@ -206,7 +208,7 @@ class AppDirectoryTest extends V600ServerSetup {
       APIUtil.publicAppUrlPropNames should contain("public_obp_opey_url")
     }
 
-    scenario("all publicAppUrlPropNames follow public_*_url convention", VersionOfApi, ApiEndpoint) {
+    Scenario("all publicAppUrlPropNames follow public_*_url convention", VersionOfApi, ApiEndpoint) {
       APIUtil.publicAppUrlPropNames.foreach { key =>
         withClue(s"Key '$key' should start with public_ and end with _url: ") {
           key should startWith("public_")
@@ -215,7 +217,7 @@ class AppDirectoryTest extends V600ServerSetup {
       }
     }
 
-    scenario("publicAppUrlPropNames do not include sensitive keys", VersionOfApi, ApiEndpoint) {
+    Scenario("publicAppUrlPropNames do not include sensitive keys", VersionOfApi, ApiEndpoint) {
       // Words that contain sensitive substrings but are not themselves sensitive.
       // e.g. "keycloak" contains "key" but is just a product name.
       val whitelistedWords = List("keycloak")

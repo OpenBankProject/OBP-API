@@ -67,19 +67,18 @@ class ConsentObpTest extends V510ServerSetup {
   lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentEmailJsonV310 = SwaggerDefinitionsJSON.postConsentEmailJsonV310
     .copy(entitlements=entitlements)
-    .copy(consumer_id=Some(testConsumer.consumerId.get))
+    .copy(consumer_id=Some(testConsumer.consumerId))
     .copy(views=views)
   lazy val postConsentImplicitJsonV310 = SwaggerDefinitionsJSON.postConsentImplicitJsonV310
     .copy(entitlements=entitlements)
-    .copy(consumer_id=Some(testConsumer.consumerId.get))
+    .copy(consumer_id=Some(testConsumer.consumerId))
     .copy(views=views)
 
   val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=Constant.DEFAULT_CONSENT_TTL)
   val timeToLive: Option[Long] = Some(maxTimeToLive + 10)
   
-  feature(s"test $CreateConsent version $VersionOfApi - Unauthorized access")
-  {
-    scenario("We will call the endpoint without user credentials-IMPLICIT", CreateConsent, VersionOfApi) {
+  Feature(s"test $CreateConsent version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials-IMPLICIT", CreateConsent, VersionOfApi) {
       When("We make a request")
       val request = (v5_1_0_Request / "my" / "consents" / "IMPLICIT" ).POST
       val response = makePostRequest(request, write(postConsentImplicitJsonV310))
@@ -88,13 +87,13 @@ class ConsentObpTest extends V510ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint with user credentials-Implicit", CreateConsent, GetUserByUserId, VersionOfApi, VersionOfApi2) {
+    Scenario("We will call the endpoint with user credentials-Implicit", CreateConsent, GetUserByUserId, VersionOfApi, VersionOfApi2) {
       setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_KEY_VALUE")
       wholeFunctionalityImplicit(RequestHeader.`Consent-JWT`)
       setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_CERTIFICATE")
     }
 
-    scenario("We will call the endpoint with user credentials and deprecated header name-Implicit", CreateConsent, GetUserByUserId, VersionOfApi, VersionOfApi2) {
+    Scenario("We will call the endpoint with user credentials and deprecated header name-Implicit", CreateConsent, GetUserByUserId, VersionOfApi, VersionOfApi2) {
       setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_KEY_VALUE")
       wholeFunctionalityImplicit(RequestHeader.`Consent-Id`)
       setPropsValues("consumer_validation_method_for_consent"-> "CONSUMER_CERTIFICATE")

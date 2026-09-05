@@ -31,17 +31,17 @@ import code.api.util.{ApiSession, CallContext}
 import code.api.util.APIUtil.HTTPParam
 import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 import net.liftweb.common.{Box, Full}
 
 import java.util.Date
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
-class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
+class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
   
-  feature("test ApiSession.createSessionId method") 
-  {
-    scenario("update the CallContext Session Id") 
-    {
+  Feature("test ApiSession.createSessionId method") {
+    Scenario("update the CallContext Session Id") {
       val callContext = CallContext() 
       
       val callContextUpdated = ApiSession.createSessionId(Some(callContext))
@@ -50,10 +50,8 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
     }
   }
   
-  feature("test ApiSession.updateCallContextSessionId method") 
-  {
-    scenario("update the CallContext Session Id") 
-    {
+  Feature("test ApiSession.updateCallContextSessionId method") {
+    Scenario("update the CallContext Session Id") {
       val callContext = CallContext() 
       
       val callContextUpdated = ApiSession.updateSessionId(Some(callContext), "12345")
@@ -62,15 +60,14 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
     }
   }
   
-  feature("CallContext.toLight is like for like with CallContext")
-  {
+  Feature("CallContext.toLight is like for like with CallContext") {
     // Any field name that exists on BOTH CallContext and CallContextLight must carry the
     // same value through toLight — CallContext may have more fields, but overlapping names
     // must never diverge. Reflection over the case-class fields keeps this true for fields
     // added in the future without anyone remembering to extend this test.
-    scenario("every same-named field survives toLight unchanged")
+    Scenario("every same-named field survives toLight unchanged")
     {
-      val principal = ResourceUser.create.userId_("principal-user-id").name_("principal-name")
+      val principal = ResourceUser(userId = "principal-user-id", name = "principal-name")
 
       // Populate every shared-name field with a distinctive, non-default value so a wrong
       // mapping cannot hide behind matching defaults.
@@ -134,10 +131,10 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
     // a resolved human. Under a consent the principal is the consent's shadow user; the
     // human stays on the context as consenter/onBehalfOfUser and is resolved at read time
     // via the consent table, never baked into stored rows.
-    scenario("userId and userName carry the AUTHENTICATED principal, even when consenter and onBehalfOfUser are set")
+    Scenario("userId and userName carry the AUTHENTICATED principal, even when consenter and onBehalfOfUser are set")
     {
-      val principal = ResourceUser.create.userId_("principal-user-id").name_("principal-name")
-      val human = ResourceUser.create.userId_("human-user-id").name_("human-name")
+      val principal = ResourceUser(userId = "principal-user-id", name = "principal-name")
+      val human = ResourceUser(userId = "human-user-id", name = "human-name")
 
       val light = CallContext(
         user = Full(principal),
@@ -152,19 +149,17 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
       light.partialFunctionName should be("")
     }
 
-    scenario("without consent context, userId is simply the authenticated user")
+    Scenario("without consent context, userId is simply the authenticated user")
     {
-      val user = ResourceUser.create.userId_("plain-user-id").name_("plain-name")
+      val user = ResourceUser(userId = "plain-user-id", name = "plain-name")
       val light = CallContext(user = Full(user)).toLight
       light.userId should be(Some("plain-user-id"))
       light.userName should be(Some("plain-name"))
     }
   }
 
-  feature("test CallContext toString secure logging masking") 
-  {
-    scenario("toString should mask sensitive data") 
-    {
+  Feature("test CallContext toString secure logging masking") {
+    Scenario("toString should mask sensitive data") {
       val callContextWithSensitiveData = CallContext(
         directLoginParams = Map("password" -> "supersecret", "client_secret" -> "my_client_secret")
       )

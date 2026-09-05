@@ -41,8 +41,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
 
   lazy val bankId = randomBankId
 
-  feature(s"Assuring that endpoint $ApiEndpoint1 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint1 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / bankId / "attribute").POST
       val responseGet = makePostRequest(requestGet, write(bankAttributeJsonV400))
@@ -51,7 +51,7 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       responseGet.code should equal(401)
       responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / bankId / "attribute").POST <@ (user1)
       val responseGet = makePostRequest(requestGet, write(bankAttributeJsonV400))
@@ -63,8 +63,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
   }
 
 
-  feature(s"Assuring that endpoint $ApiEndpoint2 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint2 - Anonymous access", ApiEndpoint2, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint2 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint2 - Anonymous access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").PUT
       val responseGet = makePutRequest(requestGet, write(bankAttributeJsonV400))
@@ -73,7 +73,7 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       responseGet.code should equal(401)
       responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").PUT <@ (user1)
       val responseGet = makePutRequest(requestGet, write(bankAttributeJsonV400))
@@ -86,8 +86,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
 
 
 
-  feature(s"Assuring that endpoint $ApiEndpoint3 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint3 - Anonymous access", ApiEndpoint3, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint3 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint3 - Anonymous access", ApiEndpoint3, VersionOfApi) {
       When("We make the request")
       val request = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").DELETE
       val response = makeDeleteRequest(request)
@@ -96,7 +96,7 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint3 without proper role - Authorized access", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint3 without proper role - Authorized access", ApiEndpoint3, VersionOfApi) {
       When("We make the request")
       val request = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").DELETE <@ (user1)
       val response = makeDeleteRequest(request)
@@ -108,8 +108,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
   }
 
   
-  feature(s"Assuring that endpoint $ApiEndpoint4 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint4, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint4 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
       val request = (v4_0_0_Request / "banks" / bankId / "attributes").GET
       val response = makeGetRequest(request)
@@ -118,7 +118,7 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint4 without proper role - Authorized access", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 without proper role - Authorized access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
       val request = (v4_0_0_Request / "banks" / bankId / "attributes").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -129,8 +129,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
     }
   }
   
-  feature(s"Assuring that endpoint $ApiEndpoint5 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint5, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint5 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")
       val request = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").GET
       val response = makeGetRequest(request)
@@ -139,7 +139,7 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")
       val request = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -150,8 +150,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
     }
   }
 
-  feature(s"Assuring that endpoints $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint3, $ApiEndpoint5 work as expected - $VersionOfApi") {
-    scenario(s"Test successful CRUD operations", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Assuring that endpoints $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint3, $ApiEndpoint5 work as expected - $VersionOfApi") {
+    Scenario(s"Test successful CRUD operations", ApiEndpoint1, VersionOfApi) {
       // Create
       When("We make the request")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateBankAttribute.toString)

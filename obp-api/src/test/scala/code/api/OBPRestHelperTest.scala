@@ -3,7 +3,9 @@ package code.api
 import code.api.util.APIUtil.{ResourceDoc, EmptyBody}
 import code.api.OBPRestHelper
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for OBPRestHelper.isAutoValidate method
@@ -15,14 +17,14 @@ import org.scalatest.{FlatSpec, Matchers, Tag}
  * - When doc.implementedInApiVersion is not ScannedApiVersion
  * - Basic version comparison logic
  */
-class OBPRestHelperTest extends FlatSpec with Matchers {
+class OBPRestHelperTest extends AnyFlatSpec with Matchers {
   
   object tag extends Tag("OBPRestHelper")
   
   // Create a test instance of OBPRestHelper
   private val testHelper = new OBPRestHelper {
-    val version: com.openbankproject.commons.util.ApiVersion = ScannedApiVersion("obp", "OBP", "v4.0.0")
-    val versionStatus: String = "stable"
+    lazy val version: com.openbankproject.commons.util.ApiVersion = ScannedApiVersion("obp", "OBP", "v4.0.0")
+    lazy val versionStatus: String = "stable"
   }
   
   // Helper method to create a ResourceDoc with specific validation settings

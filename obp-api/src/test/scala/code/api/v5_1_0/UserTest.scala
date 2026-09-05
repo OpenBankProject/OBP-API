@@ -32,8 +32,8 @@ class UserTest extends V510ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.getEntitlementsAndPermissions))
   object ValidateUserByUserId extends Tag(nameOf(Implementations5_1_0.validateUserByUserId))
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request400 = (v5_1_0_Request / "users" / "provider"/"x" / "username" / "USERNAME").GET
       val response400 = makeGetRequest(request400)
@@ -43,8 +43,8 @@ class UserTest extends V510ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request400 = (v5_1_0_Request / "users" / "provider"/defaultProvider / "username" / "USERNAME").GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -54,8 +54,8 @@ class UserTest extends V510ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       val user = UserX.createResourceUser(defaultProvider, Some("user.name.1"), None, Some("user.name.1"), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
       When("We make a request v5.1.0")
@@ -66,20 +66,24 @@ class UserTest extends V510ServerSetup {
       val json = response400.body.extract[UserWithNamesJsonV510]
       json.first_name should equal("")
       json.last_name should equal("")
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - first_name and last_name populated from AuthUser") {
-    scenario("We will call the endpoint with an AuthUser that has first and last name set", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - first_name and last_name populated from AuthUser") {
+    Scenario("We will call the endpoint with an AuthUser that has first and last name set", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       val username = "user.withnames." + UUID.randomUUID.toString.take(8)
       val email = s"$username@example.com"
       val user = UserX.createResourceUser(defaultProvider, Some(username), None, Some(username), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
-      val authUser = AuthUser.create
-        .email(email).username(username).password(randomString(12))
-        .validated(true).firstName("Alice").lastName("Smith")
-        .provider(defaultProvider).user(user.userPrimaryKey.value).saveMe()
+      val authUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Smith",
+        provider = defaultProvider,
+        user = user.userPrimaryKey.value).withPassword(randomString(12)).saveMe()
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" / "provider" / user.provider / "username" / user.name).GET <@(user1)
       val response = makeGetRequest(request)
@@ -89,12 +93,12 @@ class UserTest extends V510ServerSetup {
       json.first_name should equal("Alice")
       json.last_name should equal("Smith")
       authUser.delete_!
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with URL-encoded provider") {
-    scenario("We will call the endpoint with a provider containing special URL characters (colon, slash)", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with URL-encoded provider") {
+    Scenario("We will call the endpoint with a provider containing special URL characters (colon, slash)", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       // Provider contains special URL characters - dispatch encodes '/' as '%2F' but keeps ':' as-is,
       // so "http://127.0.0.1:8080" becomes "http:%2F%2F127.0.0.1:8080" in the request path.
@@ -107,12 +111,12 @@ class UserTest extends V510ServerSetup {
       Then("We get successful response - endpoint correctly URL-decodes the provider")
       response.code should equal(200)
       response.body.extract[UserWithNamesJsonV510]
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" / "USER_ID" / "entitlements-and-permissions").GET
       val response = makeGetRequest(request)
@@ -121,8 +125,8 @@ class UserTest extends V510ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       val user = UserX.createResourceUser(defaultProvider, Some("user.name.1"), None, Some("user.name.1"), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" / user.userId / "entitlements-and-permissions").GET <@(user1)
@@ -131,11 +135,11 @@ class UserTest extends V510ServerSetup {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
       // Clean up
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetEntitlementsForAnyUserAtAnyBank.toString)
       val user = UserX.createResourceUser(defaultProvider, Some("user.name.1"), None, Some("user.name.1"), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
       When("We make a request v5.1.0")
@@ -145,13 +149,13 @@ class UserTest extends V510ServerSetup {
       response.code should equal(200)
       response.body.extract[UserJsonV300]
       // Clean up
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
 
 
-  feature(s"test $ValidateUserByUserId version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ValidateUserByUserId, VersionOfApi) {
+  Feature(s"test $ValidateUserByUserId version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ValidateUserByUserId, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "management" / "users" / resourceUser1.userId ).PUT
       val response = makePutRequest(request, write(UserValidatedJson(true)))
@@ -161,8 +165,8 @@ class UserTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ValidateUserByUserId version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ValidateUserByUserId, VersionOfApi) {
+  Feature(s"test $ValidateUserByUserId version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ValidateUserByUserId, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "management" / "users" / resourceUser1.userId ).PUT <@ (user1)
       val response = makePutRequest(request, write(UserValidatedJson(true)))

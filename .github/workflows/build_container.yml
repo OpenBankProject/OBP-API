@@ -48,6 +48,18 @@ jobs:
       - name: Lint — test-isolation (no setPropsValues at class/feature body)
         run: python3 .github/scripts/check_test_isolation.py
 
+      - name: Lint — nullable columns are read through Option
+        run: python3 .github/scripts/check_nullable_column_reads.py
+
+      - name: Lint — the changelog still carries the scripts' data migrations
+        run: python3 .github/scripts/check_changelog_data_migrations.py
+
+      - name: Lint — a Commons list is converted, never cast
+        run: python3 .github/scripts/check_no_blind_commons_casts.py
+
+      - name: Lint — every baseline changeset carries its existence precondition
+        run: python3 .github/scripts/check_changelog_preconditions.py
+
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them
@@ -184,7 +196,8 @@ jobs:
               code.api.gateWayloginTest
               code.api.OBPRestHelperTest
               code.api.AliveCheckRoutesTest
-              code.api.Http4sOpenIdConnect
+              code.api.OAuth2
+              code.api.SIWETest
               code.entitlement
               code.bankaccountcreation
               code.bankconnectors
@@ -208,6 +221,24 @@ jobs:
           - 6379:6379
         options: >-
           --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      # PostgresMigrationTest is the only thing that exercises the Postgres DDL, and it used to
+      # cancel itself here for want of a server - a cancelled test reports as a pass, so the
+      # Postgres half of the schema was never checked in CI at all. The service makes it run;
+      # OBP_TEST_POSTGRES_REQUIRED below makes its absence a failure rather than a silent skip.
+      # Only the shard that owns code.api.util runs the test, and the flag is inert on the rest.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -312,8 +343,18 @@ jobs:
           # ConnectorMethodTest, AbacRuleTests, DynamicResourceDocTest, DynamicMessageDocTest
           # and DynamicCodeKillSwitchTest's ON scenarios can still compile/execute dynamic code.
           echo allow_user_generated_scala_code=true >> obp-api/src/main/resources/props/test.default.props
+          # The runners are on a JDK with no SecurityManager (JEP 486), so the sandbox enforces
+          # nothing and compileScalaCode refuses without this second, explicit acceptance. CI is
+          # the case that switch is written for: knowingly unsandboxed, on throwaway data.
+          echo allow_user_generated_scala_code_without_sandbox=true >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
+        env:
+          OBP_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/postgres
+          OBP_TEST_POSTGRES_USER: postgres
+          OBP_TEST_POSTGRES_PASSWORD: postgres
+          # Turns PostgresMigrationTest's self-cancellation into a failure - see PostgresTestTarget.
+          OBP_TEST_POSTGRES_REQUIRED: "true"
         run: |
           # wildcardSuites requires comma-separated package prefixes (-w per entry).
           # The YAML >- scalar collapses newlines to spaces, so we convert here.

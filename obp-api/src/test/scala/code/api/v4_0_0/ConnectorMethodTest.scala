@@ -76,8 +76,8 @@ class ConnectorMethodTest extends V400ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getAllConnectorMethods))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.updateConnectorMethod))
 
-  feature("Test the ConnectorMethod endpoints") {
-    scenario("We create my ConnectorMethod and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Test the ConnectorMethod endpoints") {
+    Scenario("We create my ConnectorMethod and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
@@ -100,11 +100,11 @@ class ConnectorMethodTest extends V400ServerSetup {
       connectorMethod.connectorMethodId shouldNot be (null)
 
       Then("provenance is captured server-side into the stored row (not surfaced in the frozen v4 response)")
-      val storedConnectorMethod = code.connectormethod.ConnectorMethod
-        .find(net.liftweb.mapper.By(code.connectormethod.ConnectorMethod.ConnectorMethodId, connectorMethod.connectorMethodId.getOrElse("")))
+      val storedConnectorMethod = code.connectormethod.DoobieConnectorMethodProvider
+        .getByIdWithProvenance(connectorMethod.connectorMethodId.getOrElse(""))
         .openOrThrowException("stored connector method not found")
-      storedConnectorMethod.CreatedByUserId.get should be (resourceUser1.userId)
-      storedConnectorMethod.MethodBodyHash.get should be (code.api.util.APIUtil.sha256Hex(postConnectorMethod.decodedMethodBody))
+      storedConnectorMethod.createdByUserId should be (Some(resourceUser1.userId))
+      storedConnectorMethod.methodBodyHash should be (Some(code.api.util.APIUtil.sha256Hex(postConnectorMethod.decodedMethodBody)))
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
       
@@ -196,8 +196,8 @@ class ConnectorMethodTest extends V400ServerSetup {
     
   }
 
-  feature("Test the ConnectorMethod endpoints error cases") {
-    scenario("We create my ConnectorMethod -- duplicated ConnectorMethod Name", ApiEndpoint1, VersionOfApi) {
+  Feature("Test the ConnectorMethod endpoints error cases") {
+    Scenario("We create my ConnectorMethod -- duplicated ConnectorMethod Name", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
@@ -227,7 +227,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
     }
 
-    scenario("We create/get/getAll/update my ConnectorMethod without our proper roles", ApiEndpoint1, VersionOfApi) {
+    Scenario("We create/get/getAll/update my ConnectorMethod without our proper roles", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
@@ -266,8 +266,8 @@ class ConnectorMethodTest extends V400ServerSetup {
     }
   }
 
-  feature("Test the InternalConnector method") {
-    scenario("We create a ConnectorMethod -- call the method, it should response correct result", VersionOfApi) {
+  Feature("Test the InternalConnector method") {
+    Scenario("We create a ConnectorMethod -- call the method, it should response correct result", VersionOfApi) {
       When("We make create a ConnectorMethod")
       val methodBody =
         """

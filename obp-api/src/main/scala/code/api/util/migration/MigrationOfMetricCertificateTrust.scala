@@ -3,7 +3,6 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MappedMetric
-import net.liftweb.mapper.Schemifier
 
 /**
  * Migration: add `certificate_trust VARCHAR(32)` and `certificate_trust_detail VARCHAR(255)` to
@@ -30,7 +29,7 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfMetricCertificateTrust {
 
   def migrate(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric) match {
+    DbFunction.tableExistsByName("metric") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -55,7 +54,7 @@ object MigrationOfMetricCertificateTrust {
               "ALTER TABLE metricarchive ADD COLUMN IF NOT EXISTS certificate_trust_detail VARCHAR(255);"
             )
           statements.foreach { statement =>
-            sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => statement)).append("\n")
+            sqlLog.append(DbFunction.maybeWrite(true)(() => statement)).append("\n")
           }
 
           isSuccessful = true
@@ -78,7 +77,7 @@ object MigrationOfMetricCertificateTrust {
         val commitId: String = APIUtil.gitCommit
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
-        val comment: String = s"""${MappedMetric._dbTableNameLC} table does not exist""".stripMargin
+        val comment: String = s"""metric table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

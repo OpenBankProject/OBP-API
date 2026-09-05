@@ -27,8 +27,8 @@ class EmbeddedRabbitMQ extends V500ServerSetup with DefaultUsers {
     rabbitMQContainer.stop()
   }
 
-  feature(s"test EmbeddedRabbitMQ") {
-    scenario("Publish and Consume Message") {
+  Feature(s"test EmbeddedRabbitMQ") {
+    Scenario("Publish and Consume Message") {
 
       val rabbitHost = rabbitMQContainer.getHost
       val rabbitPort = rabbitMQContainer.getAmqpPort

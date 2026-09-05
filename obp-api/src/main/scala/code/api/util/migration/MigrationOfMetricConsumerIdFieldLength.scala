@@ -4,7 +4,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.{MappedMetric, MetricArchive}
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 /**
  * Widen `metric.consumerid` and `metricarchive.consumerid` from varchar(44) to varchar(250)
@@ -27,7 +26,7 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfMetricConsumerIdFieldLength {
 
   def alterColumnConsumerIdLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric) match {
+    DbFunction.tableExistsByName("metric") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -37,12 +36,12 @@ object MigrationOfMetricConsumerIdFieldLength {
         }
 
         // 1. Drop the dependent view (Postgres/H2 block ALTER TYPE on a view-referenced column).
-        val dropViewSql = DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
+        val dropViewSql = DbFunction.maybeWrite(true) { () =>
           "DROP VIEW IF EXISTS v_metric;"
         }
 
         // 2. Widen metric.consumerid to match Consumer.consumerId (250).
-        val alterMetricSql = DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
+        val alterMetricSql = DbFunction.maybeWrite(true) { () =>
           if (isSqlServer) "ALTER TABLE metric ALTER COLUMN consumerid varchar(250);"
           else "ALTER TABLE metric ALTER COLUMN consumerid TYPE character varying(250);"
         }
@@ -51,17 +50,17 @@ object MigrationOfMetricConsumerIdFieldLength {
         //    so a 250-char id in metric would later fail the archive insert. No view depends
         //    on metricarchive, so this is a plain ALTER.
         val alterArchiveSql =
-          if (DbFunction.tableExists(MetricArchive)) {
-            DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
+          if (DbFunction.tableExistsByName("metricarchive")) {
+            DbFunction.maybeWrite(true) { () =>
               if (isSqlServer) "ALTER TABLE metricarchive ALTER COLUMN consumerid varchar(250);"
               else "ALTER TABLE metricarchive ALTER COLUMN consumerid TYPE character varying(250);"
             }
           } else {
-            s"${MetricArchive._dbTableNameLC} table does not exist; skipped"
+            s"metricarchive table does not exist; skipped"
           }
 
         // 4. Recreate v_metric (keep in sync with MigrationOfMetricView.addMetricView).
-        val createViewSql = DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
+        val createViewSql = DbFunction.maybeWrite(true) { () =>
           val createClause = if (isSqlServer) "CREATE OR ALTER VIEW v_metric AS" else "CREATE OR REPLACE VIEW v_metric AS"
           s"""$createClause
              |SELECT
@@ -101,7 +100,7 @@ object MigrationOfMetricConsumerIdFieldLength {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         val endDate = System.currentTimeMillis()
-        val comment: String = s"""${MappedMetric._dbTableNameLC} table does not exist""".stripMargin
+        val comment: String = s"""metric table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful = false, startDate, endDate, comment)
         false
     }

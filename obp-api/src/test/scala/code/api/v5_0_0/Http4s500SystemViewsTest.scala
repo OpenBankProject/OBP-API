@@ -12,7 +12,6 @@ import org.json4s.JValue
 import org.json4s.JsonAST.{JField, JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 import com.openbankproject.commons.util.JsonAliases.RichJField
@@ -74,9 +73,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
     .copy(metadata_view = randomSystemViewId)
     .toCreateViewJson
 
-  feature("Http4s500 POST /system-views - Create System View") {
+  Feature("Http4s500 POST /system-views - Create System View") {
 
-    scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
+    Scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
       Given("POST /obp/v5.0.0/system-views request without auth headers")
       When("Making HTTP request to server")
       val (statusCode, json) = makeHttpRequest(
@@ -100,7 +99,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
+    Scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
       Given("POST /obp/v5.0.0/system-views request with auth but no CanCreateSystemView role")
       When("Making HTTP request to server")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
@@ -127,7 +126,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Create system view when authenticated and entitled", Http4s500SystemViewsTag) {
+    Scenario("Create system view when authenticated and entitled", Http4s500SystemViewsTag) {
       Given("POST /obp/v5.0.0/system-views request with auth and CanCreateSystemView role")
       addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
       
@@ -160,9 +159,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Http4s500 GET /system-views/{VIEW_ID} - Get System View") {
+  Feature("Http4s500 GET /system-views/{VIEW_ID} - Get System View") {
 
-    scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
+    Scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
       Given("GET /obp/v5.0.0/system-views/VIEW_ID request without auth headers")
       When("Making HTTP request to server")
       val (statusCode, json) = makeHttpRequest(
@@ -185,7 +184,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
+    Scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
       Given("GET /obp/v5.0.0/system-views/VIEW_ID request with auth but no CanGetSystemView role")
       When("Making HTTP request to server")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
@@ -211,7 +210,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Get system view when authenticated and entitled", Http4s500SystemViewsTag) {
+    Scenario("Get system view when authenticated and entitled", Http4s500SystemViewsTag) {
       Given("GET /obp/v5.0.0/system-views/VIEW_ID request with auth and CanGetSystemView role")
       
       // First create a view
@@ -247,7 +246,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 404 for non-existent view", Http4s500SystemViewsTag) {
+    Scenario("Return 404 for non-existent view", Http4s500SystemViewsTag) {
       Given("GET /obp/v5.0.0/system-views/VIEW_ID request for non-existent view")
       addEntitlement("", resourceUser1.userId, CanGetSystemView.toString)
 
@@ -275,9 +274,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Http4s500 PUT /system-views/{VIEW_ID} - Update System View") {
+  Feature("Http4s500 PUT /system-views/{VIEW_ID} - Update System View") {
 
-    scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
+    Scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
       Given("PUT /obp/v5.0.0/system-views/VIEW_ID request without auth headers")
       val updateJson = updateSystemViewJson500.copy(description = "Updated description")
       
@@ -303,7 +302,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
+    Scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
       Given("PUT /obp/v5.0.0/system-views/VIEW_ID request with auth but no CanUpdateSystemView role")
       val updateJson = updateSystemViewJson500.copy(description = "Updated description")
       
@@ -332,7 +331,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Update system view when authenticated and entitled", Http4s500SystemViewsTag) {
+    Scenario("Update system view when authenticated and entitled", Http4s500SystemViewsTag) {
       Given("PUT /obp/v5.0.0/system-views/VIEW_ID request with auth and CanUpdateSystemView role")
       
       // First create a view
@@ -376,9 +375,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Http4s500 DELETE /system-views/{VIEW_ID} - Delete System View") {
+  Feature("Http4s500 DELETE /system-views/{VIEW_ID} - Delete System View") {
 
-    scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
+    Scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
       Given("DELETE /obp/v5.0.0/system-views/VIEW_ID request without auth headers")
       When("Making HTTP request to server")
       val (statusCode, json) = makeHttpRequest(
@@ -401,7 +400,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
+    Scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
       Given("DELETE /obp/v5.0.0/system-views/VIEW_ID request with auth but no CanDeleteSystemView role")
       When("Making HTTP request to server")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
@@ -427,7 +426,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Delete system view when authenticated and entitled", Http4s500SystemViewsTag) {
+    Scenario("Delete system view when authenticated and entitled", Http4s500SystemViewsTag) {
       Given("DELETE /obp/v5.0.0/system-views/VIEW_ID request with auth and CanDeleteSystemView role")
       
       // First create a view
@@ -438,10 +437,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       makeHttpRequest("POST", "/obp/v5.0.0/system-views", headers, Some(write(createViewJson)))
       
       // Clean up any account access records
-      AccountAccess.findAll(
-        By(AccountAccess.view_id, viewId),
-        By(AccountAccess.user_fk, resourceUser1.id.get)
-      ).forall(_.delete_!)
+      AccountAccess.findAllBySystemViewId(com.openbankproject.commons.model.ViewId(viewId))
+        .filter(_.userPrimaryKey == resourceUser1.id)
+        .forall(a => AccountAccess.deleteRow(a))
       
       // Now delete the view
       addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
@@ -460,9 +458,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
 
   // Ported from the retired Lift-era SystemViewsTests (ApiEndpoint5 getSystemViewsIds),
   // so deleting that suite does not drop the /system-views-ids coverage.
-  feature("Http4s500 GET /system-views-ids - Get System View Ids") {
+  Feature("Http4s500 GET /system-views-ids - Get System View Ids") {
 
-    scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
+    Scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
       Given("GET /obp/v5.0.0/system-views-ids request without auth headers")
       When("Making HTTP request to server")
       val (statusCode, json) = makeHttpRequest(
@@ -485,7 +483,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
+    Scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
       Given("GET /obp/v5.0.0/system-views-ids request with auth but no CanGetSystemView role")
       When("Making HTTP request to server")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
@@ -511,7 +509,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Get system view ids when authenticated and entitled", Http4s500SystemViewsTag) {
+    Scenario("Get system view ids when authenticated and entitled", Http4s500SystemViewsTag) {
       Given("GET /obp/v5.0.0/system-views-ids request with auth and CanGetSystemView role")
       addEntitlement("", resourceUser1.userId, CanGetSystemView.toString)
 

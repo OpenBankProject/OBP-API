@@ -82,7 +82,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       address = testAccountId1.value), Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentRequestJsonV310 = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
-    .copy(consumer_id=Some(testConsumer.consumerId.get))
+    .copy(consumer_id=Some(testConsumer.consumerId))
     .copy(bank_id=Some(bankId))
     .copy(account_access=accountAccess)
 
@@ -105,8 +105,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   def updateConsentPayloadByConsent(consentId: String) = (v5_1_0_Request / "management" / "banks" / bankId / "consents" / consentId / "account-access").PUT
   def revokeMyConsentUrl(consentId: String) = (v5_1_0_Request / "my" / "consents" / consentId ).DELETE
 
-  feature(s"test $ApiEndpoint6 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
+  Feature(s"test $ApiEndpoint6 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
       When(s"We make a request $ApiEndpoint6")
       val response510 = makeDeleteRequest(revokeConsentUrl("whatever"))
       Then("We should get a 401")
@@ -114,8 +114,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint6 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint6, VersionOfApi) {
+  Feature(s"test $ApiEndpoint6 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint6, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response510 = makeDeleteRequest(revokeConsentUrl("whatever")<@(user1))
       Then("We should get a 403")
@@ -124,8 +124,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
     }
   }
 
-  feature(s"test $ApiEndpoint8 version $VersionOfApi - Unauthenticated access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint8, VersionOfApi) {
+  Feature(s"test $ApiEndpoint8 version $VersionOfApi - Unauthenticated access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint8, VersionOfApi) {
       When(s"We make a request $ApiEndpoint8")
       val response510 = makeGetRequest(getMyConsentAtBank("whatever"))
       Then("We should get a 401")
@@ -133,8 +133,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint8 version $VersionOfApi - Authenticated access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint8, VersionOfApi) {
+  Feature(s"test $ApiEndpoint8 version $VersionOfApi - Authenticated access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint8, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response510 = makeGetRequest(getMyConsentAtBank("whatever")<@(user1))
       Then("We should get a 200")
@@ -142,8 +142,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
     }
   }
 
-  feature(s"test $getMyConsents version $VersionOfApi - Unauthenticated access") {
-    scenario("We will call the endpoint without user credentials", getMyConsents, VersionOfApi) {
+  Feature(s"test $getMyConsents version $VersionOfApi - Unauthenticated access") {
+    Scenario("We will call the endpoint without user credentials", getMyConsents, VersionOfApi) {
       When(s"We make a request $getMyConsents")
       val response510 = makeGetRequest(getMyConsent("whatever"))
       Then("We should get a 401")
@@ -151,8 +151,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $getMyConsents version $VersionOfApi - Authenticated access") {
-    scenario("We will call the endpoint with user credentials", getMyConsents, VersionOfApi) {
+  Feature(s"test $getMyConsents version $VersionOfApi - Authenticated access") {
+    Scenario("We will call the endpoint with user credentials", getMyConsents, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response510 = makeGetRequest(getMyConsent("whatever")<@(user1))
       Then("We should get a 200")
@@ -161,8 +161,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   }
 
 
-  feature(s"test $ApiEndpoint9 version $VersionOfApi - Unauthenticated access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint9, VersionOfApi) {
+  Feature(s"test $ApiEndpoint9 version $VersionOfApi - Unauthenticated access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint9, VersionOfApi) {
       When(s"We make a request $ApiEndpoint9")
       val response510 = makeGetRequest(getConsentsAtBAnk("whatever"))
       Then("We should get a 401")
@@ -170,8 +170,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint9 version $VersionOfApi - Authenticated access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint9, VersionOfApi) {
+  Feature(s"test $ApiEndpoint9 version $VersionOfApi - Authenticated access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint9, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response510 = makeGetRequest(getConsentsAtBAnk("whatever") <@ (user1))
       Then("We should get a 403")
@@ -180,8 +180,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
     }
   }
 
-  feature(s"test $GetConsents version $VersionOfApi - Unauthenticated access") {
-    scenario("We will call the endpoint without user credentials", GetConsents, VersionOfApi) {
+  Feature(s"test $GetConsents version $VersionOfApi - Unauthenticated access") {
+    Scenario("We will call the endpoint without user credentials", GetConsents, VersionOfApi) {
       When(s"We make a request $GetConsents")
       val response510 = makeGetRequest(getConsents("whatever"))
       Then("We should get a 401")
@@ -189,8 +189,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $GetConsents version $VersionOfApi - Authenticated access") {
-    scenario("We will call the endpoint with user credentials", GetConsents, VersionOfApi) {
+  Feature(s"test $GetConsents version $VersionOfApi - Authenticated access") {
+    Scenario("We will call the endpoint with user credentials", GetConsents, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response510 = makeGetRequest(getConsents("whatever") <@ (user1))
       Then("We should get a 403")
@@ -198,8 +198,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles + s"$CanGetConsentsAtAnyBank") should be(true)
     }
   }
-  feature(s"test $GetConsents version $VersionOfApi - Authenticated access with proper entitlement") {
-    scenario("We will call the endpoint with user credentials", GetConsents, VersionOfApi) {
+  Feature(s"test $GetConsents version $VersionOfApi - Authenticated access with proper entitlement") {
+    Scenario("We will call the endpoint with user credentials", GetConsents, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetConsentsAtAnyBank.toString)
       val response510 = makeGetRequest(getConsents("whatever") <@ (user1))
@@ -209,8 +209,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   }
 
 
-  feature(s"test $UpdateConsentStatusByConsent version $VersionOfApi - Unauthenticated access") {
-    scenario("We will call the endpoint without user credentials", UpdateConsentStatusByConsent, VersionOfApi) {
+  Feature(s"test $UpdateConsentStatusByConsent version $VersionOfApi - Unauthenticated access") {
+    Scenario("We will call the endpoint without user credentials", UpdateConsentStatusByConsent, VersionOfApi) {
       When(s"We make a request $UpdateConsentStatusByConsent")
       val response510 = makePutRequest(updateConsentStatusByConsent("whatever"), write(consentStatus))
       Then("We should get a 401")
@@ -219,8 +219,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
     }
   }
 
-  feature(s"test $revokeMyConsent version $VersionOfApi- Unauthenticated access") {
-    scenario("We will call the endpoint with user credentials", revokeMyConsent, VersionOfApi) {
+  Feature(s"test $revokeMyConsent version $VersionOfApi- Unauthenticated access") {
+    Scenario("We will call the endpoint with user credentials", revokeMyConsent, VersionOfApi) {
       When(s"We make a request $revokeMyConsent")
       val response510 = makeDeleteRequest(revokeMyConsentUrl("xxxx"))
       Then("We should get a 401")
@@ -229,8 +229,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
     }
   }
   
-  feature(s"test $UpdateConsentStatusByConsent version $VersionOfApi - Authenticated access") {
-    scenario("We will call the endpoint with user credentials", UpdateConsentStatusByConsent, VersionOfApi) {
+  Feature(s"test $UpdateConsentStatusByConsent version $VersionOfApi - Authenticated access") {
+    Scenario("We will call the endpoint with user credentials", UpdateConsentStatusByConsent, VersionOfApi) {
       When(s"We make a request $UpdateConsentStatusByConsent")
       val response510 = makePutRequest(updateConsentStatusByConsent("whatever") <@ user1, write(consentStatus))
       Then("We should get a 403")
@@ -238,8 +238,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles + s"$CanUpdateConsentStatusAtOneBank or $CanUpdateConsentStatusAtAnyBank") should be(true)
     }
   }
-  feature(s"test $UpdateConsentStatusByConsent version $VersionOfApi - Authenticated access with Role $CanUpdateConsentStatusAtAnyBank") {
-    scenario("We will call the endpoint with user credentials", UpdateConsentStatusByConsent, VersionOfApi) {
+  Feature(s"test $UpdateConsentStatusByConsent version $VersionOfApi - Authenticated access with Role $CanUpdateConsentStatusAtAnyBank") {
+    Scenario("We will call the endpoint with user credentials", UpdateConsentStatusByConsent, VersionOfApi) {
       When(s"We make a request $UpdateConsentStatusByConsent")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateConsentStatusAtAnyBank.toString)
       val response510 = makePutRequest(updateConsentStatusByConsent("whatever") <@ user1, write(consentStatus))
@@ -250,8 +250,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   }
 
 
-  feature(s"test $UpdateConsentAccountAccessByConsentId version $VersionOfApi - Unauthenticated access") {
-    scenario("We will call the endpoint without user credentials", UpdateConsentAccountAccessByConsentId, VersionOfApi) {
+  Feature(s"test $UpdateConsentAccountAccessByConsentId version $VersionOfApi - Unauthenticated access") {
+    Scenario("We will call the endpoint without user credentials", UpdateConsentAccountAccessByConsentId, VersionOfApi) {
       When(s"We make a request $UpdateConsentAccountAccessByConsentId")
       val response510 = makePutRequest(updateConsentPayloadByConsent("whatever"), write(consentStatus))
       Then("We should get a 401")
@@ -259,8 +259,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $UpdateConsentAccountAccessByConsentId version $VersionOfApi - Authenticated access") {
-    scenario("We will call the endpoint with user credentials", UpdateConsentAccountAccessByConsentId, VersionOfApi) {
+  Feature(s"test $UpdateConsentAccountAccessByConsentId version $VersionOfApi - Authenticated access") {
+    Scenario("We will call the endpoint with user credentials", UpdateConsentAccountAccessByConsentId, VersionOfApi) {
       When(s"We make a request $UpdateConsentAccountAccessByConsentId")
       val response510 = makePutRequest(updateConsentPayloadByConsent("whatever") <@ user1, write(consentStatus))
       Then("We should get a 403")
@@ -268,8 +268,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles + s"$CanUpdateConsentAccountAccessAtOneBank or $CanUpdateConsentAccountAccessAtAnyBank") should be(true)
     }
   }
-  feature(s"test $UpdateConsentAccountAccessByConsentId version $VersionOfApi - Authenticated access with Role $CanUpdateConsentStatusAtAnyBank") {
-    scenario("We will call the endpoint with user credentials", UpdateConsentAccountAccessByConsentId, VersionOfApi) {
+  Feature(s"test $UpdateConsentAccountAccessByConsentId version $VersionOfApi - Authenticated access with Role $CanUpdateConsentStatusAtAnyBank") {
+    Scenario("We will call the endpoint with user credentials", UpdateConsentAccountAccessByConsentId, VersionOfApi) {
       When(s"We make a request $UpdateConsentAccountAccessByConsentId")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateConsentAccountAccessAtAnyBank.toString)
       val response510 = makePutRequest(updateConsentPayloadByConsent("whatever") <@ user1, write(consentStatus))
@@ -278,8 +278,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
     }
   }
-  feature(s"test $revokeMyConsent version $VersionOfApi") {
-    scenario("We will call the endpoint with user credentials", revokeMyConsent, VersionOfApi) {
+  Feature(s"test $revokeMyConsent version $VersionOfApi") {
+    Scenario("We will call the endpoint with user credentials", revokeMyConsent, VersionOfApi) {
       When(s"We make a request $revokeMyConsent")
       val response510 = makeDeleteRequest(revokeMyConsentUrl("xxxx")<@(user1))
       Then("We should get a 404")
@@ -288,8 +288,8 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
     }
   }
   
-  feature(s"Create/Use/Revoke Consent $VersionOfApi") {
-    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+  Feature(s"Create/Use/Revoke Consent $VersionOfApi") {
+    Scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJsonV310))
       Then("We should get a 201")

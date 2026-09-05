@@ -3,10 +3,7 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.entitlement.MappedEntitlement
-import code.entitlementrequest.MappedEntitlementRequest
-import code.scope.MappedScope
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
@@ -18,9 +15,9 @@ object MigrationOfRoleNameFieldLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterRoleNameLength(name: String): Boolean = {
-    val entitlementTableExists = DbFunction.tableExists(MappedEntitlement)
-    val entitlementRequestTableExists = DbFunction.tableExists(MappedEntitlementRequest)
-    val scopeTableExists = DbFunction.tableExists(MappedScope)
+    val entitlementTableExists = DbFunction.tableExistsByName("mappedentitlement")
+    val entitlementRequestTableExists = DbFunction.tableExistsByName("mappedentitlementrequest")
+    val scopeTableExists = DbFunction.tableExistsByName("mappedscope")
 
     if (!entitlementTableExists || !entitlementRequestTableExists || !scopeTableExists) {
       val startDate = System.currentTimeMillis()
@@ -42,7 +39,7 @@ object MigrationOfRoleNameFieldLength {
     var isSuccessful = false
 
     val executedSql =
-      DbFunction.maybeWrite(true, Schemifier.infoF _) {
+      DbFunction.maybeWrite(true) {
         APIUtil.getPropsValue("db.driver") match {
           case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
             () =>

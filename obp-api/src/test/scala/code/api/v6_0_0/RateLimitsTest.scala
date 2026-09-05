@@ -72,11 +72,11 @@ class RateLimitsTest extends V600ServerSetup {
     super.beforeEach()
   }
 
-  feature("POST Create Call Limits v6.0.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("POST Create Call Limits v6.0.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without user credentials")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 401")
@@ -86,11 +86,11 @@ class RateLimitsTest extends V600ServerSetup {
     }
   }
 
-  feature("POST Create Call Limits v6.0.0 - Authorized access") {
-    scenario("We will call the endpoint without proper Role", ApiEndpoint1, VersionOfApi) {
+  Feature("POST Create Call Limits v6.0.0 - Authorized access") {
+    Scenario("We will call the endpoint without proper Role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without a proper role")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 403")
@@ -99,10 +99,10 @@ class RateLimitsTest extends V600ServerSetup {
       response600.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateRateLimits)
     }
 
-    scenario("We will call the endpoint with proper Role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with proper Role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 with a proper role")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -116,11 +116,11 @@ class RateLimitsTest extends V600ServerSetup {
     }
   }
 
-  feature("DELETE Call Limits v6.0.0") {
-    scenario("We will delete a call limit by rate limiting ID", ApiEndpoint2, VersionOfApi) {
+  Feature("DELETE Call Limits v6.0.0") {
+    Scenario("We will delete a call limit by rate limiting ID", ApiEndpoint2, VersionOfApi) {
       Given("We create a call limit first")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -136,10 +136,10 @@ class RateLimitsTest extends V600ServerSetup {
       deleteResponse.code should equal(204)
     }
 
-    scenario("We will try to delete without proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to delete without proper role", ApiEndpoint2, VersionOfApi) {
       Given("We create a call limit first")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -157,11 +157,11 @@ class RateLimitsTest extends V600ServerSetup {
     }
   }
 
-  feature("GET Active Call Limits at Date v6.0.0") {
-    scenario("We will get active call limits at a specific date", ApiEndpoint3, VersionOfApi) {
+  Feature("GET Active Call Limits at Date v6.0.0") {
+    Scenario("We will get active call limits at a specific date", ApiEndpoint3, VersionOfApi) {
       Given("We create a call limit first")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -183,10 +183,10 @@ class RateLimitsTest extends V600ServerSetup {
       activeCallLimits.active_per_second_rate_limit == 0L
     }
 
-    scenario("We will try to get active call limits without proper role", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will try to get active call limits without proper role", ApiEndpoint3, VersionOfApi) {
       When("We try to get active call limits without proper role")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val currentDateString = ZonedDateTime
         .now(ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH"))
@@ -199,11 +199,11 @@ class RateLimitsTest extends V600ServerSetup {
       getResponse.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetRateLimits)
     }
 
-    scenario("We will get aggregated call limits for two overlapping rate limit records", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will get aggregated call limits for two overlapping rate limit records", ApiEndpoint3, VersionOfApi) {
     // NOTE: This test requires use_consumer_limits=true in props file
       Given("We create two call limit records with overlapping date ranges")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
 
       // Create first rate limit record

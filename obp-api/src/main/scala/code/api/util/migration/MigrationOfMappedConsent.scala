@@ -7,7 +7,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.consent.MappedConsent
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfMappedConsent {
@@ -34,7 +33,7 @@ object MigrationOfMappedConsent {
    * Mirrors MigrationOfConsentReferenceIdUuid's drop→alter→recreate pattern.
    */
   private def alterMappedConsentColumnUnderConsentView(name: String, alterSql: => String): Boolean = {
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -43,9 +42,9 @@ object MigrationOfMappedConsent {
 
         try {
           // 1. Drop v_consent — it projects the column, blocking the in-place retype.
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => "DROP VIEW IF EXISTS v_consent;")).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => "DROP VIEW IF EXISTS v_consent;")).append("\n")
           // 2. Run the (dialect-specific) column retype.
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => alterSql)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => alterSql)).append("\n")
           // 3. Recreate v_consent from its canonical definition (don't depend on a later, possibly-skipped migration).
           MigrationOfConsentView.addConsentView(name + "_view_rebuild")
           isSuccessful = true
@@ -69,7 +68,7 @@ object MigrationOfMappedConsent {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+          s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
@@ -84,14 +83,14 @@ object MigrationOfMappedConsent {
 
   def alterColumnChallenge(name: String): Boolean = {
     // mchallenge is NOT projected by v_consent, so this retype is not blocked by the view.
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -124,7 +123,7 @@ object MigrationOfMappedConsent {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+          s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

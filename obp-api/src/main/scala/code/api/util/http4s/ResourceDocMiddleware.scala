@@ -119,7 +119,7 @@ object ResourceDocMiddleware extends MdcLoggable {
   def apply(resourceDocs: ArrayBuffer[ResourceDoc]): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
     // Build the lookup index once per middleware instance (at startup), not per request.
     val resourceDocIndex = ResourceDocMatcher.buildIndex(resourceDocs)
-    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+    Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
       // tests or live config reloads) take effect immediately. Cost is a few Lift Props
       // lookups — negligible per request, but lets disabled endpoints be toggled without
@@ -306,8 +306,11 @@ object ResourceDocMiddleware extends MdcLoggable {
           IO.pure(Right(ctx.copy(user = boxUser, callContext = updatedCC)))
         case Right((boxUser, None)) =>
           IO.pure(Right(ctx.copy(user = boxUser)))
-        case Left(e: APIFailureNewStyle) =>
-          ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
+        // APIFailureNewStyle is a plain case class, not a Throwable subtype, so a
+        // case Left(_: APIFailureNewStyle) branch here could never match - .attempt's Left is
+        // always the Throwable that was actually thrown (see ErrorResponseConverter for the same
+        // pattern). Scala 3's stricter reachability checking (unlike Scala 2's) makes an
+        // unreachable case a hard error rather than a warning.
         case Left(e) =>
           // anonymousAccess threw a plain Exception(json_of_APIFailureNewStyle).
           // Parse the JSON to recover the original message and failCode (typically 401).
@@ -539,7 +542,6 @@ object ResourceDocMiddleware extends MdcLoggable {
             .attempt.flatMap {
               case Right((bank, Some(updatedCC))) => IO.pure(Right(ctx.copy(bank = Some(bank), callContext = updatedCC)))
               case Right((bank, None))             => IO.pure(Right(ctx.copy(bank = Some(bank))))
-              case Left(e: APIFailureNewStyle)     => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
               case Left(_)                          => ErrorResponseConverter.createErrorResponse(404, BankNotFound + s": $bankId", ctx.callContext).map(Left(_))
             }
         )
@@ -557,7 +559,6 @@ object ResourceDocMiddleware extends MdcLoggable {
             .attempt.flatMap {
               case Right((acc, Some(updatedCC))) => IO.pure(Right(ctx.copy(account = Some(acc), callContext = updatedCC)))
               case Right((acc, None))            => IO.pure(Right(ctx.copy(account = Some(acc))))
-              case Left(e: APIFailureNewStyle)   => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
               case Left(_)                        => ErrorResponseConverter.createErrorResponse(404, BankAccountNotFound + s": bankId=$bankId, accountId=$accountId", ctx.callContext).map(Left(_))
             }
         )
@@ -574,7 +575,6 @@ object ResourceDocMiddleware extends MdcLoggable {
           IO.fromFuture(IO(ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), ctx.user.toOption, Some(ctx.callContext))))
             .attempt.flatMap {
               case Right(view) => IO.pure(Right(ctx.copy(view = Some(view))))
-              case Left(e: APIFailureNewStyle) => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
               case Left(_) => ErrorResponseConverter.createErrorResponse(403, UserNoPermissionAccessView + s": viewId=$viewId", ctx.callContext).map(Left(_))
             }
         )
@@ -592,7 +592,6 @@ object ResourceDocMiddleware extends MdcLoggable {
             .attempt.flatMap {
               case Right((cp, Some(updatedCC))) => IO.pure(Right(ctx.copy(counterparty = Some(cp), callContext = updatedCC)))
               case Right((cp, None))            => IO.pure(Right(ctx.copy(counterparty = Some(cp))))
-              case Left(e: APIFailureNewStyle)  => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
               case Left(_)                       => ErrorResponseConverter.createErrorResponse(404, CounterpartyNotFound + s": counterpartyId=$counterpartyId", ctx.callContext).map(Left(_))
             }
         )

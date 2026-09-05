@@ -40,7 +40,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST.{JArray, JField, JObject, JString}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.{BeforeAndAfter, Tag}
 
@@ -92,38 +91,34 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
   def directLoginV600Request = v6_0_0_Request / "my" / "logins" / "direct"
 
   before {
-    if (AuthUser.find(By(AuthUser.username, USERNAME)).isEmpty)
-      AuthUser.create.
-        email(EMAIL).
-        username(USERNAME).
-        password(VALID_PW).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe()
+    if (AuthUser.findByUsername(USERNAME).isEmpty)
+      AuthUser(
+        email = EMAIL,
+        username = USERNAME,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
       Consumers.consumers.vend.createConsumer(
         Some(KEY), Some(SECRET), Some(true), Some("test application"), None, Some("description"), Some("eveline@example.com"), None,None,None,None,None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
 
-    if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
-      AuthUser.create.
-        email(EMAIL_DISABLED).
-        username(USERNAME_DISABLED).
-        password(PASSWORD_DISABLED).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe()
+    if (AuthUser.findByUsername(USERNAME_DISABLED).isEmpty)
+      AuthUser(
+        email = EMAIL_DISABLED,
+        username = USERNAME_DISABLED,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(PASSWORD_DISABLED).saveMe()
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
       Consumers.consumers.vend.createConsumer(
         Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("disabled test application"), None, Some("disabled description"), Some("disabled@example.com"), None,None,None,None,None).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
-  feature("DirectLogin v6.0.0") {
-    scenario("Invalid auth header", ApiEndpoint1, VersionOfApi) {
+  Feature("DirectLogin v6.0.0") {
+    Scenario("Invalid auth header", ApiEndpoint1, VersionOfApi) {
 
       //setupUserAndConsumer
 
@@ -141,7 +136,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
-    scenario("Invalid credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("Invalid credentials", ApiEndpoint1, VersionOfApi) {
 
       //setupUserAndConsumer
 
@@ -158,7 +153,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
-    scenario("Invalid Characters", ApiEndpoint1, VersionOfApi) {
+    Scenario("Invalid Characters", ApiEndpoint1, VersionOfApi) {
       When("we try to login with an invalid username Characters and invalid password Characters")
       val request = directLoginV600Request
       val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordCharaterHeaders)
@@ -168,7 +163,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidValueCharacters)
     }
 
-    scenario("valid Username, invalid password, login in too many times. The username will be locked", ApiEndpoint1, VersionOfApi) {
+    Scenario("valid Username, invalid password, login in too many times. The username will be locked", ApiEndpoint1, VersionOfApi) {
       When("login with an valid username and invalid password, failed more than 5 times.")
       val request = directLoginV600Request
       var response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
@@ -194,7 +189,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       LoginAttempt.resetBadLoginAttempts(localIdentityProvider, USERNAME)
     }
 
-    scenario("Consumer API key is disabled", ApiEndpoint1, VersionOfApi) {
+    Scenario("Consumer API key is disabled", ApiEndpoint1, VersionOfApi) {
       Given("The app we are testing is registered and disabled")
       When("We try to login with username/password")
       val request = directLoginV600Request
@@ -204,7 +199,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Missing DirectLogin header", ApiEndpoint1, VersionOfApi) {
+    Scenario("Missing DirectLogin header", ApiEndpoint1, VersionOfApi) {
 
       //setupUserAndConsumer
 
@@ -221,7 +216,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
-    scenario("Login without consumer key", ApiEndpoint1, VersionOfApi) {
+    Scenario("Login without consumer key", ApiEndpoint1, VersionOfApi) {
 
       //setupUserAndConsumer
 
@@ -238,7 +233,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Login with correct everything! - Deprecated Header", ApiEndpoint1, VersionOfApi) {
+    Scenario("Login with correct everything! - Deprecated Header", ApiEndpoint1, VersionOfApi) {
 
       //setupUserAndConsumer
 
@@ -293,7 +288,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
     
-    scenario("Login with correct everything!", ApiEndpoint1, VersionOfApi) {
+    Scenario("Login with correct everything!", ApiEndpoint1, VersionOfApi) {
 
       //setupUserAndConsumer
 
@@ -348,7 +343,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     } 
     
-    scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, VersionOfApi) {
+    Scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, VersionOfApi) {
 
       setPropsValues("local_identity_provider"-> code.api.Constant.HostName)
 
@@ -403,22 +398,20 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
 
-    scenario("Login with correct everything but the user is locked", ApiEndpoint1, VersionOfApi) {
+    Scenario("Login with correct everything but the user is locked", ApiEndpoint1, VersionOfApi) {
       lazy val username = "firstname.lastname"
       lazy val header = ("DirectLogin", "username=%s, password=%s, consumer_key=%s".
         format(username, VALID_PW, KEY))
       
       // Delete the user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAllByUsername(username).map(_.delete_!)
       // Create the user
-      AuthUser.create.
-        email(EMAIL).
-        username(username).
-        password(VALID_PW).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe()
+      AuthUser(
+        email = EMAIL,
+        username = username,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
       When("the header and credentials are good")
       lazy val response = makePostRequestAdditionalHeader(directLoginV600Request, "", List(accessControlOriginHeader, header))
@@ -455,7 +448,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       responseCurrentUserOldStyle.body.extract[ErrorMessage].message should include(ErrorMessages.UsernameHasBeenLocked)
     }
 
-    scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint1, VersionOfApi) {
 
       When("The header and credentials are good")
       val request = directLoginV600Request
@@ -490,7 +483,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       // assertResponse(failedResponse, DirectLoginInvalidToken)
     }
 
-    scenario("Test DirectLogin header value is case insensitive", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test DirectLogin header value is case insensitive", ApiEndpoint1, VersionOfApi) {
 
       When("The header and credentials are good")
       val request = directLoginV600Request

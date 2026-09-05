@@ -27,22 +27,11 @@ TESOBE (http://www.tesobe.com/)
 package bootstrap.liftweb
 
 import org.json4s._
-import code.CustomerDependants.MappedCustomerDependant
-import code.DynamicData.DynamicData
-import code.DynamicData.DynamicDataAccess
-import code.DynamicEndpoint.DynamicEndpoint
-import code.UserRefreshes.MappedUserRefreshes
-import code.abacrule.AbacRule
-import code.accountaccessrequest.AccountAccessRequest
-import code.accountapplication.MappedAccountApplication
-import code.accountattribute.MappedAccountAttribute
-import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
 //import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500, ResourceDocs510, ResourceDocs600}
 import code.api.ResourceDocs1_4_0._
 import code.api._
-import code.api.attributedefinition.AttributeDefinition
 import code.api.berlin.group.ConstantsBG
 import code.api.cache.Redis
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
@@ -51,110 +40,27 @@ import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
-import code.apicollection.ApiCollection
-import code.apicollectionendpoint.ApiCollectionEndpoint
-import code.apiproduct.ApiProduct
-import code.apiproductattribute.ApiProductAttribute
-import code.atmattribute.AtmAttribute
-import code.atms.MappedAtm
-import code.authtypevalidation.AuthenticationTypeValidation
-import code.bankaccountbalance.BankAccountBalance
-import code.bankattribute.BankAttribute
 import code.bankconnectors.{Connector, ConnectorEndpoints}
-import code.branches.MappedBranch
-import code.cardattribute.MappedCardAttribute
-import code.cards.{MappedPhysicalCard, PinReset}
-import code.connectormethod.ConnectorMethod
-import code.consent.{ConsentItem, ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
-import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
-import code.counterpartylimit.CounterpartyLimit
-import code.crm.MappedCrmEvent
-import code.customer.internalMapping.MappedCustomerIdMapping
-import code.customer.{MappedCustomer, MappedCustomerMessage}
-import code.customeraccountlinks.CustomerAccountLink
-import code.customeraddress.MappedCustomerAddress
-import code.customerattribute.MappedCustomerAttribute
-import code.directdebit.DirectDebit
-import code.dynamicEntity.DynamicEntity
-import code.dynamicMessageDoc.DynamicMessageDoc
-import code.dynamicResourceDoc.DynamicResourceDoc
-import code.endpointMapping.EndpointMapping
-import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.entitlementrequest.MappedEntitlementRequest
-import code.etag.MappedETag
-import code.featuredapicollection.FeaturedApiCollection
-import code.fx.{MappedCurrency, MappedFXRate}
-import code.group.Group
-import code.organisation.Organisation
-import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
-import code.payeelookup.PayeeLookup
-import code.utilitypayment.UtilityPaymentCallback
-import code.bulkpayment.{BulkPayment, BulkBatchReference}
-import code.kycchecks.MappedKycCheck
-import code.kycdocuments.MappedKycDocument
-import code.kycmedias.MappedKycMedia
-import code.kycstatuses.MappedKycStatus
-import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
-import code.meetings.{MappedMeeting, MappedMeetingInvitee}
-import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
-import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.MappedTag
-import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.MappedWhereTag
-import code.methodrouting.MethodRouting
-import code.metrics.{ConnectorTrace, MappedConnectorMetric, MappedMetric, MetricArchive, MetricsArchiveRun}
-import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
-import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.obp.grpc.ObpGrpcServer
-import code.productAttributeattribute.MappedProductAttribute
-import code.productcollection.MappedProductCollection
-import code.productcollectionitem.MappedProductCollectionItem
-import code.productfee.ProductFee
-import code.products.{MappedProduct, ProductTag}
-import code.ratelimiting.RateLimiting
-import code.regulatedentities.MappedRegulatedEntity
-import code.regulatedentities.attribute.RegulatedEntityAttribute
-import code.counterpartyattribute.{CounterpartyAttribute => CounterpartyAttributeMapper}
 import code.scheduler._
-import code.scope.{MappedScope, MappedUserScope, Scope}
-import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
-import code.socialmedia.MappedSocialMedia
-import code.standingorders.StandingOrder
-import code.taxresidence.MappedTaxResidence
-import code.token.OpenIDConnectToken
-import code.transaction.MappedTransaction
-import code.transaction.internalMapping.TransactionIdMapping
-import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionRequestAttribute.TransactionRequestAttribute
+import code.scope.Scope
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
-import code.transaction_types.MappedTransactionType
-import code.transactionattribute.MappedTransactionAttribute
-import code.amqpbroker.AmqpBankBroker
-import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
-import code.usercustomerlinks.MappedUserCustomerLink
-import code.customerlinks.CustomerLink
-import code.userlocks.UserLocks
+import code.messageoutbox.MessageOutboxRelay
 import code.users._
 import code.util.Helper.MdcLoggable
-import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
-import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
-import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
 import org.json4s.Extraction
-import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 // SiteMap imports removed - API-only mode, no portal pages
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
@@ -244,7 +150,7 @@ class Boot extends MdcLoggable {
 
 
 
-  def boot {
+  def boot: Unit = {
     implicit val formats = CustomJsonFormats.formats
 
     logger.info("Boot says: Hello from the Open Bank Project API. This is Boot.scala. The gitCommit is : " + APIUtil.gitCommit)
@@ -254,40 +160,35 @@ class Boot extends MdcLoggable {
     DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier,
       new code.api.util.http4s.RequestAwareConnectionManager(APIUtil.vendor))
 
-    /**
-     * Function that determines if foreign key constraints are
-     * created by Schemifier for the specified connection.
-     *
-     * Note: The chosen driver must also support foreign keys for
-     * creation to happen
-     *
-     * In case of PostgreSQL it works
-     */
-    MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
+    // Liquibase owns the schema outright - Schemifier creates nothing, ToSchemify.models is Nil -
+    // and has to run here, first, because everything below assumes the tables exist. The dedup
+    // immediately after reads them, and executeScripts decides "new database or existing one" from
+    // whether resourceuser exists. Moving this later does not fail here; it fails further down,
+    // with an error that points at the reader rather than at the schema.
+    code.api.util.liquibase.LiquibaseSchemaSetup.runIfEnabled()
 
-    // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholder /
-    // mappedentitlement BEFORE schemifyAll() issues their CREATE UNIQUE INDEX (declared in
-    // MapperAccountHolders / MappedEntitlement dbIndexes). On a long-lived DB that still holds
-    // duplicates the index DDL would otherwise abort boot.
-    //
-    // This MUST stay here and must NOT be moved into Migration.database.executeScripts:
-    //  - both executeScripts passes below run AFTER schemifyAll() (the index is already created
-    //    by then — the "executed before Schemifier" comment on the true-pass is historical), and
-    //  - executeScripts is gated by migration_scripts.* props (off in tests), whereas Schemifier —
-    //    and therefore this dedup — must run ungated in every environment, incl. the H2 test DB.
-    // The method self-guards (skips when the table is absent or has no duplicates), so running it
-    // on every boot is a cheap no-op on fresh/clean/test databases.
-    Migration.database.deduplicateBeforeUniqueIndexSchemify()
-    schemifyAll()
+    // The natural-key de-duplication that used to sit here is in the changelog now
+    // (db.changelog-dedup.yaml, dedup-mappedentitlement / dedup-mapperaccountholders). It ran
+    // before Schemifier issued its CREATE UNIQUE INDEX statements; Schemifier is gone (obp-api
+    // has had zero live Mapper entities for a while, so it had nothing left to do), and the
+    // index comes from the Liquibase call above, so this position was already after the thing
+    // it existed to precede.
+    createDefaultChatRoom()
+
+    // Forces initialization: see the comment on ProcessLifecycle.start() for why this must be
+    // an explicit call rather than relying on some other code path to touch the object.
+    ProcessLifecycle.start()
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
-    // NOTE: both executeScripts passes below run AFTER schemifyAll() above. The
+    // NOTE: both executeScripts passes below run after createDefaultChatRoom() above (which was
+    // schemifyAll() before Schemifier - the schema-building half of it - was removed; only the
+    // chat-room side effect remains, hence the rename). The
     // `startedBeforeSchemifier = true` argument does NOT mean this pass runs before Schemifier — it
     // marks the existing-DB pass, in which migrations that require post-Schemifier schema skip
     // themselves (see Migration.executeScripts). The "before Schemifier" wording is historical: the
     // call once sat before schemifyAll() but was moved ahead of it in 2021 (commit ea4537029).
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true => // DB already exists
         Migration.database.executeScripts(startedBeforeSchemifier = true)
         logger.info("The Mapper database already exists. Running the existing-DB migration pass (post-Schemifier; migrations needing fresh schema skip themselves).")
@@ -299,6 +200,12 @@ class Boot extends MdcLoggable {
 
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
+
+    // The OIDC views come last, after the legacy migrations have finished reshaping the columns
+    // they read. Creating them with the rest of the schema aborts the boot on Postgres, which
+    // refuses `ALTER TABLE consumer ALTER COLUMN aud TYPE text` while a view depends on that
+    // column. H2 does not enforce it, so only a real Postgres start shows this.
+    code.api.util.liquibase.LiquibaseSchemaSetup.createOidcViews(APIUtil.vendor.HikariDatasource.ds)
 
     // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, bill, utility, etc.).
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
@@ -401,18 +308,16 @@ class Boot extends MdcLoggable {
 //    }
 
     if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
-      DB.addLogFunc
-     {
-       case (log, duration) =>
-       {
+      // Written as a Function2 literal with explicit parameter types rather than the original
+      // `case (log, duration) =>` shorthand: Scala 3 could not infer the expected function type
+      // for that shorthand at this call site.
+      DB.addLogFunc((log: net.liftweb.db.DBLog, duration: Long) => {
          logger.debug("Total query time : %d ms".format(duration))
-         log.allEntries.foreach
-         {
-           case DBLogEntry(stmt, duration) =>
-             logger.debug("The query :  %s in %d ms".format(stmt, duration))
+         log.allEntries.foreach {
+           case DBLogEntry(stmt, entryDuration) =>
+             logger.debug("The query :  %s in %d ms".format(stmt, entryDuration))
          }
-       }
-     }
+     })
     }
 
     // start RabbitMq Adapter(using mapped connector as mockded CBS)
@@ -626,8 +531,10 @@ class Boot extends MdcLoggable {
     // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
   }
 
-  def schemifyAll() = {
-    Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
+  // Used to also run Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*) here -
+  // a no-op since ToSchemify.models has been Nil since the last Mapper entity moved to Doobie.
+  // Liquibase (see LiquibaseSchemaSetup.runIfEnabled above) is what actually creates the schema.
+  def createDefaultChatRoom() = {
     // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
   }
@@ -643,44 +550,33 @@ class Boot extends MdcLoggable {
     val incomingAccountId= INCOMING_SETTLEMENT_ACCOUNT_ID
     val outgoingAccountId= OUTGOING_SETTLEMENT_ACCOUNT_ID
 
-    MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
+    MappedBank.findByBankId(com.openbankproject.commons.model.BankId(defaultBankId)) match {
       case Full(b) =>
         logger.debug(s"Bank(${defaultBankId}) is found.")
       case _ =>
-        MappedBank.create
-          .permalink(defaultBankId)
-          .fullBankName("OBP_DEFAULT_BANK")
-          .shortBankName("OBP")
-          .national_identifier("OBP")
-          .mBankRoutingScheme("OBP")
-          .mBankRoutingAddress("obp1")
-          .logoURL("")
-          .websiteURL("")
-          .saveMe()
+        MappedBank.insert(
+          bankId = defaultBankId,
+          fullBankName = "OBP_DEFAULT_BANK",
+          shortBankName = "OBP",
+          logoURL = "", websiteURL = "", swiftBIC = "",
+          nationalIdentifier = "OBP",
+          bankRoutingScheme = "OBP", bankRoutingAddress = "obp1", createdByUserId = "")
         logger.debug(s"creating Bank(${defaultBankId})")
     }
 
-    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
+    MappedBankAccount.find(defaultBankId, incomingAccountId) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $incomingAccountId) is found.")
       case _ =>
-        MappedBankAccount.create
-          .bank(defaultBankId)
-          .theAccountId(incomingAccountId)
-          .accountCurrency("EUR")
-          .saveMe()
+        MappedBankAccount.insert(defaultBankId, incomingAccountId, accountCurrency = "EUR")
         logger.debug(s"creating BankAccount(${defaultBankId}, $incomingAccountId).")
     }
 
-    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, outgoingAccountId)) match {
+    MappedBankAccount.find(defaultBankId, outgoingAccountId) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $outgoingAccountId) is found.")
       case _ =>
-        MappedBankAccount.create
-          .bank(defaultBankId)
-          .theAccountId(outgoingAccountId)
-          .accountCurrency("EUR")
-          .saveMe()
+        MappedBankAccount.insert(defaultBankId, outgoingAccountId, accountCurrency = "EUR")
         logger.debug(s"creating BankAccount(${defaultBankId}, $outgoingAccountId).")
     }
   }
@@ -702,30 +598,29 @@ class Boot extends MdcLoggable {
     val isPropsNotSetProperly = superAdminUsername==""||superAdminInitalPassword ==""||superAdminEmail==""
 
     //This is the logic to check if an AuthUser exists for the `create sandbox` endpoint, AfterApiAuth, OpenIdConnect ,,,
-    val existingAuthUser = AuthUser.find(By(AuthUser.username, superAdminUsername))
+    val existingAuthUser = AuthUser.findByUsername(superAdminUsername)
 
     if(isPropsNotSetProperly) {
       //Nothing happens, props is not set
     }else if(existingAuthUser.isDefined) {
       logger.error(s"createBootstrapSuperUser- Errors:  Existing AuthUser with username ${superAdminUsername} detected in data import where no ResourceUser was found")
     } else {
-      val authUser = AuthUser.create
-        .email(superAdminEmail)
-        .firstName(superAdminUsername)
-        .lastName(superAdminUsername)
-        .username(superAdminUsername)
-        .password(superAdminInitalPassword)
-        .passwordShouldBeChanged(true)
-        .validated(true)
+      val authUser = AuthUser(
+        email = superAdminEmail,
+        firstName = superAdminUsername,
+        lastName = superAdminUsername,
+        username = superAdminUsername,
+        passwordShouldBeChanged = true,
+        validated = true).withPassword(superAdminInitalPassword)
 
-      val validationErrors = authUser.validate
+      val validationErrors = AuthUser.validate(authUser)
 
       if(!validationErrors.isEmpty)
-        logger.error(s"createBootstrapSuperUser- Errors: ${validationErrors.map(_.msg)}")
+        logger.error(s"createBootstrapSuperUser- Errors: ${validationErrors}")
       else {
-        Full(authUser.save()) //this will create/update the resourceUser.
+        Full(authUser.save) //this will create/update the resourceUser.
 
-        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
+        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username)
 
         val resultBox = userBox.map(user => Entitlement.entitlement.vend.addEntitlement("", user.userId, CanCreateEntitlementAtAnyBank.toString))
 
@@ -813,30 +708,29 @@ class Boot extends MdcLoggable {
 
     val isPropsNotSetProperly = oidcOperatorUsername == "" || oidcOperatorInitialPassword == "" || oidcOperatorEmail == ""
 
-    val existingAuthUser = AuthUser.find(By(AuthUser.username, oidcOperatorUsername))
+    val existingAuthUser = AuthUser.findByUsername(oidcOperatorUsername)
 
     if (isPropsNotSetProperly) {
       //Nothing happens, props is not set
     } else if (existingAuthUser.isDefined) {
       logger.error(s"createBootstrapOidcOperatorUser- Errors: Existing AuthUser with username ${oidcOperatorUsername} detected in data import where no ResourceUser was found")
     } else {
-      val authUser = AuthUser.create
-        .email(oidcOperatorEmail)
-        .firstName(oidcOperatorUsername)
-        .lastName(oidcOperatorUsername)
-        .username(oidcOperatorUsername)
-        .password(oidcOperatorInitialPassword)
-        .passwordShouldBeChanged(false)
-        .validated(true)
+      val authUser = AuthUser(
+        email = oidcOperatorEmail,
+        firstName = oidcOperatorUsername,
+        lastName = oidcOperatorUsername,
+        username = oidcOperatorUsername,
+        passwordShouldBeChanged = false,
+        validated = true).withPassword(oidcOperatorInitialPassword)
 
-      val validationErrors = authUser.validate
+      val validationErrors = AuthUser.validate(authUser)
 
       if (!validationErrors.isEmpty)
-        logger.error(s"createBootstrapOidcOperatorUser- Errors: ${validationErrors.map(_.msg)}")
+        logger.error(s"createBootstrapOidcOperatorUser- Errors: ${validationErrors}")
       else {
-        Full(authUser.save())
+        Full(authUser.save)
 
-        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
+        val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username)
 
         val oidcOperatorRoles = List(
           CanGetAnyUser,
@@ -896,25 +790,23 @@ class Boot extends MdcLoggable {
   }
 
   // Separate method to create and save the OIDC operator consumer.
-  // Uses Consumer.create directly (not Consumers.consumers.vend.createConsumer)
-  // to avoid S.? calls during Boot (Lift's S scope is not initialized at boot time).
+  // Writes through the store rather than Consumers.consumers.vend.createConsumer so that no
+  // validation runs: this consumer has no developer email, which createConsumer rejects, and the
+  // bootstrap must not depend on a valid one.
   private def saveOidcOperatorConsumer(consumerKey: String, consumerSecret: String): Unit = {
-    // Create consumer directly, skipping validate (which calls S.? and fails during Boot)
-    val c = Consumer.create
-      .key(consumerKey)
-      .secret(consumerSecret)
-      .name("OIDC Operator Consumer")
-    c.isActive(true) // MappedBoolean.apply returns Mapper, must be separate statement
-    c.description("Bootstrap consumer for OBP-OIDC to manage consumers via the API") // MappedText.apply returns Mapper, must be separate statement
-
-    val consumerBox = tryo(c.saveMe())
+    val consumerBox = tryo(Consumer.insert(Consumer.defaults.copy(
+      key = consumerKey,
+      secret = consumerSecret,
+      name = "OIDC Operator Consumer",
+      isActive = true,
+      description = "Bootstrap consumer for OBP-OIDC to manage consumers via the API")))
 
     consumerBox match {
       case Full(consumer) =>
-        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId.get}")
+        logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId}")
         val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient)
         scopes.foreach { role =>
-          val resultBox = Scope.scope.vend.addScope("", consumer.id.get.toString, role.toString)
+          val resultBox = Scope.scope.vend.addScope("", consumer.id.toString, role.toString)
           if (resultBox.isEmpty) {
             logger.error(s"createBootstrapOidcOperatorConsumer says: Error granting scope ${role}: ${resultBox}")
           }
@@ -930,162 +822,14 @@ class Boot extends MdcLoggable {
 
 }
 
-object ToSchemify extends MdcLoggable {
-  val models: List[MetaMapper[_]] = List(
-    AuthUser,
-    JobScheduler,
-    MappedETag,
-    MappedSigningBasket,
-    MappedSigningBasketPayment,
-    MappedSigningBasketConsent,
-    MappedRegulatedEntity,
-    AtmAttribute,
-    AbacRule,
-    code.mandate.Mandate,
-    code.mandate.MandateProvision,
-    code.mandate.SignatoryPanel,
-    MappedBank,
-    MappedBankAccount,
-    BankAccountRouting,
-    MappedTransaction,
-    DoubleEntryBookTransaction,
-    MappedCustomerMessage,
-    MappedBranch,
-    MappedAtm,
-    MappedProduct,
-    MappedCrmEvent,
-    MappedKycDocument,
-    MappedKycMedia,
-    MappedKycCheck,
-    MappedKycStatus,
-    MappedSocialMedia,
-    MappedTransactionType,
-    TransactionRequestReasons,
-    MappedMeeting,
-    MappedMeetingInvitee,
-    MappedBankAccountData,
-    MappedPhysicalCard,
-    PinReset,
-    MappedBadLoginAttempt,
-    UserLocks,
-    MappedFXRate,
-    MappedCurrency,
-    MappedTransactionRequestTypeCharge,
-    MappedAccountWebhook,
-    SystemAccountNotificationWebhook,
-    BankAccountNotificationWebhook,
-    MappedCustomerIdMapping,
-    MappedProductAttribute,
-    MappedConsent,
-    ConsentItem,
-    ConsentRequest,
-    MigrationScriptLog,
-    MethodRouting,
-    EndpointMapping,
-    WebUiProps,
-    DynamicEntity,
-    DynamicData,
-    DynamicDataAccess,
-    code.api.dynamic.entity.projection.DynamicEntityIndex,
-    DynamicEndpoint,
-    AccountIdMapping,
-    DirectDebit,
-    StandingOrder,
-    MappedUserRefreshes,
-    ApiCollection,
-    ApiCollectionEndpoint,
-    ApiProduct,
-    ApiProductAttribute,
-    FeaturedApiCollection,
-    JsonSchemaValidation,
-    AuthenticationTypeValidation,
-    ConnectorMethod,
-    DynamicResourceDoc,
-    DynamicMessageDoc,
-    EndpointTag,
-    ProductFee,
-    ProductTag,
-    ViewPermission,
-    UserInitAction,
-    CounterpartyLimit,
-    AccountAccess,
-    ViewDefinition,
-    ResourceUser,
-    UserInvitation,
-    UserAgreement,
-    UserAttribute,
-    MappedComment,
-    MappedTag,
-    MappedWhereTag,
-    MappedTransactionImage,
-    MappedNarrative,
-    MappedCustomer,
-    MappedUserCustomerLink,
-    CustomerLink,
-    Consumer,
-    Token,
-    OpenIDConnectToken,
-    Nonce,
-    MappedCounterparty,
-    MappedCounterpartyBespoke,
-    MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag,
-    MappedTransactionRequest,
-    TransactionRequestAttribute,
-    AmqpBankBroker,
-    MessageOutbox,
-    code.opencorridorfees.OpenCorridorFeeAccrual,
-    MappedMetric,
-    MetricArchive,
-    MetricsArchiveRun,
-    MapperAccountHolders,
-    MappedEntitlement,
-    MappedConnectorMetric,
-    ConnectorTrace,
-    MappedExpectedChallengeAnswer,
-    MappedEntitlementRequest,
-    MappedScope,
-    MappedUserScope,
-    MappedTaxResidence,
-    MappedCustomerAddress,
-    MappedUserAuthContext,
-    MappedUserAuthContextUpdate,
-    MappedConsentAuthContext,
-    MappedAccountApplication,
-    MappedProductCollection,
-    MappedProductCollectionItem,
-    MappedAccountAttribute,
-    MappedCustomerAttribute,
-    MappedTransactionAttribute,
-    MappedCardAttribute,
-    BankAttribute,
-    RateLimiting,
-    MappedCustomerDependant,
-    AttributeDefinition,
-    CustomerAccountLink,
-    TransactionIdMapping,
-    RegulatedEntityAttribute,
-    CounterpartyAttributeMapper,
-    BankAccountBalance,
-    Group,
-    Organisation,
-    RoutingScheme,
-    BankSupportedRoutingScheme,
-    PayeeLookup,
-    UtilityPaymentCallback,
-    BulkPayment,
-    BulkBatchReference,
-    AccountAccessRequest,
-    code.chat.ChatRoom,
-    code.chat.Participant,
-    code.chat.ChatMessage,
-    code.chat.ChatEmailDigestState,
-    code.chat.Reaction
-  )
-
-  // start grpc server
+// Named for what it still does once schema setup left it (it used to also carry
+// ToSchemify.models, the Mapper entity list Schemifier iterated to build the schema - deleted
+// once obp-api had zero live Mapper entities left). What remains is process-level bootstrap
+// with no schema connection: starting the optional gRPC server and registering the JVM's one
+// orderly shutdown hook.
+object ProcessLifecycle extends MdcLoggable {
   // start grpc server (optional)
-  val grpcServerOpt: Option[ObpGrpcServer] =
+  private val grpcServerOpt: Option[ObpGrpcServer] =
     if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
       val server = new ObpGrpcServer(code.api.util.BlockingIoExecutionContext.ec)
       server.start()
@@ -1106,4 +850,13 @@ object ToSchemify extends MdcLoggable {
     try Redis.jedisPoolDestroy catch { case e: Throwable => logger.warn("Redis jedisPoolDestroy failed during shutdown", e) }
   }))
 
+  // Scala initializes an object's body - the two vals/statements above included - on first
+  // access to ANY of its members, not at class-load time. Before this object was ToSchemify,
+  // that first access happened as a side effect of Boot reading ToSchemify.models; once that
+  // field and its one reader (Schemifier.schemify) were deleted, nothing else in the codebase
+  // ever touched this object again, so it silently never initialized - the gRPC server never
+  // started regardless of grpc.server.enabled, and the shutdown hook above never registered at
+  // all, so the JVM stopped closing DB and Redis connections on shutdown. Call this explicitly
+  // from Boot.boot() so that cannot happen again by accident.
+  def start(): Unit = ()
 }

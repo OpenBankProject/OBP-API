@@ -16,7 +16,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST.{JArray, JField, JObject, JString}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.{BeforeAndAfter, Tag}
 
@@ -50,30 +49,26 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
   val PASSWORD_DISABLED = randomString(20)
 
   before {
-    if (AuthUser.find(By(AuthUser.username, USERNAME)).isEmpty)
-      AuthUser.create.
-        email(EMAIL).
-        username(USERNAME).
-        password(VALID_PW).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+    if (AuthUser.findByUsername(USERNAME).isEmpty)
+      AuthUser(
+        email = EMAIL,
+        username = USERNAME,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
       Consumers.consumers.vend.createConsumer(
         Some(KEY), Some(SECRET), Some(true), Some("test application"), None, Some("description"), Some("eveline@example.com"), None,None,None,None,None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
 
-    if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
-      AuthUser.create.
-        email(EMAIL_DISABLED).
-        username(USERNAME_DISABLED).
-        password(PASSWORD_DISABLED).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+    if (AuthUser.findByUsername(USERNAME_DISABLED).isEmpty)
+      AuthUser(
+        email = EMAIL_DISABLED,
+        username = USERNAME_DISABLED,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(PASSWORD_DISABLED).saveMe()
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY_DISABLED).isEmpty)
       Consumers.consumers.vend.createConsumer(Some(KEY_DISABLED), Some(SECRET_DISABLED), Some(false), Some("test application disabled"), None, Some("description"), Some("eveline@example.com"), None, 
@@ -118,8 +113,8 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
   def directLoginRequest = baseRequest / "my" / "logins" / "direct"
 
-  feature("DirectLogin") {
-    scenario("Invalid auth header") {
+  Feature("DirectLogin") {
+    Scenario("Invalid auth header") {
 
       //setupUserAndConsumer
 
@@ -137,7 +132,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
-    scenario("Invalid credentials") {
+    Scenario("Invalid credentials") {
 
       //setupUserAndConsumer
 
@@ -154,7 +149,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
-    scenario("Invalid Characters") {
+    Scenario("Invalid Characters") {
       When("we try to login with an invalid username Characters and invalid password Characters")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordCharaterHeaders)
@@ -164,7 +159,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidValueCharacters)
     }
 
-    scenario("valid Username, invalid password, login in too many times. The username will be locked") {
+    Scenario("valid Username, invalid password, login in too many times. The username will be locked") {
       When("login with an valid username and invalid password, failed more than 5 times.")
       val request = directLoginRequest
       var response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
@@ -190,7 +185,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       LoginAttempt.resetBadLoginAttempts(localIdentityProvider, USERNAME)
     }
 
-    scenario("Consumer API key is disabled") {
+    Scenario("Consumer API key is disabled") {
       Given("The app we are testing is registered and disabled")
       When("We try to login with username/password")
       val request = directLoginRequest
@@ -200,7 +195,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Missing DirectLogin header") {
+    Scenario("Missing DirectLogin header") {
 
       //setupUserAndConsumer
 
@@ -217,7 +212,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
-    scenario("Login without consumer key") {
+    Scenario("Login without consumer key") {
 
       //setupUserAndConsumer
 
@@ -234,7 +229,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Login with correct everything! - Deprecated Header", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything! - Deprecated Header", ApiEndpoint1, ApiEndpoint2) {
 
       //setupUserAndConsumer
 
@@ -277,6 +272,15 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       responseCurrentUserNewStyle.code should equal(200)
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
+
+      // /obp/v3.0.0/my/entitlements had no test coverage at all under DirectLogin token auth -
+      // added while investigating a peer-reported 401 from a real-process OIDC end-to-end
+      // script, which this suite could not reproduce.
+      When("when we use the token to get my entitlements - v3.0.0")
+      val requestMyEntitlements = baseRequest / "obp" / "v3.0.0" / "my" / "entitlements"
+      val responseMyEntitlements = makeGetRequest(requestMyEntitlements, validHeadersWithToken)
+      And("We should get a 200")
+      responseMyEntitlements.code should equal(200)
       
       When("when we use the token to get current user and it should work - Old Style")
       val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
@@ -289,7 +293,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
     
-    scenario("Login with correct everything!", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything!", ApiEndpoint1, ApiEndpoint2) {
 
       //setupUserAndConsumer
 
@@ -344,7 +348,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     } 
     
-    scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, ApiEndpoint2) {
 
       setPropsValues("local_identity_provider"-> Constant.HostName)
 
@@ -399,22 +403,20 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
 
-    scenario("Login with correct everything but the user is locked", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything but the user is locked", ApiEndpoint1, ApiEndpoint2) {
       lazy val username = "firstname.lastname"
       lazy val header = ("DirectLogin", "username=%s, password=%s, consumer_key=%s".
         format(username, VALID_PW, KEY))
       
       // Delete the user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAllByUsername(username).map(_.delete_!)
       // Create the user
-      AuthUser.create.
-        email(EMAIL).
-        username(username).
-        password(VALID_PW).
-        validated(true).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+      AuthUser(
+        email = EMAIL,
+        username = username,
+        validated = true,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
       When("the header and credentials are good")
       lazy val response = makePostRequestAdditionalHeader(directLoginRequest, "", List(accessControlOriginHeader, header))
@@ -451,7 +453,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       responseCurrentUserOldStyle.body.extract[ErrorMessage].message should include(ErrorMessages.UsernameHasBeenLocked)
     }
 
-    scenario("Login with correct credentials but user email is not validated", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct credentials but user email is not validated", ApiEndpoint1, ApiEndpoint2) {
       lazy val username = "unvalidated.user"
       lazy val email = randomString(10).toLowerCase + "@example.com"
       lazy val header = ("DirectLogin", "username=%s, password=%s, consumer_key=%s".
@@ -459,16 +461,14 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       
       Given("A user exists but email is not validated")
       // Delete the user if exists
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAllByUsername(username).map(_.delete_!)
       // Create the user with validated = false
-      AuthUser.create.
-        email(email).
-        username(username).
-        password(VALID_PW).
-        validated(false).
-        firstName(randomString(10)).
-        lastName(randomString(10)).
-        saveMe
+      AuthUser(
+        email = email,
+        username = username,
+        validated = false,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
 
       When("we try to login with correct credentials but unvalidated email")
       lazy val request = directLoginRequest
@@ -479,12 +479,12 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.UserEmailNotValidated)
       
       // Clean up: delete the test user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAllByUsername(username).map(_.delete_!)
     }
 
 
 
-    scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint2) {
+    Scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint2) {
 
       When("The header and credentials are good")
       val request = directLoginRequest
@@ -522,7 +522,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
     }
 
 
-    scenario("Test DirectLogin header value is case insensitive", ApiEndpoint2) {
+    Scenario("Test DirectLogin header value is case insensitive", ApiEndpoint2) {
 
       When("The header and credentials are good")
       val request = directLoginRequest

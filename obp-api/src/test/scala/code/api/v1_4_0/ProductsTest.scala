@@ -1,6 +1,7 @@
 package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
 import com.openbankproject.commons.model.Product
 import code.products.{Products, ProductsProvider}
@@ -98,9 +99,9 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
     Products.productsProvider.default.set(Products.buildOne)
   }
 
-  feature("Getting bank products") {
+  Feature("Getting bank products") {
 
-    scenario("We try to get products for a bank without a data license for product information") {
+    Scenario("We try to get products for a bank without a data license for product information") {
       When("We make a request")
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "products").GET <@(user1)
       val response = makeGetRequest(request)
@@ -110,7 +111,7 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
 
     }
 
-    scenario("We try to get products for a bank with a data license for product information") {
+    Scenario("We try to get products for a bank with a data license for product information") {
       When("We make a request")
       val request = (v1_4Request / "banks" / BankWithLicense.value / "products").GET <@(user1)
       val response = makeGetRequest(request)

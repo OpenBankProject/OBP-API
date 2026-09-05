@@ -31,16 +31,16 @@ object KeycloakAdmin extends MdcLoggable {
 
   def createKeycloakConsumer(consumer: Consumer): Box[Boolean] = {
     val isPublic =
-      AppType.valueOf(consumer.appType.get) match {
+      AppType.valueOf(consumer.appType) match {
         case AppType.Confidential => false
         case _ => true
       }
     createClient(
-      clientId = consumer.key.get,
-      secret = consumer.secret.get,
-      name = consumer.name.get,
-      description = consumer.description.get,
-      redirectUri = consumer.redirectURL.get,
+      clientId = consumer.key,
+      secret = consumer.secret,
+      name = consumer.name,
+      description = consumer.description,
+      redirectUri = consumer.redirectURL,
       isPublic = isPublic,
     )
   }

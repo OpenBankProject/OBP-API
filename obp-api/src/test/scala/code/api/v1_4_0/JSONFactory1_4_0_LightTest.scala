@@ -2,12 +2,14 @@ package code.api.v1_4_0
 
 import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
 
 import java.lang.reflect.Field
 import java.util.Date
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
-class JSONFactory1_4_0_LightTest extends FeatureSpec 
+class JSONFactory1_4_0_LightTest extends AnyFeatureSpec 
   with BeforeAndAfterEach 
   with GivenWhenThen
   with BeforeAndAfterAll
@@ -15,7 +17,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
   with MdcLoggable 
   with CustomJsonFormats {
   
-  feature("Test JSONFactory1_4_0.getJValueAndAllFields method") {
+  Feature("Test JSONFactory1_4_0.getJValueAndAllFields method") {
     case class ClassOne(
       string1: String = "1"
     )
@@ -55,7 +57,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
     
 
     
-    scenario("getJValueAndAllFields -input is the oneObject, basic no nested, no List inside") {
+    Scenario("getJValueAndAllFields -input is the oneObject, basic no nested, no List inside") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(oneObject)
 
       // By name, like the scenarios below. This one used to assert the whole rendering, which
@@ -66,7 +68,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
       listFields.map(_.getName) should contain("string1")
     }
     
-    scenario("getJValueAndAllFields -input it the nestedClass") {
+    Scenario("getJValueAndAllFields -input it the nestedClass") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(nestedClass)
 
       // Asserted by the names the entity declares, not by an exact rendering of the whole list.
@@ -80,7 +82,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
       fieldNames should contain("string1")
     }
 
-    scenario("getJValueAndAllFields -input is a List of entities") {
+    Scenario("getJValueAndAllFields -input is a List of entities") {
       // Restored. It was removed on the theory that a List documented `head` and `tl` - which was
       // wrong: getAllFields has always had a branch for a root-level collection, and a non-empty
       // List is a `::`, a case class, so it is a Product at run time even though 2.13 drops
@@ -96,7 +98,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
     }
 
     
-    scenario("getJValueAndAllFields -input it the complexNestedClass") {
+    Scenario("getJValueAndAllFields -input it the complexNestedClass") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(complexNestedClass)
       val fieldNames = listFields.map(_.getName)
 

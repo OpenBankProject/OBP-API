@@ -152,8 +152,8 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
   )
 
 
-  feature("Create/Get Consent Request v5.1.0") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create/Get Consent Request v5.1.0") {
+    Scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val response510 = makePostRequest(createVRPConsentRequestWithoutLoginUrl, write(postVRPConsentRequestMonthlyGuardJson))
       Then("We should get a 401")
@@ -161,7 +161,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       response510.body.extract[ErrorMessage].message should equal (ApplicationNotIdentified)
     }
 
-    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))
       Then("We should get a 201")
@@ -243,7 +243,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
     }
   
 
-    scenario("Revoking a VRP consent releases the mandate it created", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+    Scenario("Revoking a VRP consent releases the mandate it created", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       When("the PSU creates a VRP consent request and converts it")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))
       createConsentResponse.code should equal(201)
@@ -287,7 +287,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       And("the PSU's own access to the account is untouched")
       AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).size should be > 0
     }
-    scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))
       Then("We should get a 201")
@@ -340,7 +340,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       getConsentByRequestResponseJson.status should be(ConsentStatus.ACCEPTED.toString)
     }
 
-    scenario("We will create consent properly, and test the counterparty limit - monthly guard", ApiEndpoint1, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
+    Scenario("We will create consent properly, and test the counterparty limit - monthly guard", ApiEndpoint1, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))
       Then("We should get a 201")
@@ -435,7 +435,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
 
     }
 
-    scenario("We will create consent properly, and test the counterparty limit - yearly guard", ApiEndpoint1, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
+    Scenario("We will create consent properly, and test the counterparty limit - yearly guard", ApiEndpoint1, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestYearlyGuardJson))
       Then("We should get a 201")
@@ -523,7 +523,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
 
     }
 
-    scenario("We will create consent properly, and test the counterparty limit - total guard", ApiEndpoint1, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
+    Scenario("We will create consent properly, and test the counterparty limit - total guard", ApiEndpoint1, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestTotalGuardJson))
       Then("We should get a 201")

@@ -5,14 +5,13 @@ import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.model.dataAccess.MappedBankAccount
-import code.productAttributeattribute.MappedProductAttribute
+import code.productattribute.DoobieProductAttributeProvider
 import code.productfee.ProductFee
 import code.products.MappedProduct
 import com.openbankproject.commons.model.{BankId, ProductCode}
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object DeleteProductCascade {
@@ -39,42 +38,25 @@ object DeleteProductCascade {
   }
 
   private def deleteProductAttributes(bankId: BankId, code: ProductCode): Boolean = {
-    MappedProductAttribute.findAll(
-      By(MappedProductAttribute.mBankId, bankId.value),
-      By(MappedProductAttribute.mCode, code.value)
-    ) map {
-      attribute =>
-        MappedProductAttribute.bulkDelete_!!(By(MappedProductAttribute.mProductAttributeId, attribute.productAttributeId))
-    } forall (_ == true)
+    DoobieProductAttributeProvider.deleteProductAttributesByBankAndCode(bankId.value, code.value)
   }
   private def deleteProductAttributeDefinitions(bankId: BankId, code: ProductCode): Boolean = {
-    AttributeDefinition.findAll(
-      By(AttributeDefinition.BankId, bankId.value),
-      By(AttributeDefinition.Category, code.value)
-    ) map {
+    AttributeDefinition.findAllByBankIdAndCategory(bankId.value, code.value) map {
       definition =>
-        AttributeDefinition.bulkDelete_!!(By(AttributeDefinition.AttributeDefinitionId, definition.attributeDefinitionId))
+        AttributeDefinition.deleteByAttributeDefinitionId(definition.attributeDefinitionId)
     } forall (_ == true)
   }
   private def deleteAccounts(bankId: BankId, code: ProductCode): Boolean = {
-    MappedBankAccount.findAll(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.kind, code.value)
+    MappedBankAccount.findAllByBankIdAndKind(bankId.value, code.value
     ) map {
       account => DeleteAccountCascade.delete(account.bankId, account.accountId)
     } forall (_ == true)
   }
   private def deleteProduct(bankId: BankId, code: ProductCode): Boolean = {
-    MappedProduct.bulkDelete_!!(
-      By(MappedProduct.mBankId, bankId.value),
-      By(MappedProduct.mCode, code.value)
-    )
+    MappedProduct.delete(bankId.value, code.value)
   }
   private def deleteProductFee(bankId: BankId, code: ProductCode): Boolean = {
-    ProductFee.bulkDelete_!!(
-      By(ProductFee.BankId, bankId.value),
-      By(ProductFee.ProductCode, code.value)
-    )
+    ProductFee.deleteByBankIdAndProductCode(bankId.value, code.value)
   }
 
 }

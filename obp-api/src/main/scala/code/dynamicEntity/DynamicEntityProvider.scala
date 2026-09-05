@@ -13,6 +13,7 @@ import net.liftweb.common.{Box, EmptyBox, Full}
 import org.json4s.JsonDSL._
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.util.SimpleInjector
 import org.apache.commons.lang3.StringUtils
 
@@ -427,7 +428,7 @@ case class DynamicEntityCommons(entityName: String,
                                 useRowLevelAccess: Boolean = false
                                ) extends DynamicEntityT with JsonFieldReName
 
-object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
+object DynamicEntityCommons extends ConverterWithType[DynamicEntityT, DynamicEntityCommons](ReflectUtils.forType("code.dynamicEntity.DynamicEntityCommons")) {
 
   /**
    * create DynamicEntityCommons object, and do validation

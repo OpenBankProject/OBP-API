@@ -1,5 +1,6 @@
 package code.api.sweep
 
+import org.json4s._
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil.ResourceDoc
@@ -101,7 +102,8 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
   private lazy val realEntities: Map[String, String] = realBankId match {
     case Some(bankIdValue) =>
       val accountId = code.model.dataAccess.MappedBankAccount
-        .find(net.liftweb.mapper.By(code.model.dataAccess.MappedBankAccount.bank, bankIdValue))
+        .findAllByBankId(bankIdValue)
+        .headOption
         .map(_.accountId.value)
       Map("BANK_ID" -> bankIdValue) ++ accountId.map("ACCOUNT_ID" -> _).toList.toMap
     case None => Map.empty

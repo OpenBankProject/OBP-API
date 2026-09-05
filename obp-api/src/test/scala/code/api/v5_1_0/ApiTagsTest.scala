@@ -1,6 +1,7 @@
 package code.api.v5_1_0
 
 import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
+import org.json4s.jvalue2extractable
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -18,8 +19,8 @@ class ApiTagsTest extends V510ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object GetApiTags extends Tag(nameOf(Implementations5_1_0.getApiTags))
 
-  feature(s"test ${GetApiTags}") {
-    scenario(s"it should return all the api tags", GetApiTags, VersionOfApi) {
+  Feature(s"test ${GetApiTags}") {
+    Scenario(s"it should return all the api tags", GetApiTags, VersionOfApi) {
 
       val requestGet = (v5_1_0_Request / "tags").GET
 

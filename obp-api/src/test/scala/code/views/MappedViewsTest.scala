@@ -12,12 +12,12 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   
   override def beforeAll() = {
     super.beforeAll()
-    ViewDefinition.bulkDelete_!!()
+    ViewDefinition.deleteAll()
   }
   
   override def afterEach() = {
     super.afterEach()
-    ViewDefinition.bulkDelete_!!()
+    ViewDefinition.deleteAll()
   }
   
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))
@@ -28,9 +28,9 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   val viewIdNotSupport = "NotSupport"
   
   
-  feature("test some important methods in MappedViews ") {
+  Feature("test some important methods in MappedViews ") {
     
-    scenario("test - getOrCreateAccountView") {
+    Scenario("test - getOrCreateAccountView") {
       
       Given("set up four normal Views")
       var viewOwner = MapperViews.getOrCreateSystemViewFromCbs(viewIdOwner)
@@ -67,7 +67,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
 
     }
 
-    scenario("factoryResetSystemView restores code-defined defaults") {
+    Scenario("factoryResetSystemView restores code-defined defaults") {
       Given("an existing auditor system view created by getOrCreateSystemView")
       val created = MapperViews.getOrCreateSystemView(viewIdAuditor)
       created.isDefined shouldBe true
@@ -92,7 +92,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       resetActions.toSet should equal(defaultActions.toSet)
     }
 
-    scenario("factoryResetSystemView returns Empty for an unknown system view id") {
+    Scenario("factoryResetSystemView returns Empty for an unknown system view id") {
       MapperViews.factoryResetSystemView(ViewId("does-not-exist")) shouldBe Empty
     }
 
@@ -101,7 +101,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
     // SYSTEM_VIEW_PERMISSION_COMMON set (so "Detail" granted nothing beyond "Basic") or had no
     // ViewPermission rows at all (the two BG views). Assert each view's allowed_actions match
     // its target set exactly — no more, no less.
-    scenario("UK and Berlin Group system views have exact, differentiated can_* permission sets") {
+    Scenario("UK and Berlin Group system views have exact, differentiated can_* permission sets") {
       // UK/BG views are opt-in (created on demand), not unconditionally present like auditor —
       // getOrCreateSystemView creates them fresh with current code defaults; afterEach's
       // ViewDefinition.bulkDelete_!! guarantees no stale permissions leak in between scenarios.
@@ -186,7 +186,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       ViewDefinition.findSystemView(viewId)
         .openOrThrowException(s"$viewId should exist by now").allowed_actions.toSet
 
-    scenario("an upgrade brings existing system views into line with the code") {
+    Scenario("an upgrade brings existing system views into line with the code") {
       Given("a database whose nine UK/BG views carry the old generic permission set")
       seedPreUpgradeDatabase()
       permissionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID) should
@@ -209,7 +209,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       balances.filter(_.contains("other_account")) shouldBe empty
     }
 
-    scenario("reconciling twice is a no-op, not a second write") {
+    Scenario("reconciling twice is a no-op, not a second write") {
       seedPreUpgradeDatabase()
       upgradedViews.foreach { case (viewId, _) => MapperViews.ensureSystemViewUpToDate(viewId) }
       val afterFirst = upgradedViews.map { case (viewId, _) => viewId -> permissionsOf(viewId) }.toMap
@@ -222,7 +222,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
         withClue(s"$viewId: ") {
           permissionsOf(viewId) should equal(afterFirst(viewId))
           val rows = ViewPermission.findSystemViewPermissions(ViewId(viewId))
-          rows.map(_.permission.get).distinct.size should equal(rows.size)
+          rows.map(_.permission).distinct.size should equal(rows.size)
         }
       }
     }
@@ -245,7 +245,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
      * So assert the property that actually matters -- the view can moderate an account -- by
      * calling the gate rather than by reading the constant back.
      */
-    scenario("the view the balances endpoints moderate an account through can actually do it") {
+    Scenario("the view the balances endpoints moderate an account through can actually do it") {
       // A plain value: moderateAccountCore reads fields off it and does not go to the database,
       // so the gate under test is reached without standing up an account fixture.
       val account = BankAccountCommons(
@@ -275,7 +275,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       }
     }
 
-    scenario("a view the code does not define is left alone") {
+    Scenario("a view the code does not define is left alone") {
       val owner = MapperViews.getOrCreateSystemView(Constant.SYSTEM_OWNER_VIEW_ID)
         .openOrThrowException("owner should be a known system view")
       val before = owner.allowed_actions.toSet

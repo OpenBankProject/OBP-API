@@ -36,7 +36,6 @@ import code.api.v4_0_0.JSONFactory400
 import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createNewCoreBankAccountJson}
 import code.api.v5_0_0.{Http4s500, JSONFactory500}
 import code.api.v5_1_0.JSONFactory510.{createCallLimitJson, createConsentsInfoJsonV510, createConsentsJsonV510, createRegulatedEntitiesJson, createRegulatedEntityJson}
-import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
@@ -69,7 +68,6 @@ import com.openbankproject.commons.util.json
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
 import com.openbankproject.commons.util.JsonAliases.compactRender
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection}
@@ -466,26 +464,25 @@ object Http4s510 {
       val requestHeaders = cc.requestHeaders
         .filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)
       val hashedRequestPayload = code.api.util.HashUtil.Sha256Hash(cc.url + requestHeaders)
-      val consumerId = cc.consumer.map(_.consumerId.get).getOrElse("None")
+      val consumerId = cc.consumer.map(_.consumerId).getOrElse("None")
       val userId = scala.util.Try(cc.userId).getOrElse("None")
       val compositeKey =
         if (consumerId == "None" && userId == "None") "anonymous"
         else s"consumerId${consumerId}::userId${userId}"
       val cacheKey = s"$compositeKey::$hashedRequestPayload"
-      code.etag.MappedETag.find(By(code.etag.MappedETag.ETagResource, cacheKey)) match {
-        case Full(row) if row.lastUpdatedMSSinceEpoch < headerEpoch =>
+      code.etag.ETagStore.find(cacheKey) match {
+        case Some(row) if row.lastUpdatedMSSinceEpoch < headerEpoch =>
           val modified = row.eTagValue != currentETag
           if (modified) {
             // Async update — match Lift's behaviour
-            scala.concurrent.Future(row.LastUpdatedMSSinceEpoch(System.currentTimeMillis).ETagValue(currentETag).save)
+            scala.concurrent.Future(
+              code.etag.ETagStore.updateValue(cacheKey, currentETag, System.currentTimeMillis))
             false
           } else true
-        case Empty =>
+        case None =>
           // Async create
           scala.concurrent.Future(tryo(
-            code.etag.MappedETag.create
-              .ETagResource(cacheKey).ETagValue(currentETag)
-              .LastUpdatedMSSinceEpoch(System.currentTimeMillis).save))
+            code.etag.ETagStore.create(cacheKey, currentETag, System.currentTimeMillis)))
           false
         case _ => false
       }
@@ -747,7 +744,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-            user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
+            user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId)
           } yield createConsumerJSON(consumer, user)
         }
     }
@@ -2249,11 +2246,11 @@ object Http4s510 {
               .map(x => unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404))
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
             isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
-            authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+            authUser = AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value)
           } yield JSONFactory510.createUserWithNamesJSON(
             user,
-            authUser.map(_.firstName.get).getOrElse(""),
-            authUser.map(_.lastName.get).getOrElse(""),
+            authUser.map(_.firstName).getOrElse(""),
+            authUser.map(_.lastName).getOrElse(""),
             entitlements, None, isLocked
           )
         }
@@ -2391,7 +2388,7 @@ object Http4s510 {
           for {
             (user, _) <- NewStyle.function.findByUserId(userId, Some(cc))
             (userValidated, _) <- NewStyle.function.validateUser(user.userPrimaryKey, Some(cc))
-          } yield UserValidatedJson(userValidated.validated.get)
+          } yield UserValidatedJson(userValidated.validated)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2681,7 +2678,7 @@ object Http4s510 {
           for {
             groupedRows: Map[String, List[AccountAccess]] <- Future {
               AccountAccess.findAll().groupBy { a =>
-                s"${a.bank_id.get}-${a.account_id.get}-${a.view_id.get}-${a.user_fk.get}-${a.consumer_id.get}"
+                s"${a.bankId}-${a.accountId}-${a.viewId}-${a.userPrimaryKey}-${a.consumerId}"
               }.filter(_._2.size > 1)
             }
           } yield JSONFactory510.getAccountAccessUniqueIndexCheck(groupedRows)
@@ -2712,7 +2709,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             currencies: List[String] <- Future {
-              code.model.dataAccess.MappedBankAccount.findAll().map(_.accountCurrency.get).distinct
+              code.model.dataAccess.MappedBankAccount.findAll().map(_.accountCurrency).distinct
             }
             (bankCurrencies, _) <- NewStyle.function.getCurrentCurrencies(bankId, Some(cc))
           } yield JSONFactory510.getSensibleCurrenciesCheck(bankCurrencies, currencies)
@@ -2742,10 +2739,10 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             accountAccesses: List[String] <- Future {
-              AccountAccess.findAll(By(AccountAccess.bank_id, bankId.value)).map(_.account_id.get)
+              AccountAccess.findAllByBankId(bankId).map(_.accountId)
             }
             bankAccounts <- Future {
-              code.model.dataAccess.MappedBankAccount.findAll(By(code.model.dataAccess.MappedBankAccount.bank, bankId.value)).map(_.accountId.value)
+              code.model.dataAccess.MappedBankAccount.findAllByBankId(bankId.value).map(_.accountId.value)
             }
           } yield {
             val orphaned = accountAccesses.filterNot(bankAccounts.contains)
@@ -2823,7 +2820,7 @@ object Http4s510 {
               consumer.createdByUserId.equals(user.userId)
             }
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get,
+              id = consumer.id,
               isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
               redirectURL = Some(postJson.redirect_url),
               callContext = Some(cc))
@@ -2863,7 +2860,7 @@ object Http4s510 {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
+              id = consumer.id, logoURL = Some(postJson.logo_url), callContext = Some(cc))
           } yield JSONFactory510.createConsumerJSON(updatedConsumer)
         }
     }
@@ -2900,7 +2897,7 @@ object Http4s510 {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
+              id = consumer.id, certificate = Some(postJson.certificate), callContext = Some(cc))
           } yield JSONFactory510.createConsumerJSON(updatedConsumer)
         }
     }
@@ -2937,7 +2934,7 @@ object Http4s510 {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
+              id = consumer.id, name = Some(postJson.app_name), callContext = Some(cc))
           } yield JSONFactory510.createConsumerJSON(updatedConsumer)
         }
     }
@@ -4149,7 +4146,7 @@ object Http4s510 {
           for {
             (viewPermission, _) <- ViewNewStyle.findSystemViewPermission(viewId, permissionName, Some(cc))
             _ <- Helper.booleanToFuture(s"$DeleteViewPermissionError The current value is $permissionName", 400, Some(cc)) {
-              viewPermission.delete_!
+              ViewPermission.deleteRow(viewPermission)
             }
           } yield true
         }
@@ -4753,7 +4750,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+              consent.consumerId == cc.consumer.map(_.consumerId).getOrElse("None")
             }
           } yield JSONFactory510.getConsentInfoJson(consent)
         }
@@ -4790,7 +4787,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
-              consent.mUserId == user.userId
+              consent.userId == user.userId
             }
             revoked <- Future(Consents.consentProvider.vend.revoke(consentId))
               .map(i => connectorEmptyResponse(i, Some(cc)))
@@ -4936,7 +4933,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
-              consent.mUserId == user.userId
+              consent.userId == user.userId
             }
             revoked <- Future(Consents.consentProvider.vend.revoke(consentId))
               .map(i => connectorEmptyResponse(i, Some(cc)))
@@ -5004,7 +5001,7 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
               requestedViews.forall(rv =>
                 assignedViews.exists(e =>
-                  e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+                  e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
             }
             consumerFromBodyTuple <- consentJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))
@@ -5019,7 +5016,7 @@ object Http4s510 {
               .map(i => connectorEmptyResponse(i, callContextOpt))
             consentJWT = Consent.createConsentJWT(
               user, consentJson, createdConsent.secret, createdConsent.consentId,
-              consumerFromRequestBody.map(_.consumerId.get),
+              consumerFromRequestBody.map(_.consumerId),
               consentJson.valid_from,
               consentJson.time_to_live.getOrElse(3600),
               None
@@ -5029,7 +5026,7 @@ object Http4s510 {
             validUntil = Helper.calculateValidTo(consentJson.valid_from, consentJson.time_to_live.getOrElse(3600))
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
-            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
             granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
             shouldSkip = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
@@ -5040,7 +5037,7 @@ object Http4s510 {
                 // instead of the skip-SCA write blindly resurrecting it to ACCEPTED.
                 code.bankconnectors.DoobieConsentStatusQueries.conditionalStatusTransitionByConsentId(
                   createdConsent.consentId, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
-                MappedConsent.find(By(MappedConsent.mConsentId, createdConsent.consentId))
+                MappedConsent.findByConsentId(createdConsent.consentId)
                   .openOrThrowException(s"Consent ${createdConsent.consentId} not found immediately after creation")
               }
             } else {
@@ -5251,7 +5248,7 @@ object Http4s510 {
     )
 
     val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
         root(req)
           .orElse(getMyConsentsByBank(req))
           .orElse(getAggregateMetrics(req))

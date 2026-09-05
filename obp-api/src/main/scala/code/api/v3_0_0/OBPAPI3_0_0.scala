@@ -40,7 +40,7 @@ only for resource-doc aggregation and the Lift dispatch registry.
  */
 object OBPAPI3_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis {
 
-  val version: ApiVersion = ApiVersion.v3_0_0
+  lazy val version: ApiVersion = ApiVersion.v3_0_0
   lazy val versionStatus  = ApiVersionStatus.STABLE.toString
 
   // Re-export so any caller that still imports OBPAPI3_0_0.Implementations3_0_0 keeps compiling.

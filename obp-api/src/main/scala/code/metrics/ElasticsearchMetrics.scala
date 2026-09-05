@@ -5,7 +5,6 @@ import code.api.util._
 import code.search.elasticsearchMetrics
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
-import net.liftweb.mapper._
 
 import scala.concurrent.Future
 
@@ -49,21 +48,16 @@ object ElasticsearchMetrics extends APIMetrics {
 
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     //TODO: replace the following with valid ES query
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedMetric](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedMetric.date, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedMetric.date, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedMetric.date, Ascending)
-          case OBPDescending => OrderBy(MappedMetric.date, Descending)
-        }
-    }
-    val optionalParams : Seq[QueryParam[MappedMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
-
-    MappedMetric.findAll(optionalParams: _*)
+    // This reads the SQL metrics table, not Elasticsearch, and it only honours paging, the date
+    // range and the ordering - never the other filters. Preserved as it was: the sort field of an
+    // OBPOrdering is ignored here and the rows are ordered by date either way.
+    val params = MetricQuery.fromQueryParams(queryParams)
+    MappedMetric.findAll(params.copy(
+      orderBy = params.orderBy.map { case (_, ascending) => ("date_c", ascending) },
+      consumerId = None, bankId = None, userId = None, url = None, appName = None,
+      implementedInVersion = None, implementedByPartialFunction = None, verb = None,
+      correlationId = None, durationGreaterThan = None, httpStatusCode = None,
+      consentReferenceId = None, certificateTrust = None, anon = None, excludeAppNames = None))
   }
   
   override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Future[Box[List[AggregateMetrics]]] = ???
@@ -77,6 +71,7 @@ object ElasticsearchMetrics extends APIMetrics {
   override def getTopConsumersByConsumerIdFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = ???
 
   override def bulkDeleteMetrics(): Boolean = {
-    MappedMetric.bulkDelete_!!()
+    MappedMetric.deleteAll()
+    true
   }
 }

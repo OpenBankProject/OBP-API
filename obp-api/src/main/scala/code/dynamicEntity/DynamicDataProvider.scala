@@ -1,7 +1,9 @@
 package code.DynamicData
 
+import com.openbankproject.commons.util.ReflectUtils
+
 import org.json4s._
-import com.openbankproject.commons.model.{Converter, JsonFieldReName}
+import com.openbankproject.commons.model.{Converter, ConverterWithType, JsonFieldReName}
 import net.liftweb.common.Box
 import org.json4s.JObject
 import net.liftweb.util.SimpleInjector
@@ -30,7 +32,7 @@ case class DynamicDataCommons(dynamicEntityName: String,
                                 isPersonalEntity: Boolean
                                ) extends DynamicDataT with JsonFieldReName
 
-object DynamicDataCommons extends Converter[DynamicDataT, DynamicDataCommons]
+object DynamicDataCommons extends ConverterWithType[DynamicDataT, DynamicDataCommons](ReflectUtils.forType("code.DynamicData.DynamicDataCommons"))
 
 
 trait DynamicDataProvider {

@@ -1,6 +1,7 @@
 package code.api.sweep
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 import scala.io.Source
@@ -26,7 +27,7 @@ import scala.io.Source
  * FUTURE divergence gets caught, which a static duplicate can never do regardless of what the
  * catalog looks like when the test runs.
  */
-class SweepCoverageDriftCheckTest extends FlatSpec with Matchers {
+class SweepCoverageDriftCheckTest extends AnyFlatSpec with Matchers {
 
   private def sourceOf(basename: String): String = {
     val candidates = List(

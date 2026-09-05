@@ -35,7 +35,7 @@ object CrmEvent extends util.SimpleInjector {
 
   val crmEventProvider = new Inject(() => buildOne) {}
 
-  def buildOne: CrmEventProvider = MappedCrmEventProvider
+  def buildOne: CrmEventProvider = DoobieCrmEventProvider
 
   // Helper to get the count out of an option
   def countOfCrmEvents (listOpt: Option[List[CrmEvent]]) : Int = {

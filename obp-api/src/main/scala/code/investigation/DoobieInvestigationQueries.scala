@@ -20,7 +20,7 @@ import doobie.implicits.javasql._
  * - customeraccountlink
  * - mappedbankaccount
  * - mappedtransaction
- * - mappedcustomerlink
+ * - customerlink
  */
 object DoobieInvestigationQueries extends MdcLoggable {
 
@@ -148,11 +148,13 @@ object DoobieInvestigationQueries extends MdcLoggable {
   def getCustomerLinks(customerId: String): List[CustomerLinkRow] = {
     logger.info(s"getCustomerLinks says: customerId=$customerId")
     val query: ConnectionIO[List[CustomerLinkRow]] =
-      sql"""SELECT cl.mcustomerlinkid, cl.mothercustomerid, cl.motherbankid, cl.mrelationshipto,
+      // customerlink, not mappedcustomerlink: the entity overrode dbTableName, and its columns
+      // carry no m-prefix either. See V044__customerlink.sql, written from the real schema.
+      sql"""SELECT cl.customerlinkid, cl.othercustomerid, cl.otherbankid, cl.relationshipto,
                    COALESCE(c.mlegalname, '')
-            FROM mappedcustomerlink cl
-            LEFT JOIN mappedcustomer c ON c.mcustomerid = cl.mothercustomerid
-            WHERE cl.mcustomerid = $customerId"""
+            FROM customerlink cl
+            LEFT JOIN mappedcustomer c ON c.mcustomerid = cl.othercustomerid
+            WHERE cl.customerid = $customerId"""
         .query[CustomerLinkRow]
         .to[List]
 

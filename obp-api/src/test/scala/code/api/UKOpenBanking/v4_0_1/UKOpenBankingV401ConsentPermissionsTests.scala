@@ -1,6 +1,8 @@
 package code.api.UKOpenBanking.v4_0_1
 
 import code.api.util.Consent
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.ErrorMessages.InvalidUKConsentPermissions
 import com.openbankproject.commons.model.ErrorMessage
 import org.scalatest.Tag
@@ -28,19 +30,19 @@ class UKOpenBankingV401ConsentPermissionsTests extends UKOpenBankingV401ServerSe
        |  "Risk": {}
        |}""".stripMargin
 
-  feature("Consent.validateUKConsentPermissions") {
+  Feature("Consent.validateUKConsentPermissions") {
 
-    scenario("an empty array is refused", UKOpenBankingV401ConsentPermissions) {
+    Scenario("an empty array is refused", UKOpenBankingV401ConsentPermissions) {
       Consent.validateUKConsentPermissions(Nil).isDefined should equal(true)
     }
 
-    scenario("a code that is not a UK permission code is refused", UKOpenBankingV401ConsentPermissions) {
+    Scenario("a code that is not a UK permission code is refused", UKOpenBankingV401ConsentPermissions) {
       val reason = Consent.validateUKConsentPermissions(List("ReadAccountsBasic", "ReadEverything"))
       reason.isDefined should equal(true)
       reason.get should include("ReadEverything")
     }
 
-    scenario("an array with no account-read permission is refused", UKOpenBankingV401ConsentPermissions) {
+    Scenario("an array with no account-read permission is refused", UKOpenBankingV401ConsentPermissions) {
       // The combination that motivated this work: authorises fine, then /aisp/accounts is empty
       // forever because no account is readable.
       val reason = Consent.validateUKConsentPermissions(
@@ -49,33 +51,33 @@ class UKOpenBankingV401ConsentPermissionsTests extends UKOpenBankingV401ServerSe
       reason.get should include("ReadAccountsBasic")
     }
 
-    scenario("either account-read permission satisfies the requirement", UKOpenBankingV401ConsentPermissions) {
+    Scenario("either account-read permission satisfies the requirement", UKOpenBankingV401ConsentPermissions) {
       Consent.validateUKConsentPermissions(List("ReadAccountsBasic")) should equal(None)
       Consent.validateUKConsentPermissions(List("ReadAccountsDetail")) should equal(None)
     }
 
-    scenario("transaction depth without a direction is refused", UKOpenBankingV401ConsentPermissions) {
+    Scenario("transaction depth without a direction is refused", UKOpenBankingV401ConsentPermissions) {
       Consent.validateUKConsentPermissions(
         List("ReadAccountsBasic", "ReadTransactionsBasic")).isDefined should equal(true)
       Consent.validateUKConsentPermissions(
         List("ReadAccountsBasic", "ReadTransactionsDetail")).isDefined should equal(true)
     }
 
-    scenario("a transaction direction without a depth is refused", UKOpenBankingV401ConsentPermissions) {
+    Scenario("a transaction direction without a depth is refused", UKOpenBankingV401ConsentPermissions) {
       Consent.validateUKConsentPermissions(
         List("ReadAccountsBasic", "ReadTransactionsCredits")).isDefined should equal(true)
       Consent.validateUKConsentPermissions(
         List("ReadAccountsBasic", "ReadTransactionsDebits")).isDefined should equal(true)
     }
 
-    scenario("depth paired with either direction is accepted", UKOpenBankingV401ConsentPermissions) {
+    Scenario("depth paired with either direction is accepted", UKOpenBankingV401ConsentPermissions) {
       Consent.validateUKConsentPermissions(
         List("ReadAccountsBasic", "ReadTransactionsBasic", "ReadTransactionsCredits")) should equal(None)
       Consent.validateUKConsentPermissions(
         List("ReadAccountsBasic", "ReadTransactionsDetail", "ReadTransactionsDebits")) should equal(None)
     }
 
-    scenario("requesting both Basic and Detail is allowed, not rejected as duplication",
+    Scenario("requesting both Basic and Detail is allowed, not rejected as duplication",
       UKOpenBankingV401ConsentPermissions) {
       // The profile calls this duplication but forbids rejecting on that basis alone.
       Consent.validateUKConsentPermissions(
@@ -86,16 +88,16 @@ class UKOpenBankingV401ConsentPermissionsTests extends UKOpenBankingV401ServerSe
         "ReadTransactionsCredits", "ReadTransactionsDebits")) should equal(None)
     }
 
-    scenario("permissions unrelated to the combination rules pass alongside a valid base",
+    Scenario("permissions unrelated to the combination rules pass alongside a valid base",
       UKOpenBankingV401ConsentPermissions) {
       Consent.validateUKConsentPermissions(
         List("ReadAccountsBasic", "ReadBalances", "ReadProducts", "ReadPAN")) should equal(None)
     }
   }
 
-  feature("UKOB v4.0.1 POST /aisp/account-access-consents rejects invalid Permissions") {
+  Feature("UKOB v4.0.1 POST /aisp/account-access-consents rejects invalid Permissions") {
 
-    scenario("no account-read permission -> 400 with the OBP error code",
+    Scenario("no account-read permission -> 400 with the OBP error code",
       UKOpenBankingV401ConsentPermissions) {
       val response = postAuthed(
         body("""["ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits"]"""),
@@ -104,23 +106,23 @@ class UKOpenBankingV401ConsentPermissionsTests extends UKOpenBankingV401ServerSe
       response.body.extract[ErrorMessage].message should startWith(InvalidUKConsentPermissions)
     }
 
-    scenario("empty Permissions array -> 400", UKOpenBankingV401ConsentPermissions) {
+    Scenario("empty Permissions array -> 400", UKOpenBankingV401ConsentPermissions) {
       postAuthed(body("[]"), "aisp", "account-access-consents").code should equal(400)
     }
 
-    scenario("transaction depth without a direction -> 400", UKOpenBankingV401ConsentPermissions) {
+    Scenario("transaction depth without a direction -> 400", UKOpenBankingV401ConsentPermissions) {
       postAuthed(
         body("""["ReadAccountsBasic", "ReadTransactionsBasic"]"""),
         "aisp", "account-access-consents").code should equal(400)
     }
 
-    scenario("unknown permission code -> 400", UKOpenBankingV401ConsentPermissions) {
+    Scenario("unknown permission code -> 400", UKOpenBankingV401ConsentPermissions) {
       postAuthed(
         body("""["ReadAccountsBasic", "ReadEverything"]"""),
         "aisp", "account-access-consents").code should equal(400)
     }
 
-    scenario("a valid combination is still created -> 201", UKOpenBankingV401ConsentPermissions) {
+    Scenario("a valid combination is still created -> 201", UKOpenBankingV401ConsentPermissions) {
       val response = postAuthed(
         body("""["ReadAccountsBasic", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits"]"""),
         "aisp", "account-access-consents")

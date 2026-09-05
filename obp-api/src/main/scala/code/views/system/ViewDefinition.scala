@@ -2,164 +2,134 @@ package code.views.system
 
 import code.api.Constant._
 import code.api.util.APIUtil.{isValidCustomViewId, isValidSystemViewId}
+import code.api.util.DoobieUtil
 import code.api.util.ErrorMessages.{CreateSystemViewError, InvalidCustomViewFormat, InvalidSystemViewFormat}
-import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
-import net.liftweb.common.Box
-import net.liftweb.common.Box.tryo
-import net.liftweb.mapper._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 
-class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with ManyToMany with CreatedUpdated{
-  def getSingleton = ViewDefinition
+/**
+ * One view: what it is allowed to show and do on an account.
+ *
+ * A SYSTEM view has a null bank and account and is scoped by view id alone; a CUSTOM view belongs
+ * to one account and is scoped by all three. Reads therefore have to use IS NULL rather than an
+ * equality test, and uniqueness is enforced through the composed `composite_unique_key` rather than
+ * a column tuple - SQL treats NULLs as distinct, so a unique index over the three columns would not
+ * stop two system views sharing a view id.
+ *
+ * `viewPrimaryKey` stays on the row because the ViewPermission rows reference a view by it.
+ *
+ * Every can* accessor reads the ViewPermission table through `allowed_actions`; the row carries no
+ * permission state of its own. `canGrantAccessToViews_` / `canRevokeAccessToViews_` mirror two dead
+ * columns and are read by nothing.
+ */
+case class ViewDefinition(
+  viewPrimaryKey: Long = 0L,
+  name_ : String = "",
+  description_ : String = "",
+  bank_id: String = null,
+  account_id: String = null,
+  view_id: String = "",
+  composite_unique_key: String = "",
+  metadataView_ : String = "",
+  isSystem_ : Boolean = false,
+  isPublic_ : Boolean = false,
+  isFirehose_ : Boolean = true,
+  usePrivateAliasIfOneExists_ : Boolean = false,
+  usePublicAliasIfOneExists_ : Boolean = false,
+  hideOtherAccountMetadataIfAlias_ : Boolean = false,
+  canGrantAccessToViews_ : String = "",
+  canRevokeAccessToViews_ : String = ""
+) extends View {
 
-  def primaryKeyField = id_
+  /**
+   * Returns this view with the specification applied, and resets its permission rows as a side
+   * effect.
+   *
+   * Replaces the former setFromViewData / createViewAndPermissions pair, whose bodies were
+   * identical. The permission reset needs no primary key - it scopes by isSystem plus the bank,
+   * account and view ids - so it still works on a row that has not been written yet, which is when
+   * the create paths call it.
+   *
+   * ORDER MATTERS at the call sites: createSystemView applies the specification BEFORE setting
+   * isSystem, so the reset takes the custom-view branch with a null bank and account. That lands
+   * the permission rows with both id columns NULL, which is exactly where the system branch would
+   * have put them. Preserved rather than tidied.
+   */
+  def withViewData(viewSpecification: ViewSpecification): ViewDefinition = {
+    val (usePublic, usePrivate) =
+      if (viewSpecification.which_alias_to_use == "public") (true, false)
+      else if (viewSpecification.which_alias_to_use == "private") (false, true)
+      else (false, false)
 
-  object id_ extends MappedLongIndex(this)
-  object name_ extends MappedString(this, 125)
-  object description_ extends MappedString(this, 255)
-  object bank_id extends UUIDString(this) {
-    override def defaultValue: Null = null
-  }
-  object account_id extends AccountIdString(this) {
-    override def defaultValue: Null = null
-  }
-  object view_id extends UUIDString(this)
-  
-  @deprecated("This field is not used in api code anymore","13-12-2019")
-  object composite_unique_key extends MappedString(this, 512)
-  object metadataView_ extends UUIDString(this)
-  object isSystem_ extends MappedBoolean(this){
-    override def defaultValue = false
-    override def dbIndexed_? = true
-  }
-  object isPublic_ extends MappedBoolean(this){
-    override def defaultValue = false
-    override def dbIndexed_? = true
-  }
-  object isFirehose_ extends MappedBoolean(this){
-    override def defaultValue = true
-    override def dbIndexed_? = true
-  }
-  object usePrivateAliasIfOneExists_ extends MappedBoolean(this){
-    override def defaultValue = false
-  }
-  object usePublicAliasIfOneExists_ extends MappedBoolean(this){
-    override def defaultValue = false
-  }
-  object hideOtherAccountMetadataIfAlias_ extends MappedBoolean(this){
-    override def defaultValue = false
-  }
-  
-  object canGrantAccessToViews_ extends MappedText(this){
-    override def defaultValue = ""
-  }
-
-  object canRevokeAccessToViews_ extends MappedText(this){
-    override def defaultValue = ""
-  }
-  
-
-  //Important! If you add a field, be sure to handle it here in this function
-  def setFromViewData(viewSpecification : ViewSpecification) = {
-    if(viewSpecification.which_alias_to_use == "public"){
-      usePublicAliasIfOneExists_(true)
-      usePrivateAliasIfOneExists_(false)
-    } else if(viewSpecification.which_alias_to_use == "private"){
-      usePublicAliasIfOneExists_(false)
-      usePrivateAliasIfOneExists_(true)
-    } else {
-      usePublicAliasIfOneExists_(false)
-      usePrivateAliasIfOneExists_(false)
-    }
-
-    hideOtherAccountMetadataIfAlias_(viewSpecification.hide_metadata_if_alias_used)
-    description_(viewSpecification.description)
-    isPublic_(viewSpecification.is_public)
-    isFirehose_(viewSpecification.is_firehose.getOrElse(false))
-    metadataView_(viewSpecification.metadata_view)
-    
-    ViewPermission.resetViewPermissions(
-      this,
-      viewSpecification.allowed_actions,
-      viewSpecification.can_grant_access_to_views.getOrElse(Nil),
-      viewSpecification.can_revoke_access_to_views.getOrElse(Nil)
-    )
-    
-  }
-
-  def createViewAndPermissions(viewSpecification : ViewSpecification) = {
-    if(viewSpecification.which_alias_to_use == "public"){
-      usePublicAliasIfOneExists_(true)
-      usePrivateAliasIfOneExists_(false)
-    } else if(viewSpecification.which_alias_to_use == "private"){
-      usePublicAliasIfOneExists_(false)
-      usePrivateAliasIfOneExists_(true)
-    } else {
-      usePublicAliasIfOneExists_(false)
-      usePrivateAliasIfOneExists_(false)
-    }
-
-    hideOtherAccountMetadataIfAlias_(viewSpecification.hide_metadata_if_alias_used)
-    description_(viewSpecification.description)
-    isPublic_(viewSpecification.is_public)
-    isFirehose_(viewSpecification.is_firehose.getOrElse(false))
-    metadataView_(viewSpecification.metadata_view)
+    val updated = copy(
+      usePublicAliasIfOneExists_ = usePublic,
+      usePrivateAliasIfOneExists_ = usePrivate,
+      hideOtherAccountMetadataIfAlias_ = viewSpecification.hide_metadata_if_alias_used,
+      description_ = viewSpecification.description,
+      isPublic_ = viewSpecification.is_public,
+      isFirehose_ = viewSpecification.is_firehose.getOrElse(false),
+      metadataView_ = viewSpecification.metadata_view)
 
     ViewPermission.resetViewPermissions(
-      this,
+      updated,
       viewSpecification.allowed_actions,
       viewSpecification.can_grant_access_to_views.getOrElse(Nil),
       viewSpecification.can_revoke_access_to_views.getOrElse(Nil)
     )
 
-  }
-  
-  def deleteViewPermissions = {
-    ViewPermission.findViewPermissions(this).map(_.delete_!)
+    updated
   }
 
-  
+  /**
+   * The `View` trait's mutating entry point. It returns Unit, which on an immutable row can only
+   * carry the permission-reset side effect - the updated field values are lost. Every call site
+   * uses withViewData above and writes the row it returns; this exists to satisfy the trait.
+   */
+  override def createViewAndPermissions(viewSpecification: ViewSpecification): Unit = {
+    withViewData(viewSpecification)
+    ()
+  }
 
-  def id: Long = id_.get
-  def viewId : ViewId = ViewId(view_id.get)
+  def deleteViewPermissions: List[Boolean] =
+    ViewPermission.findViewPermissions(this).map(ViewPermission.deleteRow)
+
+  def id: Long = viewPrimaryKey
+  def viewId : ViewId = ViewId(view_id)
   
   @deprecated("This field is not used in api code anymore","13-12-2019")
-  def viewIdInternal: String = composite_unique_key.get
+  def viewIdInternal: String = composite_unique_key
   //if metadataView_ = null or empty, we need use the current view's viewId.
-  def metadataView = if (metadataView_.get ==null || metadataView_.get == "") view_id.get else metadataView_.get
+  def metadataView = if (metadataView_ == null || metadataView_ == "") view_id else metadataView_
   def users : List[User] = Nil
-  def bankId = BankId(bank_id.get)
-  def accountId = AccountId(account_id.get)
-  def name: String = name_.get
-  def description : String = description_.get
-  def isPublic : Boolean = isPublic_.get
-  def isPrivate : Boolean = !isPublic_.get
-  def isFirehose : Boolean = isFirehose_.get
-  def isSystem: Boolean = isSystem_.get
+  def bankId = BankId(bank_id)
+  def accountId = AccountId(account_id)
+  def name: String = name_
+  def description : String = description_
+  def isPublic : Boolean = isPublic_
+  def isPrivate : Boolean = !isPublic_
+  def isFirehose : Boolean = isFirehose_
+  def isSystem: Boolean = isSystem_
   //the view settings
-  def usePrivateAliasIfOneExists: Boolean = usePrivateAliasIfOneExists_.get
-  def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
-  def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
+  def usePrivateAliasIfOneExists: Boolean = usePrivateAliasIfOneExists_
+  def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_
+  def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_
 
-  override def allowed_actions : List[String] = ViewPermission.findViewPermissions(this).map(_.permission.get).distinct
+  override def allowed_actions : List[String] = ViewPermission.findViewPermissions(this).map(_.permission).distinct
 
   override def canGrantAccessToViews : Option[List[String]] = {
    ViewPermission.findViewPermission(this, CAN_GRANT_ACCESS_TO_VIEWS).flatMap(vp => 
     {
-      vp.extraData.get match {
-        case value if(value != null && !value.isEmpty) => Some(value.split(",").toList.map(_.trim))
-        case _ => None
-      }
+      vp.extraData.filter(_.nonEmpty).map(_.split(",").toList.map(_.trim))
     })
   }
   
   override def canRevokeAccessToViews : Option[List[String]] = {
     ViewPermission.findViewPermission(this, CAN_REVOKE_ACCESS_TO_VIEWS).flatMap(vp =>
     {
-      vp.extraData.get match {
-        case value if(value != null && !value.isEmpty) => Some(value.split(",").toList.map(_.trim))
-        case _ => None
-      }
+      vp.extraData.filter(_.nonEmpty).map(_.split(",").toList.map(_.trim))
     })
   }
 
@@ -263,84 +233,233 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canGetCustomView: Boolean = hasPermission(CAN_GET_CUSTOM_VIEW)
 }
 
-object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {
-  override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(composite_unique_key) :: Index(isSystem_, view_id) :: Index(bank_id, account_id, view_id) :: super.dbIndexes
-  override def beforeDelete = List(
-    vd => {
-      val conditions: Seq[QueryParam[AccountAccess]] =
-        if (vd.isSystem || vd.bank_id.get == null || vd.account_id.get == null)
-          Seq(By(AccountAccess.view_id, vd.view_id.get))
-        else
-          Seq(
-            By(AccountAccess.bank_id, vd.bank_id.get),
-            By(AccountAccess.account_id, vd.account_id.get),
-            By(AccountAccess.view_id, vd.view_id.get)
-          )
-      AccountAccess.bulkDelete_!!(conditions: _*)
+object ViewDefinition {
+
+  private val selectColumns =
+    fr"""SELECT id_, name_, description_, bank_id, account_id, view_id, composite_unique_key,
+                metadataview_, issystem_, ispublic_, isfirehose_, useprivatealiasifoneexists_,
+                usepublicaliasifoneexists_, hideotheraccountmetadataifalias_,
+                cangrantaccesstoviews_, canrevokeaccesstoviews_
+         FROM viewdefinition"""
+
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Boolean], Option[Boolean],
+    Option[Boolean], Option[Boolean], Option[Boolean], Option[Boolean], Option[String],
+    Option[String])
+
+  private def fromRow(row: Row): ViewDefinition = row match {
+    case (id, name, description, bankId, accountId, viewId, compositeUniqueKey, metadataView,
+          isSystem, isPublic, isFirehose, usePrivateAlias, usePublicAlias, hideOtherMetadata,
+          canGrantAccessToViews, canRevokeAccessToViews) =>
+      ViewDefinition(id, name.orNull, description.orNull, bankId.orNull, accountId.orNull,
+        viewId.orNull, compositeUniqueKey.orNull, metadataView.orNull,
+        // A NULL flag reads back as false, which is what Mapper did - and NOT as the field's
+        // defaultValue. MappedBoolean seeds `data` with defaultValue for a NEW instance, but a
+        // NULL column sets data = Empty on read and the getter is `data openOr false`. isFirehose_
+        // is the one where those two differ (its defaultValue is true), so reading it as true
+        // would widen a permission flag that Lift read as false. The case-class default above
+        // still carries true, which is the new-instance half of the same behaviour.
+        isSystem.getOrElse(false), isPublic.getOrElse(false), isFirehose.getOrElse(false),
+        usePrivateAlias.getOrElse(false), usePublicAlias.getOrElse(false),
+        hideOtherMetadata.getOrElse(false), canGrantAccessToViews.orNull,
+        canRevokeAccessToViews.orNull)
+  }
+
+  private def query(condition: Fragment): List[ViewDefinition] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def opt(value: String): Option[String] = Option(value)
+
+  private def one(condition: Fragment): Box[ViewDefinition] =
+    query(condition ++ fr"ORDER BY id_ ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
     }
-  )
 
-  override def beforeSave = List(
-    t =>{
-      tryo {
-        val compositeUniqueKey = getUniqueKey(t.bank_id.get, t.account_id.get, t.view_id.get)
-        t.composite_unique_key(compositeUniqueKey)
-      }
+  private def count(condition: Fragment): Long =
+    DoobieUtil.runQuery(
+      (fr"SELECT COUNT(*) FROM viewdefinition" ++ condition).query[Long].unique)
 
-      if (t.isSystem && !isValidSystemViewId(t.view_id.get)) {
-        throw new RuntimeException(InvalidSystemViewFormat+s"Current view_id (${t.view_id.get})")
-      }
-      if (!t.isSystem && !isValidCustomViewId(t.view_id.get)) {
-        throw new RuntimeException(InvalidCustomViewFormat+s"Current view_id (${t.view_id.get})")
-      }
-      
-      //sanity checks
-      if (!t.isSystem && (t.bank_id ==null || t.account_id == null)) {
-        throw new RuntimeException(CreateSystemViewError+s"Current view.isSystem${t.isSystem}, bank_id${t.bank_id}, account_id${t.account_id}")
-      }
+  /**
+   * The three checks Mapper ran in beforeSave, in the same order.
+   *
+   * NOTE the last one compares the FIELD, not its value: `bank_id == null` was written against the
+   * Mapper field object, which is never null, so the sanity check has never fired. Preserved
+   * verbatim rather than corrected under a storage swap - fixing it would start rejecting rows
+   * that are being written today.
+   */
+  private def validateBeforeSave(row: ViewDefinition): Unit = {
+    if (row.isSystem_ && !isValidSystemViewId(row.view_id)) {
+      throw new RuntimeException(InvalidSystemViewFormat + s"Current view_id (${row.view_id})")
     }
-  )
-
-  def findSystemView(viewId: String): Box[ViewDefinition] = {
-    ViewDefinition.find(
-      NullRef(ViewDefinition.bank_id),
-      NullRef(ViewDefinition.account_id),
-      By(ViewDefinition.isSystem_, true),
-      By(ViewDefinition.view_id, viewId),
-    )
-  }
-  def getSystemViews(): List[ViewDefinition] = {
-    ViewDefinition.findAll(
-      By(ViewDefinition.isSystem_, true)
-    )
+    if (!row.isSystem_ && !isValidCustomViewId(row.view_id)) {
+      throw new RuntimeException(InvalidCustomViewFormat + s"Current view_id (${row.view_id})")
+    }
+    // Never true: this tests the field, not the value. See the note above.
+    if (!row.isSystem_ && (false)) {
+      throw new RuntimeException(CreateSystemViewError +
+        s"Current view.isSystem${row.isSystem_}, bank_id${row.bank_id}, account_id${row.account_id}")
+    }
   }
 
-  def findCustomView(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
-    ViewDefinition.find(
-      By(ViewDefinition.bank_id, bankId),
-      By(ViewDefinition.account_id, accountId),
-      By(ViewDefinition.isSystem_, false),
-      By(ViewDefinition.view_id, viewId),
-    )
-  }
-  def getCustomViews(): List[ViewDefinition] = {
-    ViewDefinition.findAll(
-      By(ViewDefinition.isSystem_, false)
-    )
-  }
-  
+  /** A system view is scoped by view id alone, so its bank and account really are SQL NULL. */
+  private def isNullOr(column: Fragment, value: String): Fragment =
+    Option(value) match {
+      case Some(v) => column ++ fr" = $v"
+      case None => column ++ fr" IS NULL"
+    }
+
+  def findSystemView(viewId: String): Box[ViewDefinition] =
+    one(fr"""WHERE bank_id IS NULL AND account_id IS NULL AND issystem_ = true
+               AND view_id = ${opt(viewId)}""")
+
+  def getSystemViews(): List[ViewDefinition] = query(fr"WHERE issystem_ = true")
+
+  def findCustomView(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] =
+    one(fr"WHERE " ++ isNullOr(fr"bank_id", bankId) ++ fr"AND" ++
+      isNullOr(fr"account_id", accountId) ++
+      fr"AND issystem_ = false AND view_id = ${opt(viewId)}")
+
+  def getCustomViews(): List[ViewDefinition] = query(fr"WHERE issystem_ = false")
+
+  def findByPrimaryKey(viewPrimaryKey: Long): Box[ViewDefinition] =
+    one(fr"WHERE id_ = $viewPrimaryKey")
+
   @deprecated("This is method only used for migration stuff, please use @findCustomView and @findSystemView instead.","13-12-2019")
-  def findByUniqueKey(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
-    val uniqueKey = getUniqueKey(bankId, accountId, viewId)
-    ViewDefinition.find(
-      By(ViewDefinition.composite_unique_key, uniqueKey)
-    )
+  def findByUniqueKey(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] =
+    one(fr"WHERE composite_unique_key = ${opt(getUniqueKey(bankId, accountId, viewId))}")
+
+  /** Every view of one account: its own custom views, plus nothing else. */
+  def findAllByBankAccount(bankId: String, accountId: String): List[ViewDefinition] =
+    query(fr"WHERE " ++ isNullOr(fr"bank_id", bankId) ++ fr"AND" ++
+      isNullOr(fr"account_id", accountId))
+
+  /** System views scoped to one bank (bank set, account null). */
+  def findAllBankSystemViews(bankId: String): List[ViewDefinition] =
+    query(fr"WHERE " ++ isNullOr(fr"bank_id", bankId) ++
+      fr"AND account_id IS NULL AND issystem_ = true")
+
+  /** System views scoped to no bank at all. */
+  def findAllSandboxSystemViews(): List[ViewDefinition] =
+    query(fr"WHERE bank_id IS NULL AND account_id IS NULL AND issystem_ = true")
+
+  /** Views that name a bank, an account AND a view id - what the system-to-custom migration walks. */
+  def findAllFullyScoped(): List[ViewDefinition] =
+    query(fr"""WHERE bank_id IS NOT NULL AND account_id IS NOT NULL AND view_id IS NOT NULL""")
+
+  /** System views scoped to a bank but no account. */
+  def findAllBankScopedSystemViews(): List[ViewDefinition] =
+    query(fr"WHERE bank_id IS NOT NULL AND account_id IS NULL AND issystem_ = true")
+
+  def setIsSystem(viewPrimaryKey: Long, isSystem: Boolean): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE viewdefinition SET issystem_ = $isSystem,
+              updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())}
+            WHERE id_ = $viewPrimaryKey"""
+        .update.run) > 0
+
+  def findAll(): List[ViewDefinition] = query(Fragment.empty)
+
+  def findAllPublic(): List[ViewDefinition] = query(fr"WHERE ispublic_ = true")
+
+  def findAllPublicByBankAndSystem(bankId: String, isSystem: Boolean): List[ViewDefinition] =
+    query(fr"WHERE ispublic_ = true AND " ++ isNullOr(fr"bank_id", bankId) ++
+      fr"AND issystem_ = $isSystem")
+
+  def findAllPublicBySystem(isSystem: Boolean): List[ViewDefinition] =
+    query(fr"WHERE ispublic_ = true AND issystem_ = $isSystem")
+
+  def countSystemView(viewId: String): Long =
+    count(fr"""WHERE view_id = ${opt(viewId)} AND bank_id IS NULL AND account_id IS NULL""")
+
+  /** Rows matching one exact (bank, account, view) triple, whatever their isSystem flag. */
+  def countByBankAccountView(bankId: String, accountId: String, viewId: String): Long =
+    count(fr"WHERE " ++ isNullOr(fr"bank_id", bankId) ++ fr"AND" ++
+      isNullOr(fr"account_id", accountId) ++ fr"AND view_id = ${opt(viewId)}")
+
+  def countCustomView(bankId: String, accountId: String, viewId: String): Long =
+    count(fr"WHERE view_id = ${opt(viewId)} AND " ++ isNullOr(fr"bank_id", bankId) ++
+      fr"AND" ++ isNullOr(fr"account_id", accountId))
+
+  /**
+   * Writes a view, computing the composite key and running the same validation Mapper's beforeSave
+   * ran. The unique index on the composite key is what rejects a concurrent duplicate - the write
+   * is deliberately not preceded by a read.
+   */
+  def insert(row: ViewDefinition): ViewDefinition = {
+    validateBeforeSave(row)
+    val compositeUniqueKey = getUniqueKey(row.bank_id, row.account_id, row.view_id)
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO viewdefinition
+            (name_, description_, bank_id, account_id, view_id, composite_unique_key,
+             metadataview_, issystem_, ispublic_, isfirehose_, useprivatealiasifoneexists_,
+             usepublicaliasifoneexists_, hideotheraccountmetadataifalias_, cangrantaccesstoviews_,
+             canrevokeaccesstoviews_, createdat, updatedat)
+            VALUES (${opt(row.name_)}, ${opt(row.description_)}, ${opt(row.bank_id)},
+             ${opt(row.account_id)}, ${opt(row.view_id)}, ${opt(compositeUniqueKey)},
+             ${opt(row.metadataView_)}, ${row.isSystem_}, ${row.isPublic_}, ${row.isFirehose_},
+             ${row.usePrivateAliasIfOneExists_}, ${row.usePublicAliasIfOneExists_},
+             ${row.hideOtherAccountMetadataIfAlias_}, ${opt(row.canGrantAccessToViews_)},
+             ${opt(row.canRevokeAccessToViews_)}, $now, $now)"""
+        .update.withUniqueGeneratedKeys[Long]("id_"))
+    row.copy(viewPrimaryKey = id, composite_unique_key = compositeUniqueKey)
   }
 
-  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewDefinition]] = {
-    By(bank_id, bankId.value) :: By(account_id, accountId.value) :: Nil
+  /** Rewrites an existing view by its primary key, with the same validation as insert. */
+  def update(row: ViewDefinition): ViewDefinition = {
+    validateBeforeSave(row)
+    val compositeUniqueKey = getUniqueKey(row.bank_id, row.account_id, row.view_id)
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE viewdefinition
+            SET name_ = ${opt(row.name_)}, description_ = ${opt(row.description_)},
+                bank_id = ${opt(row.bank_id)}, account_id = ${opt(row.account_id)},
+                view_id = ${opt(row.view_id)}, composite_unique_key = ${opt(compositeUniqueKey)},
+                metadataview_ = ${opt(row.metadataView_)}, issystem_ = ${row.isSystem_},
+                ispublic_ = ${row.isPublic_}, isfirehose_ = ${row.isFirehose_},
+                useprivatealiasifoneexists_ = ${row.usePrivateAliasIfOneExists_},
+                usepublicaliasifoneexists_ = ${row.usePublicAliasIfOneExists_},
+                hideotheraccountmetadataifalias_ = ${row.hideOtherAccountMetadataIfAlias_},
+                cangrantaccesstoviews_ = ${opt(row.canGrantAccessToViews_)},
+                canrevokeaccesstoviews_ = ${opt(row.canRevokeAccessToViews_)}, updatedat = $now
+            WHERE id_ = ${row.viewPrimaryKey}"""
+        .update.run)
+    row.copy(composite_unique_key = compositeUniqueKey)
   }
-  
+
+  /**
+   * Deletes a view and the account access that referenced it, as Mapper's beforeDelete did.
+   *
+   * A system view (or one whose bank/account is null) is scoped by view id alone; a custom view by
+   * all three. Same split as before.
+   */
+  def delete(row: ViewDefinition): Boolean = {
+    if (row.isSystem || row.bank_id == null || row.account_id == null)
+      AccountAccess.deleteByViewId(row.view_id)
+    else
+      AccountAccess.deleteByBankIdAccountIdViewId(
+        BankId(row.bank_id), AccountId(row.account_id), ViewId(row.view_id))
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM viewdefinition WHERE id_ = ${row.viewPrimaryKey}".update.run) > 0
+  }
+
+  /**
+   * Bulk delete by account. Does NOT touch AccountAccess - Mapper's bulkDelete_!! bypassed the
+   * beforeDelete hook too, and the one caller removes the access rows itself.
+   */
+  def deleteByBankAccount(bankId: String, accountId: String): Boolean = {
+    DoobieUtil.runUpdate(
+      (fr"DELETE FROM viewdefinition WHERE " ++ isNullOr(fr"bank_id", bankId) ++ fr"AND" ++
+        isNullOr(fr"account_id", accountId)).update.run)
+    true
+  }
+
+  def deleteAll(): Boolean = {
+    DoobieUtil.runUpdate(sql"DELETE FROM viewdefinition".update.run)
+    true
+  }
+
   @deprecated("This is method only used for migration stuff, do not use api code.","13-12-2019")
   def getUniqueKey(bankId: String, accountId: String, viewId: String) = List(bankId, accountId, viewId).mkString("|","|--|","|")
 }

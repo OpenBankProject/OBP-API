@@ -40,8 +40,8 @@ only for resource-doc aggregation and the Lift dispatch registry.
  */
 object OBPAPI5_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis {
 
-  val version: ApiVersion = ApiVersion.v5_0_0
-  val versionStatus       = ApiVersionStatus.STABLE.toString
+  lazy val version: ApiVersion = ApiVersion.v5_0_0
+  lazy val versionStatus       = ApiVersionStatus.STABLE.toString
 
   // Re-export so tests that import OBPAPI5_0_0.Implementations5_0_0 still compile
   // after APIMethods500 is replaced with an empty stub.

@@ -1,16 +1,25 @@
 package code.loginattempts
 
+import java.util.Date
+
 import code.api.util.APIUtil
+import code.bankconnectors.DoobieBadLoginAttemptQueries
 import code.userlocks.UserLocksProvider
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
+
+trait BadLoginAttempt {
+  def username: String
+  def provider: String
+  def badAttemptsSinceLastSuccessOrReset : Int
+  def lastFailureDate : Date
+}
 
 object LoginAttempt extends MdcLoggable {
 
   def maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "5"
-  
+
   def incrementBadLoginAttempts(provider: String, username: String): Unit = {
     username.isEmpty() match {
       case true => // Not a valid case. GitLab issue 389
@@ -21,15 +30,10 @@ object LoginAttempt extends MdcLoggable {
         // Atomically increment the counter; if no row exists yet, create one.
         // The create path is itself a check-then-insert: two concurrent first-time bad logins both
         // see rowsUpdated==0, so wrap in tryo to absorb the UniqueIndex violation from the loser.
-        val rowsUpdated = code.bankconnectors.DoobieBadLoginAttemptQueries.incrementBadLoginAttempts(provider, username)
+        val rowsUpdated = DoobieBadLoginAttemptQueries.incrementBadLoginAttempts(provider, username)
         if (rowsUpdated == 0) {
           tryo {
-            MappedBadLoginAttempt.create
-              .mUsername(username)
-              .Provider(provider)
-              .mLastFailureDate(now)
-              .mBadAttemptsSinceLastSuccessOrReset(1)
-              .save
+            DoobieBadLoginAttemptQueries.create(provider, username, 1)
           }
           logger.debug(s"incrementBadLoginAttempts created loginAttempt")
         } else {
@@ -37,31 +41,23 @@ object LoginAttempt extends MdcLoggable {
         }
     }
   }
-  
+
   def getOrCreateBadLoginStatus(provider: String, username: String): Box[BadLoginAttempt] = {
-    MappedBadLoginAttempt.find(
-      By(MappedBadLoginAttempt.Provider, provider),
-      By(MappedBadLoginAttempt.mUsername, username)
-    ) match {
-      case full @ Full(_) => full
-      case _ =>
-        // .or(Full(saveMe())) evaluates saveMe eagerly — two concurrent first-time callers
-        // both get Empty and both call saveMe; the loser hits UniqueIndex(Provider, mUsername).
+    DoobieBadLoginAttemptQueries.find(provider, username) match {
+      case Some(row) => Full(row)
+      case None =>
+        // Two concurrent first-time callers can both miss the find above and both try to
+        // create; the loser hits UniqueIndex(Provider, mUsername).
         tryo {
-          MappedBadLoginAttempt.create
-            .mUsername(username)
-            .Provider(provider)
-            .mLastFailureDate(now)
-            .mBadAttemptsSinceLastSuccessOrReset(0)
-            .saveMe()
+          DoobieBadLoginAttemptQueries.create(provider, username, 0)
         } match {
           case full @ Full(_) => full
           case Failure(_, _, _) =>
             // UniqueIndex violation from concurrent insert — re-fetch the committed row
-            MappedBadLoginAttempt.find(
-              By(MappedBadLoginAttempt.Provider, provider),
-              By(MappedBadLoginAttempt.mUsername, username)
-            )
+            DoobieBadLoginAttemptQueries.find(provider, username) match {
+              case Some(row) => Full(row)
+              case None      => Empty
+            }
           case other => other
         }
     }
@@ -72,11 +68,8 @@ object LoginAttempt extends MdcLoggable {
     */
   def userIsLocked(provider: String, username: String): Boolean = {
 
-    val result : Boolean = MappedBadLoginAttempt.find( // Check the table MappedBadLoginAttempt
-      By(MappedBadLoginAttempt.Provider, provider),
-      By(MappedBadLoginAttempt.mUsername, username)
-    ) match {
-      case Full(loginAttempt)  => loginAttempt.badAttemptsSinceLastSuccessOrReset > maxBadLoginAttempts.toInt match {
+    val result: Boolean = DoobieBadLoginAttemptQueries.find(provider, username) match {
+      case Some(loginAttempt) => loginAttempt.badAttemptsSinceLastSuccessOrReset > maxBadLoginAttempts.toInt match {
         case true => true
         case false => UserLocksProvider.isLocked(provider, username) // Check the table UserLocks
       }
@@ -89,17 +82,9 @@ object LoginAttempt extends MdcLoggable {
   }
 
   def resetBadLoginAttempts(provider: String, username: String): Unit = {
-
-    MappedBadLoginAttempt.find(
-      By(MappedBadLoginAttempt.Provider, provider),
-      By(MappedBadLoginAttempt.mUsername, username)
-    ) match {
-      case Full(loginAttempt) =>
-        loginAttempt.mLastFailureDate(now).mBadAttemptsSinceLastSuccessOrReset(0).save
-      case _ =>
-        // don't need to create here
-        Empty // MappedBadLoginAttempt.create.mUsername(username).mBadAttemptsSinceLastSuccessOrReset(0).save()
-    }
+    DoobieBadLoginAttemptQueries.resetBadLoginAttempts(provider, username)
+    // don't need to create here - matches the Mapper version, which only ever updated an
+    // existing row and left a missing one alone.
   }
 
 } // End of Trait

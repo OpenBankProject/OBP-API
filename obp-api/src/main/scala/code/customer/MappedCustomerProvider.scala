@@ -6,15 +6,16 @@ import java.util.Date
 import code.CustomerDependants.CustomerDependants
 import code.api.util._
 import code.api.util.migration.Migration.DbFunction
-import code.usercustomerlinks.{MappedUserCustomerLinkProvider, UserCustomerLink}
+import code.usercustomerlinks.{DoobieUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
 import code.util.Helper.MdcLoggable
-import code.util.{MappedUUID, UUIDString}
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.model.{User, _}
-import net.liftweb.common.{Box, Full}
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.mapper.{By, MappedString,_}
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -24,51 +25,39 @@ import scala.concurrent.Future
 object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
 
   override def getCustomersAtAllBanks(queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
-    val mapperParams = getOptionalParams(queryParams)
-    Full(MappedCustomer.findAll(mapperParams:_*))
+    Full(MappedCustomer.findAll(bankId = None, customerTypes = None, getOptionalParams(queryParams)))
   }
   override def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
-    val mapperParams = Seq(By(MappedCustomer.mBank, bankId.value)) ++ getOptionalParams(queryParams)
-    Full(MappedCustomer.findAll(mapperParams:_*))
+    Full(MappedCustomer.findAll(Some(bankId.value), customerTypes = None, getOptionalParams(queryParams)))
   }
 
-  def getOptionalParams(queryParams: List[OBPQueryParam]) = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedCustomer](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedCustomer](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedCustomer.updatedAt, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedCustomer.updatedAt, date) }.headOption
-    val ordering = queryParams.collect {
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedCustomer.mLastOkDate, Ascending)
-          case OBPDescending => OrderBy(MappedCustomer.mLastOkDate, Descending)
-        }
-    }
-    val optionalParams: Seq[QueryParam[MappedCustomer]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
-    optionalParams
-  }
+  /**
+   * The paging, date range and ordering a customer listing carries.
+   *
+   * The date filters work on updatedAt but the ordering works on mLastOkDate, which is not a typo:
+   * that is what the Mapper translation did, and the two are not the same column.
+   */
+  def getOptionalParams(queryParams: List[OBPQueryParam]): CustomerQuery =
+    CustomerQuery(
+      limit = queryParams.collect { case OBPLimit(value) => value }.headOption,
+      offset = queryParams.collect { case OBPOffset(value) => value }.headOption,
+      fromDate = queryParams.collect { case OBPFromDate(date) => date }.headOption,
+      toDate = queryParams.collect { case OBPToDate(date) => date }.headOption,
+      ascending = queryParams.collect {
+        case OBPOrdering(_, OBPAscending) => true
+        case OBPOrdering(_, OBPDescending) => false
+      }.headOption)
 
   override def getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String): Future[Box[List[Customer]]] = Future {
-    val result = MappedCustomer.findAll(
-      By(MappedCustomer.mBank, bankId.value),
-      Like(MappedCustomer.mMobileNumber, phoneNumber)
-    )
-    Full(result)
+    Full(MappedCustomer.findAllByBankAndMobileNumberLike(bankId.value, phoneNumber))
   }
   override def getCustomersByCustomerLegalName(bankId: BankId, legalName: String): Future[Box[List[Customer]]] = Future {
-    val result = MappedCustomer.findAll(
-      By(MappedCustomer.mBank, bankId.value),
-      Like(MappedCustomer.mLegalName, legalName)
-    )
-    Full(result)
+    Full(MappedCustomer.findAllByBankAndLegalNameLike(bankId.value, legalName))
   }
 
 
   override def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean = {
-    val customers  = MappedCustomer.findAll(
-      By(MappedCustomer.mBank, bankId.value),
-      By(MappedCustomer.mNumber, customerNumber)
-    )
+    val customers  = MappedCustomer.findAllByBankAndNumber(bankId.value, customerNumber)
 
     val available: Boolean = customers.size match {
       case 0 => true
@@ -94,15 +83,12 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
     }
   }
 
-  override def getCustomerByCustomerId(customerId: String): Box[Customer] = {
-    MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, customerId)
-    )
-  }
+  override def getCustomerByCustomerId(customerId: String): Box[Customer] =
+    MappedCustomer.findByCustomerId(customerId)
 
   override def getCustomersByUserId(userId: String): List[Customer] = {
-    val customerIds = MappedUserCustomerLinkProvider.getUserCustomerLinksByUserId(userId).map(_.customerId)
-    MappedCustomer.findAll(ByList(MappedCustomer.mCustomerId, customerIds))
+    val customerIds = DoobieUserCustomerLinkProvider.getUserCustomerLinksByUserId(userId).map(_.customerId)
+    MappedCustomer.findAllByCustomerIds(customerIds)
   }
 
   def getCustomersByUserIdBoxed(userId: String): Box[List[Customer]] = {
@@ -115,19 +101,12 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
     }
   }
 
-  override def getBankIdByCustomerId(customerId: String): Box[String] = {
-    val customer: Box[MappedCustomer] = MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, customerId)
-    )
-    for (c <- customer) yield {c.mBank.get}
-  }
+  override def getBankIdByCustomerId(customerId: String): Box[String] =
+    for (c <- MappedCustomer.findByCustomerId(customerId)) yield {c.bankId}
 
-  override def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId): Box[Customer] = {
-    MappedCustomer.find(
-      By(MappedCustomer.mNumber, customerNumber),
-      By(MappedCustomer.mBank, bankId.value)
-    )
-  }
+  override def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId): Box[Customer] =
+    MappedCustomer.findByBankAndNumber(bankId.value, customerNumber)
+
   override def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId): Future[Box[Customer]] = {
     Future(getCustomerByCustomerNumber(customerNumber, bankId))
   }
@@ -172,91 +151,67 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
       case Some(c) => CreditLimit(currency = c.currency, amount = c.amount)
       case _       => CreditLimit(currency = "", amount = "")
     }
-       
-    tryo { 
-      val mappedCustomer = MappedCustomer
-        .create
-        .mBank(bankId.value)
-        .mEmail(email)
-        .mFaceImageTime(faceImage.date)
-        .mFaceImageUrl(faceImage.url)
-        .mLegalName(legalName)
-        .mMobileNumber(mobileNumber)
-        .mNumber(number)
-        //.mUser(user.resourceUserId.value)
-        .mDateOfBirth(dateOfBirth)
-        .mRelationshipStatus(relationshipStatus)
-        .mDependents(dependents)
-        .mHighestEducationAttained(highestEducationAttained)
-        .mEmploymentStatus(employmentStatus)
-        .mKycStatus(kycStatus)
-        .mLastOkDate(lastOkDate)
-        .mCreditRating(cr.rating)
-        .mCreditSource(cr.source)
-        .mCreditLimitCurrency(cl.currency)
-        .mCreditLimitAmount(cl.amount)
-        .mTitle(title)
-        .mBranchId(branchId)
-        .mNameSuffix(nameSuffix)
-        .mCustomerType(customerType)
-        .mParentCustomerId(parentCustomerId)
-        .mIsPendingAgent(true)
-        .mIsConfirmedAgent(false)
-        .saveMe()
-      
+
+    tryo {
+      val mappedCustomer = MappedCustomer.insert(
+        bankIdValue = bankId.value,
+        email = email,
+        faceImageTime = faceImage.date,
+        faceImageUrl = faceImage.url,
+        legalName = legalName,
+        mobileNumber = mobileNumber,
+        number = number,
+        dateOfBirth = dateOfBirth,
+        relationshipStatus = relationshipStatus,
+        dependents = dependents,
+        highestEducationAttained = highestEducationAttained,
+        employmentStatus = employmentStatus,
+        kycStatus = kycStatus,
+        lastOkDate = lastOkDate,
+        creditRating = cr.rating,
+        creditSource = cr.source,
+        creditLimitCurrency = cl.currency,
+        creditLimitAmount = cl.amount,
+        title = title,
+        branchId = branchId,
+        nameSuffix = nameSuffix,
+        customerType = customerType,
+        parentCustomerId = parentCustomerId,
+        isPendingAgent = true,
+        isConfirmedAgent = false)
+
         // This is especially for OneToMany table, to save a List to database.
         CustomerDependants.CustomerDependants.vend
-          .createCustomerDependants(mappedCustomer.id.get, dobOfDependents.map(CustomerDependant(_)))
-    
+          .createCustomerDependants(mappedCustomer.customerPrimaryKey, dobOfDependents.map(CustomerDependant(_)))
+
         mappedCustomer
     }
 
   }
-  
+
   override def updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String], customerNumber: Option[String]): Future[Box[Customer]] = Future {
-    MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, customerId)
-    ) map {
-      c =>
-        mobileNumber match {
-          case Some(number) => c.mMobileNumber(number)
-          case _            => // There is no update
-        }
-        email match {
-          case Some(mail) => c.mEmail(mail)
-          case _          => // There is no update
-        }
-        customerNumber match {
-          case Some(customerNumber) => c.mNumber(customerNumber)
-          case _          => // There is no update
-        }
-        c.saveMe()
+    MappedCustomer.findByCustomerId(customerId) map { c =>
+      MappedCustomer.update(c.customerId, List(
+        mobileNumber.map(value => fr"mmobilenumber = ${Option(value)}"),
+        email.map(value => fr"memail = ${Option(value)}"),
+        customerNumber.map(value => fr"mnumber = ${Option(value)}")
+      ).flatten)
     }
-  }  
+  }
   override def updateCustomerCreditData(customerId: String,
                                         creditRating: Option[String],
                                         creditSource: Option[String],
                                         creditLimit: Option[AmountOfMoney]): Future[Box[Customer]] = Future {
-    MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, customerId)
-    ) map {
-      c =>
-        creditRating match {
-          case Some(rating) => c.mCreditRating(rating)
-          case _            => // There is no update
-        }
-        creditSource match {
-          case Some(source) => c.mCreditSource(source)
-          case _          => // There is no update
-        }
-        creditLimit match {
-          case Some(limit) => c.mCreditLimitAmount(limit.amount).mCreditLimitCurrency(limit.currency)
-          case _          => // There is no update
-        }
-        c.saveMe()
+    MappedCustomer.findByCustomerId(customerId) map { c =>
+      MappedCustomer.update(c.customerId, List(
+        creditRating.map(value => fr"mcreditrating = ${Option(value)}"),
+        creditSource.map(value => fr"mcreditsource = ${Option(value)}"),
+        creditLimit.map(limit => fr"mcreditlimitamount = ${Option(limit.amount)}"),
+        creditLimit.map(limit => fr"mcreditlimitcurrency = ${Option(limit.currency)}")
+      ).flatten)
     }
   }
-  
+
   override def updateCustomerGeneralData(customerId: String,
                                          legalName: Option[String],
                                          faceImage: Option[CustomerFaceImageTrait],
@@ -271,181 +226,312 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
                                          customerType: Option[String] = None,
                                          parentCustomerId: Option[String] = None,
                                         ): Future[Box[Customer]] = Future {
-    MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, customerId)
-    ) map {
-      c =>
-        legalName match {
-          case Some(legalName) => c.mLegalName(legalName)
-          case _            => // There is no update
-        }
-        faceImage match {
-          case Some(faceImage) => 
-            c.mFaceImageUrl(faceImage.url)
-            c.mFaceImageTime(faceImage.date)
-          case _ => // There is no update
-        }
-        dateOfBirth match {
-          case Some(dateOfBirth) => c.mDateOfBirth(dateOfBirth)
-          case _ => // There is no update
-        }
-        relationshipStatus match {
-          case Some(relationshipStatus) => c.mRelationshipStatus(relationshipStatus)
-          case _ => // There is no update
-        }
-        dependents match {
-          case Some(dependents) => c.mDependents(dependents)
-          case _ => // There is no update
-        }
-        highestEducationAttained match {
-          case Some(highestEducationAttained) => c.mHighestEducationAttained(highestEducationAttained)
-          case _ => // There is no update
-        }
-        employmentStatus match {
-          case Some(employmentStatus) => c.mEmploymentStatus(employmentStatus)
-          case _ => // There is no update
-        }
-        title match {
-          case Some(title) => c.mTitle(title)
-          case _ => // There is no update
-        }
-        branchId match {
-          case Some(branchId) => c.mBranchId(branchId)
-          case _ => // There is no update
-        }
-        nameSuffix match {
-          case Some(nameSuffix) => c.mNameSuffix(nameSuffix)
-          case _ => // There is no update
-        }
-        customerType match {
-          case Some(customerType) => c.mCustomerType(customerType)
-          case _ => // There is no update
-        }
-        parentCustomerId match {
-          case Some(parentCustomerId) => c.mParentCustomerId(parentCustomerId)
-          case _ => // There is no update
-        }
-        c.saveMe()
+    MappedCustomer.findByCustomerId(customerId) map { c =>
+      MappedCustomer.update(c.customerId, List(
+        legalName.map(value => fr"mlegalname = ${Option(value)}"),
+        faceImage.map(value => fr"mfaceimageurl = ${Option(value.url)}"),
+        faceImage.map(value => fr"mfaceimagetime = ${MappedCustomer.timestamp(value.date)}"),
+        dateOfBirth.map(value => fr"mdateofbirth = ${MappedCustomer.timestamp(value)}"),
+        relationshipStatus.map(value => fr"mrelationshipstatus = ${Option(value)}"),
+        dependents.map(value => fr"mdependents = $value"),
+        highestEducationAttained.map(value => fr"mhighesteducationattained = ${Option(value)}"),
+        employmentStatus.map(value => fr"memploymentstatus = ${Option(value)}"),
+        title.map(value => fr"mtitle = ${Option(value)}"),
+        branchId.map(value => fr"mbranchid = ${Option(value)}"),
+        nameSuffix.map(value => fr"mnamesuffix = ${Option(value)}"),
+        customerType.map(value => fr"mcustomertype = ${Option(value)}"),
+        parentCustomerId.map(value => fr"mparentcustomerid = ${Option(value)}")
+      ).flatten)
     }
   }
 
   override def getCustomersByParentCustomerId(bankId: BankId, parentCustomerId: String): Future[Box[List[Customer]]] = Future {
-    Full(MappedCustomer.findAll(
-      By(MappedCustomer.mBank, bankId.value),
-      By(MappedCustomer.mParentCustomerId, parentCustomerId)
-    ))
+    Full(MappedCustomer.findAllByBankAndParentCustomerId(bankId.value, parentCustomerId))
   }
 
   override def getCustomersByCustomerTypes(bankId: BankId, customerTypes: List[String], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
-    val mapperParams = Seq(By(MappedCustomer.mBank, bankId.value), ByList(MappedCustomer.mCustomerType, customerTypes)) ++ getOptionalParams(queryParams)
-    Full(MappedCustomer.findAll(mapperParams: _*))
+    Full(MappedCustomer.findAll(Some(bankId.value), Some(customerTypes), getOptionalParams(queryParams)))
   }
 
   override def bulkDeleteCustomers(): Boolean = {
-    MappedCustomer.bulkDelete_!!()
+    MappedCustomer.deleteAll()
+    true
   }
 
   override def populateMissingUUIDs(): Boolean = {
-    logger.warn("Executed script: " + NameOf.nameOf(populateMissingUUIDs))
+    logger.warn("Executed script: " + NameOf.nameOf(populateMissingUUIDs()))
     //Back up MappedCustomer table.
-    DbFunction.makeBackUpOfTable(MappedCustomer)
-    
+    DbFunction.makeBackUpOfTableByName("mappedcustomer")
+
     for {
-      customer <- MappedCustomer.findAll(NullRef(MappedCustomer.mCustomerId))++ MappedCustomer.findAll(By(MappedCustomer.mCustomerId, ""))
+      customer <- MappedCustomer.findAllWithoutCustomerId()
     } yield {
-      customer.mCustomerId(APIUtil.generateUUID()).save
+      MappedCustomer.setCustomerId(customer.customerPrimaryKey, APIUtil.generateUUID())
     }
   }.forall(_ == true)
 
 }
 
+/** The paging, date range and ordering a customer listing carries. */
+case class CustomerQuery(
+  limit: Option[Int],
+  offset: Option[Int],
+  fromDate: Option[Date],
+  toDate: Option[Date],
+  ascending: Option[Boolean]
+)
+
 //in OBP, customer and agent share the same customer model. the CustomerAccountLink and AgentAccountLink also share the same model
-class MappedCustomer extends Customer with Agent with LongKeyedMapper[MappedCustomer] with IdPK with CreatedUpdated {
+/**
+ * A customer, which is also an agent: the same row backs both, told apart by isPendingAgent and
+ * isConfirmedAgent.
+ *
+ * `customerPrimaryKey` is the surrogate key and would normally stay inside the store, but the tax
+ * residence, address and dependant rows are keyed by it rather than by the customer id, so it has
+ * to be carried on the row for those to resolve.
+ */
+case class MappedCustomer(
+  customerPrimaryKey: Long,
+  customerId: String,
+  bankId: String,
+  number: String,
+  mobileNumber: String,
+  legalName: String,
+  email: String,
+  faceImageUrl: String,
+  faceImageTime: Date,
+  dateOfBirthValue: Date,
+  relationshipStatus: String,
+  dependentsValue: Int,
+  highestEducationAttained: String,
+  employmentStatus: String,
+  creditRatingValue: String,
+  creditSource: String,
+  creditLimitCurrency: String,
+  creditLimitAmount: String,
+  kycStatusValue: Boolean,
+  lastOkDate: Date,
+  title: String,
+  branchId: String,
+  nameSuffix: String,
+  customerTypeValue: String,
+  parentCustomerIdValue: String,
+  isPendingAgent: Boolean,
+  isConfirmedAgent: Boolean
+) extends Customer with Agent {
 
-  def getSingleton = MappedCustomer
-
-  // Unique
-  object mCustomerId extends MappedUUID(this)
-
-  // Combination of bank id and customer number is unique
-  object mBank extends UUIDString(this)
-  object mNumber extends MappedString(this, 50)
-
-  object mMobileNumber extends MappedString(this, 50)
-  object mLegalName extends MappedString(this, 255)
-  object mEmail extends MappedEmail(this, 200)
-  object mFaceImageUrl extends MappedString(this, 2000)
-  object mFaceImageTime extends MappedDateTime(this)
-  object mDateOfBirth extends MappedDateTime(this)
-  object mRelationshipStatus extends MappedString(this, 16)
-  object mDependents extends MappedInt(this)
-  object mHighestEducationAttained  extends MappedString(this, 32)
-  object mEmploymentStatus extends MappedString(this, 32)
-  object mCreditRating extends MappedString(this, 100)
-  object mCreditSource extends MappedString(this, 100)
-  object mCreditLimitCurrency extends MappedString(this, 100)
-  object mCreditLimitAmount extends MappedString(this, 100)
-  object mKycStatus extends MappedBoolean(this)
-  object mLastOkDate extends MappedDateTime(this)
-  object mTitle extends MappedString(this, 255)
-  object mBranchId extends MappedString(this, 255)
-  object mNameSuffix extends MappedString(this, 255)
-  object mCustomerType extends MappedString(this, 50) {
-    override def defaultValue = "INDIVIDUAL"
-  }
-  object mParentCustomerId extends MappedString(this, 255) {
-    override def defaultValue = ""
-  }
-  object mIsPendingAgent extends MappedBoolean(this){
-    override def defaultValue = true
-  }
-  object mIsConfirmedAgent extends MappedBoolean(this){
-    override def defaultValue = false
-  }
-  override def customerId: String = mCustomerId.get // id.toString
-  override def bankId: String = mBank.get
-  override def number: String = mNumber.get
-  override def mobileNumber: String = mMobileNumber.get
-  override def legalName: String = mLegalName.get
-  override def email: String = mEmail.get
   override def faceImage: CustomerFaceImageTrait = new CustomerFaceImageTrait {
-    override def date: Date = mFaceImageTime.get
-    override def url: String = mFaceImageUrl.get
+    override def date: Date = faceImageTime
+    override def url: String = faceImageUrl
   }
-  override def dateOfBirth: Date = mDateOfBirth.get
-  override def relationshipStatus: String = mRelationshipStatus.get
-  override def dependents: Integer = mDependents.get
-  override def dobOfDependents: List[Date] = 
+  override def dateOfBirth: Date = dateOfBirthValue
+  override def dependents: Integer = dependentsValue
+  override def dobOfDependents: List[Date] =
     CustomerDependants.CustomerDependants.vend
-    .getCustomerDependantsByCustomerPrimaryKey(this.id.get)
-    .map(_.mDateOfBirth.get)
-  override def highestEducationAttained: String = mHighestEducationAttained.get
-  override def employmentStatus: String = mEmploymentStatus.get
+    .getCustomerDependantsByCustomerPrimaryKey(customerPrimaryKey)
+    .map(_.dateOfBirth)
   override def creditRating: CreditRatingTrait = new CreditRatingTrait {
-    override def rating: String = mCreditRating.get
-    override def source: String = mCreditSource.get
+    override def rating: String = creditRatingValue
+    override def source: String = creditSource
   }
   override def creditLimit: AmountOfMoneyTrait = new AmountOfMoneyTrait {
-    override def currency: String = mCreditLimitCurrency.get
-    override def amount: String = mCreditLimitAmount.get
+    override def currency: String = creditLimitCurrency
+    override def amount: String = creditLimitAmount
   }
-  override def kycStatus: lang.Boolean = mKycStatus.get
-  override def lastOkDate: Date = mLastOkDate.get
-  
-  override def title: String = mTitle.get
-  override def branchId: String = mBranchId.get
-  override def nameSuffix: String = mNameSuffix.get
-  override def customerType: Option[String] = Option(mCustomerType.get)
-  override def parentCustomerId: Option[String] = Option(mParentCustomerId.get)
+  override def kycStatus: lang.Boolean = kycStatusValue
+  override def customerType: Option[String] = Option(customerTypeValue)
+  override def parentCustomerId: Option[String] = Option(parentCustomerIdValue)
 
-  override def isConfirmedAgent: Boolean = mIsConfirmedAgent.get //This is for Agent
-
-  override def isPendingAgent: Boolean = mIsPendingAgent.get //This is for Agent
-
-  override def agentId: String = mCustomerId.get //this is for Agent
+  override def agentId: String = customerId //this is for Agent
 }
 
-object MappedCustomer extends MappedCustomer with LongKeyedMetaMapper[MappedCustomer] {
-  //one customer info per bank for each api user
-  override def dbIndexes = UniqueIndex(mCustomerId) :: UniqueIndex(mBank, mNumber) :: super.dbIndexes
+object MappedCustomer {
+
+  private val selectColumns =
+    fr"""SELECT id, mcustomerid, mbank, mnumber, mmobilenumber, mlegalname, memail, mfaceimageurl,
+                mfaceimagetime, mdateofbirth, mrelationshipstatus, mdependents,
+                mhighesteducationattained, memploymentstatus, mcreditrating, mcreditsource,
+                mcreditlimitcurrency, mcreditlimitamount, mkycstatus, mlastokdate, mtitle,
+                mbranchid, mnamesuffix, mcustomertype, mparentcustomerid, mispendingagent,
+                misconfirmedagent
+         FROM mappedcustomer"""
+
+  // 27 columns, past the 22-element tuple limit, so the row is read as three nested tuples.
+  private type RowA = (Long, Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[java.sql.Timestamp])
+  private type RowB = (Option[java.sql.Timestamp], Option[String], Option[Int], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String])
+  private type RowC = (Option[Boolean], Option[java.sql.Timestamp], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Boolean], Option[Boolean])
+  private type Row = (RowA, RowB, RowC)
+
+  /** A date read back as a plain java.util.Date, which is what MappedDateTime handed out. */
+  private def readDate(value: Option[java.sql.Timestamp]): Date =
+    value.map(t => new Date(t.getTime)).orNull
+
+  private def fromRow(row: Row): MappedCustomer = row match {
+    case ((id, customerId, bankId, number, mobileNumber, legalName, email, faceImageUrl,
+           faceImageTime),
+          (dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus,
+           creditRating, creditSource, creditLimitCurrency, creditLimitAmount),
+          (kycStatus, lastOkDate, title, branchId, nameSuffix, customerType, parentCustomerId,
+           isPendingAgent, isConfirmedAgent)) =>
+      MappedCustomer(id, customerId.orNull, bankId.orNull, number.orNull, mobileNumber.orNull,
+        legalName.orNull, email.orNull, faceImageUrl.orNull, readDate(faceImageTime),
+        readDate(dateOfBirth), relationshipStatus.orNull,
+        // A NULL count, flag or date reads back as the field default, which is what Mapper did.
+        dependents.getOrElse(0), highestEducationAttained.orNull, employmentStatus.orNull,
+        creditRating.orNull, creditSource.orNull, creditLimitCurrency.orNull,
+        creditLimitAmount.orNull, kycStatus.getOrElse(false), readDate(lastOkDate), title.orNull,
+        branchId.orNull, nameSuffix.orNull, customerType.orNull, parentCustomerId.orNull,
+        // MappedBoolean read a NULL as false for both, `defaultValue = true` on mIsPendingAgent
+        // notwithstanding: that default only seeds a new instance.
+        isPendingAgent.getOrElse(false), isConfirmedAgent.getOrElse(false))
+  }
+
+  private def query(condition: Fragment): List[MappedCustomer] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def opt(value: String): Option[String] = Option(value)
+
+  private[customer] def timestamp(value: Date): Option[java.sql.Timestamp] =
+    Option(value).map(d => new java.sql.Timestamp(d.getTime))
+
+  private def one(condition: Fragment): Box[MappedCustomer] =
+    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def findByCustomerId(customerId: String): Box[MappedCustomer] =
+    one(fr"WHERE mcustomerid = ${opt(customerId)}")
+
+  /** By surrogate key, for the child tables that reference a customer that way. */
+  def findByPrimaryKey(customerPrimaryKey: Long): Box[MappedCustomer] =
+    one(fr"WHERE id = $customerPrimaryKey")
+
+  def findByBankAndNumber(bankId: String, number: String): Box[MappedCustomer] =
+    one(fr"WHERE mnumber = ${opt(number)} AND mbank = ${opt(bankId)}")
+
+  def findAllByBankAndNumber(bankId: String, number: String): List[MappedCustomer] =
+    query(fr"WHERE mbank = ${opt(bankId)} AND mnumber = ${opt(number)}")
+
+  def findAllByBankAndMobileNumberLike(bankId: String, phoneNumber: String): List[MappedCustomer] =
+    query(fr"WHERE mbank = ${opt(bankId)} AND mmobilenumber LIKE ${opt(phoneNumber)}")
+
+  def findAllByBankAndLegalNameLike(bankId: String, legalName: String): List[MappedCustomer] =
+    query(fr"WHERE mbank = ${opt(bankId)} AND mlegalname LIKE ${opt(legalName)}")
+
+  def findAllByBankAndParentCustomerId(bankId: String, parentCustomerId: String): List[MappedCustomer] =
+    query(fr"WHERE mbank = ${opt(bankId)} AND mparentcustomerid = ${opt(parentCustomerId)}")
+
+  def findAllByCustomerIds(customerIds: List[String]): List[MappedCustomer] =
+    // Mapper's ByList with an empty list rendered "0 = 1", i.e. no rows - not "no filter".
+    if (customerIds.isEmpty) Nil
+    else {
+      val in = Fragments.in(fr"mcustomerid",
+        cats.data.NonEmptyList.fromListUnsafe(customerIds.distinct))
+      query(fr"WHERE " ++ in)
+    }
+
+  /** Rows whose customer id was never filled in - the ones populateMissingUUIDs exists to repair. */
+  def findAllWithoutCustomerId(): List[MappedCustomer] =
+    query(fr"WHERE mcustomerid IS NULL OR mcustomerid = ''")
+
+  def findAll(bankId: Option[String], customerTypes: Option[List[String]],
+              params: CustomerQuery): List[MappedCustomer] = {
+    val filters = List(
+      bankId.map(value => fr"mbank = ${opt(value)}"),
+      customerTypes.map(types =>
+        if (types.isEmpty) fr"0 = 1" // an empty ByList matched nothing rather than everything
+        else Fragments.in(fr"mcustomertype", cats.data.NonEmptyList.fromListUnsafe(types.distinct))),
+      params.fromDate.map(d => fr"updatedat >= ${new java.sql.Timestamp(d.getTime)}"),
+      params.toDate.map(d => fr"updatedat <= ${new java.sql.Timestamp(d.getTime)}")
+    ).flatten
+    val where =
+      if (filters.isEmpty) Fragment.empty
+      else fr"WHERE " ++ filters.reduce((a, b) => a ++ fr"AND" ++ b)
+    // The date filters work on updatedAt but the ordering works on mLastOkDate. Not a typo: that
+    // is the translation Mapper did, and the two are different columns.
+    val ordering = params.ascending match {
+      case Some(true) => fr"ORDER BY mlastokdate ASC"
+      case Some(false) => fr"ORDER BY mlastokdate DESC"
+      case None => Fragment.empty
+    }
+    val paging =
+      params.limit.map(value => fr"LIMIT $value").getOrElse(Fragment.empty) ++
+        params.offset.map(value => fr"OFFSET $value").getOrElse(Fragment.empty)
+    query(where ++ ordering ++ paging)
+  }
+
+  def insert(bankIdValue: String, email: String, faceImageTime: Date, faceImageUrl: String,
+             legalName: String, mobileNumber: String, number: String, dateOfBirth: Date,
+             relationshipStatus: String, dependents: Int, highestEducationAttained: String,
+             employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: String,
+             creditSource: String, creditLimitCurrency: String, creditLimitAmount: String,
+             title: String, branchId: String, nameSuffix: String, customerType: String,
+             parentCustomerId: String, isPendingAgent: Boolean,
+             isConfirmedAgent: Boolean): MappedCustomer = {
+    val customerId = APIUtil.generateUUID()
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO mappedcustomer
+            (mcustomerid, mbank, mnumber, mmobilenumber, mlegalname, memail, mfaceimageurl,
+             mfaceimagetime, mdateofbirth, mrelationshipstatus, mdependents,
+             mhighesteducationattained, memploymentstatus, mcreditrating, mcreditsource,
+             mcreditlimitcurrency, mcreditlimitamount, mkycstatus, mlastokdate, mtitle, mbranchid,
+             mnamesuffix, mcustomertype, mparentcustomerid, mispendingagent, misconfirmedagent,
+             createdat, updatedat)
+            VALUES ($customerId, ${opt(bankIdValue)}, ${opt(number)}, ${opt(mobileNumber)},
+             ${opt(legalName)}, ${opt(email)}, ${opt(faceImageUrl)}, ${timestamp(faceImageTime)},
+             ${timestamp(dateOfBirth)}, ${opt(relationshipStatus)}, $dependents,
+             ${opt(highestEducationAttained)}, ${opt(employmentStatus)}, ${opt(creditRating)},
+             ${opt(creditSource)}, ${opt(creditLimitCurrency)}, ${opt(creditLimitAmount)},
+             $kycStatus, ${timestamp(lastOkDate)}, ${opt(title)}, ${opt(branchId)},
+             ${opt(nameSuffix)}, ${opt(customerType)}, ${opt(parentCustomerId)}, $isPendingAgent,
+             $isConfirmedAgent, $now, $now)"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    MappedCustomer(id, customerId, bankIdValue, number, mobileNumber, legalName, email,
+      faceImageUrl, faceImageTime, dateOfBirth, relationshipStatus, dependents,
+      highestEducationAttained, employmentStatus, creditRating, creditSource, creditLimitCurrency,
+      creditLimitAmount, kycStatus, lastOkDate, title, branchId, nameSuffix, customerType,
+      parentCustomerId, isPendingAgent, isConfirmedAgent)
+  }
+
+  /**
+   * Applies the supplied column assignments and returns the row as it now stands.
+   *
+   * An empty list means the caller asked for no change: Mapper still called saveMe in that case,
+   * which restamped updatedAt, so the row is re-read rather than skipped.
+   */
+  def update(customerId: String, sets: List[Fragment]): MappedCustomer = {
+    val stamp = fr"updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())}"
+    val assignments = (sets :+ stamp).reduce((a, b) => a ++ fr"," ++ b)
+    DoobieUtil.runUpdate(
+      (fr"UPDATE mappedcustomer SET" ++ assignments ++
+        fr"WHERE mcustomerid = ${opt(customerId)}").update.run)
+    findByCustomerId(customerId)
+      .openOrThrowException("the customer just updated must be readable")
+  }
+
+  def setCustomerId(customerPrimaryKey: Long, customerId: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE mappedcustomer SET mcustomerid = ${opt(customerId)},
+              updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())}
+            WHERE id = $customerPrimaryKey"""
+        .update.run) > 0
+
+  def setAgentStatus(customerId: String, isPendingAgent: Boolean,
+                     isConfirmedAgent: Boolean): MappedCustomer =
+    update(customerId, List(fr"mispendingagent = $isPendingAgent",
+      fr"misconfirmedagent = $isConfirmedAgent"))
+
+  def deleteByCustomerId(customerId: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedcustomer WHERE mcustomerid = ${opt(customerId)}".update.run) > 0
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomer".update.run)
+    ()
+  }
 }

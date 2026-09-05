@@ -6,7 +6,6 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future
@@ -15,38 +14,27 @@ import scala.concurrent.Future
 object MappedAgentProvider extends AgentProvider with MdcLoggable {
 
   override def getAgentsAtAllBanks(queryParams: List[OBPQueryParam]): Future[Box[List[Agent]]] = Future {
-    val mapperParams = MappedCustomerProvider.getOptionalParams(queryParams)
-    Full(MappedCustomer.findAll(mapperParams: _*))
+    Full(MappedCustomer.findAll(bankId = None, customerTypes = None,
+      MappedCustomerProvider.getOptionalParams(queryParams)))
   }
 
   override def getAgentsFuture(bankId: BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Agent]]] = Future {
-    val mapperParams = Seq(By(MappedCustomer.mBank, bankId.value)) ++ MappedCustomerProvider.getOptionalParams(queryParams)
-    Full(MappedCustomer.findAll(mapperParams: _*))
+    Full(MappedCustomer.findAll(Some(bankId.value), customerTypes = None,
+      MappedCustomerProvider.getOptionalParams(queryParams)))
   }
   
 
   override def getAgentsByAgentPhoneNumber(bankId: BankId, phoneNumber: String): Future[Box[List[Agent]]] = Future {
-    val result = MappedCustomer.findAll(
-      By(MappedCustomer.mBank, bankId.value),
-      Like(MappedCustomer.mMobileNumber, phoneNumber)
-    )
-    Full(result)
+    Full(MappedCustomer.findAllByBankAndMobileNumberLike(bankId.value, phoneNumber))
   }
 
   override def getAgentsByAgentLegalName(bankId: BankId, legalName: String): Future[Box[List[Agent]]] = Future {
-    val result = MappedCustomer.findAll(
-      By(MappedCustomer.mBank, bankId.value),
-      Like(MappedCustomer.mLegalName, legalName)
-    )
-    Full(result)
+    Full(MappedCustomer.findAllByBankAndLegalNameLike(bankId.value, legalName))
   }
 
 
   override def checkAgentNumberAvailable(bankId: BankId, agentNumber: String): Boolean = {
-    val customers = MappedCustomer.findAll(
-      By(MappedCustomer.mBank, bankId.value),
-      By(MappedCustomer.mNumber, agentNumber)
-    )
+    val customers = MappedCustomer.findAllByBankAndNumber(bankId.value, agentNumber)
 
     val available: Boolean = customers.size match {
       case 0 => true
@@ -56,27 +44,17 @@ object MappedAgentProvider extends AgentProvider with MdcLoggable {
     available
   }
 
-  override def getAgentByAgentId(agentId: String): Box[Agent] = {
-    MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, agentId)
-    )
-  }
+  override def getAgentByAgentId(agentId: String): Box[Agent] =
+    MappedCustomer.findByCustomerId(agentId)
 
   override def getBankIdByAgentId(agentId: String): Box[String] = {
-    val customer: Box[MappedCustomer] = MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, agentId)
-    )
-    for (c <- customer) yield {
-      c.mBank.get
+    for (c <- MappedCustomer.findByCustomerId(agentId)) yield {
+      c.bankId
     }
   }
 
-  override def getAgentByAgentNumber(bankId: BankId, agentNumber: String): Box[Agent] = {
-    MappedCustomer.find(
-      By(MappedCustomer.mNumber, agentNumber),
-      By(MappedCustomer.mBank, bankId.value)
-    )
-  }
+  override def getAgentByAgentNumber(bankId: BankId, agentNumber: String): Box[Agent] =
+    MappedCustomer.findByBankAndNumber(bankId.value, agentNumber)
 
   override def getAgentByAgentNumberFuture(bankId: BankId, agentNumber: String): Future[Box[Agent]] = {
     Future(getAgentByAgentNumber(bankId: BankId, agentNumber: String))
@@ -91,15 +69,21 @@ object MappedAgentProvider extends AgentProvider with MdcLoggable {
     callContext: Option[CallContext]
   ): Future[Box[Agent]] = Future {
     tryo {
-      MappedCustomer
-        .create
-        .mBank(bankId)
-        .mLegalName(legalName)
-        .mMobileNumber(mobileNumber)
-        .mNumber(agentNumber)
-        .mIsPendingAgent(true) //default value
-        .mIsConfirmedAgent(false) // default value
-        .saveMe()
+      // The fields an agent does not carry keep the same defaults Mapper's untouched fields had:
+      // empty strings, no dates, zero dependants, INDIVIDUAL as the customer type.
+      MappedCustomer.insert(
+        bankIdValue = bankId,
+        email = "", faceImageTime = null, faceImageUrl = "",
+        legalName = legalName,
+        mobileNumber = mobileNumber,
+        number = agentNumber,
+        dateOfBirth = null, relationshipStatus = "", dependents = 0,
+        highestEducationAttained = "", employmentStatus = "", kycStatus = false,
+        lastOkDate = null, creditRating = "", creditSource = "", creditLimitCurrency = "",
+        creditLimitAmount = "", title = "", branchId = "", nameSuffix = "",
+        customerType = "INDIVIDUAL", parentCustomerId = "",
+        isPendingAgent = true, //default value
+        isConfirmedAgent = false) // default value
 
     }
 
@@ -111,13 +95,8 @@ object MappedAgentProvider extends AgentProvider with MdcLoggable {
     isConfirmedAgent: Boolean,
     callContext: Option[CallContext]
   ): Future[Box[Agent]] = Future {
-    MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, agentId)
-    ) map {
-      c =>
-        c.mIsPendingAgent(isPendingAgent)
-        c.mIsConfirmedAgent(isConfirmedAgent)
-        c.saveMe()
+    MappedCustomer.findByCustomerId(agentId) map { c =>
+      MappedCustomer.setAgentStatus(c.customerId, isPendingAgent, isConfirmedAgent)
     }
   }
 

@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanLockUser
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotFoundByProviderAndUsername, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
@@ -22,8 +23,8 @@ class LockUserTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.lockUser))
   
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "USERNAME" / "locks").POST
       val response400 = makePostRequest(request400, "")
@@ -32,8 +33,8 @@ class LockUserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "USERNAME" / "locks").POST <@(user1)
       val response400 = makePostRequest(request400, "")
@@ -42,8 +43,8 @@ class LockUserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanLockUser)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       val username = "USERNAME"
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanLockUser.toString)
       When("We make a request v4.0.0")

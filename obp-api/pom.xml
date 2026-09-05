@@ -14,10 +14,45 @@
   <packaging>jar</packaging>
   <name>Open Bank Project API</name>
 
+  <!-- obp-api compiles under Scala 3; obp-commons stays permanently on 2.13 (see its own pom).
+       Overriding scala.version/scala.compiler here means every ${scala.version}/${scala.compiler}
+       reference inherited from the root pom's dependencyManagement and plugin config resolves to
+       the _3 line for this module specifically - Maven properties resolve per-module, so
+       obp-commons (which does not override them) keeps resolving the same references to 2.13.
+       scala2.version/scala2.compiler name the 2.13 line explicitly, for the handful of
+       dependencies that have no Scala 3 build and must stay on 2.13 regardless of which compiler
+       compiles this module's own sources. -->
+  <properties>
+    <scala.version>3</scala.version>
+    <scala.compiler>3.3.8</scala.compiler>
+    <scala2.version>2.13</scala2.version>
+    <scala2.compiler>2.13.18</scala2.compiler>
+  </properties>
+
   <dependencies>
+    <!-- obp-commons is permanently Scala 2.13 (it is consumed elsewhere too) and pulls in
+         json4s-native_2.13. obp-api's own json4s-native_3 is declared below. Both publish the
+         same org.json4s.reflect.ScalaSigReader class name with a DIFFERENT implementation - the
+         _2.13 jar has the Scala-2 ScalaSig-based reader, the _3 jar has the Scala-3 quotes-based
+         one that can actually read a Scala-3-compiled case class. With both jars on the runtime
+         classpath, whichever one the classloader resolves first wins for every caller including
+         obp-commons's own json4s code, and it consistently picked the _2.13 one - Scala-3
+         extraction failed even for classes obp-commons never touches. Excluding the _2.13
+         variant forces the whole reactor onto _3, betting that obp-commons's already-compiled
+         2.13 bytecode is binary-compatible with the _3 jar's json4s API surface (org.json4s's
+         public types - Formats, Extraction, JValue, etc. - are ordinary JVM signatures, not
+         Scala-version-specific ABI); this is exactly the "verify binary compatibility" step the
+         json4s-scala3-matrix memory flagged as the fallback if json4s's own upgrade wasn't
+         enough on its own, and it wasn't. -->
     <dependency>
       <groupId>com.tesobe</groupId>
       <artifactId>obp-commons</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.github.json4s</groupId>
+          <artifactId>json4s-native_2.13</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Upgraded from 1.4.14 (EOL branch) to 1.5.18. 1.4.x is end-of-life as of
@@ -28,13 +63,37 @@
       <artifactId>logback-classic</artifactId>
       <version>1.5.18</version>
     </dependency>
+    <!-- obp-api itself has had zero references to net.liftweb.mapper since this migration removed
+         the last of them (docs/scala3-lift-mapper-blocker.md records why that package cannot be
+         ported to Scala 3 - a moot point now, since nothing here uses it). What is still pinned
+         to _2.13 is the ARTIFACT: lift-persistence bundles common+db+mapper+proto+util as one jar,
+         and no Scala 3 build of it exists because mapper cannot compile under Scala 3. Both the
+         artifactId suffix and the version are pinned explicitly here since the root pom's
+         dependencyManagement entry for this coordinate is keyed to ${scala.version} (= 3 here)
+         and would otherwise not match this _2.13 artifactId at all. -->
     <dependency>
       <groupId>com.github.OpenBankProject.lift-persistence</groupId>
-      <artifactId>lift-persistence_${scala.version}</artifactId>
+      <artifactId>lift-persistence_${scala2.version}</artifactId>
+      <version>${lift.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.json4s</groupId>
+      <groupId>io.github.json4s</groupId>
       <artifactId>json4s-native_${scala.version}</artifactId>
+    </dependency>
+    <!-- json4s-core_3's ScalaSigReader (the Scala-3 variant, core/src/main/scala-3 upstream) reads
+         a Scala-3-compiled case class's constructor via scala.quoted.staging - a real compiler
+         instance built at runtime, not compile-time macros - and throws NoClassDefFoundError on
+         scala.quoted.staging.package$ without this on the classpath. scala3-staging itself pulls
+         in scala3-compiler_3 as a transitive dependency: shipping the compiler at runtime is the
+         actual cost of json4s being able to extract a Scala-3 case class at all, not a mistake.
+         Version fixed to ${scala.compiler} (not left to transitive resolution), for the same
+         reason scala3-library_3 is pinned explicitly below: a staging reflector built against a
+         different compiler version than the one that compiled these classes is exactly the kind
+         of mismatch this pin exists to prevent. -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala3-staging_${scala.version}</artifactId>
+      <version>${scala.compiler}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -111,20 +170,6 @@
       <artifactId>protobuf-java</artifactId>
       <version>3.25.5</version>
     </dependency>
-    <!-- Pin org.apache.avro:avro to 1.11.4 to override the 1.9.2 pulled in transitively
-         by avro4s 4.1.2. Fixes CVE-2024-47561 (CVSS 9.8 — RCE via schema parsing). -->
-    <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
-      <version>${apache.avro.version}</version>
-    </dependency>
-    <!-- Pin snappy-java to override older versions pulled in transitively by avro.
-         Fixes CVE-2023-34453, CVE-2023-34454, CVE-2023-34455, CVE-2023-43642. -->
-    <dependency>
-      <groupId>org.xerial.snappy</groupId>
-      <artifactId>snappy-java</artifactId>
-      <version>1.1.10.4</version>
-    </dependency>
     <!-- Pin msal4j to override the older version pulled in transitively by
          mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
          privilege, fixed upstream in 1.15.1). Not used directly in source —
@@ -185,9 +230,11 @@
          original com.sksamuel line stopped publishing past 8.11.5. Package
          names stayed `com.sksamuel.elastic4s.*` so source imports are
          unchanged. -->
+    <!-- No Scala 3 build - pinned to the 2.13 line explicitly (see the lift-persistence
+         comment above for why ${scala.version} alone is not enough here). -->
     <dependency>
       <groupId>nl.gn0s1s</groupId>
-      <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
+      <artifactId>elastic4s-client-esjava_${scala2.version}</artifactId>
       <version>8.19.1</version>
     </dependency>
     <!-- Pin elasticsearch-rest-client to the version elastic4s 8.19.1 expects.
@@ -198,16 +245,35 @@
       <artifactId>elasticsearch-rest-client</artifactId>
       <version>8.19.12</version>
     </dependency>
-    <!-- for LiftConsole -->
+    <!-- DynamicUtil compiles dynamic-endpoint source strings at runtime using this jar as an
+         embedded compiler - a runtime library, not the plugin that compiles this module's own
+         .scala files, so it stays pinned to 2.13 independent of whichever compiler
+         scala-maven-plugin uses for obp-api itself. It compiles 2.13-syntax source strings;
+         letting it follow the module to ${scala.compiler} (3.3.8) would silently start
+         requiring Scala 3 syntax in every dynamic endpoint's source, breaking existing ones. -->
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-compiler</artifactId>
-      <version>${scala.compiler}</version>
+      <version>${scala2.compiler}</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
+      <version>${scala2.compiler}</version>
+    </dependency>
+    <!-- Pinned explicitly to match ${scala.compiler}: every _3 dependency below pulls in its own
+         scala3-library_3 transitively at whatever version it happened to build against (observed
+         range 3.0.0-3.3.6), and Maven's mediation was picking 3.3.4 - older than the 3.3.8
+         compiler actually compiling this module's sources. A direct dependency here overrides
+         that regardless of tree depth. The mismatch is not just cosmetic: 3.3.4's `lazy val`
+         support (scala.runtime.LazyVals, which changed its locking implementation more than once
+         across 3.3.x) running as the classpath's actual scala3-library against bytecode compiled
+         for 3.3.8 hung every shard indefinitely on startup, silently, well before any of the
+         `lazy val`s this migration added had a chance to log anything. -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala3-library_3</artifactId>
       <version>${scala.compiler}</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.pekko/pekko-http-core -->
@@ -227,36 +293,36 @@
       <version>${pekko.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.sksamuel.avro4s</groupId>
-      <artifactId>avro4s-core_${scala.version}</artifactId>
-      <version>${avro4s.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
       <version>1.26.0</version>
     </dependency>
+    <!-- No Scala 3 build for either - pinned to the 2.13 line explicitly. -->
     <dependency>
       <groupId>com.twitter</groupId>
-      <artifactId>chill_${scala.version}</artifactId>
+      <artifactId>chill_${scala2.version}</artifactId>
       <version>0.9.5</version>
     </dependency>
     <dependency>
       <groupId>com.twitter</groupId>
-      <artifactId>chill-bijection_${scala.version}</artifactId>
+      <artifactId>chill-bijection_${scala2.version}</artifactId>
       <version>0.9.5</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-redis -->
+    <!-- scalacache (redis + guava) was removed: dead upstream (no Scala 3 release since a
+         2021 milestone), and the memoize layer it provided is implemented in-house in
+         code.api.cache.{Redis,InMemory} with byte-compatible keys, values and TTLs
+         (CacheKeyFormatTest pins the contract). jedis arrived transitively through
+         scalacache-redis, so it becomes a direct dependency at the exact version that
+         was already on the classpath; guava (used by InMemory) keeps arriving via
+         obp-commons, version managed by the parent. -->
     <dependency>
-      <groupId>com.github.cb372</groupId>
-      <artifactId>scalacache-redis_${scala.version}</artifactId>
-      <version>0.28.0</version>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>2.10.2</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-guava -->
     <dependency>
-      <groupId>com.github.cb372</groupId>
-      <artifactId>scalacache-guava_${scala.version}</artifactId>
-      <version>0.28.0</version>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.pekko</groupId>
@@ -267,7 +333,10 @@
     <dependency>
       <groupId>com.github.dwickern</groupId>
       <artifactId>scala-nameof_${scala.version}</artifactId>
-      <version>2.0.0</version>
+      <!-- 4.x publishes _3 (inline-based) alongside _2.13 (macro) - the flip swaps the
+           suffix only. nameOf feeds ResourceDoc partialFunctionName/operation_id, so the
+           contract surface diff is the change detector for its 3326 call sites. -->
+      <version>4.1.0</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
     <dependency>
@@ -275,23 +344,16 @@
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>10.5</version>
     </dependency>
-    <!-- The macros module, not the aggregate com.github.OpenBankProject:scala-macros. Only
-         com.tesobe.CacheKeyFromArguments and com.tesobe.CacheKeyOmit are used from that project and
-         both live here; the aggregate additionally drags in a core module nothing references. The
-         aggregate is also unusable once this build cross-compiles: v1.0.0-alpha.3's pom hardcoded
-         the _2.12 artifacts, and v1.0.0-alpha.4's lists both _2.12 and _2.13, which would put two
-         Scala versions of the same classes on the classpath. Naming the module directly makes the
-         Scala version follow ${scala.version} like every other Scala dependency here. -->
-    <dependency>
-      <groupId>com.github.OpenBankProject.scala-macros</groupId>
-      <artifactId>macros_${scala.version}</artifactId>
-      <version>v1.0.0-alpha.4</version>
-    </dependency>
     <!-- https://mvnrepository.com/artifact/org.scalameta/scalameta -->
     <dependency>
       <groupId>org.scalameta</groupId>
       <artifactId>scalameta_${scala.version}</artifactId>
-      <version>4.1.12</version>
+      <!-- 4.13.6, not 4.1.12: the Scala 3 line does not go back that far, and this is a
+           suffix swap at the flip like every other green-list dependency. Used only by
+           two in-repo lint helpers that parse this project's own sources (ApiRole's
+           name-convention check and ErrorMessages' duplicate-code check, the latter
+           asserted by DuplicatedMessages) - never on a request path. -->
+      <version>4.13.6</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->
@@ -390,7 +452,11 @@
     <dependency>
       <groupId>com.thesamet.scalapb</groupId>
       <artifactId>scalapb-runtime-grpc_${scala.version}</artifactId>
-      <version>0.9.0</version>
+      <!-- 0.11 is the first line publishing _3 artifacts (the Scala 3 flip swaps the
+           suffix only). 0.11.17 exactly because scripts/regenerate_grpc.sh fetches the
+           scalapbc zip from GitHub releases, which stop at 0.11.17; generated code and
+           runtime must be the same version. -->
+      <version>0.11.17</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
@@ -426,6 +492,26 @@
       <artifactId>doobie-hikari_${scala.version}</artifactId>
       <version>1.0.0-RC4</version>
     </dependency>
+    <!-- Liquibase owns the schema. It replaced Flyway because it generates each vendor's DDL from
+         one changelog, which is what OBP needs: the bank's data source decides the database, and
+         Flyway's model is one hand-written SQL set per vendor - it had h2 and postgres, and
+         nothing for the three other drivers it would have booted against. -->
+    <dependency>
+      <groupId>org.liquibase</groupId>
+      <artifactId>liquibase-core</artifactId>
+      <version>${liquibase.version}</version>
+      <exclusions>
+        <!-- liquibase-core declares snakeyaml 2.2, and because it sits nearer the root than
+             jackson-dataformat-yaml's 2.3, Maven's nearest-wins silently DOWNGRADED the whole
+             build from 2.3 to 2.2. Measured before and after adding this dependency. Excluded
+             here so the version comes from jackson's chain alone rather than from whichever
+             declaration happens to be nearer; SnakeYamlVersionTest pins the result. -->
+        <exclusion>
+          <groupId>org.yaml</groupId>
+          <artifactId>snakeyaml</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
@@ -433,11 +519,12 @@
     </dependency>
     <!-- scala-collection-compat provides scala.jdk.CollectionConverters on Scala 2.12
          (used by code.util.ClassScanUtils). Previously supplied transitively by the
-         JDBC library that was removed during the Doobie migration; declared explicitly now. -->
+         JDBC library that was removed during the Doobie migration; declared explicitly now.
+         2.12.0, not 2.1.2: the _3 line only starts at 2.12.0. -->
     <dependency>
       <groupId>org.scala-lang.modules</groupId>
       <artifactId>scala-collection-compat_${scala.version}</artifactId>
-      <version>2.1.2</version>
+      <version>2.12.0</version>
     </dependency>
 
     <dependency>
@@ -714,10 +801,14 @@
               <arg>-feature</arg>
               <!-- This module declares its own <args>, which replaces rather than extends the
                    parent pom's list - so anything the parent sets and this module needs has to
-                   be repeated here. That is why -Ymacro-annotations is below rather than
-                   inherited. -->
-              <!-- Replaces the paradise compiler plugin; enables macro annotations on 2.13. -->
-              <arg>-Ymacro-annotations</arg>
+                   be repeated here. -->
+              <!-- -Ymacro-annotations (paradise-replacement, 2.13-only) and -Xsource:3 (the
+                   Scala 3 preview outpost used while still compiling on 2.13) are both gone:
+                   this module now compiles under an actual Scala 3 compiler, so simulating
+                   Scala 3's rules is no longer this flag's job - it is the compiler's. Same
+                   reasoning removed -Wconf:msg=Auto-application:e - auto-application is already
+                   a hard error under a real Scala 3 compiler, not merely a raised warning. -->
+              <arg>-source:3.3</arg>
             </args>
           </configuration>
         </plugin>
@@ -787,6 +878,39 @@
             </manifestEntries>
           </archive>
         </configuration>
+      </plugin>
+
+      <!-- Empty target/lib before it is refilled below. copy-dependencies only ADDS jars: it
+           never removes one that is no longer a dependency, so on an incremental build the
+           runtime classpath keeps every jar this project has ever depended on. That is not
+           untidiness - the thin jar's manifest puts all of lib/ on the classpath, so a dropped
+           dependency goes on being loaded. Removing avro (CVE-2024-47561, CVSS 9.8) left
+           avro-1.11.4.jar sitting in lib/ exactly like that, and two scalameta versions were
+           there side by side after its upgrade. Runs in the same phase as copy-dependencies and
+           is declared first, which is the order Maven executes them in. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>prune-runtime-lib</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+            <configuration>
+              <!-- Only the lib directory: the default directories would wipe target/classes,
+                   which this phase's own build output lives in. -->
+              <excludeDefaultDirectories>true</excludeDefaultDirectories>
+              <filesets>
+                <fileset>
+                  <directory>${project.build.directory}/lib</directory>
+                </fileset>
+              </filesets>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- Copy runtime dependencies to target/lib/ (sibling of obp-api.jar) -->

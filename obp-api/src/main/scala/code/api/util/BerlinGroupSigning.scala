@@ -365,7 +365,7 @@ object BerlinGroupSigning extends MdcLoggable {
             case Full(consumer) =>
               val certificateFromHeader = getHeaderValue(RequestHeader.`TPP-Signature-Certificate`, requestHeaders)
               Consumers.consumers.vend.updateConsumer(
-                id = consumer.id.get,
+                id = consumer.id,
                 name = entityName,
                 certificate = Some(certificateFromHeader)
               ) match {

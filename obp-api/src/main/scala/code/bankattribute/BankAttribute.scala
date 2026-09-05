@@ -3,7 +3,7 @@ package code.bankattribute
 /* For ProductAttribute */
 
 import code.api.util.APIUtil
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.{BankAttributeTrait, BankId}
 import com.openbankproject.commons.model.enums.BankAttributeType
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
@@ -15,10 +15,10 @@ object BankAttributeX extends SimpleInjector {
 
   val bankAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: BankAttributeProviderTrait = BankAttributeProvider
+  def buildOne: BankAttributeProviderTrait = DoobieBankAttributeProvider
 
   // Helper to get the count out of an option
-  def countOfBankAttribute(listOpt: Option[List[BankAttribute]]): Int = {
+  def countOfBankAttribute(listOpt: Option[List[BankAttributeTrait]]): Int = {
     val count = listOpt match {
       case Some(list) => list.size
       case None => 0
@@ -31,16 +31,16 @@ object BankAttributeX extends SimpleInjector {
 
 trait BankAttributeProviderTrait extends MdcLoggable {
 
-  def getBankAttributesFromProvider(bankId: BankId): Future[Box[List[BankAttribute]]]
+  def getBankAttributesFromProvider(bankId: BankId): Future[Box[List[BankAttributeTrait]]]
 
-  def getBankAttributeById(bankAttributeId: String): Future[Box[BankAttribute]]
+  def getBankAttributeById(bankAttributeId: String): Future[Box[BankAttributeTrait]]
 
   def createOrUpdateBankAttribute(bankId : BankId,
                                   bankAttributeId: Option[String],
                                   name: String,
                                   attributType: BankAttributeType.Value,
                                   value: String,
-                                  isActive: Option[Boolean]): Future[Box[BankAttribute]]
+                                  isActive: Option[Boolean]): Future[Box[BankAttributeTrait]]
   def deleteBankAttribute(bankAttributeId: String): Future[Box[Boolean]]
   // End of Trait
 }

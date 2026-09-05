@@ -1483,7 +1483,7 @@ object ApiRole extends MdcLoggable{
   }
 
   private val roles = {
-    val list = ReflectUtils.getFieldsNameToValue[ApiRole](this).values.toList
+    val list = ReflectUtils.getFieldsNameToValue[ApiRole](this, ReflectUtils.forType("code.api.util.ApiRole")).values.toList
     val duplicatedRoleName = list.groupBy(_.toString()).filter(_._2.size > 1).map(_._1)
     assume(duplicatedRoleName.isEmpty, s"Duplicated role: ${duplicatedRoleName.mkString(", ")}")
     list
@@ -1547,12 +1547,16 @@ object Util {
     
     val allowed = allowedPrefixes ::: allowedExistingNames
 
-    source.collect {
+    // scalameta 4.13.6 (_3) moved Tree#collect from a plain method to the standalone
+    // scala.meta.contrib.TreeOps.collect function - the extension available via
+    // scala.meta.contrib._ only provides collectFirst/descendants/ancestors, not collect.
+    import scala.meta.contrib.TreeOps
+    TreeOps.collect(source) {
       case obj: Defn.Object if obj.name.value == "ApiRole" =>
-        obj.collect {
-          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == true => 
+        TreeOps.collect(obj) {
+          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == true =>
             // OK
-          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == false => 
+          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == false =>
             println("INCORRECT - " + c)
         }
     }

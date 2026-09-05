@@ -4,13 +4,11 @@ import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
-import code.context.MappedUserAuthContextUpdate
 import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.mapper.Schemifier.getDefaultSchemaName
-import net.liftweb.mapper.{BaseMetaMapper, DB}
+import net.liftweb.db.{DB, SuperConnection}
 
 import java.sql.{ResultSet, SQLException}
 import java.text.SimpleDateFormat
@@ -83,12 +81,16 @@ object Migration extends MdcLoggable {
   object database {
 
     /**
-     * Runs the migration scripts. Called twice from Boot, BOTH times AFTER `schemifyAll()`.
+     * Runs the migration scripts. Called twice from Boot, both times after `createDefaultChatRoom()`
+     * (the schema-building call that used to run there - `schemifyAll()`, before Schemifier was
+     * removed - has no schema work left in it any more; the name changed, the position didn't).
      *
      * `startedBeforeSchemifier` does NOT mean "this pass runs before Schemifier" — despite the name
-     * and the historical Boot comments, both passes run after it. It selects which pass this is:
-     *  - `true`  = the existing-DB pass (only invoked when `tableExists(ResourceUser)`): migrations
-     *              that require post-Schemifier schema guard on this flag and skip themselves here.
+     * and the historical Boot comments, both passes run after it (Schemifier itself is gone, but the
+     * flag's naming and semantics predate that and were left as-is). It selects which pass this is:
+     *  - `true`  = the existing-DB pass (only invoked when `DbFunction.tableExistsByName("resourceuser")`
+     *              is true): migrations that require post-Schemifier schema guard on this flag and
+     *              skip themselves here.
      *  - `false` = the catch-all pass that runs for every DB; the guarded migrations run in this one.
      * `runOnce` (tracked in `MigrationScriptLog`) guarantees each named migration executes exactly
      * once across both passes.
@@ -141,8 +143,6 @@ object Migration extends MdcLoggable {
       renameCustomerRoleNames()
       addUniqueIndexOnResourceUserUserId()
       addIndexOnMappedMetricUserId()
-      addCompositeIndexOnMetricUserIdDate()
-      addIndexOnResourceUserCreatedByConsentId()
       alterRoleNameLength()
       alterConsentRequestColumnConsumerIdLength()
       alterMappedConsentColumnConsumerIdLength()
@@ -157,101 +157,16 @@ object Migration extends MdcLoggable {
       migrateChatRoomCreatedByAndLastMessageSender()
       migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
       migrateMetricConsentReferenceId(startedBeforeSchemifier)
-      migrateMetricAuthType(startedBeforeSchemifier)
       migrateMetricCertificateTrust(startedBeforeSchemifier)
+      // Removed with the develop merge: the schema these produced now comes from
+      // db.changelog-develop-merge.yaml. They read Lift Mapper metadata
+      // (MappedMetric._dbTableNameLC and friends) that no longer exists on this branch,
+      // and Schemifier - their other half - creates nothing here (ToSchemify.models = Nil).
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
-      alterDynamicResourceDocBodyFieldsLength()
-    }
-
-    /**
-     * Remove natural-key duplicate rows so Schemifier's CREATE UNIQUE INDEX on
-     * `mapperaccountholder` (user_, bank, account) and `mappedentitlement` (bank, user, role)
-     * cannot abort boot on an existing DB that still holds duplicates.
-     *
-     * Deliberately invoked directly from `Boot` BEFORE `schemifyAll()` and NOT routed through
-     * `executeScripts`/`runOnce`: those passes run AFTER Schemifier (too late — the index DDL has
-     * already run) and are gated by `migration_scripts.*` props (off in tests), whereas Schemifier
-     * creates the index ungated in every environment incl. H2. Keeps each table's dedup self-guarded
-     * (table-existence + has-duplicates probe), so it is a cheap no-op on fresh/clean/test DBs and
-     * needs no `MigrationScriptLog` entry. See the call site in `Boot.scala` for the full rationale.
-     */
-    def deduplicateBeforeUniqueIndexSchemify(): Unit = {
-      deduplicateNaturalKeyDups(
-        tableName = "mapperaccountholder",
-        idCol     = "id",
-        groupCols = List("user_", "accountbankpermalink", "accountpermalink")
-      )
-      deduplicateNaturalKeyDups(
-        tableName = "mappedentitlement",
-        idCol     = "id",
-        groupCols = List("mbankid", "muserid", "mrolename")
-      )
-    }
-
-    /**
-     * Collapse natural-key duplicates in `tableName` down to one surviving row per key group.
-     *
-     * Survivor policy: KEEP the row with the lowest `idCol` (the oldest insert) per `groupCols`
-     * group, DELETE the rest. The discarded duplicates are NOT byte-identical to the survivor —
-     * only the natural key matches — so this is lossy by design:
-     *  - `mappedentitlement`: each duplicate carries its own `mentitlementid` UUID (the external
-     *    handle returned by the API and used by `getEntitlementById`/`deleteEntitlement`), plus
-     *    `created_by_process` / `group_id` / `process` / `entitlement_request_id` / timestamps.
-     *    Removing a duplicate invalidates any stale reference to *that* row's UUID. This is
-     *    acceptable: the surviving row encodes the identical (bank, user, role) grant, so
-     *    authorization is unaffected — only dead handles to the removed copies break.
-     *  - `mapperaccountholder`: duplicates may differ in `source` (provenance metadata). The
-     *    surviving row encodes the same (user, account) ownership link.
-     *
-     * Safe to run on every boot and under concurrent multi-node boot: the survivor set is a
-     * deterministic lowest-id-per-group, the DELETE is idempotent (re-running removes 0 rows), and
-     * Lift Mapper's Schemifier emits no DB-level FK constraints, so the DELETE neither cascades nor
-     * aborts on referential integrity. The has-duplicates probe keeps clean/fresh/test DBs on the
-     * cheap path — the heavier delete only runs when extras actually exist. The delete uses a
-     * derived-table + ROW_NUMBER() form (see inline note) so it is portable across every driver OBP
-     * ships, including MySQL/MariaDB, instead of the MySQL-incompatible `NOT IN (SELECT MIN ...)`.
-     */
-    private def deduplicateNaturalKeyDups(tableName: String, idCol: String, groupCols: List[String]): Unit = {
-      if (DbFunction.tableExistsByName(tableName)) {
-        val groupBy = groupCols.mkString(", ")
-        val hasDups = DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-          val st = conn.createStatement()
-          try {
-            val rs = st.executeQuery(s"SELECT 1 FROM $tableName GROUP BY $groupBy HAVING COUNT(*) > 1")
-            try rs.next() finally rs.close()
-          } finally st.close()
-        }
-        if (hasDups) {
-          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: duplicates found in $tableName – removing extras (keeping the lowest $idCol per [$groupBy])")
-          // Delete-set shape (target only the few extras), deliberately NOT survivor-set
-          // (`... NOT IN (SELECT MIN(id) FROM sameTable ...)`): the survivor-set form has the
-          // subquery's FROM name the very table being deleted, which throws MySQL/MariaDB
-          // ERROR 1093 ("can't specify target table for update in FROM clause") — and MySQL is a
-          // first-class OBP target (driver shipped, per-vendor branches throughout this package).
-          // Wrapping ROW_NUMBER() in a derived table (`(...) tmp`, no AS — Oracle-safe) is the one
-          // form portable across every driver OBP ships: the derived table is materialised, which
-          // sidesteps 1093, and window functions are supported by all of PostgreSQL, H2 2.x,
-          // MySQL 8+/MariaDB 10.2+, SQL Server and Oracle. `ORDER BY $idCol ASC` + `rn > 1` deletes
-          // all but the lowest id per group — the identical survivor the NOT IN/MIN form kept.
-          val deleteSql =
-            s"""DELETE FROM $tableName WHERE $idCol IN (
-               |  SELECT $idCol FROM (
-               |    SELECT $idCol, ROW_NUMBER() OVER (PARTITION BY $groupBy ORDER BY $idCol ASC) AS rn FROM $tableName
-               |  ) tmp WHERE rn > 1
-               |)""".stripMargin
-          val deleted = DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-            val st = conn.createStatement()
-            try {
-              st.executeUpdate(deleteSql)
-            } finally st.close()
-          }
-          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: removed $deleted duplicate row(s) from $tableName")
-        }
-      }
     }
 
     private def dummyScript(): Boolean = {
-      val name = nameOf(dummyScript)
+      val name = nameOf(dummyScript())
       runOnce(name) {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -309,14 +224,14 @@ object Migration extends MdcLoggable {
     }
 
     private def populateTableRateLimiting(): Boolean = {
-      val name = nameOf(populateTableRateLimiting)
+      val name = nameOf(populateTableRateLimiting())
       runOnce(name) {
         TableRateLmiting.populate(name)
       }
     }
     
     private def updateTableViewDefinition(): Boolean = {
-      val name = nameOf(updateTableViewDefinition)
+      val name = nameOf(updateTableViewDefinition())
       runOnce(name) {
         UpdateTableViewDefinition.populate(name)
       }
@@ -334,38 +249,38 @@ object Migration extends MdcLoggable {
       }
     }
     private def alterTableMappedConsent(): Boolean = {
-      val name = nameOf(alterTableMappedConsent)
+      val name = nameOf(alterTableMappedConsent())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnJsonWebToken(name)
       }
     }
     private def alterColumnChallengeAtTableMappedConsent(): Boolean = {
-      val name = nameOf(alterColumnChallengeAtTableMappedConsent)
+      val name = nameOf(alterColumnChallengeAtTableMappedConsent())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnChallenge(name)
       }
     }
     private def alterTableOpenIDConnectToken(): Boolean = {
-      val name = nameOf(alterTableOpenIDConnectToken)
+      val name = nameOf(alterTableOpenIDConnectToken())
       runOnce(name) {
         MigrationOfOpnIDConnectToken.alterColumnAccessToken(name)
         MigrationOfOpnIDConnectToken.alterColumnRefreshToken(name)
       }
     }
     private def populateNameAndAppTypeFieldsAtConsumerTable(): Boolean = {
-      val name = nameOf(populateNameAndAppTypeFieldsAtConsumerTable)
+      val name = nameOf(populateNameAndAppTypeFieldsAtConsumerTable())
       runOnce(name) {
         MigrationOfConsumer.populateNamAndAppType(name)
       }
     }
     private def populateAzpAndSubFieldsAtConsumerTable(): Boolean = {
-      val name = nameOf(populateAzpAndSubFieldsAtConsumerTable)
+      val name = nameOf(populateAzpAndSubFieldsAtConsumerTable())
       runOnce(name) {
         MigrationOfConsumer.populateAzpAndSub(name)
       }
     }
     private def changeTypeOfAudFieldAtConsumerTable(): Boolean = {
-      val name = nameOf(changeTypeOfAudFieldAtConsumerTable)
+      val name = nameOf(changeTypeOfAudFieldAtConsumerTable())
       runOnce(name) {
         MigrationOfConsumer.alterTypeofAud(name)
       }
@@ -382,31 +297,34 @@ object Migration extends MdcLoggable {
       }
     }
     private def alterTableMappedUserAuthContextUpdate(): Boolean = {
-      val name = nameOf(MappedUserAuthContextUpdate)
+      // Was nameOf(MappedUserAuthContextUpdate) before that Lift entity was deleted - this is the
+      // literal string the macro produced, kept as-is because it is the key already recorded in
+      // migration_script_log on every environment that has run this migration.
+      val name = "MappedUserAuthContextUpdate"
       runOnce(name) {
         MigrationOfMappedUserAuthContextUpdate.dropUniqueIndex(name)
       }
     }
     private def populateTableBankAccountRouting(): Boolean = {
-      val name = nameOf(populateTableBankAccountRouting)
+      val name = nameOf(populateTableBankAccountRouting())
       runOnce(name) {
         MigrationOfAccountRoutings.populate(name)
       }
     }
     private def populateSettlementBankAccounts(): Boolean = {
-      val name = nameOf(populateSettlementBankAccounts)
+      val name = nameOf(populateSettlementBankAccounts())
       runOnce(name) {
         MigrationOfSettlementAccounts.populate(name)
       }
     }
     private def alterColumnStatusAtTableMappedConsent(): Boolean = {
-      val name = nameOf(alterColumnStatusAtTableMappedConsent)
+      val name = nameOf(alterColumnStatusAtTableMappedConsent())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnStatus(name)
       }
     }
     private def alterColumnDetailsAtTableTransactionRequest(): Boolean = {
-      val name = nameOf(alterColumnDetailsAtTableTransactionRequest)
+      val name = nameOf(alterColumnDetailsAtTableTransactionRequest())
       runOnce(name) {
         MigrationOfTransactionRequerst.alterColumnDetails(name)
       }
@@ -515,12 +433,6 @@ object Migration extends MdcLoggable {
     // Retire the fast-firehose SQL views (firehose -> account directory + ABAC). Runs after the create
     // migrations above, so a fresh DB creates-then-drops them and an existing DB just drops them. See
     // MigrationOfDropFastFireHoseViews.
-    private def alterDynamicResourceDocBodyFieldsLength(): Boolean = {
-      val name = nameOf(alterDynamicResourceDocBodyFieldsLength)
-      runOnce(name) {
-        MigrationOfDynamicResourceDocBodyFieldsLength.alterColumnsType(name)
-      }
-    }
 
     private def dropFastFirehoseAccountsViews(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
@@ -571,77 +483,77 @@ object Migration extends MdcLoggable {
     }
 
     private def dropIndexAtUserAuthContext(): Boolean = {
-      val name = nameOf(dropIndexAtUserAuthContext)
+      val name = nameOf(dropIndexAtUserAuthContext())
       runOnce(name) {
         MigrationOfMappedUserAuthContext.dropUniqueIndex(name)
       }
     }
     
     private def addAccountAccessConsumerId(): Boolean = {
-      val name = nameOf(addAccountAccessConsumerId)
+      val name = nameOf(addAccountAccessConsumerId())
       runOnce(name) {
         MigrationOfAccountAccessAddedConsumerId.addAccountAccessConsumerId(name)
       }
     }
 
     private def alterWebhookColumnUrlLength(): Boolean = {
-      val name = nameOf(alterWebhookColumnUrlLength)
+      val name = nameOf(alterWebhookColumnUrlLength())
       runOnce(name) {
         MigrationOfWebhookUrlFieldLength.alterColumnUrlLength(name)
       }
     }
 
     private def alterTransactionRequestAttributeValueType(): Boolean = {
-      val name = nameOf(alterTransactionRequestAttributeValueType)
+      val name = nameOf(alterTransactionRequestAttributeValueType())
       runOnce(name) {
         MigrationOfTransactionRequestAttributeValueType.alterColumnValueType(name)
       }
     }
 
     private def alterMappedCounterpartyDescriptionLength(): Boolean = {
-      val name = nameOf(alterMappedCounterpartyDescriptionLength)
+      val name = nameOf(alterMappedCounterpartyDescriptionLength())
       runOnce(name) {
         MigrationOfMappedCounterpartyDescriptionLength.alterColumnDescriptionLength(name)
       }
     }
 
     private def alterMetricColumnUrlLength(): Boolean = {
-      val name = nameOf(alterMetricColumnUrlLength)
+      val name = nameOf(alterMetricColumnUrlLength())
       runOnce(name) {
         MigrationOfMetricTable.alterColumnCorrelationidLength(name)
       }
     }
 
     private def alterMetricArchiveColumnCorrelationidLength(): Boolean = {
-      val name = nameOf(alterMetricArchiveColumnCorrelationidLength)
+      val name = nameOf(alterMetricArchiveColumnCorrelationidLength())
       runOnce(name) {
         MigrationOfMetricArchiveTable.alterColumnCorrelationidLength(name)
       }
     }
 
     private def dropConsentAuthContextDropIndex(): Boolean = {
-      val name = nameOf(dropConsentAuthContextDropIndex)
+      val name = nameOf(dropConsentAuthContextDropIndex())
       runOnce(name) {
         MigrationOfConsentAuthContextDropIndex.dropUniqueIndex(name)
       }
     }
   
     private def alterMappedExpectedChallengeAnswerChallengeTypeLength(): Boolean = {
-      val name = nameOf(alterMappedExpectedChallengeAnswerChallengeTypeLength)
+      val name = nameOf(alterMappedExpectedChallengeAnswerChallengeTypeLength())
       runOnce(name) {
         MigrationOfMappedExpectedChallengeAnswerFieldLength.alterColumnLength(name)
       }
     }
   
     private def alterTransactionRequestChallengeChallengeTypeLength(): Boolean = {
-      val name = nameOf(alterTransactionRequestChallengeChallengeTypeLength)
+      val name = nameOf(alterTransactionRequestChallengeChallengeTypeLength())
       runOnce(name) {
         MigrationOfTransactionRequestChallengeChallengeTypeLength.alterColumnChallengeChallengeTypeLength(name)
       }
     }  
   
     private def alterUserAttributeNameLength(): Boolean = {
-      val name = nameOf(alterUserAttributeNameLength)
+      val name = nameOf(alterUserAttributeNameLength())
       runOnce(name) {
         MigrationOfUserAttributeNameFieldLength.alterNameLength(name)
       }
@@ -659,77 +571,65 @@ object Migration extends MdcLoggable {
     }
 
     private def dropMappedBadLoginAttemptIndex(): Boolean = {
-      val name = nameOf(dropMappedBadLoginAttemptIndex)
+      val name = nameOf(dropMappedBadLoginAttemptIndex())
       runOnce(name) {
         MigrationOfMappedBadLoginAttemptDropIndex.dropUniqueIndex(name)
       }
     }
 
     private def alterCounterpartyLimitFieldType(): Boolean = {
-      val name = nameOf(alterCounterpartyLimitFieldType)
+      val name = nameOf(alterCounterpartyLimitFieldType())
       runOnce(name) {
         MigrationOfCounterpartyLimitFieldType.alterCounterpartyLimitFieldType(name)
       }
     }
 
     private def renameCustomerRoleNames(): Boolean = {
-      val name = nameOf(renameCustomerRoleNames)
+      val name = nameOf(renameCustomerRoleNames())
       runOnce(name) {
         MigrationOfCustomerRoleNames.renameCustomerRoles(name)
       }
     }
 
     private def addUniqueIndexOnResourceUserUserId(): Boolean = {
-      val name = nameOf(addUniqueIndexOnResourceUserUserId)
+      val name = nameOf(addUniqueIndexOnResourceUserUserId())
       runOnce(name) {
         MigrationOfUserIdIndexes.addUniqueIndexOnResourceUserUserId(name)
       }
     }
 
     private def addIndexOnMappedMetricUserId(): Boolean = {
-      val name = nameOf(addIndexOnMappedMetricUserId)
+      val name = nameOf(addIndexOnMappedMetricUserId())
       runOnce(name) {
         MigrationOfUserIdIndexes.addIndexOnMappedMetricUserId(name)
       }
     }
 
-    private def addCompositeIndexOnMetricUserIdDate(): Boolean = {
-      val name = nameOf(addCompositeIndexOnMetricUserIdDate)
-      runOnce(name) {
-        MigrationOfActivityDashboardIndexes.addCompositeIndexOnMetricUserIdDate(name)
-      }
-    }
 
-    private def addIndexOnResourceUserCreatedByConsentId(): Boolean = {
-      val name = nameOf(addIndexOnResourceUserCreatedByConsentId)
-      runOnce(name) {
-        MigrationOfActivityDashboardIndexes.addIndexOnResourceUserCreatedByConsentId(name)
-      }
-    }
     
     private def alterRoleNameLength(): Boolean = {
-      val name = nameOf(alterRoleNameLength)
+      val name = nameOf(alterRoleNameLength())
       runOnce(name) {
         MigrationOfRoleNameFieldLength.alterRoleNameLength(name)
       }
     }
 
     private def alterConsentRequestColumnConsumerIdLength(): Boolean = {
-      val name = nameOf(alterConsentRequestColumnConsumerIdLength)
+      val name = nameOf(alterConsentRequestColumnConsumerIdLength())
       runOnce(name) {
         MigrationOfConsentRequestConsumerIdFieldLength.alterColumnConsumerIdLength(name)
       }
     }
 
     private def alterMappedConsentColumnConsumerIdLength(): Boolean = {
-      val name = nameOf(alterMappedConsentColumnConsumerIdLength)
+      val name = nameOf(alterMappedConsentColumnConsumerIdLength())
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnConsumerIdLength(name)
       }
     }
 
     private def alterMetricColumnConsumerIdLength(): Boolean = {
-      val name = nameOf(alterMetricColumnConsumerIdLength)
+      val name = nameOf(alterMetricColumnConsumerIdLength())
       runOnce(name) {
         MigrationOfMetricConsumerIdFieldLength.alterColumnConsumerIdLength(name)
       }
@@ -809,17 +709,6 @@ object Migration extends MdcLoggable {
       }
     }
 
-    private def migrateMetricAuthType(startedBeforeSchemifier: Boolean): Boolean = {
-      if(startedBeforeSchemifier == true) {
-        logger.warn(s"Migration.database.migrateMetricAuthType(true) cannot be run before Schemifier.")
-        true
-      } else {
-        val name = nameOf(migrateMetricAuthType(startedBeforeSchemifier))
-        runOnce(name) {
-          MigrationOfMetricAuthType.migrate(name)
-        }
-      }
-    }
 
     private def migrateMetricCertificateTrust(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
@@ -858,14 +747,14 @@ object Migration extends MdcLoggable {
     }
 
     private def migrateChatRoomIsOpenRoom(): Boolean = {
-      val name = nameOf(migrateChatRoomIsOpenRoom)
+      val name = nameOf(migrateChatRoomIsOpenRoom())
       runOnce(name) {
         MigrationOfChatRoomIsOpenRoom.migrateColumn(name)
       }
     }
 
     private def migrateChatRoomCreatedByAndLastMessageSender(): Boolean = {
-      val name = nameOf(migrateChatRoomCreatedByAndLastMessageSender)
+      val name = nameOf(migrateChatRoomCreatedByAndLastMessageSender())
       runOnce(name) {
         MigrationOfChatRoomCreatedByAndLastMessageSender.migrateColumns(name)
       }
@@ -887,30 +776,19 @@ object Migration extends MdcLoggable {
         theVar.close()
       }
     }
+
     /**
       * This function is copied from the module "net.liftweb.mapper.Schemifier".
-      * The purpose is to provide answer does a table exist at a database instance.
-      * For instance migration scripts needs to differentiate update of an instance from build a new one from scratch.
-     *  note: 07.05.2024 now. we get the connection from HikariDatasource.ds instead of Liftweb.
+      * The purpose is to provide the schema to look tables up under: the connection's own
+      * schema if it has one, else the driver's default, else the instance-wide default,
+      * else (as a last resort) the JDBC user name - the same fallback chain Schemifier used.
       */
-    def tableExists (table: BaseMetaMapper, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
-      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
-        conn =>
-          val md = conn.getMetaData
-          val schema =  getDefaultSchemaName(conn)
-      
-          using(md.getTables(null, schema, null, null)){ rs =>
-            def hasTable(rs: ResultSet): Boolean =
-              if (!rs.next) false
-              else rs.getString(3) match {
-                case s if s.toLowerCase == table._dbTableNameLC.toLowerCase => actualTableNames(table._dbTableNameLC) = s; true
-                case _ => hasTable(rs)
-              }
-    
-            hasTable(rs)
-          }
-      }
-    }
+    def getDefaultSchemaName(conn: SuperConnection): String =
+      conn.schemaName
+        .or(conn.driverType.defaultSchemaName)
+        .or(DB.globalDefaultSchemaName)
+        .openOr(conn.getMetaData.getUserName)
+
     def tableExistsByName(tableName: String): Boolean = {
       DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
         val md = conn.getMetaData
@@ -985,23 +863,28 @@ object Migration extends MdcLoggable {
 
     /**
       * This function is copied from the module "net.liftweb.mapper.Schemifier".
-      * 
+      *
       * Creates an SQL command and optionally executes it.
       *
+      * The logging callback Schemifier's original took (`infoF`) is gone: every one of this
+      * method's ~64 call sites across the migration scripts passed the same thing
+      * (`Schemifier.infoF _`, later `DbFunction.infoF _`), which was never anything but
+      * `logger.info(msg)`. A parameter with zero call-site variance is not an abstraction,
+      * so it is inlined below instead of carried as a symbol every caller has to know about.
+      *
       * @param performWrite Whether the SQL command should be executed.
-      * @param logFunc Logger.
       * @param connection Database connection.
       * @param makeSql Factory for SQL command.
       *
       * @return SQL command.
       */
-    def maybeWrite(performWrite: Boolean, logFunc: (=> AnyRef) => Unit) (makeSql: () => String) : String ={
+    def maybeWrite(performWrite: Boolean) (makeSql: () => String) : String ={
       DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
         conn =>
           val ct = makeSql()
           logger.trace("maybeWrite DDL: " + ct)
           if (performWrite) {
-            logFunc(ct)
+            logger.info(ct)
             val st = conn.createStatement
             try {
               st.execute(ct)
@@ -1014,15 +897,14 @@ object Migration extends MdcLoggable {
     }
 
     /**
-      * This function makes a copy on an table
-      * @param table The table we want to back up
-      * @return true in case of success or false otherwise
-      */
-    def makeBackUpOfTable(table: BaseMetaMapper): Boolean ={
+     * Makes a copy of a table. Used to be two overloads - one taking a Lift MetaMapper, one a
+     * plain name for tables that had already moved off Lift Mapper - now that no entity is left
+     * anywhere, only the by-name form remains.
+     */
+    def makeBackUpOfTableByName(tableName: String): Boolean ={
       DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
         conn =>
           try {
-            val tableName = table.dbTableName
             val sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS")
             val resultDate = new Date(System.currentTimeMillis())
             val dbDriver = APIUtil.getPropsValue("db.driver","org.h2.Driver")

@@ -51,9 +51,9 @@ class CustomViewTest extends V510ServerSetup {
     allowed_permissions = List("can_see_transaction_this_bank_account", "can_see_bank_account_owners")
   )
   
-  feature(s"test Authorized access") {
+  Feature(s"test Authorized access") {
     
-    scenario(s"We will call the endpoint, $AuthenticatedUserIsRequired", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint, $AuthenticatedUserIsRequired", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / ownerView /"target-views").POST
       val response510 = makePostRequest(request510, write(postCustomViewJson))
@@ -88,7 +88,7 @@ class CustomViewTest extends V510ServerSetup {
       }
     }
     
-    scenario(s"We will call the endpoint, $SourceViewHasLessPermission", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint, $SourceViewHasLessPermission", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / ownerView /"target-views").POST <@ (user1)
@@ -106,7 +106,7 @@ class CustomViewTest extends V510ServerSetup {
       }
     }
     
-    scenario(s"We will call the endpoint, $ViewDoesNotPermitAccess ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint, $ViewDoesNotPermitAccess ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / ownerView /"target-views").POST <@ (user1)
@@ -154,7 +154,7 @@ class CustomViewTest extends V510ServerSetup {
       }
     }
     
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / manageCustomView /"target-views").POST <@ (user1)

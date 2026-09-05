@@ -1,0 +1,116 @@
+# Schema for what upstream added on the Lift Mapper entities this branch had already moved to
+# Doobie: provenance on the three runtime-compiled-code tables, and the one new entity.
+#
+# Separate file rather than appended to the baseline: the baseline is GENERATED
+# (scripts/GenerateChangelog.java + the normaliser) and regenerating it would drop anything
+# hand-written into it. Every changeset carries a MARK_RAN precondition so a database that already
+# has the column - one built by Schemifier before this branch, say - records it as run instead of
+# failing.
+databaseChangeLog:
+
+  - changeSet:
+      id: add-provenance-columns-dynamicresourcedoc
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: dynamicresourcedoc
+                columnName: methodbodyhash
+      comment: >-
+        Who created / last updated this runtime-compiled endpoint, and a SHA-256 of the decoded
+        method body so drift is detectable. Written server-side from the authenticated user, never
+        from the request body. createdat/updatedat are what Mapper's CreatedUpdated trait set.
+      changes:
+        - addColumn:
+            tableName: dynamicresourcedoc
+            columns:
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: updatedbyuserid, type: VARCHAR(255)}
+              - column: {name: methodbodyhash, type: VARCHAR(64)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: add-provenance-columns-dynamicmessagedoc
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: dynamicmessagedoc
+                columnName: methodbodyhash
+      changes:
+        - addColumn:
+            tableName: dynamicmessagedoc
+            columns:
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: updatedbyuserid, type: VARCHAR(255)}
+              - column: {name: methodbodyhash, type: VARCHAR(64)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: add-provenance-columns-connectormethod
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: connectormethod
+                columnName: methodbodyhash
+      comment: >-
+        Same five columns as the other two tables. The baseline's create-table-connectormethod
+        declares only connectormethodid / methodname / methodbody / lang / id - it never had the
+        CreatedUpdated pair, whatever a quick read of the neighbouring changesets suggests.
+      changes:
+        - addColumn:
+            tableName: connectormethod
+            columns:
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: updatedbyuserid, type: VARCHAR(255)}
+              - column: {name: methodbodyhash, type: VARCHAR(64)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-table-chat-email-digest-state
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: chat_email_digest_state
+      comment: >-
+        Per-user chat email digest state. Upstream added this as a Mapper entity; with
+        ToSchemify.models empty on this branch Schemifier creates nothing, so the table has to come
+        from the changelog or the digest scheduler fails at runtime against a table that is not
+        there.
+      changes:
+        - createTable:
+            tableName: chat_email_digest_state
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: user_id, type: VARCHAR(36)}
+              - column: {name: last_notified_at, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-index-chat-email-digest-state-user-id
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: chat_email_digest_state_user_id
+      comment: One row per user - the Mapper entity declared UniqueIndex(UserId).
+      changes:
+        - createIndex:
+            tableName: chat_email_digest_state
+            indexName: chat_email_digest_state_user_id
+            unique: true
+            columns:
+              - column: {name: user_id}

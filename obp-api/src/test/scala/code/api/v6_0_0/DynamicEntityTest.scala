@@ -170,9 +170,9 @@ class DynamicEntityTest extends V600ServerSetup {
       |""".stripMargin)
 
 
-  feature("v6.0.0 System Level Dynamic Entity endpoints with snake_case JSON") {
+  Feature("v6.0.0 System Level Dynamic Entity endpoints with snake_case JSON") {
 
-    scenario("Create System Dynamic Entity - without any credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create System Dynamic Entity - without any credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a POST request without any credentials")
       val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST
       val response = makePostRequest(request, write(rightEntityV600))
@@ -182,7 +182,7 @@ class DynamicEntityTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
     }
 
-    scenario("Create System Dynamic Entity - without proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create System Dynamic Entity - without proper role", ApiEndpoint1, VersionOfApi) {
       When(s"We make a POST request without the role " + CanCreateSystemLevelDynamicEntity)
       val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
       val response = makePostRequest(request, write(rightEntityV600))
@@ -192,9 +192,9 @@ class DynamicEntityTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
     }
 
-    scenario("Create System Dynamic Entity with consumer scope (no user entitlement)", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create System Dynamic Entity with consumer scope (no user entitlement)", ApiEndpoint1, VersionOfApi) {
       // Add scope to consumer instead of entitlement to user — UserOrApplication should accept this
-      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanCreateSystemLevelDynamicEntity.toString)
+      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.toString, ApiRole.CanCreateSystemLevelDynamicEntity.toString)
 
       When("We create a dynamic entity using consumer with scope")
       val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
@@ -218,7 +218,7 @@ class DynamicEntityTest extends V600ServerSetup {
       makeDeleteRequest(deleteRequest)
     }
 
-    scenario("Create and verify v6.0.0 snake_case response format", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+    Scenario("Create and verify v6.0.0 snake_case response format", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 
       When("We create a dynamic entity with v6.0.0 format")
@@ -286,7 +286,7 @@ class DynamicEntityTest extends V600ServerSetup {
       makeDeleteRequest(deleteRequest)
     }
 
-    scenario("Update System Dynamic Entity with v6.0.0 format", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario("Update System Dynamic Entity with v6.0.0 format", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateSystemLevelDynamicEntity.toString)
 
@@ -320,7 +320,7 @@ class DynamicEntityTest extends V600ServerSetup {
       makeDeleteRequest(deleteRequest)
     }
 
-    scenario("Create Dynamic Entity with invalid schema should fail", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create Dynamic Entity with invalid schema should fail", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 
       When("We try to create a dynamic entity with wrong required field")
@@ -336,9 +336,9 @@ class DynamicEntityTest extends V600ServerSetup {
   }
 
 
-  feature("v6.0.0 Bank Level Dynamic Entity endpoints with snake_case JSON") {
+  Feature("v6.0.0 Bank Level Dynamic Entity endpoints with snake_case JSON") {
 
-    scenario("Create Bank Level Dynamic Entity - without proper role", ApiEndpoint4, VersionOfApi) {
+    Scenario("Create Bank Level Dynamic Entity - without proper role", ApiEndpoint4, VersionOfApi) {
       When(s"We make a POST request without the role " + CanCreateBankLevelDynamicEntity)
       val request = (v6_0_0_Request / "management" / "banks" / bankId / "dynamic-entities").POST <@(user1)
       val response = makePostRequest(request, write(rightEntityV600))
@@ -346,7 +346,7 @@ class DynamicEntityTest extends V600ServerSetup {
       response.code should equal(403)
     }
 
-    scenario("Create and GET Bank Level Dynamic Entity with v6.0.0 format", ApiEndpoint4, ApiEndpoint6, VersionOfApi) {
+    Scenario("Create and GET Bank Level Dynamic Entity with v6.0.0 format", ApiEndpoint4, ApiEndpoint6, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
 
       When("We create a bank level dynamic entity with v6.0.0 format")
@@ -390,7 +390,7 @@ class DynamicEntityTest extends V600ServerSetup {
       makeDeleteRequest(deleteRequest)
     }
 
-    scenario("Update Bank Level Dynamic Entity with v6.0.0 format", ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario("Update Bank Level Dynamic Entity with v6.0.0 format", ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateBankLevelDynamicEntity.toString)
 
@@ -420,9 +420,9 @@ class DynamicEntityTest extends V600ServerSetup {
   }
 
 
-  feature("v6.0.0 My Dynamic Entities endpoints") {
+  Feature("v6.0.0 My Dynamic Entities endpoints") {
 
-    scenario("GET My Dynamic Entities - without user credentials", ApiEndpoint7, VersionOfApi) {
+    Scenario("GET My Dynamic Entities - without user credentials", ApiEndpoint7, VersionOfApi) {
       When("We make a GET request without user credentials")
       val request = (v6_0_0_Request / "my" / "dynamic-entities").GET
       val response = makeGetRequest(request)
@@ -430,7 +430,7 @@ class DynamicEntityTest extends V600ServerSetup {
       response.code should equal(401)
     }
 
-    scenario("GET and Update My Dynamic Entities with v6.0.0 format", ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
+    Scenario("GET and Update My Dynamic Entities with v6.0.0 format", ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
       // First create a system entity with hasPersonalEntity = true
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 
@@ -485,9 +485,9 @@ class DynamicEntityTest extends V600ServerSetup {
   }
 
 
-  feature("v6.0.0 Available Personal Dynamic Entities discovery endpoint") {
+  Feature("v6.0.0 Available Personal Dynamic Entities discovery endpoint") {
 
-    scenario("GET Available Personal Dynamic Entities - without user credentials", ApiEndpoint9, VersionOfApi) {
+    Scenario("GET Available Personal Dynamic Entities - without user credentials", ApiEndpoint9, VersionOfApi) {
       When("We make a GET request without user credentials")
       val request = (v6_0_0_Request / "personal-dynamic-entities" / "available").GET
       val response = makeGetRequest(request)
@@ -495,7 +495,7 @@ class DynamicEntityTest extends V600ServerSetup {
       response.code should equal(401)
     }
 
-    scenario("GET Available Personal Dynamic Entities returns only entities with hasPersonalEntity=true", ApiEndpoint9, VersionOfApi) {
+    Scenario("GET Available Personal Dynamic Entities returns only entities with hasPersonalEntity=true", ApiEndpoint9, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 
       // Create entity WITH hasPersonalEntity = true
@@ -546,9 +546,9 @@ class DynamicEntityTest extends V600ServerSetup {
   }
 
 
-  feature("v6.0.0 Dynamic Entity schema field validation") {
+  Feature("v6.0.0 Dynamic Entity schema field validation") {
 
-    scenario("Verify schema contains only schema structure, not entity name wrapper", ApiEndpoint1, VersionOfApi) {
+    Scenario("Verify schema contains only schema structure, not entity name wrapper", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 
       val createRequest = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
@@ -578,9 +578,9 @@ class DynamicEntityTest extends V600ServerSetup {
   }
 
 
-  feature("v6.0.0 Dynamic Entity _links match resource doc URLs") {
+  Feature("v6.0.0 Dynamic Entity _links match resource doc URLs") {
 
-    scenario("_links URLs for personal/public/community must match resource doc URLs", ApiEndpoint1, ApiEndpoint9, VersionOfApi) {
+    Scenario("_links URLs for personal/public/community must match resource doc URLs", ApiEndpoint1, ApiEndpoint9, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 
       // Create entity with all access flags enabled

@@ -3,7 +3,8 @@ package code.api.util
 import code.api.JedisMethod
 import code.api.cache.Redis
 import code.setup.RedisTestTarget
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * `NewStyle.function.invalidateEndpointMappingCache` guards against the write-then-invalidate
@@ -21,7 +22,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * own concurrency scenarios -- and this asserts the mechanism that is supposed to catch it: a
  * second, delayed delete.
  */
-class EndpointMappingCacheInvalidationTest extends FlatSpec with Matchers {
+class EndpointMappingCacheInvalidationTest extends AnyFlatSpec with Matchers {
 
   private def redis(): Unit =
     RedisTestTarget.requireReachable(Redis.isRedisReady, "the endpoint-mapping cache invalidation race guard")

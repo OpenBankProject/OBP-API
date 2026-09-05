@@ -38,9 +38,9 @@ class CounterpartyTest extends V400ServerSetup {
   object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.getExplicitCounterpartiesForAccount))
 
 
-  feature(s" test manage counterparties endpoints.") {
+  Feature(s" test manage counterparties endpoints.") {
 
-    scenario(s"Successful Case $ApiEndpoint1 + $ApiEndpoint2 +$ApiEndpoint3+$ApiEndpoint4 + $ApiEndpoint9") {
+    Scenario(s"Successful Case $ApiEndpoint1 + $ApiEndpoint2 +$ApiEndpoint3+$ApiEndpoint4 + $ApiEndpoint9") {
 
       Given("The user owner access and BankAccount")
       val bankId = testBankId1
@@ -133,7 +133,7 @@ class CounterpartyTest extends V400ServerSetup {
 
     }
 
-    scenario("Successful Case - no mapping account in counterparty body") {
+    Scenario("Successful Case - no mapping account in counterparty body") {
 
       Given("The user owner access and BankAccount")
       val bankId = testBankId1
@@ -174,7 +174,7 @@ class CounterpartyTest extends V400ServerSetup {
 
     }
 
-    scenario(s"Error - Missing Roles") {
+    Scenario(s"Error - Missing Roles") {
       Given("The user, but no role")
 
       val bankId = testBankId1
@@ -245,7 +245,7 @@ class CounterpartyTest extends V400ServerSetup {
       responseDelete.code should equal(403)
     }
 
-    scenario("No BankAccount in Database") {
+    Scenario("No BankAccount in Database") {
       Given("The user, but no BankAccount")
 
       val testBank = createBank("transactions-test-bank")
@@ -265,7 +265,7 @@ class CounterpartyTest extends V400ServerSetup {
       responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.BankAccountNotFound)
     }
 
-    scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
+    Scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
       Given("The user owner access and BankAccount")
       val bankId = testBankId1
       val accountId = testAccountId1
@@ -288,9 +288,9 @@ class CounterpartyTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test account level counterparties.") {
+  Feature(s"test account level counterparties.") {
 
-    scenario(s"Successful Case $ApiEndpoint5 + $ApiEndpoint6 +$ApiEndpoint7+$ApiEndpoint8") {
+    Scenario(s"Successful Case $ApiEndpoint5 + $ApiEndpoint6 +$ApiEndpoint7+$ApiEndpoint8") {
 
       Given("The user owner access and BankAccount")
       val bankId = testBankId1
@@ -353,7 +353,7 @@ class CounterpartyTest extends V400ServerSetup {
         responseGet.code should equal(400)
       }
     }
-    scenario(s"no view permissions") {
+    Scenario(s"no view permissions") {
 
       Given("The user owner access and BankAccount")
       val bankId = testBankId1

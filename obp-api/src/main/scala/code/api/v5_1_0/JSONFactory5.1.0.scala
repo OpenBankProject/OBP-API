@@ -47,8 +47,6 @@ import code.api.v5_0_0.PostConsentRequestJsonV500
 import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.users.UserAgreement
-import net.liftweb.mapper.By
-import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.consent.MappedConsent
 import code.metrics.APIMetric
@@ -789,14 +787,14 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
 
   def waitingForGodot(sleep: Long): WaitingForGodotJsonV510 = WaitingForGodotJsonV510(sleep)
 
-  def createAtmsJsonV510(atmAndAttributesTupleList: List[(AtmT, List[AtmAttribute])] ): AtmsJsonV510 = {
+  def createAtmsJsonV510(atmAndAttributesTupleList: List[(AtmT, List[AtmAttributeTrait])] ): AtmsJsonV510 = {
     AtmsJsonV510(atmAndAttributesTupleList.map(
       atmAndAttributesTuple =>
         createAtmJsonV510(atmAndAttributesTuple._1,atmAndAttributesTuple._2)
     ))
   }
 
-  def createAtmJsonV510(atm: AtmT, atmAttributes:List[AtmAttribute]): AtmJsonV510 = {
+  def createAtmJsonV510(atm: AtmT, atmAttributes:List[AtmAttributeTrait]): AtmJsonV510 = {
     AtmJsonV510(
       id = Some(atm.atmId.value),
       bank_id = atm.bankId.value,
@@ -1103,7 +1101,7 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
-  def createAtmAttributeJson(atmAttribute: AtmAttribute): AtmAttributeResponseJsonV510 =
+  def createAtmAttributeJson(atmAttribute: AtmAttributeTrait): AtmAttributeResponseJsonV510 =
     AtmAttributeResponseJsonV510(
       bank_id = atmAttribute.bankId.value,
       atm_id = atmAttribute.atmId.value,
@@ -1114,7 +1112,7 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
       is_active = atmAttribute.isActive
     )
 
-  def createAtmAttributesJson(atmAttributes: List[AtmAttribute]): AtmAttributesResponseJsonV510 =
+  def createAtmAttributesJson(atmAttributes: List[AtmAttributeTrait]): AtmAttributesResponseJsonV510 =
     AtmAttributesResponseJsonV510(atmAttributes.map(createAtmAttributeJson))
 
   def createUserAttributeJson(userAttribute: UserAttribute): UserAttributeResponseJsonV510 = {
@@ -1183,7 +1181,10 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
 
   def createConsumerJSON(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): ConsumerJsonV510 = {
 
-    val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+    // consumer.createdbyuserid is nullable and reads back as null, as MappedString did. This
+    // used to call .toString() on the Mapper FIELD, whose toString maps null to "" - now it
+    // is a raw String, so the same call threw. "" reproduces the old lookup, which found none.
+    val resourceUserJSON = Users.users.vend.getUserByUserId(Option(c.createdByUserId).getOrElse("")) match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
         email = resourceUser.emailAddress,
@@ -1195,25 +1196,31 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     }
 
     ConsumerJsonV510(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      app_name = c.name.get,
-      app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      app_name = c.name,
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type = Option(c.appType).getOrElse(""),
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url =  if (c.logoUrl == null || c.logoUrl.isEmpty ) null else Some(c.logoUrl)
     )
   }
   def createMyConsumerJSON(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): MyConsumerJsonV510 = {
 
-    val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+    // consumer.createdbyuserid is nullable and reads back as null, as MappedString did. This
+    // used to call .toString() on the Mapper FIELD, whose toString maps null to "" - now it
+    // is a raw String, so the same call threw. "" reproduces the old lookup, which found none.
+    val resourceUserJSON = Users.users.vend.getUserByUserId(Option(c.createdByUserId).getOrElse("")) match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
         email = resourceUser.emailAddress,
@@ -1225,26 +1232,32 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     }
 
     MyConsumerJsonV510(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      consumer_secret = c.secret.get,
-      app_name = c.name.get,
-      app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      consumer_secret = c.secret,
+      app_name = c.name,
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type = Option(c.appType).getOrElse(""),
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url =  if (c.logoUrl == null || c.logoUrl.isEmpty ) null else Some(c.logoUrl)
     )
   }
   def createConsumerJsonOnlyForPostResponseV510(c: Consumer, certificateInfo: Option[CertificateInfoJsonV510] = None): ConsumerJsonOnlyForPostResponseV510 = {
 
-    val resourceUserJSON = Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+    // consumer.createdbyuserid is nullable and reads back as null, as MappedString did. This
+    // used to call .toString() on the Mapper FIELD, whose toString maps null to "" - now it
+    // is a raw String, so the same call threw. "" reproduces the old lookup, which found none.
+    val resourceUserJSON = Users.users.vend.getUserByUserId(Option(c.createdByUserId).getOrElse("")) match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
         email = resourceUser.emailAddress,
@@ -1256,21 +1269,24 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     }
 
     ConsumerJsonOnlyForPostResponseV510(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      consumer_secret = c.secret.get,
-      app_name = c.name.get,
-      app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      consumer_secret = c.secret,
+      app_name = c.name,
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type = Option(c.appType).getOrElse(""),
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url =  if (c.logoUrl.get == null || c.logoUrl.get.isEmpty ) null else Some(c.logoUrl.get)
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url =  if (c.logoUrl == null || c.logoUrl.isEmpty ) null else Some(c.logoUrl)
     )
   }
 
@@ -1292,10 +1308,10 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
   }
 
   def createViewPermissionJson(viewPermission: ViewPermission): ViewPermissionJson = {
-    val value = viewPermission.extraData.get
+    val value = viewPermission.extraData.orNull
     ViewPermissionJson(
-      viewPermission.view_id.get,
-      viewPermission.permission.get,
+      viewPermission.viewId,
+      viewPermission.permission,
       if(value == null || value.isEmpty) None else Some(value.split(",").toList)
     )
   }
@@ -1359,8 +1375,8 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
           per_day_call_limit = i.perDayCallLimit.toString,
           per_week_call_limit = i.perWeekCallLimit.toString,
           per_month_call_limit = i.perMonthCallLimit.toString,
-          created_at = i.createdAt.get,
-          updated_at = i.updatedAt.get,
+          created_at = i.createdAt,
+          updated_at = i.updatedAt,
         )
       )
     )

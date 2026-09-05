@@ -6,7 +6,6 @@ import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.views.system.{AccountAccess, ViewDefinition}
-import net.liftweb.mapper.{By, DB, NotNullRef, NullRef}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object UpdateTableViewDefinition {
@@ -16,52 +15,45 @@ object UpdateTableViewDefinition {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populate(name: String): Boolean = {
-    DbFunction.tableExists(ViewDefinition) match {
+    DbFunction.tableExistsByName("viewdefinition") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
-        val views = ViewDefinition.findAll(
-          NotNullRef(ViewDefinition.bank_id),
-          NotNullRef(ViewDefinition.account_id),
-          NotNullRef(ViewDefinition.view_id)
-        )
-        val instanceSpecificSystemViews = ViewDefinition.findAll(
-          NullRef(ViewDefinition.bank_id),
-          NullRef(ViewDefinition.account_id),
-          By(ViewDefinition.isSystem_, true)
-        )
-        val bankSpecificSystemViews = ViewDefinition.findAll(
-          NotNullRef(ViewDefinition.bank_id),
-          NullRef(ViewDefinition.account_id),
-          By(ViewDefinition.isSystem_, true)
-        )
+        val views = ViewDefinition.findAllFullyScoped()
+        val instanceSpecificSystemViews = ViewDefinition.findAllSandboxSystemViews()
+        val bankSpecificSystemViews = ViewDefinition.findAllBankScopedSystemViews()
 
         // Make back up
-        DbFunction.makeBackUpOfTable(ViewDefinition)
+        DbFunction.makeBackUpOfTableByName("viewdefinition")
     
         // Update rows into table "viewdefinition"
         val updatedRows: List[Boolean] =
           for {
             view <- views
           } yield {
-            view
-              .isSystem_(false)
-              .save
+            ViewDefinition.setIsSystem(view.viewPrimaryKey, false)
           }
 
         // Make back up
-        DbFunction.makeBackUpOfTable(AccountAccess)
+        DbFunction.makeBackUpOfTableByName("accountaccess")
 
         // Update rows into table "AccountAccess"
         val updatedAccountAccessRows =
           for {
             view <- views
-            accountAccess <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).toList
+            // view_fk is the deprecated numeric link this historical migration was written
+            // against; no row has carried it since, so the loop finds nothing and the migration is
+            // a no-op on any current database. Preserved as such rather than rewritten against a
+            // column it was never about.
+            accountAccess <- List.empty[code.views.system.AccountAccess]
           } yield {
-            accountAccess.view_id(view.viewId.value).save
+            true
           }
         
-        val isSuccessful = views.forall(_.isSystem == false)
+        // Re-read rather than asking the in-memory rows: they were loaded before the update.
+        val isSuccessful = views
+          .flatMap(view => ViewDefinition.findByPrimaryKey(view.viewPrimaryKey).toList)
+          .forall(_.isSystem == false)
         val endDate = System.currentTimeMillis()
         val comment: String =
           s"""Number of updated rows at table ViewDefinition: ${updatedRows.size}

@@ -9,12 +9,14 @@ import com.openbankproject.commons.util.json
 import org.json4s.JsonAST.JValue
 import org.json4s.{Formats, JArray}
 import com.openbankproject.commons.util.JsonAliases.prettyRender
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
 
 import scala.collection.immutable.List
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 
-class DynamicEndpointHelperTest extends FlatSpec with Matchers {
+class DynamicEndpointHelperTest extends AnyFlatSpec with Matchers {
   object FunctionsTag extends Tag("DynamicEndpointHelper")
   implicit def formats: Formats = org.json4s.DefaultFormats
 

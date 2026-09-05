@@ -1,10 +1,12 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
+import org.json4s.jvalue2monadic
 
 import org.json4s.JsonAST.{JNothing, JString, JValue}
 import org.json4s.native.JsonMethods.parse
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * An Option field must be documented as the thing it holds, not as an array of it.
@@ -24,28 +26,35 @@ import org.scalatest.{FlatSpec, Matchers}
  * These are checks on the published contract, not on internals: the swagger definitions are what
  * clients generate code from, and a string that claims to be an array of strings breaks them.
  */
-class SwaggerOptionFieldTypeTest extends FlatSpec with Matchers {
+// Declared at file scope, not nested inside the test class: SwaggerJSONFactory.translateEntity
+// reflects on the value's runtime type via scala.reflect.runtime.universe, which for a nested
+// case class also has to resolve the enclosing class - here that would be a ScalaTest suite
+// (AnyFlatSpec/Matchers/Assertions), and walking that unrelated third-party hierarchy throws
+// (same class of scala-reflect symbol-table limitation as the CyclicReference fix in
+// RestConnector_vMar2019_FrozenTest, reached via a nested-case-class's outer pointer instead of a
+// connector type's base classes). A file-scope case class has no such enclosing class to resolve.
+case class Inner(x: String)
+case class OptionalScalars(
+  optString: Option[String],
+  optInner: Option[Inner],
+  plainString: String
+)
+object Colour extends Enumeration { type Colour = Value; val Red, Green = Value }
 
-  case class Inner(x: String)
-  case class OptionalScalars(
-    optString: Option[String],
-    optInner: Option[Inner],
-    plainString: String
-  )
-  object Colour extends Enumeration { type Colour = Value; val Red, Green = Value }
+case class Enums(
+  oneEnum: Colour.Value,
+  listOfEnum: List[Colour.Value],
+  optListOfEnum: Option[List[Colour.Value]],
+  optEnum: Option[Colour.Value]
+)
 
-  case class Enums(
-    oneEnum: Colour.Value,
-    listOfEnum: List[Colour.Value],
-    optListOfEnum: Option[List[Colour.Value]],
-    optEnum: Option[Colour.Value]
-  )
+case class RealCollections(
+  listOfString: List[String],
+  optListOfString: Option[List[String]],
+  optListOfDate: Option[List[Date]]
+)
 
-  case class RealCollections(
-    listOfString: List[String],
-    optListOfString: Option[List[String]],
-    optListOfDate: Option[List[Date]]
-  )
+class SwaggerOptionFieldTypeTest extends AnyFlatSpec with Matchers {
 
   /**
    * The field's schema, parsed. Asserted on structurally rather than by substring: the factory

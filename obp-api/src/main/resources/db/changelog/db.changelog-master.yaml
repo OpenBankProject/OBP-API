@@ -1,0 +1,70 @@
+# The root changelog: the single description of the schema that every vendor's DDL is generated
+# from.
+#
+# Why one description instead of the 118-per-vendor arrangement it replaces: Flyway applies
+# hand-written SQL, so supporting a database means writing and maintaining a whole script set in
+# its dialect - which is why h2 and postgres have 118 scripts each and mysql, sqlserver and oracle
+# have none at all, despite FlywaySchemaSetup.vendorFolder naming all five. Liquibase generates
+# each vendor's dialect from the change described once, so a deployment on a database nobody here
+# runs is a supported configuration rather than a missing folder.
+#
+# The split is by provenance, which is the distinction that matters when any of this is
+# regenerated:
+#
+#   baseline  generated from a Postgres database built by the Flyway scripts, so it inherits
+#             Schemifier's exported DDL rather than a hand-written idea of the schema. Regenerate
+#             it with scripts/GenerateChangelog.java + scripts/normalise_generated_changelog.py;
+#             do not hand-edit it.
+#   oidc-views  hand-written. The three views OBP-OIDC and the Keycloak provider read, which no
+#             other mechanism creates - a fresh database used to come up with OIDC login broken and
+#             nothing saying why. Included after the baseline, since they read its tables.
+#   app-views hand-written. The two views the application's own request paths read, v_consent and
+#             v_account_access_with_views. They were left to the MigrationOf* scripts, which run
+#             only when migration_scripts.enabled AND migration_scripts.execute_all are both true -
+#             both default false - so a deployment from the shipped props template came up with
+#             every table present and 500ed on the first request that touched a consent. Carries
+#             the same oidc-views context, which marks the pass that runs after those scripts.
+#   dedup     hand-written. The DELETEs that make the unique indexes creatable, which a snapshot
+#             cannot see and which therefore have to be carried across by hand. Included first, so
+#             each runs before the createIndex it clears the way for.
+#
+# text.type is the one column type with no portable spelling. Lift's MappedText became
+# CHARACTER VARYING(1000000000) on H2 - Schemifier's own output - and the H2 -> Postgres
+# translation had to turn that into TEXT, since Postgres caps varchar at 10485760. Liquibase's
+# built-in TEXT is not a substitute for either: on H2 it produces CHARACTER LARGE OBJECT, a CLOB
+# read through a different JDBC path than a varchar, across 36 columns of the database the entire
+# test suite runs against. So each vendor names its own, and H2SchemaEquivalenceTest and
+# SchemaEquivalenceTest hold the result against what the scripts build.
+databaseChangeLog:
+  - property:
+      name: text.type
+      value: VARCHAR(1000000000)
+      dbms: h2
+  - property:
+      name: text.type
+      value: TEXT
+      dbms: postgresql
+  - property:
+      name: text.type
+      value: LONGTEXT
+      dbms: mysql
+  - property:
+      name: text.type
+      value: NVARCHAR(MAX)
+      dbms: mssql
+  - property:
+      name: text.type
+      value: CLOB
+      dbms: oracle
+  - include:
+      file: db/changelog/db.changelog-dedup.yaml
+  - include:
+      file: db/changelog/db.changelog-baseline.yaml
+  - include:
+      file: db/changelog/db.changelog-provenance.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge.yaml
+  - include:
+      file: db/changelog/db.changelog-oidc-views.yaml
+  - include:
+      file: db/changelog/db.changelog-app-views.yaml

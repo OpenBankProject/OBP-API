@@ -49,9 +49,9 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.getMessageDocsJsonSchema))
 
-  feature("Get Message Docs as JSON Schema - v6.0.0") {
+  Feature("Get Message Docs as JSON Schema - v6.0.0") {
     
-    scenario("We get JSON Schema for rabbitmq_vOct2024 connector", ApiEndpoint1, VersionOfApi) {
+    Scenario("We get JSON Schema for rabbitmq_vOct2024 connector", ApiEndpoint1, VersionOfApi) {
       When("We make a request to get message docs as JSON Schema")
       val request = (v6_0_0_Request / "message-docs" / "rabbitmq_vOct2024" / "json-schema").GET
       val response = makeGetRequest(request)
@@ -114,7 +114,7 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
       (inboundType.isDefined || inboundRef.isDefined) shouldBe true
     }
     
-    scenario("We get JSON Schema for rest_vMar2019 connector", ApiEndpoint1, VersionOfApi) {
+    Scenario("We get JSON Schema for rest_vMar2019 connector", ApiEndpoint1, VersionOfApi) {
       When("We make a request to get message docs as JSON Schema")
       val request = (v6_0_0_Request / "message-docs" / "rest_vMar2019" / "json-schema").GET
       val response = makeGetRequest(request)
@@ -128,7 +128,7 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
       schemaVersion shouldBe defined
     }
     
-    scenario("We get JSON Schema for akka_vDec2018 connector", ApiEndpoint1, VersionOfApi) {
+    Scenario("We get JSON Schema for akka_vDec2018 connector", ApiEndpoint1, VersionOfApi) {
       When("We make a request to get message docs as JSON Schema")
       val request = (v6_0_0_Request / "message-docs" / "akka_vDec2018" / "json-schema").GET
       val response = makeGetRequest(request)
@@ -142,7 +142,7 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
       schemaVersion shouldBe defined
     }
     
-    scenario("We try to get JSON Schema for invalid connector", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get JSON Schema for invalid connector", ApiEndpoint1, VersionOfApi) {
       When("We make a request with invalid connector name")
       val request = (v6_0_0_Request / "message-docs" / "invalid_connector" / "json-schema").GET
       val response = makeGetRequest(request)
@@ -156,7 +156,7 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
       errorMessage.get should include("Invalid Connector")
     }
     
-    scenario("We verify schema includes nested type definitions", ApiEndpoint1, VersionOfApi) {
+    Scenario("We verify schema includes nested type definitions", ApiEndpoint1, VersionOfApi) {
       When("We make a request to get message docs as JSON Schema")
       val request = (v6_0_0_Request / "message-docs" / "rabbitmq_vOct2024" / "json-schema").GET
       val response = makeGetRequest(request)
@@ -187,7 +187,7 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
       }
     }
     
-    scenario("We verify schema marks required fields correctly", ApiEndpoint1, VersionOfApi) {
+    Scenario("We verify schema marks required fields correctly", ApiEndpoint1, VersionOfApi) {
       When("We make a request to get message docs as JSON Schema")
       val request = (v6_0_0_Request / "message-docs" / "rabbitmq_vOct2024" / "json-schema").GET
       val response = makeGetRequest(request)
@@ -213,7 +213,7 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
       }
     }
     
-    scenario("We verify process names match connector method names", ApiEndpoint1, VersionOfApi) {
+    Scenario("We verify process names match connector method names", ApiEndpoint1, VersionOfApi) {
       When("We make a request to get message docs as JSON Schema")
       val request = (v6_0_0_Request / "message-docs" / "rabbitmq_vOct2024" / "json-schema").GET
       val response = makeGetRequest(request)
@@ -232,7 +232,7 @@ class MessageDocsJsonSchemaTest extends V600ServerSetup {
       }
     }
 
-    scenario("We validate schema is industry-standard JSON Schema draft-07 using networknt validator", ApiEndpoint1, VersionOfApi) {
+    Scenario("We validate schema is industry-standard JSON Schema draft-07 using networknt validator", ApiEndpoint1, VersionOfApi) {
       When("We make a request to get message docs as JSON Schema")
       val request = (v6_0_0_Request / "message-docs" / "rabbitmq_vOct2024" / "json-schema").GET
       val response = makeGetRequest(request)

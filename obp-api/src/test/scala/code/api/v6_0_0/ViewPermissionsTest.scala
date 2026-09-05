@@ -1,6 +1,8 @@
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.ApiRole.CanGetViewPermissionsAtAllBanks
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
@@ -32,9 +34,9 @@ class ViewPermissionsTest extends V600ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.getViewPermissions))
 
-  feature(s"Test GET /management/view-permissions endpoint - $VersionOfApi") {
+  Feature(s"Test GET /management/view-permissions endpoint - $VersionOfApi") {
 
-    scenario("We try to get view permissions - Anonymous access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get view permissions - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "management" / "view-permissions").GET
       val response = makeGetRequest(request)
@@ -43,7 +45,7 @@ class ViewPermissionsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to get view permissions without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get view permissions without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request as user1 without the CanGetViewPermissionsAtAllBanks role")
       val request = (v6_0_0_Request / "management" / "view-permissions").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -53,7 +55,7 @@ class ViewPermissionsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetViewPermissionsAtAllBanks)
     }
 
-    scenario("We try to get view permissions with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get view permissions with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We grant the CanGetViewPermissionsAtAllBanks role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetViewPermissionsAtAllBanks.toString)
       
@@ -87,7 +89,7 @@ class ViewPermissionsTest extends V600ServerSetup with DefaultUsers {
       categories.size should be > 0
     }
 
-    scenario("Verify all permission constants are included", ApiEndpoint1, VersionOfApi) {
+    Scenario("Verify all permission constants are included", ApiEndpoint1, VersionOfApi) {
       When("We grant the CanGetViewPermissionsAtAllBanks role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetViewPermissionsAtAllBanks.toString)
       

@@ -20,7 +20,7 @@ import code.bankconnectors.ethereum.DecodeRawTx
 import code.branches.MappedBranch
 import code.fx.fx
 import code.fx.fx.TTL
-import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
+import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import code.model.toBankAccountExtended
 import code.transaction.MappedTransaction
 import code.transactionrequests._
@@ -32,18 +32,15 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common._
 import org.json4s.JsonAST.JValue
 import org.json4s.native.Serialization.write
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.StringHelpers
 
 import java.time.{LocalDate, ZoneId}
-import java.util.UUID.randomUUID
 import java.util.{Calendar, Date}
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
@@ -131,7 +128,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         user.name,
         callContext
       ) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold - ${nameOf(Connector.connector.vend.getChallengeThreshold _)}", 400), i._2)
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold - getChallengeThreshold", 400), i._2)
       }
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)
@@ -252,19 +249,20 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     callContext: Option[CallContext]
   ): Box[(Bank, BankAccount)] = {
     //don't require and exact match on the name, just the identifier
-    val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
+    val bank = MappedBank.findByNationalIdentifier(bankNationalIdentifier) match {
       case Full(b) =>
         logger.debug(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
         b
       case _ =>
         logger.debug(s"creating bank with national identifier $bankNationalIdentifier")
         //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
-        MappedBank.create
-          .permalink(Helper.generatePermalink(bankName))
-          .fullBankName(bankName)
-          .shortBankName(bankName)
-          .national_identifier(bankNationalIdentifier)
-          .saveMe()
+        MappedBank.insert(
+          bankId = Helper.generatePermalink(bankName),
+          fullBankName = bankName,
+          shortBankName = bankName,
+          logoURL = "", websiteURL = "", swiftBIC = "",
+          nationalIdentifier = bankNationalIdentifier,
+          bankRoutingScheme = "", bankRoutingAddress = "", createdByUserId = "")
     }
 
     //TODO: pass in currency as a parameter?
@@ -300,24 +298,18 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         Full(a)
       case _ => tryo {
         accountRoutings.map(accountRouting =>
-          BankAccountRouting.create
-            .BankId(bankId.value)
-            .AccountId(accountId.value)
-            .AccountRoutingScheme(accountRouting.scheme)
-            .AccountRoutingAddress(accountRouting.address)
-            .saveMe()
+          DoobieBankAccountRoutingQueries.create(bankId, accountId, accountRouting.scheme, accountRouting.address)
         )
-        MappedBankAccount.create
-          .bank(bankId.value)
-          .theAccountId(accountId.value)
-          .accountNumber(accountNumber)
-          .kind(accountType)
-          .accountLabel(accountLabel)
-          .accountCurrency(currency.toUpperCase)
-          .accountBalance(balanceInSmallestCurrencyUnits)
-          .holder(accountHolderName)
-          .mBranchId(branchId)
-          .saveMe()
+        MappedBankAccount.insert(
+          bankId = bankId.value,
+          accountId = accountId.value,
+          accountNumber = accountNumber,
+          kind = accountType,
+          accountLabel = accountLabel,
+          accountCurrency = currency.toUpperCase,
+          accountBalance = balanceInSmallestCurrencyUnits,
+          holder = accountHolderName,
+          branchId = branchId)
       }
     }
   }
@@ -402,23 +394,14 @@ object LocalMappedConnectorInternal extends MdcLoggable {
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   def accountExists(bankId : BankId, accountNumber : String) : Box[Boolean] = {
-    Full(MappedBankAccount.count(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.accountNumber, accountNumber)) > 0)
+    Full(MappedBankAccount.findAllByAccountNumber(Some(bankId.value), accountNumber).nonEmpty)
   }
 
   def getBranchLocal(bankId: BankId, branchId: BranchId): Box[BranchT] = {
-    MappedBranch
-      .find(
-        By(MappedBranch.mBankId, bankId.value),
-        By(MappedBranch.mBranchId, branchId.value))
-      .map(
-        branch =>
-          branch.branchRouting.map(_.scheme) == null && branch.branchRouting.map(_.address) == null match {
-            case true => branch.mBranchRoutingScheme("OBP").mBranchRoutingAddress(branch.branchId.value)
-            case _ => branch
-          }
-      )
+    // The Mapper version tried to default the routing scheme to "OBP" here, but its guard compared
+    // an Option[String] to null and so was always false — the defaulting has never happened and the
+    // stored value is what callers see. Preserved as a plain lookup.
+    MappedBranch.find(bankId.value, branchId.value)
   }
 
   /**
@@ -426,9 +409,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
    * In Mapped, we will ignore accountId, viewId for now.
    */
   def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
-    val transactionRequestTypeChargeMapper = MappedTransactionRequestTypeCharge.find(
-      By(MappedTransactionRequestTypeCharge.mBankId, bankId.value),
-      By(MappedTransactionRequestTypeCharge.mTransactionRequestTypeId, transactionRequestType.value))
+    val transactionRequestTypeChargeMapper =
+      MappedTransactionRequestTypeCharge.find(bankId.value, transactionRequestType.value)
 
     val transactionRequestTypeCharge = transactionRequestTypeChargeMapper match {
       case Full(transactionRequestType) => TransactionRequestTypeChargeMock(
@@ -478,25 +460,23 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     Full(cardList)
   }
 
-  // @CacheKeyOmit on callContext: the rate depends on the bank and the currency pair only, but
-  // CacheKeyFromArguments renders every un-annotated parameter into the key, and CallContext
-  // carries per-request state (startTime, correlationId, url, verb, ipAddress, user). Keying on
-  // it made the key unique per request: the cache could never hit, and every call wrote a fresh
-  // Redis entry that lived out code.fx.exchangeRate.cache.ttl.seconds. The generated connectors
-  // have always annotated their callContext (see ConnectorBuilderUtil); this hand-written site
-  // simply never did.
-  def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, @CacheKeyOmit callContext: Option[CallContext]): Box[FXRate] = {
-    /**
-     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-     * is just a temporary value field with UUID values in order to prevent any ambiguity.
-     * The real value will be assigned by Macro during compile time at this line of a code:
-     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-     */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
-        Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode, callContext)
-      }
+  // The rate depends on the bank and the currency pair only. callContext is deliberately left
+  // out of the key. Upstream fixes the same bug with @CacheKeyOmit; this branch builds the key
+  // by hand instead, which does not depend on CacheKeyFromArguments rendering every
+  // un-annotated parameter - and so cannot be re-broken by a change in macro behaviour.
+  // CallContext carries per-request state (startTime, correlationId, url, verb, ipAddress,
+  // user), so keying on it made the key unique per request: the cache could never hit, and
+  // every call wrote a fresh Redis entry that lived out code.fx.exchangeRate.cache.ttl.seconds.
+  // out of the key, which diverges from the macro-era key format at this site: it carries
+  // per-request state (startTime, correlationId, url, verb, ipAddress, user), so keying on it
+  // made the key unique per request - the cache could never hit and every call wrote a fresh
+  // Redis entry that lived out code.fx.exchangeRate.cache.ttl.seconds. Excluding it matches
+  // every other cache site, and the connector generator (ConnectorBuilderUtil) already stamps
+  // @CacheKeyOmit onto callContext for the methods it generates.
+  def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Box[FXRate] = {
+    val cacheKey = ("code.bankconnectors.LocalMappedConnectorInternal", "getCurrentFxRateCached", List(bankId, fromCurrencyCode, toCurrencyCode).mkString("_"))
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
+      Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode, callContext)
     }
   }
   
@@ -522,33 +502,31 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         Helper.convertToSmallestCurrencyUnits(amount, currency)
       ) ?~! UpdateBankAccountException
 
-      mappedTransaction <- tryo(MappedTransaction.create
+      mappedTransaction <- tryo(MappedTransaction.insert(
         //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
-        .bank(fromAccount.bankId.value)
-        .account(fromAccount.accountId.value)
-        .transactionType(transactionRequestType.value)
-        .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
-        .newAccountBalance(newAccountBalance)
-        .currency(currency)
-        .tStartDate(now)
-        .tFinishDate(now)
-        .description(description)
-        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
-        .counterpartyAccountHolder(toAccount.accountHolder)
-        .counterpartyAccountNumber(toAccount.number)
-        .counterpartyAccountKind(toAccount.accountType)
-        .counterpartyBankName(toAccount.bankName)
-        .counterpartyIban(toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""))
-        .counterpartyNationalId(toAccount.nationalIdentifier)
+        bank = fromAccount.bankId.value,
+        account = fromAccount.accountId.value,
+        transactionType = transactionRequestType.value,
+        amount = Helper.convertToSmallestCurrencyUnits(amount, currency),
+        newAccountBalance = newAccountBalance,
+        currency = currency,
+        tStartDate = now,
+        tFinishDate = now,
+        description = description,
+        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
+        counterpartyAccountHolder = toAccount.accountHolder,
+        counterpartyAccountNumber = toAccount.number,
+        counterpartyAccountKind = toAccount.accountType,
+        counterpartyBankName = toAccount.bankName,
+        counterpartyIban = toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""),
+        counterpartyNationalId = toAccount.nationalIdentifier,
         //New data: real counterparty (toCounterparty: CounterpartyTrait)
-        //      .CPCounterPartyId(toAccount.accountId.value)
-        .CPOtherAccountRoutingScheme(toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
-        .CPOtherAccountRoutingAddress(toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
-        .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
-        .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
-        .chargePolicy(chargePolicy)
-        .status(com.openbankproject.commons.model.enums.TransactionRequestStatus.COMPLETED.toString)
-        .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
+        cpOtherAccountRoutingScheme = toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+        cpOtherAccountRoutingAddress = toAccount.accountRoutings.headOption.map(_.address).getOrElse(""),
+        cpOtherBankRoutingScheme = toAccount.bankRoutingScheme,
+        cpOtherBankRoutingAddress = toAccount.bankRoutingAddress,
+        chargePolicy = chargePolicy,
+        status = com.openbankproject.commons.model.enums.TransactionRequestStatus.COMPLETED.toString)) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
     } yield {
       mappedTransaction.theTransactionId
     }
@@ -556,27 +534,18 @@ object LocalMappedConnectorInternal extends MdcLoggable {
 
   def getTransactionRequestsInternal(fromBankId: BankId, fromAccountId: AccountId, counterpartyId: CounterpartyId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[MappedTransactionRequest]]] = {
 
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransactionRequest.updatedAt, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransactionRequest.updatedAt, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransactionRequest.updatedAt, Ascending)
-          case OBPDescending => OrderBy(MappedTransactionRequest.updatedAt, Descending)
-        }
-    }
-
-    val optionalParams: Seq[QueryParam[MappedTransactionRequest]] = Seq(fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(
-      By(MappedTransactionRequest.mFrom_BankId, fromBankId.value), 
-      By(MappedTransactionRequest.mFrom_AccountId, fromAccountId.value),
-      By(MappedTransactionRequest.mCounterpartyId, counterpartyId.value),
-      By(MappedTransactionRequest.mStatus, TransactionRequestStatus.COMPLETED.toString)
-    ) ++ optionalParams
+    val fromDate = queryParams.collect { case OBPFromDate(date) => date }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => date }.headOption
+    //we don't care about the intended sort field and only sort on finish date for now
+    val ascending = queryParams.collect {
+      case OBPOrdering(_, OBPAscending) => true
+      case OBPOrdering(_, OBPDescending) => false
+    }.headOption
 
     Future {
-      (Full(MappedTransactionRequest.findAll(mapperParams: _*)), callContext)
+      (Full(MappedTransactionRequest.findAllCompletedToCounterparty(
+        fromBankId.value, fromAccountId.value, counterpartyId.value,
+        TransactionRequestStatus.COMPLETED.toString, fromDate, toDate, ascending)), callContext)
     }
   }
   

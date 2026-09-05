@@ -38,68 +38,68 @@ class AgentDelegationTest extends ServerSetup {
       lastMarketingAgreementSignedDate = None
     ).openOrThrowException("Expected resource user to be created")
 
-  private def storedField(value: String): String = Option(value).getOrElse("")
+  private def storedField(value: Option[String]): String = value.getOrElse("")
 
-  feature("createResourceUser stores CreatedByConsentId and CreatedByUserInvitationId independently") {
+  Feature("createResourceUser stores CreatedByConsentId and CreatedByUserInvitationId independently") {
 
-    scenario("consent id only — survives the invitation-id None branch", AgentDelegationTag) {
+    Scenario("consent id only — survives the invitation-id None branch", AgentDelegationTag) {
       val consentId = generateUUID()
       val user = createUser(createdByConsentId = Some(consentId))
-      storedField(user.CreatedByConsentId.get) shouldBe consentId
-      storedField(user.CreatedByUserInvitationId.get) shouldBe ""
+      storedField(user.createdByConsentId) shouldBe consentId
+      storedField(user.createdByUserInvitationId) shouldBe ""
     }
 
-    scenario("invitation id only", AgentDelegationTag) {
+    Scenario("invitation id only", AgentDelegationTag) {
       val invitationId = generateUUID()
       val user = createUser(createdByUserInvitationId = Some(invitationId))
-      storedField(user.CreatedByConsentId.get) shouldBe ""
-      storedField(user.CreatedByUserInvitationId.get) shouldBe invitationId
+      storedField(user.createdByConsentId) shouldBe ""
+      storedField(user.createdByUserInvitationId) shouldBe invitationId
     }
 
-    scenario("both ids set", AgentDelegationTag) {
+    Scenario("both ids set", AgentDelegationTag) {
       val consentId = generateUUID()
       val invitationId = generateUUID()
       val user = createUser(Some(consentId), Some(invitationId))
-      storedField(user.CreatedByConsentId.get) shouldBe consentId
-      storedField(user.CreatedByUserInvitationId.get) shouldBe invitationId
+      storedField(user.createdByConsentId) shouldBe consentId
+      storedField(user.createdByUserInvitationId) shouldBe invitationId
     }
 
-    scenario("neither id set", AgentDelegationTag) {
+    Scenario("neither id set", AgentDelegationTag) {
       val user = createUser()
-      storedField(user.CreatedByConsentId.get) shouldBe ""
-      storedField(user.CreatedByUserInvitationId.get) shouldBe ""
+      storedField(user.createdByConsentId) shouldBe ""
+      storedField(user.createdByUserInvitationId) shouldBe ""
     }
   }
 
-  feature("CallContext.accountableUserId resolves the caller to the human the request is about") {
+  Feature("CallContext.accountableUserId resolves the caller to the human the request is about") {
 
-    scenario("a plain human resolves to themselves", AgentDelegationTag) {
+    Scenario("a plain human resolves to themselves", AgentDelegationTag) {
       val human = createUser()
       CallContext(user = Full(human)).accountableUserId shouldBe human.userId
     }
 
-    scenario("a consent-minted agent resolves to the granting human", AgentDelegationTag) {
+    Scenario("a consent-minted agent resolves to the granting human", AgentDelegationTag) {
       val human = createUser()
-      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val consent = MappedConsent.insertWithConsentId(generateUUID(), userId = human.userId)
       val agent = createUser(createdByConsentId = Some(consent.consentId))
       CallContext(user = Full(agent)).accountableUserId shouldBe human.userId
     }
 
-    scenario("an agent with a dangling consent id falls back to itself (fails closed)", AgentDelegationTag) {
+    Scenario("an agent with a dangling consent id falls back to itself (fails closed)", AgentDelegationTag) {
       val agent = createUser(createdByConsentId = Some(generateUUID()))
       CallContext(user = Full(agent)).accountableUserId shouldBe agent.userId
     }
 
-    scenario("a populated consenter box wins over the DB chain", AgentDelegationTag) {
+    Scenario("a populated consenter box wins over the DB chain", AgentDelegationTag) {
       val chainHuman = createUser()
-      val consent = MappedConsent.create.mUserId(chainHuman.userId).saveMe()
+      val consent = MappedConsent.insertWithConsentId(generateUUID(), userId = chainHuman.userId)
       val agent = createUser(createdByConsentId = Some(consent.consentId))
       val consenterHuman = createUser()
       CallContext(user = Full(agent), consenter = Full(consenterHuman))
         .accountableUserId shouldBe consenterHuman.userId
     }
 
-    scenario("onBehalfOfUser wins over consenter", AgentDelegationTag) {
+    Scenario("onBehalfOfUser wins over consenter", AgentDelegationTag) {
       val agent = createUser()
       val consenterHuman = createUser()
       val explicitHuman = createUser()

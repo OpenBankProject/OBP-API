@@ -20,7 +20,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     wipeTestData()
   }
 
-  feature("Bank and bank account creation") {
+  Feature("Bank and bank account creation") {
 
     val accountNumber = "12313213"
     val accountHolderName = "Rolf Rolfson"
@@ -28,7 +28,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     val accountType = "some-type"
     val currency = "EUR"
 
-//    scenario("Creating a duplicate bank should fail") {
+//    Scenario("Creating a duplicate bank should fail") {
 //
 //      val bankNationalIdentifier = "bank-identifier"
 //      val bankName = "A Bank"
@@ -53,7 +53,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
 
 
-    scenario("Creating an account for a bank that does not exist yet") {
+    Scenario("Creating an account for a bank that does not exist yet") {
 
       val bankNationalIdentifier = "bank-identifier"
       val bankName = "A Bank"
@@ -86,7 +86,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       foundAccount.accountHolder should equal(accountHolderName)
     }
 
-    scenario("Creating an account for a bank that already exists") {
+    Scenario("Creating an account for a bank that already exists") {
       val existingBank = createBank("some-bank")
 
       Given("A bank that does exist")
@@ -123,7 +123,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
   }
 
-  feature("Bank account creation that fails if the associated bank doesn't exist") {
+  Feature("Bank account creation that fails if the associated bank doesn't exist") {
 
     val bankId = BankId("some-bank")
     val accountId = AccountId("some-account")
@@ -134,7 +134,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     val accountType = "some-type"
     val accountLabel = defaultAccountNumber + " " + accountHolderName
 
-    scenario("Creating a bank account when the associated bank does not exist") {
+    Scenario("Creating a bank account when the associated bank does not exist") {
       Given("A bank that doesn't exist")
       Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).isDefined should equal(false)
 
@@ -152,7 +152,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
     }
 
-    scenario("Creating a bank account with an account number") {
+    Scenario("Creating a bank account with an account number") {
       Given("A bank that does exist")
       createBank(bankId.value)
       Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).isDefined should equal(true)
@@ -174,7 +174,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       createdAcc.accountHolder should equal(accountHolderName)
     }
 
-    scenario("Creating a bank account without an account number") {
+    Scenario("Creating a bank account without an account number") {
       Given("A bank that does exist")
       createBank(bankId.value)
       Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).isDefined should equal(true)

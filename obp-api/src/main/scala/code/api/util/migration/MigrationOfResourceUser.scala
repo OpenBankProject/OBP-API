@@ -5,10 +5,8 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.model.Consumer
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfResourceUser {
@@ -18,20 +16,20 @@ object MigrationOfResourceUser {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populateNewFieldIsDeleted(name: String): Boolean = {
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         // Make back up
-        DbFunction.makeBackUpOfTable(ResourceUser)
+        DbFunction.makeBackUpOfTableByName("resourceuser")
 
         val emptyDeletedField = 
           for {
             user <- ResourceUser.findAll() if user.isDeleted.getOrElse(false) == false
           } yield {
-            user.IsDeleted(false).saveMe()
+            ResourceUser.update(user.copy(isDeleted = Some(false)))
           }
         
         val endDate = System.currentTimeMillis()
@@ -49,14 +47,16 @@ object MigrationOfResourceUser {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          // Names the consumer table although the check above is on resourceuser - a copy-paste
+          // in the original that only ever reached a log line. Preserved verbatim.
+          s"""consumer table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
   }
 
   def alterColumnEmail(name: String): Boolean = {
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -69,10 +69,10 @@ object MigrationOfResourceUser {
         // (e.g. test-isolation resets that wipe the migration log but keep the views). See the doc comment
         // at the top of Migration.scala.
         val executedSql =
-          if (DbFunction.columnMaxLength(ResourceUser._dbTableNameLC, "email").contains(targetLength)) {
+          if (DbFunction.columnMaxLength("resourceuser", "email").contains(targetLength)) {
             s"-- skipped: resourceuser.email already varchar($targetLength)"
           } else {
-            DbFunction.maybeWrite(true, Schemifier.infoF _) {
+            DbFunction.maybeWrite(true) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () =>
@@ -102,7 +102,7 @@ object MigrationOfResourceUser {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${ResourceUser._dbTableNameLC} table does not exist""".stripMargin
+          s"""${"resourceuser"} table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

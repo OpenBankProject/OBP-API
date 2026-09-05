@@ -16,7 +16,7 @@ object AccountAttributeX extends SimpleInjector {
 
   val accountAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: AccountAttributeProvider = MappedAccountAttributeProvider
+  def buildOne: AccountAttributeProvider = DoobieAccountAttributeProvider
 
   // Helper to get the count out of an option
   def countOfAccountAttribute(listOpt: Option[List[AccountAttribute]]): Int = {

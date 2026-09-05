@@ -69,8 +69,8 @@ class CustomerOverviewTest extends V500ServerSetup {
   lazy val bankId = testBankId1.value
   val getCustomerJson = SwaggerDefinitionsJSON.postCustomerOverviewJsonV500
   
-  feature(s"$ApiEndpoint1 $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"$ApiEndpoint1 $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers" / "customer-number-query" / "overview").POST
       val response = makePostRequest(request, write(PostCustomerOverviewJsonV500))
@@ -81,8 +81,8 @@ class CustomerOverviewTest extends V500ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint1 $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"$ApiEndpoint1 $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers" / "customer-number-query" / "overview").POST <@(user1)
       val response = makePostRequest(request, write(getCustomerJson))
@@ -93,7 +93,7 @@ class CustomerOverviewTest extends V500ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canGetCustomerOverview.toString()) should be (true)
     }
-    scenario(s"We will call the endpoint $ApiEndpoint1 with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomerOverview.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers" / "customer-number-query" / "overview").POST <@(user1)
@@ -103,7 +103,7 @@ class CustomerOverviewTest extends V500ServerSetup {
       val errorMessage = response.body.extract[ErrorMessage].message
       errorMessage contains (CustomerNotFound) should be (true)
     }
-    scenario(s"We will call the endpoint $ApiEndpoint1 with a user credentials and a proper role and successful result", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with a user credentials and a proper role and successful result", ApiEndpoint1, VersionOfApi) {
       val legalName = "Evelin Doe"
       val mobileNumber = "+44 123 456"
       val customer: CustomerJsonV310 = createCustomerEndpointV500(bankId, legalName, mobileNumber)
@@ -122,8 +122,8 @@ class CustomerOverviewTest extends V500ServerSetup {
   
   
   // Overview Flat
-  feature(s"$ApiEndpoint2 $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"$ApiEndpoint2 $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers" / "customer-number-query" / "overview-flat").POST
       val response = makePostRequest(request, write(PostCustomerOverviewJsonV500))
@@ -134,8 +134,8 @@ class CustomerOverviewTest extends V500ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint2 $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"$ApiEndpoint2 $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers" / "customer-number-query" / "overview-flat").POST <@(user1)
       val response = makePostRequest(request, write(getCustomerJson))
@@ -146,7 +146,7 @@ class CustomerOverviewTest extends V500ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canGetCustomerOverviewFlat.toString()) should be (true)
     }
-    scenario(s"We will call the endpoint $ApiEndpoint2 with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomerOverviewFlat.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers" / "customer-number-query" / "overview-flat").POST <@(user1)
@@ -156,7 +156,7 @@ class CustomerOverviewTest extends V500ServerSetup {
       val errorMessage = response.body.extract[ErrorMessage].message
       errorMessage contains (CustomerNotFound) should be (true)
     }
-    scenario(s"We will call the endpoint $ApiEndpoint2 with a user credentials and a proper role and successful result", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with a user credentials and a proper role and successful result", ApiEndpoint2, VersionOfApi) {
       val legalName = "Evelin Doe"
       val mobileNumber = "+44 123 456"
       val customer: CustomerJsonV310 = createCustomerEndpointV500(bankId, legalName, mobileNumber)

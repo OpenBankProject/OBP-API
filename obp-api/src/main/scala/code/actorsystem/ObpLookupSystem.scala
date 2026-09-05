@@ -12,14 +12,14 @@ import net.liftweb.common.Full
 
 
 object ObpLookupSystem extends ObpLookupSystem {
-  this.init
+  this.init()
 }
 
 trait ObpLookupSystem extends MdcLoggable {
   // @volatile + synchronized double-checked init: without it two threads can both see null,
   // both build an ActorSystem (resource leak), and a reader can observe a stale null.
   @volatile var obpLookupSystem: ActorSystem = null
-  val props_hostname = Helper.getHostname
+  val props_hostname = Helper.getHostname()
 
   def init (): ActorSystem = {
     if (obpLookupSystem == null) {
@@ -40,7 +40,7 @@ trait ObpLookupSystem extends MdcLoggable {
 
       val hostname = ObpActorConfig.localHostname
       val port = ObpActorConfig.localPort
-      val props_hostname = Helper.getHostname
+      val props_hostname = Helper.getHostname()
       if (port == 0) {
         logger.error("Failed to connect to local Remotedata actor, the port is 0, can not find a proper port in current machine.")
       }
@@ -60,13 +60,13 @@ trait ObpLookupSystem extends MdcLoggable {
       case (Full(h), Full(p)) if !embeddedAdapter =>
         val hostname = h
         val port = p
-        val akka_connector_hostname = Helper.getAkkaConnectorHostname
+        val akka_connector_hostname = Helper.getAkkaConnectorHostname()
         s"pekko.tcp://SouthSideAkkaConnector_${akka_connector_hostname}@${hostname}:${port}/user/${actorName}"
 
       case _ =>
         val hostname = AkkaConnectorActorConfig.localHostname
         val port = AkkaConnectorActorConfig.localPort
-        val props_hostname = Helper.getHostname
+        val props_hostname = Helper.getHostname()
         if (port == 0) {
           logger.error("Failed to find an available port.")
         }

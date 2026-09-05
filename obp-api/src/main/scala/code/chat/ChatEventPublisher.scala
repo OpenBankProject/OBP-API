@@ -14,7 +14,7 @@ import org.json4s.native.Serialization.write
  */
 object ChatEventPublisher extends MdcLoggable {
 
-  implicit val formats = json.DefaultFormats
+  implicit val formats: org.json4s.DefaultFormats.type = json.DefaultFormats
 
   case class MessageEvent(
     event_type: String,

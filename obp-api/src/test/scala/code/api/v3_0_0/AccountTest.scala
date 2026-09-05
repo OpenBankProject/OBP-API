@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
@@ -29,8 +30,8 @@ class AccountTest extends V300ServerSetup {
     makeGetRequest(request)
   }
   
-  feature("/my/accounts - corePrivateAccountsAllBanks -V300") {
-    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
+  Feature("/my/accounts - corePrivateAccountsAllBanks -V300") {
+    Scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
       Given("We prepare the accounts in V300ServerSetup, just check the response")
       
       When("We send the request")
@@ -43,9 +44,9 @@ class AccountTest extends V300ServerSetup {
     }
   
   }
-  feature("Assuring that entitlement requirements are checked for account(s) related endpoints") {
+  Feature("Assuring that entitlement requirements are checked for account(s) related endpoints") {
 
-    scenario("We try to get firehose accounts without required role " + CanUseAccountFirehoseAtAnyBank, VersionOfApi, ApiEndpoint2){
+    Scenario("We try to get firehose accounts without required role " + CanUseAccountFirehoseAtAnyBank, VersionOfApi, ApiEndpoint2){
 
       When("We have to find it by endpoint getFirehoseAccountsAtOneBank")
       val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" / "views" / "VIEW_ID").GET <@ (user1)
@@ -57,8 +58,8 @@ class AccountTest extends V300ServerSetup {
     }}
 
 
-  feature(s"test $ApiEndpoint3") {
-    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
+  Feature(s"test $ApiEndpoint3") {
+    Scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
       Given("We prepare the accounts in V300ServerSetup, just check the response")
 
       When("We send the request")

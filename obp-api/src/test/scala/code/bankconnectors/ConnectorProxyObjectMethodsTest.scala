@@ -19,33 +19,33 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
 
   object ProxyObjectMethods extends Tag("ConnectorProxyObjectMethods")
 
-  feature("A generated Connector proxy survives the methods every object has") {
+  Feature("A generated Connector proxy survives the methods every object has") {
 
-    scenario("toString on the internal connector does not throw", ProxyObjectMethods) {
+    Scenario("toString on the internal connector does not throw", ProxyObjectMethods) {
       // The internal connector is the sharp case: its handler treats an unknown method name as a
       // dynamic connector method to look up and compile.
       noException should be thrownBy InternalConnector.instance.toString
     }
 
-    scenario("hashCode and equals on the internal connector do not throw", ProxyObjectMethods) {
+    Scenario("hashCode and equals on the internal connector do not throw", ProxyObjectMethods) {
       noException should be thrownBy InternalConnector.instance.hashCode()
       noException should be thrownBy InternalConnector.instance.equals(InternalConnector.instance)
     }
 
-    scenario("a proxy can be used as a map key and printed", ProxyObjectMethods) {
+    Scenario("a proxy can be used as a map key and printed", ProxyObjectMethods) {
       // Both go through Object methods on the proxy, and both are things ordinary code does.
       val connector = InternalConnector.instance
       noException should be thrownBy Map(connector -> "internal").get(connector)
       noException should be thrownBy s"connector is $connector"
     }
 
-    scenario("the proxy connector answers Object methods too", ProxyObjectMethods) {
+    Scenario("the proxy connector answers Object methods too", ProxyObjectMethods) {
       val proxy = ConnectorUtils.proxyConnector
       noException should be thrownBy proxy.toString
       noException should be thrownBy proxy.hashCode()
     }
 
-    scenario("the members Connector inherits from MdcLoggable are answered, not compiled", ProxyObjectMethods) {
+    Scenario("the members Connector inherits from MdcLoggable are answered, not compiled", ProxyObjectMethods) {
       // Connector extends Helper.MdcLoggable, which contributes public abstract interface methods -
       // logger(), clazzName(), the two _setter_ bridges - and a default initiate(). They are
       // declared by MdcLoggable, not by Object, so excluding Object's methods does not cover them:
@@ -61,7 +61,7 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
       noException should be thrownBy loggerMethod.invoke(ConnectorUtils.proxyConnector)
     }
 
-    scenario("every method Connector inherits from outside its own API is answerable", ProxyObjectMethods) {
+    Scenario("every method Connector inherits from outside its own API is answerable", ProxyObjectMethods) {
       // A shape check rather than a list: anything on the interface that InternalConnector does not
       // recognise as a connector method must still return rather than throw.
       val allMethods = classOf[Connector].getMethods.toList
@@ -93,7 +93,7 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
       withClue(s"methods that threw: $failures") { failures shouldBe empty }
     }
 
-    scenario("a public val on Connector is answered rather than compiled", ProxyObjectMethods) {
+    Scenario("a public val on Connector is answered rather than compiled", ProxyObjectMethods) {
       // messageDocs is `val messageDocs = ArrayBuffer[MessageDoc]()` on the Connector trait. The map
       // that decides what dynamic code may implement is built from decls filtered by
       // `!t.isVal && !t.isVar`, so a val is absent from it and lands on the stub path with the
@@ -105,7 +105,7 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
         InternalConnector.instance.messageDocs
     }
 
-    scenario("StarConnector answers inherited members without routing them", ProxyObjectMethods) {
+    Scenario("StarConnector answers inherited members without routing them", ProxyObjectMethods) {
       // The same shape check, against the third proxy. Its handler recognises $default$ accessors
       // and sends everything else into MethodRouting resolution and invokeMethod - so logger and
       // clazzName, which Connector inherits from MdcLoggable and no connector implements, are
@@ -133,7 +133,7 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
       withClue(s"methods that threw: $failures") { failures shouldBe empty }
     }
 
-    scenario("equality is still reference equality for a proxy", ProxyObjectMethods) {
+    Scenario("equality is still reference equality for a proxy", ProxyObjectMethods) {
       // Worth pinning: if Object methods are ever routed to a delegate rather than handled by the
       // proxy itself, two distinct proxies over the same delegate would start comparing equal.
       val internal = InternalConnector.instance

@@ -74,7 +74,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       user = Some(resourceUser1),
       bankId = None,
       accountIds = None,
-      consumerId = Some(testConsumer.consumerId.get),
+      consumerId = Some(testConsumer.consumerId),
       permissions = consentPermissions,
       expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
@@ -110,7 +110,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       user = None,
       bankId = None,
       accountIds = None,
-      consumerId = Some(testConsumer.consumerId.get),
+      consumerId = Some(testConsumer.consumerId),
       permissions = consentPermissions,
       expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
@@ -120,20 +120,20 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     ).openOrThrowException("test consent creation failed").consentId
 
   // ── Cross-standard exercise boundary (ConsentUtil.assertConsentStandard) ──
-  feature("A consent may only be exercised by the standard that created it") {
+  Feature("A consent may only be exercised by the standard that created it") {
     import code.api.util.Consent
-    scenario("a UK consent is accepted by the UK gate, rejected by OBP and BG gates", UKOpenBankingV401AccountInfo) {
+    Scenario("a UK consent is accepted by the UK gate, rejected by OBP and BG gates", UKOpenBankingV401AccountInfo) {
       val consentId = createConsentWithStandard(Some(Consent.ConsentStandardUK))
       Consent.assertConsentStandardById(consentId, Consent.ConsentStandardUK) should equal(None)
       Consent.assertConsentStandardById(consentId, Consent.ConsentStandardOBP).isDefined should equal(true)
       Consent.assertConsentStandardById(consentId, Consent.ConsentStandardBG).isDefined should equal(true)
     }
-    scenario("an OBP consent is rejected by the UK gate", UKOpenBankingV401AccountInfo) {
+    Scenario("an OBP consent is rejected by the UK gate", UKOpenBankingV401AccountInfo) {
       val consentId = createConsentWithStandard(Some(Consent.ConsentStandardOBP))
       Consent.assertConsentStandardById(consentId, Consent.ConsentStandardUK).isDefined should equal(true)
       Consent.assertConsentStandardById(consentId, Consent.ConsentStandardOBP) should equal(None)
     }
-    scenario("a legacy consent with no standard is grandfathered for every gate", UKOpenBankingV401AccountInfo) {
+    Scenario("a legacy consent with no standard is grandfathered for every gate", UKOpenBankingV401AccountInfo) {
       val consentId = createConsentWithStandard(None)
       Consent.assertConsentStandardById(consentId, Consent.ConsentStandardUK) should equal(None)
       Consent.assertConsentStandardById(consentId, Consent.ConsentStandardOBP) should equal(None)
@@ -142,8 +142,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   }
 
   // ── AccountAccessApi ───────────────────────────────────────────────
-  feature("UKOB v4.0.1 POST /aisp/account-access-consents") {
-    scenario("authenticated with real body -> 201 real ConsentId", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 POST /aisp/account-access-consents") {
+    Scenario("authenticated with real body -> 201 real ConsentId", UKOpenBankingV401AccountInfo) {
       val response = postAuthed(consentPostBody, "aisp", "account-access-consents")
       response.code should equal(201)
       val consentId = (response.body \ "Data" \ "ConsentId").extract[String]
@@ -154,7 +154,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       (response.body \ "Data" \ "Status").extract[String] should equal("AWAU")
       (response.body \ "Data" \ "StatusReason" \ "StatusReasonCode").extract[List[String]] should equal(List("U036"))
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       postUnauthed(consentPostBody, "aisp", "account-access-consents").code should equal(401)
     }
     // Lodging a consent is a client-credentials call: the TPP is authenticated as an app and no PSU
@@ -163,13 +163,13 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // silently reverting to the default -- the endpoint would keep working for as long as OAuth2
     // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
     // that stops.
-    scenario("ResourceDoc declares UserOrApplication so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
+    Scenario("ResourceDoc declares UserOrApplication so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
       val docs = ResourceDoc.getResourceDocs(
         List(buildOperationId(ApiVersion.ukOpenBankingV401, "createAccountAccessConsents")))
       docs should not be empty
       docs.foreach(_.authMode should equal(UserOrApplication))
     }
-    scenario("all three datetime fields omitted -> 201, open-ended (no expiry/date restriction)", UKOpenBankingV401AccountInfo) {
+    Scenario("all three datetime fields omitted -> 201, open-ended (no expiry/date restriction)", UKOpenBankingV401AccountInfo) {
       val bodyWithoutDates =
         """{
           |  "Data": {
@@ -186,7 +186,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       consent.transactionFromDateTime should equal(null)
       consent.transactionToDateTime should equal(null)
     }
-    scenario("full ISO-8601 datetime with time and offset is preserved, not truncated to a bare date", UKOpenBankingV401AccountInfo) {
+    Scenario("full ISO-8601 datetime with time and offset is preserved, not truncated to a bare date", UKOpenBankingV401AccountInfo) {
       val bodyWithFullDatetime =
         """{
           |  "Data": {
@@ -206,7 +206,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       consent.expirationDateTime.getTime should equal(
         java.time.OffsetDateTime.parse("2030-06-15T13:45:30+02:00").toInstant.toEpochMilli)
     }
-    scenario("malformed datetime -> 400, not 500", UKOpenBankingV401AccountInfo) {
+    Scenario("malformed datetime -> 400, not 500", UKOpenBankingV401AccountInfo) {
       val bodyWithBadDate =
         """{
           |  "Data": {
@@ -220,8 +220,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       postAuthed(bodyWithBadDate, "aisp", "account-access-consents").code should equal(400)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/account-access-consents/CONSENT_ID") {
-    scenario("authenticated with real consent -> 200 real data", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/account-access-consents/CONSENT_ID") {
+    Scenario("authenticated with real consent -> 200 real data", UKOpenBankingV401AccountInfo) {
       val consentId = createRealConsent()
       val response = getAuthed("aisp", "account-access-consents", consentId)
       response.code should equal(200)
@@ -230,14 +230,14 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       // freshly-created consent is AWAITINGAUTHORISATION → wire code AWAU
       (response.body \ "Data" \ "Status").extract[String] should equal("AWAU")
     }
-    scenario("authenticated with unknown consent -> 403", UKOpenBankingV401AccountInfo) {
+    Scenario("authenticated with unknown consent -> 403", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(403)
     }
     // A caller who is not entitled to a consent must not be able to tell "there is no such consent"
     // from "that one is not yours". The two used to answer differently -- 400 with the id spelled
     // back, against 403 -- which turns the endpoint into a way of confirming that an id exists.
     // Berlin Group's equivalents already answer the same thing both ways.
-    scenario("a consent that does not exist and one that is not yours answer identically", UKOpenBankingV401AccountInfo) {
+    Scenario("a consent that does not exist and one that is not yours answer identically", UKOpenBankingV401AccountInfo) {
       val someoneElses = createRealConsent() // resourceUser1's, lodged under testConsumer
 
       val missing = getAuthedAsUser2("aisp", "account-access-consents", "no-such-consent-at-all")
@@ -255,7 +255,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       message should not include someoneElses
       message should not include "no-such-consent-at-all"
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
     }
     // IDOR regression (currently RED): the endpoint only checks that the consent exists, never
@@ -264,7 +264,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // can currently read any other party's consent details -- this must become a 403
     // ConsentDoesNotMatchUser once the ownership check is added, mirroring the identity contract
     // already enforced at consent authorise time (Http4s510: consent.userId == user.userId).
-    scenario("authenticated as a different user than the consent owner -> 403, not 200", UKOpenBankingV401AccountInfo) {
+    Scenario("authenticated as a different user than the consent owner -> 403, not 200", UKOpenBankingV401AccountInfo) {
       val consentId = createRealConsent() // owned by resourceUser1
       val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
@@ -281,7 +281,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // getAuthedAsUser2 authenticates as consumer2 (see DefaultUsers), a different OAuth1
     // consumer than the one that created this pending consent (testConsumer/consumer). Once
     // fixed, a different consumer must get 403 ConsentDoesNotMatchConsumer here.
-    scenario("authenticated as a different consumer than the creator, pending consent -> 403, not 200", UKOpenBankingV401AccountInfo) {
+    Scenario("authenticated as a different consumer than the creator, pending consent -> 403, not 200", UKOpenBankingV401AccountInfo) {
       val consentId = createPendingConsentForConsumer1()
       val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
@@ -292,8 +292,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
     }
   }
-  feature("UKOB v4.0.1 DELETE /aisp/account-access-consents/CONSENT_ID") {
-    scenario("full consent lifecycle: create -> get -> delete -> get", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 DELETE /aisp/account-access-consents/CONSENT_ID") {
+    Scenario("full consent lifecycle: create -> get -> delete -> get", UKOpenBankingV401AccountInfo) {
       val consentId = createRealConsent()
 
       getAuthed("aisp", "account-access-consents", consentId).code should equal(200)
@@ -305,11 +305,11 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       // stored status is REVOKED, but the v4.0.1 wire format reports the spec's CANC code
       (afterDelete.body \ "Data" \ "Status").extract[String] should equal("CANC")
     }
-    scenario("authenticated with unknown consent -> 403", UKOpenBankingV401AccountInfo) {
+    Scenario("authenticated with unknown consent -> 403", UKOpenBankingV401AccountInfo) {
       // Same answer as a consent that exists but is not the caller's, on purpose -- see the GET twin.
       deleteAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(403)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       deleteUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
     }
     // IDOR regression (currently RED, most severe of the two): deleteAccountAccessConsentsConsentId
@@ -318,7 +318,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // authenticated party can currently revoke any other party's consent. Once fixed this must be
     // a 403 ConsentDoesNotMatchUser, and -- critically -- the consent's stored status must be left
     // untouched (still AWAITINGAUTHORISATION), proving the rejected delete had zero side effect.
-    scenario("authenticated as a different user than the consent owner -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
+    Scenario("authenticated as a different user than the consent owner -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
       val consentId = createRealConsent() // owned by resourceUser1
       val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
@@ -337,7 +337,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // "anyone may proceed"). getAuthedAsUser2/deleteAuthedAsUser2 authenticate as consumer2, a
     // different OAuth1 consumer than the one that created this pending consent. Once fixed,
     // this must be 403 ConsentDoesNotMatchConsumer, and the consent must be left untouched.
-    scenario("authenticated as a different consumer than the creator, pending consent -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
+    Scenario("authenticated as a different consumer than the creator, pending consent -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
       val consentId = createPendingConsentForConsumer1()
       val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
@@ -362,8 +362,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // relies on, since the full HTTP path requires a Bearer JWT with a consent_id
   // claim that this OAuth1-signed test suite cannot mint (see the comment above
   // "GET /aisp/accounts" below).
-  feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess binds permissions to the selected account only") {
-    scenario("the consent's scope lands in its JWT, and the PSU gains nothing", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess binds permissions to the selected account only") {
+    Scenario("the consent's scope lands in its JWT, and the PSU gains nothing", UKOpenBankingV401AccountInfo) {
       val userExtended = UserExtended(resourceUser1)
       val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
 
@@ -414,8 +414,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // resourceUser1) and be granted every consented view on it -- an account-access IDOR. This
   // mirrors the existing "binds permissions to the selected account only" scenario above but
   // asserts on account holder-ship (AccountHolders.getAccountsHeld) rather than permission scope.
-  feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess rejects an account the PSU does not hold") {
-    scenario("resourceUser2 tries to authorise a consent naming resourceUser1's account -> rejected, no access granted", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess rejects an account the PSU does not hold") {
+    Scenario("resourceUser2 tries to authorise a consent naming resourceUser1's account -> rejected, no access granted", UKOpenBankingV401AccountInfo) {
       val userExtended = UserExtended(resourceUser2)
       val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
 
@@ -451,8 +451,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // not verify the signature, so this doesn't need to be signed with the real shared secret. This
   // sidesteps the suite-wide limitation noted above (OAuth1-signed test requests carry no real
   // Bearer JWT) for the one scenario that specifically needs one.
-  feature("UKOB v4.0.1 Consent.checkUKConsent rejects an authorised consent past its ExpirationDateTime") {
-    scenario("expired consent -> Failure(ConsentExpiredIssue), not silently accepted", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 Consent.checkUKConsent rejects an authorised consent past its ExpirationDateTime") {
+    Scenario("expired consent -> Failure(ConsentExpiredIssue), not silently accepted", UKOpenBankingV401AccountInfo) {
       val consent = Consents.consentProvider.vend.saveUKConsent(
         user = Some(resourceUser1),
         bankId = None,
@@ -500,8 +500,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     ).openOrThrowException("consent creation failed")
     consent.consentId
   }
-  feature("UKOB v4.0.1 re-authentication guards on the SCA challenge endpoint") {
-    scenario("challenge-start on an already-authorised consent bound to a different PSU -> 403", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 re-authentication guards on the SCA challenge endpoint") {
+    Scenario("challenge-start on an already-authorised consent bound to a different PSU -> 403", UKOpenBankingV401AccountInfo) {
       val consentId = createUKConsent(Some(resourceUser1), Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
       Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
       Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
@@ -510,7 +510,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message.contains(ConsentDoesNotMatchUser) should equal(true)
     }
-    scenario("challenge-start on an authorised consent past its ExpirationDateTime -> 400 ConsentExpiredIssue", UKOpenBankingV401AccountInfo) {
+    Scenario("challenge-start on an authorised consent past its ExpirationDateTime -> 400 ConsentExpiredIssue", UKOpenBankingV401AccountInfo) {
       val consentId = createUKConsent(Some(resourceUser1), Some(new java.util.Date(System.currentTimeMillis() - 60000L)))
       Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
       Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
@@ -526,8 +526,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
 
   // Gap 15: every UK v4.0.1 response carries x-fapi-interaction-id (FAPI tracing). Uses a stub
   // endpoint that returns 200 so the assertion is purely about the header, independent of consent.
-  feature("UKOB v4.0.1 x-fapi-interaction-id response header") {
-    scenario("generated as a UUID when the request omits it", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 x-fapi-interaction-id response header") {
+    Scenario("generated as a UUID when the request omits it", UKOpenBankingV401AccountInfo) {
       val response = getAuthed("aisp", "accounts", "fake-accountid", "beneficiaries")
       response.code should equal(200)
       val interactionId = response.headers.map(_.get("x-fapi-interaction-id")).orNull
@@ -536,7 +536,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       // a generated value is a UUID
       java.util.UUID.fromString(interactionId).toString should equal(interactionId)
     }
-    scenario("echoed verbatim when the request supplies it", UKOpenBankingV401AccountInfo) {
+    Scenario("echoed verbatim when the request supplies it", UKOpenBankingV401AccountInfo) {
       val supplied = "test-interaction-id-12345"
       val response = makeGetRequest(
         v401("aisp", "accounts", "fake-accountid", "beneficiaries").GET <@ (user1),
@@ -551,231 +551,231 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // Hydra call since Consent.checkUKConsent dropped the Hydra dependency). These OAuth1-signed
   // test requests carry no Bearer JWT at all, so the claim lookup deterministically fails ->
   // 403 ConsentIdClaimMissing, mirroring "authenticated but no bound consent" in production.
-  feature("UKOB v4.0.1 GET /aisp/accounts") {
-    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts") {
+    Scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
       val response = getAuthed("aisp", "accounts")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID") {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID") {
     // Issue A fix: this endpoint now runs checkUKConsent before the account lookup, matching
     // its sibling /balances and /transactions endpoints below. This OAuth1-signed test suite
     // carries no Bearer JWT, so the consent check deterministically 403s here -- the previous
     // "200 real account data" scenarios (dropped) actually reached real data with zero consent
     // enforcement, which was Issue A itself.
-    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+    Scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
       grantUKReadViews(testAccountId1, resourceUser1)
       val response = getAuthed("aisp", "accounts", acc)
       response.code should equal(403)
       response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc).code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/balances") {
-    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/balances") {
+    Scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
       val response = getAuthed("aisp", "accounts", acc, "balances")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc, "balances").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/beneficiaries") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/beneficiaries") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "beneficiaries").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "beneficiaries").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/direct-debits") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/direct-debits") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "direct-debits").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "direct-debits").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/offers") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/offers") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "offers").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "offers").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/parties") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/parties") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "parties").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "parties").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/party") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/party") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "party").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "party").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/product") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/product") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "product").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "product").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/scheduled-payments") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/scheduled-payments") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "scheduled-payments").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "scheduled-payments").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/standing-orders") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/standing-orders") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "standing-orders").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "standing-orders").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "statements").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "statements").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements/STATEMENT_ID") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements/STATEMENT_ID") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "statements", "fake-statementid").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "statements", "fake-statementid").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements/STATEMENT_ID/file") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements/STATEMENT_ID/file") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "statements", "fake-statementid", "file").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "statements", "fake-statementid", "file").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements/STATEMENT_ID/transactions") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/statements/STATEMENT_ID/transactions") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", "fake-accountid", "statements", "fake-statementid", "transactions").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", "fake-accountid", "statements", "fake-statementid", "transactions").code should equal(401)
     }
   }
   // ── TransactionsApi ────────────────────────────────────────────────
-  // See the "no external Hydra call" note above feature("UKOB v4.0.1 GET /aisp/accounts").
-  feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/transactions") {
-    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+  // See the "no external Hydra call" note above Feature("UKOB v4.0.1 GET /aisp/accounts").
+  Feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/transactions") {
+    Scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
       val response = getAuthed("aisp", "accounts", acc, "transactions")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc, "transactions").code should equal(401)
     }
   }
 
   // ── BalancesApi ────────────────────────────────────────────────────
   // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (see class doc above).
-  feature("UKOB v4.0.1 GET /aisp/balances") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/balances") {
+    Scenario("authenticated", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "balances").code should not equal (401)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "balances").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/beneficiaries") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/beneficiaries") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "beneficiaries").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "beneficiaries").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/direct-debits") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/direct-debits") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "direct-debits").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "direct-debits").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/offers") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/offers") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "offers").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "offers").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/party") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/party") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "party").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "party").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/products") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/products") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "products").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "products").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/scheduled-payments") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/scheduled-payments") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "scheduled-payments").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "scheduled-payments").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/standing-orders") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/standing-orders") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "standing-orders").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "standing-orders").code should equal(401)
     }
   }
-  feature("UKOB v4.0.1 GET /aisp/statements") {
-    scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/statements") {
+    Scenario("authenticated -> 200", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "statements").code should equal(200)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "statements").code should equal(401)
     }
   }
   // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (see class doc above).
-  feature("UKOB v4.0.1 GET /aisp/transactions") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 GET /aisp/transactions") {
+    Scenario("authenticated", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "transactions").code should not equal (401)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "transactions").code should equal(401)
     }
   }
@@ -810,8 +810,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // validateChallengeAnswerC4 ignores the consentId it is handed and matches on challengeId, answer
   // and userId alone. The Berlin Group twin of this endpoint already asserts it
   // (Http4sBGv13AIS: startedChallenge.consentId.contains(consentId)).
-  feature("UKOB v4.0.1 a challenge only authorises the consent it was minted for") {
-    scenario("a challenge minted on one consent cannot authorise another -> 400, and the other consent is untouched", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 a challenge only authorises the consent it was minted for") {
+    Scenario("a challenge minted on one consent cannot authorise another -> 400, and the other consent is untouched", UKOpenBankingV401AccountInfo) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val expiry = Some(new java.util.Date(System.currentTimeMillis() + 3600000L))
       // Two consents the same PSU may authorise. The PSU guard at the top of the authorise endpoint
@@ -848,8 +848,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // caller, so every consent challenge -- UK here, Berlin Group through the same connector call --
   // was persisted as a transaction-request challenge. The column is what an operator reads to tell
   // a payment SCA from a consent SCA, and what any connector implementing this trait is handed.
-  feature("UKOB v4.0.1 the consent SCA challenge is stored as a consent challenge") {
-    scenario("challenge-start persists challengeType OBP_CONSENT_CHALLENGE, bound to the consent", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 the consent SCA challenge is stored as a consent challenge") {
+    Scenario("challenge-start persists challengeType OBP_CONSENT_CHALLENGE, bound to the consent", UKOpenBankingV401AccountInfo) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val consentId = createUKConsent(None, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
 
@@ -864,8 +864,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
 
-  feature("UKOB v4.0.1 a refused authorisation does not claim the consent") {
-    scenario("account_ids naming an account the PSU does not hold -> refused, consent left unbound", UKOpenBankingV401AccountInfo) {
+  Feature("UKOB v4.0.1 a refused authorisation does not claim the consent") {
+    Scenario("account_ids naming an account the PSU does not hold -> refused, consent left unbound", UKOpenBankingV401AccountInfo) {
       // The dummy SCA answer is `123` only when this is set; test props leave it unset, so the
       // challenge would otherwise refuse before the account check is ever reached. Same as the
       // Berlin Group authorisation scenarios do.

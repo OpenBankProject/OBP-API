@@ -1186,9 +1186,8 @@ featured_apis=elasticSearchWarehouseV300
 # -------------------------------------------------
 
 # -- Mapper rules -------------------------------
-# Define mapper rules
-# In case isn't defined default value is "false"
-# mapper_rules.create_foreign_keys=false
+# Retired: Schemifier (which read this) is no longer called anywhere in obp-api - see
+# release_notes.md, 03/09/2026. Setting this now has no effect.
 # -----------------------------------------------
 
 # -- Akka connector --------------------------------------------
@@ -1697,6 +1696,14 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # it must be set to true explicitly, there is no run-mode-based fallback.
 allow_user_generated_scala_code=false
 
+# Second, deliberate acceptance required when the sandbox cannot enforce anything: on JDK 24+
+# SecurityManager is gone (JEP 486), so dynamic_code_sandbox_enable and the permission list
+# below have no effect and enabled dynamic code runs with the full rights of the JVM. With
+# this prop false (the default), compileScalaCode refuses on such a JVM and returns OBP-50021
+# rather than silently running unsandboxed. Set it to true only on an instance where running
+# user-supplied Scala with no confinement is genuinely acceptable.
+allow_user_generated_scala_code_without_sandbox=false
+
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
 dynamic_code_sandbox_enable=false
 # Here is the default permissions if you set the dynamic_code_sandbox_enable = true. If you need more permission need to add it manually here.
@@ -1993,3 +2000,26 @@ securelogging_mask_email=true
 # ASPSP's own front end apart from a second TPP holding a PSU session, so it has to be declared.
 # Leave empty unless you use Redirect SCA: empty keeps the same-TPP rule applying to every caller.
 # berlin_group_sca_front_end_consumer_ids=
+
+# Liquibase owns the whole schema. Every Lift Mapper entity is gone, so Schemifier creates nothing
+# and Liquibase is the only thing that builds tables. Default true - setting this to false does not
+# hand the schema back to Schemifier, it leaves the database with whatever tables it already had.
+# Turn it off only if you run the migrations yourself, outside the application - ALL of them: the
+# changelog also carries data repairs (db.changelog-dedup.yaml collapses natural-key duplicates so
+# the unique indexes can build), and with this off nothing else runs them. Boot used to de-duplicate
+# mappedentitlement and mapperaccountholders itself on every start; that moved into the changelog,
+# so a deployment that turns Liquibase off takes those over too.
+#
+# One changelog covers every vendor: the DDL is generated per database from
+# db/changelog/db.changelog-master.yaml, so there is no per-vendor script set to add. h2 and
+# postgres are verified by tests; mysql, sqlserver and oracle are generated the same way but have
+# not been run here.
+#
+# On an H2 deployment the URL must carry NON_KEYWORDS=VALUE. The changelog declares an unquoted
+# `value` column on several tables and VALUE is a keyword in H2 2.x, so CREATE TABLE fails without
+# it. The sample db.url below already has it.
+#
+# If a start is killed part-way, DATABASECHANGELOGLOCK keeps the row that start took, and the next
+# one waits on a lock nobody will release. Clear it with `liquibase releaseLocks`, or
+# DELETE FROM DATABASECHANGELOGLOCK.
+# liquibase.enabled=true

@@ -9,33 +9,38 @@ import code.api.v7_0_0.JSONFactory700.TransactionRequestBodyOpenCorridorJsonV700
 import code.bankconnectors.LocalMappedConnectorInternal
 import code.consent.Consents
 import code.model._
-import code.util.{AccountIdString, UUIDString}
+
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestTypes.{COUNTERPARTY, SEPA}
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus, TransactionRequestTypes}
-import net.liftweb.common.{Box, Failure, Full, Logger}
+import net.liftweb.common.{Box, Empty, Failure, Full, Logger}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.json
 import org.json4s.JsonAST.{JField, JObject, JString}
-import net.liftweb.mapper._
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.util.Helpers._
+
+import java.util.Date
 
 object MappedTransactionRequestProvider extends TransactionRequestProvider with MdcLoggable {
 
   override def getMappedTransactionRequest(transactionRequestId: TransactionRequestId): Box[MappedTransactionRequest] =
-    MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+    MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value)
 
   override def getTransactionRequestFromProvider(transactionRequestId: TransactionRequestId): Box[TransactionRequest] =
-    MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value)).flatMap(_.toTransactionRequest)
+    MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value).flatMap(_.toTransactionRequest)
 
   override def getTransactionRequestsFromProvider(bankId: BankId, accountId: AccountId): Box[List[TransactionRequest]] = {
-    Full(MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_BankId, bankId.value), By(MappedTransactionRequest.mFrom_AccountId, accountId.value)).flatMap(_.toTransactionRequest))
+    Full(MappedTransactionRequest.findAllByFromAccount(bankId.value, accountId.value).flatMap(_.toTransactionRequest))
   }
 
   override def updateAllPendingTransactionRequests: Box[Option[Unit]] = {
-    val transactionRequests = MappedTransactionRequest.find(By(MappedTransactionRequest.mStatus, TransactionRequestStatus.PENDING.toString))
+    val transactionRequests = MappedTransactionRequest.findFirstByStatus(TransactionRequestStatus.PENDING.toString)
     logger.debug("Updating status of all pending transactions: ")
-    val statuses = LocalMappedConnectorInternal.getTransactionRequestStatuses
+    val statuses = LocalMappedConnectorInternal.getTransactionRequestStatuses()
     transactionRequests.map{ tr =>
       for {
         transactionRequest <- tr.toTransactionRequest
@@ -44,20 +49,20 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
         if !transactionRequest.`type`.startsWith("OPEN_CORRIDOR")
         if (statuses.exists(i => i.transactionRequestId -> i.bulkTransactionsStatus == transactionRequest.id -> List("APVD")))
       } yield {
-        tr.updateStatus(TransactionRequestStatus.COMPLETED.toString)
+        // NOTE: Mapper's updateStatus only set the field on the in-memory entity and never saved,
+        // so this loop has never written anything. Preserved as a no-op rather than quietly turning
+        // a dormant path into one that writes; correcting it belongs in its own change.
         logger.debug(s"updated ${transactionRequest.id} status: ${TransactionRequestStatus.COMPLETED}")
       }
     }
   }
 
   override def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean = {
-    MappedTransactionRequest.bulkDelete_!!(
-      By(MappedTransactionRequest.mTransactionIDs, transactionId.value)
-    )
+    MappedTransactionRequest.deleteByTransactionIds(transactionId.value)
   }
 
   override def bulkDeleteTransactionRequests(): Boolean = {
-    MappedTransactionRequest.bulkDelete_!!()
+    MappedTransactionRequest.deleteAll()
   }
 
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
@@ -115,212 +120,183 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     }
 
     // Note: We don't save transaction_ids, status and challenge here.
-    val mappedTransactionRequest = MappedTransactionRequest.create
+    val mappedTransactionRequest = MappedTransactionRequest.insert(MappedTransactionRequest.empty.copy(
 
       //transaction request fields:
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
+      transactionRequestId = transactionRequestId.value,
+      transactionType = transactionRequestType.value,
       //transaction fields:
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now)
-      .mCharge_Summary(charge.summary)
-      .mCharge_Amount(charge.value.amount)
-      .mCharge_Currency(charge.value.currency)
-      .mcharge_Policy(chargePolicy)
+      status = status,
+      startDate = now,
+      endDate = now,
+      chargeSummary = charge.summary,
+      chargeAmount = charge.value.amount,
+      chargeCurrency = charge.value.currency,
+      chargePolicy = chargePolicy,
 
       //fromAccount fields
-      .mFrom_BankId(fromAccount.bankId.value)
-      .mFrom_AccountId(fromAccount.accountId.value)
+      fromBankId = fromAccount.bankId.value,
+      fromAccountId = fromAccount.accountId.value,
 
       //toAccount fields
-      .mTo_BankId(toAccount.bankId.value)
-      .mTo_AccountId(toAccount.accountId.value)
+      toBankId = toAccount.bankId.value,
+      toAccountId = toAccount.accountId.value,
 
       //toCounterparty fields
-      .mName(toAccount.name)
-      .mOtherAccountRoutingScheme(toAccountRouting.map(_.scheme).getOrElse(""))
-      .mOtherAccountRoutingAddress(toAccountRouting.map(_.address).getOrElse(""))
-      .mOtherBankRoutingScheme(toAccount.attributes.flatMap(_.find(_.name == "BANK_ROUTING_SCHEME")
-        .map(_.value)).getOrElse(toAccount.bankRoutingScheme))
-      .mOtherBankRoutingAddress(toAccount.attributes.flatMap(_.find(_.name == "BANK_ROUTING_ADDRESS")
-        .map(_.value)).getOrElse(toAccount.bankRoutingScheme))
-      // We need transfer CounterpartyTrait to BankAccount, so We lost some data. can not fill the following fields .
-      //.mThisBankId(toAccount.bankId.value)
-      //.mThisAccountId(toAccount.accountId.value)
-      //.mThisViewId(toAccount.v)
-      .mCounterpartyId(counterpartyIdOption.getOrElse(null))
-      //.mIsBeneficiary(toAccount.isBeneficiary)
+      name = toAccount.name,
+      otherAccountRoutingScheme = toAccountRouting.map(_.scheme).getOrElse(""),
+      otherAccountRoutingAddress = toAccountRouting.map(_.address).getOrElse(""),
+      otherBankRoutingScheme = toAccount.attributes.flatMap(_.find(_.name == "BANK_ROUTING_SCHEME")
+        .map(_.value)).getOrElse(toAccount.bankRoutingScheme),
+      // NOTE: falls back to the routing SCHEME, not the address. Preserved verbatim.
+      otherBankRoutingAddress = toAccount.attributes.flatMap(_.find(_.name == "BANK_ROUTING_ADDRESS")
+        .map(_.value)).getOrElse(toAccount.bankRoutingScheme),
+      // We need transfer CounterpartyTrait to BankAccount, so We lost some data. can not fill
+      // thisBankId, thisAccountId, thisViewId or isBeneficiary.
+      counterpartyId = counterpartyIdOption.getOrElse(null),
 
       //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
-      .mBody_Value_Currency(transactionRequestCommonBody.value.currency)
-      .mBody_Value_Amount(transactionRequestCommonBody.value.amount)
-      .mBody_Description(transactionRequestCommonBody.description)
-      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
+      bodyValueCurrency = transactionRequestCommonBody.value.currency,
+      bodyValueAmount = transactionRequestCommonBody.value.amount,
+      bodyDescription = transactionRequestCommonBody.description,
+      details = details, // This is the details / body of the request (contains all fields in the body)
 
-      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
-
-      .mPaymentStartDate(paymentStartDate)
-      .mPaymentEndDate(paymentEndDate)
-      .mPaymentExecutionRule(executionRule)
-      .mPaymentFrequency(frequency)
-      .mPaymentDayOfExecution(dayOfExecution)
-      .mConsentReferenceId(consentReferenceIdOption.getOrElse(null))
-      .mApiVersion(apiVersion.getOrElse(null))
-      .mApiStandard(apiStandard.getOrElse(null))
-      .mUserId(callContext.flatMap(_.user.map(_.userId)).getOrElse(null))
-      .mOnBehalfOfUserId(callContext.flatMap(cc => cc.onBehalfOfUser.or(cc.consenter).map(_.userId)).getOrElse(null))
-      .mConsumerId(callContext.flatMap(_.consumer.map(_.consumerId.get)).getOrElse(null))
+      paymentStartDate = paymentStartDate,
+      paymentEndDate = paymentEndDate,
+      paymentExecutionRule = executionRule,
+      paymentFrequency = frequency,
+      paymentDayOfExecution = dayOfExecution,
+      consentReferenceId = consentReferenceIdOption.getOrElse(null),
+      apiVersion = apiVersion.getOrElse(null),
+      apiStandard = apiStandard.getOrElse(null),
+      userId = callContext.flatMap(_.user.map(_.userId)).getOrElse(null),
+      onBehalfOfUserId = callContext.flatMap(cc => cc.onBehalfOfUser.or(cc.consenter).map(_.userId)).getOrElse(null),
+      consumerId = callContext.flatMap(_.consumer.map(_.consumerId)).getOrElse(null),
 
       // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR_PROMISE type only — null otherwise).
-      .mOriginator_Name(explicitOriginator.map(_.name).getOrElse(null))
-      .mOriginator_Address(explicitOriginator.map(_.address).getOrElse(null))
-      .mOriginator_AccountRoutingScheme(explicitOriginator.map(_.account_routing.scheme).getOrElse(null))
-      .mOriginator_AccountRoutingAddress(explicitOriginator.map(_.account_routing.address).getOrElse(null))
+      originatorName = explicitOriginator.map(_.name).getOrElse(null),
+      originatorAddress = explicitOriginator.map(_.address).getOrElse(null),
+      originatorAccountRoutingScheme = explicitOriginator.map(_.account_routing.scheme).getOrElse(null),
+      originatorAccountRoutingAddress = explicitOriginator.map(_.account_routing.address).getOrElse(null)))
 
-      .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     // This saves transaction_ids
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
+    MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value) match {
+      case Full(_) => Full(MappedTransactionRequest.setTransactionIds(transactionRequestId.value, transactionId.value))
       case _ => Failure(s"$SaveTransactionRequestTransactionException Couldn't find transaction request ${transactionRequestId}")
     }
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
     //this saves challenge
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full{
-        tr.mChallenge_Id(challenge.id)
-        tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
-        tr.mChallenge_ChallengeType(challenge.challenge_type).save
-      }
+    MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value) match {
+      case Full(_) => Full(MappedTransactionRequest.setChallenge(transactionRequestId.value,
+        challenge.id, challenge.allowed_attempts, challenge.challenge_type))
       case _ => Failure(s"$SaveTransactionRequestChallengeException Couldn't find transaction request ${transactionRequestId} to set transactionId")
     }
   }
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
     //this saves status
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
+    MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value) match {
+      case Full(_) => Full(MappedTransactionRequest.setStatus(transactionRequestId.value, status))
       case _ => Failure(s"$SaveTransactionRequestStatusException Couldn't find transaction request ${transactionRequestId} to set status")
     }
   }
 
   override def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean] = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-      case Full(tr: MappedTransactionRequest) => Full(tr.mBody_Description(description).save)
+    MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value) match {
+      case Full(_) => Full(MappedTransactionRequest.setDescription(transactionRequestId.value, description))
       case _ => Failure(s"$SaveTransactionRequestDescriptionException Couldn't find transaction request ${transactionRequestId} to set description")
     }
   }
 
 }
 
-class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated with CustomJsonFormats with MdcLoggable {
-
-  override def getSingleton = MappedTransactionRequest
-
-  //transaction request fields:
-  object mTransactionRequestId extends UUIDString(this)
-  object mType extends MappedString(this, 32)
-
-  //transaction fields:
-  object mTransactionIDs extends MappedString(this, 2000)
-  object mStatus extends MappedString(this, 32)
-  object mStartDate extends MappedDate(this)
-  object mEndDate extends MappedDate(this)
-  object mChallenge_Id extends MappedString(this, 64)
-  object mChallenge_AllowedAttempts extends MappedInt(this)
-  object mChallenge_ChallengeType extends MappedString(this, 100)
-  object mCharge_Summary  extends MappedString(this, 64)
-  object mCharge_Amount  extends MappedString(this, 32)
-  object mCharge_Currency  extends MappedString(this, 16)
-  object mcharge_Policy  extends MappedString(this, 32)
-
-  //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
-  object mBody_Value_Currency extends MappedString(this, 16)
-  object mBody_Value_Amount extends MappedString(this, 32)
-  object mBody_Description extends MappedString(this, 2000)
-  // This is the details / body of the request (contains all fields in the body)
-  // Note:this need to be a longer string, defaults is 2000, maybe not enough
-  object mDetails extends MappedText(this)
-
-  //fromAccount fields
-  object mFrom_BankId extends UUIDString(this)
-  object mFrom_AccountId extends AccountIdString(this)
-
-  //toAccount fields
-  @deprecated("use mOtherBankRoutingAddress instead","2017-12-25")
-  object mTo_BankId extends UUIDString(this)
-  @deprecated("use mOtherAccountRoutingAddress instead","2017-12-25")
-  object mTo_AccountId extends MappedString(this, 128)
-
-  //toCounterparty fields
-  // mName widened from 64 → 140 to match ISO 20022 `Nm` element. Lift auto-migrates VARCHAR widening.
-  object mName extends MappedString(this, 140)
-  object mThisBankId extends UUIDString(this)
-  object mThisAccountId extends AccountIdString(this)
-  object mThisViewId extends UUIDString(this)
-  object mCounterpartyId extends UUIDString(this)
-  object mOtherAccountRoutingScheme extends MappedString(this, 32) // TODO Add class for Scheme and Address
-  object mOtherAccountRoutingAddress extends MappedString(this, 128)
-  object mOtherBankRoutingScheme extends MappedString(this, 32)
-  object mOtherBankRoutingAddress extends MappedString(this, 64)
-  object mIsBeneficiary extends MappedBoolean(this)
-
-  // Originator fields (FATF Recommendation 16 "Travel Rule" — who the payment is from).
-  // Populated only for OPEN_CORRIDOR_PROMISE Transaction Requests. For other TR types these are null
-  // and the v7 JSON response layer can virtually fill from customer_account_link.
-  object mOriginator_Name extends MappedString(this, 140)
-  object mOriginator_Address extends MappedString(this, 2000)
-  object mOriginator_AccountRoutingScheme extends MappedString(this, 32)
-  object mOriginator_AccountRoutingAddress extends MappedString(this, 128)
-
-  //Here are for Berlin Group V1.3
-  object mPaymentStartDate extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2024-08-12"
-  object mPaymentEndDate	 extends MappedDate(this)           //BGv1.3 Open API Document example value: "startDate":"2025-08-01"
-  object mPaymentExecutionRule extends MappedString(this, 64) //BGv1.3 Open API Document example value: "executionRule":"preceding"
-  object mPaymentFrequency extends MappedString(this, 64)     //BGv1.3 Open API Document example value: "frequency":"Monthly",
-  object mPaymentDayOfExecution extends MappedString(this, 64)//BGv1.3 Open API Document example value: "dayOfExecution":"01"
-
-  object mConsentReferenceId extends MappedString(this, 64)
-
-  object mApiStandard extends MappedString(this, 50)
-  object mApiVersion extends MappedString(this, 50)
-
-  object mUserId extends MappedString(this, 100)
-  object mOnBehalfOfUserId extends MappedString(this, 100)
-  object mConsumerId extends MappedString(this, 100)
-
-  def updateStatus(newStatus: String) = {
-    mStatus.set(newStatus)
-  }
+/**
+ * One payment instruction, as opposed to the transaction it eventually produces.
+ *
+ * `details` holds the whole create body as JSON, and toTransactionRequest reads the type-specific
+ * half of the request back out of it - IBANs, counterparty ids, agent numbers - so the columns
+ * beside it are a partial, denormalised copy rather than the whole story.
+ *
+ * `transactionIds` is the id of the settling transaction, singular despite the name.
+ *
+ * The payment* fields carry the Berlin Group periodic-payment schedule and are null for every other
+ * kind of request; the originator* fields carry the FATF Recommendation 16 originator, today
+ * written only by OPEN_CORRIDOR_PROMISE.
+ */
+case class MappedTransactionRequest(
+  transactionRequestId: String,
+  transactionType: String,
+  status: String,
+  transactionIds: String,
+  startDate: Date,
+  endDate: Date,
+  challengeId: String,
+  challengeAllowedAttempts: Int,
+  challengeChallengeType: String,
+  chargeSummary: String,
+  chargeAmount: String,
+  chargeCurrency: String,
+  chargePolicy: String,
+  bodyValueCurrency: String,
+  bodyValueAmount: String,
+  bodyDescription: String,
+  details: String,
+  fromBankId: String,
+  fromAccountId: String,
+  toBankId: String,
+  toAccountId: String,
+  name: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  counterpartyId: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  isBeneficiary: Boolean,
+  originatorName: String,
+  originatorAddress: String,
+  originatorAccountRoutingScheme: String,
+  originatorAccountRoutingAddress: String,
+  paymentStartDate: Date,
+  paymentEndDate: Date,
+  paymentExecutionRule: String,
+  paymentFrequency: String,
+  paymentDayOfExecution: String,
+  consentReferenceId: String,
+  apiStandard: String,
+  apiVersion: String,
+  userId: String,
+  onBehalfOfUserId: String,
+  consumerId: String
+) extends CustomJsonFormats with MdcLoggable {
 
   def toTransactionRequest : Option[TransactionRequest] = {
 
-    val details = mDetails.toString
+    // MappedText rendered a null column as the empty string; json.parse would throw on a null.
+    val details = Option(this.details).getOrElse("")
 
     val parsedDetails = json.parse(details)
 
-    val transactionType = mType.get
+    val transactionType = this.transactionType
 
     val t_amount = AmountOfMoney (
-      currency = mBody_Value_Currency.get,
-      amount = mBody_Value_Amount.get
+      currency = bodyValueCurrency,
+      amount = bodyValueAmount
     )
 
     val t_to_sandbox_tan = if (
       TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SANDBOX_TAN ||
       TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.ACCOUNT_OTP ||
       TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.ACCOUNT)
-      Some(TransactionRequestAccount (bank_id = mTo_BankId.get, account_id = mTo_AccountId.get))
+      Some(TransactionRequestAccount (bank_id = toBankId, account_id = toAccountId))
     else
       None
 
@@ -436,35 +412,35 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
       to_sepa_credit_transfers = t_to_sepa_credit_transfers,
       to_agent = t_to_agent,
       value = t_amount,
-      description = mBody_Description.get
+      description = bodyDescription
     )
     val t_from = TransactionRequestAccount (
-      bank_id = mFrom_BankId.get,
-      account_id = mFrom_AccountId.get
+      bank_id = fromBankId,
+      account_id = fromAccountId
     )
 
     val t_challenge = TransactionRequestChallenge (
-      id = mChallenge_Id.get,
-      allowed_attempts = mChallenge_AllowedAttempts.get,
-      challenge_type = mChallenge_ChallengeType.get
+      id = challengeId,
+      allowed_attempts = challengeAllowedAttempts,
+      challenge_type = challengeChallengeType
     )
 
     val t_charge = TransactionRequestCharge (
-    summary = mCharge_Summary.get,
-    value = AmountOfMoney(currency = mCharge_Currency.get, amount = mCharge_Amount.get)
+    summary = chargeSummary,
+    value = AmountOfMoney(currency = chargeCurrency, amount = chargeAmount)
     )
 
     // Explicit originator (FATF Rec 16) — populated only when stored explicitly on the TR.
     // Virtually filling from customer_account_link happens in the v7 JSON factory layer,
     // which has async access (this sync method does not).
     val t_originator: Option[TransactionRequestOriginator] =
-      if (mOriginator_Name.get != null && mOriginator_Name.get.nonEmpty)
+      if (originatorName != null && originatorName.nonEmpty)
         Some(TransactionRequestOriginator(
-          name = mOriginator_Name.get,
-          address = mOriginator_Address.get,
+          name = originatorName,
+          address = originatorAddress,
           account_routing = TransactionRequestOriginatorAccountRouting(
-            scheme  = mOriginator_AccountRoutingScheme.get,
-            address = mOriginator_AccountRoutingAddress.get
+            scheme  = originatorAccountRoutingScheme,
+            address = originatorAccountRoutingAddress
           )
         ))
       else
@@ -472,35 +448,257 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
 
     Some(
       TransactionRequest(
-        id = TransactionRequestId(mTransactionRequestId.get),
-        `type`= mType.get,
+        id = TransactionRequestId(transactionRequestId),
+        `type`= transactionType,
         from = t_from,
         body = t_body,
-        status = mStatus.get,
-        transaction_ids = mTransactionIDs.get,
-        start_date = mStartDate.get,
-        end_date = mEndDate.get,
+        status = status,
+        transaction_ids = transactionIds,
+        start_date = startDate,
+        end_date = endDate,
         challenge = t_challenge,
         charge = t_charge,
-        charge_policy =mcharge_Policy.get,
-        counterparty_id =  CounterpartyId(mCounterpartyId.get),
-        name = mName.get,
-        this_bank_id = BankId(mThisBankId.get),
-        this_account_id = AccountId(mThisAccountId.get),
-        this_view_id = ViewId(mThisViewId.get),
-        other_account_routing_scheme = mOtherAccountRoutingScheme.get,
-        other_account_routing_address = mOtherAccountRoutingAddress.get,
-        other_bank_routing_scheme = mOtherBankRoutingScheme.get,
-        other_bank_routing_address = mOtherBankRoutingAddress.get,
-        is_beneficiary = mIsBeneficiary.get,
-        user_id = Option(mUserId.get).filter(_.nonEmpty),
-        on_behalf_of_user_id = Option(mOnBehalfOfUserId.get).filter(_.nonEmpty),
+        charge_policy = chargePolicy,
+        counterparty_id =  CounterpartyId(counterpartyId),
+        name = name,
+        this_bank_id = BankId(thisBankId),
+        this_account_id = AccountId(thisAccountId),
+        this_view_id = ViewId(thisViewId),
+        other_account_routing_scheme = otherAccountRoutingScheme,
+        other_account_routing_address = otherAccountRoutingAddress,
+        other_bank_routing_scheme = otherBankRoutingScheme,
+        other_bank_routing_address = otherBankRoutingAddress,
+        is_beneficiary = isBeneficiary,
+        user_id = Option(userId).filter(_.nonEmpty),
+        on_behalf_of_user_id = Option(onBehalfOfUserId).filter(_.nonEmpty),
         originator = t_originator
       )
     )
   }
 }
 
-object MappedTransactionRequest extends MappedTransactionRequest with LongKeyedMetaMapper[MappedTransactionRequest] {
-  override def dbIndexes = UniqueIndex(mTransactionRequestId) :: super.dbIndexes
+object MappedTransactionRequest {
+
+  private val selectColumns =
+    fr"""SELECT mtransactionrequestid, mtype, mstatus, mtransactionids, mstartdate, menddate,
+                mchallenge_id, mchallenge_allowedattempts, mchallenge_challengetype,
+                mcharge_summary, mcharge_amount, mcharge_currency, mcharge_policy,
+                mbody_value_currency, mbody_value_amount, mbody_description, mdetails,
+                mfrom_bankid, mfrom_accountid, mto_bankid, mto_accountid, mname,
+                mthisbankid, mthisaccountid, mthisviewid, mcounterpartyid,
+                motheraccountroutingscheme, motheraccountroutingaddress, motherbankroutingscheme,
+                motherbankroutingaddress, misbeneficiary, moriginator_name, moriginator_address,
+                moriginator_accountroutingscheme, moriginator_accountroutingaddress,
+                mpaymentstartdate, mpaymentenddate, mpaymentexecutionrule, mpaymentfrequency,
+                mpaymentdayofexecution, mconsentreferenceid, mapistandard, mapiversion,
+                muserid, monbehalfofuserid, mconsumerid
+         FROM mappedtransactionrequest"""
+
+  // 46 columns, past the 22-element tuple limit, so the row is read as six nested tuples.
+  private type RowA = (Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Date], Option[java.sql.Date], Option[String], Option[Int])
+  private type RowB = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String])
+  private type RowC = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String])
+  private type RowD = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[Boolean], Option[String])
+  private type RowE = (Option[String], Option[String], Option[String], Option[java.sql.Date],
+    Option[java.sql.Date], Option[String], Option[String], Option[String])
+  private type RowF = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String])
+  private type Row = (RowA, RowB, RowC, RowD, RowE, RowF)
+
+  /**
+   * A date read back as a plain java.util.Date, which is what MappedDate handed out.
+   *
+   * The java.sql.Date the driver returns is a subclass, so it type-checks either way - but it
+   * serializes to an empty JSON object rather than a date string, and the transaction-request
+   * endpoints put start_date and end_date straight into their response.
+   */
+  private def readDate(value: Option[java.sql.Date]): Date =
+    value.map(d => new Date(d.getTime)).orNull
+
+  private def fromRow(row: Row): MappedTransactionRequest = row match {
+    case ((transactionRequestId, transactionType, status, transactionIds, startDate, endDate,
+           challengeId, challengeAllowedAttempts),
+          (challengeChallengeType, chargeSummary, chargeAmount, chargeCurrency, chargePolicy,
+           bodyValueCurrency, bodyValueAmount, bodyDescription),
+          (details, fromBankId, fromAccountId, toBankId, toAccountId, name, thisBankId,
+           thisAccountId),
+          (thisViewId, counterpartyId, otherAccountRoutingScheme, otherAccountRoutingAddress,
+           otherBankRoutingScheme, otherBankRoutingAddress, isBeneficiary, originatorName),
+          (originatorAddress, originatorAccountRoutingScheme, originatorAccountRoutingAddress,
+           paymentStartDate, paymentEndDate, paymentExecutionRule, paymentFrequency,
+           paymentDayOfExecution),
+          (consentReferenceId, apiStandard, apiVersion, userId, onBehalfOfUserId, consumerId)) =>
+      MappedTransactionRequest(
+        transactionRequestId.orNull, transactionType.orNull, status.orNull, transactionIds.orNull,
+        readDate(startDate), readDate(endDate),
+        challengeId.orNull,
+        // A NULL count reads back as 0, which is what MappedInt did.
+        challengeAllowedAttempts.getOrElse(0),
+        challengeChallengeType.orNull, chargeSummary.orNull, chargeAmount.orNull,
+        chargeCurrency.orNull, chargePolicy.orNull, bodyValueCurrency.orNull,
+        bodyValueAmount.orNull, bodyDescription.orNull, details.orNull, fromBankId.orNull,
+        fromAccountId.orNull, toBankId.orNull, toAccountId.orNull, name.orNull, thisBankId.orNull,
+        thisAccountId.orNull, thisViewId.orNull, counterpartyId.orNull,
+        otherAccountRoutingScheme.orNull, otherAccountRoutingAddress.orNull,
+        otherBankRoutingScheme.orNull, otherBankRoutingAddress.orNull,
+        isBeneficiary.getOrElse(false), originatorName.orNull, originatorAddress.orNull,
+        originatorAccountRoutingScheme.orNull, originatorAccountRoutingAddress.orNull,
+        readDate(paymentStartDate), readDate(paymentEndDate),
+        paymentExecutionRule.orNull, paymentFrequency.orNull, paymentDayOfExecution.orNull,
+        consentReferenceId.orNull, apiStandard.orNull, apiVersion.orNull, userId.orNull,
+        onBehalfOfUserId.orNull, consumerId.orNull)
+  }
+
+  private def query(condition: Fragment): List[MappedTransactionRequest] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def opt(value: String): Option[String] = Option(value)
+
+  private def date(value: Date): Option[java.sql.Date] =
+    Option(value).map(d => new java.sql.Date(d.getTime))
+
+  private def one(condition: Fragment): Box[MappedTransactionRequest] =
+    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def findByTransactionRequestId(transactionRequestId: String): Box[MappedTransactionRequest] =
+    one(fr"WHERE mtransactionrequestid = ${opt(transactionRequestId)}")
+
+  def findAllByFromAccount(bankId: String, accountId: String): List[MappedTransactionRequest] =
+    query(fr"WHERE mfrom_bankid = ${opt(bankId)} AND mfrom_accountid = ${opt(accountId)}")
+
+  /** The first request in the given status, as Mapper's find with a single By did. */
+  def findFirstByStatus(status: String): Box[MappedTransactionRequest] =
+    one(fr"WHERE mstatus = ${opt(status)}")
+
+  def findAllByStatusUpdatedBefore(status: String, updatedBefore: Date): List[MappedTransactionRequest] =
+    query(fr"""WHERE mstatus = ${opt(status)}
+                 AND updatedat < ${Option(updatedBefore).map(d => new java.sql.Timestamp(d.getTime))}""")
+
+  def findAllByTypeStatusBanksAndCurrency(transactionType: String, status: String,
+                                          fromBankId: String, toBankId: String,
+                                          currency: String): List[MappedTransactionRequest] =
+    query(fr"""WHERE mtype = ${opt(transactionType)} AND mstatus = ${opt(status)}
+                 AND mfrom_bankid = ${opt(fromBankId)} AND mto_bankid = ${opt(toBankId)}
+                 AND mbody_value_currency = ${opt(currency)}""")
+
+  /**
+   * Completed requests from one account to one counterparty, optionally narrowed by when they were
+   * last updated and ordered by the same column. The intended sort field of an OBPOrdering is
+   * ignored, as it was under Mapper.
+   */
+  def findAllCompletedToCounterparty(fromBankId: String, fromAccountId: String,
+                                     counterpartyId: String, status: String,
+                                     fromDate: Option[Date], toDate: Option[Date],
+                                     ascending: Option[Boolean]): List[MappedTransactionRequest] = {
+    val filters = List(
+      Some(fr"mfrom_bankid = ${opt(fromBankId)}"),
+      Some(fr"mfrom_accountid = ${opt(fromAccountId)}"),
+      Some(fr"mcounterpartyid = ${opt(counterpartyId)}"),
+      Some(fr"mstatus = ${opt(status)}"),
+      fromDate.map(d => fr"updatedat >= ${new java.sql.Timestamp(d.getTime)}"),
+      toDate.map(d => fr"updatedat <= ${new java.sql.Timestamp(d.getTime)}")
+    ).flatten
+    val ordering = ascending match {
+      case Some(true) => fr"ORDER BY updatedat ASC"
+      case Some(false) => fr"ORDER BY updatedat DESC"
+      case None => Fragment.empty
+    }
+    query(fr"WHERE " ++ filters.reduce((a, b) => a ++ fr"AND" ++ b) ++ ordering)
+  }
+
+  def insert(row: MappedTransactionRequest): MappedTransactionRequest = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO mappedtransactionrequest
+            (mtransactionrequestid, mtype, mstatus, mtransactionids, mstartdate, menddate,
+             mchallenge_id, mchallenge_allowedattempts, mchallenge_challengetype, mcharge_summary,
+             mcharge_amount, mcharge_currency, mcharge_policy, mbody_value_currency,
+             mbody_value_amount, mbody_description, mdetails, mfrom_bankid, mfrom_accountid,
+             mto_bankid, mto_accountid, mname, mthisbankid, mthisaccountid, mthisviewid,
+             mcounterpartyid, motheraccountroutingscheme, motheraccountroutingaddress,
+             motherbankroutingscheme, motherbankroutingaddress, misbeneficiary, moriginator_name,
+             moriginator_address, moriginator_accountroutingscheme,
+             moriginator_accountroutingaddress, mpaymentstartdate, mpaymentenddate,
+             mpaymentexecutionrule, mpaymentfrequency, mpaymentdayofexecution,
+             mconsentreferenceid, mapistandard, mapiversion, muserid, monbehalfofuserid,
+             mconsumerid, createdat, updatedat)
+            VALUES (${opt(row.transactionRequestId)}, ${opt(row.transactionType)},
+             ${opt(row.status)}, ${opt(row.transactionIds)}, ${date(row.startDate)},
+             ${date(row.endDate)}, ${opt(row.challengeId)}, ${row.challengeAllowedAttempts},
+             ${opt(row.challengeChallengeType)}, ${opt(row.chargeSummary)},
+             ${opt(row.chargeAmount)}, ${opt(row.chargeCurrency)}, ${opt(row.chargePolicy)},
+             ${opt(row.bodyValueCurrency)}, ${opt(row.bodyValueAmount)},
+             ${opt(row.bodyDescription)}, ${opt(row.details)}, ${opt(row.fromBankId)},
+             ${opt(row.fromAccountId)}, ${opt(row.toBankId)}, ${opt(row.toAccountId)},
+             ${opt(row.name)}, ${opt(row.thisBankId)}, ${opt(row.thisAccountId)},
+             ${opt(row.thisViewId)}, ${opt(row.counterpartyId)},
+             ${opt(row.otherAccountRoutingScheme)}, ${opt(row.otherAccountRoutingAddress)},
+             ${opt(row.otherBankRoutingScheme)}, ${opt(row.otherBankRoutingAddress)},
+             ${row.isBeneficiary}, ${opt(row.originatorName)}, ${opt(row.originatorAddress)},
+             ${opt(row.originatorAccountRoutingScheme)},
+             ${opt(row.originatorAccountRoutingAddress)}, ${date(row.paymentStartDate)},
+             ${date(row.paymentEndDate)}, ${opt(row.paymentExecutionRule)},
+             ${opt(row.paymentFrequency)}, ${opt(row.paymentDayOfExecution)},
+             ${opt(row.consentReferenceId)}, ${opt(row.apiStandard)}, ${opt(row.apiVersion)},
+             ${opt(row.userId)}, ${opt(row.onBehalfOfUserId)}, ${opt(row.consumerId)},
+             $now, $now)"""
+        .update.run)
+    row
+  }
+
+  /** An empty row to build an insert from: every string empty, as Mapper's defaults were. */
+  def empty: MappedTransactionRequest = MappedTransactionRequest(
+    transactionRequestId = "", transactionType = "", status = "", transactionIds = "",
+    startDate = null, endDate = null, challengeId = "", challengeAllowedAttempts = 0,
+    challengeChallengeType = "", chargeSummary = "", chargeAmount = "", chargeCurrency = "",
+    chargePolicy = "", bodyValueCurrency = "", bodyValueAmount = "", bodyDescription = "",
+    details = "", fromBankId = "", fromAccountId = "", toBankId = "", toAccountId = "", name = "",
+    thisBankId = "", thisAccountId = "", thisViewId = "", counterpartyId = "",
+    otherAccountRoutingScheme = "", otherAccountRoutingAddress = "", otherBankRoutingScheme = "",
+    otherBankRoutingAddress = "", isBeneficiary = false, originatorName = "", originatorAddress = "",
+    originatorAccountRoutingScheme = "", originatorAccountRoutingAddress = "",
+    paymentStartDate = null, paymentEndDate = null, paymentExecutionRule = "",
+    paymentFrequency = "", paymentDayOfExecution = "", consentReferenceId = "", apiStandard = "",
+    apiVersion = "", userId = "", onBehalfOfUserId = "", consumerId = "")
+
+  private def update(transactionRequestId: String, set: Fragment): Boolean =
+    DoobieUtil.runUpdate(
+      (fr"UPDATE mappedtransactionrequest SET" ++ set ++
+        fr", updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())}" ++
+        fr"WHERE mtransactionrequestid = ${opt(transactionRequestId)}").update.run) > 0
+
+  def setTransactionIds(transactionRequestId: String, transactionIds: String): Boolean =
+    update(transactionRequestId, fr"mtransactionids = ${opt(transactionIds)}")
+
+  def setChallenge(transactionRequestId: String, challengeId: String, allowedAttempts: Int,
+                   challengeType: String): Boolean =
+    update(transactionRequestId,
+      fr"""mchallenge_id = ${opt(challengeId)}, mchallenge_allowedattempts = $allowedAttempts,
+           mchallenge_challengetype = ${opt(challengeType)}""")
+
+  def setStatus(transactionRequestId: String, status: String): Boolean =
+    update(transactionRequestId, fr"mstatus = ${opt(status)}")
+
+  def setDescription(transactionRequestId: String, description: String): Boolean =
+    update(transactionRequestId, fr"mbody_description = ${opt(description)}")
+
+  def setConsumerId(transactionRequestId: String, consumerId: String): Boolean =
+    update(transactionRequestId, fr"mconsumerid = ${opt(consumerId)}")
+
+  def deleteByTransactionIds(transactionIds: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedtransactionrequest WHERE mtransactionids = ${opt(transactionIds)}"
+        .update.run) > 0
+
+  def deleteAll(): Boolean = {
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionrequest".update.run)
+    true
+  }
 }

@@ -38,9 +38,9 @@ class WarehouseTest extends V300ServerSetup with DefaultUsers {
     makePostRequest(request, write(basicElasticsearchBody))
   }
 
-  feature("Assuring that Search Warehouse is working as expected - v3.0.0") {
+  Feature("Assuring that Search Warehouse is working as expected - v3.0.0") {
 
-    scenario("We try to search warehouse without required role " + CanSearchWarehouse, VersionOfApi, ApiEndpoint1) {
+    Scenario("We try to search warehouse without required role " + CanSearchWarehouse, VersionOfApi, ApiEndpoint1) {
 
       When("When we make the search request")
       val responsePost = postSearch(user1)

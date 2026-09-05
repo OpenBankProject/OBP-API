@@ -36,7 +36,7 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
   def prepareHttpRequest(
     uri: String, 
     method: HttpMethod, 
-    httpProtocol: HttpProtocol = HttpProtocol("HTTP/1.1"), 
+    httpProtocol: HttpProtocol = HttpProtocols.`HTTP/1.1`, 
     entityJsonString: String = ""
   ): HttpRequest = {
     val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, entityJsonString)
@@ -44,10 +44,10 @@ object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
   }
 
 
-  implicit lazy val system = ObpLookupSystem.obpLookupSystem
-  implicit val materializer = ActorMaterializer()
+  implicit lazy val system: org.apache.pekko.actor.ActorSystem = ObpLookupSystem.obpLookupSystem
+  implicit val materializer: org.apache.pekko.stream.ActorMaterializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
-  implicit val executionContext = ExecutionContext.wrapExecutionContext(system.dispatcher)
+  implicit val executionContext: scala.concurrent.ExecutionContext = ExecutionContext.wrapExecutionContext(system.dispatcher)
 
   private lazy val connectionPoolSettings: ConnectionPoolSettings = {
     val systemConfig = ConnectionPoolSettings(system.settings.config)

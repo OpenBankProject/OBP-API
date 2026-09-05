@@ -29,10 +29,10 @@ class ConcurrentRateLimiterRaceTest extends ConcurrentRaceSetup {
 
   private def redisUp: Boolean = Redis.isRedisReady
 
-  feature("Redis-backed rate-limit and idempotency operations must be atomic") {
+  Feature("Redis-backed rate-limit and idempotency operations must be atomic") {
 
-    scenario("H4: concurrent check-then-increment must not let more than `limit` callers pass the gate", ConcurrencyRace) {
-      RedisTestTarget.requireReachable(redisUp, "H4")
+    Scenario("H4: concurrent check-then-increment must not let more than `limit` callers pass the gate", ConcurrencyRace) {
+      assume(redisUp, "Redis not reachable — skipping H4")
       Given("a rate-limit counter key with limit=5 and 20 concurrent callers")
       val key   = "__conc_h4_rl_" + UUID.randomUUID.toString.take(8)
       val limit = 5L
@@ -67,8 +67,8 @@ class ConcurrentRateLimiterRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M6: idempotency response cache must be first-write-wins, not last-writer-wins (SET NX EX, not setex)", ConcurrencyRace) {
-      RedisTestTarget.requireReachable(redisUp, "M6")
+    Scenario("M6: idempotency response cache must be first-write-wins, not last-writer-wins (SET NX EX, not setex)", ConcurrencyRace) {
+      assume(redisUp, "Redis not reachable — skipping M6")
       Given("an idempotency response key that receives two writes with different bodies")
       val key = "__conc_m6_rd_" + UUID.randomUUID.toString.take(8)
       val ttl = 60
@@ -90,8 +90,8 @@ class ConcurrentRateLimiterRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M7: idempotency lock must be acquired atomically with its TTL (SET NX EX, not setnx+expire)", ConcurrencyRace) {
-      RedisTestTarget.requireReachable(redisUp, "M7")
+    Scenario("M7: idempotency lock must be acquired atomically with its TTL (SET NX EX, not setnx+expire)", ConcurrencyRace) {
+      assume(redisUp, "Redis not reachable — skipping M7")
       Given("a lock key acquired the way IdempotencyMiddleware.tryAcquireLock now does it")
       val key     = "__conc_m7_lock_" + UUID.randomUUID.toString.take(8)
       val lockTtl = 60

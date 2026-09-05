@@ -29,8 +29,8 @@ class AccountTagTest extends V400ServerSetup {
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val view = randomOwnerViewPermalinkViaEndpoint(bankId, bankAccount)
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags").POST
       val response400 = makePostRequest(request400, write(accountTag))
@@ -40,8 +40,8 @@ class AccountTagTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags" / "DOES_NOT_MATTER_FOR_THIS").DELETE
       val response400 = makeDeleteRequest(request400)
@@ -51,8 +51,8 @@ class AccountTagTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags").GET
       val response400 = makeGetRequest(request400)
@@ -62,8 +62,8 @@ class AccountTagTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 and $ApiEndpoint2 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2, ApiEndpoint3) {
+  Feature(s"test $ApiEndpoint1 and $ApiEndpoint2 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2, ApiEndpoint3) {
       
       When("We send the request")
       val request = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "metadata" / "tags").POST <@ (user1)

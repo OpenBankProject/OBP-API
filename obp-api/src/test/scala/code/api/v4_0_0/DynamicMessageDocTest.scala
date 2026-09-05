@@ -64,8 +64,8 @@ class DynamicMessageDocTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getAllDynamicMessageDocs))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.deleteDynamicMessageDoc))
 
-  feature("Test the DynamicMessageDoc endpoints") {
-    scenario("We create my DynamicMessageDoc and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Test the DynamicMessageDoc endpoints") {
+    Scenario("We create my DynamicMessageDoc and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicMessageDoc.toString)
@@ -99,10 +99,10 @@ class DynamicMessageDocTest extends V400ServerSetup {
 
       Then("provenance is captured server-side into the stored row (not surfaced in the frozen v4 response)")
       val storedMessageDoc = code.dynamicMessageDoc.DynamicMessageDoc
-        .find(net.liftweb.mapper.By(code.dynamicMessageDoc.DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDoc.dynamicMessageDocId.getOrElse("")))
+        .findById(None, dynamicMessageDoc.dynamicMessageDocId.getOrElse(""))
         .openOrThrowException("stored dynamic message doc not found")
-      storedMessageDoc.CreatedByUserId.get should be (resourceUser1.userId)
-      storedMessageDoc.MethodBodyHash.get should be (code.api.util.APIUtil.sha256Hex(postDynamicMessageDoc.decodedMethodBody))
+      storedMessageDoc.createdByUserId should be (Some(resourceUser1.userId))
+      storedMessageDoc.methodBodyHash should be (Some(code.api.util.APIUtil.sha256Hex(postDynamicMessageDoc.decodedMethodBody)))
 
 
       Then(s"we test the $ApiEndpoint2")
@@ -188,9 +188,9 @@ class DynamicMessageDocTest extends V400ServerSetup {
     }
   }
 
-  feature("Test the DynamicMessageDoc endpoints error cases") {
+  Feature("Test the DynamicMessageDoc endpoints error cases") {
 //    may need it later
-//    scenario("We create my DynamicMessageDoc -- duplicated DynamicMessageDoc Name", ApiEndpoint1, VersionOfApi) {
+//    Scenario("We create my DynamicMessageDoc -- duplicated DynamicMessageDoc Name", ApiEndpoint1, VersionOfApi) {
 //      When("We make a request v4.0.0")
 //
 //      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicMessageDoc.toString)
@@ -214,7 +214,7 @@ class DynamicMessageDocTest extends V400ServerSetup {
 //      response2.body.extract[ErrorMessage].message contains(DynamicMessageDocAlreadyExists) should be (true)
 //    }
 
-    scenario("We create/get/getAll/update my DynamicMessageDoc without our proper roles", ApiEndpoint1, VersionOfApi) {
+    Scenario("We create/get/getAll/update my DynamicMessageDoc without our proper roles", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
 
       val request = (v4_0_0_Request / "management" / "dynamic-message-docs").POST <@ (user1)
@@ -259,7 +259,7 @@ class DynamicMessageDocTest extends V400ServerSetup {
       responseDelete.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles${CanDeleteDynamicMessageDoc}")
     }
 
-    scenario("We call the DynamicMessageDoc management endpoints without authentication", ApiEndpoint1, VersionOfApi) {
+    Scenario("We call the DynamicMessageDoc management endpoints without authentication", ApiEndpoint1, VersionOfApi) {
       val body = write(SwaggerDefinitionsJSON.jsonDynamicMessageDoc.copy(dynamicMessageDocId = None))
 
       Then("POST without a token returns 401")
@@ -288,8 +288,8 @@ class DynamicMessageDocTest extends V400ServerSetup {
   // and invoke/getFunction); this exercises the whole chain end to end.
   // Note: connector methods do NOT run inside the security sandbox, so no sandbox-permission setup is
   // needed; but the Scala methodBody is compiled at runtime, which requires JDK 11.
-  feature("DynamicMessageDoc runtime: stored methodBody compiled and invoked via DynamicConnector") {
-    scenario("Store a Scala methodBody and invoke it through DynamicConnector.invoke", VersionOfApi) {
+  Feature("DynamicMessageDoc runtime: stored methodBody compiled and invoked via DynamicConnector") {
+    Scenario("Store a Scala methodBody and invoke it through DynamicConnector.invoke", VersionOfApi) {
       val process = "obp.getBankSafetyNet" // unique, avoids colliding with the CRUD scenario's obp.getBank
       val doc = SwaggerDefinitionsJSON.jsonDynamicMessageDoc.copy(
         dynamicMessageDocId = None,

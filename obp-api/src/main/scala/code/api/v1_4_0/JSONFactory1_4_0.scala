@@ -25,13 +25,10 @@ import org.json4s.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import org.apache.commons.lang3.StringUtils
-import scalacache.memoization.cacheKeyExclude
 
 import java.util.regex.Pattern
 import java.lang.reflect.Field
-import java.util.UUID.randomUUID
 import scala.concurrent.duration._
 import com.openbankproject.commons.util.JsonAliases.RichJField
 
@@ -568,7 +565,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // (Superset of upstream's specifiedUrl-only fix in 17faa09ac.)
     val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology-requestUrl:${resourceDocUpdatedTags.requestUrl}-specifiedUrl:${resourceDocUpdatedTags.specifiedUrl.getOrElse("")}".intern()
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
-      val fieldsDescription =
+      val fieldsDescription: String =
         if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
           || resourceDocUpdatedTags.tags.toString.contains("Dynamic-Endpoint")
           || resourceDocUpdatedTags.roles.toString.contains("DynamicEntity")
@@ -591,52 +588,52 @@ object JSONFactory1_4_0 extends MdcLoggable{
           urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
         }
 
-        val resourceDocDescription = I18NUtil.ResourceDocTranslation.translate(
-          I18NResourceDocField.DESCRIPTION,
-          resourceDocUpdatedTags.operationId,
-          locale,
-          resourceDocUpdatedTags.description.stripMargin.trim
-        )
-        val description = resourceDocDescription ++ fieldsDescription
-        val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
-        val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
+      val resourceDocDescription = I18NUtil.ResourceDocTranslation.translate(
+        I18NResourceDocField.DESCRIPTION,
+        resourceDocUpdatedTags.operationId,
+        locale,
+        resourceDocUpdatedTags.description.stripMargin.trim
+      )
+      val description = resourceDocDescription ++ fieldsDescription
+      val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
+      val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
 
-       val technology =
-         if (includeTechnology) {
-           Some(if (resourceDocUpdatedTags.http4sPartialFunction.isDefined) Constant.TECHNOLOGY_HTTP4S else Constant.TECHNOLOGY_LIFTWEB)
-         } else {
-           None
-         }
+      val technology =
+        if (includeTechnology) {
+          Some(if (resourceDocUpdatedTags.http4sPartialFunction.isDefined) Constant.TECHNOLOGY_HTTP4S else Constant.TECHNOLOGY_LIFTWEB)
+        } else {
+          None
+        }
 
-       val resourceDoc = ResourceDocJson(
-          operation_id = resourceDocUpdatedTags.operationId,
-          request_verb = resourceDocUpdatedTags.requestVerb,
-          request_url = resourceDocUpdatedTags.requestUrl,
-          summary = translatedSummary,
-          // Strip the margin character (|) and line breaks and convert from markdown to html
-          description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
-          description_markdown = description,
-          example_request_body = resourceDocUpdatedTags.exampleRequestBody,
-          success_response_body = resourceDocUpdatedTags.successResponseBody,
-          error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
-          implemented_by = ImplementedByJson(
-            version = resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion,
-            function = resourceDocUpdatedTags.partialFunctionName,
-            technology = technology
-          ), // was resourceDocUpdatedTags.implementedInApiVersion.noV
-          tags = resourceDocUpdatedTags.tags.map(i => i.tag),
-          typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
-          typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
-          roles = resourceDocUpdatedTags.roles,
-          is_featured = resourceDocUpdatedTags.isFeatured,
-          special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
-          specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
-          connector_methods = resourceDocUpdatedTags.connectorMethods,
-          created_by_bank_id = if (isVersion4OrHigher) resourceDocUpdatedTags.createdByBankId else None // only for V400 we show the bankId
-        )
+      val resourceDoc = ResourceDocJson(
+         operation_id = resourceDocUpdatedTags.operationId,
+         request_verb = resourceDocUpdatedTags.requestVerb,
+         request_url = resourceDocUpdatedTags.requestUrl,
+         summary = translatedSummary,
+         // Strip the margin character (|) and line breaks and convert from markdown to html
+         description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
+         description_markdown = description,
+         example_request_body = resourceDocUpdatedTags.exampleRequestBody,
+         success_response_body = resourceDocUpdatedTags.successResponseBody,
+         error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
+         implemented_by = ImplementedByJson(
+           version = resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion,
+           function = resourceDocUpdatedTags.partialFunctionName,
+           technology = technology
+         ), // was resourceDocUpdatedTags.implementedInApiVersion.noV
+         tags = resourceDocUpdatedTags.tags.map(i => i.tag),
+         typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
+         typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
+         roles = resourceDocUpdatedTags.roles,
+         is_featured = resourceDocUpdatedTags.isFeatured,
+         special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
+         specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
+         connector_methods = resourceDocUpdatedTags.connectorMethods,
+         created_by_bank_id = if (isVersion4OrHigher) resourceDocUpdatedTags.createdByBankId else None // only for V400 we show the bankId
+       )
 
-        logger.trace(s"createLocalisedResourceDocJsonCached value is $resourceDoc")
-        resourceDoc
+      logger.trace(s"createLocalisedResourceDocJsonCached value is $resourceDoc")
+      resourceDoc
     }}
   
   
@@ -845,7 +842,22 @@ object JSONFactory1_4_0 extends MdcLoggable{
       // not reflected over for the same reason a List is not: what reflection yields is the
       // collection's own machinery, not API fields.
       case _: Iterable[_] => Map.empty
-      case _ => ReflectUtils.getFieldValues(extractedEntity.asInstanceOf[AnyRef])()
+      // A case class is read through scala.Product rather than through ReflectUtils: Product's
+      // productElementNames/productIterator are plain method calls, unaffected by which Scala
+      // version compiled the class. ReflectUtils reflects via scala.reflect.runtime.universe,
+      // whose isVal/isVar/isLazy checks come back false for every member of a Scala-3-compiled
+      // class (that reflection library has no TASTy support), and widening it to accept any
+      // zero-arg method instead would also sweep in a case class's own synthetic zero-arg
+      // methods (toString, hashCode, productArity, productPrefix, ...) as bogus schema fields.
+      case p: scala.Product => p.productElementNames.zip(p.productIterator).toMap
+      // Only reflect over the entity when it's genuinely one of our own types: this branch is
+      // unfiltered (predicate = _ => true), and letting it reflect over an arbitrary non-OBP
+      // AnyRef found java.lang.Object.notify() (IllegalMonitorStateException outside a
+      // synchronized block), scala.Any.asInstanceOf (reflectMethod refuses to invoke a generic
+      // method), and a java.util.stream.ReferencePipeline's own zero-arg methods - none of which
+      // are ever schema-relevant fields. A JDK type has no business here in the first place.
+      case entity: AnyRef if ReflectUtils.isObpObject(entity) => ReflectUtils.getFieldValues(entity)()
+      case _ => Map.empty
     }
 
     val convertParamName = (name: String) =>  extractedEntity match {

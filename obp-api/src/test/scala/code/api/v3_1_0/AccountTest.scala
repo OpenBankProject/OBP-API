@@ -16,7 +16,6 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.entitlement.Entitlement
-import code.model.dataAccess.BankAccountRouting
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
@@ -48,8 +47,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   val userAccountId = UUID.randomUUID.toString
   val user2AccountId = UUID.randomUUID.toString
   
-  feature("test Update Account") {
-    scenario("We will test Update Account Api", ApiEndpoint1, VersionOfApi) {
+  Feature("test Update Account") {
+    Scenario("We will test Update Account Api", ApiEndpoint1, VersionOfApi) {
       Given("The test bank and test account")
       val testAccount = testAccountId1
       val testPutJson = updateAccountRequestJsonV310
@@ -85,7 +84,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       
     }
 
-    scenario("We will test update on account routings", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will test update on account routings", ApiEndpoint1, VersionOfApi) {
       Given("The test bank and test account with a canUpdateAccount entitlement")
       val testAccount0 = testAccountId0
       val testPutJson = updateAccountRequestJsonV310
@@ -181,8 +180,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   }
 
 
-  feature("Create Account v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature("Create Account v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "ACCOUNT_ID" ).PUT
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
@@ -192,8 +191,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Create Account v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature("Create Account v3.1.0 - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
@@ -260,7 +259,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
 
     }
 
-    scenario("Create new account will have system owner view, and other use also have the system owner view should not get the account back", ApiEndpoint2, VersionOfApi) {
+    Scenario("Create new account will have system owner view, and other use also have the system owner view should not get the account back", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / userAccountId ).PUT <@(user1)
       val putCreateAccountJson = putCreateAccountJSONV310.copy(account_routings = List(AccountRoutingJsonV121("AccountNumber", "15649885656")))
@@ -303,7 +302,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       
     }
 
-    scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint2, VersionOfApi) {
+    Scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 to create the first account")
       val request310_1 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID_1" ).PUT <@(user1)
       val response310_1 = makePutRequest(request310_1, write(putCreateAccountJSONV310))
@@ -334,7 +333,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       responseApiGetAccount.code should equal(404)
     }
 
-    scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint2, VersionOfApi) {
+    Scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 to create the account")
       val request310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / userAccountId ).PUT <@(user1)
       val putCreateAccountJsonWithRoutingSchemeDuplication = putCreateAccountJSONV310.copy(account_routings =
@@ -354,8 +353,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   }
   
 
-  feature(s"test ${ApiEndpoint3.name}") {
-    scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test ${ApiEndpoint3.name}") {
+    Scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
       Given("The test bank and test accounts")
       val requestGet = (v3_1_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
       

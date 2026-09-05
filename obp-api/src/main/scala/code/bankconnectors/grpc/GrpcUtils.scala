@@ -25,7 +25,7 @@ import scala.concurrent.Future
  */
 object GrpcUtils extends MdcLoggable {
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   val host: String = APIUtil.getPropsValue("grpc_connector.host", "localhost")
   val port: Int = APIUtil.getPropsAsIntValue("grpc_connector.port", 50051)

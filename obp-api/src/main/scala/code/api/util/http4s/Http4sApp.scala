@@ -118,7 +118,7 @@ object Http4sApp extends MdcLoggable {
     }
   }
 
-  private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+  private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
     OptionT.liftF(cacheBodyOnce(req)).flatMap { req =>
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
@@ -162,7 +162,7 @@ object Http4sApp extends MdcLoggable {
 
   def httpApp: HttpApp[IO] = {
     val app = baseServices.orNotFound
-    Kleisli { rawReq: Request[IO] =>
+    Kleisli { (rawReq: Request[IO]) =>
       // Establish who is calling before anything reads PSD2-CERT: canonicalise the header into the
       // one form the rest of OBP compares, then decide whether the TLS peer is that caller or a
       // trusted forwarder naming it. Unconditional on purpose — the deployment where the answer is

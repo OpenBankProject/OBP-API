@@ -6,7 +6,6 @@ import code.transactionChallenge.MappedChallengeProvider
 import com.openbankproject.commons.model.enums.AccountAccessRequestStatus
 import com.openbankproject.commons.model.ProductCode
 import net.liftweb.common.{Failure, Full}
-import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.UUID
@@ -53,35 +52,26 @@ import scala.concurrent.duration._
  */
 class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
 
-  feature("Business-object status transitions must be atomic") {
+  Feature("Business-object status transitions must be atomic") {
 
-    scenario("M2: concurrent approve and decline of the same AccountAccessRequest must not both succeed", ConcurrencyRace) {
+    Scenario("M2: concurrent approve and decline of the same AccountAccessRequest must not both succeed", ConcurrencyRace) {
       Given("an AccountAccessRequest in INITIATED state")
-      val requestId = UUID.randomUUID.toString
-      AccountAccessRequest.create
-        .AccountAccessRequestId(requestId)
-        .BankId("__conc_m2_bank")
-        .AccountId("__conc_m2_acc")
-        .ViewId("owner")
-        .IsSystemView(false)
-        .RequestorUserId(resourceUser1.userId)
-        .TargetUserId(resourceUser2.userId)
-        .BusinessJustification("concurrency test")
-        .Status(AccountAccessRequestStatus.INITIATED.toString)
-        .CheckerUserId("")
-        .CheckerComment("")
-        .saveMe()
+      val seeded = AccountAccessRequest.insert(
+        bankId = "__conc_m2_bank", accountId = "__conc_m2_acc", viewId = "owner",
+        isSystemView = false, requestorUserId = resourceUser1.userId,
+        targetUserId = resourceUser2.userId, businessJustification = "concurrency test")
+      val requestIdActual = seeded.accountAccessRequestId
 
       When("two threads concurrently update the request — one to APPROVED, one to DECLINED")
       val n       = 2
       val results = runConcurrentWithBarrier(n) { i =>
         val newStatus = if (i == 0) "APPROVED" else "DECLINED"
-        MappedAccountAccessRequestProvider.updateStatus(requestId, newStatus, resourceUser1.userId, "concurrent-test")
+        MappedAccountAccessRequestProvider.updateStatus(requestIdActual, newStatus, resourceUser1.userId, "concurrent-test")
       }
 
       val finalStatus = AccountAccessRequest
-        .find(By(AccountAccessRequest.AccountAccessRequestId, requestId))
-        .map(_.Status.get).getOrElse("missing")
+        .findByAccountAccessRequestId(requestIdActual)
+        .map(_.status).getOrElse("missing")
 
       Then("the final status must be a deterministic terminal value, not an overwritten intermediate")
       withClue(
@@ -98,16 +88,15 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M3: concurrent ACCEPTED and REJECTED transitions to the same AccountApplication must not both proceed", ConcurrencyRace) {
+    Scenario("M3: concurrent ACCEPTED and REJECTED transitions to the same AccountApplication must not both proceed", ConcurrencyRace) {
       Given("an AccountApplication in REQUESTED state")
-      val appId = UUID.randomUUID.toString
-      MappedAccountApplication.create
-        .mAccountApplicationId(appId)
-        .mCode(ProductCode("__conc_m3_product").value)
-        .mUserId(resourceUser1.userId)
-        .mCustomerId(UUID.randomUUID.toString)
-        .mStatus("REQUESTED")
-        .saveMe()
+      // Created through the provider rather than the store: the application id is generated on
+      // insert, and REQUESTED is the only status a new application may start in.
+      val appId = Await.result(
+        MappedAccountApplicationProvider.createAccountApplication(
+          ProductCode("__conc_m3_product"), Some(resourceUser1.userId), Some(UUID.randomUUID.toString)),
+        10.seconds).openOrThrowException("expected the account application just created")
+        .accountApplicationId
 
       When("Thread A wants to ACCEPT and Thread B wants to REJECT — both race")
       // Both load status="REQUESTED" before either commits.
@@ -120,9 +109,7 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
         Await.result(MappedAccountApplicationProvider.updateStatus(appId, newStatus), 10.seconds)
       }
 
-      val finalStatus = MappedAccountApplication
-        .find(By(MappedAccountApplication.mAccountApplicationId, appId))
-        .map(_.status).getOrElse("missing")
+      val finalStatus = MappedAccountApplication.findById(appId).map(_.status).getOrElse("missing")
 
       Then("exactly one transition must succeed — concurrent ACCEPTED+REJECTED must not both write")
       withClue(
@@ -136,16 +123,15 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M3b: a REJECTED AccountApplication must not be silently re-decided as ACCEPTED", ConcurrencyRace) {
+    Scenario("M3b: a REJECTED AccountApplication must not be silently re-decided as ACCEPTED", ConcurrencyRace) {
       Given("an AccountApplication in REQUESTED state")
-      val appId = UUID.randomUUID.toString
-      MappedAccountApplication.create
-        .mAccountApplicationId(appId)
-        .mCode(ProductCode("__conc_m3b_product").value)
-        .mUserId(resourceUser1.userId)
-        .mCustomerId(UUID.randomUUID.toString)
-        .mStatus("REQUESTED")
-        .saveMe()
+      // Created through the provider rather than the store: the application id is generated on
+      // insert, and REQUESTED is the only status a new application may start in.
+      val appId = Await.result(
+        MappedAccountApplicationProvider.createAccountApplication(
+          ProductCode("__conc_m3b_product"), Some(resourceUser1.userId), Some(UUID.randomUUID.toString)),
+        10.seconds).openOrThrowException("expected the account application just created")
+        .accountApplicationId
 
       When("it is REJECTED and then a second decision tries to ACCEPT it")
       // The deterministic (sequential) form of the M3 race. M3's threads only both write when the
@@ -156,9 +142,7 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
       val rejected = Await.result(MappedAccountApplicationProvider.updateStatus(appId, "REJECTED"), 10.seconds)
       val accepted = Await.result(MappedAccountApplicationProvider.updateStatus(appId, "ACCEPTED"), 10.seconds)
 
-      val finalStatus = MappedAccountApplication
-        .find(By(MappedAccountApplication.mAccountApplicationId, appId))
-        .map(_.status).getOrElse("missing")
+      val finalStatus = MappedAccountApplication.findById(appId).map(_.status).getOrElse("missing")
 
       Then("only the first decision may take effect — the application stays REJECTED")
       withClue(
@@ -180,7 +164,7 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
     // a barrier test outside request scope uses the fallback transactor, which commits the lock SELECT
     // immediately and cannot serialise a separate save. Documented in CONCURRENCY_HAZARDS.md.
 
-    scenario("M4: concurrent correct challenge answers must flip Successful exactly once — no MFA double-spend", ConcurrencyRace) {
+    Scenario("M4: concurrent correct challenge answers must flip Successful exactly once — no MFA double-spend", ConcurrencyRace) {
       Given("a transaction-request challenge seeded with a known correct answer")
       // Raise the attempt limit so the limit-guard never short-circuits the success path.
       setPropsValues("transactionRequests_challenge_max_allowed_attempts" -> "100")

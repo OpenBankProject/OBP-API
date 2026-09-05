@@ -15,7 +15,7 @@ package code.api.v6_0_0
 
 import code.api.Constant
 import code.api.util.APIUtil.stringOrNull
-import code.metrics.ConnectorTrace
+import code.metrics.DoobieConnectorTrace
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
 import code.api.util._
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, OtherAccountMetadataJSON, TransactionDetailsJSON, TransactionMetadataJSON, UserJSONV121}
@@ -40,7 +40,6 @@ import code.loginattempts.LoginAttempt
 import code.model.ModeratedBankAccountCore
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.UserAgreement
-import net.liftweb.mapper.By
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{
   AmountOfMoneyJsonV121,
@@ -1413,7 +1412,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       activeRateLimits: ActiveRateLimitsJsonV600,
       callCounters: RedisCallCountersJsonV600
   ): ConsumerJsonV600 = {
-    val resourceUserJSON = code.users.Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
+    // consumer.createdbyuserid is nullable and reads back as null, as MappedString did. This
+    // used to call .toString() on the Mapper FIELD, whose toString maps null to "" - now it
+    // is a raw String, so the same call threw. "" reproduces the old lookup, which found none.
+    val resourceUserJSON = code.users.Users.users.vend.getUserByUserId(Option(c.createdByUserId).getOrElse("")) match {
       case net.liftweb.common.Full(resourceUser) => code.api.v2_1_0.ResourceUserJSON(
         user_id = resourceUser.userId,
         email = resourceUser.emailAddress,
@@ -1425,20 +1427,23 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     }
 
     ConsumerJsonV600(
-      consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
-      app_name = c.name.get,
-      app_type = c.appType.toString(),
-      description = c.description.get,
-      developer_email = c.developerEmail.get,
-      company = c.company.get,
-      redirect_url = c.redirectURL.get,
-      certificate_pem = c.clientCertificate.get,
+      consumer_id = c.consumerId,
+      consumer_key = c.key,
+      app_name = c.name,
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type = Option(c.appType).getOrElse(""),
+      description = c.description,
+      developer_email = c.developerEmail,
+      company = c.company,
+      redirect_url = c.redirectURL,
+      certificate_pem = c.clientCertificate,
       certificate_info = certificateInfo,
       created_by_user = resourceUserJSON,
-      enabled = c.isActive.get,
-      created = c.createdAt.get,
-      logo_url = if (c.logoUrl.get == null || c.logoUrl.get.isEmpty) None else Some(c.logoUrl.get),
+      enabled = c.isActive,
+      created = c.createdAt,
+      logo_url = if (c.logoUrl == null || c.logoUrl.isEmpty) None else Some(c.logoUrl),
       active_rate_limits = activeRateLimits,
       call_counters = callCounters
     )
@@ -1514,7 +1519,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       lastActivityDate: Option[Date],
       recentOperationIds: List[String]
   ): UserInfoDetailJsonV600 = {
-    val authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+    val authUser = AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value)
     UserInfoDetailJsonV600(
       user_id = user.userId,
       email = user.emailAddress,
@@ -1534,9 +1539,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       last_marketing_agreement_signed_date =
         user.lastMarketingAgreementSignedDate,
       is_locked = isLocked,
-      created_date = authUser.map(_.createdAt.get),
-      updated_date = authUser.map(_.updatedAt.get),
-      email_validated = authUser.map(_.validated.get),
+      created_date = authUser.map(_.createdAt),
+      updated_date = authUser.map(_.updatedAt),
+      email_validated = authUser.map(_.validated),
       last_used_locale = user.lastUsedLocale,
       last_activity_date = lastActivityDate,
       recent_operation_ids = recentOperationIds
@@ -1622,8 +1627,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       per_day_call_limit = rateLimiting.perDayCallLimit.toString,
       per_week_call_limit = rateLimiting.perWeekCallLimit.toString,
       per_month_call_limit = rateLimiting.perMonthCallLimit.toString,
-      created_at = rateLimiting.createdAt.get,
-      updated_at = rateLimiting.updatedAt.get
+      created_at = rateLimiting.createdAt,
+      updated_at = rateLimiting.updatedAt
     )
   }
 
@@ -2913,25 +2918,28 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     ProductTagsJsonV600(tags = tags)
   }
 
-  def createConnectorTraceJsonV600(trace: ConnectorTrace): ConnectorTraceJsonV600 = {
+  // Takes the Doobie row rather than the Lift entity: connector_trace is off Mapper. The date
+  // column is nullable in the schema, so an absent date becomes the epoch here, which is what the
+  // entity's MappedDateTime returned for an unset value.
+  def createConnectorTraceJsonV600(trace: DoobieConnectorTrace.ConnectorTraceRow): ConnectorTraceJsonV600 = {
     ConnectorTraceJsonV600(
-      connector_trace_id = trace.id.get,
-      correlation_id = trace.correlationId.get,
-      connector_name = trace.connectorName.get,
-      function_name = trace.functionName.get,
-      bank_id = trace.bankId.get,
-      outbound_message = trace.outboundMessage.get,
-      inbound_message = trace.inboundMessage.get,
-      date = trace.date.get,
-      duration = trace.duration.get,
-      is_successful = trace.isSuccessful.get,
-      user_id = trace.userId.get,
-      http_verb = trace.httpVerb.get,
-      url = trace.url.get
+      connector_trace_id = trace.id,
+      correlation_id = trace.correlationId,
+      connector_name = trace.connectorName,
+      function_name = trace.functionName,
+      bank_id = trace.bankId,
+      outbound_message = trace.outboundMessage,
+      inbound_message = trace.inboundMessage,
+      date = trace.date.map(t => new java.util.Date(t.getTime)).getOrElse(new java.util.Date(0L)),
+      duration = trace.duration,
+      is_successful = trace.isSuccessful,
+      user_id = trace.userId,
+      http_verb = trace.httpVerb,
+      url = trace.url
     )
   }
 
-  def createConnectorTracesJsonV600(traces: List[ConnectorTrace]): ConnectorTracesJsonV600 = {
+  def createConnectorTracesJsonV600(traces: List[DoobieConnectorTrace.ConnectorTraceRow]): ConnectorTracesJsonV600 = {
     ConnectorTracesJsonV600(traces.map(createConnectorTraceJsonV600))
   }
 
@@ -3231,7 +3239,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   def createParticipantJson(p: code.chat.ParticipantTrait): ParticipantJsonV600 = {
     val user = code.users.Users.users.vend.getUserByUserId(p.userId)
     val consumerName = if (p.consumerId.nonEmpty)
-      code.model.Consumer.find(By(code.model.Consumer.consumerId, p.consumerId)).map(_.name.get).getOrElse("")
+      code.model.Consumer.findByConsumerId(p.consumerId).map(_.name).getOrElse("")
     else ""
     ParticipantJsonV600(
       participant_id = p.participantId,
@@ -3258,7 +3266,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     }.toList
     val user = code.users.Users.users.vend.getUserByUserId(msg.senderUserId)
     val consumerAppName = if (msg.senderConsumerId.nonEmpty)
-      code.model.Consumer.find(By(code.model.Consumer.consumerId, msg.senderConsumerId)).map(_.name.get).getOrElse("")
+      code.model.Consumer.findByConsumerId(msg.senderConsumerId).map(_.name).getOrElse("")
     else ""
     ChatMessageJsonV600(
       chat_message_id = msg.chatMessageId,

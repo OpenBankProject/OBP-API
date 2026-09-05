@@ -34,20 +34,20 @@ class ProxyConnectorTest extends ServerSetupWithTestData {
   private def bankIdsOf(result: Box[(List[Bank], Option[code.api.util.CallContext])]): List[String] =
     result.map(_._1.map(_.bankId.value).sorted).getOrElse(Nil)
 
-  feature("The proxy connector delegates to LocalMappedConnector") {
+  Feature("The proxy connector delegates to LocalMappedConnector") {
 
-    scenario("it is registered under the name proxy and is a distinct instance", ProxyConnectorTag) {
+    Scenario("it is registered under the name proxy and is a distinct instance", ProxyConnectorTag) {
       proxy shouldBe a[Connector]
       // A proxy, not the delegate handed back under another name.
       proxy should not be theSameInstanceAs(LocalMappedConnector)
     }
 
-    scenario("a method that takes no arguments reaches the delegate", ProxyConnectorTag) {
+    Scenario("a method that takes no arguments reaches the delegate", ProxyConnectorTag) {
       // callableMethods has an empty parameter list, so this is the call that receives null args.
       proxy.callableMethods should equal(LocalMappedConnector.callableMethods)
     }
 
-    scenario("a $default$ accessor returns the delegate's default value", ProxyConnectorTag) {
+    Scenario("a $default$ accessor returns the delegate's default value", ProxyConnectorTag) {
       // Synthetic default-argument accessors are also no-argument methods, and the interceptor
       // gives them a branch of their own: their results must be passed through untouched rather
       // than run through the InBound field stripping.
@@ -55,7 +55,7 @@ class ProxyConnectorTest extends ServerSetupWithTestData {
       accessor.invoke(proxy) should equal(None)
     }
 
-    scenario("a method whose result has an InBound DTO is delegated and its payload survives", ProxyConnectorTag) {
+    Scenario("a method whose result has an InBound DTO is delegated and its payload survives", ProxyConnectorTag) {
       // getBanks returns Future[Box[(List[Bank], Option[CallContext])]], so this walks the whole
       // result-unwrapping chain in deleteIgnoreFieldValue: Future, then Full of a tuple. An
       // InBoundGetBanks class exists, so the stripping branch runs rather than the pass-through.

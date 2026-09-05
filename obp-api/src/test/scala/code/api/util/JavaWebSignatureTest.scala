@@ -32,8 +32,8 @@ class JavaWebSignatureTest extends V400ServerSetup {
     super.afterAll()
   }
 
-  feature(s"test functions: $Function1, $Function2 at file $File") {
-    scenario("We will sing with a private RSA key and then verify with public RSA key") {
+  Feature(s"test functions: $Function1, $Function2 at file $File") {
+    Scenario("We will sing with a private RSA key and then verify with public RSA key") {
       When("We make a request v4.0.0")
       val httpBody =
         s"""{
@@ -57,7 +57,7 @@ class JavaWebSignatureTest extends V400ServerSetup {
       isVerified should equal(true)
     }
     
-    scenario("We will sing with a private RSA key and then verify with public RSA key - fails due to signing time is set in the future") {
+    Scenario("We will sing with a private RSA key and then verify with public RSA key - fails due to signing time is set in the future") {
       When("We make a request v4.0.0")
       val httpBody =
         s"""{
@@ -87,7 +87,7 @@ class JavaWebSignatureTest extends V400ServerSetup {
       isVerified should equal(false)
     }
     
-    scenario("We will sing with a private RSA key and then verify with public RSA key - fails due to signing time is set 60 seconds in the past") {
+    Scenario("We will sing with a private RSA key and then verify with public RSA key - fails due to signing time is set 60 seconds in the past") {
       When("We make a request v4.0.0")
       val httpBody =
         s"""{
@@ -118,8 +118,8 @@ class JavaWebSignatureTest extends V400ServerSetup {
     }
   }
 
-  feature(s"Assuring that endpoint $ApiEndpoint1 works as expected - v2.1.0") {
-    scenario("We try to make ur call - successful", ApiEndpoint1) {
+  Feature(s"Assuring that endpoint $ApiEndpoint1 works as expected - v2.1.0") {
+    Scenario("We try to make ur call - successful", ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "development" / "echo" / "jws-verified-request-jws-signed-response").GET <@ (user1)
       val signHeaders = signRequest(
@@ -132,7 +132,7 @@ class JavaWebSignatureTest extends V400ServerSetup {
       Then("We should get a 200")
       responseGet.code should equal(200)
     }
-    scenario("We try to make ur call - unsuccessful", ApiEndpoint1) {
+    Scenario("We try to make ur call - unsuccessful", ApiEndpoint1) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "development" / "echo" / "jws-verified-request-jws-signed-response").GET <@ (user1)
       // Sign with a timestamp 65 seconds in the past — always outside the 60s validity window,

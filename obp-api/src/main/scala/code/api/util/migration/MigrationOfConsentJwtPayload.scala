@@ -3,7 +3,6 @@ package code.api.util.migration
 import code.api.util.{APIUtil, JwtUtil}
 import code.api.util.migration.Migration.saveLog
 import code.consent.MappedConsent
-import net.liftweb.mapper._
 import net.liftweb.common.Full
 import code.util.Helper.MdcLoggable
 
@@ -16,19 +15,16 @@ object MigrationOfConsentJwtPayload extends MdcLoggable {
     var count = 0
 
     try {
-      val consents = MappedConsent.findAll(
-        NullRef(MappedConsent.mJsonWebTokenPayload),
-        By_>(MappedConsent.mJsonWebToken, "")
-      )
+      val consents = MappedConsent.findAllWithJwtButNoPayload()
       consents.foreach { consent =>
-        val jwt = consent.mJsonWebToken.get
+        val jwt = consent.jsonWebToken
         if (jwt != null && jwt.nonEmpty) {
           JwtUtil.getSignedPayloadAsJson(jwt) match {
             case Full(payload) =>
-              consent.mJsonWebTokenPayload(payload).save
+              MappedConsent.setJsonWebTokenPayload(consent.consentId, payload)
               count += 1
             case _ =>
-              logger.warn(s"MigrationOfConsentJwtPayload says: failed to decode JWT for consent ${consent.mConsentId.get}")
+              logger.warn(s"MigrationOfConsentJwtPayload says: failed to decode JWT for consent ${consent.consentId}")
           }
         }
       }

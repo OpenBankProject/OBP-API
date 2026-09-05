@@ -4,11 +4,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.webhook.MappedAccountWebhook
-import code.webhook.BankAccountNotificationWebhook
-import code.webhook.SystemAccountNotificationWebhook
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfWebhookUrlFieldLength {
@@ -18,9 +14,9 @@ object MigrationOfWebhookUrlFieldLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnUrlLength(name: String): Boolean = {
-    DbFunction.tableExists(SystemAccountNotificationWebhook) &&
-      DbFunction.tableExists(BankAccountNotificationWebhook)&&
-      DbFunction.tableExists(MappedAccountWebhook)
+    DbFunction.tableExistsByName("systemaccountnotificationwebhook") &&
+      DbFunction.tableExistsByName("bankaccountnotificationwebhook") &&
+      DbFunction.tableExistsByName("mappedaccountwebhook")
     match {
       case true =>
         val startDate = System.currentTimeMillis()
@@ -28,7 +24,7 @@ object MigrationOfWebhookUrlFieldLength {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -62,9 +58,9 @@ object MigrationOfWebhookUrlFieldLength {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedAccountWebhook._dbTableNameLC} table does not exist or 
-             |${BankAccountNotificationWebhook._dbTableNameLC} table does not exist or 
-             |${SystemAccountNotificationWebhook._dbTableNameLC} table does not exist""".stripMargin
+          """mappedaccountwebhook table does not exist or
+             |bankaccountnotificationwebhook table does not exist or
+             |systemaccountnotificationwebhook table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

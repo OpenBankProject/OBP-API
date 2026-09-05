@@ -7,7 +7,12 @@ This Docker Compose setup provides a complete **live development environment** f
 ### 🏦 **obp-api-app** 
 - Main OBP-API application with **live development mode**
 - Built with Maven + Eclipse Temurin 25 (see `Dockerfile` / `Dockerfile.dev`)
-- Runs the packaged jar via `entrypoint.sh` (`java -jar obp-api.jar`)
+- Runs the packaged jar via `entrypoint.sh`, on the classpath rather than with `-jar`
+  (`java -cp "obp-api.jar:lib/*" bootstrap.http4s.Http4sServer`). A manifest `Class-Path`
+  never reaches the `java.class.path` property, and both DotcScalaCompiler and json4s's
+  ScalaSigReader build a runtime compiler classpath out of it - under `-jar` they see the
+  thin jar alone and every dynamic-code and Scala-3 field-type path fails on a server that
+  otherwise boots fine.
 - Port: `8080`
 - **Features**: Hot reloading, incremental compilation, live props changes
 

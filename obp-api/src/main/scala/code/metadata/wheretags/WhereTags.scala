@@ -12,7 +12,7 @@ object WhereTags  extends SimpleInjector {
 
   val whereTags = new Inject(() => buildOne) {}
 
-  def buildOne: WhereTags = MapperWhereTags
+  def buildOne: WhereTags = DoobieWhereTags
 
 }
 

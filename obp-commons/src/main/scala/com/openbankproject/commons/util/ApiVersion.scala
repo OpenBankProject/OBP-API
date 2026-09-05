@@ -77,7 +77,15 @@ case class ScannedApiVersion(urlPrefix: String, apiStandard: String, apiShortVer
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 
-  override def toJValue(implicit format: Formats): JsonAST.JValue = {
+  // Signature uses the json.* aliases, not org.json4s directly: obp-commons is permanently
+  // Scala-2.13-compiled, and a ScalaSig-pickled override whose signature mentions
+  // org.json4s.JsonAST.JValue directly becomes unreadable once json4s itself is Scala-3-only
+  // (json4s-native_2.13 is excluded from obp-api's classpath - see obp-api/pom.xml) - reflecting
+  // anywhere near this class then throws "unsafe symbol JValue (child of class JsonAST) in
+  // runtime reflection universe". The json.* aliases are declared in this same package (in
+  // JsonAliases.scala, itself Scala-2.13-compiled) so they stay resolvable; the method body is
+  // unaffected since json.JValue =:= org.json4s.JValue.
+  override def toJValue(implicit format: json.Formats): json.JValue = {
     val jFields = JField("urlPrefix", JString(urlPrefix)) ::
       JField("apiStandard", JString(apiStandard)) ::
       JField("apiShortVersion", JString(apiShortVersion)) ::

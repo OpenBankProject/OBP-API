@@ -71,103 +71,496 @@ final case class ViewJSONV121Grpc(
     canSeeTransactionThisBankAccount: _root_.scala.Boolean = false,
     canSeeTransactionType: _root_.scala.Boolean = false,
     canSeeUrl: _root_.scala.Boolean = false,
-    canSeeWhereTag: _root_.scala.Boolean = false
-    ) extends scalapb.GeneratedMessage with scalapb.Message[ViewJSONV121Grpc] with scalapb.lenses.Updatable[ViewJSONV121Grpc] {
+    canSeeWhereTag: _root_.scala.Boolean = false,
+    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ViewJSONV121Grpc] {
     @transient
-    private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-    private[this] def __computeSerializedValue(): _root_.scala.Int = {
+    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+    private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
-      if (id != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, id) }
-      if (shortName != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, shortName) }
-      if (description != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, description) }
-      if (isPublic != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(4, isPublic) }
-      if (alias != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, alias) }
-      if (hideMetadataIfAliasUsed != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(6, hideMetadataIfAliasUsed) }
-      if (canAddComment != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(7, canAddComment) }
-      if (canAddCorporateLocation != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(8, canAddCorporateLocation) }
-      if (canAddImage != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(9, canAddImage) }
-      if (canAddImageUrl != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(10, canAddImageUrl) }
-      if (canAddMoreInfo != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(11, canAddMoreInfo) }
-      if (canAddOpenCorporatesUrl != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(12, canAddOpenCorporatesUrl) }
-      if (canAddPhysicalLocation != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(13, canAddPhysicalLocation) }
-      if (canAddPrivateAlias != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(14, canAddPrivateAlias) }
-      if (canAddPublicAlias != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(15, canAddPublicAlias) }
-      if (canAddTag != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(16, canAddTag) }
-      if (canAddUrl != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(17, canAddUrl) }
-      if (canAddWhereTag != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(18, canAddWhereTag) }
-      if (canDeleteComment != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(19, canDeleteComment) }
-      if (canDeleteCorporateLocation != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(20, canDeleteCorporateLocation) }
-      if (canDeleteImage != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(21, canDeleteImage) }
-      if (canDeletePhysicalLocation != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(22, canDeletePhysicalLocation) }
-      if (canDeleteTag != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(23, canDeleteTag) }
-      if (canDeleteWhereTag != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(24, canDeleteWhereTag) }
-      if (canEditOwnerComment != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(25, canEditOwnerComment) }
-      if (canSeeBankAccountBalance != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(26, canSeeBankAccountBalance) }
-      if (canSeeBankAccountBankName != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(27, canSeeBankAccountBankName) }
-      if (canSeeBankAccountCurrency != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(28, canSeeBankAccountCurrency) }
-      if (canSeeBankAccountIban != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(29, canSeeBankAccountIban) }
-      if (canSeeBankAccountLabel != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(30, canSeeBankAccountLabel) }
-      if (canSeeBankAccountNationalIdentifier != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(31, canSeeBankAccountNationalIdentifier) }
-      if (canSeeBankAccountNumber != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(32, canSeeBankAccountNumber) }
-      if (canSeeBankAccountOwners != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(33, canSeeBankAccountOwners) }
-      if (canSeeBankAccountSwiftBic != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(34, canSeeBankAccountSwiftBic) }
-      if (canSeeBankAccountType != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(35, canSeeBankAccountType) }
-      if (canSeeComments != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(36, canSeeComments) }
-      if (canSeeCorporateLocation != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(37, canSeeCorporateLocation) }
-      if (canSeeImageUrl != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(38, canSeeImageUrl) }
-      if (canSeeImages != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(39, canSeeImages) }
-      if (canSeeMoreInfo != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(40, canSeeMoreInfo) }
-      if (canSeeOpenCorporatesUrl != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(41, canSeeOpenCorporatesUrl) }
-      if (canSeeOtherAccountBankName != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(42, canSeeOtherAccountBankName) }
-      if (canSeeOtherAccountIban != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(43, canSeeOtherAccountIban) }
-      if (canSeeOtherAccountKind != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(44, canSeeOtherAccountKind) }
-      if (canSeeOtherAccountMetadata != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(45, canSeeOtherAccountMetadata) }
-      if (canSeeOtherAccountNationalIdentifier != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(46, canSeeOtherAccountNationalIdentifier) }
-      if (canSeeOtherAccountNumber != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(47, canSeeOtherAccountNumber) }
-      if (canSeeOtherAccountSwiftBic != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(48, canSeeOtherAccountSwiftBic) }
-      if (canSeeOwnerComment != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(49, canSeeOwnerComment) }
-      if (canSeePhysicalLocation != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(50, canSeePhysicalLocation) }
-      if (canSeePrivateAlias != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(51, canSeePrivateAlias) }
-      if (canSeePublicAlias != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(52, canSeePublicAlias) }
-      if (canSeeTags != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(53, canSeeTags) }
-      if (canSeeTransactionAmount != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(54, canSeeTransactionAmount) }
-      if (canSeeTransactionBalance != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(55, canSeeTransactionBalance) }
-      if (canSeeTransactionCurrency != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(56, canSeeTransactionCurrency) }
-      if (canSeeTransactionDescription != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(57, canSeeTransactionDescription) }
-      if (canSeeTransactionFinishDate != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(58, canSeeTransactionFinishDate) }
-      if (canSeeTransactionMetadata != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(59, canSeeTransactionMetadata) }
-      if (canSeeTransactionOtherBankAccount != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(60, canSeeTransactionOtherBankAccount) }
-      if (canSeeTransactionStartDate != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(61, canSeeTransactionStartDate) }
-      if (canSeeTransactionThisBankAccount != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(62, canSeeTransactionThisBankAccount) }
-      if (canSeeTransactionType != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(63, canSeeTransactionType) }
-      if (canSeeUrl != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(64, canSeeUrl) }
-      if (canSeeWhereTag != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(65, canSeeWhereTag) }
+      
+      {
+        val __value = id
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+        }
+      };
+      
+      {
+        val __value = shortName
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+        }
+      };
+      
+      {
+        val __value = description
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
+        }
+      };
+      
+      {
+        val __value = isPublic
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(4, __value)
+        }
+      };
+      
+      {
+        val __value = alias
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
+        }
+      };
+      
+      {
+        val __value = hideMetadataIfAliasUsed
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(6, __value)
+        }
+      };
+      
+      {
+        val __value = canAddComment
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(7, __value)
+        }
+      };
+      
+      {
+        val __value = canAddCorporateLocation
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(8, __value)
+        }
+      };
+      
+      {
+        val __value = canAddImage
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(9, __value)
+        }
+      };
+      
+      {
+        val __value = canAddImageUrl
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(10, __value)
+        }
+      };
+      
+      {
+        val __value = canAddMoreInfo
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(11, __value)
+        }
+      };
+      
+      {
+        val __value = canAddOpenCorporatesUrl
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(12, __value)
+        }
+      };
+      
+      {
+        val __value = canAddPhysicalLocation
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(13, __value)
+        }
+      };
+      
+      {
+        val __value = canAddPrivateAlias
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(14, __value)
+        }
+      };
+      
+      {
+        val __value = canAddPublicAlias
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(15, __value)
+        }
+      };
+      
+      {
+        val __value = canAddTag
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(16, __value)
+        }
+      };
+      
+      {
+        val __value = canAddUrl
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(17, __value)
+        }
+      };
+      
+      {
+        val __value = canAddWhereTag
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(18, __value)
+        }
+      };
+      
+      {
+        val __value = canDeleteComment
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(19, __value)
+        }
+      };
+      
+      {
+        val __value = canDeleteCorporateLocation
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(20, __value)
+        }
+      };
+      
+      {
+        val __value = canDeleteImage
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(21, __value)
+        }
+      };
+      
+      {
+        val __value = canDeletePhysicalLocation
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(22, __value)
+        }
+      };
+      
+      {
+        val __value = canDeleteTag
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(23, __value)
+        }
+      };
+      
+      {
+        val __value = canDeleteWhereTag
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(24, __value)
+        }
+      };
+      
+      {
+        val __value = canEditOwnerComment
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(25, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountBalance
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(26, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountBankName
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(27, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountCurrency
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(28, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountIban
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(29, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountLabel
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(30, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountNationalIdentifier
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(31, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountNumber
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(32, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountOwners
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(33, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountSwiftBic
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(34, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeBankAccountType
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(35, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeComments
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(36, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeCorporateLocation
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(37, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeImageUrl
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(38, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeImages
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(39, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeMoreInfo
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(40, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOpenCorporatesUrl
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(41, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOtherAccountBankName
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(42, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOtherAccountIban
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(43, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOtherAccountKind
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(44, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOtherAccountMetadata
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(45, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOtherAccountNationalIdentifier
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(46, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOtherAccountNumber
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(47, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOtherAccountSwiftBic
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(48, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeOwnerComment
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(49, __value)
+        }
+      };
+      
+      {
+        val __value = canSeePhysicalLocation
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(50, __value)
+        }
+      };
+      
+      {
+        val __value = canSeePrivateAlias
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(51, __value)
+        }
+      };
+      
+      {
+        val __value = canSeePublicAlias
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(52, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTags
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(53, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionAmount
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(54, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionBalance
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(55, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionCurrency
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(56, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionDescription
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(57, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionFinishDate
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(58, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionMetadata
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(59, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionOtherBankAccount
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(60, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionStartDate
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(61, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionThisBankAccount
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(62, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeTransactionType
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(63, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeUrl
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(64, __value)
+        }
+      };
+      
+      {
+        val __value = canSeeWhereTag
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(65, __value)
+        }
+      };
+      __size += unknownFields.serializedSize
       __size
     }
-    final override def serializedSize: _root_.scala.Int = {
-      var read = __serializedSizeCachedValue
-      if (read == 0) {
-        read = __computeSerializedValue()
-        __serializedSizeCachedValue = read
+    override def serializedSize: _root_.scala.Int = {
+      var __size = __serializedSizeMemoized
+      if (__size == 0) {
+        __size = __computeSerializedSize() + 1
+        __serializedSizeMemoized = __size
       }
-      read
+      __size - 1
+      
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
         val __v = id
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
       };
       {
         val __v = shortName
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(2, __v)
         }
       };
       {
         val __v = description
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(3, __v)
         }
       };
@@ -179,7 +572,7 @@ final case class ViewJSONV121Grpc(
       };
       {
         val __v = alias
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(5, __v)
         }
       };
@@ -543,278 +936,7 @@ final case class ViewJSONV121Grpc(
           _output__.writeBool(65, __v)
         }
       };
-    }
-    def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.ViewJSONV121Grpc = {
-      var __id = this.id
-      var __shortName = this.shortName
-      var __description = this.description
-      var __isPublic = this.isPublic
-      var __alias = this.alias
-      var __hideMetadataIfAliasUsed = this.hideMetadataIfAliasUsed
-      var __canAddComment = this.canAddComment
-      var __canAddCorporateLocation = this.canAddCorporateLocation
-      var __canAddImage = this.canAddImage
-      var __canAddImageUrl = this.canAddImageUrl
-      var __canAddMoreInfo = this.canAddMoreInfo
-      var __canAddOpenCorporatesUrl = this.canAddOpenCorporatesUrl
-      var __canAddPhysicalLocation = this.canAddPhysicalLocation
-      var __canAddPrivateAlias = this.canAddPrivateAlias
-      var __canAddPublicAlias = this.canAddPublicAlias
-      var __canAddTag = this.canAddTag
-      var __canAddUrl = this.canAddUrl
-      var __canAddWhereTag = this.canAddWhereTag
-      var __canDeleteComment = this.canDeleteComment
-      var __canDeleteCorporateLocation = this.canDeleteCorporateLocation
-      var __canDeleteImage = this.canDeleteImage
-      var __canDeletePhysicalLocation = this.canDeletePhysicalLocation
-      var __canDeleteTag = this.canDeleteTag
-      var __canDeleteWhereTag = this.canDeleteWhereTag
-      var __canEditOwnerComment = this.canEditOwnerComment
-      var __canSeeBankAccountBalance = this.canSeeBankAccountBalance
-      var __canSeeBankAccountBankName = this.canSeeBankAccountBankName
-      var __canSeeBankAccountCurrency = this.canSeeBankAccountCurrency
-      var __canSeeBankAccountIban = this.canSeeBankAccountIban
-      var __canSeeBankAccountLabel = this.canSeeBankAccountLabel
-      var __canSeeBankAccountNationalIdentifier = this.canSeeBankAccountNationalIdentifier
-      var __canSeeBankAccountNumber = this.canSeeBankAccountNumber
-      var __canSeeBankAccountOwners = this.canSeeBankAccountOwners
-      var __canSeeBankAccountSwiftBic = this.canSeeBankAccountSwiftBic
-      var __canSeeBankAccountType = this.canSeeBankAccountType
-      var __canSeeComments = this.canSeeComments
-      var __canSeeCorporateLocation = this.canSeeCorporateLocation
-      var __canSeeImageUrl = this.canSeeImageUrl
-      var __canSeeImages = this.canSeeImages
-      var __canSeeMoreInfo = this.canSeeMoreInfo
-      var __canSeeOpenCorporatesUrl = this.canSeeOpenCorporatesUrl
-      var __canSeeOtherAccountBankName = this.canSeeOtherAccountBankName
-      var __canSeeOtherAccountIban = this.canSeeOtherAccountIban
-      var __canSeeOtherAccountKind = this.canSeeOtherAccountKind
-      var __canSeeOtherAccountMetadata = this.canSeeOtherAccountMetadata
-      var __canSeeOtherAccountNationalIdentifier = this.canSeeOtherAccountNationalIdentifier
-      var __canSeeOtherAccountNumber = this.canSeeOtherAccountNumber
-      var __canSeeOtherAccountSwiftBic = this.canSeeOtherAccountSwiftBic
-      var __canSeeOwnerComment = this.canSeeOwnerComment
-      var __canSeePhysicalLocation = this.canSeePhysicalLocation
-      var __canSeePrivateAlias = this.canSeePrivateAlias
-      var __canSeePublicAlias = this.canSeePublicAlias
-      var __canSeeTags = this.canSeeTags
-      var __canSeeTransactionAmount = this.canSeeTransactionAmount
-      var __canSeeTransactionBalance = this.canSeeTransactionBalance
-      var __canSeeTransactionCurrency = this.canSeeTransactionCurrency
-      var __canSeeTransactionDescription = this.canSeeTransactionDescription
-      var __canSeeTransactionFinishDate = this.canSeeTransactionFinishDate
-      var __canSeeTransactionMetadata = this.canSeeTransactionMetadata
-      var __canSeeTransactionOtherBankAccount = this.canSeeTransactionOtherBankAccount
-      var __canSeeTransactionStartDate = this.canSeeTransactionStartDate
-      var __canSeeTransactionThisBankAccount = this.canSeeTransactionThisBankAccount
-      var __canSeeTransactionType = this.canSeeTransactionType
-      var __canSeeUrl = this.canSeeUrl
-      var __canSeeWhereTag = this.canSeeWhereTag
-      var _done__ = false
-      while (!_done__) {
-        val _tag__ = _input__.readTag()
-        _tag__ match {
-          case 0 => _done__ = true
-          case 10 =>
-            __id = _input__.readString()
-          case 18 =>
-            __shortName = _input__.readString()
-          case 26 =>
-            __description = _input__.readString()
-          case 32 =>
-            __isPublic = _input__.readBool()
-          case 42 =>
-            __alias = _input__.readString()
-          case 48 =>
-            __hideMetadataIfAliasUsed = _input__.readBool()
-          case 56 =>
-            __canAddComment = _input__.readBool()
-          case 64 =>
-            __canAddCorporateLocation = _input__.readBool()
-          case 72 =>
-            __canAddImage = _input__.readBool()
-          case 80 =>
-            __canAddImageUrl = _input__.readBool()
-          case 88 =>
-            __canAddMoreInfo = _input__.readBool()
-          case 96 =>
-            __canAddOpenCorporatesUrl = _input__.readBool()
-          case 104 =>
-            __canAddPhysicalLocation = _input__.readBool()
-          case 112 =>
-            __canAddPrivateAlias = _input__.readBool()
-          case 120 =>
-            __canAddPublicAlias = _input__.readBool()
-          case 128 =>
-            __canAddTag = _input__.readBool()
-          case 136 =>
-            __canAddUrl = _input__.readBool()
-          case 144 =>
-            __canAddWhereTag = _input__.readBool()
-          case 152 =>
-            __canDeleteComment = _input__.readBool()
-          case 160 =>
-            __canDeleteCorporateLocation = _input__.readBool()
-          case 168 =>
-            __canDeleteImage = _input__.readBool()
-          case 176 =>
-            __canDeletePhysicalLocation = _input__.readBool()
-          case 184 =>
-            __canDeleteTag = _input__.readBool()
-          case 192 =>
-            __canDeleteWhereTag = _input__.readBool()
-          case 200 =>
-            __canEditOwnerComment = _input__.readBool()
-          case 208 =>
-            __canSeeBankAccountBalance = _input__.readBool()
-          case 216 =>
-            __canSeeBankAccountBankName = _input__.readBool()
-          case 224 =>
-            __canSeeBankAccountCurrency = _input__.readBool()
-          case 232 =>
-            __canSeeBankAccountIban = _input__.readBool()
-          case 240 =>
-            __canSeeBankAccountLabel = _input__.readBool()
-          case 248 =>
-            __canSeeBankAccountNationalIdentifier = _input__.readBool()
-          case 256 =>
-            __canSeeBankAccountNumber = _input__.readBool()
-          case 264 =>
-            __canSeeBankAccountOwners = _input__.readBool()
-          case 272 =>
-            __canSeeBankAccountSwiftBic = _input__.readBool()
-          case 280 =>
-            __canSeeBankAccountType = _input__.readBool()
-          case 288 =>
-            __canSeeComments = _input__.readBool()
-          case 296 =>
-            __canSeeCorporateLocation = _input__.readBool()
-          case 304 =>
-            __canSeeImageUrl = _input__.readBool()
-          case 312 =>
-            __canSeeImages = _input__.readBool()
-          case 320 =>
-            __canSeeMoreInfo = _input__.readBool()
-          case 328 =>
-            __canSeeOpenCorporatesUrl = _input__.readBool()
-          case 336 =>
-            __canSeeOtherAccountBankName = _input__.readBool()
-          case 344 =>
-            __canSeeOtherAccountIban = _input__.readBool()
-          case 352 =>
-            __canSeeOtherAccountKind = _input__.readBool()
-          case 360 =>
-            __canSeeOtherAccountMetadata = _input__.readBool()
-          case 368 =>
-            __canSeeOtherAccountNationalIdentifier = _input__.readBool()
-          case 376 =>
-            __canSeeOtherAccountNumber = _input__.readBool()
-          case 384 =>
-            __canSeeOtherAccountSwiftBic = _input__.readBool()
-          case 392 =>
-            __canSeeOwnerComment = _input__.readBool()
-          case 400 =>
-            __canSeePhysicalLocation = _input__.readBool()
-          case 408 =>
-            __canSeePrivateAlias = _input__.readBool()
-          case 416 =>
-            __canSeePublicAlias = _input__.readBool()
-          case 424 =>
-            __canSeeTags = _input__.readBool()
-          case 432 =>
-            __canSeeTransactionAmount = _input__.readBool()
-          case 440 =>
-            __canSeeTransactionBalance = _input__.readBool()
-          case 448 =>
-            __canSeeTransactionCurrency = _input__.readBool()
-          case 456 =>
-            __canSeeTransactionDescription = _input__.readBool()
-          case 464 =>
-            __canSeeTransactionFinishDate = _input__.readBool()
-          case 472 =>
-            __canSeeTransactionMetadata = _input__.readBool()
-          case 480 =>
-            __canSeeTransactionOtherBankAccount = _input__.readBool()
-          case 488 =>
-            __canSeeTransactionStartDate = _input__.readBool()
-          case 496 =>
-            __canSeeTransactionThisBankAccount = _input__.readBool()
-          case 504 =>
-            __canSeeTransactionType = _input__.readBool()
-          case 512 =>
-            __canSeeUrl = _input__.readBool()
-          case 520 =>
-            __canSeeWhereTag = _input__.readBool()
-          case tag => _input__.skipField(tag)
-        }
-      }
-      code.obp.grpc.api.ViewJSONV121Grpc(
-          id = __id,
-          shortName = __shortName,
-          description = __description,
-          isPublic = __isPublic,
-          alias = __alias,
-          hideMetadataIfAliasUsed = __hideMetadataIfAliasUsed,
-          canAddComment = __canAddComment,
-          canAddCorporateLocation = __canAddCorporateLocation,
-          canAddImage = __canAddImage,
-          canAddImageUrl = __canAddImageUrl,
-          canAddMoreInfo = __canAddMoreInfo,
-          canAddOpenCorporatesUrl = __canAddOpenCorporatesUrl,
-          canAddPhysicalLocation = __canAddPhysicalLocation,
-          canAddPrivateAlias = __canAddPrivateAlias,
-          canAddPublicAlias = __canAddPublicAlias,
-          canAddTag = __canAddTag,
-          canAddUrl = __canAddUrl,
-          canAddWhereTag = __canAddWhereTag,
-          canDeleteComment = __canDeleteComment,
-          canDeleteCorporateLocation = __canDeleteCorporateLocation,
-          canDeleteImage = __canDeleteImage,
-          canDeletePhysicalLocation = __canDeletePhysicalLocation,
-          canDeleteTag = __canDeleteTag,
-          canDeleteWhereTag = __canDeleteWhereTag,
-          canEditOwnerComment = __canEditOwnerComment,
-          canSeeBankAccountBalance = __canSeeBankAccountBalance,
-          canSeeBankAccountBankName = __canSeeBankAccountBankName,
-          canSeeBankAccountCurrency = __canSeeBankAccountCurrency,
-          canSeeBankAccountIban = __canSeeBankAccountIban,
-          canSeeBankAccountLabel = __canSeeBankAccountLabel,
-          canSeeBankAccountNationalIdentifier = __canSeeBankAccountNationalIdentifier,
-          canSeeBankAccountNumber = __canSeeBankAccountNumber,
-          canSeeBankAccountOwners = __canSeeBankAccountOwners,
-          canSeeBankAccountSwiftBic = __canSeeBankAccountSwiftBic,
-          canSeeBankAccountType = __canSeeBankAccountType,
-          canSeeComments = __canSeeComments,
-          canSeeCorporateLocation = __canSeeCorporateLocation,
-          canSeeImageUrl = __canSeeImageUrl,
-          canSeeImages = __canSeeImages,
-          canSeeMoreInfo = __canSeeMoreInfo,
-          canSeeOpenCorporatesUrl = __canSeeOpenCorporatesUrl,
-          canSeeOtherAccountBankName = __canSeeOtherAccountBankName,
-          canSeeOtherAccountIban = __canSeeOtherAccountIban,
-          canSeeOtherAccountKind = __canSeeOtherAccountKind,
-          canSeeOtherAccountMetadata = __canSeeOtherAccountMetadata,
-          canSeeOtherAccountNationalIdentifier = __canSeeOtherAccountNationalIdentifier,
-          canSeeOtherAccountNumber = __canSeeOtherAccountNumber,
-          canSeeOtherAccountSwiftBic = __canSeeOtherAccountSwiftBic,
-          canSeeOwnerComment = __canSeeOwnerComment,
-          canSeePhysicalLocation = __canSeePhysicalLocation,
-          canSeePrivateAlias = __canSeePrivateAlias,
-          canSeePublicAlias = __canSeePublicAlias,
-          canSeeTags = __canSeeTags,
-          canSeeTransactionAmount = __canSeeTransactionAmount,
-          canSeeTransactionBalance = __canSeeTransactionBalance,
-          canSeeTransactionCurrency = __canSeeTransactionCurrency,
-          canSeeTransactionDescription = __canSeeTransactionDescription,
-          canSeeTransactionFinishDate = __canSeeTransactionFinishDate,
-          canSeeTransactionMetadata = __canSeeTransactionMetadata,
-          canSeeTransactionOtherBankAccount = __canSeeTransactionOtherBankAccount,
-          canSeeTransactionStartDate = __canSeeTransactionStartDate,
-          canSeeTransactionThisBankAccount = __canSeeTransactionThisBankAccount,
-          canSeeTransactionType = __canSeeTransactionType,
-          canSeeUrl = __canSeeUrl,
-          canSeeWhereTag = __canSeeWhereTag
-      )
+      unknownFields.writeTo(_output__)
     }
     def withId(__v: _root_.scala.Predef.String): ViewJSONV121Grpc = copy(id = __v)
     def withShortName(__v: _root_.scala.Predef.String): ViewJSONV121Grpc = copy(shortName = __v)
@@ -881,7 +1003,9 @@ final case class ViewJSONV121Grpc(
     def withCanSeeTransactionType(__v: _root_.scala.Boolean): ViewJSONV121Grpc = copy(canSeeTransactionType = __v)
     def withCanSeeUrl(__v: _root_.scala.Boolean): ViewJSONV121Grpc = copy(canSeeUrl = __v)
     def withCanSeeWhereTag(__v: _root_.scala.Boolean): ViewJSONV121Grpc = copy(canSeeWhereTag = __v)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
           val __t = id
@@ -1146,7 +1270,7 @@ final case class ViewJSONV121Grpc(
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      require(__field.containingMessage eq companion.scalaDescriptor)
+      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(id)
         case 2 => _root_.scalapb.descriptors.PString(shortName)
@@ -1216,160 +1340,433 @@ final case class ViewJSONV121Grpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.ViewJSONV121Grpc
+    def companion: code.obp.grpc.api.ViewJSONV121Grpc.type = code.obp.grpc.api.ViewJSONV121Grpc
+    // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.ViewJSONV121Grpc])
 }
 
 object ViewJSONV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.ViewJSONV121Grpc] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.ViewJSONV121Grpc] = this
-  def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.ViewJSONV121Grpc = {
-    require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-    val __fields = javaDescriptor.getFields
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.ViewJSONV121Grpc = {
+    var __id: _root_.scala.Predef.String = ""
+    var __shortName: _root_.scala.Predef.String = ""
+    var __description: _root_.scala.Predef.String = ""
+    var __isPublic: _root_.scala.Boolean = false
+    var __alias: _root_.scala.Predef.String = ""
+    var __hideMetadataIfAliasUsed: _root_.scala.Boolean = false
+    var __canAddComment: _root_.scala.Boolean = false
+    var __canAddCorporateLocation: _root_.scala.Boolean = false
+    var __canAddImage: _root_.scala.Boolean = false
+    var __canAddImageUrl: _root_.scala.Boolean = false
+    var __canAddMoreInfo: _root_.scala.Boolean = false
+    var __canAddOpenCorporatesUrl: _root_.scala.Boolean = false
+    var __canAddPhysicalLocation: _root_.scala.Boolean = false
+    var __canAddPrivateAlias: _root_.scala.Boolean = false
+    var __canAddPublicAlias: _root_.scala.Boolean = false
+    var __canAddTag: _root_.scala.Boolean = false
+    var __canAddUrl: _root_.scala.Boolean = false
+    var __canAddWhereTag: _root_.scala.Boolean = false
+    var __canDeleteComment: _root_.scala.Boolean = false
+    var __canDeleteCorporateLocation: _root_.scala.Boolean = false
+    var __canDeleteImage: _root_.scala.Boolean = false
+    var __canDeletePhysicalLocation: _root_.scala.Boolean = false
+    var __canDeleteTag: _root_.scala.Boolean = false
+    var __canDeleteWhereTag: _root_.scala.Boolean = false
+    var __canEditOwnerComment: _root_.scala.Boolean = false
+    var __canSeeBankAccountBalance: _root_.scala.Boolean = false
+    var __canSeeBankAccountBankName: _root_.scala.Boolean = false
+    var __canSeeBankAccountCurrency: _root_.scala.Boolean = false
+    var __canSeeBankAccountIban: _root_.scala.Boolean = false
+    var __canSeeBankAccountLabel: _root_.scala.Boolean = false
+    var __canSeeBankAccountNationalIdentifier: _root_.scala.Boolean = false
+    var __canSeeBankAccountNumber: _root_.scala.Boolean = false
+    var __canSeeBankAccountOwners: _root_.scala.Boolean = false
+    var __canSeeBankAccountSwiftBic: _root_.scala.Boolean = false
+    var __canSeeBankAccountType: _root_.scala.Boolean = false
+    var __canSeeComments: _root_.scala.Boolean = false
+    var __canSeeCorporateLocation: _root_.scala.Boolean = false
+    var __canSeeImageUrl: _root_.scala.Boolean = false
+    var __canSeeImages: _root_.scala.Boolean = false
+    var __canSeeMoreInfo: _root_.scala.Boolean = false
+    var __canSeeOpenCorporatesUrl: _root_.scala.Boolean = false
+    var __canSeeOtherAccountBankName: _root_.scala.Boolean = false
+    var __canSeeOtherAccountIban: _root_.scala.Boolean = false
+    var __canSeeOtherAccountKind: _root_.scala.Boolean = false
+    var __canSeeOtherAccountMetadata: _root_.scala.Boolean = false
+    var __canSeeOtherAccountNationalIdentifier: _root_.scala.Boolean = false
+    var __canSeeOtherAccountNumber: _root_.scala.Boolean = false
+    var __canSeeOtherAccountSwiftBic: _root_.scala.Boolean = false
+    var __canSeeOwnerComment: _root_.scala.Boolean = false
+    var __canSeePhysicalLocation: _root_.scala.Boolean = false
+    var __canSeePrivateAlias: _root_.scala.Boolean = false
+    var __canSeePublicAlias: _root_.scala.Boolean = false
+    var __canSeeTags: _root_.scala.Boolean = false
+    var __canSeeTransactionAmount: _root_.scala.Boolean = false
+    var __canSeeTransactionBalance: _root_.scala.Boolean = false
+    var __canSeeTransactionCurrency: _root_.scala.Boolean = false
+    var __canSeeTransactionDescription: _root_.scala.Boolean = false
+    var __canSeeTransactionFinishDate: _root_.scala.Boolean = false
+    var __canSeeTransactionMetadata: _root_.scala.Boolean = false
+    var __canSeeTransactionOtherBankAccount: _root_.scala.Boolean = false
+    var __canSeeTransactionStartDate: _root_.scala.Boolean = false
+    var __canSeeTransactionThisBankAccount: _root_.scala.Boolean = false
+    var __canSeeTransactionType: _root_.scala.Boolean = false
+    var __canSeeUrl: _root_.scala.Boolean = false
+    var __canSeeWhereTag: _root_.scala.Boolean = false
+    var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+    var _done__ = false
+    while (!_done__) {
+      val _tag__ = _input__.readTag()
+      _tag__ match {
+        case 0 => _done__ = true
+        case 10 =>
+          __id = _input__.readStringRequireUtf8()
+        case 18 =>
+          __shortName = _input__.readStringRequireUtf8()
+        case 26 =>
+          __description = _input__.readStringRequireUtf8()
+        case 32 =>
+          __isPublic = _input__.readBool()
+        case 42 =>
+          __alias = _input__.readStringRequireUtf8()
+        case 48 =>
+          __hideMetadataIfAliasUsed = _input__.readBool()
+        case 56 =>
+          __canAddComment = _input__.readBool()
+        case 64 =>
+          __canAddCorporateLocation = _input__.readBool()
+        case 72 =>
+          __canAddImage = _input__.readBool()
+        case 80 =>
+          __canAddImageUrl = _input__.readBool()
+        case 88 =>
+          __canAddMoreInfo = _input__.readBool()
+        case 96 =>
+          __canAddOpenCorporatesUrl = _input__.readBool()
+        case 104 =>
+          __canAddPhysicalLocation = _input__.readBool()
+        case 112 =>
+          __canAddPrivateAlias = _input__.readBool()
+        case 120 =>
+          __canAddPublicAlias = _input__.readBool()
+        case 128 =>
+          __canAddTag = _input__.readBool()
+        case 136 =>
+          __canAddUrl = _input__.readBool()
+        case 144 =>
+          __canAddWhereTag = _input__.readBool()
+        case 152 =>
+          __canDeleteComment = _input__.readBool()
+        case 160 =>
+          __canDeleteCorporateLocation = _input__.readBool()
+        case 168 =>
+          __canDeleteImage = _input__.readBool()
+        case 176 =>
+          __canDeletePhysicalLocation = _input__.readBool()
+        case 184 =>
+          __canDeleteTag = _input__.readBool()
+        case 192 =>
+          __canDeleteWhereTag = _input__.readBool()
+        case 200 =>
+          __canEditOwnerComment = _input__.readBool()
+        case 208 =>
+          __canSeeBankAccountBalance = _input__.readBool()
+        case 216 =>
+          __canSeeBankAccountBankName = _input__.readBool()
+        case 224 =>
+          __canSeeBankAccountCurrency = _input__.readBool()
+        case 232 =>
+          __canSeeBankAccountIban = _input__.readBool()
+        case 240 =>
+          __canSeeBankAccountLabel = _input__.readBool()
+        case 248 =>
+          __canSeeBankAccountNationalIdentifier = _input__.readBool()
+        case 256 =>
+          __canSeeBankAccountNumber = _input__.readBool()
+        case 264 =>
+          __canSeeBankAccountOwners = _input__.readBool()
+        case 272 =>
+          __canSeeBankAccountSwiftBic = _input__.readBool()
+        case 280 =>
+          __canSeeBankAccountType = _input__.readBool()
+        case 288 =>
+          __canSeeComments = _input__.readBool()
+        case 296 =>
+          __canSeeCorporateLocation = _input__.readBool()
+        case 304 =>
+          __canSeeImageUrl = _input__.readBool()
+        case 312 =>
+          __canSeeImages = _input__.readBool()
+        case 320 =>
+          __canSeeMoreInfo = _input__.readBool()
+        case 328 =>
+          __canSeeOpenCorporatesUrl = _input__.readBool()
+        case 336 =>
+          __canSeeOtherAccountBankName = _input__.readBool()
+        case 344 =>
+          __canSeeOtherAccountIban = _input__.readBool()
+        case 352 =>
+          __canSeeOtherAccountKind = _input__.readBool()
+        case 360 =>
+          __canSeeOtherAccountMetadata = _input__.readBool()
+        case 368 =>
+          __canSeeOtherAccountNationalIdentifier = _input__.readBool()
+        case 376 =>
+          __canSeeOtherAccountNumber = _input__.readBool()
+        case 384 =>
+          __canSeeOtherAccountSwiftBic = _input__.readBool()
+        case 392 =>
+          __canSeeOwnerComment = _input__.readBool()
+        case 400 =>
+          __canSeePhysicalLocation = _input__.readBool()
+        case 408 =>
+          __canSeePrivateAlias = _input__.readBool()
+        case 416 =>
+          __canSeePublicAlias = _input__.readBool()
+        case 424 =>
+          __canSeeTags = _input__.readBool()
+        case 432 =>
+          __canSeeTransactionAmount = _input__.readBool()
+        case 440 =>
+          __canSeeTransactionBalance = _input__.readBool()
+        case 448 =>
+          __canSeeTransactionCurrency = _input__.readBool()
+        case 456 =>
+          __canSeeTransactionDescription = _input__.readBool()
+        case 464 =>
+          __canSeeTransactionFinishDate = _input__.readBool()
+        case 472 =>
+          __canSeeTransactionMetadata = _input__.readBool()
+        case 480 =>
+          __canSeeTransactionOtherBankAccount = _input__.readBool()
+        case 488 =>
+          __canSeeTransactionStartDate = _input__.readBool()
+        case 496 =>
+          __canSeeTransactionThisBankAccount = _input__.readBool()
+        case 504 =>
+          __canSeeTransactionType = _input__.readBool()
+        case 512 =>
+          __canSeeUrl = _input__.readBool()
+        case 520 =>
+          __canSeeWhereTag = _input__.readBool()
+        case tag =>
+          if (_unknownFields__ == null) {
+            _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+          }
+          _unknownFields__.parseField(tag, _input__)
+      }
+    }
     code.obp.grpc.api.ViewJSONV121Grpc(
-      __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(2), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(3), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(4), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(5), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(6), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(7), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(8), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(9), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(10), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(11), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(12), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(13), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(14), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(15), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(16), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(17), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(18), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(19), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(20), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(21), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(22), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(23), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(24), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(25), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(26), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(27), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(28), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(29), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(30), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(31), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(32), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(33), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(34), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(35), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(36), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(37), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(38), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(39), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(40), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(41), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(42), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(43), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(44), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(45), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(46), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(47), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(48), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(49), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(50), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(51), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(52), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(53), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(54), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(55), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(56), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(57), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(58), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(59), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(60), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(61), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(62), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(63), false).asInstanceOf[_root_.scala.Boolean],
-      __fieldsMap.getOrElse(__fields.get(64), false).asInstanceOf[_root_.scala.Boolean]
+        id = __id,
+        shortName = __shortName,
+        description = __description,
+        isPublic = __isPublic,
+        alias = __alias,
+        hideMetadataIfAliasUsed = __hideMetadataIfAliasUsed,
+        canAddComment = __canAddComment,
+        canAddCorporateLocation = __canAddCorporateLocation,
+        canAddImage = __canAddImage,
+        canAddImageUrl = __canAddImageUrl,
+        canAddMoreInfo = __canAddMoreInfo,
+        canAddOpenCorporatesUrl = __canAddOpenCorporatesUrl,
+        canAddPhysicalLocation = __canAddPhysicalLocation,
+        canAddPrivateAlias = __canAddPrivateAlias,
+        canAddPublicAlias = __canAddPublicAlias,
+        canAddTag = __canAddTag,
+        canAddUrl = __canAddUrl,
+        canAddWhereTag = __canAddWhereTag,
+        canDeleteComment = __canDeleteComment,
+        canDeleteCorporateLocation = __canDeleteCorporateLocation,
+        canDeleteImage = __canDeleteImage,
+        canDeletePhysicalLocation = __canDeletePhysicalLocation,
+        canDeleteTag = __canDeleteTag,
+        canDeleteWhereTag = __canDeleteWhereTag,
+        canEditOwnerComment = __canEditOwnerComment,
+        canSeeBankAccountBalance = __canSeeBankAccountBalance,
+        canSeeBankAccountBankName = __canSeeBankAccountBankName,
+        canSeeBankAccountCurrency = __canSeeBankAccountCurrency,
+        canSeeBankAccountIban = __canSeeBankAccountIban,
+        canSeeBankAccountLabel = __canSeeBankAccountLabel,
+        canSeeBankAccountNationalIdentifier = __canSeeBankAccountNationalIdentifier,
+        canSeeBankAccountNumber = __canSeeBankAccountNumber,
+        canSeeBankAccountOwners = __canSeeBankAccountOwners,
+        canSeeBankAccountSwiftBic = __canSeeBankAccountSwiftBic,
+        canSeeBankAccountType = __canSeeBankAccountType,
+        canSeeComments = __canSeeComments,
+        canSeeCorporateLocation = __canSeeCorporateLocation,
+        canSeeImageUrl = __canSeeImageUrl,
+        canSeeImages = __canSeeImages,
+        canSeeMoreInfo = __canSeeMoreInfo,
+        canSeeOpenCorporatesUrl = __canSeeOpenCorporatesUrl,
+        canSeeOtherAccountBankName = __canSeeOtherAccountBankName,
+        canSeeOtherAccountIban = __canSeeOtherAccountIban,
+        canSeeOtherAccountKind = __canSeeOtherAccountKind,
+        canSeeOtherAccountMetadata = __canSeeOtherAccountMetadata,
+        canSeeOtherAccountNationalIdentifier = __canSeeOtherAccountNationalIdentifier,
+        canSeeOtherAccountNumber = __canSeeOtherAccountNumber,
+        canSeeOtherAccountSwiftBic = __canSeeOtherAccountSwiftBic,
+        canSeeOwnerComment = __canSeeOwnerComment,
+        canSeePhysicalLocation = __canSeePhysicalLocation,
+        canSeePrivateAlias = __canSeePrivateAlias,
+        canSeePublicAlias = __canSeePublicAlias,
+        canSeeTags = __canSeeTags,
+        canSeeTransactionAmount = __canSeeTransactionAmount,
+        canSeeTransactionBalance = __canSeeTransactionBalance,
+        canSeeTransactionCurrency = __canSeeTransactionCurrency,
+        canSeeTransactionDescription = __canSeeTransactionDescription,
+        canSeeTransactionFinishDate = __canSeeTransactionFinishDate,
+        canSeeTransactionMetadata = __canSeeTransactionMetadata,
+        canSeeTransactionOtherBankAccount = __canSeeTransactionOtherBankAccount,
+        canSeeTransactionStartDate = __canSeeTransactionStartDate,
+        canSeeTransactionThisBankAccount = __canSeeTransactionThisBankAccount,
+        canSeeTransactionType = __canSeeTransactionType,
+        canSeeUrl = __canSeeUrl,
+        canSeeWhereTag = __canSeeWhereTag,
+        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.ViewJSONV121Grpc] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       code.obp.grpc.api.ViewJSONV121Grpc(
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(14).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(15).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(16).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(17).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(18).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(19).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(20).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(21).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(22).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(23).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(24).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(25).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(26).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(27).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(28).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(29).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(30).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(31).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(32).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(33).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(34).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(35).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(36).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(37).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(38).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(39).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(40).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(41).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(42).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(43).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(44).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(45).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(46).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(47).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(48).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(49).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(50).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(51).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(52).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(53).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(54).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(55).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(56).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(57).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(58).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(59).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(60).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(61).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(62).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(63).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(64).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(65).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
+        id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        shortName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        description = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        isPublic = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        alias = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        hideMetadataIfAliasUsed = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddComment = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddCorporateLocation = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddImage = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddImageUrl = __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddMoreInfo = __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddOpenCorporatesUrl = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddPhysicalLocation = __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddPrivateAlias = __fieldsMap.get(scalaDescriptor.findFieldByNumber(14).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddPublicAlias = __fieldsMap.get(scalaDescriptor.findFieldByNumber(15).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddTag = __fieldsMap.get(scalaDescriptor.findFieldByNumber(16).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddUrl = __fieldsMap.get(scalaDescriptor.findFieldByNumber(17).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canAddWhereTag = __fieldsMap.get(scalaDescriptor.findFieldByNumber(18).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canDeleteComment = __fieldsMap.get(scalaDescriptor.findFieldByNumber(19).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canDeleteCorporateLocation = __fieldsMap.get(scalaDescriptor.findFieldByNumber(20).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canDeleteImage = __fieldsMap.get(scalaDescriptor.findFieldByNumber(21).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canDeletePhysicalLocation = __fieldsMap.get(scalaDescriptor.findFieldByNumber(22).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canDeleteTag = __fieldsMap.get(scalaDescriptor.findFieldByNumber(23).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canDeleteWhereTag = __fieldsMap.get(scalaDescriptor.findFieldByNumber(24).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canEditOwnerComment = __fieldsMap.get(scalaDescriptor.findFieldByNumber(25).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountBalance = __fieldsMap.get(scalaDescriptor.findFieldByNumber(26).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountBankName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(27).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountCurrency = __fieldsMap.get(scalaDescriptor.findFieldByNumber(28).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountIban = __fieldsMap.get(scalaDescriptor.findFieldByNumber(29).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountLabel = __fieldsMap.get(scalaDescriptor.findFieldByNumber(30).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountNationalIdentifier = __fieldsMap.get(scalaDescriptor.findFieldByNumber(31).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountNumber = __fieldsMap.get(scalaDescriptor.findFieldByNumber(32).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountOwners = __fieldsMap.get(scalaDescriptor.findFieldByNumber(33).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountSwiftBic = __fieldsMap.get(scalaDescriptor.findFieldByNumber(34).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeBankAccountType = __fieldsMap.get(scalaDescriptor.findFieldByNumber(35).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeComments = __fieldsMap.get(scalaDescriptor.findFieldByNumber(36).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeCorporateLocation = __fieldsMap.get(scalaDescriptor.findFieldByNumber(37).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeImageUrl = __fieldsMap.get(scalaDescriptor.findFieldByNumber(38).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeImages = __fieldsMap.get(scalaDescriptor.findFieldByNumber(39).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeMoreInfo = __fieldsMap.get(scalaDescriptor.findFieldByNumber(40).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOpenCorporatesUrl = __fieldsMap.get(scalaDescriptor.findFieldByNumber(41).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOtherAccountBankName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(42).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOtherAccountIban = __fieldsMap.get(scalaDescriptor.findFieldByNumber(43).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOtherAccountKind = __fieldsMap.get(scalaDescriptor.findFieldByNumber(44).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOtherAccountMetadata = __fieldsMap.get(scalaDescriptor.findFieldByNumber(45).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOtherAccountNationalIdentifier = __fieldsMap.get(scalaDescriptor.findFieldByNumber(46).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOtherAccountNumber = __fieldsMap.get(scalaDescriptor.findFieldByNumber(47).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOtherAccountSwiftBic = __fieldsMap.get(scalaDescriptor.findFieldByNumber(48).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeOwnerComment = __fieldsMap.get(scalaDescriptor.findFieldByNumber(49).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeePhysicalLocation = __fieldsMap.get(scalaDescriptor.findFieldByNumber(50).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeePrivateAlias = __fieldsMap.get(scalaDescriptor.findFieldByNumber(51).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeePublicAlias = __fieldsMap.get(scalaDescriptor.findFieldByNumber(52).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTags = __fieldsMap.get(scalaDescriptor.findFieldByNumber(53).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionAmount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(54).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionBalance = __fieldsMap.get(scalaDescriptor.findFieldByNumber(55).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionCurrency = __fieldsMap.get(scalaDescriptor.findFieldByNumber(56).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionDescription = __fieldsMap.get(scalaDescriptor.findFieldByNumber(57).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionFinishDate = __fieldsMap.get(scalaDescriptor.findFieldByNumber(58).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionMetadata = __fieldsMap.get(scalaDescriptor.findFieldByNumber(59).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionOtherBankAccount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(60).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionStartDate = __fieldsMap.get(scalaDescriptor.findFieldByNumber(61).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionThisBankAccount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(62).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeTransactionType = __fieldsMap.get(scalaDescriptor.findFieldByNumber(63).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeUrl = __fieldsMap.get(scalaDescriptor.findFieldByNumber(64).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        canSeeWhereTag = __fieldsMap.get(scalaDescriptor.findFieldByNumber(65).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ApiProto.javaDescriptor.getMessageTypes.get(4)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ApiProto.javaDescriptor.getMessageTypes().get(4)
   def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ApiProto.scalaDescriptor.messages(4)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.api.ViewJSONV121Grpc(
+    id = "",
+    shortName = "",
+    description = "",
+    isPublic = false,
+    alias = "",
+    hideMetadataIfAliasUsed = false,
+    canAddComment = false,
+    canAddCorporateLocation = false,
+    canAddImage = false,
+    canAddImageUrl = false,
+    canAddMoreInfo = false,
+    canAddOpenCorporatesUrl = false,
+    canAddPhysicalLocation = false,
+    canAddPrivateAlias = false,
+    canAddPublicAlias = false,
+    canAddTag = false,
+    canAddUrl = false,
+    canAddWhereTag = false,
+    canDeleteComment = false,
+    canDeleteCorporateLocation = false,
+    canDeleteImage = false,
+    canDeletePhysicalLocation = false,
+    canDeleteTag = false,
+    canDeleteWhereTag = false,
+    canEditOwnerComment = false,
+    canSeeBankAccountBalance = false,
+    canSeeBankAccountBankName = false,
+    canSeeBankAccountCurrency = false,
+    canSeeBankAccountIban = false,
+    canSeeBankAccountLabel = false,
+    canSeeBankAccountNationalIdentifier = false,
+    canSeeBankAccountNumber = false,
+    canSeeBankAccountOwners = false,
+    canSeeBankAccountSwiftBic = false,
+    canSeeBankAccountType = false,
+    canSeeComments = false,
+    canSeeCorporateLocation = false,
+    canSeeImageUrl = false,
+    canSeeImages = false,
+    canSeeMoreInfo = false,
+    canSeeOpenCorporatesUrl = false,
+    canSeeOtherAccountBankName = false,
+    canSeeOtherAccountIban = false,
+    canSeeOtherAccountKind = false,
+    canSeeOtherAccountMetadata = false,
+    canSeeOtherAccountNationalIdentifier = false,
+    canSeeOtherAccountNumber = false,
+    canSeeOtherAccountSwiftBic = false,
+    canSeeOwnerComment = false,
+    canSeePhysicalLocation = false,
+    canSeePrivateAlias = false,
+    canSeePublicAlias = false,
+    canSeeTags = false,
+    canSeeTransactionAmount = false,
+    canSeeTransactionBalance = false,
+    canSeeTransactionCurrency = false,
+    canSeeTransactionDescription = false,
+    canSeeTransactionFinishDate = false,
+    canSeeTransactionMetadata = false,
+    canSeeTransactionOtherBankAccount = false,
+    canSeeTransactionStartDate = false,
+    canSeeTransactionThisBankAccount = false,
+    canSeeTransactionType = false,
+    canSeeUrl = false,
+    canSeeWhereTag = false
   )
   implicit class ViewJSONV121GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.ViewJSONV121Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.ViewJSONV121Grpc](_l) {
     def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
@@ -1503,4 +1900,138 @@ object ViewJSONV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
   final val CAN_SEE_TRANSACTION_TYPE_FIELD_NUMBER = 63
   final val CAN_SEE_URL_FIELD_NUMBER = 64
   final val CAN_SEE_WHERE_TAG_FIELD_NUMBER = 65
+  def of(
+    id: _root_.scala.Predef.String,
+    shortName: _root_.scala.Predef.String,
+    description: _root_.scala.Predef.String,
+    isPublic: _root_.scala.Boolean,
+    alias: _root_.scala.Predef.String,
+    hideMetadataIfAliasUsed: _root_.scala.Boolean,
+    canAddComment: _root_.scala.Boolean,
+    canAddCorporateLocation: _root_.scala.Boolean,
+    canAddImage: _root_.scala.Boolean,
+    canAddImageUrl: _root_.scala.Boolean,
+    canAddMoreInfo: _root_.scala.Boolean,
+    canAddOpenCorporatesUrl: _root_.scala.Boolean,
+    canAddPhysicalLocation: _root_.scala.Boolean,
+    canAddPrivateAlias: _root_.scala.Boolean,
+    canAddPublicAlias: _root_.scala.Boolean,
+    canAddTag: _root_.scala.Boolean,
+    canAddUrl: _root_.scala.Boolean,
+    canAddWhereTag: _root_.scala.Boolean,
+    canDeleteComment: _root_.scala.Boolean,
+    canDeleteCorporateLocation: _root_.scala.Boolean,
+    canDeleteImage: _root_.scala.Boolean,
+    canDeletePhysicalLocation: _root_.scala.Boolean,
+    canDeleteTag: _root_.scala.Boolean,
+    canDeleteWhereTag: _root_.scala.Boolean,
+    canEditOwnerComment: _root_.scala.Boolean,
+    canSeeBankAccountBalance: _root_.scala.Boolean,
+    canSeeBankAccountBankName: _root_.scala.Boolean,
+    canSeeBankAccountCurrency: _root_.scala.Boolean,
+    canSeeBankAccountIban: _root_.scala.Boolean,
+    canSeeBankAccountLabel: _root_.scala.Boolean,
+    canSeeBankAccountNationalIdentifier: _root_.scala.Boolean,
+    canSeeBankAccountNumber: _root_.scala.Boolean,
+    canSeeBankAccountOwners: _root_.scala.Boolean,
+    canSeeBankAccountSwiftBic: _root_.scala.Boolean,
+    canSeeBankAccountType: _root_.scala.Boolean,
+    canSeeComments: _root_.scala.Boolean,
+    canSeeCorporateLocation: _root_.scala.Boolean,
+    canSeeImageUrl: _root_.scala.Boolean,
+    canSeeImages: _root_.scala.Boolean,
+    canSeeMoreInfo: _root_.scala.Boolean,
+    canSeeOpenCorporatesUrl: _root_.scala.Boolean,
+    canSeeOtherAccountBankName: _root_.scala.Boolean,
+    canSeeOtherAccountIban: _root_.scala.Boolean,
+    canSeeOtherAccountKind: _root_.scala.Boolean,
+    canSeeOtherAccountMetadata: _root_.scala.Boolean,
+    canSeeOtherAccountNationalIdentifier: _root_.scala.Boolean,
+    canSeeOtherAccountNumber: _root_.scala.Boolean,
+    canSeeOtherAccountSwiftBic: _root_.scala.Boolean,
+    canSeeOwnerComment: _root_.scala.Boolean,
+    canSeePhysicalLocation: _root_.scala.Boolean,
+    canSeePrivateAlias: _root_.scala.Boolean,
+    canSeePublicAlias: _root_.scala.Boolean,
+    canSeeTags: _root_.scala.Boolean,
+    canSeeTransactionAmount: _root_.scala.Boolean,
+    canSeeTransactionBalance: _root_.scala.Boolean,
+    canSeeTransactionCurrency: _root_.scala.Boolean,
+    canSeeTransactionDescription: _root_.scala.Boolean,
+    canSeeTransactionFinishDate: _root_.scala.Boolean,
+    canSeeTransactionMetadata: _root_.scala.Boolean,
+    canSeeTransactionOtherBankAccount: _root_.scala.Boolean,
+    canSeeTransactionStartDate: _root_.scala.Boolean,
+    canSeeTransactionThisBankAccount: _root_.scala.Boolean,
+    canSeeTransactionType: _root_.scala.Boolean,
+    canSeeUrl: _root_.scala.Boolean,
+    canSeeWhereTag: _root_.scala.Boolean
+  ): _root_.code.obp.grpc.api.ViewJSONV121Grpc = _root_.code.obp.grpc.api.ViewJSONV121Grpc(
+    id,
+    shortName,
+    description,
+    isPublic,
+    alias,
+    hideMetadataIfAliasUsed,
+    canAddComment,
+    canAddCorporateLocation,
+    canAddImage,
+    canAddImageUrl,
+    canAddMoreInfo,
+    canAddOpenCorporatesUrl,
+    canAddPhysicalLocation,
+    canAddPrivateAlias,
+    canAddPublicAlias,
+    canAddTag,
+    canAddUrl,
+    canAddWhereTag,
+    canDeleteComment,
+    canDeleteCorporateLocation,
+    canDeleteImage,
+    canDeletePhysicalLocation,
+    canDeleteTag,
+    canDeleteWhereTag,
+    canEditOwnerComment,
+    canSeeBankAccountBalance,
+    canSeeBankAccountBankName,
+    canSeeBankAccountCurrency,
+    canSeeBankAccountIban,
+    canSeeBankAccountLabel,
+    canSeeBankAccountNationalIdentifier,
+    canSeeBankAccountNumber,
+    canSeeBankAccountOwners,
+    canSeeBankAccountSwiftBic,
+    canSeeBankAccountType,
+    canSeeComments,
+    canSeeCorporateLocation,
+    canSeeImageUrl,
+    canSeeImages,
+    canSeeMoreInfo,
+    canSeeOpenCorporatesUrl,
+    canSeeOtherAccountBankName,
+    canSeeOtherAccountIban,
+    canSeeOtherAccountKind,
+    canSeeOtherAccountMetadata,
+    canSeeOtherAccountNationalIdentifier,
+    canSeeOtherAccountNumber,
+    canSeeOtherAccountSwiftBic,
+    canSeeOwnerComment,
+    canSeePhysicalLocation,
+    canSeePrivateAlias,
+    canSeePublicAlias,
+    canSeeTags,
+    canSeeTransactionAmount,
+    canSeeTransactionBalance,
+    canSeeTransactionCurrency,
+    canSeeTransactionDescription,
+    canSeeTransactionFinishDate,
+    canSeeTransactionMetadata,
+    canSeeTransactionOtherBankAccount,
+    canSeeTransactionStartDate,
+    canSeeTransactionThisBankAccount,
+    canSeeTransactionType,
+    canSeeUrl,
+    canSeeWhereTag
+  )
+  // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.ViewJSONV121Grpc])
 }

@@ -49,7 +49,6 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Full}
 import org.json4s.Formats
-import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props}
 import org.apache.commons.lang3.StringUtils
 
@@ -522,7 +521,7 @@ object Http4s310 {
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canReadCallLimits, Some(cc))
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
-            rateLimit <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            rateLimit <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
           } yield createCallLimitJson(consumer, rateLimit)
         }
     }
@@ -555,7 +554,7 @@ object Http4s310 {
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetConsumers, Some(cc))
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
-            consumerUser <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
+            consumerUser <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId)
           } yield createConsumerJSON(consumer, consumerUser)
         }
     }
@@ -617,7 +616,7 @@ object Http4s310 {
               req.uri.query.multiParams.toList.flatMap { case (k, vs) => vs.map(v => HTTPParam(k, v)) }
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             consumers <- Consumers.consumers.vend.getConsumersFuture(obpQueryParams, Some(cc))
-            users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
+            users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId))
           } yield createConsumersJson(consumers, users)
         }
     }
@@ -1202,7 +1201,13 @@ object Http4s310 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetMethodRoutings, Some(cc))
             methodRoutings <- NewStyle.function.getMethodRoutingsByMethodName(methodNameParam)
           } yield {
-            val definedMethodRoutings = methodRoutings.sortWith(_.methodName < _.methodName)
+            // getMethodRoutingsByMethodName returns List[MethodRoutingT] - the provider's own row
+            // type (MappedMethodRoutingProvider.MethodRouting, post-Doobie-migration), not
+            // MethodRoutingCommons - so the elements have to be converted, not cast; a blind
+            // asInstanceOf threw ClassCastException at runtime.
+            val definedMethodRoutings: List[code.methodrouting.MethodRoutingCommons] =
+              code.methodrouting.MethodRoutingCommons.toCommonsList(methodRoutings)
+                .sortWith(_.methodName < _.methodName)
             val listCommons: List[code.methodrouting.MethodRoutingCommons] = activeParam match {
               case Some("true") => (definedMethodRoutings ++ getDefaultMethodRoutings).sortWith(_.methodName < _.methodName)
               case _ => definedMethodRoutings
@@ -1349,7 +1354,10 @@ object Http4s310 {
           } yield {
             val views: List[View] = Views.views.vend.assignedViewsForAccount(
               BankIdAccountId(card.account.bankId, card.account.accountId))
-            val commonsData: List[CardAttributeCommons] = cardAttributes
+            // cardAttributes is List[CardAttribute] - could be DoobieCardAttributeProvider's own
+            // row type, not necessarily CardAttributeCommons - so it is converted, not cast; a
+            // blind asInstanceOf threw ClassCastException whenever the concrete row type differed.
+            val commonsData: List[CardAttributeCommons] = CardAttributeCommons.toCommonsList(cardAttributes)
             createPhysicalCardWithAttributesJson(card, commonsData, user, views)
           }
         }
@@ -1839,7 +1847,11 @@ object Http4s310 {
               } else implicitWebUiProps.distinct
             } else List.empty[WebUiPropsCommons]
           } yield {
-            val listCommons: List[WebUiPropsCommons] = explicitWebUiProps ++ implicitWebUiPropsRemovedDuplicated
+            // explicitWebUiProps is List[WebUiPropsT] - the provider's own row type, not
+            // necessarily WebUiPropsCommons - so it is converted, not cast; a blind asInstanceOf
+            // threw ClassCastException whenever the concrete row type differed.
+            val listCommons: List[WebUiPropsCommons] =
+              WebUiPropsCommons.toCommonsList(explicitWebUiProps) ++ implicitWebUiPropsRemovedDuplicated
             ListResult("webui_props", listCommons)
           }
         }
@@ -2233,7 +2245,7 @@ object Http4s310 {
               unboxFullOrFail(_, Some(cc), ConsentNotFound)
             }
             _ <- code.util.Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
-              consent.mUserId == user.userId
+              consent.userId == user.userId
             }
             revoked <- Future(Consents.consentProvider.vend.revoke(consentIdStr)) map {
               i => connectorEmptyResponse(i, Some(cc))
@@ -2675,10 +2687,10 @@ object Http4s310 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
             updatedConsumer <- Future {
               Consumers.consumers.vend.updateConsumer(
-                consumer.id.get, None, None, Some(putData.enabled),
+                consumer.id, None, None, Some(putData.enabled),
                 None, None, None, None, None, None, None, None) ?~! "Cannot update Consumer"
             }
-          } yield PutEnabledJSON(updatedConsumer.map(_.isActive.get).getOrElse(false))
+          } yield PutEnabledJSON(updatedConsumer.map(_.isActive).getOrElse(false))
         }
     }
 
@@ -4428,11 +4440,11 @@ object Http4s310 {
             (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
             _ <- code.util.Helper.booleanToFuture(ViewsAllowedInConsent, cc = Some(cc)) {
               consentJson.views.forall(rv => assignedViews.exists(e =>
-                e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+                e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
             }
             consumerTuple <- consentJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, Some(cc)) map {
-                c => (Some(c.consumerId.get), c.description, Some(c))
+                c => (Some(c.consumerId), c.description, Some(c))
               }
               case None => Future((None, "Any application", None))
             }
@@ -4454,7 +4466,7 @@ object Http4s310 {
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil)) map {
               i => connectorEmptyResponse(i, Some(cc))
             }
-            grantorConsumerId = cc.consumer.toOption.map(_.consumerId.get).getOrElse("Unknown")
+            grantorConsumerId = cc.consumer.toOption.map(_.consumerId).getOrElse("Unknown")
             granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
             shouldSkipConsentSca = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))

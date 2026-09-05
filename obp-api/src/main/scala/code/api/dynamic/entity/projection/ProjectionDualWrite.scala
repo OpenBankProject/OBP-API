@@ -5,6 +5,7 @@ import code.api.dynamic.entity.query.OperatorMatrix
 import code.api.util.DoobieUtil
 import code.util.Helper.MdcLoggable
 import org.json4s.JsonAST.JObject
+import org.json4s.jvalue2monadic
 
 /**
  * Keeps a record's projection row in sync on the write path (DE_indexing, Phase 3). Guarded by

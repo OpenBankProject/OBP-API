@@ -7,6 +7,7 @@ import code.api.util.ErrorMessages.{SignalMessageContainsDangerousCharacters, Si
 import code.signal.SignalContentPolicy
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import org.json4s.jvalue2extractable
 import org.scalatest.Tag
 
 /**

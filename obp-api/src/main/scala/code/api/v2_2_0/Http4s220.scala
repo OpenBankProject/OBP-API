@@ -347,7 +347,7 @@ object Http4s220 {
             _ <- code.util.Helper.booleanToFuture(
               s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
               cc = Some(cc)) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
+              ViewPermission.findViewPermissions(view).exists(_.permission == CAN_GET_COUNTERPARTY)
             }
             (counterparties, _) <- NewStyle.function.getCounterparties(account.bankId, account.accountId, view.viewId, Some(cc))
             _ <- code.util.Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc = Some(cc)) {
@@ -386,7 +386,7 @@ object Http4s220 {
             _ <- code.util.Helper.booleanToFuture(
               s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
               cc = Some(cc)) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
+              ViewPermission.findViewPermissions(view).exists(_.permission == CAN_GET_COUNTERPARTY)
             }
             counterpartyMetadata <- NewStyle.function.getMetadata(
               account.bankId, account.accountId, counterparty.counterpartyId, Some(cc))
@@ -458,7 +458,7 @@ object Http4s220 {
             consumer <- Future { unboxFullOrFail(cc.consumer, Some(cc), InvalidConsumerCredentials) }
             _ <- Future {
               unboxFullOrFail(
-                NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canCreateBank, Some(cc)),
+                NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.toString, canCreateBank, Some(cc)),
                 Some(cc), UserHasMissingRoles + canCreateBank)
             }
             (success, _) <- NewStyle.function.createOrUpdateBank(
@@ -991,7 +991,7 @@ object Http4s220 {
         _ <- code.util.Helper.booleanToFuture(
           s"${NoViewPermission} You need the `${CAN_ADD_COUNTERPARTY}` permission on the View(${view.viewId.value})",
           cc = Some(cc)) {
-          ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_ADD_COUNTERPARTY)
+          ViewPermission.findViewPermissions(view).exists(_.permission == CAN_ADD_COUNTERPARTY)
         }
         (existingCp, _) <- Connector.connector.vend.checkCounterpartyExists(
           postJson.name, account.bankId.value, account.accountId.value, view.viewId.value, Some(cc))
@@ -1000,7 +1000,7 @@ object Http4s220 {
             s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${account.bankId.value}) and ACCOUNT_ID(${account.accountId.value}) and VIEW_ID(${view.viewId.value})"),
           cc = Some(cc)) { existingCp.isEmpty }
         _ <- code.util.Helper.booleanToFuture(
-          s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.mDescription.maxLen}",
+          s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.descriptionMaxLength}",
           cc = Some(cc)) { postJson.description.length <= 36 }
         (_, _) <- if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP") && postJson.other_account_routing_scheme.equalsIgnoreCase("OBP"))
                     for {

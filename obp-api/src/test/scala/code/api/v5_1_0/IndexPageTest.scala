@@ -39,8 +39,8 @@ class IndexPageTest extends V510ServerSetup {
    */
 /*
 
-  feature(s"Test the response of the page http://${server.host}:${server.port}/index.html") {
-    scenario(s"We try to load the page at http://${server.host}:${server.port}/index.html") {
+  Feature(s"Test the response of the page http://${server.host}:${server.port}/index.html") {
+    Scenario(s"We try to load the page at http://${server.host}:${server.port}/index.html") {
       When("We make the request")
       val client = new OkHttpClient
       val request = new Request.Builder().url(s"http://${server.host}:${server.port}/index.html").build

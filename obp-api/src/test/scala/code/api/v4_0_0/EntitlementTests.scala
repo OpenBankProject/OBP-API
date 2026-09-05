@@ -39,9 +39,9 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getEntitlementsForBank))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createUserWithRoles))
 
-  feature("Assuring that endpoint getEntitlements works as expected - v4.0.0") {
+  Feature("Assuring that endpoint getEntitlements works as expected - v4.0.0") {
 
-    scenario("We try to get entitlements without login - getEntitlements", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get entitlements without login - getEntitlements", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET
       val responseGet = makeGetRequest(requestGet)
@@ -52,7 +52,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
       r.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to get entitlements without credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get entitlements without credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -63,7 +63,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
       r.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
     }
 
-    scenario("We try to get entitlements with credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get entitlements with credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
       And("We make the request")
@@ -74,7 +74,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
       r.code should equal(200)
     }
 
-    scenario("We try to get entitlements without roles - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get entitlements without roles - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / testBankId1.value / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -86,7 +86,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
     r.body.extract[ErrorMessage].message contains(CanGetEntitlementsForAnyBank.toString) should be (true)
     }
 
-    scenario("We try to get entitlements with CanGetEntitlementsForOneBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get entitlements with CanGetEntitlementsForOneBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanGetEntitlementsForOneBank.toString)
       And("We make the request")
@@ -98,7 +98,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
     r.code should equal(200)
     }
 
-    scenario("We try to get entitlements with CanGetEntitlementsForAnyBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get entitlements with CanGetEntitlementsForAnyBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyBank.toString)
       And("We make the request")
@@ -110,7 +110,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
     r.code should equal(200)
     }
 
-    scenario("We try to - createUserWithRoles - not roles, only grant the roles the login user has ", ApiEndpoint3, VersionOfApi) {
+    Scenario("We try to - createUserWithRoles - not roles, only grant the roles the login user has ", ApiEndpoint3, VersionOfApi) {
       And("We make the request")
       val createEntitlements = List(CreateEntitlementJSON(
         bank_id = testBankId1.value,
@@ -128,7 +128,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
     r.body.toString contains (EntitlementCannotBeGranted) shouldBe(true)
     }
 
-    scenario("We try to - createUserWithRoles - wrong user provider ", ApiEndpoint3, VersionOfApi) {
+    Scenario("We try to - createUserWithRoles - wrong user provider ", ApiEndpoint3, VersionOfApi) {
       And("We make the request")
       val createEntitlements = List(CreateEntitlementJSON(
         bank_id = testBankId1.value,
@@ -146,7 +146,7 @@ class EntitlementTests extends V400ServerSetup with DefaultUsers {
     r.body.toString contains (InvalidUserProvider) shouldBe(true)
     }
     
-    scenario("We try to - createUserWithRoles", ApiEndpoint3, VersionOfApi) {
+    Scenario("We try to - createUserWithRoles", ApiEndpoint3, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateEntitlementAtAnyBank.toString)
       And("We make the request")

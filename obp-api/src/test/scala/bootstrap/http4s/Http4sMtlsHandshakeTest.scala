@@ -15,8 +15,10 @@ import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.tls.{TLSContext, TLSParameters}
 import org.http4s.{HttpApp, Response, Status}
 import org.http4s.ember.server.EmberServerBuilder
-import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import org.typelevel.ci.CIString
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * End-to-end proof of mTLS termination: a real Ember server built the same way as Http4sServer's
@@ -26,7 +28,7 @@ import org.typelevel.ci.CIString
  * actually verified — and therefore the only place proving the peer certificate the whole
  * peer-vs-forwarder rule depends on is really there.
  */
-class Http4sMtlsHandshakeTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+class Http4sMtlsHandshakeTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   private val storePassword = "123456"
 

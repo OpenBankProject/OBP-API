@@ -2,28 +2,30 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.metadata.counterparties.MappedCounterparty
 import net.liftweb.common.Full
-import net.liftweb.mapper.Schemifier
 
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 
 object MigrationOfMappedCounterpartyDescriptionLength {
 
+  // The table is named here rather than through a Mapper singleton: mappedcounterparty is owned by
+  // Flyway now, and this historical script still has to run against databases created before that.
+  private val tableName = "mappedcounterparty"
+
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnDescriptionLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedCounterparty) match {
+    DbFunction.tableExistsByName(tableName) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -53,7 +55,7 @@ object MigrationOfMappedCounterpartyDescriptionLength {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedCounterparty._dbTableNameLC} table does not exist""".stripMargin
+          s"""$tableName table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

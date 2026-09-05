@@ -17,17 +17,12 @@ import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, 
 import code.api.v3_1_0._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
-import code.metadata.comments.MappedComment
-import code.metadata.narrative.MappedNarrative
-import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import code.transactionattribute.MappedTransactionAttribute
-import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, UpdateViewJSON}
+import code.transactionattribute.DoobieTransactionAttributeProvider
+import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, TransactionId, UpdateViewJSON, ViewId}
 import com.openbankproject.commons.util.ApiShortVersions
 import code.setup.OBPReq
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 
 import java.util.concurrent.TimeUnit
@@ -104,21 +99,21 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   
   def setRateLimiting(consumerAndToken: Option[(Consumer, Token)], putJson: CallLimitPostJsonV400): APIResponse = {
     val Some((c, _)) = consumerAndToken
-    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
     val request400 = (v4_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(consumerAndToken)
     makePutRequest(request400, write(putJson))
   }
   def setRateLimiting2(consumerAndToken: Option[(Consumer, Token)], putJson: CallLimitPostJsonV400): APIResponse = {
     val Some((c, _)) = consumerAndToken
-    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
     Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
     val request400 = (v4_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@ user2
     makePutRequest(request400, write(putJson))
   }
   def setRateLimitingWithoutRole(consumerAndToken: Option[(Consumer, Token)], putJson: CallLimitPostJsonV400): APIResponse = {
     val Some((c, _)) = consumerAndToken
-    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
     val request400 = (v4_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(consumerAndToken)
     makePutRequest(request400, write(putJson))
   }  
@@ -330,30 +325,24 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def checkAllTransactionRelatedData(bankId: String,
                                      accountId: String,
                                      transactionId: String): Boolean = {
-    val attributes = MappedTransactionAttribute.findAll(
-      By(MappedTransactionAttribute.mBankId, bankId),
-      By(MappedTransactionAttribute.mTransactionId, transactionId)
-    ).size == 0
-    val comments = MappedComment.findAll(
-      By(MappedComment.bank, bankId),
-      By(MappedComment.account, accountId),
-      By(MappedComment.transaction, transactionId)
-    ).size == 0
-    val narrative = MappedNarrative.findAll(
-      By(MappedNarrative.bank, bankId),
-      By(MappedNarrative.account, accountId),
-      By(MappedNarrative.transaction, transactionId)
-    ).size == 0
-    val images = MappedTransactionImage.findAll(
-      By(MappedTransactionImage.bank, bankId),
-      By(MappedTransactionImage.account, accountId),
-      By(MappedTransactionImage.transaction, transactionId)
-    ).size == 0
-    val whereTag = MappedWhereTag.find(
-      By(MappedWhereTag.bank, bankId),
-      By(MappedWhereTag.account, accountId),
-      By(MappedWhereTag.transaction, transactionId)
-    ).size == 0
+    val attributes = DoobieTransactionAttributeProvider.countAttributesSync(bankId, transactionId) == 0
+    // Comments are Doobie-backed now; ask the provider the same question. getComments is scoped
+    // by view, so this checks the views the cascade test posts on.
+    val comments = List("owner", "auditor", "accountant").forall(v =>
+      code.metadata.comments.Comments.comments.vend
+        .getComments(BankId(bankId), AccountId(accountId), TransactionId(transactionId))(ViewId(v)).isEmpty)
+    // Narrative is Doobie-backed now, so this asks the provider instead of the entity. Same
+    // question: is there no narrative left for this transaction after the cascade.
+    val narrative = code.metadata.narrative.Narrative.narrative.vend
+      .getNarrative(BankId(bankId), AccountId(accountId), TransactionId(transactionId))().isEmpty
+    // Images are Doobie-backed now; ask the provider per view, as with comments and where tags.
+    val images = List("owner", "auditor", "accountant").forall(v =>
+      code.metadata.transactionimages.TransactionImages.transactionImages.vend
+        .getImagesForTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId))(ViewId(v)).isEmpty)
+    // Where tags are Doobie-backed now; ask the provider per view, as with comments above.
+    val whereTag = List("owner", "auditor", "accountant").forall(v =>
+      code.metadata.wheretags.WhereTags.whereTags.vend
+        .getWhereTagForTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId))(ViewId(v)).isEmpty)
     List(attributes, comments, narrative, images, whereTag).forall(_ == true)
   }
   
