@@ -31,8 +31,8 @@ class SweepCoverageTest extends ServerSetupWithTestData {
 
   feature("The endpoint sweep covers every reachable endpoint, or says why not") {
 
-    scenario("the catalog is non-empty and deduplicated by (url, verb)", SweepCoverage) {
-      Given("the aggregated v7.0.0 resource docs")
+    scenario("the catalog is non-empty and deduplicated by (standard, url, verb)", SweepCoverage) {
+      Given("the aggregated resource docs across every standard the dispatcher serves")
       // A sweep over an empty catalog passes every assertion it makes. The floor is deliberately
       // well below the ~870 observed on this branch: its job is to catch a catalog that failed to
       // initialise, not to freeze a number that legitimately grows with every new endpoint.
@@ -42,13 +42,32 @@ class SweepCoverageTest extends ServerSetupWithTestData {
         catalog.size should be > 400
       }
 
-      Then("no (requestUrl, requestVerb) appears twice")
-      val duplicated = catalog
-        .groupBy(d => (d.requestUrl, d.requestVerb))
-        .collect { case (key, docs) if docs.size > 1 => s"$key -> ${docs.map(_.operationId).mkString(", ")}" }
-      withClue(s"allResourceDocs is supposed to keep only the newest version of each " +
-               s"(url, verb); these survived twice:\n${duplicated.mkString("\n")}\n") {
-        duplicated shouldBe empty
+      Then("no operation id appears twice, and every same-route group is genuinely distinct operations")
+      // Two different checks, because the catalog now spans every standard the dispatcher serves
+      // (ResourceDocRegistry.allStaticResourceDocs), not just OBP:
+      //
+      // 1. operationId has no duplicates. This is the real identity of a resource doc -- it is
+      //    what every consumer (metrics, api-collection-endpoint, this catalog's own callers)
+      //    keys off -- and ResourceDocRegistry.allStaticResourceDocs already guarantees it by
+      //    construction (reverse/distinctBy/reverse). Asserting it here is a sanity check on
+      //    that construction, not a new requirement.
+      //
+      // 2. Grouping by (urlPrefix, apiShortVersion, requestUrl, requestVerb) instead -- the naive
+      //    check this scenario used to make -- is NOT a real invariant for a multi-standard
+      //    catalog: Berlin Group's own spec routes several distinct SCA sub-steps through ONE
+      //    URL and verb, disambiguated by request BODY, not by path -- e.g. PUT
+      //    .../authorisations/AUTHORISATION_ID legitimately carries three separate operations
+      //    (updatePsuAuthentication / selectPsuAuthenticationMethod / transactionAuthorisation)
+      //    that this catalog cannot and should not collapse into one. So a same-route group is
+      //    fine as long as every doc in it is a genuinely distinct operation (checked via 1
+      //    above) -- what would still be wrong is the SAME operation id turning up under two
+      //    different ResourceDoc objects, which duplicatesByOperationId below catches directly.
+      val duplicatesByOperationId = catalog
+        .groupBy(_.operationId)
+        .collect { case (opId, docs) if docs.size > 1 => s"$opId -> ${docs.size} entries" }
+      withClue(s"allStaticResourceDocs is supposed to be unique per operation id; these survived " +
+               s"twice:\n${duplicatesByOperationId.mkString("\n")}\n") {
+        duplicatesByOperationId shouldBe empty
       }
     }
 

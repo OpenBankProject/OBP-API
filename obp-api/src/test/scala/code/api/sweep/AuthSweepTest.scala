@@ -82,9 +82,18 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
     (resp.status.code, json)
   }
 
+  // Berlin Group requests get a PSD2-mandated error envelope instead of OBP's {code, message} --
+  // see ErrorResponseConverter.isBerlinGroupRequest/toBgErrorBody -- {"tppMessages": [{"text":
+  // ..., ...}]}, with no top-level "message" key at all. The underlying text is the SAME string
+  // ResourceDocMiddleware.authenticate passed in (createErrorResponse just picks the envelope),
+  // so falling back to it here is not a weaker check -- it recovers the identical assertion for a
+  // shape json4s.JValue's "message" alone cannot see, rather than the sweep misreading a
+  // correctly-401'd Berlin Group endpoint as broken.
   private def messageOf(json: JValue): String = {
     implicit val formats = code.api.util.CustomJsonFormats.formats
-    (json \ "message").extractOpt[String].getOrElse("")
+    (json \ "message").extractOpt[String]
+      .orElse((json \ "tppMessages" \ "text").extractOpt[List[String]].flatMap(_.headOption))
+      .getOrElse("")
   }
 
   /** A token for a user holding no entitlements at all — the natural 403 probe. */
