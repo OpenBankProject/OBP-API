@@ -81,12 +81,16 @@ object Migration extends MdcLoggable {
   object database {
 
     /**
-     * Runs the migration scripts. Called twice from Boot, BOTH times AFTER `schemifyAll()`.
+     * Runs the migration scripts. Called twice from Boot, both times after `createDefaultChatRoom()`
+     * (the schema-building call that used to run there - `schemifyAll()`, before Schemifier was
+     * removed - has no schema work left in it any more; the name changed, the position didn't).
      *
      * `startedBeforeSchemifier` does NOT mean "this pass runs before Schemifier" — despite the name
-     * and the historical Boot comments, both passes run after it. It selects which pass this is:
-     *  - `true`  = the existing-DB pass (only invoked when `tableExists(ResourceUser)`): migrations
-     *              that require post-Schemifier schema guard on this flag and skip themselves here.
+     * and the historical Boot comments, both passes run after it (Schemifier itself is gone, but the
+     * flag's naming and semantics predate that and were left as-is). It selects which pass this is:
+     *  - `true`  = the existing-DB pass (only invoked when `DbFunction.tableExistsByName("resourceuser")`
+     *              is true): migrations that require post-Schemifier schema guard on this flag and
+     *              skip themselves here.
      *  - `false` = the catch-all pass that runs for every DB; the guarded migrations run in this one.
      * `runOnce` (tracked in `MigrationScriptLog`) guarantees each named migration executes exactly
      * once across both passes.

@@ -7,8 +7,9 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
  * One-time historical migration: drops a legacy unique index that used to block legitimate
  * duplicate (consentId, key) rows in the consent-auth-context table.
  *
- * Originally looked the table up via the Lift MappedConsentAuthContext entity
- * (DbFunction.tableExists(MappedConsentAuthContext)). That entity is gone - the table is now
+ * Originally looked the table up via the Lift MappedConsentAuthContext entity, through the
+ * MetaMapper-typed DbFunction.tableExists overload that this migration used - both the entity
+ * and that overload are gone now (deleted, not just unused) - the table is now
  * created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml) - so this checks for the
  * table by name instead. Every environment that had already run this migration has it recorded in
  * migration_script_log and runOnce skips it; a fresh environment's Liquibase-created table never had

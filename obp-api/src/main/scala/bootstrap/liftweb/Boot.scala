@@ -175,9 +175,15 @@ class Boot extends MdcLoggable {
     // it existed to precede.
     createDefaultChatRoom()
 
+    // Forces initialization: see the comment on ProcessLifecycle.start() for why this must be
+    // an explicit call rather than relying on some other code path to touch the object.
+    ProcessLifecycle.start()
+
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
-    // NOTE: both executeScripts passes below run AFTER schemifyAll() above. The
+    // NOTE: both executeScripts passes below run after createDefaultChatRoom() above (which was
+    // schemifyAll() before Schemifier - the schema-building half of it - was removed; only the
+    // chat-room side effect remains, hence the rename). The
     // `startedBeforeSchemifier = true` argument does NOT mean this pass runs before Schemifier — it
     // marks the existing-DB pass, in which migrations that require post-Schemifier schema skip
     // themselves (see Migration.executeScripts). The "before Schemifier" wording is historical: the
@@ -816,10 +822,14 @@ class Boot extends MdcLoggable {
 
 }
 
-object ToSchemify extends MdcLoggable {
-  // start grpc server
+// Named for what it still does once schema setup left it (it used to also carry
+// ToSchemify.models, the Mapper entity list Schemifier iterated to build the schema - deleted
+// once obp-api had zero live Mapper entities left). What remains is process-level bootstrap
+// with no schema connection: starting the optional gRPC server and registering the JVM's one
+// orderly shutdown hook.
+object ProcessLifecycle extends MdcLoggable {
   // start grpc server (optional)
-  val grpcServerOpt: Option[ObpGrpcServer] =
+  private val grpcServerOpt: Option[ObpGrpcServer] =
     if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
       val server = new ObpGrpcServer(code.api.util.BlockingIoExecutionContext.ec)
       server.start()
@@ -840,4 +850,13 @@ object ToSchemify extends MdcLoggable {
     try Redis.jedisPoolDestroy catch { case e: Throwable => logger.warn("Redis jedisPoolDestroy failed during shutdown", e) }
   }))
 
+  // Scala initializes an object's body - the two vals/statements above included - on first
+  // access to ANY of its members, not at class-load time. Before this object was ToSchemify,
+  // that first access happened as a side effect of Boot reading ToSchemify.models; once that
+  // field and its one reader (Schemifier.schemify) were deleted, nothing else in the codebase
+  // ever touched this object again, so it silently never initialized - the gRPC server never
+  // started regardless of grpc.server.enabled, and the shutdown hook above never registered at
+  // all, so the JVM stopped closing DB and Redis connections on shutdown. Call this explicitly
+  // from Boot.boot() so that cannot happen again by accident.
+  def start(): Unit = ()
 }

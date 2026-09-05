@@ -10,8 +10,9 @@ import net.liftweb.common.Full
 /**
  * One-time historical migration: drops a legacy unique index that predates the current
  * (userId, key, createdAt) one. Originally looked the table up via the Lift
- * MappedUserAuthContext entity (DbFunction.tableExists(MappedUserAuthContext)); that entity is
- * gone - the table is now created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml) - so this checks for the table by name
+ * MappedUserAuthContext entity, through the MetaMapper-typed DbFunction.tableExists overload
+ * this migration used; both the entity and that overload are gone now (deleted, not just
+ * unused) - the table is now created by Liquibase (the table is in db/changelog/db.changelog-baseline.yaml) - so this checks for the table by name
  * instead. Every environment that had already run this migration has it recorded in
  * migration_script_log and runOnce skips it; a fresh environment's Liquibase-created table never had
  * the legacy index in the first place, so the drop is a no-op there. Kept only so
