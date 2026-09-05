@@ -8,11 +8,12 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, fullBoxOrException, unboxFull}
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankAccountNotFoundByAccountId, UnknownError}
 import code.api.util.NewStyle
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.newstyle.ViewNewStyle
 import code.model.BankAccountExtended
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -79,6 +80,15 @@ object Http4sUKOBv200AIS extends MdcLoggable {
         for {
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u).map(_.filter(_.accountId.value == accountId))
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+          // accountId names one of the caller's own private accounts, or none exist for it -- an
+          // id belonging to somebody else's account looks identical here, and correctly resolves
+          // to zero results (this never leaks another user's account). createAccountJSON's own
+          // Links.Self does list.head.AccountId unconditionally, so without this check a
+          // nonexistent (or not-mine) account id crashed with a raw NoSuchElementException (500)
+          // instead of the 404 UK Open Banking's spec calls for.
+          _ <- Helper.booleanToFuture(
+            s"$BankAccountNotFoundByAccountId Current account_id is $accountId",
+            failCode = 404, cc = Some(cc))(accounts.nonEmpty)
         } yield JSONFactory_UKOpenBanking_200.createAccountJSON(accounts)
       }
   }
