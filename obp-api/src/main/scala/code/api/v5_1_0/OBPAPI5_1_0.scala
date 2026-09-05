@@ -52,7 +52,7 @@ object OBPAPI5_1_0 extends OBPRestHelper
 
   val version : ApiVersion = ApiVersion.v5_1_0
 
-  val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
+  val versionStatus = ApiVersionStatus.DRAFT.toString
 
   // Re-export so tests that import OBPAPI5_1_0.Implementations5_1_0 still compile
   // after APIMethods510 was replaced with an empty stub.

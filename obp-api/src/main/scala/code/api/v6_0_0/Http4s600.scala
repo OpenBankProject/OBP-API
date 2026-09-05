@@ -124,7 +124,7 @@ object Http4s600 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v6_0_0
-  val versionStatus: String = ApiVersionStatus.BLEEDING_EDGE.toString
+  val versionStatus: String = ApiVersionStatus.DRAFT.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
   object Implementations6_0_0 extends code.util.Helper.MdcLoggable {

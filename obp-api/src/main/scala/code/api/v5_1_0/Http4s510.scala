@@ -102,7 +102,7 @@ object Http4s510 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_1_0
-  val versionStatus: String = ApiVersionStatus.BLEEDING_EDGE.toString
+  val versionStatus: String = ApiVersionStatus.DRAFT.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
   object Implementations5_1_0 {
