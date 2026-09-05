@@ -69,7 +69,15 @@ object DoobieMetricsQueries {
     // Build dynamic WHERE conditions
     // Consent-borne calls are attributed to the granting (on-behalf-of) human via the consent
     // table (COALESCE below) — see MappedMetrics.getAllAggregateMetricsBox for the rationale.
-    // The consent side of the join is unique-indexed on consent_reference_id (no row fan-out).
+    // The consent side of the join is unique-indexed on consent_reference_id (no row fan-out) --
+    // but that index does not stop a NON-consent row from joining. `opt()` in MappedConsent.scala
+    // stores the empty string as-is rather than NULL, so a legacy row created before the column
+    // existed (or a bare setConsentReferenceId(pk, "")) can sit in mappedconsent with
+    // consent_reference_id = ''. Every non-consent metric row ALSO has consent_reference_id = ''
+    // (its default), so an unguarded `ON m.consent_reference_id = c.consent_reference_id` would
+    // join ALL of them to that one row and COALESCE(c.muserid, ...) would attribute the entire
+    // estate's non-consent traffic to a single unrelated user. The `<> ''` guard is why the two
+    // NULLIF(..., '') calls below exist at all -- they are the same fix applied on the read side.
     val baseQuery = fr"""
       SELECT count(*), avg(duration), min(duration), max(duration),
         count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
@@ -77,12 +85,12 @@ object DoobieMetricsQueries {
         count(NULLIF(m.consent_reference_id, '')),
         count(DISTINCT NULLIF(m.consent_reference_id, ''))
       FROM metric m
-      LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
+      LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id AND m.consent_reference_id <> ''
       WHERE date_c >= $fromTs
         AND date_c <= $toTs
     """
 
-    val conditions = buildFilterConditions(filters, isNewVersion)
+    val conditions = buildFilterConditions(filters, isNewVersion, resolvedUserIdExpr = fr"COALESCE(c.muserid, m.userid)")
     val fullQuery = baseQuery ++ conditions
 
     fullQuery.query[(Long, Option[Double], Option[Double], Option[Double], Long, Long, Long, Long)].to[List].map { rows =>
@@ -325,12 +333,14 @@ object DoobieMetricsQueries {
     // The consent side of the join is unique-indexed on consent_reference_id (no fan-out);
     // resourceuser is joined on the RESOLVED id, so a consent's calls surface under the
     // granting human's id and name. buildFilterConditions' unqualified columns stay
-    // unambiguous: the joined tables have no column names in common with metric.
+    // unambiguous: the joined tables have no column names in common with metric. The
+    // `AND m.consent_reference_id <> ''` guard is required, not defensive -- see the comment on
+    // buildAggregateMetricsQuery's identical join above.
     val baseQuery = if (isSqlServer) {
       fr"""
         SELECT TOP($limit) count(*), COALESCE(c.muserid, m.userid), COALESCE(ru.name_, '')
         FROM metric m
-        LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
+        LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id AND m.consent_reference_id <> ''
         LEFT JOIN resourceuser ru ON ru.userid_ = COALESCE(c.muserid, m.userid)
         WHERE m.date_c >= $fromTs
           AND m.date_c <= $toTs
@@ -341,7 +351,7 @@ object DoobieMetricsQueries {
       fr"""
         SELECT count(*), COALESCE(c.muserid, m.userid), COALESCE(ru.name_, '')
         FROM metric m
-        LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
+        LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id AND m.consent_reference_id <> ''
         LEFT JOIN resourceuser ru ON ru.userid_ = COALESCE(c.muserid, m.userid)
         WHERE m.date_c >= $fromTs
           AND m.date_c <= $toTs
@@ -350,7 +360,7 @@ object DoobieMetricsQueries {
       """
     }
 
-    val conditions = buildFilterConditions(filters, isNewVersion = false)
+    val conditions = buildFilterConditions(filters, isNewVersion = false, resolvedUserIdExpr = fr"COALESCE(c.muserid, m.userid)")
 
     val groupAndOrder = fr"""
       GROUP BY COALESCE(c.muserid, m.userid), COALESCE(ru.name_, '')
@@ -441,11 +451,25 @@ object DoobieMetricsQueries {
 
   /**
    * Build WHERE clause conditions from filter options.
+   *
+   * `resolvedUserIdExpr`: the SQL expression a `user_id` filter should compare against. Left at
+   * its default (bare `userid`, i.e. the raw authenticated principal on `metric`) for callers
+   * with no consent resolution in play. `buildAggregateMetricsQuery` and `buildTopUsersQuery`
+   * pass `COALESCE(c.muserid, m.userid)` instead: both already SELECT/GROUP BY that expression
+   * to attribute a consent-borne call to the granting human, and filtering on the raw column
+   * while displaying the resolved one is not just inconsistent, it inverts the endpoint's
+   * headline feature -- `?user_id=<human>` excluded exactly the consent-borne calls it claims to
+   * attribute to that human (their `metric.userid` is the consent's own shadow user), while
+   * `?user_id=<shadow>` returned rows displayed under a different (the human's) id.
    */
-  private def buildFilterConditions(filters: MetricsQueryFilters, isNewVersion: Boolean): Fragment = {
+  private def buildFilterConditions(
+    filters: MetricsQueryFilters,
+    isNewVersion: Boolean,
+    resolvedUserIdExpr: Fragment = fr"userid"
+  ): Fragment = {
     val simpleConditions = List(
       filters.consumerId.map(v => fr"AND consumerid = $v"),
-      filters.userId.map(v => fr"AND userid = $v"),
+      filters.userId.map(v => fr"AND " ++ resolvedUserIdExpr ++ fr" = $v"),
       filters.implementedByPartialFunction.map(v => fr"AND implementedbypartialfunction = $v"),
       filters.implementedInVersion.map(v => fr"AND implementedinversion = $v"),
       filters.url.map(v => fr"AND url = $v"),
