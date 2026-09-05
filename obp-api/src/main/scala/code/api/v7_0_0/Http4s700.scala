@@ -1243,7 +1243,15 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            // applyMetricsFromDateDefault, not the raw params: without a from_date,
+            // APIUtil.getFromDate substitutes the epoch, which makes
+            // MappedMetrics.determineMetricsCacheTTL classify the query as "only stable data"
+            // and cache it for 24 HOURS -- so the default, no-parameter call to this endpoint
+            // would freeze for a day while traffic kept arriving. The same default also turns
+            // the query into a full scan of `metric` since 1970. Every other metrics-reading
+            // endpoint goes through this helper for exactly these two reasons.
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(
+              APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
             topUsers <- APIMetrics.apiMetrics.vend.getTopUsersFuture(obpQueryParams) map {
               APIUtil.unboxFullOrFail(_, callContext, GetTopUsersError)
             }
@@ -1272,9 +1280,9 @@ object Http4s700 {
         |
         |eg: /management/metrics/top-users?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
         |
-        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |1 from_date (defaults to just inside the metrics stable boundary, i.e. a few minutes ago) eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |2 to_date (defaults to a far-future date, i.e. no upper bound) eg:to_date=$DateWithMsExampleString
         |
         |3 consumer_id  (if null ignore)
         |
@@ -1321,7 +1329,9 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            // See getTopUsers above for why the default from_date must be applied here.
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(
+              APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
             topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersByConsumerIdFuture(obpQueryParams) map {
               APIUtil.unboxFullOrFail(_, callContext, GetTopConsumersError)
             }
@@ -1352,9 +1362,9 @@ object Http4s700 {
         |
         |eg: /management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
         |
-        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |1 from_date (defaults to just inside the metrics stable boundary, i.e. a few minutes ago) eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |2 to_date (defaults to a far-future date, i.e. no upper bound) eg:to_date=$DateWithMsExampleString
         |
         |3 consumer_id  (if null ignore)
         |
