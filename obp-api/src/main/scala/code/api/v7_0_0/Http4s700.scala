@@ -981,25 +981,45 @@ object Http4s700 {
     // digits, spaces, dashes, dots and parentheses.
     private val mobilePhoneNumberRegex = """\+?[0-9\-\s().]{5,50}"""
 
+    // The shape alone is not enough: the character class is a UNION, so "     " (five spaces),
+    // "((.))" and "-.-.-" all satisfy it and a digit-free string would be stored as somebody's
+    // mobile number, leaving the later validation/SMS flow with nothing to send to. Require at
+    // least five actual digits as well.
+    private val MinMobilePhoneNumberDigits = 5
+
+    private def isValidMobilePhoneNumber(value: String): Boolean =
+      value.matches(mobilePhoneNumberRegex) && value.count(_.isDigit) >= MinMobilePhoneNumberDigits
+
     // Route: PUT /obp/v7.0.0/my/user/mobile-phone-number
     val updateMyMobilePhoneNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "my" / "user" / "mobile-phone-number" =>
         EndpointHelpers.withUserAndBody[JSONFactory700.PutMyMobilePhoneNumberJsonV700, JSONFactory700.MyMobilePhoneNumberJsonV700](req) { (user, body, cc) =>
+          val mobilePhoneNumber = body.mobile_phone_number.trim
           for {
+            // Refused for a consent user rather than redirected to cc.accountableUserId, unlike
+            // the other "my" writes in this file. The mobile number is an authentication channel
+            // (validation codes, SMS OTP), so letting an agent identity minted by a Consent
+            // repoint the granting human's second factor would be an escalation, not a
+            // convenience; and writing it to the agent's own shadow row instead would silently
+            // do nothing the caller could observe. The human must set their own number.
+            _ <- Helper.booleanToFuture(
+              s"$InvalidUserId The caller is a consent user (an agent identity minted by a Consent). " +
+              "A mobile phone number is an authentication channel and can only be set by the user themselves.",
+              failCode = 400, cc = Some(cc))(!user.isConsentUser)
             _ <- Helper.booleanToFuture(InvalidPhoneNumber, cc = Some(cc)) {
-              body.mobile_phone_number.matches(mobilePhoneNumberRegex)
+              isValidMobilePhoneNumber(mobilePhoneNumber)
             }
             resourceUser <- Future {
               UserVend.users.vend.getResourceUserByResourceUserId(user.userPrimaryKey.value)
             } map { x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404) }
             updated <- Future {
-              val numberChanged = !resourceUser.mobilePhoneNumber.contains(body.mobile_phone_number)
+              val numberChanged = !resourceUser.mobilePhoneNumber.contains(mobilePhoneNumber)
               // a changed number is unverified: reset the flag, but keep
               // mobilePhoneNumberValidatedDate as the audit trail of the last successful
               // validation. ResourceUser is a case class here, so this is a copy rather than
               // the chained setters develop's Mapper entity used.
               code.model.dataAccess.ResourceUser.update(resourceUser.copy(
-                mobilePhoneNumber = Some(body.mobile_phone_number),
+                mobilePhoneNumber = Some(mobilePhoneNumber),
                 mobilePhoneNumberIsValidated =
                   if (numberChanged) Some(false) else resourceUser.mobilePhoneNumberIsValidated))
             }
@@ -1055,7 +1075,7 @@ object Http4s700 {
             }
             mobilePhoneNumber = postedData.mobile_phone_number.map(_.trim).filter(_.nonEmpty)
             _ <- Helper.booleanToFuture(InvalidPhoneNumber, 400, Some(cc)) {
-              mobilePhoneNumber.forall(_.matches(mobilePhoneNumberRegex))
+              mobilePhoneNumber.forall(isValidMobilePhoneNumber)
             }
             savedUser <- code.api.v6_0_0.Http4s600.Implementations6_0_0.createAndSaveAuthUser(
               postedData.email, postedData.username, postedData.password, postedData.first_name, postedData.last_name
