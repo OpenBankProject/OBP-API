@@ -777,10 +777,6 @@ object Migration extends MdcLoggable {
       }
     }
 
-    /** Logging callback for maybeWrite - was net.liftweb.mapper.Schemifier.infoF, a thin
-      * wrapper around a Lift Logger with the same call-by-name signature. */
-    def infoF(msg: => AnyRef): Unit = logger.info(msg)
-
     /**
       * This function is copied from the module "net.liftweb.mapper.Schemifier".
       * The purpose is to provide the schema to look tables up under: the connection's own
@@ -867,23 +863,28 @@ object Migration extends MdcLoggable {
 
     /**
       * This function is copied from the module "net.liftweb.mapper.Schemifier".
-      * 
+      *
       * Creates an SQL command and optionally executes it.
       *
+      * The logging callback Schemifier's original took (`infoF`) is gone: every one of this
+      * method's ~64 call sites across the migration scripts passed the same thing
+      * (`Schemifier.infoF _`, later `DbFunction.infoF _`), which was never anything but
+      * `logger.info(msg)`. A parameter with zero call-site variance is not an abstraction,
+      * so it is inlined below instead of carried as a symbol every caller has to know about.
+      *
       * @param performWrite Whether the SQL command should be executed.
-      * @param logFunc Logger.
       * @param connection Database connection.
       * @param makeSql Factory for SQL command.
       *
       * @return SQL command.
       */
-    def maybeWrite(performWrite: Boolean, logFunc: (=> AnyRef) => Unit) (makeSql: () => String) : String ={
+    def maybeWrite(performWrite: Boolean) (makeSql: () => String) : String ={
       DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
         conn =>
           val ct = makeSql()
           logger.trace("maybeWrite DDL: " + ct)
           if (performWrite) {
-            logFunc(ct)
+            logger.info(ct)
             val st = conn.createStatement
             try {
               st.execute(ct)

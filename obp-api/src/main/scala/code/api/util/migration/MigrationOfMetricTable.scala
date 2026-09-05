@@ -32,18 +32,18 @@ object MigrationOfMetricTable {
         //    — the migration log and the physical schema can diverge (e.g. a re-provisioned test DB), and
         //    this runs before `addMetricView` — so `DROP ... IF EXISTS` keeps it safe in every ordering.
         //    (Same dance as MigrationOfMetricConsumerIdFieldLength.)
-        val dropViewSql = DbFunction.maybeWrite(true, DbFunction.infoF _) { () =>
+        val dropViewSql = DbFunction.maybeWrite(true) { () =>
           "DROP VIEW IF EXISTS v_metric;"
         }
 
         // 2. Widen metric.correlationid to 256.
-        val alterMetricSql = DbFunction.maybeWrite(true, DbFunction.infoF _) { () =>
+        val alterMetricSql = DbFunction.maybeWrite(true) { () =>
           if (isSqlServer) "ALTER TABLE metric ALTER COLUMN correlationid varchar(256);"
           else "ALTER TABLE metric ALTER COLUMN correlationid TYPE character varying(256);"
         }
 
         // 3. Recreate v_metric (keep in sync with MigrationOfMetricView.addMetricView).
-        val createViewSql = DbFunction.maybeWrite(true, DbFunction.infoF _) { () =>
+        val createViewSql = DbFunction.maybeWrite(true) { () =>
           val createClause = if (isSqlServer) "CREATE OR ALTER VIEW v_metric AS" else "CREATE OR REPLACE VIEW v_metric AS"
           s"""$createClause
              |SELECT

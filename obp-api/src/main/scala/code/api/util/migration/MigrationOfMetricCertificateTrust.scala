@@ -54,7 +54,7 @@ object MigrationOfMetricCertificateTrust {
               "ALTER TABLE metricarchive ADD COLUMN IF NOT EXISTS certificate_trust_detail VARCHAR(255);"
             )
           statements.foreach { statement =>
-            sqlLog.append(DbFunction.maybeWrite(true, DbFunction.infoF _)(() => statement)).append("\n")
+            sqlLog.append(DbFunction.maybeWrite(true)(() => statement)).append("\n")
           }
 
           isSuccessful = true

@@ -25,7 +25,7 @@ object MigrationOfAuthUser {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, DbFunction.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -121,7 +121,7 @@ object MigrationOfAuthUser {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, DbFunction.infoF _) {
+          DbFunction.maybeWrite(true) {
             val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
             () =>
               s"""${Helper.dropIndexIfExists(dbDriver, "authuser", "authuser_username")}"""

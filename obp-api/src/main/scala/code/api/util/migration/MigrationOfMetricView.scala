@@ -14,7 +14,7 @@ object MigrationOfMetricView {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, DbFunction.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
               case value if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>

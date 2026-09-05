@@ -25,7 +25,7 @@ object MigrationOfConsentAuthContextDropIndex {
     val commitId: String = APIUtil.gitCommit
     if (DbFunction.tableExistsByName(tableName)) {
       val executedSql =
-        DbFunction.maybeWrite(true, DbFunction.infoF _) {
+        DbFunction.maybeWrite(true) {
           val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
           () =>
             code.util.Helper.dropIndexIfExists(dbDriver, tableName, "consentauthcontext_consentid_key_c")

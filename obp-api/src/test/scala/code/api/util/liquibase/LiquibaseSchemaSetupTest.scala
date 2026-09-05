@@ -99,8 +99,16 @@ class LiquibaseSchemaSetupTest extends AnyFlatSpec with Matchers {
   "the liquibase.enabled default" should "be on, since nothing else creates the schema" in {
     // Used to hold this against ToSchemify.models being empty. That field is gone now - removed
     // along with the rest of obp-api's net.liftweb.mapper surface - rather than merely empty, so
-    // the invariant this protects (nothing else creates a table) is enforced by the compiler:
-    // there is no Schemifier.schemify call left anywhere in obp-api to accidentally un-empty it.
+    // the specific regression this used to catch (something repopulating ToSchemify.models) can't
+    // happen any more: the symbol doesn't exist to repopulate.
+    //
+    // That is narrower than "nothing else can ever create a table again", and this test does not
+    // claim the wider guarantee: lift-persistence (bundling net.liftweb.mapper - Schemifier,
+    // MetaMapper, the rest) is still a live dependency, so a new Mapper entity plus a fresh
+    // Schemifier.schemify(...) call would compile and run today, and nothing in this suite boots
+    // Boot.scala to notice one running alongside Liquibase. That would mean writing Lift Mapper
+    // code from scratch in a codebase with zero remaining entities to copy from - unlikely, but
+    // not something this assertion, or any other, currently guards against.
     LiquibaseSchemaSetup.enabledByDefault should equal(true)
   }
 }

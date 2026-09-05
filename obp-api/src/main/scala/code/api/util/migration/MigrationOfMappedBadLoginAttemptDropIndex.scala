@@ -30,7 +30,7 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
         var isSuccessful = false
         
         val executedSql =
-          DbFunction.maybeWrite(true, DbFunction.infoF _) {
+          DbFunction.maybeWrite(true) {
             val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
             () =>
               s"""${Helper.dropIndexIfExists(dbDriver, "mappedbadloginattempt", "mappedbadloginattempt_musername")}""".stripMargin

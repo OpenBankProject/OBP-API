@@ -22,7 +22,7 @@ object MigrationOfOpnIDConnectToken {
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, DbFunction.infoF _) {
+          DbFunction.maybeWrite(true) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE openidconnecttoken ALTER COLUMN accesstoken text;"
@@ -61,7 +61,7 @@ object MigrationOfOpnIDConnectToken {
         var isSuccessful = false
 
         val executedSql = 
-          DbFunction.maybeWrite(true, DbFunction.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () => "ALTER TABLE openidconnecttoken ALTER COLUMN refreshtoken text;"

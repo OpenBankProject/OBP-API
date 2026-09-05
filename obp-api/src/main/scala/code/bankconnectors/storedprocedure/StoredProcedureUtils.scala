@@ -194,7 +194,7 @@ object StoredProcedureUtils extends MdcLoggable{
 object StoredProceduresMockedData {
   def createOrDropMockedPostgresStoredProcedures() = {
     def create(): String = {
-      DbFunction.maybeWrite(true, DbFunction.infoF _) {
+      DbFunction.maybeWrite(true) {
         () => """CREATE OR REPLACE FUNCTION public.get_banks(p_out_bound_json text, INOUT in_bound_json text)
                 | RETURNS text
                 | LANGUAGE plpgsql
@@ -234,7 +234,7 @@ object StoredProceduresMockedData {
       }
     }
     def drop(): String = {
-      DbFunction.maybeWrite(true, DbFunction.infoF _) {
+      DbFunction.maybeWrite(true) {
         () => "DROP FUNCTION public.get_banks(text, text);"
       }
     }

@@ -72,7 +72,7 @@ object MigrationOfResourceUser {
           if (DbFunction.columnMaxLength("resourceuser", "email").contains(targetLength)) {
             s"-- skipped: resourceuser.email already varchar($targetLength)"
           } else {
-            DbFunction.maybeWrite(true, DbFunction.infoF _) {
+            DbFunction.maybeWrite(true) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () =>
