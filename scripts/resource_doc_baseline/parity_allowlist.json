@@ -122,6 +122,12 @@
       "endpoint": "createWebUiProps",
       "reason": "New in http4s v6.0.0, no Lift predecessor",
       "identity_digest": "14a08784273c1af4165296c2f246d7544e5aae28208a5f02591b115aa032623e"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createConsent",
+      "reason": "v6.0.0 now registers its own explicit ResourceDoc for POST /my/consents/IMPLICIT (previously served only via the v5.1.0 doc through version aggregation); real, deliberate addition, not drift.",
+      "identity_digest": "c02bfcf72b542dc309204ecebda8155e0bdbafdc6d9515cd609c1e3ec87f1969"
     }
   ],
   "field_mismatches": [
@@ -935,14 +941,6 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "createBankLevelDynamicEntity",
-      "field": "description",
-      "reason": "Documents real, verified new fields (indexed/index, write_role_required/read_role_required/write_role/read_role) present in DynamicEntityProvider.scala/DynamicEntityHelper.scala.",
-      "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "012d3dac115f98f7cc0dd068b4a19ea71cec2b0baace4fbe8699c8a0c1c66286"
-    },
-    {
-      "version": "v6_0_0",
       "endpoint": "createCounterpartyAttribute",
       "field": "requestUrl",
       "reason": "COUNTERPARTY_ID_PARAM rename.",
@@ -956,14 +954,6 @@
       "reason": "Additive clarification (USER_ATTRIBUTE_ID identity, non-unique name, PUT-to-update guidance); nothing removed.",
       "lift_digest": "4cc47e93f3737a605729f4aaf7b439d5ee8e99b737185fe1239487b30980d412",
       "http4s_digest": "ae08eb6afbbace39d0834e20610b06ac5d4e50422f84dad91c471a3370267788"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "createSystemDynamicEntity",
-      "field": "description",
-      "reason": "Same real-feature doc addition as createBankLevelDynamicEntity.",
-      "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "c1e0aa2666de3b04a979bb6ffa669b3767317a3cf5d386c1dcc6a89526aa1f9a"
     },
     {
       "version": "v6_0_0",
@@ -1167,27 +1157,11 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "updateBankLevelDynamicEntity",
-      "field": "description",
-      "reason": "Real field-level-access-control feature doc addition, same pattern as createBankLevelDynamicEntity.",
-      "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "dbd05ceaae5129f8ff61655a0007b2d715f5ef45eb7fcaf7e6261fd3a47e08a6"
-    },
-    {
-      "version": "v6_0_0",
       "endpoint": "updateCounterpartyAttribute",
       "field": "requestUrl",
       "reason": "COUNTERPARTY_ID_PARAM rename.",
       "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
       "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "updateMyDynamicEntity",
-      "field": "description",
-      "reason": "Real feature doc addition, same pattern as createBankLevelDynamicEntity.",
-      "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "c9c75c8112aea6fd914b131e0b81a79b149d4885c82d272016259af40f8207d4"
     },
     {
       "version": "v6_0_0",
@@ -1199,19 +1173,147 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "updateSystemDynamicEntity",
-      "field": "description",
-      "reason": "Real feature doc addition, same pattern as createBankLevelDynamicEntity.",
-      "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "0e2017ebada85365b83b8d0fd9a3d14ce992e58276fe0a8770f04a8b7cac0b42"
-    },
-    {
-      "version": "v6_0_0",
       "endpoint": "updateSystemView",
       "field": "requestUrl",
       "reason": "VIEW_ID -> UPD_VIEW_ID convention.",
       "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
       "http4s_digest": "dad3bc411251667d1a364b7fd8e45c54de3ef9d4d3d54f52e90e6264d53a948d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createBankLevelDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
+      "http4s_digest": "0e74005a596c6d3fe6cf4a0372b7c26a8df71a64ed261dae9952acf38dad9681"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createSystemDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
+      "http4s_digest": "a04f57e1840396c8b740ed334710ae8f40a7386daf194bdd2e6e2276de80c6ff"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
+      "http4s_digest": "2d9a3632bcd0ef2d6211e26bdcbed1671a2c1919b5e57a4dfbcbfe276d2c960f"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
+      "http4s_digest": "f3afa0db1a4fa3d9cb51755653a847fd316ebdbd6629599a01758b2adb2a0ed0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "description",
+      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
+      "http4s_digest": "e7578c9f3348cc71091e23a11f3837f421ff8139891b71f53f7a5a0d243a3d4f"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getEntitlementsForCurrentUser",
+      "field": "description",
+      "reason": "Expanded to document virtual entitlements (super_admin_user_ids/oidc_operator_user_ids) alongside stored ones; same feature as getCurrentUser's entitlements.list doc.",
+      "lift_digest": "2fd8ababd5a262cd46adacf29ab76aff060291bc9d7d2a48e90d7e316b613a1a",
+      "http4s_digest": "582926a1182a2409d05f72678949e700822e24fcd013aadcaec229d8c2a72727"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createConsentEmail",
+      "field": "errorResponseBodies",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "lift_digest": "73f681411b6caa8d703781d5e2ffa8d4adc252fe915861d9620d52ba70157489",
+      "http4s_digest": "f8b17b4d7af9672c5a18db6530fb69dc9cf1e0ee381bb9704c21d9275b7c8740"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createConsentImplicit",
+      "field": "errorResponseBodies",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
+      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createConsentSms",
+      "field": "errorResponseBodies",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
+      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createConsent",
+      "field": "errorResponseBodies",
+      "reason": "Same RolesForbiddenInConsent addition as the v3.1.0 consent-creation endpoints (real check, verified in source). Digest computed against the rename-paired Lift name createConsentImplicit.",
+      "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
+      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createApiProduct",
+      "field": "description",
+      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) — real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
+      "lift_digest": "a0a19cc5100424e4e1824f1d1c70dc4329971051689338c8559c988e334ddab7",
+      "http4s_digest": "585ffe0ecaab1b7ee5d333fffc55aca0016497dba502ad9ebc446dd3a4c92ade"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCallLimits",
+      "field": "description",
+      "reason": "Documents the six-limit semantics (0=blocked, summed across records); same rate-limiting feature expansion as the other rate-limit endpoints below.",
+      "lift_digest": "668028ad86321b68b01406fb570d1dafca545c3c45bc2a3e3c0d04dd1a5b69af",
+      "http4s_digest": "a70426ea3f7d3e3305f066057d548d5f810f4920a78ea5c1cc02fce5afd74208"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteCallLimits",
+      "field": "description",
+      "reason": "Notes that a record created by an Api Product Subscription is recreated on the subscription's next status change; cross-references the new subscription feature.",
+      "lift_digest": "ee5101d21cd7e4c75dc6a13247504bd50b6f5d9bc990d0040df4688351ddd06c",
+      "http4s_digest": "d3615986ed35f67bd8b5f61f28421b4420324436dde9554f011a7cfb3f38ab82"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getActiveRateLimitsAtDate",
+      "field": "description",
+      "reason": "Documents the 0=blocked semantics for the aggregated rate-limit value; same rate-limiting doc expansion.",
+      "lift_digest": "f76972227ab4e68e210c189294d83c2e93c21fa731448b98b44c47f804f9a124",
+      "http4s_digest": "e5e0a64387460166429b531b7f18bbe270a2a68065947084c69b4f2955a69f96"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getActiveRateLimitsNow",
+      "field": "description",
+      "reason": "Same rate-limiting doc expansion as getActiveRateLimitsAtDate.",
+      "lift_digest": "2f93ab9f7422c605789f3c006f57ab363a1dd25adb98c57b7ee5b76aa4a27f78",
+      "http4s_digest": "c815f6f640d20e3e883f4e4e06a6d5755d087ca651f0f5c2b39e22110abb8ef7"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getCurrentUser",
+      "field": "description",
+      "reason": "Documents stored vs virtual Entitlements (created_by_process, super_admin_user_ids/oidc_operator_user_ids) and on_behalf_of consent semantics; file's own comment marks this as a deliberate extension of the Lift text. Verified in full against the live source.",
+      "lift_digest": "03774e46d0c75b2f68bf848a5aa16c0aa1239b007e345d7bb6093773744934b1",
+      "http4s_digest": "a132b82d8380cef202e8e5aefe5c20bde8d4537ad5f1c50735eaa05a2f11674d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateRateLimits",
+      "field": "description",
+      "reason": "Same rate-limiting doc expansion as the other call-limit endpoints.",
+      "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
+      "http4s_digest": "229b587b60d0eec166b7f962703514c81e5d176ee65dd70de0c131efc221bd8c"
     }
   ]
 }
