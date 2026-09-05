@@ -59,12 +59,17 @@ package object bankconnectors extends MdcLoggable {
       }
     }
 
-    def recordConnectorTrace(connectorName: String, methodName: String, method: Method, args: Array[AnyRef],
+    // correlationId is passed in, not re-derived: APIUtil.getCorrelationId() reads Lift's
+    // container session and, since the Lift teardown, is a stub returning "". Calling it here
+    // wrote every connectortrace row with an empty correlation id while the matching
+    // connectormetric row (which is handed the id the caller extracted) carried the real one --
+    // so traces could neither be looked up by OBPCorrelationId nor joined to their metric.
+    def recordConnectorTrace(connectorName: String, methodName: String, correlationId: String,
+                              method: Method, args: Array[AnyRef],
                               duration: Long, isSuccess: Boolean, result: Try[Any]): Unit = {
       if (getPropsAsBoolValue("write_connector_trace", false)) {
         val outbound = serializeOutboundArgs(method, args)
         val inbound = serializeInboundResult(result)
-        val correlationId = getCorrelationId()
         val (detailUserId, detailHttpVerb, detailApiUrl) = extractCallContextInfo(args)
         val bankIdValue = extractBankIdFromArgs(args)
         Future {
@@ -117,14 +122,14 @@ package object bankconnectors extends MdcLoggable {
             case TryFailure(_) => false
           }
           recordConnectorInboundMetrics(connectorName, methodName, correlationId, duration, isSuccess, args)
-          recordConnectorTrace(connectorName, methodName, method, args, duration, isSuccess, result)
+          recordConnectorTrace(connectorName, methodName, correlationId, method, args, duration, isSuccess, result)
         }
       } else {
         // Non-future (legacy Box) result - track synchronously
         val duration = System.currentTimeMillis() - t0
         val isSuccess = !isFailureBox(connectorMethodResult)
         recordConnectorInboundMetrics(connectorName, methodName, correlationId, duration, isSuccess, args)
-        recordConnectorTrace(connectorName, methodName, method, args, duration, isSuccess, TrySuccess(connectorMethodResult))
+        recordConnectorTrace(connectorName, methodName, correlationId, method, args, duration, isSuccess, TrySuccess(connectorMethodResult))
       }
 
       if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
