@@ -31,6 +31,15 @@ import net.liftweb.util.Helpers.tryo
 object PeerTrust extends MdcLoggable {
 
   /**
+   * `ForwardedCaller.via` for the one case where the certificate came from a bare PSD2-CERT
+   * header with no authenticated hop behind it (`trustForwardedHeaderWithoutTls`). Named so a
+   * consumer of `certificateTrustDetail` — notably [[TokenBinding]], which needs cryptographic
+   * proof of possession, not merely a claimed header value — can tell this case apart from a
+   * cryptographically vouched-for forward from a `mtls.trusted_proxy`.
+   */
+  val UnauthenticatedHopDetail = "unauthenticated hop"
+
+  /**
    * A peer allowed to speak for someone else.
    *
    * @param issuer  canonical issuer DN — the CA that signed the proxy certificate
@@ -144,7 +153,7 @@ object PeerTrust extends MdcLoggable {
       case None =>
         forwarded match {
           case Some(pem) if config.trustForwardedHeaderWithoutTls =>
-            ForwardedCaller(pem, "unauthenticated hop")
+            ForwardedCaller(pem, UnauthenticatedHopDetail)
           case Some(_) =>
             // Fail closed: with no authenticated peer there is nothing to make the header credible.
             NoCaller("PSD2-CERT was sent over a hop with no client certificate, and " +
