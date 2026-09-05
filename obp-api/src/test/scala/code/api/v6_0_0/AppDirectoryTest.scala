@@ -204,6 +204,7 @@ class AppDirectoryTest extends V600ServerSetup {
       APIUtil.publicAppUrlPropNames should contain("public_obp_hola_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_mcp_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_opey_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_stripe_url")
     }
 
     scenario("all publicAppUrlPropNames follow public_*_url convention", VersionOfApi, ApiEndpoint) {

@@ -102,6 +102,33 @@ class CacheKeyFormatTest extends FlatSpec with Matchers {
     InMemory.countKeys(glob) should be >= 1
   }
 
+  it should "keep the pattern rate-limit invalidation depends on matchable" in {
+    // Caching.invalidateRateLimitCache(consumerId) issues
+    // deleteKeysByPattern(s"*${RATE_LIMIT_ACTIVE_PREFIX}${consumerId}_*"). The cache key
+    // MappedRateLimiting writes is s"${RATE_LIMIT_ACTIVE_PREFIX}${consumerId}_${dateWithHour}",
+    // so the glob must match the derived key for that string. Before the leading "*" was added
+    // the glob was anchored at the front and matched nothing: every create/update/delete of a
+    // rate limit logged "Deleted 0 Redis keys" and the change waited for the hour cache to expire.
+    val prefix = code.api.Constant.RATE_LIMIT_ACTIVE_PREFIX
+    val consumerId = java.util.UUID.randomUUID().toString
+    val marker = s"${prefix}${consumerId}_2026-09-02-12"
+    val before = storedKeys
+    Caching.memoizeSyncWithImMemory(Some(marker))(ttl)("limits")
+    val added = (storedKeys -- before).head
+
+    val glob = s"*${prefix}${consumerId}_*"
+    val regex = glob.replace("*", ".*").replace("(", "\\(").replace(")", "\\)")
+    withClue(s"derived key '$added' is not matched by the invalidation pattern '$glob'. " +
+             s"Caching.invalidateRateLimitCache would delete nothing and report nothing. ") {
+      added.matches(regex) shouldBe true
+    }
+    InMemory.countKeys(glob) should be >= 1
+
+    // And the anchored form, the bug, must NOT match -- otherwise this test proves nothing.
+    val anchored = s"${prefix}${consumerId}_*".replace("*", ".*")
+    added.matches(anchored) shouldBe false
+  }
+
   it should "give different callers different keys" in {
     // A derivation that collapsed distinct callers onto one key would serve one caller's value
     // to another -- and every substring assertion in the suite would still pass.

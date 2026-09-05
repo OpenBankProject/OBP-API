@@ -4290,8 +4290,6 @@ docker run -p 8080:8080 \
 
 **Consent:** Permission granted by user for data access
 
-**isNaturalPerson:** Boolean field on User that distinguishes human users (true, default) from service accounts/machine users (false)
-
 **Mandate:** Formal agreement between a corporate customer and a bank defining who can operate an account, what they can do, and under what conditions
 
 **Direct Login:** Username/password authentication method
@@ -4308,7 +4306,7 @@ docker run -p 8080:8080 \
 
 **Opey:** AI-powered banking assistant
 
-**principalUserId:** Optional field on User that links a service/agent user back to the human principal it acts on behalf of, formalising the Human Agent delegation chain
+**on_behalf_of_user_id:** The user a request is made on behalf of: for a consent user (a User row created by a Consent, `created_by_consent_id` set) it is the Consent's user; for any other user it is the user itself. Not a stored column on User — resolved from the Consent at read time. Distinct from `user_id`, which is always the authenticated caller
 
 **Props:** Configuration properties file
 

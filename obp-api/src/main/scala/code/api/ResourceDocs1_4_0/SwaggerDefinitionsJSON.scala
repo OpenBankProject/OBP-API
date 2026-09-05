@@ -4696,6 +4696,17 @@ object SwaggerDefinitionsJSON {
     time_to_live = Some(3600)
   )
   lazy val postConsentRequestJsonV310 = postConsentPhoneJsonV310.copy(consumer_id = None)
+  lazy val postConsentBodyJsonV600 = code.api.v6_0_0.PostConsentBodyJsonV600(
+    everything = false,
+    bank_id = None,
+    views = List(PostConsentViewJsonV310(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
+    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomersAtOneBank")),
+    consumer_id = Some(consumerIdExample.value),
+    consent_request_id = None,
+    valid_from = Some(new Date()),
+    time_to_live = Some(3600),
+    my_resources = Some(code.api.v6_0_0.PostConsentMyResourcesJson(Some(List(code.api.v6_0_0.PostConsentPersonalDynamicEntityJson("", "FooBar", List("read", "write"))))))
+  )
   
   lazy val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
   
@@ -5391,6 +5402,7 @@ object SwaggerDefinitionsJSON {
     attributes = Some(List(apiProductAttributeResponseJsonV600))
   )
   lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
+
 
   lazy val productJsonV600 = ProductJsonV600(
     bank_id = bankIdExample.value,
@@ -6348,7 +6360,8 @@ object SwaggerDefinitionsJSON {
       ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),
       ConfigPropJsonV600("public_obp_hola_url", "http://localhost:48123"),
       ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9100"),
-      ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000")
+      ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000"),
+      ConfigPropJsonV600("public_obp_stripe_url", "http://localhost:4242")
     )
   )
 

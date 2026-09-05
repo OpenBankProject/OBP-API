@@ -107,9 +107,16 @@ object RateLimitingUtil extends MdcLoggable {
     }
 
     def aggregateRateLimits(rateLimitRecords: List[RateLimiting]): CallLimit = {
-      def sumLimits(values: List[Long]): Long = {
-        val positiveValues = values.filter(_ > 0)
-        if (positiveValues.isEmpty) -1 else positiveValues.sum
+      // Per period, over the consumer's active rows (see Glossary "Rate Limiting"):
+      //   -1 values are ignored (unlimited rows contribute nothing)
+      //   the remaining values (>= 0) are summed: overlapping rows add up, by design
+      //   a sum of 0 means blocked: every call in that period is refused with 429. A single 0 row does
+      //     not override positive rows; it only blocks when nothing else grants calls.
+      //   nothing to sum (all -1) -> -1 unlimited. A row exists, so the rate_limiting_per_* props do not apply.
+      // No rows at all is handled below: the rate_limiting_per_* props apply.
+      def resolveLimit(values: List[Long]): Long = {
+        val counted = values.filter(_ >= 0)
+        if (counted.isEmpty) -1 else counted.sum
       }
 
       if (rateLimitRecords.nonEmpty) {
@@ -118,12 +125,12 @@ object RateLimitingUtil extends MdcLoggable {
           rateLimitRecords.find(_.apiName.isDefined).flatMap(_.apiName),
           rateLimitRecords.find(_.apiVersion.isDefined).flatMap(_.apiVersion),
           rateLimitRecords.find(_.bankId.isDefined).flatMap(_.bankId),
-          sumLimits(rateLimitRecords.map(_.perSecondCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perMinuteCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perHourCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perDayCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perWeekCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perMonthCallLimit))
+          resolveLimit(rateLimitRecords.map(_.perSecondCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perMinuteCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perHourCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perDayCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perWeekCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perMonthCallLimit))
         )
       } else {
         // No records found - return system defaults
@@ -217,9 +224,11 @@ object RateLimitingUtil extends MdcLoggable {
               logger.warn(s"Unknown status '${state.status}' when checking rate limit for consumer $consumerKey, period $period - allowing request")
               true
           }
+        case 0 =>
+          // A limit of 0 means blocked: refuse every call for this period, without touching Redis
+          false
         case _ =>
-          // Rate Limiting for a Consumer <= 0 implies successful result
-          // Or any other unhandled case implies successful result
+          // A negative limit (-1) means unlimited for this period
           true
       }
     } else {
@@ -335,7 +344,7 @@ object RateLimitingUtil extends MdcLoggable {
     * ERROR HANDLING:
     * - Redis connectivity issues default to allowing the request (fail-open)
     * - Rate limiting can be globally disabled via "use_consumer_limits" property
-    * - Malformed or missing limits default to unlimited access
+    * - A limit of 0 blocks the period (429 on every call), -1 means unlimited, no records means the props defaults apply
     *
     * @param userAndCallContext Tuple containing (Box[User], Option[CallContext]) from authentication
     * @return Same tuple structure, either with updated rate limit headers or rate limit exceeded error
@@ -343,8 +352,13 @@ object RateLimitingUtil extends MdcLoggable {
   def underCallLimits(userAndCallContext: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     // Configuration and helper functions
     def perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 1000)
-    def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long, consumerId: String): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer (consumer_id: $consumerId)."
-    def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for anonymous access."
+    def composeMsgBlocked(period: LimitCallPeriod, consumerId: String): String = TooManyRequests + s" This Consumer is blocked: its active rate limit ${RateLimitingPeriod.humanReadable(period)} is 0 (consumer_id: $consumerId)."
+    def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long, consumerId: String): String =
+      if (limit == 0) composeMsgBlocked(period, consumerId)
+      else TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer (consumer_id: $consumerId)."
+    def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String =
+      if (limit == 0) TooManyRequests + s" Anonymous access is blocked: the anonymous rate limit ${RateLimitingPeriod.humanReadable(period)} is 0."
+      else TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for anonymous access."
 
     // Helper function to set rate limit headers in successful responses
     def setXRateLimits(c: CallLimit, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {

@@ -39,16 +39,22 @@ case class CallContext(
                         // the creator is the granting human (they create their own consent in the Portal).
                         // Not set by Berlin Group / UK flows, where the consent may be created by a TPP flow
                         // with no human logged in — see `consenter` for those.
-                        // Read via humanUser / accountableUserId, where it takes precedence over consenter.
-                        onBehalfOfUser: Box[User] = Empty,
+                        // A SOURCE, not the resolved value: read via onBehalfOfUser / onBehalfOfUserId, where it
+                        // takes precedence over consenter.
+                        consentCreator: Box[User] = Empty,
                         // The human (PSU) who AUTHORISED the consent this request runs under — the owner of
                         // record, from the consent table's userId (bound by updateConsentUser during the
                         // authorise ceremony). Populated by the Berlin Group and UK consent paths, whose
                         // consents are created by TPP flows and only gain their human at authorisation.
                         // The UK ownership check (checkUKConsent) compares the consent's userId against this.
-                        // In practice onBehalfOfUser and consenter are never both set: each consent standard
-                        // populates the one whose source is authoritative for it.
+                        // In practice consentCreator and consenter are never both set: each consent standard
+                        // populates the one whose source is authoritative for it. Kept as two fields on purpose
+                        // (decided 2026-09-02): explicit about which standard bound the human.
                         consenter: Box[User] = Empty,
+                        // The `my_resources` claim of the OBP consent in play: the granting User's own
+                        // resources the consent user may act on. None without a consent, or for BG/UK
+                        // consents. Read by personal (my) endpoints. ideas/CONSENT_MY_RESOURCES.md
+                        consentMyResources: Option[ConsentMyResources] = None,
                         consumer: Box[Consumer] = Empty,
                         ipAddress: String = "",
                         resourceDocument: Option[ResourceDoc] = None,
@@ -112,10 +118,13 @@ case class CallContext(
    * consent (Berlin Group, OBP-native, and -- since UK consents moved to the same model -- UK too).
    * Anything that must name a human rather than a principal reads this instead: the CBS adapter,
    * which tells the core banking system who is asking, and the consent ownership checks.
-   * Stored data (metric rows included) always carries the authenticated principal; the human is
-   * resolved at read time via the consent table (see accountableUserId).
+   * Stored data (metric rows included) always carries the authenticated user; the on-behalf-of user
+   * is resolved at read time via the consent table (see onBehalfOfUserId).
+   *
+   * The resolved on-behalf-of user: consentCreator (OBP-native consents) or consenter (BG/UK),
+   * falling back to the authenticated user when no consent is in play. See ON_BEHALF_OF_USER_ID_PLAN.md.
    */
-  def humanUser: Box[User] = onBehalfOfUser.or(consenter).or(user)
+  def onBehalfOfUser: Box[User] = consentCreator.or(consenter).or(user)
 
   //This is only used to connect the back adapter. not useful for sandbox mode.
   def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
@@ -123,7 +132,7 @@ case class CallContext(
       user <- this.user //If there is no user, then will go to `.openOr` method, to return anonymousAccess box.
       // The adapter is told which human is asking. A shadow user has no name and no customer links,
       // so sending it would make every consent-borne request look like a different, unknown caller.
-      psu <- this.humanUser
+      psu <- this.onBehalfOfUser
       username <- tryo(Some(psu.name))
       currentResourceUserId <- tryo(Some(psu.userId))
       consumerId = this.consumer.map(_.consumerId.get).openOr("") // if none, just return ""
@@ -178,11 +187,11 @@ case class CallContext(
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
       gatewayLoginResponseHeader = this.gatewayLoginResponseHeader,
-      // Like for like with CallContext: userId/userName are the AUTHENTICATED principal
-      // (CallContext.user), never a resolved human. Under a consent that principal is the
-      // consent's own shadow user (a per-consent UUID with an empty name) — the on-behalf-of
-      // human is not stored here but resolved at read time via the consent table
-      // (consentReferenceId below -> consent.userId), see CallContext.accountableUserId.
+      // Like for like with CallContext: userId/userName are the AUTHENTICATED user
+      // (CallContext.user), never the resolved on-behalf-of user. Under a consent that is the
+      // consent user (a per-consent UUID with an empty name) — the on-behalf-of user is not
+      // stored here but resolved at read time via the consent table
+      // (consentReferenceId below -> consent.userId), see CallContext.onBehalfOfUserId.
       userId = this.user.map(_.userId).toOption,
       userName = this.user.map(_.name).toOption,
       consumerId = this.consumer.map(_.consumerId.get).toOption,
@@ -217,42 +226,32 @@ case class CallContext(
   def userId: String  = user.map(_.userId).openOrThrowException(AuthenticatedUserIsRequired)
 
   /**
-   * The ACCOUNTABLE identity this request is really about — the user_id that durable
+   * The ON-BEHALF-OF user id this request is really about — the user_id that durable
    * state (creator role grants, account holders, entitlement requests) and attribution
-   * (metrics families, "my" queries) bind to. "Accountable" deliberately hints at a
-   * legal person: today resolution always ends at the human who granted the consent,
-   * but the contract is accountability, not species — if durable, sponsored agent
-   * identities are ever admitted as principals in their own right, resolution may stop
-   * at such an agent without this name becoming a lie (unlike the previous name,
-   * effectiveHumanUserId).
+   * (metrics families, "my" queries) bind to. Vocabulary and design: ON_BEHALF_OF_USER_ID_PLAN.md.
    *
-   * The authenticated `user` may be the accountable party themselves, or a consent user
-   * minted by a Consent they granted (e.g. Opey / MCP acting under a consent) — consent
-   * users are ephemeral and must never hold durable state (see addEntitlement's guard).
+   * The authenticated `user` may be an original user acting for themselves, or a consent
+   * user minted by a Consent (e.g. Opey / MCP acting under a consent) — consent users are
+   * ephemeral and must never hold durable state (see addEntitlement's guard).
    * Resolution order:
-   *  1. `onBehalfOfUser` or `consenter`, when a middleware populated them (free);
-   *  2. otherwise resolve via the delegation registry: the caller's ResourceUser row's
+   *  1. `consentCreator` or `consenter`, when a middleware populated them (free);
+   *  2. otherwise resolve via the consent chain: the caller's ResourceUser row's
    *     CreatedByConsentId names the Consent that minted it, and that Consent's userId
-   *     names the granting human;
-   *  3. otherwise the caller IS the accountable party.
+   *     names the on-behalf-of user;
+   *  3. otherwise the caller IS the on-behalf-of user.
    *
    * IMPORTANT: this reads only the authenticated user and server-written columns
    * (ResourceUser.CreatedByConsentId, MappedConsent.mUserId). It deliberately takes no
    * parameters so nothing caller-asserted (body/header/query values) can ever influence
    * the resolution — identity-sensitive queries (e.g. /my/banks) depend on that.
    */
-  def accountableUserId: String = {
-    val delegatedHumanUserId = onBehalfOfUser.or(consenter).map(_.userId).filter(_.nonEmpty)
-    delegatedHumanUserId.openOr {
+  def onBehalfOfUserId: String = {
+    val delegatedUserId = consentCreator.or(consenter).map(_.userId).filter(_.nonEmpty)
+    delegatedUserId.openOr {
       val authenticatedUserId = user.map(_.userId).openOr("")
-      val grantingHumanUserId = for {
-        callerResourceUser <- code.model.dataAccess.ResourceUser.find(
-          net.liftweb.mapper.By(code.model.dataAccess.ResourceUser.userId_, authenticatedUserId))
-        consentId <- net.liftweb.common.Full(callerResourceUser.CreatedByConsentId.get)
-          .filter(id => id != null && id.nonEmpty)
-        consent <- code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
-      } yield consent.userId
-      grantingHumanUserId.filter(_.nonEmpty).openOr(authenticatedUserId)
+      // The resolver (Users.onBehalfOfUserIdOf) owns the consent chain; a Failure there (invariant
+      // broken) is already logged and, at this String-typed level, can only fall back to the caller.
+      code.users.Users.users.vend.onBehalfOfUserIdOf(authenticatedUserId).openOr(authenticatedUserId)
     }
   }
   def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(AuthenticatedUserIsRequired)

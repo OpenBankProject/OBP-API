@@ -466,7 +466,7 @@ object Http4s500 {
             )
             // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
-            humanUserId = cc.accountableUserId
+            humanUserId = cc.onBehalfOfUserId
             entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
             entitlementsByBank = entitlements.filter(_.bankId == postJson.id.getOrElse(""))
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
@@ -590,7 +590,7 @@ object Http4s500 {
             loggedInUserId = user.userId
             // Implicit owner resolves to the HUMAN: under a Consent the caller is the
             // per-consent shadow, and an account held by it strands when the consent dies.
-            userIdAccountOwner = createAccountJson.user_id.getOrElse(cc.accountableUserId)
+            userIdAccountOwner = createAccountJson.user_id.getOrElse(cc.onBehalfOfUserId)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
             _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
@@ -1216,10 +1216,12 @@ object Http4s500 {
             }
             requestedEntitlements = consentRequestJson.entitlements.getOrElse(Nil)
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            // CanCreateEntitlementAtAnyBank stays out of consents. CanCreateEntitlementAtOneBank is
+            // allowed (an agent acting under a consent may grant bank roles to humans): a consent user
+            // can never be the target of a grant (addEntitlement redirects, the endpoints reject) and
+            // just-in-time entitlements are disabled for consent users, so the role cannot widen the consent.
             _ <- Helper.booleanToFuture(RolesForbiddenInConsent, cc = callContextOpt) {
-              requestedEntitlements.map(_.role_name).intersect(
-                List(canCreateEntitlementAtOneBank.toString(), canCreateEntitlementAtAnyBank.toString())
-              ).isEmpty
+              !requestedEntitlements.map(_.role_name).contains(canCreateEntitlementAtAnyBank.toString())
             }
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContextOpt) {
               requestedEntitlements.forall(re =>

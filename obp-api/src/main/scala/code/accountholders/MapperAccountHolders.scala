@@ -36,7 +36,26 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
 
   //Note, this method, will not check the existing of bankAccount, any value of BankIdAccountId
   //Can create the MapperAccountHolders.
-  def getOrCreateAccountHolder(user: User, bankIdAccountId :BankIdAccountId, source: Option[String] = None): Box[MapperAccountHolders] ={
+  //
+  // On-behalf-of guard (attribution policy UserReference.AccountHolderUser): an account is
+  // held by the on-behalf-of user. When `user` is a consent user the holder row is written
+  // for the user the consent names, so the account does not strand when the consent dies.
+  // For an original user this is a no-op. The resolver logs every redirect.
+  // ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+  def getOrCreateAccountHolder(user: User, bankIdAccountId :BankIdAccountId, source: Option[String] = None): Box[MapperAccountHolders] =
+    for {
+      holder <- accountHolderUserFor(user)
+      accountHolder <- getOrCreateAccountHolderRow(holder, bankIdAccountId, source)
+    } yield accountHolder
+
+  /** The user the holder row is written for: `user` itself, or its on-behalf-of user. */
+  private def accountHolderUserFor(user: User): Box[User] =
+    Users.users.vend.attributedUserId(user.userId, code.users.UserReference.AccountHolderUser).flatMap { holderUserId =>
+      if (holderUserId == user.userId) Full(user)
+      else Users.users.vend.getUserByUserId(holderUserId) ?~ s"getOrCreateAccountHolder: on-behalf-of user $holderUserId of ${user.userId} not found"
+    }
+
+  private def getOrCreateAccountHolderRow(user: User, bankIdAccountId :BankIdAccountId, source: Option[String]): Box[MapperAccountHolders] ={
   
     val mapperAccountHolder = MapperAccountHolders.find(
       By(MapperAccountHolders.user, user.userPrimaryKey.value),
