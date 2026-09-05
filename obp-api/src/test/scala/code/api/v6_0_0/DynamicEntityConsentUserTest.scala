@@ -17,7 +17,7 @@ import org.scalatest.Tag
 
 /**
  * Personal ("my") dynamic entity endpoints and consent users. ON_BEHALF_OF_USER_ID_PLAN.md Phase 2 and
- * ideas/CONSENT_MY_RESOURCES.md:
+ * ideas/CONSENT_MY_RESOURCES.md (the block is accepted by the v6.0.0 create-consent endpoint):
  *  - rows written with a Consent belong to the User who granted it (DynamicDataUser attribution in the provider);
  *  - a consent user may use a /my endpoint only if its Consent lists the entity in my_resources with the needed
  *    action; the entity role is required in addition only when personal_requires_role is true.
@@ -70,7 +70,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
   private def postConsent(roleNames: List[String], myResources: Option[JValue]) = {
     setPropsValues("consents.allowed" -> "true", "consumer_validation_method_for_consent" -> "CONSUMER_KEY_VALUE")
     roleNames.foreach(role => Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role))
-    makePostRequest((v5_1_0_Request / "my" / "consents" / "IMPLICIT").POST <@ (user1), write(consentBody(roleNames, myResources)), consumerKeyHeader)
+    makePostRequest((v6_0_0_Request / "my" / "consents" / "IMPLICIT").POST <@ (user1), write(consentBody(roleNames, myResources)), consumerKeyHeader)
   }
 
   /** A consent granted by user1, answered, as request headers. */

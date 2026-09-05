@@ -306,7 +306,7 @@ case class UserJsonV600(
     on_behalf_of: Option[UserJsonV300],
     // The `my_resources` block of the Consent in play (the on-behalf-of User's own resources the
     // caller may act on); null without an OBP Consent.
-    my_resources: Option[code.api.v5_1_0.PostConsentMyResourcesJson]
+    my_resources: Option[PostConsentMyResourcesJson]
 )
 
 case class UserV600(
@@ -1454,7 +1454,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   def createUserInfoJSON(
       current_user: UserV600,
       onBehalfOfUser: Option[UserV600],
-      consentMyResources: Option[code.api.v5_1_0.PostConsentMyResourcesJson] = None
+      consentMyResources: Option[PostConsentMyResourcesJson] = None
   ): UserJsonV600 = {
     UserJsonV600(
       user_id = current_user.user.userId,
@@ -3359,4 +3359,29 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     ReactionsJsonV600(reactions.map(createReactionJson))
   }
 
+}
+
+/** One personal dynamic entity the Consent may act on for the granting User: bank_id "" for a
+ *  system-level entity; actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
+case class PostConsentPersonalDynamicEntityJson(bank_id: String, entity_name: String, actions: List[String])
+/** The User's own resources a Consent may act on (owned, not granted): one typed list per kind. */
+case class PostConsentMyResourcesJson(personal_dynamic_entities: Option[List[PostConsentPersonalDynamicEntityJson]])
+/**
+ * v6.0.0 create-consent body: the v3.1.0 body plus `my_resources`. Older versions are STABLE or
+ * next in line to be frozen, so the field lives here. Appended at the end of the file on purpose:
+ * json4s reads the Scala signature from the first top-level class of a source file.
+ */
+case class PostConsentBodyJsonV600(
+  everything: Boolean,
+  bank_id: Option[String],
+  views: List[code.api.v3_1_0.PostConsentViewJsonV310],
+  entitlements: List[code.api.v3_1_0.PostConsentEntitlementJsonV310],
+  consumer_id: Option[String],
+  consent_request_id: Option[String],
+  valid_from: Option[java.util.Date],
+  time_to_live: Option[Long],
+  my_resources: Option[PostConsentMyResourcesJson]
+) extends code.api.v3_1_0.PostConsentCommonBody {
+  def toCommon: code.api.v3_1_0.PostConsentBodyCommonJson = code.api.v3_1_0.PostConsentBodyCommonJson(
+    everything, bank_id, views, entitlements, consumer_id, consent_request_id, valid_from, time_to_live)
 }

@@ -1401,7 +1401,7 @@ object Glossary extends MdcLoggable  {
 || `entitlements` | Roles at a Bank or the system (granted) | the User holds the stored Entitlement; virtual Entitlements do not count |
 || `my_resources` | the User's own personal resources (owned), one typed list per kind, e.g. `personal_dynamic_entities` | the kind and instance exist; no Role, the User owns these rows |
 |
-|`my_resources` example: `{"personal_dynamic_entities": [{"bank_id": "", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
+|`my_resources` is accepted by the Create Consent endpoint from v6.0.0 (older create-consent bodies are frozen). Example: `{"personal_dynamic_entities": [{"bank_id": "", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
 |
 |
 |

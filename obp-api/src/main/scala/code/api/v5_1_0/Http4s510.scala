@@ -92,6 +92,9 @@ case class UKConsentScaChallengeJsonV510(challenge_id: String, sca_status: Strin
 case class PostUKConsentAuthoriseJsonV510(challenge_id: String, answer: String, account_ids: List[String])
 
 object Http4s510 {
+  /** The shared consent description, reused by the v6.0.0 create-consent doc. */
+  def generalObpConsentTextForV600: String = Implementations5_1_0.generalObpConsentText
+
 
   type HttpF[A] = OptionT[IO, A]
 
@@ -4867,7 +4870,7 @@ object Http4s510 {
       http4sPartialFunction = Some(selfRevokeConsent)
     )
 
-    private val generalObpConsentText: String =
+    val generalObpConsentText: String =
       s"""
          |
          |An OBP Consent allows the holder of the Consent to call one or more endpoints.
@@ -4877,8 +4880,6 @@ object Http4s510 {
          |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
          |
          |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ")}.
-         |
-         |A Consent carries three kinds of thing: `views` (the User's own account access), `entitlements` (Roles the User holds) and `my_resources` (the User's own personal resources, one typed list per kind). `my_resources.personal_dynamic_entities` lists the personal dynamic entities the consent user may act on for the User, each with `bank_id` ("" for system level), `entity_name` and `actions` (`read`, `write`); rows it writes belong to the User who granted the Consent. No Role is needed for `my_resources`: the User owns these rows. Absent or empty means none, and `everything: true` does not include it.
          |
          |Each Consent is bound to a consumer i.e. you need to identify yourself over request header value Consumer-Key.
          |
@@ -4985,8 +4986,8 @@ object Http4s510 {
                    StrongCustomerAuthentication.EMAIL.toString(),
                    StrongCustomerAuthentication.IMPLICIT.toString()).contains(scaMethod)
             }
-            consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentBodyJsonV510 ", 400, callContextOpt) {
-              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentBodyJsonV510]
+            consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson ", 400, callContextOpt) {
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentBodyCommonJson]
             }
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = Constant.DEFAULT_CONSENT_TTL)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
@@ -5015,7 +5016,6 @@ object Http4s510 {
                 assignedViews.exists(e =>
                   e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
             }
-            _ <- Consent.validateMyResources(consentJson.my_resources, callContextOpt)
             consumerFromBodyTuple <- consentJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))
               case None     => Future.successful((None: Option[Consumer], "Any application"))
@@ -5028,12 +5028,11 @@ object Http4s510 {
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, None, consumerFromRequestBody))
               .map(i => connectorEmptyResponse(i, callContextOpt))
             consentJWT = Consent.createConsentJWT(
-              user, consentJson.toCommon, createdConsent.secret, createdConsent.consentId,
+              user, consentJson, createdConsent.secret, createdConsent.consentId,
               consumerFromRequestBody.map(_.consumerId.get),
               consentJson.valid_from,
               consentJson.time_to_live.getOrElse(3600),
-              None,
-              myResources = consentJson.my_resources
+              None
             )
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT))
               .map(i => connectorEmptyResponse(i, callContextOpt))
@@ -5151,7 +5150,7 @@ object Http4s510 {
       |}
       |
       |""",
-      postConsentBodyJsonV510, consentJsonV310,
+      postConsentImplicitJsonV310, consentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
         RolesAllowedInConsent, RolesForbiddenInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
         MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),

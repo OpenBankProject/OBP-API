@@ -110,14 +110,14 @@ object ConsentMyResources {
   val actionRead = "read"
   val actionWrite = "write"
   val actions: Set[String] = Set(actionRead, actionWrite)
-  def fromJson(json: code.api.v5_1_0.PostConsentMyResourcesJson): ConsentMyResources =
+  def fromJson(json: code.api.v6_0_0.PostConsentMyResourcesJson): ConsentMyResources =
     ConsentMyResources(
       json.personal_dynamic_entities.getOrElse(Nil).map(e =>
         ConsentPersonalDynamicEntity(Option(e.bank_id).getOrElse(""), e.entity_name, e.actions)))
-  def toJson(claim: ConsentMyResources): code.api.v5_1_0.PostConsentMyResourcesJson =
-    code.api.v5_1_0.PostConsentMyResourcesJson(
+  def toJson(claim: ConsentMyResources): code.api.v6_0_0.PostConsentMyResourcesJson =
+    code.api.v6_0_0.PostConsentMyResourcesJson(
       Some(claim.personal_dynamic_entities.map(e =>
-        code.api.v5_1_0.PostConsentPersonalDynamicEntityJson(e.bank_id, e.entity_name, e.actions))))
+        code.api.v6_0_0.PostConsentPersonalDynamicEntityJson(e.bank_id, e.entity_name, e.actions))))
 }
 case class ConsentView(bank_id: String, 
                        account_id: String,
@@ -1317,7 +1317,7 @@ object Consent extends MdcLoggable {
                        timeToLive: Long,
                        helperInfo: Option[HelperInfoJson], //this is only used for VRP consent, all the others are NONE.
                        preComputedViews: Option[List[ConsentView]] = None, // bypass Doobie view lookup (e.g. for VRP consent where the view was just created in the same transaction)
-                       myResources: Option[code.api.v5_1_0.PostConsentMyResourcesJson] = None // v5.1.0+ bodies only; STABLE bodies have no such field
+                       myResources: Option[code.api.v6_0_0.PostConsentMyResourcesJson] = None // v5.1.0+ bodies only; STABLE bodies have no such field
   ): String = {
 
     lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
@@ -1412,7 +1412,7 @@ object Consent extends MdcLoggable {
    * resources, so no Role is checked: an entry is valid when the kind and shape are known and the
    * instance exists with personal endpoints. ideas/CONSENT_MY_RESOURCES.md
    */
-  def validateMyResources(myResources: Option[code.api.v5_1_0.PostConsentMyResourcesJson], callContext: Option[CallContext]): Future[Box[Unit]] = {
+  def validateMyResources(myResources: Option[code.api.v6_0_0.PostConsentMyResourcesJson], callContext: Option[CallContext]): Future[Box[Unit]] = {
     val problems: List[String] = myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
       val bankId = Option(entry.bank_id).filter(_.nonEmpty)
       val where = s"personal_dynamic_entities entry (bank_id '${Option(entry.bank_id).getOrElse("")}', entity_name '${entry.entity_name}')"

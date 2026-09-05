@@ -68,31 +68,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import scala.util.Try
 
-/** One personal dynamic entity the Consent may act on for the granting User: bank_id "" for a
- *  system-level entity; actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
-case class PostConsentPersonalDynamicEntityJson(bank_id: String, entity_name: String, actions: List[String])
-/** The User's own resources a Consent may act on (owned, not granted): one typed list per kind. */
-case class PostConsentMyResourcesJson(personal_dynamic_entities: Option[List[PostConsentPersonalDynamicEntityJson]])
-/**
- * v5.1.0 create-consent body: the v3.1.0 body plus `my_resources`. v3.1.0 and v5.0.0 are STABLE,
- * so the field is added here (BLEEDING_EDGE) rather than on their classes.
- */
-case class PostConsentBodyJsonV510(
-  everything: Boolean,
-  bank_id: Option[String],
-  views: List[code.api.v3_1_0.PostConsentViewJsonV310],
-  entitlements: List[code.api.v3_1_0.PostConsentEntitlementJsonV310],
-  consumer_id: Option[String],
-  consent_request_id: Option[String],
-  valid_from: Option[java.util.Date],
-  time_to_live: Option[Long],
-  my_resources: Option[PostConsentMyResourcesJson]
-) extends code.api.v3_1_0.PostConsentCommonBody {
-  def toCommon: code.api.v3_1_0.PostConsentBodyCommonJson = code.api.v3_1_0.PostConsentBodyCommonJson(
-    everything, bank_id, views, entitlements, consumer_id, consent_request_id, valid_from, time_to_live)
-}
-
-
 case class WellKnownUrisJsonV510(well_known_uris: List[WellKnownUriJsonV510])
 case class WellKnownUriJsonV510(provider: String, url: String)
 
