@@ -13,7 +13,7 @@ import com.google.protobuf.timestamp.Timestamp
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.JsonAliases
-import io.grpc.{Status, StatusRuntimeException}
+import io.grpc.{Context, Status, StatusRuntimeException}
 import io.grpc.stub.{ServerCallStreamObserver, StreamObserver}
 import net.liftweb.common.Full
 import org.json4s.JsonAST.JValue
@@ -48,11 +48,19 @@ object SignalChannelsServiceImpl extends SignalChannelsServiceGrpc.SignalChannel
   private def withUser[T](body: User => T): Future[T] = {
     val user = AuthInterceptor.USER_CONTEXT_KEY.get()
     if (user == null) Future.failed(unauthenticated)
-    else Future(body(user)).recoverWith {
-      case e: StatusRuntimeException => Future.failed(e)
-      case NonFatal(e) =>
-        logger.error(s"SignalChannelsServiceImpl says: ${e.getMessage}", e)
-        Future.failed(Status.INTERNAL.withDescription(e.getMessage).asRuntimeException())
+    else {
+      // AuthInterceptor stores the User and the CallContext as gRPC Context values, which are
+      // thread-local. body runs in a Future on a different thread, so it must run *inside* the
+      // captured gRPC Context for AuthInterceptor.CALL_CONTEXT_KEY.get() to see the caller's
+      // context (consumer, ipAddress) rather than null. Without this the channel-creation rate
+      // limit keyed on an empty consumer/IP and fell back to the user id.
+      val grpcContext = Context.current()
+      Future(grpcContext.call(() => body(user))).recoverWith {
+        case e: StatusRuntimeException => Future.failed(e)
+        case NonFatal(e) =>
+          logger.error(s"SignalChannelsServiceImpl says: ${e.getMessage}", e)
+          Future.failed(Status.INTERNAL.withDescription(e.getMessage).asRuntimeException())
+      }
     }
   }
 
