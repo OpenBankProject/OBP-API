@@ -9489,7 +9489,24 @@ object Http4s400 {
             case _ => true
           }
         }
+        // Column widths: say which field is too long instead of letting the database answer OBP-50000.
+        _ <- checkDynamicResourceDocFieldLengths(body, cc)
       } yield ()
+    }
+
+    private val dynamicResourceDocMaxLengths: List[(String, JsonDynamicResourceDoc => String, Int)] = List(
+      ("partial_function_name", _.partialFunctionName, 255),
+      ("request_verb", _.requestVerb, 255),
+      ("request_url", _.requestUrl, 255),
+      ("summary", _.summary, 255),
+      ("description", _.description, 2000)
+    )
+
+    private def checkDynamicResourceDocFieldLengths(body: JsonDynamicResourceDoc, cc: CallContext): Future[Unit] = {
+      val tooLong = dynamicResourceDocMaxLengths.collect {
+        case (field, read, max) if Option(read(body)).exists(_.length > max) => s"$field must be at most $max characters (got ${read(body).length})"
+      }
+      code.util.Helper.booleanToFuture(s"$InvalidJsonFormat ${tooLong.mkString("; ")}", cc = Some(cc)) { tooLong.isEmpty }.map(_ => ())
     }
 
     private def compileDynamicResourceDoc(body: JsonDynamicResourceDoc, cc: CallContext): Unit = {

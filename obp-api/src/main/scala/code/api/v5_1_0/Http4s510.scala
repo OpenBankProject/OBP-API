@@ -1917,13 +1917,15 @@ object Http4s510 {
       "GET",
       "/tags",
       "Get API Tags",
-      s"""Get API TagsGet API Tags
+      s"""Returns the names of every API tag known to this instance (static tags and dynamic tags).
+      |
+      |For per-tag endpoint counts use `GET /obp/v7.0.0/api/tags` instead.
       |
       |${userAuthenticationMessage(false)}
       |
       |""",
       EmptyBody,
-      accountsMinimalJson400,
+      APITags(List("Account", "Bank", "Transaction Request")),
       List(UnknownError),
       List(apiTagApi),
       None,

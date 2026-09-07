@@ -901,6 +901,43 @@ object Http4s700 {
       http4sPartialFunction = Some(getErrorMessages)
     )
 
+    // Route: GET /obp/v7.0.0/api/tags
+    val getApiTags: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "tags" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(JSONFactory700.createApiTagsJsonV700(allResourceDocs.toList))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getApiTags),
+      "GET",
+      "/api/tags",
+      "Get API Tags",
+      """Returns every API tag known to this instance, with the number of endpoints that carry each tag.
+        |
+        |Tags are the groupings used by API Explorer and the Resource Docs (e.g. `Account`, `Bank`,
+        |`Transaction Request`). The counts are taken from the aggregated v7.0.0 Resource Docs, i.e. the
+        |same set of endpoints returned by `GET /obp/v7.0.0/resource-docs/v7.0.0/obp` before any locale
+        |or content filtering. Dynamic tags (from Dynamic Entities and Dynamic Endpoints) are included
+        |and may have a count of 0.
+        |
+        |An endpoint with several tags is counted once under each of its tags, so the per-tag counts sum
+        |to more than `number_of_endpoints`, which is the number of distinct endpoints counted.
+        |
+        |`tags` is sorted by `number_of_endpoints` descending, then by tag name.
+        |
+        |This supersedes `GET /tags` (v5.1.0), which returns tag names only.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.apiTagsJsonV700Example,
+      List(UnknownError),
+      apiTagDocumentation :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getApiTags)
+    )
+
     // ── Phase 1 batch 2 ─────────────────────────────────────────────────────
 
     // Route: GET /obp/v7.0.0/users/user-id/USER_ID

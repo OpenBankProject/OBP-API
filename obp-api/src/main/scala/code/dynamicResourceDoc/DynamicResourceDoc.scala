@@ -18,12 +18,12 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK w
   object RequestVerb extends MappedString(this, 255)
   object RequestUrl extends MappedString(this, 255)
   object Summary extends MappedString(this, 255)
-  object Description extends MappedString(this, 255)
+  object Description extends MappedText(this)
   object ExampleRequestBody extends MappedText(this)
   object SuccessResponseBody extends MappedText(this)
   object ErrorResponseBodies extends MappedText(this)
-  object Tags extends MappedString(this, 255)
-  object Roles extends MappedString(this, 255)
+  object Tags extends MappedText(this)
+  object Roles extends MappedText(this)
   object MethodBody extends MappedText(this)
   // Provenance: who created / last updated this runtime-compiled endpoint, and a SHA-256 of the
   // (decoded) method body so tampering / drift is detectable. Set server-side from the CallContext

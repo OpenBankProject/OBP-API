@@ -161,6 +161,42 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   case class ErrorMessageEntryJsonV700(code: String, name: String, message: String)
 
+  // ─── API tags (GET /api/tags) ─────────────────────────────────────────────────────────────
+  /** One API tag and the number of endpoints in the aggregated v7.0.0 resource docs that carry it. */
+  case class ApiTagJsonV700(tag: String, number_of_endpoints: Int)
+
+  /**
+   * All API tags with per-tag endpoint counts, sorted by number_of_endpoints descending then tag name.
+   * `number_of_endpoints` at the top level is the number of distinct endpoints counted; an endpoint
+   * with several tags is counted once under each of them, so the per-tag counts sum to more than that.
+   */
+  case class ApiTagsJsonV700(tags: List[ApiTagJsonV700], number_of_endpoints: Int)
+
+  val apiTagsJsonV700Example: ApiTagsJsonV700 = ApiTagsJsonV700(
+    tags = List(
+      ApiTagJsonV700(tag = "Account", number_of_endpoints = 42),
+      ApiTagJsonV700(tag = "Bank", number_of_endpoints = 17),
+      ApiTagJsonV700(tag = "Transaction Request", number_of_endpoints = 12)
+    ),
+    number_of_endpoints = 900
+  )
+
+  /**
+   * Counts endpoints per tag over the given resource docs and merges the result with every tag known to
+   * `ApiTag` (static and dynamic), so tags with no endpoints still appear with a count of 0.
+   */
+  def createApiTagsJsonV700(resourceDocs: Seq[APIUtil.ResourceDoc]): ApiTagsJsonV700 = {
+    val counts: Map[String, Int] = resourceDocs
+      .flatMap(_.tags.map(_.displayTag).distinct)
+      .groupBy(identity)
+      .map { case (tag, occurrences) => tag -> occurrences.size }
+    val allTagNames: Set[String] = code.api.util.ApiTag.allDisplayTagNames ++ counts.keySet
+    val tags = allTagNames.toList
+      .map(tag => ApiTagJsonV700(tag, counts.getOrElse(tag, 0)))
+      .sortBy(t => (-t.number_of_endpoints, t.tag))
+    ApiTagsJsonV700(tags, resourceDocs.size)
+  }
+
   // ─── Rate limiter config (GET /management/rate-limiter-config) ─────────────────────────
   /** One limit row of a rate limiter. Windows the limiter does not have are absent; -1 means unlimited, 0 blocks. */
   case class RateLimiterLimitJsonV700(
