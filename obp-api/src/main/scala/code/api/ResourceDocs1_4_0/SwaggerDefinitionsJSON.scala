@@ -6479,7 +6479,8 @@ object SwaggerDefinitionsJSON {
     total_count = 1,
     has_more = false,
     latest_sequence = 1771583400123456L,
-    next_after_sequence = 1771583400123456L
+    next_after_sequence = 1771583400123456L,
+    visible_count = 1
   )
 
   lazy val signalMessagePublishedJsonV600 = SignalMessagePublishedJsonV600(

@@ -71,6 +71,7 @@ object SignalProto {
         .addField(boolField("has_more", 4))
         .addField(int64Field("latest_sequence", 5))
         .addField(int64Field("next_after_sequence", 6))
+        .addField(int64Field("visible_count", 7))
       )
       // 6: ListChannelsRequest
       .addMessageType(DescriptorProto.newBuilder()

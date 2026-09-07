@@ -62,6 +62,7 @@ message FetchResponse {
   bool has_more = 4;
   int64 latest_sequence = 5;        // newest message in the channel, 0 when empty
   int64 next_after_sequence = 6;    // pass back as after_sequence to continue (advances past hidden private messages too)
+  int64 visible_count = 7;          // messages in the channel the caller may see; total_count includes private ones hidden from them
 }
 
 // --- ListChannels: 1:1 with GET /signal-channels ---

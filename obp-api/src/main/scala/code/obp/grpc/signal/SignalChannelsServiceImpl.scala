@@ -88,12 +88,18 @@ object SignalChannelsServiceImpl extends SignalChannelsServiceGrpc.SignalChannel
       message_type = Option(request.messageType).filter(_.nonEmpty),
       to_user_id = Option(request.toUserId).filter(_.nonEmpty))
     val consumerId = callContext.flatMap(_.consumer match { case Full(c) => Some(c.consumerId.get); case _ => None }).getOrElse("")
-    // Channel creation cap (scope signal_channel_create). REST keys this on the client IP in
-    // SelfServiceRateLimitMiddleware; gRPC has no request IP in scope, so it keys on the
-    // Consumer (falling back to the User). Publishing to an existing channel is never counted.
+    // Channel creation cap (scope signal_channel_create), keyed by the client IP address exactly
+    // as SelfServiceRateLimitMiddleware keys it for REST, so one caller shares one counter on
+    // both transports. AuthInterceptor captures the peer address into CallContext.ipAddress;
+    // if none is available the key falls back to the Consumer, then the User. Publishing to an
+    // existing channel is never counted.
     if (RedisMessaging.channelInfo(request.channelName).isEmpty) {
-      val key = if (consumerId.nonEmpty) consumerId else user.userId
-      SelfServiceRateLimiter.check("signal_channel_create", key, "consumer") match {
+      val ip = callContext.map(_.ipAddress).getOrElse("").trim
+      val (key, keyKind) =
+        if (ip.nonEmpty && !ip.equalsIgnoreCase("unknown")) (ip, "ip")
+        else if (consumerId.nonEmpty) (consumerId, "consumer")
+        else (user.userId, "consumer")
+      SelfServiceRateLimiter.check("signal_channel_create", key, keyKind) match {
         case SelfServiceRateLimiter.Blocked(scope, _, exceeded) =>
           throw Status.RESOURCE_EXHAUSTED
             .withDescription(SelfServiceRateLimiter.blockedMessage(scope, exceeded))
@@ -124,7 +130,8 @@ object SignalChannelsServiceImpl extends SignalChannelsServiceGrpc.SignalChannel
       totalCount = page.total_count,
       hasMore = page.has_more,
       latestSequence = page.latest_sequence,
-      nextAfterSequence = page.next_after_sequence)
+      nextAfterSequence = page.next_after_sequence,
+      visibleCount = page.visible_count)
   }
 
   override def listChannels(request: ListChannelsRequest): Future[ListChannelsResponse] = withUser { _ =>

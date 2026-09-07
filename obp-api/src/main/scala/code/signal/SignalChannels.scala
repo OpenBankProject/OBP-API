@@ -74,7 +74,14 @@ object SignalChannels {
   private def page(channelName: String, raw: List[String], total: Long, hasMore: Boolean,
                    latest: Long, nextAfter: Long, userId: String): SignalMessagesJsonV600 = {
     val visible = raw.flatMap(parseMessage).filter(isVisibleTo(_, userId))
-    SignalMessagesJsonV600(channelName, visible, total, hasMore, latest, nextAfter)
+    SignalMessagesJsonV600(channelName, visible, total, hasMore, latest, nextAfter, visibleCount(channelName, userId))
+  }
+
+  /** How many messages in the channel the caller may see. Counted over the whole channel, not
+   *  the page, so it is comparable with total_count. One extra Redis read per fetch. */
+  def visibleCount(channelName: String, userId: String): Long = {
+    val (raw, _) = RedisMessaging.fetchMessages(channelName, 0, RedisMessaging.channelMaxMessages)
+    raw.flatMap(parseMessage).count(isVisibleTo(_, userId)).toLong
   }
 
   /** Channels holding at least one broadcast message. Private-only channels are not listed. */

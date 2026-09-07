@@ -10582,8 +10582,10 @@ object Http4s600 {
         |Without `after_sequence`, offset and limit page over the channel's current contents.
         |
         |`total_count` is the number of messages in the channel including private messages hidden
-        |from you, so it can be larger than the number of messages returned. Do not use it to detect
-        |missed messages; use `after_sequence` and `next_after_sequence`.
+        |from you, so it can be larger than the number of messages returned. `visible_count` is the
+        |number you may see, over the whole channel, and is the one to compare with what you have
+        |received. Neither is a way to detect missed messages; use `after_sequence` and
+        |`next_after_sequence` for that.
         |
         |Authentication is Required.
         |

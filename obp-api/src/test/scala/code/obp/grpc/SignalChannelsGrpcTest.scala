@@ -136,6 +136,8 @@ class SignalChannelsGrpcTest extends ServerSetupWithTestData {
 
       val seenBySender = publisher.fetch(FetchRequest(channelName, 0, 10))
       seenBySender.totalCount should equal(3L)
+      // The sender sees everything it sent, so visible_count matches total_count for it.
+      seenBySender.visibleCount should equal(3L)
       // Sequences are stamped, strictly increasing, and reported consistently.
       broadcast.sequence should be > 0L
       privateMsg.sequence should be > broadcast.sequence
@@ -161,9 +163,14 @@ class SignalChannelsGrpcTest extends ServerSetupWithTestData {
 
       val seenByRecipient = blockingStub(tokenOf(user2)).fetch(FetchRequest(channelName, 0, 10))
       seenByRecipient.messages.map(_.messageId).toSet should equal(Set(broadcast.messageId, privateMsg.messageId))
+      // total_count still counts the message to someone else; visible_count does not.
+      seenByRecipient.totalCount should equal(3L)
+      seenByRecipient.visibleCount should equal(2L)
 
       val seenByStranger = blockingStub(tokenOf(user3)).fetch(FetchRequest(channelName, 0, 10))
       seenByStranger.messages.map(_.messageId) should equal(Seq(broadcast.messageId))
+      seenByStranger.totalCount should equal(3L)
+      seenByStranger.visibleCount should equal(1L)
 
       publisher.listChannels(ListChannelsRequest()).channels.map(_.channelName) should contain(channelName)
 

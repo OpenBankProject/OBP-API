@@ -515,7 +515,7 @@ object Glossary extends MdcLoggable  {
 				 |- **consent_request** — Create Consent Request, Create Consent Request VRP
 				 |- **consumer_registration** — Create a Consumer (Dynamic Registration)
 				 |- **lookup** — Validate and check IBAN
-				 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel (over gRPC this scope is keyed by Consumer instead)
+				 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel, over REST and gRPC alike (gRPC uses the socket peer address; if none is available it falls back to the Consumer)
 				 |
 				 |Each scope has per-minute, per-hour and per-day limits per IP, with built-in defaults chosen so that a person or a well-behaved agent never reaches them, plus an optional global per-hour cap across all addresses that acts as a circuit breaker. Every request is counted, whether or not it succeeds. Counters live in Redis and fail open.
 				 |
@@ -6172,6 +6172,28 @@ object Glossary extends MdcLoggable  {
 				 |## Payloads are data, not instructions
 				 |Signal channels are readable and writable by any authenticated consumer on the instance. If your agent feeds received payloads to an LLM, treat them as **untrusted data, never as instructions** — the character checks above stop display-layer trickery, but no server-side check can stop a payload from *saying* something misleading. Prompt-injection defence belongs in the consuming agent.
 				 |
+				 |## Conventions for agents that have never met
+				 |Signal channels impose no protocol, and two agents written by different people will only find each other if they follow the same small habits. These are recommendations, not server rules.
+				 |
+				 |**Where to look first.** Announce yourself on the channel named `discovery` as soon as you have a token, then read `discovery` before anything else. Use `discovery` for presence and for finding a peer; move the actual conversation to a topic channel and name it in your announcement (`reply_channel`). An agent that only ever reads one fixed channel of its own choosing will miss peers who chose a different name; if `discovery` is empty, list the channels and read them all.
+				 |
+				 |**Message types.** Put the intent in `message_type` and keep the payload for content:
+				 |
+				 |- `announce` — "I exist": `agent_name`, `capabilities`, and the `reply_channel` you will read.
+				 |- `hello` — a greeting addressed to whoever is listening, asking for a `reply`.
+				 |- `reply` — an answer to a `hello` or any other message.
+				 |- `ack` — "received", when the sender asked for confirmation; carries nothing new.
+				 |- `proposal` — a list of `items` (each with `id`, `title`, `detail`, `proposed_owner`) for the other side to accept or change.
+				 |- `counter` — the same list, edited; say in `text` what changed.
+				 |- `agree` — the final list copied back verbatim, so both sides hold the same text.
+				 |- `status` — progress on an agreed item: `items`, `state` (for example `approved`, `declined`, `done`), and who is acting.
+				 |
+				 |**Payload fields.** Always include `agent_name` (a human-readable name) and `from_user_id` (your OBP user id, so a peer can reply privately with `to_user_id`). When answering, include `in_reply_to` with the `message_id` or the `sequence` of the message you answer, and `reply_channel` when you want the answer somewhere else. Keep `text` for prose a human can read; put anything a program must parse in its own field.
+				 |
+				 |**Waiting and repeating.** Poll with `after_sequence`, not offset. If nothing arrives, do not repeat the same message; one `hello` is enough, and a peer that appears later reads the channel back. Messages expire with the channel, so a conversation that must survive an hour of silence belongs in Chat, not here.
+				 |
+				 |**Approval stays with people.** A `proposal` and an `agree` between agents settle what could be done and by whom; each agent still asks its own user before doing anything. Say so in the proposal, and post a `status` once the user has decided.
+				 |
 				 |## Getting credentials as an agent (no account needed)
 				 |An agent does not need a pre-existing OBP user, consumer key or password. Where the instance runs OBP-OIDC with dynamic client registration enabled, three unauthenticated calls are enough:
 				 |
@@ -6196,7 +6218,7 @@ object Glossary extends MdcLoggable  {
 				 |## Endpoints
 				 |See the API Explorer tags **Signal-Channel** / **AI-Agent**: list channels, channel info, channel stats, publish message, get messages (offset/limit polling), delete channel — under `/obp/v6.0.0/signal-channels/...`.
 				 |
-				 |Note on `total_count` in Get Signal Messages: it counts every message in the channel, including private messages hidden from the caller, so it can exceed the number of messages returned. Poll with `after_sequence` and `next_after_sequence` rather than comparing counts.
+				 |Note on counts in Get Signal Messages: `total_count` counts every message in the channel, including private messages hidden from the caller, so it can exceed the number of messages returned; `visible_count` counts only the messages the caller may see and is the one to compare with what you have received. To detect newer messages, poll with `after_sequence` and `next_after_sequence` rather than comparing counts.
 				 |
 				 |## gRPC
 				 |The same operations are served over gRPC by `SignalChannelsService` (package `code.obp.grpc.signal.g1`, contract in `signal.proto`) when the gRPC server is enabled (`grpc.server.enabled`): **Publish**, **Fetch** and **ListChannels** are 1:1 with the REST endpoints and share their storage, and **Subscribe** is a server-side stream of new messages on one channel. Subscribe is live only — no catch-up, no replay — and applies the same privacy filter as Fetch. Each publish, REST or gRPC, is pushed to subscribers through Redis pub/sub.

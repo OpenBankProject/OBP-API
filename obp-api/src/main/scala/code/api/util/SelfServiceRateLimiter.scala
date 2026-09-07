@@ -18,7 +18,8 @@ import net.liftweb.common.Full
  *  (DirectLogin via AuthUser.getResourceUserId, DAuth, GatewayLogin, SIWE), so counting them
  *  here too would count each attempt twice. Every self-service endpoint belongs to a
  *  named *scope*; each scope has per-key limits (per minute, per hour, per day, keyed by the
- *  client IP address, or by consumer for gRPC) and an optional global per-hour cap that acts
+ *  client IP address on REST and gRPC alike, with a Consumer fallback over gRPC when no peer
+ *  address is available) and an optional global per-hour cap that acts
  *  as a circuit breaker against a spray from many addresses.
  *
  *  Props (all optional; built-in defaults apply):

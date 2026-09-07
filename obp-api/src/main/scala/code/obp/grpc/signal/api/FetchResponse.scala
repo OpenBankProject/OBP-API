@@ -14,7 +14,8 @@ final case class FetchResponse(
     totalCount: _root_.scala.Long = 0L,
     hasMore: _root_.scala.Boolean = false,
     latestSequence: _root_.scala.Long = 0L,
-    nextAfterSequence: _root_.scala.Long = 0L
+    nextAfterSequence: _root_.scala.Long = 0L,
+    visibleCount: _root_.scala.Long = 0L
     ) extends scalapb.GeneratedMessage with scalapb.Message[FetchResponse] with scalapb.lenses.Updatable[FetchResponse] {
     @transient
     private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
@@ -26,6 +27,7 @@ final case class FetchResponse(
       if (hasMore != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(4, hasMore) }
       if (latestSequence != 0L) { __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(5, latestSequence) }
       if (nextAfterSequence != 0L) { __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(6, nextAfterSequence) }
+      if (visibleCount != 0L) { __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(7, visibleCount) }
       __size
     }
     final override def serializedSize: _root_.scala.Int = {
@@ -47,6 +49,7 @@ final case class FetchResponse(
       { val __v = hasMore; if (__v != false) _output__.writeBool(4, __v) };
       { val __v = latestSequence; if (__v != 0L) _output__.writeInt64(5, __v) };
       { val __v = nextAfterSequence; if (__v != 0L) _output__.writeInt64(6, __v) };
+      { val __v = visibleCount; if (__v != 0L) _output__.writeInt64(7, __v) };
     }
     def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.signal.api.FetchResponse = {
       var __channelName = this.channelName
@@ -55,6 +58,7 @@ final case class FetchResponse(
       var __hasMore = this.hasMore
       var __latestSequence = this.latestSequence
       var __nextAfterSequence = this.nextAfterSequence
+      var __visibleCount = this.visibleCount
       var _done__ = false
       while (!_done__) {
         val _tag__ = _input__.readTag()
@@ -72,6 +76,8 @@ final case class FetchResponse(
             __latestSequence = _input__.readInt64()
           case 48 =>
             __nextAfterSequence = _input__.readInt64()
+          case 56 =>
+            __visibleCount = _input__.readInt64()
           case tag => _input__.skipField(tag)
         }
       }
@@ -81,7 +87,8 @@ final case class FetchResponse(
           totalCount = __totalCount,
           hasMore = __hasMore,
           latestSequence = __latestSequence,
-          nextAfterSequence = __nextAfterSequence
+          nextAfterSequence = __nextAfterSequence,
+          visibleCount = __visibleCount
       )
     }
     def withChannelName(__v: _root_.scala.Predef.String): FetchResponse = copy(channelName = __v)
@@ -93,6 +100,7 @@ final case class FetchResponse(
     def withHasMore(__v: _root_.scala.Boolean): FetchResponse = copy(hasMore = __v)
     def withLatestSequence(__v: _root_.scala.Long): FetchResponse = copy(latestSequence = __v)
     def withNextAfterSequence(__v: _root_.scala.Long): FetchResponse = copy(nextAfterSequence = __v)
+    def withVisibleCount(__v: _root_.scala.Long): FetchResponse = copy(visibleCount = __v)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
@@ -116,6 +124,10 @@ final case class FetchResponse(
           val __t = nextAfterSequence
           if (__t != 0L) __t else null
         }
+        case 7 => {
+          val __t = visibleCount
+          if (__t != 0L) __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -127,6 +139,7 @@ final case class FetchResponse(
         case 4 => _root_.scalapb.descriptors.PBoolean(hasMore)
         case 5 => _root_.scalapb.descriptors.PLong(latestSequence)
         case 6 => _root_.scalapb.descriptors.PLong(nextAfterSequence)
+        case 7 => _root_.scalapb.descriptors.PLong(visibleCount)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -144,7 +157,8 @@ object FetchResponse extends scalapb.GeneratedMessageCompanion[code.obp.grpc.sig
       __fieldsMap.getOrElse(__fields.get(2), 0L).asInstanceOf[_root_.scala.Long],
       __fieldsMap.getOrElse(__fields.get(3), false).asInstanceOf[_root_.scala.Boolean],
       __fieldsMap.getOrElse(__fields.get(4), 0L).asInstanceOf[_root_.scala.Long],
-      __fieldsMap.getOrElse(__fields.get(5), 0L).asInstanceOf[_root_.scala.Long]
+      __fieldsMap.getOrElse(__fields.get(5), 0L).asInstanceOf[_root_.scala.Long],
+      __fieldsMap.getOrElse(__fields.get(6), 0L).asInstanceOf[_root_.scala.Long]
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.signal.api.FetchResponse] = _root_.scalapb.descriptors.Reads{
@@ -156,7 +170,8 @@ object FetchResponse extends scalapb.GeneratedMessageCompanion[code.obp.grpc.sig
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Long]).getOrElse(0L)
+        __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
+        __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Long]).getOrElse(0L)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -180,6 +195,7 @@ object FetchResponse extends scalapb.GeneratedMessageCompanion[code.obp.grpc.sig
     def hasMore: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.hasMore)((c_, f_) => c_.copy(hasMore = f_))
     def latestSequence: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.latestSequence)((c_, f_) => c_.copy(latestSequence = f_))
     def nextAfterSequence: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.nextAfterSequence)((c_, f_) => c_.copy(nextAfterSequence = f_))
+    def visibleCount: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.visibleCount)((c_, f_) => c_.copy(visibleCount = f_))
   }
   final val CHANNEL_NAME_FIELD_NUMBER = 1
   final val MESSAGES_FIELD_NUMBER = 2
@@ -187,4 +203,5 @@ object FetchResponse extends scalapb.GeneratedMessageCompanion[code.obp.grpc.sig
   final val HAS_MORE_FIELD_NUMBER = 4
   final val LATEST_SEQUENCE_FIELD_NUMBER = 5
   final val NEXT_AFTER_SEQUENCE_FIELD_NUMBER = 6
+  final val VISIBLE_COUNT_FIELD_NUMBER = 7
 }

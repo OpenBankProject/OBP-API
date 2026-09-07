@@ -112,6 +112,9 @@ class SignalChannelTest extends V600ServerSetup {
       val sequences = (messages \ "sequence").extract[List[Long]]
       sequences.forall(_ > firstSeq) should equal(true)
       (newer.body \ "has_more").extract[Boolean] should equal(false)
+      // Counts describe the whole channel, not the page: three messages, all broadcasts.
+      (newer.body \ "total_count").extract[Long] should equal(3L)
+      (newer.body \ "visible_count").extract[Long] should equal(3L)
       val nextAfter = (newer.body \ "next_after_sequence").extract[Long]
       nextAfter should equal((newer.body \ "latest_sequence").extract[Long])
 

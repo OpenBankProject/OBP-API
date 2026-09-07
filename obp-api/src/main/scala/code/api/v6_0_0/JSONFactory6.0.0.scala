@@ -1222,13 +1222,17 @@ case class SignalMessageJsonV600(
 case class SignalMessagesJsonV600(
     channel_name: String,
     messages: List[SignalMessageJsonV600],
+    // Every message in the channel, including private messages hidden from the caller.
     total_count: Long,
     has_more: Boolean,
     // Sequence of the newest message in the channel (0 when empty).
     latest_sequence: Long,
     // Pass this back as after_sequence to continue. It advances past messages the privacy
     // filter hid from you, so a page can be empty and the cursor still moves.
-    next_after_sequence: Long
+    next_after_sequence: Long,
+    // Messages in the channel the caller may see (broadcasts plus private messages to or from
+    // them). Compare this, not total_count, with what you have received.
+    visible_count: Long
 )
 
 case class SignalMessagePublishedJsonV600(
