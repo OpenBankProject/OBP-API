@@ -3243,12 +3243,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             Failure (m, e, c) ?~! af.translatedErrorMessage
         }
         val failuresMsg = filterMessage(obj)
-        val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-        val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
+        val callContext = af.callContextLight.map(_.copy(httpCode = Some(af.failCode)))
+        val apiFailure = af.copy(failMsg = failuresMsg).copy(callContextLight = callContext)
         throw new Exception(com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(_, _, _, failure : APIFailure) =>
         val callContext = CallContextLight()
-        val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, ccl = Some(callContext))
+        val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, callContextLight = Some(callContext))
         throw new Exception(com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)

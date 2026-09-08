@@ -361,7 +361,7 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Right((boxUser, None)) =>
           IO.pure(Right(ctx.copy(user = boxUser)))
         case Left(e: APIFailureNewStyle) =>
-          ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext, e.ccl).map(Left(_))
+          ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext, e.callContextLight).map(Left(_))
         case Left(e) =>
           // anonymousAccess threw a plain Exception(json_of_APIFailureNewStyle).
           // Parse the JSON to recover the original message and failCode (typically 401).
@@ -370,7 +370,7 @@ object ResourceDocMiddleware extends MdcLoggable {
           val (failMsg, parsedCode, failureCallContext) = scala.util.Try {
             implicit val formats = org.json4s.DefaultFormats
             val parsed = com.openbankproject.commons.util.JsonAliases.parse(e.getMessage).extract[APIFailureNewStyle]
-            (parsed.failMsg, parsed.failCode, parsed.ccl)
+            (parsed.failMsg, parsed.failCode, parsed.callContextLight)
           }.getOrElse(($AuthenticatedUserIsRequired, 401, None: Option[CallContextLight]))
           val oldStyleShortVersions = Set("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0")
           val versionStr = resourceDoc.implementedInApiVersion.apiShortVersion

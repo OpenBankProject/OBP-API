@@ -48,9 +48,9 @@ object ErrorResponseConverter {
    * stamps the exhausted limit and its reset time there, while the CallContext the middleware still
    * holds predates the rate-limit check.
    */
-  private def withResponseHeaders(response: Response[IO], callContext: CallContext, ccl: Option[CallContextLight]): Response[IO] = {
+  private def withResponseHeaders(response: Response[IO], callContext: CallContext, callContextLight: Option[CallContextLight]): Response[IO] = {
     val withCorrelationId = response.putHeaders(Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
-    code.api.util.APIUtil.getHeadersNewStyle(Some(ccl.getOrElse(callContext.toLight))).list.foldLeft(withCorrelationId) {
+    code.api.util.APIUtil.getHeadersNewStyle(Some(callContextLight.getOrElse(callContext.toLight))).list.foldLeft(withCorrelationId) {
       case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
     }
   }
@@ -61,10 +61,10 @@ object ErrorResponseConverter {
     val msg = Option(error.getMessage).getOrElse("").trim
     if (msg.startsWith("{") && msg.contains("\"failCode\"") && msg.contains("\"failMsg\"")) {
       try {
-        val jv       = parse(msg)
-        val failCode = (jv \ "failCode").extract[Int]
-        val failMsg  = (jv \ "failMsg").extract[String]
-        Some(APIFailureNewStyle(failMsg, failCode, (jv \ "ccl").extractOpt[CallContextLight]))
+        val jsonValue = parse(msg)
+        val failCode  = (jsonValue \ "failCode").extract[Int]
+        val failMsg   = (jsonValue \ "failMsg").extract[String]
+        Some(APIFailureNewStyle(failMsg, failCode, (jsonValue \ "callContextLight").extractOpt[CallContextLight]))
       } catch {
         case _: Throwable => None
       }
@@ -162,7 +162,7 @@ object ErrorResponseConverter {
     val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(resolvedCode, failure.failMsg, callContext)
                else toJsonString(OBPErrorResponse(resolvedCode, failure.failMsg))
     val status = org.http4s.Status.fromInt(resolvedCode).getOrElse(org.http4s.Status.BadRequest)
-    IO.pure(withResponseHeaders(Response[IO](status).withEntity(body).withContentType(jsonContentType), callContext, failure.ccl))
+    IO.pure(withResponseHeaders(Response[IO](status).withEntity(body).withContentType(jsonContentType), callContext, failure.callContextLight))
   }
   
   /**
@@ -190,10 +190,10 @@ object ErrorResponseConverter {
   /**
    * Create error response with specific status code and message.
    */
-  def createErrorResponse(statusCode: Int, message: String, callContext: CallContext, ccl: Option[CallContextLight] = None): IO[Response[IO]] = {
+  def createErrorResponse(statusCode: Int, message: String, callContext: CallContext, callContextLight: Option[CallContextLight] = None): IO[Response[IO]] = {
     val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(statusCode, message, callContext)
                else toJsonString(OBPErrorResponse(statusCode, message))
     val status = org.http4s.Status.fromInt(statusCode).getOrElse(org.http4s.Status.BadRequest)
-    IO.pure(withResponseHeaders(Response[IO](status).withEntity(body).withContentType(jsonContentType), callContext, ccl))
+    IO.pure(withResponseHeaders(Response[IO](status).withEntity(body).withContentType(jsonContentType), callContext, callContextLight))
   }
 }

@@ -239,6 +239,25 @@ object Http4sRequestAttributes {
     }
 
     /**
+     * Execute business logic requiring both User and Bank, without a typed body.
+     * Returns 201 Created on success, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankCreated[A](req: Request[IO])(f: (User, Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
+        bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+        result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
      * Parse the request body from CallContext into type B.
      * Returns Left(error message) if body is absent or not valid JSON for B.
      */
