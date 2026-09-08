@@ -3096,8 +3096,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * user and session, verify the signed request, run the Berlin Group checks and apply rate
    * limiting. Each caller decides on its own what to make of the outcome.
    * @param cc The call context of an request
+   * @param applyRateLimiting false skips the rate-limit step (the call is neither refused nor
+   *                          counted). Only [[resolveCallerWithoutRateLimiting]] passes false.
    */
-  private def accessPipeline(cc: CallContext): OBPReturnType[Box[User]] = {
+  private def accessPipeline(cc: CallContext, applyRateLimiting: Boolean = true): OBPReturnType[Box[User]] = {
     getUserAndSessionContextFuture(cc) map { result =>
       val (body, verb, url, reqHeaders) = requestPartsOf(result)
       // Verify signed request
@@ -3108,13 +3110,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
     } map {
       result =>
-        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
-        cc.resourceDocument.map(_.partialFunctionName) match {
-          case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
-          case _ => RateLimitingUtil.underCallLimits(result)
+        if (!applyRateLimiting) result
+        else {
+          val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
+          cc.resourceDocument.map(_.partialFunctionName) match {
+            case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
+            case _ => RateLimitingUtil.underCallLimits(result)
+          }
         }
     }
   }
+
+  /**
+   * Resolve the caller (user and Consumer) from the request credentials WITHOUT applying rate
+   * limiting: the call is neither refused for exceeding a limit nor counted against one.
+   *
+   * For the http4s version fallthrough chain only (ResourceDocMiddleware.resolveCallerOnce). A hop
+   * that has no ResourceDoc for the request is almost always about to pass it on to the next
+   * version, and the hop that finally serves it applies rate limiting itself through
+   * [[anonymousAccess]] / [[applicationAccess]]. Counting the call on every hop charged one unit per
+   * hop: `GET /obp/v5.1.0/users/current` is served by v3.0.0 after six hops, so it cost seven
+   * units and a Consumer with a per-second limit below seven could never call it (429 OBP-10018).
+   *
+   * A Failure is returned in the Box, never thrown; the middleware decides what to do with it.
+   */
+  def resolveCallerWithoutRateLimiting(cc: CallContext): OBPReturnType[Box[User]] =
+    accessPipeline(cc, applyRateLimiting = false)
 
   /**
    * This function is used to introduce Rate Limit at an unauthorized endpoint

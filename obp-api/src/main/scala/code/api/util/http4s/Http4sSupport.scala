@@ -79,6 +79,25 @@ object Http4sRequestAttributes {
   val callerCertificateTrustKey: Key[code.api.util.PeerTrust.Resolution] =
     Key.newKey[IO, code.api.util.PeerTrust.Resolution].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
+  /** Outcome of resolving the caller from the request credentials: the user (or a Failure) and the
+    * CallContext enriched by that resolution (Consumer, session, rate-limit config, ...). */
+  type ResolvedCaller = (Box[User], Option[CallContext])
+
+  /**
+   * The caller resolved on THIS request by a fallthrough hop that has no ResourceDoc for it (see
+   * ResourceDocMiddleware.resolveCallerOnce). Http4sApp attaches one empty holder to each incoming
+   * request; the first such hop fills it and every later link of the version fallthrough chain
+   * reads it instead of re-validating the credentials (JWKS lookups, Consumer lookup and save).
+   * The holder is a request attribute: it lives in memory for the duration of that one request,
+   * is never stored anywhere else and is unreachable from any other request. When it is absent
+   * (e.g. the middleware used on its own in a test) the middleware still resolves, just on every hop.
+   */
+  val callerResolvedOnThisRequestKey: Key[java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]] =
+    Key.newKey[IO, java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  def newCallerResolvedOnThisRequest: java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]] =
+    new java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]](None)
+
 
   /**
    * Implicit class that adds .callContext accessor to Request[IO].

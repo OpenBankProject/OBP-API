@@ -118,8 +118,16 @@ object Http4sApp extends MdcLoggable {
     }
   }
 
+  // One empty holder per incoming request for the caller resolved on a no-ResourceDoc hop, shared by
+  // every link of the fallthrough chain below (see ResourceDocMiddleware.resolveCallerOnce). Bridges
+  // rewrite the URI between hops with `req.withUri`, which keeps attributes, so the holder travels
+  // the chain and dies with the request.
+  private def installCallerResolvedOnThisRequest(req: Request[IO]): Request[IO] =
+    if (req.attributes.lookup(Http4sRequestAttributes.callerResolvedOnThisRequestKey).isDefined) req
+    else req.withAttribute(Http4sRequestAttributes.callerResolvedOnThisRequestKey, Http4sRequestAttributes.newCallerResolvedOnThisRequest)
+
   private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-    OptionT.liftF(cacheBodyOnce(req)).flatMap { req =>
+    OptionT.liftF(cacheBodyOnce(req).map(installCallerResolvedOnThisRequest)).flatMap { req =>
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))

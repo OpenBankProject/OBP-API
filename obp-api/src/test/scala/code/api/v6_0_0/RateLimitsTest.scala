@@ -27,6 +27,8 @@ package code.api.v6_0_0
 
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
+import code.api.Constant
+import code.api.cache.Redis
 import code.api.util.ApiRole.{CanCreateRateLimits, CanDeleteRateLimits, CanGetRateLimits}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, TooManyRequests}
 import code.api.v6_0_0.Http4s600.Implementations6_0_0
@@ -385,6 +387,39 @@ class RateLimitsTest extends V600ServerSetup {
         deleteLimit(consumerId3, zeroId)
       }
       callAsUser3().code should equal(200)
+    }
+
+    // GET /obp/v5.1.0/users/current has no v5.1.0 ResourceDoc, so the request passes the v7.0.0, v6.0.0
+    // and v5.1.0 groups (three hops), then the v5.1.0 -> v5.0.0 -> v4.0.0 -> v3.1.0 -> v3.0.0 bridges,
+    // and v3.0.0 serves it: seven hops. Every hop that had no doc used to authenticate afresh AND
+    // charge one rate-limit unit, so one request cost seven units and a per-minute limit of 2
+    // refused the very first request with 429 OBP-10018. A request must cost exactly one unit.
+    scenario("A request served after six version hops costs one rate-limit unit, not one per hop", ApiEndpoint4, VersionOfApi) {
+      Given("A record limiting the consumer to 2 calls per minute, unlimited otherwise")
+      // Earlier scenarios in this class called the API as user3 within the same minute, and
+      // counters are incremented even under an unlimited record: start this window from zero.
+      Redis.deleteKeysByPattern(s"${Constant.CALL_COUNTER_PREFIX}${consumerId3}_*")
+      val id = createLimit(consumerId3, callLimitJson("-1", "2", "-1"))
+      try {
+        def callV510AsUser3() = makeGetRequest((v5_1_0_Request / "users" / "current").GET <@ (user3))
+        When("The consumer makes a request that v3.0.0 serves after six version hops")
+        val first = callV510AsUser3()
+        Then("it is served, and by a bridged version")
+        first.code should equal(200)
+        first.headers.flatMap(h => Option(h.get("X-OBP-Version-Served"))) should not be empty
+        And("a second request is served too: the first one cost one unit, not seven")
+        callV510AsUser3().code should equal(200)
+        And("the third request is refused by the per-minute limit: the limit is still enforced, once per request")
+        val refused = callV510AsUser3()
+        refused.code should equal(429)
+        val message = refused.body.extract[ErrorMessage].message
+        message should startWith(TooManyRequests)
+        message should include("per minute")
+        message should include(consumerId3)
+      } finally {
+        deleteLimit(consumerId3, id)
+        Redis.deleteKeysByPattern(s"${Constant.CALL_COUNTER_PREFIX}${consumerId3}_*")
+      }
     }
 
     scenario("A record with -1 in every period is unlimited, not blocked", ApiEndpoint4, VersionOfApi) {
