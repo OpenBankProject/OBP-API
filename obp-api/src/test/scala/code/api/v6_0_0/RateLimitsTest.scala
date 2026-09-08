@@ -555,6 +555,9 @@ class RateLimitsTest extends V600ServerSetup {
         message should startWith(TooManyRequests)
         message should include("per minute")
         message should include(consumerId3)
+        And("the X-Rate-Limit headers describe the exhausted per-minute limit")
+        refused.headers.flatMap(h => Option(h.get("X-Rate-Limit-Limit"))) should equal(Some("2"))
+        refused.headers.flatMap(h => Option(h.get("X-Rate-Limit-Remaining"))) should equal(Some("0"))
       } finally {
         deleteLimit(consumerId3, id)
         resetCallCounters(consumerId3)

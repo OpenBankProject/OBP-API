@@ -514,7 +514,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
+  /**
+   * Response headers derived from the CallContext: GatewayLogin, ASPSP-SCA-Approach (Berlin Group
+   * consents), X-Rate-Limit-Limit / -Remaining / -Reset, the pagination Range header, request
+   * headers mirrored back (`mirror_request_headers_to_response`) and echoed back
+   * (`echo_request_headers`). Lift's futureToResponse added these to every response; on http4s
+   * EndpointHelpers (success) and ErrorResponseConverter (errors) do.
+   */
+  def getHeadersNewStyle(cc: Option[CallContextLight]): CustomResponseHeaders = {
     CustomResponseHeaders(
       getGatewayLoginHeader(cc).list :::
         getRequestHeadersBerlinGroup(cc).list :::

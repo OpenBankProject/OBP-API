@@ -149,7 +149,7 @@ object Http4s220 {
         } yield result
         io.attempt.flatMap {
           case Right(result) =>
-            Created(prettyRender(Extraction.decompose(result)))
+            Created(prettyRender(Extraction.decompose(result))).map(EndpointHelpers.withCallContextHeaders)
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
@@ -221,7 +221,7 @@ object Http4s220 {
         } yield result
         io.attempt.flatMap {
           case Right(result) =>
-            Ok(prettyRender(Extraction.decompose(result)))
+            Ok(prettyRender(Extraction.decompose(result))).map(EndpointHelpers.withCallContextHeaders)
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
@@ -884,7 +884,7 @@ object Http4s220 {
         } yield result
         io.attempt.flatMap {
           case Right(result) =>
-            Created(prettyRender(Extraction.decompose(result)))
+            Created(prettyRender(Extraction.decompose(result))).map(EndpointHelpers.withCallContextHeaders)
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }

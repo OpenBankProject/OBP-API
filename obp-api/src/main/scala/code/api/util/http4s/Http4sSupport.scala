@@ -142,9 +142,21 @@ object Http4sRequestAttributes {
     // clients (and the strict application/json check in the frontend) see the real type.
     private val jsonContentType = `Content-Type`(MediaType.application.json)
 
-    private def toJsonOk[A](result: A)(implicit formats: Formats): IO[Response[IO]] = {
+    /**
+     * Add the CallContext-derived headers (APIUtil.getHeadersNewStyle): X-Rate-Limit-Limit /
+     * -Remaining / -Reset, GatewayLogin, ASPSP-SCA-Approach, pagination Range, mirrored and
+     * echoed request headers. RateLimitingUtil.underCallLimits stamps the rate-limit values on
+     * the CallContext during ResourceDocMiddleware.authenticate; this is where they reach the
+     * client. Lift's futureToResponse did the same for every response.
+     */
+    def withCallContextHeaders(response: Response[IO])(implicit cc: CallContext): Response[IO] =
+      code.api.util.APIUtil.getHeadersNewStyle(Some(cc.toLight)).list.foldLeft(response) {
+        case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
+      }
+
+    private def toJsonOk[A](result: A)(implicit formats: Formats, cc: CallContext): IO[Response[IO]] = {
       val jsonString = prettyRender(Extraction.decompose(result))
-      Ok(jsonString, jsonContentType)
+      Ok(jsonString, jsonContentType).map(withCallContextHeaders)
     }
 
     /**
@@ -265,7 +277,7 @@ object Http4sRequestAttributes {
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -307,7 +319,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -351,7 +363,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -389,7 +401,7 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
-          Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+          Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -412,7 +424,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -477,7 +489,7 @@ object Http4sRequestAttributes {
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
-          Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+          Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -498,7 +510,7 @@ object Http4sRequestAttributes {
         case Right((result, code)) =>
           val jsonString = prettyRender(Extraction.decompose(result))
           val status = Status.fromInt(code).getOrElse(Status.Ok)
-          IO.pure(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType)).flatTap(recordMetric(result, _))
+          IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -516,11 +528,11 @@ object Http4sRequestAttributes {
         result <- RequestScopeConnection.fromFuture(f(user, cc))
       } yield result
       io.attempt.flatMap {
-        case Right((_, 204)) => NoContent().flatTap(recordMetric("", _))
+        case Right((_, 204)) => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Right((result, code)) =>
           val jsonString = prettyRender(Extraction.decompose(result))
           val status = Status.fromInt(code).getOrElse(Status.Ok)
-          IO.pure(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType)).flatTap(recordMetric(result, _))
+          IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -532,7 +544,7 @@ object Http4sRequestAttributes {
     def executeDelete(req: Request[IO])(f: CallContext => Future[_]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f(cc)).attempt.flatMap {
-        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Right(_)  => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -548,7 +560,7 @@ object Http4sRequestAttributes {
         result <- RequestScopeConnection.fromFuture(f(user, cc))
       } yield result
       io.attempt.flatMap {
-        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Right(_)  => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -565,7 +577,7 @@ object Http4sRequestAttributes {
         result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
       } yield result
       io.attempt.flatMap {
-        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Right(_)  => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }

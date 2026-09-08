@@ -205,7 +205,7 @@ object Http4s210 {
             createTransactionRequestImpl(jsonBody, user, account, ViewId(viewIdStr), transactionRequestTypeStr, cc))
         } yield result).attempt.flatMap {
           case Right(result) =>
-            Created(prettyRender(Extraction.decompose(result)))
+            Created(prettyRender(Extraction.decompose(result))).map(EndpointHelpers.withCallContextHeaders)
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }

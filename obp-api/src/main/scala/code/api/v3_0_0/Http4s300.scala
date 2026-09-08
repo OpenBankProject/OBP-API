@@ -165,7 +165,7 @@ object Http4s300 {
         } yield result
         io.attempt.flatMap {
           case Right(result) =>
-            Created(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result)))
+            Created(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result))).map(EndpointHelpers.withCallContextHeaders)
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
@@ -235,7 +235,7 @@ object Http4s300 {
         } yield result
         io.attempt.flatMap {
           case Right(result) =>
-            Ok(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result)))
+            Ok(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result))).map(EndpointHelpers.withCallContextHeaders)
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
