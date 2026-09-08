@@ -116,7 +116,7 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
    * EndpointCatalog.hasPlaceholder, not a local copy of the rule. This used to hold its own,
    * and the two had already drifted: the catalog substitutes any segment ending in ID, _CODE or
    * _NAME, this one looked for _ID and _CODE and had never learnt about _NAME. So
-   * `/signal/channels/CHANNEL_NAME/info` was a placeholder to the catalog -- which duly replaced
+   * `/signal-channels/CHANNEL_NAME/info` was a placeholder to the catalog -- which duly replaced
    * it with a channel that does not exist -- and NOT a placeholder here, so this suite selected
    * it as an endpoint that "needs nothing created first" and then failed it for answering 404.
    *

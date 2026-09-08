@@ -8,7 +8,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
@@ -899,6 +899,43 @@ object Http4s700 {
       List(UnknownError),
       apiTagDocumentation :: apiTagApi :: Nil,
       http4sPartialFunction = Some(getErrorMessages)
+    )
+
+    // Route: GET /obp/v7.0.0/api/tags
+    val getApiTags: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "tags" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(JSONFactory700.createApiTagsJsonV700(allResourceDocs.toList))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getApiTags),
+      "GET",
+      "/api/tags",
+      "Get API Tags",
+      """Returns every API tag known to this instance, with the number of endpoints that carry each tag.
+        |
+        |Tags are the groupings used by API Explorer and the Resource Docs (e.g. `Account`, `Bank`,
+        |`Transaction Request`). The counts are taken from the aggregated v7.0.0 Resource Docs, i.e. the
+        |same set of endpoints returned by `GET /obp/v7.0.0/resource-docs/v7.0.0/obp` before any locale
+        |or content filtering. Dynamic tags (from Dynamic Entities and Dynamic Endpoints) are included
+        |and may have a count of 0.
+        |
+        |An endpoint with several tags is counted once under each of its tags, so the per-tag counts sum
+        |to more than `number_of_endpoints`, which is the number of distinct endpoints counted.
+        |
+        |`tags` is sorted by `number_of_endpoints` descending, then by tag name.
+        |
+        |This supersedes `GET /tags` (v5.1.0), which returns tag names only.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.apiTagsJsonV700Example,
+      List(UnknownError),
+      apiTagDocumentation :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getApiTags)
     )
 
     // ── Phase 1 batch 2 ─────────────────────────────────────────────────────
@@ -5964,6 +6001,540 @@ object Http4s700 {
       http4sPartialFunction = Some(deleteApiProductSubscriptionAttribute)
     ).disableAutoValidateRoles()
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Maker/checker for dynamic code: Dynamic Change Requests
+    // Design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md. Approval is system level (no bank endpoints).
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    import code.dynamicchangerequest.{DynamicChangeRequestTrait, MakerChecker}
+    import code.api.v7_0_0.JSONFactory700.{DynamicChangeRequestJsonV700, DynamicChangeRequestsJsonV700, PostApproveDynamicChangeRequestJsonV700, PostDeactivateDynamicArtefactJsonV700, PostDynamicChangeRequestJsonV700, PostRejectDynamicChangeRequestJsonV700, PostWithdrawDynamicChangeRequestJsonV700}
+    import com.openbankproject.commons.model.enums.{DynamicChangeRequestOperation, DynamicChangeRequestTargetType}
+    import com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType._
+
+    private def changeRequestProvider = DynamicChangeRequestTrait.dynamicChangeRequest.vend
+
+    private def loadChangeRequest(id: String, cc: CallContext): Future[DynamicChangeRequestTrait] = Future {
+      unboxFullOrFail(changeRequestProvider.getById(id), Some(cc), s"$DynamicChangeRequestNotFound CHANGE_REQUEST_ID($id)", 404)
+    }.map(MakerChecker.expireIfDue)
+
+    /** The maker must already hold the role the direct v4/v6 write would demand. */
+    private def makerRolesFor(targetType: DynamicChangeRequestTargetType, operation: DynamicChangeRequestOperation.Value, bankLevel: Boolean): List[ApiRole] =
+      (targetType, operation) match {
+        case (DYNAMIC_RESOURCE_DOC, DynamicChangeRequestOperation.CREATE)            => if (bankLevel) List(ApiRole.canCreateBankLevelDynamicResourceDoc) else List(ApiRole.canCreateDynamicResourceDoc)
+        case (DYNAMIC_RESOURCE_DOC, DynamicChangeRequestOperation.UPDATE | DynamicChangeRequestOperation.ACTIVATE) => if (bankLevel) List(ApiRole.canUpdateBankLevelDynamicResourceDoc) else List(ApiRole.canUpdateDynamicResourceDoc)
+        case (DYNAMIC_RESOURCE_DOC, DynamicChangeRequestOperation.DELETE)            => if (bankLevel) List(ApiRole.canDeleteBankLevelDynamicResourceDoc) else List(ApiRole.canDeleteDynamicResourceDoc)
+        case (DYNAMIC_MESSAGE_DOC, DynamicChangeRequestOperation.CREATE)             => if (bankLevel) List(ApiRole.canCreateBankLevelDynamicMessageDoc) else List(ApiRole.canCreateDynamicMessageDoc)
+        case (DYNAMIC_MESSAGE_DOC, DynamicChangeRequestOperation.UPDATE | DynamicChangeRequestOperation.ACTIVATE)  => List(ApiRole.canUpdateDynamicMessageDoc)
+        case (DYNAMIC_MESSAGE_DOC, DynamicChangeRequestOperation.DELETE)             => if (bankLevel) List(ApiRole.canDeleteBankLevelDynamicMessageDoc) else List(ApiRole.canDeleteDynamicMessageDoc)
+        case (CONNECTOR_METHOD, DynamicChangeRequestOperation.CREATE)                => List(ApiRole.canCreateConnectorMethod)
+        case (CONNECTOR_METHOD, _)                     => List(ApiRole.canUpdateConnectorMethod)
+        case (ABAC_RULE, DynamicChangeRequestOperation.CREATE)                       => List(ApiRole.canCreateAbacRule)
+        case (ABAC_RULE, DynamicChangeRequestOperation.UPDATE | DynamicChangeRequestOperation.ACTIVATE)            => List(ApiRole.canUpdateAbacRule)
+        case (ABAC_RULE, DynamicChangeRequestOperation.DELETE)                       => List(ApiRole.canDeleteAbacRule)
+        case _                                         => List(ApiRole.canApproveDynamicChangeRequest)
+      }
+
+    /** The v4/v6 path the explicit submission stands in for, so apply() resolves the same scope. */
+    private def syntheticRequestPath(targetType: DynamicChangeRequestTargetType, targetId: Option[String], bankId: Option[String]): (String, String) = {
+      val (version, segment) = targetType match {
+        case DYNAMIC_RESOURCE_DOC => ("v4.0.0", "dynamic-resource-docs")
+        case DYNAMIC_MESSAGE_DOC  => ("v4.0.0", "dynamic-message-docs")
+        case CONNECTOR_METHOD     => ("v4.0.0", "connector-methods")
+        case ABAC_RULE            => ("v6.0.0", "abac-rules")
+        case other                => ("v7.0.0", other.toString.toLowerCase.replace('_', '-'))
+      }
+      val scope = bankId.filter(_.nonEmpty).map(b => s"/banks/$b").getOrElse("")
+      val id = targetId.filter(_.nonEmpty).map("/" + _).getOrElse("")
+      (version, s"/obp/$version/management$scope/$segment$id")
+    }
+
+    private val changeRequestExample = DynamicChangeRequestJsonV700(
+      dynamic_change_request_id = "0d1c9e3c-6c2b-4c1e-9a53-2d5b2f0d7f11",
+      target_type = "DYNAMIC_RESOURCE_DOC",
+      target_id = "",
+      operation = "CREATE",
+      status = "INITIATED",
+      request_verb = "POST",
+      request_path = "/obp/v4.0.0/management/dynamic-resource-docs",
+      payload_hash = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      current_payload_hash = "",
+      proposed_payload = Extraction.decompose(jsonDynamicResourceDoc),
+      current_payload = JNothing,
+      requestor_user_id = code.api.util.ExampleValue.userIdExample.value,
+      business_justification = "Expose the new loan quote endpoint for the mobile app.",
+      checker_user_id = "",
+      checker_comment = "",
+      created_at = APIUtil.DateWithMsExampleString,
+      actioned_at = "",
+      expires_at = APIUtil.DateWithMsExampleString
+    )
+
+    private val makerCheckerIntro =
+      s"""Maker/checker for runtime-supplied code and configuration (dynamic resource docs, connector methods, dynamic message docs, ABAC rules).
+        |
+        |When `dynamic_code_requires_approval` is true and the target type is listed in `dynamic_code_approval_target_types`, the v4.0.0 / v6.0.0 create, update and delete endpoints validate and compile the body as before but return `202 Accepted` with a Dynamic Change Request instead of applying it. A DIFFERENT user holding `CanApproveDynamicChangeRequest` approves the request by its `payload_hash`; only then is the change applied, and the runtime executes only rows whose body hash equals the approved hash.
+        |
+        |Approval is system level. Dynamic code runs in the shared JVM, so a bank-level artefact is approved by the same system-level checker; there are no bank-level change request endpoints.
+        |""".stripMargin
+
+    val createDynamicChangeRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-change-requests" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostDynamicChangeRequestJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostDynamicChangeRequestJsonV700]
+            }
+            targetType <- NewStyle.function.tryons(s"$InvalidJsonFormat target_type must be one of ${DynamicChangeRequestTargetType.values.mkString(", ")}", 400, Some(cc)) {
+              DynamicChangeRequestTargetType.withName(postJson.target_type)
+            }
+            operation <- NewStyle.function.tryons(s"$InvalidJsonFormat operation must be one of CREATE, UPDATE, DELETE, ACTIVATE", 400, Some(cc)) {
+              DynamicChangeRequestOperation.withName(postJson.operation)
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat operation DEACTIVATE is a direct action, use the deactivation endpoint", cc = Some(cc)) { operation != DynamicChangeRequestOperation.DEACTIVATE }
+            _ <- Helper.booleanToFuture(s"$DynamicChangeRequestTargetTypeNotManaged ${postJson.target_type}", cc = Some(cc)) { MakerChecker.isManaged(targetType) }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat target_id is required for ${operation}", cc = Some(cc)) {
+              operation == DynamicChangeRequestOperation.CREATE || postJson.target_id.exists(_.nonEmpty)
+            }
+            bankLevel = postJson.bank_id.exists(_.nonEmpty)
+            roles = makerRolesFor(targetType, operation, bankLevel)
+            _ <- Helper.booleanToFuture(UserHasMissingRoles + roles.mkString(" or "), failCode = 403, cc = Some(cc)) {
+              APIUtil.hasAtLeastOneEntitlement(postJson.bank_id.getOrElse(""), u.userId, roles)
+            }
+            (verb, path) = {
+              val (_, p) = syntheticRequestPath(targetType, postJson.target_id, postJson.bank_id)
+              (operation match { case DynamicChangeRequestOperation.CREATE => "POST"; case DynamicChangeRequestOperation.UPDATE => "PUT"; case DynamicChangeRequestOperation.DELETE => "DELETE"; case _ => "POST" }, p)
+            }
+            payload = if (operation == DynamicChangeRequestOperation.ACTIVATE) """{"is_active":true}""" else com.openbankproject.commons.util.JsonAliases.compactRender(postJson.proposed_payload)
+            created <- Future(MakerChecker.submit(targetType, operation, postJson.target_id, verb, path, payload, u.userId, postJson.business_justification.getOrElse("")))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestTargetNotFound, 404))
+          } yield JSONFactory700.createDynamicChangeRequestJsonV700(created)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createDynamicChangeRequest),
+      "POST",
+      "/management/dynamic-change-requests",
+      "Create Dynamic Change Request",
+      s"""Submit a change to a dynamic artefact for approval by a second user.
+        |
+        |$makerCheckerIntro
+        |This explicit submission is for tooling that wants to attach a `business_justification` up front. In the common case the maker simply calls the v4.0.0 / v6.0.0 create, update or delete endpoint and receives the change request in a `202 Accepted` response.
+        |
+        |`proposed_payload` is the exact body the corresponding v4.0.0 / v6.0.0 endpoint accepts. `bank_id` selects the bank-level variant of that endpoint; omit it for system level. `target_id` is required for UPDATE, DELETE and ACTIVATE. The caller must hold the role the direct write would demand (for example `CanCreateDynamicResourceDoc`).
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      PostDynamicChangeRequestJsonV700("DYNAMIC_RESOURCE_DOC", "CREATE", None, None, Extraction.decompose(jsonDynamicResourceDoc), Some("Expose the new loan quote endpoint for the mobile app.")),
+      changeRequestExample,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicChangeRequestTargetTypeNotManaged, DynamicChangeRequestTargetNotFound, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: Nil,
+      None,
+      http4sPartialFunction = Some(createDynamicChangeRequest)
+    )
+
+    val getDynamicChangeRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-change-requests" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          val q = req.uri.query.multiParams
+          def param(name: String): Option[String] = q.get(name).flatMap(_.headOption).filter(_.nonEmpty)
+          Future {
+            changeRequestProvider.getAll(param("status"), param("target_type"), param("target_id"), param("requestor_user_id"))
+              .map(MakerChecker.expireIfDue)
+          }.map(rows => DynamicChangeRequestsJsonV700(rows.map(JSONFactory700.createDynamicChangeRequestJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicChangeRequests),
+      "GET",
+      "/management/dynamic-change-requests",
+      "Get Dynamic Change Requests",
+      s"""Returns all Dynamic Change Requests, newest first. The table is never pruned: it is the audit log of every proposed, approved, rejected, withdrawn, expired and failed change.
+        |
+        |Optional query parameters: `status` (INITIATED, APPROVED, REJECTED, WITHDRAWN, EXPIRED, FAILED), `target_type`, `target_id`, `requestor_user_id`.
+        |
+        |$makerCheckerIntro
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      DynamicChangeRequestsJsonV700(List(changeRequestExample)),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canGetDynamicChangeRequests)),
+      http4sPartialFunction = Some(getDynamicChangeRequests)
+    )
+
+    val getMyDynamicChangeRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "dynamic-change-requests" =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          Future(changeRequestProvider.getByRequestorUserId(u.userId).map(MakerChecker.expireIfDue))
+            .map(rows => DynamicChangeRequestsJsonV700(rows.map(JSONFactory700.createDynamicChangeRequestJsonV700)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMyDynamicChangeRequests),
+      "GET",
+      "/my/dynamic-change-requests",
+      "Get My Dynamic Change Requests",
+      s"""Returns the Dynamic Change Requests submitted by the authenticated user, newest first. No role is required.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      DynamicChangeRequestsJsonV700(List(changeRequestExample)),
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: Nil,
+      None,
+      http4sPartialFunction = Some(getMyDynamicChangeRequests)
+    )
+
+    // Route: POST /obp/v7.0.0/management/dynamic-resource-docs/compile
+    // Dry run for tooling: compile a method body and report the compiler's diagnostics, mapped to the
+    // body's own line numbers. Nothing is stored, evaluated or cached. Compiling is still a full scalac run
+    // that can execute code at top level, so it needs the create role, the kill switch, and a per-user throttle.
+    private val dynamicCompileCallsPerMinute = 20
+    private val dynamicCompileCalls = new java.util.concurrent.ConcurrentHashMap[String, java.util.ArrayDeque[Long]]()
+    private def allowDynamicCompile(userId: String): Boolean = dynamicCompileCalls.synchronized {
+      val now = System.currentTimeMillis()
+      val q = dynamicCompileCalls.computeIfAbsent(userId, _ => new java.util.ArrayDeque[Long]())
+      while (!q.isEmpty && q.peekFirst() < now - 60000L) q.pollFirst()
+      if (q.size() >= dynamicCompileCallsPerMinute) false else { q.addLast(now); true }
+    }
+
+    val compileDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" / "compile" =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          import code.api.v7_0_0.JSONFactory700.{DynamicCompileErrorJsonV700, DynamicCompileResultJsonV700, DynamicResourceDocCompileJsonV700}
+          for {
+            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { code.api.util.DynamicUtil.dynamicCodeExecutionEnabled }
+            _ <- code.util.Helper.booleanToFuture(s"${code.api.util.ErrorMessages.TooManyRequests} at most $dynamicCompileCallsPerMinute dry-run compiles per minute per user", 429, Some(cc)) { allowDynamicCompile(u.userId) }
+            body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicResourceDocCompileJsonV700].getSimpleName}", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[DynamicResourceDocCompileJsonV700]
+            }
+            _ <- code.util.Helper.booleanToFuture(s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc = Some(cc)) {
+              Set("POST", "PUT", "GET", "DELETE").contains(body.request_verb)
+            }
+            result <- Future {
+              val start = System.currentTimeMillis()
+              val problems = scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects.compileProblems(body.example_request_body, body.success_response_body, body.method_body)) match {
+                case scala.util.Success(ps) => ps
+                case scala.util.Failure(e) => List(code.api.util.DynamicUtil.CompileProblem(0, 0, "ERROR", Option(e.getMessage).getOrElse(e.toString)))
+              }
+              val dependencyError: Option[String] =
+                if (problems.nonEmpty) None
+                else scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects(body.example_request_body, body.success_response_body, body.method_body).validateDependency()) match {
+                  case scala.util.Success(_) => None
+                  case scala.util.Failure(e: code.api.JsonResponseException) => Some(com.openbankproject.commons.util.JsonAliases.compactRender(e.jsonResponse.body))
+                  case scala.util.Failure(e) => Some(Option(e.getMessage).getOrElse(e.toString))
+                }
+              DynamicCompileResultJsonV700(
+                compiles = problems.isEmpty && dependencyError.isEmpty,
+                errors = problems.map(p => DynamicCompileErrorJsonV700(p.line, p.column, p.severity, p.message)),
+                dependency_error = dependencyError,
+                duration_ms = System.currentTimeMillis() - start
+              )
+            }
+          } yield result
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(compileDynamicResourceDoc),
+      "POST",
+      "/management/dynamic-resource-docs/compile",
+      "Compile Dynamic Resource Doc (dry run)",
+      s"""Compiles a Dynamic Resource Doc method body exactly as Create Dynamic Resource Doc would, and reports the result without storing anything.
+        |
+        |Send the fields that shape the compiled code: `request_verb`, `request_url`, the URL-encoded `method_body`, and the optional
+        |`example_request_body` and `success_response_body` (they become the generated `RequestRootJsonClass` / `ResponseRootJsonClass`).
+        |
+        |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's wrapper lines are
+        |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_compile_validate_enable` is on,
+        |the dependency validator runs too and any forbidden call is reported in `dependency_error`. `compiles` is true only when both pass.
+        |
+        |Nothing is evaluated or cached, but compiling is a full scalac run, so the same rules apply as for creating: the
+        |`allow_user_generated_scala_code` kill switch, the create role, and at most $dynamicCompileCallsPerMinute calls per minute per user.
+        |
+        |Built for editors that let an author, or an assistant such as Opey, iterate on a body until it compiles before submitting it.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.dynamicResourceDocCompileJsonV700Example,
+      JSONFactory700.dynamicCompileResultJsonV700Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicCodeExecutionDisabled, code.api.util.ErrorMessages.TooManyRequests, UnknownError),
+      apiTagDynamicResourceDoc :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canCreateDynamicResourceDoc)),
+      http4sPartialFunction = Some(compileDynamicResourceDoc)
+    )
+
+    // Route: GET /obp/v7.0.0/management/dynamic-code-approval-config
+    // Lets a client (the API Manager create/edit pages) tell the maker up front whether a write will be
+    // applied or queued for approval. Authenticated, no role: any user who can create an artefact needs this.
+    val getDynamicCodeApprovalConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-code-approval-config" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future.successful(JSONFactory700.DynamicCodeApprovalConfigJsonV700(
+            dynamic_code_execution_enabled = code.api.util.DynamicUtil.dynamicCodeExecutionEnabled,
+            requires_approval        = MakerChecker.enabled,
+            target_types             = if (MakerChecker.enabled) MakerChecker.managedTargetTypes.toList.sorted else Nil,
+            delete_requires_approval = MakerChecker.enabled && MakerChecker.requireApprovalForDelete,
+            request_ttl_hours        = MakerChecker.requestTtlHours,
+            approval_role            = ApiRole.canApproveDynamicChangeRequest.toString
+          ))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicCodeApprovalConfig),
+      "GET",
+      "/management/dynamic-code-approval-config",
+      "Get Dynamic Code Approval Config",
+      s"""Returns whether maker/checker approval gates dynamic code and configuration on this instance, so a client can tell the maker before they submit.
+        |
+        |* `dynamic_code_execution_enabled` — the `allow_user_generated_scala_code` prop, the master kill switch. When false, creating or running any user-supplied Scala fails with $DynamicCodeExecutionDisabled, whatever the approval settings say.
+        |* `requires_approval` — the `dynamic_code_requires_approval` prop. When false every other field is informational and writes are applied directly.
+        |* `target_types` — the `dynamic_code_approval_target_types` prop: the target types whose create, update and delete calls are queued as Dynamic Change Requests. Empty when approval is off.
+        |* `delete_requires_approval` — the `dynamic_code_delete_requires_approval` prop, combined with `requires_approval`.
+        |* `request_ttl_hours` — the `dynamic_code_approval_request_ttl_hours` prop: INITIATED requests older than this expire. 0 means never.
+        |* `approval_role` — the Role a checker must hold to approve, reject or deactivate.
+        |
+        |$makerCheckerIntro
+        |No Role is required. ${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.dynamicCodeApprovalConfigJsonV700Example,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: apiTagApi :: Nil,
+      None,
+      http4sPartialFunction = Some(getDynamicCodeApprovalConfig)
+    )
+
+    val getDynamicChangeRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-change-requests" / changeRequestId if changeRequestId.nonEmpty =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          loadChangeRequest(changeRequestId, cc).map(JSONFactory700.createDynamicChangeRequestJsonV700)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicChangeRequest),
+      "GET",
+      "/management/dynamic-change-requests/CHANGE_REQUEST_ID",
+      "Get Dynamic Change Request",
+      s"""Returns one Dynamic Change Request: the proposed payload, the live target's current payload (so a client can render a diff), both hashes and the status.
+        |
+        |A checker approves by sending back `payload_hash` exactly as returned here.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      changeRequestExample,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicChangeRequestNotFound, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canGetDynamicChangeRequests)),
+      http4sPartialFunction = Some(getDynamicChangeRequest)
+    )
+
+    val approveDynamicChangeRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-change-requests" / changeRequestId / "approval" if changeRequestId.nonEmpty =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          implicit val c: CallContext = cc
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostApproveDynamicChangeRequestJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostApproveDynamicChangeRequestJsonV700]
+            }
+            request <- loadChangeRequest(changeRequestId, cc)
+            approved <- Future(MakerChecker.approve(request, u.userId, postJson.payload_hash, postJson.checker_comment.getOrElse("")))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestNotInitiated, 400))
+          } yield JSONFactory700.createDynamicChangeRequestJsonV700(approved)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(approveDynamicChangeRequest),
+      "POST",
+      "/management/dynamic-change-requests/CHANGE_REQUEST_ID/approval",
+      "Approve Dynamic Change Request",
+      s"""Approve a Dynamic Change Request and apply it.
+        |
+        |The checker must not be the requestor ($MakerCheckerSameUser). `payload_hash` must equal the request's stored hash, so the client has to show the checker exactly what is being approved. The server then re-checks that the live target has not changed since submission, wins the INITIATED to APPROVED transition (a concurrent approval or rejection loses), re-compiles and re-validates the payload, applies it through the same provider the v4.0.0 / v6.0.0 endpoint uses, and records the approved body hash on the target. If re-validation or apply fails the request is moved to FAILED with the reason in `checker_comment` and the target is left unchanged.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      PostApproveDynamicChangeRequestJsonV700("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", Some("Reviewed the method body; matches UAT hash.")),
+      changeRequestExample.copy(status = "APPROVED", checker_user_id = code.api.util.ExampleValue.userIdExample.value, checker_comment = "Reviewed the method body; matches UAT hash.", actioned_at = APIUtil.DateWithMsExampleString),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicChangeRequestNotFound, DynamicChangeRequestNotInitiated, DynamicChangeRequestHashMismatch, DynamicChangeRequestStale, MakerCheckerSameUser, DynamicChangeRequestApplyFailed, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canApproveDynamicChangeRequest)),
+      http4sPartialFunction = Some(approveDynamicChangeRequest)
+    )
+
+    val rejectDynamicChangeRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-change-requests" / changeRequestId / "rejection" if changeRequestId.nonEmpty =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          implicit val c: CallContext = cc
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostRejectDynamicChangeRequestJsonV700", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostRejectDynamicChangeRequestJsonV700]
+            }
+            _ <- Helper.booleanToFuture(CheckerCommentRequiredForRejection, cc = Some(cc)) { postJson.comment.trim.nonEmpty }
+            request <- loadChangeRequest(changeRequestId, cc)
+            rejected <- Future(MakerChecker.reject(request, u.userId, postJson.comment))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestNotInitiated, 400))
+          } yield JSONFactory700.createDynamicChangeRequestJsonV700(rejected)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(rejectDynamicChangeRequest),
+      "POST",
+      "/management/dynamic-change-requests/CHANGE_REQUEST_ID/rejection",
+      "Reject Dynamic Change Request",
+      s"""Reject a Dynamic Change Request. A comment is required. The checker must not be the requestor. Nothing is applied.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      PostRejectDynamicChangeRequestJsonV700("Body performs network calls that are not permitted."),
+      changeRequestExample.copy(status = "REJECTED", checker_user_id = code.api.util.ExampleValue.userIdExample.value, checker_comment = "Body performs network calls that are not permitted.", actioned_at = APIUtil.DateWithMsExampleString),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicChangeRequestNotFound, DynamicChangeRequestNotInitiated, MakerCheckerSameUser, CheckerCommentRequiredForRejection, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canApproveDynamicChangeRequest)),
+      http4sPartialFunction = Some(rejectDynamicChangeRequest)
+    )
+
+    val withdrawDynamicChangeRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-change-requests" / changeRequestId / "withdrawal" if changeRequestId.nonEmpty =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          implicit val c: CallContext = cc
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostWithdrawDynamicChangeRequestJsonV700", 400, Some(cc)) {
+              if (rawBody.trim.isEmpty) PostWithdrawDynamicChangeRequestJsonV700(None)
+              else com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostWithdrawDynamicChangeRequestJsonV700]
+            }
+            request <- loadChangeRequest(changeRequestId, cc)
+            withdrawn <- Future(MakerChecker.withdraw(request, u.userId, postJson.comment.getOrElse("")))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestNotInitiated, 400))
+          } yield JSONFactory700.createDynamicChangeRequestJsonV700(withdrawn)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(withdrawDynamicChangeRequest),
+      "POST",
+      "/management/dynamic-change-requests/CHANGE_REQUEST_ID/withdrawal",
+      "Withdraw Dynamic Change Request",
+      s"""Withdraw a Dynamic Change Request you submitted. Only the requestor can withdraw, and only while it is INITIATED. No role is required.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      PostWithdrawDynamicChangeRequestJsonV700(Some("Superseded by a corrected version.")),
+      changeRequestExample.copy(status = "WITHDRAWN", checker_comment = "Superseded by a corrected version.", actioned_at = APIUtil.DateWithMsExampleString),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, DynamicChangeRequestNotFound, DynamicChangeRequestNotInitiated, DynamicChangeRequestNotRequestor, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamic :: Nil,
+      None,
+      http4sPartialFunction = Some(withdrawDynamicChangeRequest)
+    )
+
+    // ─── Deactivation: four eyes to enable, one pair to disable ───────────────
+    private def deactivateArtefact(req: Request[IO], targetType: DynamicChangeRequestTargetType, targetId: String): IO[Response[IO]] =
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        implicit val c: CallContext = cc
+        val rawBody = cc.httpBody.getOrElse("")
+        for {
+          postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostDeactivateDynamicArtefactJsonV700", 400, Some(cc)) {
+            if (rawBody.trim.isEmpty) PostDeactivateDynamicArtefactJsonV700(None)
+            else com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostDeactivateDynamicArtefactJsonV700]
+          }
+          audit <- Future(MakerChecker.deactivate(targetType, targetId, u.userId, postJson.comment.getOrElse("")))
+            .map(unboxFullOrFail(_, Some(cc), s"$DynamicChangeRequestTargetNotFound $targetType $targetId", 404))
+        } yield JSONFactory700.createDynamicChangeRequestJsonV700(audit)
+      }
+
+    private val deactivationDescription =
+      s"""Deactivate this dynamic artefact immediately. Deactivation reduces capability, so a single holder of `CanApproveDynamicChangeRequest` may do it directly; it is audited as a Dynamic Change Request with operation DEACTIVATE and status APPROVED. Re-activation requires a Dynamic Change Request with operation ACTIVATE approved by a second user.
+        |
+        |An inactive artefact is never compiled or executed, regardless of whether maker/checker is enabled.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin
+
+    private val deactivationExample = changeRequestExample.copy(operation = "DEACTIVATE", status = "APPROVED", target_id = "0d1c9e3c-6c2b-4c1e-9a53-2d5b2f0d7f22", request_path = "", proposed_payload = Extraction.decompose(Map("is_active" -> false)), checker_user_id = code.api.util.ExampleValue.userIdExample.value, actioned_at = APIUtil.DateWithMsExampleString)
+
+    val deactivateDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" / dynamicResourceDocId / "deactivation" if dynamicResourceDocId.nonEmpty =>
+        deactivateArtefact(req, DYNAMIC_RESOURCE_DOC, dynamicResourceDocId)
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deactivateDynamicResourceDoc),
+      "POST",
+      "/management/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID/deactivation",
+      "Deactivate Dynamic Resource Doc",
+      deactivationDescription,
+      PostDeactivateDynamicArtefactJsonV700(Some("Suspected data leak; disabling pending review.")),
+      deactivationExample,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicChangeRequestTargetNotFound, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamicResourceDoc :: Nil,
+      Some(List(ApiRole.canApproveDynamicChangeRequest)),
+      http4sPartialFunction = Some(deactivateDynamicResourceDoc)
+    )
+
+    val deactivateConnectorMethod: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "connector-methods" / connectorMethodId / "deactivation" if connectorMethodId.nonEmpty =>
+        deactivateArtefact(req, CONNECTOR_METHOD, connectorMethodId)
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deactivateConnectorMethod),
+      "POST",
+      "/management/connector-methods/CONNECTOR_METHOD_ID/deactivation",
+      "Deactivate Connector Method",
+      deactivationDescription,
+      PostDeactivateDynamicArtefactJsonV700(Some("Suspected data leak; disabling pending review.")),
+      deactivationExample.copy(target_type = "CONNECTOR_METHOD"),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicChangeRequestTargetNotFound, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagConnectorMethod :: Nil,
+      Some(List(ApiRole.canApproveDynamicChangeRequest)),
+      http4sPartialFunction = Some(deactivateConnectorMethod)
+    )
+
+    val deactivateDynamicMessageDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-message-docs" / dynamicMessageDocId / "deactivation" if dynamicMessageDocId.nonEmpty =>
+        deactivateArtefact(req, DYNAMIC_MESSAGE_DOC, dynamicMessageDocId)
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deactivateDynamicMessageDoc),
+      "POST",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID/deactivation",
+      "Deactivate Dynamic Message Doc",
+      deactivationDescription,
+      PostDeactivateDynamicArtefactJsonV700(Some("Suspected data leak; disabling pending review.")),
+      deactivationExample.copy(target_type = "DYNAMIC_MESSAGE_DOC"),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicChangeRequestTargetNotFound, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagDynamicMessageDoc :: Nil,
+      Some(List(ApiRole.canApproveDynamicChangeRequest)),
+      http4sPartialFunction = Some(deactivateDynamicMessageDoc)
+    )
+
+    val deactivateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "abac-rules" / abacRuleId / "deactivation" if abacRuleId.nonEmpty =>
+        deactivateArtefact(req, ABAC_RULE, abacRuleId)
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deactivateAbacRule),
+      "POST",
+      "/management/abac-rules/ABAC_RULE_ID/deactivation",
+      "Deactivate ABAC Rule",
+      deactivationDescription,
+      PostDeactivateDynamicArtefactJsonV700(Some("Suspected data leak; disabling pending review.")),
+      deactivationExample.copy(target_type = "ABAC_RULE"),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicChangeRequestTargetNotFound, UnknownError),
+      apiTagDynamicChangeRequest :: apiTagABAC :: Nil,
+      Some(List(ApiRole.canApproveDynamicChangeRequest)),
+      http4sPartialFunction = Some(deactivateAbacRule)
+    )
+
+
     // All routes combined (without middleware - for direct use).
     //
     // Routes are sorted automatically by URL template specificity (segment count,
@@ -5978,6 +6549,88 @@ object Http4s700 {
     //
     // REQUIREMENT: each `val endpoint` must be declared BEFORE its `resourceDocs +=`
     // so that `Some(endpoint)` captures the initialized route, not null.
+    // ─── getConsumerRateLimits ─────────────────────────────────────────────
+    // Every per-consumer rate limit row on the instance, so an operator can see what overrides the
+    // consumer limiter's defaults without opening each consumer. Per-consumer reads stay in v5.1.0 / v6.0.0.
+    lazy val getConsumerRateLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "rate-limits" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          for {
+            rows <- code.ratelimiting.RateLimitingDI.rateLimiting.vend.getAll()
+            consumerIds = rows.map(_.consumerId).distinct
+            consumers <- Future.traverse(consumerIds)(id =>
+              code.consumer.Consumers.consumers.vend.getConsumerByConsumerIdFuture(id).map(box => id -> box.map(_.name.get).openOr(""))
+            )
+            names = consumers.toMap
+            now = new java.util.Date()
+          } yield JSONFactory700.ConsumerRateLimitsJsonV700(
+            rows.sortBy(r => (names.getOrElse(r.consumerId, ""), r.consumerId, r.fromDate.getTime))
+              .map(r => JSONFactory700.createConsumerRateLimitJsonV700(r, names.getOrElse(r.consumerId, ""), now))
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumerRateLimits),
+      "GET",
+      "/management/rate-limits",
+      "Get Rate Limits for all Consumers",
+      s"""Returns every per-consumer rate limit row on this instance, across all Consumers, sorted by Consumer name.
+         |
+         |These rows are what override the consumer limiter's defaults (see Get Rate Limiter Config, whose `consumer_default` row applies
+         |to a Consumer with no rows of its own). `is_active` is whether `from_date`..`to_date` covers now. `api_version`, `api_name`
+         |and `bank_id` narrow a row to one endpoint or bank; all absent means the row applies to every call the Consumer makes.
+         |-1 means unlimited and 0 blocks every call.
+         |
+         |For one Consumer's rows use Get Rate Limits for a Consumer (v5.1.0); to change them use the v6.0.0 endpoints.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.consumerRateLimitsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagRateLimits, apiTagConsumer, apiTagApi),
+      Some(List(ApiRole.canReadCallLimits)),
+      http4sPartialFunction = Some(getConsumerRateLimits)
+    )
+
+    // ─── getRateLimiterConfig ──────────────────────────────────────────────
+    lazy val getRateLimiterConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "rate-limiter-config" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future(JSONFactory700.createRateLimitersJsonV700())
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getRateLimiterConfig),
+      "GET",
+      "/management/rate-limiter-config",
+      "Get Rate Limiter Config",
+      s"""Returns the live configuration of the three rate limiters on this instance, in the order they are checked:
+         |
+         |1. **self_service** runs before routing and authentication, keyed by client IP address, on the endpoints anyone can call before the bank has granted them anything. A trip answers 429 `OBP-10060`.
+         |2. **authentication** runs inside the credential check, keyed by IP address and account. A trip answers 429 `OBP-10061`.
+         |3. **consumer** runs after authentication, keyed by Consumer, or by IP address for anonymous calls. A trip answers 429 `OBP-10018`.
+         |
+         |`mode` is `shadow` (trips are logged and reported in the `X-Rate-Limit-Warning` header, the request is allowed) or `enforce` (429).
+         |In `limits`, -1 means unlimited and 0 blocks every call; windows a limiter does not have are absent. The consumer limiter's
+         |`consumer_default` row is what applies to a Consumer with no rate limit rows of its own.
+         |
+         |See the Rate Limiting glossary entry.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.rateLimitersJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagRateLimits, apiTagSystem, apiTagApi),
+      Some(List(canGetConfig)),
+      http4sPartialFunction = Some(getRateLimiterConfig)
+    )
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))

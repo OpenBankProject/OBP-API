@@ -1917,13 +1917,15 @@ object Http4s510 {
       "GET",
       "/tags",
       "Get API Tags",
-      s"""Get API TagsGet API Tags
+      s"""Returns the names of every API tag known to this instance (static tags and dynamic tags).
+      |
+      |For per-tag endpoint counts use `GET /obp/v7.0.0/api/tags` instead.
       |
       |${userAuthenticationMessage(false)}
       |
       |""",
       EmptyBody,
-      accountsMinimalJson400,
+      APITags(List("Account", "Bank", "Transaction Request")),
       List(UnknownError),
       List(apiTagApi),
       None,
@@ -3130,6 +3132,11 @@ object Http4s510 {
       s"""Create a Consumer with full certificate validation (mTLS access) - **Recommended for PSD2/Berlin Group compliance**.
       |
       |This endpoint provides **secure, validated consumer registration** unlike the standard `/management/consumers` endpoint.
+      |
+      |**Not for AI agents or ordinary applications.** This is the PSD2 path and requires a QWAC certificate that matches a
+      |pre-registered Regulated Entity. An agent or app that simply needs credentials should use OAuth2 dynamic client
+      |registration (RFC 7591) on the OBP-OIDC identity provider instead; see the glossary entry "Signal Channels",
+      |section "Getting credentials as an agent".
       |
       |**How it works (for comprehension flow):**
       |

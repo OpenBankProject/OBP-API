@@ -161,6 +161,7 @@ object Migration extends MdcLoggable {
       migrateMetricCertificateTrust(startedBeforeSchemifier)
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
       alterDynamicResourceDocBodyFieldsLength()
+      alterDynamicResourceDocTextFieldsLength()
     }
 
     /**
@@ -519,6 +520,14 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterDynamicResourceDocBodyFieldsLength)
       runOnce(name) {
         MigrationOfDynamicResourceDocBodyFieldsLength.alterColumnsType(name)
+      }
+    }
+
+    // description / tags / roles of a Dynamic Resource Doc: varchar(255) -> text (see the migration object).
+    private def alterDynamicResourceDocTextFieldsLength(): Boolean = {
+      val name = nameOf(alterDynamicResourceDocTextFieldsLength)
+      runOnce(name) {
+        MigrationOfDynamicResourceDocTextFieldsLength.alterColumnsType(name)
       }
     }
 

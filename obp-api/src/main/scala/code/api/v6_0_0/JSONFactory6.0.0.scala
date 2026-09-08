@@ -1205,6 +1205,11 @@ case class PostSignalMessageJsonV600(
 
 case class SignalMessageJsonV600(
     message_id: String,
+    // Per-channel monotonic sequence stamped atomically at publish (Redis server time in
+    // microseconds, forced strictly increasing). Poll with after_sequence=<last seen>, never by
+    // offset: the channel list is trimmed to its newest N messages, which shifts list indexes.
+    // Defaulted so envelopes stored before this field existed still parse (they read as 0).
+    sequence: Long = 0L,
     channel_name: String,
     sender_consumer_id: String,
     sender_user_id: String,
@@ -1217,15 +1222,25 @@ case class SignalMessageJsonV600(
 case class SignalMessagesJsonV600(
     channel_name: String,
     messages: List[SignalMessageJsonV600],
+    // Every message in the channel, including private messages hidden from the caller.
     total_count: Long,
-    has_more: Boolean
+    has_more: Boolean,
+    // Sequence of the newest message in the channel (0 when empty).
+    latest_sequence: Long,
+    // Pass this back as after_sequence to continue. It advances past messages the privacy
+    // filter hid from you, so a page can be empty and the cursor still moves.
+    next_after_sequence: Long,
+    // Messages in the channel the caller may see (broadcasts plus private messages to or from
+    // them). Compare this, not total_count, with what you have received.
+    visible_count: Long
 )
 
 case class SignalMessagePublishedJsonV600(
     message_id: String,
     channel_name: String,
     timestamp: String,
-    channel_message_count: Long
+    channel_message_count: Long,
+    sequence: Long
 )
 
 case class SignalChannelInfoJsonV600(

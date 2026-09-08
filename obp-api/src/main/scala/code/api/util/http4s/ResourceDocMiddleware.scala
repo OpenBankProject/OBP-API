@@ -8,7 +8,7 @@ import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util.newstyle.ViewNewStyle
-import code.api.util.{APIUtil, ApiRole, CallContext, NewStyle}
+import code.api.util.{APIUtil, ApiRole, CallContext, CallContextLight, NewStyle}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiShortVersions
@@ -173,22 +173,76 @@ object ResourceDocMiddleware extends MdcLoggable {
             OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)))
 
           case None =>
-            // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
-            // Attach the basic CC so req.callContext works in the inner route even without a doc match.
-            // Carry the cached body forward so the bridge cascade can still read it.
-            // Best-effort authentication: populate cc.user from request credentials so that
-            // withUser/withUserAndBank handlers return 401/403 correctly (e.g. empty path segments
-            // that bypass ResourceDocMatcher but still match a route pattern).
+            // This group has no ResourceDoc for the request. Almost always the request is simply
+            // not ours: `routes.run` yields None and the request moves to the next link of the
+            // version fallthrough chain (v7 -> v6 -> v5.1 -> bridges -> ... ). No transaction scope
+            // is opened. The cached body is carried forward for the later hops.
+            //
+            // The one case where the inner routes DO serve such a request is a malformed URL with
+            // an empty path segment (e.g. `/banks//accounts`): the matcher counts segments and finds
+            // no doc, but the http4s pattern still matches with an empty id, and its handler needs
+            // the caller in the CallContext to answer 403/404 rather than a misleading 401. That is
+            // why the caller is resolved here at all. It is resolved WITHOUT rate limiting and at
+            // most ONCE per request (see resolveCallerOnce): rate limiting belongs to the hop that
+            // serves the request, and re-validating the credentials on every hop was pure waste.
             OptionT.liftF(
-              IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).map {
-                case (Full(user), Some(updatedCC)) => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, updatedCC.copy(user = Full(user)))
-                case (Full(user), None)            => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc.copy(user = Full(user)))
-                case (_, Some(updatedCC))          => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, updatedCC)
-                case _                             => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc)
-              }.recover { case _ => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc) }
+              resolveCallerOnce(req, cc).map { resolvedCc =>
+                reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, resolvedCc)
+              }
             ).flatMap(routes.run)
         }
       }
+    }
+  }
+
+  /**
+   * Resolve the caller for a hop that has no ResourceDoc for the request, once per request.
+   *
+   * The first such hop runs [[APIUtil.resolveCallerWithoutRateLimiting]] and stores the outcome in
+   * the holder Http4sApp attached to the request (`Http4sRequestAttributes.callerResolvedOnThisRequestKey`);
+   * every later hop of the same request reads it. Before this, each hop authenticated afresh AND counted the call
+   * against the Consumer's rate limit: `GET /obp/v5.1.0/users/current` crossed seven hops before
+   * v3.0.0 served it, so it validated the token seven times, saved the Consumer row seven times,
+   * and cost seven rate-limit units - a Consumer limited to fewer than seven calls per second was
+   * refused with 429 OBP-10018 on the second hop.
+   *
+   * Failures (bad token, unknown consumer, ...) are kept too - they are the outcome for this
+   * request - and leave the CallContext without a user, exactly as before. Only an exception
+   * thrown by the pipeline is not kept; the hop then proceeds with the unresolved context.
+   */
+  private def resolveCallerOnce(req: Request[IO], cc: CallContext): IO[CallContext] = {
+    val holder = req.attributes.lookup(Http4sRequestAttributes.callerResolvedOnThisRequestKey)
+    holder.flatMap(_.get()) match {
+      case Some(resolved) =>
+        IO.pure(withResolvedCaller(cc, resolved))
+      case None =>
+        IO.fromFuture(IO(APIUtil.resolveCallerWithoutRateLimiting(cc))).attempt.map {
+          case Right(resolved) =>
+            holder.foreach(_.set(Some(resolved)))
+            withResolvedCaller(cc, resolved)
+          case Left(NonFatal(e)) =>
+            logger.debug(s"[ResourceDocMiddleware] caller resolution threw on a no-ResourceDoc hop for ${req.method.name} ${req.uri.path.renderString}: ${e.getMessage}")
+            cc
+          case Left(e) => throw e
+        }
+    }
+  }
+
+  /**
+   * Merge a resolution into THIS hop's freshly built CallContext. The resolved context may come
+   * from an earlier hop; the bridges rewrite the path between hops (`/obp/v5.1.0/...` ->
+   * `/obp/v5.0.0/...`), so the current hop's `url` and `implementedInVersion` are kept while the
+   * authentication-derived fields (user, consumer, session, rate-limit config, ...) are taken from
+   * the resolution.
+   */
+  private def withResolvedCaller(cc: CallContext, resolved: Http4sRequestAttributes.ResolvedCaller): CallContext = {
+    def carryOver(resolvedCc: CallContext): CallContext =
+      resolvedCc.copy(url = cc.url, implementedInVersion = cc.implementedInVersion)
+    resolved match {
+      case (Full(user), Some(resolvedCc)) => carryOver(resolvedCc).copy(user = Full(user))
+      case (Full(user), None)             => cc.copy(user = Full(user))
+      case (_, Some(resolvedCc))          => carryOver(resolvedCc)
+      case _                              => cc
     }
   }
 
@@ -307,23 +361,23 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Right((boxUser, None)) =>
           IO.pure(Right(ctx.copy(user = boxUser)))
         case Left(e: APIFailureNewStyle) =>
-          ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
+          ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext, e.callContextLight).map(Left(_))
         case Left(e) =>
           // anonymousAccess threw a plain Exception(json_of_APIFailureNewStyle).
           // Parse the JSON to recover the original message and failCode (typically 401).
           // Old Style endpoints (v1.x, v2.0.0) keep 400 to match Lift Old Style behavior.
           // New Style endpoints (v2.1.0+) use the original failCode from the exception.
-          val (failMsg, parsedCode) = scala.util.Try {
+          val (failMsg, parsedCode, failureCallContext) = scala.util.Try {
             implicit val formats = org.json4s.DefaultFormats
             val parsed = com.openbankproject.commons.util.JsonAliases.parse(e.getMessage).extract[APIFailureNewStyle]
-            (parsed.failMsg, parsed.failCode)
-          }.getOrElse(($AuthenticatedUserIsRequired, 401))
+            (parsed.failMsg, parsed.failCode, parsed.callContextLight)
+          }.getOrElse(($AuthenticatedUserIsRequired, 401, None: Option[CallContextLight]))
           val oldStyleShortVersions = Set("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0")
           val versionStr = resourceDoc.implementedInApiVersion.apiShortVersion
           val isOldStyle = oldStyleShortVersions.contains(versionStr)
           val effectiveCode = if (isOldStyle) 400 else parsedCode
           logger.debug(s"[ResourceDocMiddleware.authenticate] version=$versionStr isOldStyle=$isOldStyle parsedCode=$parsedCode effectiveCode=$effectiveCode")
-          ErrorResponseConverter.createErrorResponse(effectiveCode, failMsg, ctx.callContext).map(Left(_))
+          ErrorResponseConverter.createErrorResponse(effectiveCode, failMsg, ctx.callContext, failureCallContext).map(Left(_))
       }
     )
   }

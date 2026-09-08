@@ -142,8 +142,8 @@ object DAuth extends MdcLoggable {
     val provider = "dauth."+getFieldFromPayloadJson(jwtPayload, "network_name")
     logger.debug("login_user_name: " + userName)
     // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
-    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), provider, userName) match {
-      case Left(_)  => return Failure(ErrorMessages.TooManyRequests)
+    AuthRateLimiter.check(callContext.map(_.ipAddress).filter(_.nonEmpty).getOrElse(APIUtil.getRemoteIpAddress()), provider, userName) match {
+      case Left(_)  => return Failure(ErrorMessages.TooManyRequestsAuth)
       case Right(_) => // continue
     }
     for {
@@ -167,8 +167,8 @@ object DAuth extends MdcLoggable {
     val provider = "dauth."+ getFieldFromPayloadJson(jwtPayload, "network_name")
     logger.debug("login_user_name: " + username)
     // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
-    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), provider, username) match {
-      case Left(_)  => return Future.successful(Failure(ErrorMessages.TooManyRequests))
+    AuthRateLimiter.check(callContext.map(_.ipAddress).filter(_.nonEmpty).getOrElse(APIUtil.getRemoteIpAddress()), provider, username) match {
+      case Left(_)  => return Future.successful(Failure(ErrorMessages.TooManyRequestsAuth))
       case Right(_) => // continue
     }
 

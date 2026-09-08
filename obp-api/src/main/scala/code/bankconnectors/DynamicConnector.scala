@@ -36,7 +36,9 @@ object DynamicConnector {
   }
   
   private def getFunction(bankId: Option[String], process: String):Box[DynamicFunction] = {
-    DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process) map {
+    // Maker/checker execution guard (active + approved hash); see code.dynamicchangerequest.MakerChecker
+    DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process)
+      .filter(_.dynamicMessageDocId.exists(code.dynamicchangerequest.MakerChecker.isExecutableDynamicMessageDoc)) map {
       case v :JsonDynamicMessageDoc =>
         createFunction(v.programmingLang, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail")
     }

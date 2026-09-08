@@ -25,6 +25,8 @@ import code.api.util.APIUtil.{
 import code.api.util.{ExampleValue, Glossary}
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
+import code.dynamicchangerequest.MakerChecker
+import code.api.v7_0_0.JSONFactory700.createDynamicChangeRequestJsonV700
 import code.bankconnectors.LocalMappedConnectorInternal.transactionRequestGeneralText
 import code.webuiprops.WebUiPropsPutJsonV600
 import com.openbankproject.commons.model.{
@@ -2855,32 +2857,18 @@ object Http4s600 {
 
     // ─── Phase 2: Signal bucket (6 endpoints) ────────────────────────────
 
-    // GET /obp/v6.0.0/signal/channels
+    // GET /obp/v6.0.0/signal-channels
     lazy val getSignalChannels: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" =>
+      case req @ GET -> `prefixPath` / "signal-channels" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future {
-            val names = code.api.cache.RedisMessaging.listChannels()
-            val infos = names.flatMap { name =>
-              code.api.cache.RedisMessaging.channelInfo(name).map { case (count, ttl) =>
-                val (messages, _) = code.api.cache.RedisMessaging.fetchMessages(name, 0, count.toInt)
-                val hasBroadcast = messages.exists { s =>
-                  scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(s).extract[SignalMessageJsonV600].to_user_id.isEmpty).getOrElse(false)
-                }
-                (name, count, ttl, hasBroadcast)
-              }
-            }
-            val channels = infos.filter(_._4).map { case (name, count, ttl, _) =>
-              SignalChannelInfoJsonV600(name, count, ttl)
-            }
-            SignalChannelsJsonV600(channels)
-          }
+          // Shared with the gRPC SignalChannelsService.ListChannels, see code.signal.SignalChannels
+          Future(SignalChannelsJsonV600(code.signal.SignalChannels.listBroadcastChannels()))
         }
     }
 
-    // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/info
+    // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/info
     lazy val getSignalChannelInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" / channelName / "info" =>
+      case req @ GET -> `prefixPath` / "signal-channels" / channelName / "info" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
@@ -2901,9 +2889,9 @@ object Http4s600 {
         }
     }
 
-    // GET /obp/v6.0.0/signal/channels/stats
+    // GET /obp/v6.0.0/signal-channels/stats
     lazy val getSignalStats: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" / "stats" =>
+      case req @ GET -> `prefixPath` / "signal-channels" / "stats" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           Future {
             val names = code.api.cache.RedisMessaging.listChannels()
@@ -2920,9 +2908,9 @@ object Http4s600 {
         }
     }
 
-    // POST /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages (201)
+    // POST /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages (201)
     lazy val publishSignalMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "signal" / "channels" / channelName / "messages" =>
+      case req @ POST -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
@@ -2945,29 +2933,18 @@ object Http4s600 {
               !code.signal.SignalContentPolicy.containsDangerousCharacters(postJson.payload) &&
                 postJson.message_type.forall(messageType => !code.util.DangerousCharacters.containsAny(messageType))
             }
+            // Envelope building and storage are shared with the gRPC SignalChannelsService.Publish
             published <- Future {
               val consumerId = cc.consumer match { case Full(c) => c.consumerId.get; case _ => "" }
-              val messageId = randomUUID().toString
-              val sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
-              val timestamp = sdf.format(new java.util.Date())
-              val envelope = SignalMessageJsonV600(
-                message_id = messageId, channel_name = channelName,
-                sender_consumer_id = consumerId, sender_user_id = u.userId,
-                to_user_id = postJson.to_user_id, timestamp = timestamp,
-                message_type = postJson.message_type.getOrElse(""),
-                payload = postJson.payload)
-              val msgStr = com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(envelope))
-              val count = code.api.cache.RedisMessaging.publishMessage(channelName, msgStr)
-              SignalMessagePublishedJsonV600(messageId, channelName, timestamp, count)
+              code.signal.SignalChannels.publish(channelName, u.userId, consumerId, postJson)
             }
           } yield published
         }
     }
 
-    // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages
+    // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages
     lazy val getSignalMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" / channelName / "messages" =>
+      case req @ GET -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
@@ -2977,24 +2954,24 @@ object Http4s600 {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             limit = obpQueryParams.collectFirst { case code.api.util.OBPLimit(value) => value }.getOrElse(50)
             offset = obpQueryParams.collectFirst { case code.api.util.OBPOffset(value) => value }.getOrElse(0)
-            (rawMessages, totalCount) <- Future(code.api.cache.RedisMessaging.fetchMessages(channelName, offset, limit))
-          } yield {
-            val parsed = rawMessages.flatMap { s =>
-              scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(s).extract[SignalMessageJsonV600]).toOption
+            // after_sequence switches to a cursor read that survives the channel being trimmed;
+            // offset paging is kept for browsing what the channel holds right now.
+            afterSequenceParam = req.uri.query.params.get("after_sequence").map(_.trim).filter(_.nonEmpty)
+            afterSequence <- afterSequenceParam match {
+              case None => Future.successful(None)
+              case Some(raw) => NewStyle.function.tryons(s"$InvalidNumber after_sequence must be an integer, got: $raw", 400, Some(cc)) {
+                Some(raw.toLong)
+              }
             }
-            val filtered = parsed.filter { msg =>
-              msg.to_user_id.isEmpty ||
-                msg.to_user_id.contains(user.userId) ||
-                msg.sender_user_id == user.userId
-            }
-            SignalMessagesJsonV600(channelName, filtered, totalCount, (offset + limit) < totalCount)
-          }
+            // Storage access and privacy filter shared with the gRPC SignalChannelsService.Fetch
+            page <- Future(code.signal.SignalChannels.fetch(channelName, offset, limit, afterSequence, user.userId))
+          } yield page
         }
     }
 
-    // DELETE /obp/v6.0.0/signal/channels/CHANNEL_NAME (200 with body — not 204)
+    // DELETE /obp/v6.0.0/signal-channels/CHANNEL_NAME (200 with body — not 204)
     lazy val deleteSignalChannel: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "signal" / "channels" / channelName =>
+      case req @ DELETE -> `prefixPath` / "signal-channels" / channelName =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
@@ -5882,7 +5859,7 @@ object Http4s600 {
     // Route: POST /obp/v6.0.0/management/abac-rules (201)
     lazy val createAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" =>
-        EndpointHelpers.executeFutureCreated(req) {
+        EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -5895,12 +5872,20 @@ object Http4s600 {
             _ <- Helper.booleanToFuture("Rule code must not be empty", cc = Some(cc)) { createJson.rule_code.nonEmpty }
             _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
               .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
-            rule <- Future(MappedAbacRuleProvider.createAbacRule(
-              ruleName = createJson.rule_name, ruleCode = createJson.rule_code,
-              description = createJson.description, policy = createJson.policy,
-              isActive = createJson.is_active, createdBy = user.userId
-            )).map(unboxFullOrFail(_, Some(cc), "Could not create ABAC rule", 400))
-          } yield createAbacRuleJsonV600(rule)
+            // Maker/checker: a managed instance queues the rule for a second user's approval (202)
+            intercepted <- Future(MakerChecker.intercept(
+              com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
+              com.openbankproject.commons.model.enums.DynamicChangeRequestOperation.CREATE, None, cc))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestApprovalRequired, 400))
+            result <- intercepted match {
+              case Some(changeRequest) => Future.successful((createDynamicChangeRequestJsonV700(changeRequest), 202))
+              case None => Future(MappedAbacRuleProvider.createAbacRule(
+                ruleName = createJson.rule_name, ruleCode = createJson.rule_code,
+                description = createJson.description, policy = createJson.policy,
+                isActive = createJson.is_active, createdBy = user.userId
+              )).map(unboxFullOrFail(_, Some(cc), "Could not create ABAC rule", 400)).map(rule => (createAbacRuleJsonV600(rule), 201))
+            }
+          } yield result
         }
     }
 
@@ -5938,7 +5923,8 @@ object Http4s600 {
     // Route: PUT /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
     lazy val updateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "abac-rules" / ruleId =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          implicit val cc: CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
@@ -5948,14 +5934,25 @@ object Http4s600 {
             }
             _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
               .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
-            rule <- Future(MappedAbacRuleProvider.updateAbacRule(
-              ruleId = ruleId, ruleName = updateJson.rule_name,
-              ruleCode = updateJson.rule_code, description = updateJson.description,
-              policy = updateJson.policy, isActive = updateJson.is_active,
-              updatedBy = user.userId
-            )).map(unboxFullOrFail(_, Some(cc), s"Could not update ABAC rule with ID: $ruleId", 400))
-            _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
-          } yield createAbacRuleJsonV600(rule)
+            _ <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
+              .map(unboxFullOrFail(_, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
+            intercepted <- Future(MakerChecker.intercept(
+              com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
+              com.openbankproject.commons.model.enums.DynamicChangeRequestOperation.UPDATE, Some(ruleId), cc))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestApprovalRequired, 400))
+            result <- intercepted match {
+              case Some(changeRequest) => Future.successful((createDynamicChangeRequestJsonV700(changeRequest), 202))
+              case None => for {
+                rule <- Future(MappedAbacRuleProvider.updateAbacRule(
+                  ruleId = ruleId, ruleName = updateJson.rule_name,
+                  ruleCode = updateJson.rule_code, description = updateJson.description,
+                  policy = updateJson.policy, isActive = updateJson.is_active,
+                  updatedBy = user.userId
+                )).map(unboxFullOrFail(_, Some(cc), s"Could not update ABAC rule with ID: $ruleId", 400))
+                _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
+              } yield (createAbacRuleJsonV600(rule), 200)
+            }
+          } yield result
         }
     }
 
@@ -5963,12 +5960,24 @@ object Http4s600 {
     // Route: DELETE /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
     lazy val deleteAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "abac-rules" / ruleId =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          implicit val cc: CallContext = req.callContext
           for {
-            _ <- Future(MappedAbacRuleProvider.deleteAbacRule(ruleId))
+            _ <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
               .map(unboxFullOrFail(_, Some(cc), s"Could not delete ABAC rule with ID: $ruleId", 400))
-            _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
-          } yield ""
+            intercepted <- Future(MakerChecker.intercept(
+              com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
+              com.openbankproject.commons.model.enums.DynamicChangeRequestOperation.DELETE, Some(ruleId), cc))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestApprovalRequired, 400))
+            result <- intercepted match {
+              case Some(changeRequest) => Future.successful((createDynamicChangeRequestJsonV700(changeRequest), 202))
+              case None => for {
+                _ <- Future(MappedAbacRuleProvider.deleteAbacRule(ruleId))
+                  .map(unboxFullOrFail(_, Some(cc), s"Could not delete ABAC rule with ID: $ruleId", 400))
+                _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
+              } yield ("", 200)
+            }
+          } yield result
         }
     }
 
@@ -10415,7 +10424,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalChannels),
         "GET",
-        "/signal/channels",
+        "/signal-channels",
         "List Signal Channels",
         s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
@@ -10424,13 +10433,21 @@ object Http4s600 {
         |Only channels that contain at least one broadcast message (no to_user_id) are listed.
         |Private-only channels are not shown.
         |
+        |**Getting credentials as an agent.** No pre-existing OBP account is needed. Register an OAuth2 client
+        |with the OBP-OIDC dynamic client registration endpoint (RFC 7591; its URL is the registration_endpoint
+        |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
+        |and client_secret for an access token with grant_type=client_credentials, and send it as
+        |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
+        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
+        |
         |Authentication is Required.
         |
         |""".stripMargin,
         EmptyBody,
         signalChannelsJsonV600,
         List($AuthenticatedUserIsRequired, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(getSignalChannels)
       )
@@ -10438,7 +10455,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalChannelInfo),
         "GET",
-        "/signal/channels/CHANNEL_NAME/info",
+        "/signal-channels/CHANNEL_NAME/info",
         "Get Signal Channel Info",
         s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
@@ -10451,7 +10468,7 @@ object Http4s600 {
         EmptyBody,
         signalChannelInfoJsonV600,
         List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(getSignalChannelInfo)
       )
@@ -10459,7 +10476,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalStats),
         "GET",
-        "/signal/channels/stats",
+        "/signal-channels/stats",
         "Get Signal Channel Stats",
         s"""Returns statistics for all signal channels, including private-only channels.
         |
@@ -10472,7 +10489,7 @@ object Http4s600 {
         EmptyBody,
         signalStatsJsonV600,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         Some(canGetSignalStats :: Nil),
         http4sPartialFunction = Some(getSignalStats)
       )
@@ -10480,7 +10497,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(publishSignalMessage),
         "POST",
-        "/signal/channels/CHANNEL_NAME/messages",
+        "/signal-channels/CHANNEL_NAME/messages",
         "Publish Signal Message",
         s"""Publish a message to a signal channel.
         |
@@ -10488,7 +10505,10 @@ object Http4s600 {
         |AI agents and other OBP consumers. Messages are not persisted to a database.
         |
         |Channels are auto-created on first publish and expire after a configurable TTL (default 1 hour).
-        |Messages are capped at a configurable maximum per channel (default 1000).
+        |Messages are capped at a configurable maximum per channel (default 1000); the oldest are trimmed.
+        |
+        |The response carries the per-channel monotonic `sequence` stamped on the stored message. Readers
+        |poll with `after_sequence` on Get Signal Messages, which is unaffected by trimming.
         |
         |The payload field accepts any valid JSON content. On this instance the whole request body
         |may be up to ${code.signal.SignalContentPolicy.maxPayloadLength} characters.
@@ -10499,6 +10519,20 @@ object Http4s600 {
         |
         |Set to_user_id to send a private message visible only to the sender and recipient.
         |Leave to_user_id empty for a broadcast message visible to all channel readers.
+        |
+        |Live delivery: every publish is also pushed to gRPC clients streaming the channel via
+        |SignalChannelsService.Subscribe (see signal.proto). The same service offers Publish, Fetch
+        |and ListChannels as 1:1 equivalents of the REST endpoints, over the same Redis storage.
+        |gRPC calls authenticate with the same Authorization value sent as metadata under the key
+        |`authorization`; the server supports reflection, so grpcurl can discover the service.
+        |
+        |**Getting credentials as an agent.** No pre-existing OBP account is needed. Register an OAuth2 client
+        |with the OBP-OIDC dynamic client registration endpoint (RFC 7591; its URL is the registration_endpoint
+        |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
+        |and client_secret for an access token with grant_type=client_credentials, and send it as
+        |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
+        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
         |
         |Authentication is Required.
         |
@@ -10516,7 +10550,7 @@ object Http4s600 {
           SignalMessageContainsDangerousCharacters,
           UnknownError
         ),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(publishSignalMessage)
       )
@@ -10524,27 +10558,42 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalMessages),
         "GET",
-        "/signal/channels/CHANNEL_NAME/messages",
+        "/signal-channels/CHANNEL_NAME/messages",
         "Get Signal Messages",
         s"""Fetch messages from a signal channel with offset/limit pagination.
         |
         |Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery
         |and coordination, but usable by any authenticated OBP consumer.
         |
-        |Messages are returned oldest-first.
+        |Messages are returned oldest-first. Every message carries a per-channel monotonic
+        |**sequence** stamped when it was published.
         |
         |Privacy filtering is applied server-side: you will only see broadcast messages (no to_user_id)
         |and private messages addressed to you (to_user_id matches your user ID) or sent by you.
         |
-        |Use the offset parameter to poll for new messages by tracking your position.
+        |**To poll, use `after_sequence`**, not offset: `?after_sequence=<last sequence you saw>&limit=50`
+        |returns only newer messages. A channel keeps just its newest messages (default 1000) and trims
+        |the oldest, which moves list positions, so a poller that tracks an offset silently skips messages
+        |once the channel fills. The response's `next_after_sequence` is the value to send next; it
+        |advances even when every message in the window was private to someone else, and `has_more`
+        |says whether newer messages remain. `latest_sequence` is the newest message in the channel.
+        |Start with `after_sequence=0` for everything the channel still holds.
+        |
+        |Without `after_sequence`, offset and limit page over the channel's current contents.
+        |
+        |`total_count` is the number of messages in the channel including private messages hidden
+        |from you, so it can be larger than the number of messages returned. `visible_count` is the
+        |number you may see, over the whole channel, and is the one to compare with what you have
+        |received. Neither is a way to detect missed messages; use `after_sequence` and
+        |`next_after_sequence` for that.
         |
         |Authentication is Required.
         |
         |""".stripMargin,
         EmptyBody,
         signalMessagesJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, InvalidNumber, UnknownError),
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(getSignalMessages)
       )
@@ -10552,7 +10601,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(deleteSignalChannel),
         "DELETE",
-        "/signal/channels/CHANNEL_NAME",
+        "/signal-channels/CHANNEL_NAME",
         "Delete Signal Channel",
         s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
@@ -10570,7 +10619,7 @@ object Http4s600 {
         // the CanDeleteSignalChannel role gate was added after the migration —
         // an ungated delete let any authenticated user destroy any channel.
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidSignalChannelName, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         Some(canDeleteSignalChannel :: Nil),
         http4sPartialFunction = Some(deleteSignalChannel)
       )

@@ -348,6 +348,26 @@ object AccountAccessRequestStatus extends Enumeration {
   val INITIATED, PENDING, APPROVED, REJECTED = Value
 }
 
+/** Maker/checker for runtime-supplied code and configuration (dynamic resource docs, connector
+  * methods, dynamic message docs, ABAC rules ...). A request leaves INITIATED exactly once. FAILED
+  * means the checker approved but re-validation or apply failed, so the target was not changed. */
+object DynamicChangeRequestStatus extends Enumeration {
+  type DynamicChangeRequestStatus = Value
+  val INITIATED, APPROVED, REJECTED, WITHDRAWN, EXPIRED, FAILED = Value
+}
+
+object DynamicChangeRequestOperation extends Enumeration {
+  type DynamicChangeRequestOperation = Value
+  val CREATE, UPDATE, DELETE, ACTIVATE, DEACTIVATE = Value
+}
+
+object DynamicChangeRequestTargetType extends Enumeration {
+  type DynamicChangeRequestTargetType = Value
+  val DYNAMIC_RESOURCE_DOC, DYNAMIC_MESSAGE_DOC, CONNECTOR_METHOD, ABAC_RULE,
+      DYNAMIC_ENDPOINT, DYNAMIC_ENTITY, METHOD_ROUTING, ENDPOINT_MAPPING,
+      WEBUI_PROPS, JSON_SCHEMA_VALIDATION, AUTHENTICATION_TYPE_VALIDATION = Value
+}
+
 object AccountRoutingScheme extends Enumeration {
   type AccountRoutingScheme = Value
   val IBAN = Value

@@ -137,21 +137,12 @@ object Http4s220 {
       // VIEW_ACCOUNT_ID (non-standard name) bypasses middleware account-existence check so the
       // handler can return 400 (not 404) for a missing account, matching Lift behaviour.
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "views" =>
-        implicit val cc: CallContext = req.callContext
-        val io = for {
-          user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          bank    <- IO.fromOption(cc.bank)(new RuntimeException(BankNotFound))
-          rawBox  <- IO.fromFuture(IO(Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc)).map(_._1)))
-          account <- IO(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound))
-          body    <- IO.pure(cc.httpBody.getOrElse(""))
-          result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
-            createViewImpl(user, account, body, cc))
-        } yield result
-        io.attempt.flatMap {
-          case Right(result) =>
-            Created(prettyRender(Extraction.decompose(result)))
-          case Left(err) =>
-            code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
+        EndpointHelpers.withUserAndBankCreated(req) { (user, bank, cc) =>
+          for {
+            (rawBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
+            account     <- Future(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound))
+            result      <- createViewImpl(user, account, cc.httpBody.getOrElse(""), cc)
+          } yield result
         }
     }
 
@@ -211,19 +202,8 @@ object Http4s220 {
 
     val updateViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / viewIdStr =>
-        implicit val cc: CallContext = req.callContext
-        val io = for {
-          user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          account <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          body    <- IO.pure(cc.httpBody.getOrElse(""))
-          result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
-            updateViewImpl(user, account, ViewId(viewIdStr), body, cc))
-        } yield result
-        io.attempt.flatMap {
-          case Right(result) =>
-            Ok(prettyRender(Extraction.decompose(result)))
-          case Left(err) =>
-            code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
+        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          updateViewImpl(user, account, ViewId(viewIdStr), cc.httpBody.getOrElse(""), cc)
         }
     }
 
@@ -873,20 +853,8 @@ object Http4s220 {
 
     val createCounterparty: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
-        implicit val cc: CallContext = req.callContext
-        val io = for {
-          user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          account <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          view    <- IO.fromOption(cc.view)(new RuntimeException(ViewNotFound))
-          body    <- IO.pure(cc.httpBody.getOrElse(""))
-          result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
-            createCounterpartyImpl(user, account, view, body, cc))
-        } yield result
-        io.attempt.flatMap {
-          case Right(result) =>
-            Created(prettyRender(Extraction.decompose(result)))
-          case Left(err) =>
-            code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
+        EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
+          createCounterpartyImpl(user, account, view, cc.httpBody.getOrElse(""), cc)
         }
     }
 

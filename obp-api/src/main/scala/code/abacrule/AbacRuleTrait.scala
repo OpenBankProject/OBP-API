@@ -34,6 +34,9 @@ class AbacRule extends AbacRuleTrait with LongKeyedMapper[AbacRule] with IdPK wi
   object Policy extends MappedText(this)
   object CreatedByUserId extends MappedString(this, 255) 
   object UpdatedByUserId extends MappedString(this, 255)
+  // Maker/checker: SHA-256 of the RuleCode that a checker approved. When maker/checker is enabled
+  // for ABAC_RULE the engine refuses to compile a rule whose current code hash differs from this.
+  object ApprovedHash extends MappedString(this, 64)
 
   override def abacRuleId: String = AbacRuleId.get
   override def ruleName: String = RuleName.get

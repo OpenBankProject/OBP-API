@@ -145,6 +145,51 @@ object EntityAccessName {
 }
 
 object DynamicEntityHelper {
+
+  /**
+   * DE_indexing: may this definition update be applied to an entity that already has rows?
+   *
+   * The stored rows stay valid when the entity name, the set of property names and each property's `type`
+   * are unchanged and `required` does not grow. Everything else — `indexed`, `index`, `example`,
+   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*` — may change freely; in
+   * particular this is what lets an operator switch indexing on for an existing, populated entity
+   * (the projection backfill then does the rest). Unparseable input is treated as incompatible.
+   */
+  def isSchemaCompatibleChange(oldEntityName: String, oldMetadataJson: String,
+                               newEntityName: String, newMetadataJson: String): Boolean = {
+    // The stored metadataJson is the whole definition request, i.e. `{"<EntityName>": {"properties": ...}}`
+    // (DynamicEntityCommons.apply keeps the outer object). Accept the bare inner object too.
+    def definitionOf(metadataJson: String, entityName: String): Option[JValue] =
+      scala.util.Try(parse(metadataJson)).toOption.flatMap {
+        case root: JObject =>
+          (root \ entityName) match {
+            case inner: JObject => Some(inner)
+            case _ if (root \ "properties").isInstanceOf[JObject] => Some(root)
+            case _ => None
+          }
+        case _ => None
+      }
+    def propertyTypes(definition: JValue): Map[String, String] =
+      (definition \ "properties") match {
+        case props: JObject => props.obj.map { case JField(name, propDef) =>
+          name -> ((propDef \ "type") match { case JString(t) => t; case _ => "" })
+        }.toMap
+        case _ => Map.empty[String, String]
+      }
+    def requiredNames(definition: JValue): Set[String] =
+      (definition \ "required") match {
+        case JArray(items) => items.collect { case JString(n) => n }.toSet
+        case _ => Set.empty[String]
+      }
+
+    oldEntityName == newEntityName && {
+      (definitionOf(oldMetadataJson, oldEntityName), definitionOf(newMetadataJson, newEntityName)) match {
+        case (Some(oldDef), Some(newDef)) =>
+          propertyTypes(oldDef) == propertyTypes(newDef) && requiredNames(newDef).subsetOf(requiredNames(oldDef))
+        case _ => false
+      }
+    }
+  }
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
@@ -927,21 +972,39 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   }
 
   /**
-   * Indexed `reference:<Target>` fields: fieldName -> target entity name (the part after "reference:").
-   * The join planner uses this to resolve one-hop EXISTS/NOT EXISTS edges between entities; only
-   * declared reference fields are joinable (a plain string field holding ids is not). See
-   * ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md.
+   * Every `reference:<Target>` field, indexed or not: fieldName -> target entity name (the part after
+   * "reference:"). Only the indexed subset ([[referenceFields]]) forms a join edge; the rest
+   * ([[unindexedReferenceFields]]) exist so the planner can tell a developer precisely which field to
+   * mark `"indexed": true` instead of claiming no reference is declared at all.
    */
-  lazy val referenceFields: Map[String, String] = (entity \ "properties") match {
+  lazy val allReferenceFields: Map[String, String] = (entity \ "properties") match {
     case props: JObject => props.obj.collect {
       case JField(name, propDef: JObject)
-        if (propDef \ "indexed") == JBool(true) &&
-           ((propDef \ "type") match { case JString(s) => s.startsWith("reference:"); case _ => false }) =>
+        if ((propDef \ "type") match { case JString(s) => s.startsWith("reference:"); case _ => false }) =>
         val target = ((propDef \ "type"): @unchecked) match { case JString(s) => s.stripPrefix("reference:") }
         name -> target
     }.toMap
     case _ => Map.empty
   }
+
+  private lazy val indexedPropertyNames: Set[String] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) if (propDef \ "indexed") == JBool(true) => name
+    }.toSet
+    case _ => Set.empty
+  }
+
+  /**
+   * Indexed `reference:<Target>` fields: fieldName -> target entity name (the part after "reference:").
+   * The join planner uses this to resolve one-hop EXISTS/NOT EXISTS edges between entities; only
+   * declared reference fields are joinable (a plain string field holding ids is not). See
+   * ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md.
+   */
+  lazy val referenceFields: Map[String, String] =
+    allReferenceFields.filter { case (name, _) => indexedPropertyNames.contains(name) }
+
+  /** `reference:<Target>` fields that are declared but NOT `indexed`, so they cannot be joined on (yet). */
+  lazy val unindexedReferenceFields: Map[String, String] = allReferenceFields -- referenceFields.keys
 
   /**
    * Human-facing documentation of the list-endpoint query grammar (filter / sort / paginate / one-hop

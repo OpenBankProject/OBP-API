@@ -80,6 +80,8 @@ object UserReference {
   case object AccountAccessRequestRequestor           extends UserReference(UseOnBehalfOfUserId, "code.accountaccessrequest.AccountAccessRequest", List("RequestorUserId"))
   case object AccountAccessRequestTarget              extends UserReference(UseOnBehalfOfUserId, "code.accountaccessrequest.AccountAccessRequest", List("TargetUserId"), "explicit target: a consent user named here is rejected at the endpoint")
   case object AccountAccessRequestChecker             extends UserReference(UseOnBehalfOfUserId, "code.accountaccessrequest.AccountAccessRequest", List("CheckerUserId"))
+  case object DynamicChangeRequestRequestor           extends UserReference(UseOnBehalfOfUserId, "code.dynamicchangerequest.DynamicChangeRequest", List("RequestorUserId"), "maker of a dynamic-code change")
+  case object DynamicChangeRequestChecker             extends UserReference(UseOnBehalfOfUserId, "code.dynamicchangerequest.DynamicChangeRequest", List("CheckerUserId"), "checker; must differ from the requestor")
   case object EntitlementRequestUser                  extends UserReference(UseOnBehalfOfUserId, "code.entitlementrequest.MappedEntitlementRequest", List("mUserId"))
   case object UserScopeUser                           extends UserReference(UseOnBehalfOfUserId, "code.scope.MappedUserScope", List("mUserId"))
   case object ApiCollectionUser                       extends UserReference(UseOnBehalfOfUserId, "code.apicollection.ApiCollection", List("UserId"))
@@ -157,6 +159,8 @@ object UserReference {
     AccountAccessRequestRequestor,
     AccountAccessRequestTarget,
     AccountAccessRequestChecker,
+    DynamicChangeRequestRequestor,
+    DynamicChangeRequestChecker,
     EntitlementRequestUser,
     UserScopeUser,
     ApiCollectionUser,
@@ -214,6 +218,7 @@ object UserReference {
     ("code.model.dataAccess.MappedBankAccount", "holder", "free-text holder name"),
     ("code.transaction.MappedTransaction", "counterpartyAccountHolder", "free-text name"),
     ("code.accountaccessrequest.AccountAccessRequest", "CheckerComment", "text"),
+    ("code.dynamicchangerequest.DynamicChangeRequest", "CheckerComment", "text"),
     ("code.kycchecks.MappedKycCheck", "mStaffName", "text"),
     ("code.meetings.MappedMeeting", "mStaffToken", "token"),
     ("code.entitlement.MappedEntitlement", "mCreatedByProcess", "process tag"),

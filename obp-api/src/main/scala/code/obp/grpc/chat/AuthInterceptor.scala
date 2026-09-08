@@ -31,6 +31,19 @@ class AuthInterceptor extends ServerInterceptor with MdcLoggable {
 
   import AuthInterceptor._
 
+  /** The TCP peer of the gRPC call as a bare IP address, or "" when unavailable. This is the
+   *  socket peer only: gRPC carries no trusted-proxy header handling here, so behind a
+   *  forwarding proxy every caller shares the proxy's address. Used to populate
+   *  CallContext.ipAddress so per-IP rate limiting keys the same way as REST. */
+  private def peerIpAddress(call: ServerCall[_, _]): String =
+    try {
+      Option(call.getAttributes.get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR)) match {
+        case Some(inet: java.net.InetSocketAddress) => Option(inet.getAddress).map(_.getHostAddress).getOrElse(inet.getHostString)
+        case Some(other)                             => other.toString
+        case None                                    => ""
+      }
+    } catch { case scala.util.control.NonFatal(_) => "" }
+
   override def interceptCall[ReqT, RespT](
     call: ServerCall[ReqT, RespT],
     headers: Metadata,
@@ -59,6 +72,7 @@ class AuthInterceptor extends ServerInterceptor with MdcLoggable {
           // — not requestHeaders — to pick a scheme.
           val parsed = AuthHeaderParser.parseAuthorizationHeader(Some(authValue))
           val cc = CallContext(
+            ipAddress = peerIpAddress(call),
             requestHeaders = List(HTTPParam("Authorization", List(authValue))),
             authReqHeaderField = parsed.authReqHeaderField,
             directLoginParams = parsed.directLoginParams,

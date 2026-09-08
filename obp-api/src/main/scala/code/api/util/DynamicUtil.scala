@@ -43,6 +43,38 @@ object DynamicUtil extends MdcLoggable{
     }
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
+
+  /** One compiler diagnostic from [[checkScalaCode]]. `line`/`column` are 1-based in the code that was checked; 0 when unknown. */
+  case class CompileProblem(line: Int, column: Int, severity: String, message: String)
+
+  /** Collects compiler diagnostics with positions; the default toolbox front end only keeps the messages. */
+  private class CollectingFrontEnd extends scala.tools.reflect.FrontEnd {
+    // FrontEnd.log already records every diagnostic in `infos`; nothing to print.
+    override def display(info: Info): Unit = ()
+  }
+  private val checkFrontEnd = new CollectingFrontEnd
+  // A second toolbox, so a dry-run check never touches the memoised compile results of the real one.
+  private val checkToolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox(frontEnd = checkFrontEnd)
+
+  /**
+   * Compile `code` for diagnostics only: nothing is evaluated, nothing is cached. Empty list = compiles.
+   * Toolboxes are not thread-safe, so checks are serialised. Callers must apply the kill switch and a role.
+   */
+  def checkScalaCode(code: String): List[CompileProblem] = checkToolBox.synchronized {
+    checkFrontEnd.reset()
+    val failure: Option[String] = try {
+      checkToolBox.typecheck(checkToolBox.parse(code))
+      None
+    } catch {
+      case e: ToolBoxError => Some(e.message)
+    }
+    val collected = checkFrontEnd.infos.toList.filter(_.severity == checkFrontEnd.ERROR).map { info =>
+      val (line, column) = if (info.pos != null && info.pos.isDefined) (info.pos.line, info.pos.column) else (0, 0)
+      CompileProblem(line, column, "ERROR", info.msg)
+    }
+    if (collected.nonEmpty) collected
+    else failure.map(m => CompileProblem(0, 0, "ERROR", m.stripPrefix("reflective typecheck has failed:").stripPrefix("reflective compilation has failed:").trim)).toList
+  }
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
 
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){

@@ -27,6 +27,9 @@ package code.api.v6_0_0
 
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
+import code.api.{Constant, JedisMethod}
+import code.api.cache.Redis
+import code.setup.OBPReq
 import code.api.util.ApiRole.{CanCreateRateLimits, CanDeleteRateLimits, CanGetRateLimits}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, TooManyRequests}
 import code.api.v6_0_0.Http4s600.Implementations6_0_0
@@ -387,6 +390,39 @@ class RateLimitsTest extends V600ServerSetup {
       callAsUser3().code should equal(200)
     }
 
+    // GET /obp/v5.1.0/users/current has no v5.1.0 ResourceDoc, so the request passes the v7.0.0, v6.0.0
+    // and v5.1.0 groups (three hops), then the v5.1.0 -> v5.0.0 -> v4.0.0 -> v3.1.0 -> v3.0.0 bridges,
+    // and v3.0.0 serves it: seven hops. Every hop that had no doc used to authenticate afresh AND
+    // charge one rate-limit unit, so one request cost seven units and a per-minute limit of 2
+    // refused the very first request with 429 OBP-10018. A request must cost exactly one unit.
+    scenario("A request served after six version hops costs one rate-limit unit, not one per hop", ApiEndpoint4, VersionOfApi) {
+      Given("A record limiting the consumer to 2 calls per minute, unlimited otherwise")
+      // Earlier scenarios in this class called the API as user3 within the same minute, and
+      // counters are incremented even under an unlimited record: start this window from zero.
+      resetCallCounters(consumerId3)
+      val id = createLimit(consumerId3, callLimitJson("-1", "2", "-1"))
+      try {
+        def callV510AsUser3() = makeGetRequest((v5_1_0_Request / "users" / "current").GET <@ (user3))
+        When("The consumer makes a request that v3.0.0 serves after six version hops")
+        val first = callV510AsUser3()
+        Then("it is served, and by a bridged version")
+        first.code should equal(200)
+        first.headers.flatMap(h => Option(h.get("X-OBP-Version-Served"))) should not be empty
+        And("a second request is served too: the first one cost one unit, not seven")
+        callV510AsUser3().code should equal(200)
+        And("the third request is refused by the per-minute limit: the limit is still enforced, once per request")
+        val refused = callV510AsUser3()
+        refused.code should equal(429)
+        val message = refused.body.extract[ErrorMessage].message
+        message should startWith(TooManyRequests)
+        message should include("per minute")
+        message should include(consumerId3)
+      } finally {
+        deleteLimit(consumerId3, id)
+        resetCallCounters(consumerId3)
+      }
+    }
+
     scenario("A record with -1 in every period is unlimited, not blocked", ApiEndpoint4, VersionOfApi) {
       Given("A record with -1 everywhere")
       val id = createLimit(consumerId3, callLimitJson("-1", "-1", "-1"))
@@ -402,6 +438,129 @@ class RateLimitsTest extends V600ServerSetup {
         callAsUser3().code should equal(200)
       } finally {
         deleteLimit(consumerId3, id)
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Version fallthrough. A request arriving at /obp/vX/... is offered to every version's route group
+  // in turn (Http4sApp: v7.0.0, v6.0.0, v5.1.0, v5.0.0, Berlin Group, UK, v4.0.0, ... v1.2.1), and a
+  // group without an endpoint for it may hand it to an older version through its bridge
+  // (v7.0.0 -> v6.0.0 -> v5.1.0 -> ... -> v1.2.1). However many groups pass it on and however many
+  // bridges it crosses, ONE request must cost ONE rate-limit unit. It used to cost one per hop.
+  //
+  // Counters are read straight from Redis. RateLimitingUtil counts every served request in every
+  // period, whether or not a limit applies, so they are an exact per-request count that does not
+  // depend on timing.
+  // ---------------------------------------------------------------------------------------------
+
+  def callCounterKey(consumerId: String, period: String): String = s"${Constant.CALL_COUNTER_PREFIX}${consumerId}_$period"
+
+  def callCounter(consumerId: String, period: String): Long =
+    Redis.use(JedisMethod.GET, callCounterKey(consumerId, period)).map(_.toLong).getOrElse(0L)
+
+  def resetCallCounters(consumerId: String): Unit =
+    Redis.deleteKeysByPattern(s"${Constant.CALL_COUNTER_PREFIX}${consumerId}_*")
+
+  /**
+   * @param requestVersion  the version prefix the request arrives at
+   * @param path            path segments after the version
+   * @param servedBy        which version serves it and how it gets there (documentation for the scenario title)
+   * @param versionServed   expected `X-OBP-Version-Served` response header. Only the v7.0.0 -> v6.0.0,
+   *                        v6.0.0 -> v5.1.0 and v5.1.0 -> v5.0.0 bridges stamp it, and it names the
+   *                        first bridge crossed, not necessarily the version that finally serves.
+   */
+  case class FallthroughCase(requestVersion: String, path: List[String], servedBy: String, versionServed: Option[String])
+
+  val fallthroughCases: List[FallthroughCase] = List(
+    FallthroughCase("v7.0.0", List("users", "current"), "v7.0.0 itself, the first group in the chain", None),
+    FallthroughCase("v6.0.0", List("users", "current"), "v6.0.0 itself, after the v7.0.0 group passed it on", None),
+    FallthroughCase("v7.0.0", List("banks", "testBank0"), "v6.0.0 through the v7.0.0 -> v6.0.0 bridge", Some("v6.0.0")),
+    FallthroughCase("v7.0.0", List("banks"), "v6.0.0 through the v7.0.0 -> v6.0.0 bridge", Some("v6.0.0")),
+    FallthroughCase("v5.1.0", List("users", "current"), "v3.0.0 through the v5.1.0 -> v5.0.0 -> v4.0.0 -> v3.1.0 -> v3.0.0 bridges, after the v7.0.0 and v6.0.0 groups passed it on", Some("v5.0.0")),
+    FallthroughCase("v4.0.0", List("users", "current"), "v3.0.0 through the v4.0.0 -> v3.1.0 -> v3.0.0 bridges, after nine groups (v7.0.0 down to Berlin Group and UK) passed it on", None),
+    FallthroughCase("v3.0.0", List("users", "current"), "v3.0.0 itself, after eleven groups passed it on", None),
+    FallthroughCase("v2.2.0", List("users", "current"), "v2.0.0 through the v2.2.0 -> v2.1.0 -> v2.0.0 bridges", None),
+    FallthroughCase("v2.0.0", List("banks"), "v1.2.1 through the v2.0.0 -> v1.4.0 -> v1.3.0 -> v1.2.1 bridges", None),
+    FallthroughCase("v1.2.1", List("banks"), "v1.2.1 itself, the last OBP group in the chain", None)
+  )
+
+  def requestFor(c: FallthroughCase): OBPReq =
+    c.path.foldLeft(baseRequest / "obp" / c.requestVersion)(_ / _).GET <@ (user3)
+
+  feature("Rate limiting counts one unit per request, whichever version prefix it arrives at and however many hops it crosses") {
+    fallthroughCases.foreach { c =>
+      scenario(s"GET /obp/${c.requestVersion}/${c.path.mkString("/")} is served by ${c.servedBy}, and costs one unit", ApiEndpoint4, VersionOfApi) {
+        Given("no rate limit record for the consumer, and its call counters at zero")
+        activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty // made by user1, so not counted for consumer3
+        resetCallCounters(consumerId3)
+        When("the consumer makes the request once")
+        val first = makeGetRequest(requestFor(c))
+        Then("it is served")
+        first.code should equal(200)
+        And(s"X-OBP-Version-Served is ${c.versionServed.getOrElse("absent")}")
+        first.headers.flatMap(h => Option(h.get("X-OBP-Version-Served"))) should equal(c.versionServed)
+        And("the X-Rate-Limit headers read -1: no period is limited")
+        first.headers.flatMap(h => Option(h.get("X-Rate-Limit-Limit"))) should equal(Some("-1"))
+        And("the per-minute and per-hour counters still read 1: activity is counted even when nothing limits it, one unit per request whatever the hop count")
+        callCounter(consumerId3, "PER_MINUTE") should equal(1L)
+        callCounter(consumerId3, "PER_HOUR") should equal(1L)
+        And("a second request makes them 2")
+        makeGetRequest(requestFor(c)).code should equal(200)
+        callCounter(consumerId3, "PER_MINUTE") should equal(2L)
+        callCounter(consumerId3, "PER_HOUR") should equal(2L)
+        resetCallCounters(consumerId3)
+      }
+    }
+
+    scenario("X-Rate-Limit headers describe the shortest LIMITED period, not merely the shortest counted one", ApiEndpoint4, VersionOfApi) {
+      Given("A record with per second unlimited, 100 per minute and 1000 per hour, and counters at zero")
+      // Every period is counted, so the per-second counter is live too; the headers must skip it
+      // because it has no limit, and describe the per-minute limit.
+      val id = createLimit(consumerId3, callLimitJson("-1", "100", "1000"))
+      try {
+        resetCallCounters(consumerId3)
+        When("the consumer makes a request")
+        val first = callAsUser3()
+        Then("it is served with the per-minute limit and remaining calls in the headers")
+        first.code should equal(200)
+        first.headers.flatMap(h => Option(h.get("X-Rate-Limit-Limit"))) should equal(Some("100"))
+        first.headers.flatMap(h => Option(h.get("X-Rate-Limit-Remaining"))) should equal(Some("99"))
+        And("the per-second counter was still counted")
+        callCounter(consumerId3, "PER_SECOND") should be >= 1L
+        And("a second request reports one fewer remaining")
+        callAsUser3().headers.flatMap(h => Option(h.get("X-Rate-Limit-Remaining"))) should equal(Some("98"))
+      } finally {
+        deleteLimit(consumerId3, id)
+        resetCallCounters(consumerId3)
+      }
+    }
+
+    // v4.0.0/users/current: nine groups pass it on, then two bridges, then v3.0.0 serves it. It is the
+    // deepest NEW-style target: the old-style versions (v2.0.0 and below) report a refused call as
+    // 400 rather than 429 (ResourceDocMiddleware.authenticate keeps Lift's old-style status codes).
+    scenario("A per-minute limit of 2 is enforced once per request deep in the chain (v4.0.0/users/current, served by v3.0.0)", ApiEndpoint4, VersionOfApi) {
+      Given("A record limiting the consumer to 2 calls per minute, unlimited otherwise, and counters at zero")
+      resetCallCounters(consumerId3)
+      val id = createLimit(consumerId3, callLimitJson("-1", "2", "-1"))
+      try {
+        val deepest = fallthroughCases.find(c => c.requestVersion == "v4.0.0" && c.path == List("users", "current")).get
+        When("the consumer makes three requests")
+        Then("the first two are served and the third is refused with 429 for the per-minute limit")
+        makeGetRequest(requestFor(deepest)).code should equal(200)
+        makeGetRequest(requestFor(deepest)).code should equal(200)
+        val refused = makeGetRequest(requestFor(deepest))
+        refused.code should equal(429)
+        val message = refused.body.extract[ErrorMessage].message
+        message should startWith(TooManyRequests)
+        message should include("per minute")
+        message should include(consumerId3)
+        And("the X-Rate-Limit headers describe the exhausted per-minute limit")
+        refused.headers.flatMap(h => Option(h.get("X-Rate-Limit-Limit"))) should equal(Some("2"))
+        refused.headers.flatMap(h => Option(h.get("X-Rate-Limit-Remaining"))) should equal(Some("0"))
+      } finally {
+        deleteLimit(consumerId3, id)
+        resetCallCounters(consumerId3)
       }
     }
   }

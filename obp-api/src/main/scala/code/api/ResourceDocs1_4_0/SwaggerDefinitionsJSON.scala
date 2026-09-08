@@ -6463,6 +6463,7 @@ object SwaggerDefinitionsJSON {
 
   lazy val signalMessageJsonV600 = SignalMessageJsonV600(
     message_id = "d8839721-2e41-4c60-9bba-42c5a7164027",
+    sequence = 1771583400123456L,
     channel_name = "discovery",
     sender_consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
     sender_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
@@ -6476,14 +6477,18 @@ object SwaggerDefinitionsJSON {
     channel_name = "discovery",
     messages = List(signalMessageJsonV600),
     total_count = 1,
-    has_more = false
+    has_more = false,
+    latest_sequence = 1771583400123456L,
+    next_after_sequence = 1771583400123456L,
+    visible_count = 1
   )
 
   lazy val signalMessagePublishedJsonV600 = SignalMessagePublishedJsonV600(
     message_id = "d8839721-2e41-4c60-9bba-42c5a7164027",
     channel_name = "discovery",
     timestamp = "2026-02-20T10:30:00Z",
-    channel_message_count = 1
+    channel_message_count = 1,
+    sequence = 1771583400123456L
   )
 
   lazy val signalChannelInfoJsonV600 = SignalChannelInfoJsonV600(

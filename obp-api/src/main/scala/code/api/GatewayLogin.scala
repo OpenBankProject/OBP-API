@@ -244,8 +244,8 @@ object GatewayLogin extends MdcLoggable {
     logger.debug("login_user_name: " + username)
     // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
     // In shadow mode trips are logged and Right is returned; only enforce mode produces Left.
-    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), gateway, username) match {
-      case Left(_)  => return Failure(ErrorMessages.TooManyRequests)
+    AuthRateLimiter.check(callContext.map(_.ipAddress).filter(_.nonEmpty).getOrElse(APIUtil.getRemoteIpAddress()), gateway, username) match {
+      case Left(_)  => return Failure(ErrorMessages.TooManyRequestsAuth)
       case Right(_) => // continue
     }
     val cbsAndCallContextBox = refreshBankAccounts(jwtPayload, callContext)
@@ -314,8 +314,8 @@ object GatewayLogin extends MdcLoggable {
     val consentId = if (jti.isEmpty) None else Some(jti)
     logger.debug("login_user_name: " + username)
     // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
-    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), gateway, username) match {
-      case Left(_)  => return Future.successful(Failure(ErrorMessages.TooManyRequests))
+    AuthRateLimiter.check(callContext.map(_.ipAddress).filter(_.nonEmpty).getOrElse(APIUtil.getRemoteIpAddress()), gateway, username) match {
+      case Left(_)  => return Future.successful(Failure(ErrorMessages.TooManyRequestsAuth))
       case Right(_) => // continue
     }
     val cbsAndCallContextF = refreshBankAccountsFuture(jwtPayload, callContext)

@@ -302,6 +302,10 @@ class Boot extends MdcLoggable {
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
 
+    // Maker/checker for dynamic code: when first enabled, pre-existing code rows get their current
+    // body hash recorded as approved so enabling the feature does not silently disable them.
+    code.dynamicchangerequest.MakerChecker.seedApprovedHashesIfEnabled()
+
     // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, bill, utility, etc.).
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()
@@ -1081,6 +1085,7 @@ object ToSchemify extends MdcLoggable {
     BulkPayment,
     BulkBatchReference,
     AccountAccessRequest,
+    code.dynamicchangerequest.DynamicChangeRequest,
     code.chat.ChatRoom,
     code.chat.Participant,
     code.chat.ChatMessage,

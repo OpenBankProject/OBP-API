@@ -1465,6 +1465,12 @@ object ApiRole extends MdcLoggable{
 
   case class CanUpdateAccountAccessRequestAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAccountAccessRequestAtAnyBank = CanUpdateAccountAccessRequestAtAnyBank()
+
+  // Maker/checker for dynamic code: approval is system level only (dynamic code runs in the shared JVM)
+  case class CanApproveDynamicChangeRequest(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canApproveDynamicChangeRequest = CanApproveDynamicChangeRequest()
+  case class CanGetDynamicChangeRequests(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicChangeRequests = CanGetDynamicChangeRequests()
   case class CanUpdateAccountAccessRequestAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccountAccessRequestAtOneBank = CanUpdateAccountAccessRequestAtOneBank()
 

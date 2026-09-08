@@ -36,12 +36,14 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
   private val Deal     = s"Deal$sfx"
   private def idField(entity: String): String = StringHelpers.snakify(entity) + "_id"
 
-  private def createDef(entity: String, propsJson: String, rowLevel: Boolean = false): Unit = {
+  /** Create (dynamicEntityId = None) or update (Some(id)) a definition; returns its dynamicEntityId. */
+  private def createDef(entity: String, propsJson: String, rowLevel: Boolean = false, existingId: Option[String] = None): String = {
     val metadata = s"""{"$entity":{"properties":$propsJson}}"""
     DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(
-      DynamicEntityCommons(entity, metadata, None, owner, None, hasPersonalEntity = false,
+      DynamicEntityCommons(entity, metadata, existingId, owner, None, hasPersonalEntity = false,
         hasCommunityAccess = true, useRowLevelAccess = rowLevel)
     ).openOrThrowException(s"failed to create definition for $entity")
+      .dynamicEntityId.getOrElse(throw new IllegalStateException(s"no dynamicEntityId for $entity"))
   }
 
   /** Save a record (explicit id so references are controllable). Returns the record's id (= DynamicDataId). */
@@ -117,6 +119,47 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
       queryPartnerIds(dealExists, userA) shouldBe Set(p1)
       // userB has no grants -> no readable deals -> no partner matches.
       queryPartnerIds(dealExists, userB) shouldBe Set.empty[String]
+    }
+
+    scenario("indexing is switched on for entities that already have rows, then a join works (backfill)") {
+      if (!APIUtil.getPropsAsBoolValue("test.projection.postgres", false) || IndexingCapabilities.vendor != IndexingCapabilities.Postgres)
+        cancel("Postgres projection integration tests disabled (set test.projection.postgres=true with a Postgres db.url).")
+
+      val Site  = s"Site$sfx"
+      val Visit = s"Visit$sfx"
+
+      // --- definitions WITHOUT indexed: the shape OGCR had before wanting joins ---
+      val siteId  = createDef(Site,  s"""{"${idField(Site)}":{"type":"string"},"region":{"type":"string"}}""")
+      val visitId = createDef(Visit, s"""{"${idField(Visit)}":{"type":"string"},"site_ref":{"type":"reference:$Site"},"done":{"type":"boolean"}}""")
+
+      // --- rows exist before any field is indexed ---
+      val s1 = saveRec(Site, "region" -> JString("north"))
+      val s2 = saveRec(Site, "region" -> JString("south"))
+      saveRec(Visit, "site_ref" -> JString(s1), "done" -> JBool(true))
+      saveRec(Visit, "site_ref" -> JString(s2), "done" -> JBool(false))
+
+      // --- the schema-compatible update: same names and types, only `indexed` added ---
+      val siteUnindexed  = DynamicEntityProvider.connectorMethodProvider.vend.getById(None, siteId).openOrThrowException("site def").metadataJson
+      val visitUnindexed = DynamicEntityProvider.connectorMethodProvider.vend.getById(None, visitId).openOrThrowException("visit def").metadataJson
+      val siteIndexedProps  = s"""{"${idField(Site)}":{"type":"string"},"region":{"type":"string","indexed":true}}"""
+      val visitIndexedProps = s"""{"${idField(Visit)}":{"type":"string"},"site_ref":{"type":"reference:$Site","indexed":true},"done":{"type":"boolean","indexed":true}}"""
+      code.api.dynamic.entity.helper.DynamicEntityHelper.isSchemaCompatibleChange(
+        Site, siteUnindexed, Site, s"""{"$Site":{"properties":$siteIndexedProps}}""") shouldBe true
+      code.api.dynamic.entity.helper.DynamicEntityHelper.isSchemaCompatibleChange(
+        Visit, visitUnindexed, Visit, s"""{"$Visit":{"properties":$visitIndexedProps}}""") shouldBe true
+      createDef(Site,  siteIndexedProps,  existingId = Some(siteId))
+      createDef(Visit, visitIndexedProps, existingId = Some(visitId))
+
+      // --- provision after the update: the backfill must pick up the pre-existing rows ---
+      List(Site, Visit).foreach(e => run(ProjectionProvisioner.ensureProvisioned(None, e)))
+
+      def siteIds(plan: QueryPlan): Set[String] =
+        PostgresProjectionBackend.query(Site, None, Some(owner), isPersonalEntity = false, plan)
+          .map(_.flatMap(o => (o \ idField(Site)) match { case JString(x) => Some(x); case _ => None }).toSet)
+          .unsafeRunSync()
+      val doneTrue = List(Filter("done", FilterOp.Eq, List("true")))
+      siteIds(QueryPlan(Nil, List(JoinClause(Quantifier.Exists, Visit, "site_ref", onChild = true, doneTrue)), Nil, Page.empty)) shouldBe Set(s1)
+      siteIds(QueryPlan(Nil, List(JoinClause(Quantifier.NotExists, Visit, "site_ref", onChild = true, doneTrue)), Nil, Page.empty)) shouldBe Set(s2)
     }
   }
 }

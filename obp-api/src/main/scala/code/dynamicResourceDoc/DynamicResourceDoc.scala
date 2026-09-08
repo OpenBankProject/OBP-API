@@ -18,12 +18,12 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK w
   object RequestVerb extends MappedString(this, 255)
   object RequestUrl extends MappedString(this, 255)
   object Summary extends MappedString(this, 255)
-  object Description extends MappedString(this, 255)
+  object Description extends MappedText(this)
   object ExampleRequestBody extends MappedText(this)
   object SuccessResponseBody extends MappedText(this)
   object ErrorResponseBodies extends MappedText(this)
-  object Tags extends MappedString(this, 255)
-  object Roles extends MappedString(this, 255)
+  object Tags extends MappedText(this)
+  object Roles extends MappedText(this)
   object MethodBody extends MappedText(this)
   // Provenance: who created / last updated this runtime-compiled endpoint, and a SHA-256 of the
   // (decoded) method body so tampering / drift is detectable. Set server-side from the CallContext
@@ -31,6 +31,14 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK w
   object CreatedByUserId extends MappedString(this, 255)
   object UpdatedByUserId extends MappedString(this, 255)
   object MethodBodyHash extends MappedString(this, 64)
+  // Maker/checker (see MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md): the runtime only loads this row when
+  // IsActive is true and, when maker/checker is enabled for this target type, when MethodBodyHash
+  // equals ApprovedHash. ApprovedHash is written only by an approved DynamicChangeRequest (or the
+  // one-off seeding of pre-existing rows when the feature is first enabled), never from a request body.
+  object ApprovedHash extends MappedString(this, 64)
+  object IsActive extends MappedBoolean(this) {
+    override def defaultValue = true
+  }
 
 }
 

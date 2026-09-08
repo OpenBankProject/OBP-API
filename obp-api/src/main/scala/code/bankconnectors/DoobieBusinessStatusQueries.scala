@@ -32,6 +32,24 @@ object DoobieBusinessStatusQueries {
             AND status = $guardStatus""".update.run
   )
 
+  /** DynamicChangeRequest (maker/checker for dynamic code): actioned once, from INITIATED. */
+  def conditionalDynamicChangeRequestStatus(
+    dynamicChangeRequestId: Long,
+    guardStatus: String,
+    newStatus: String,
+    checkerUserId: String,
+    checkerComment: String
+  ): Int = DoobieUtil.runUpdate(
+    sql"""UPDATE DynamicChangeRequest
+          SET status = $newStatus,
+              checkeruserid = $checkerUserId,
+              checkercomment = $checkerComment,
+              actionedat = NOW(),
+              updatedat = NOW()
+          WHERE id = $dynamicChangeRequestId
+            AND status = $guardStatus""".update.run
+  )
+
   /** MappedAccountApplication: transition only from the guard status (a one-shot decision). */
   def conditionalAccountApplicationStatus(accountApplicationId: Long, guardStatus: String, newStatus: String): Int =
     DoobieUtil.runUpdate(

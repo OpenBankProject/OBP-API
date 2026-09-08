@@ -81,6 +81,7 @@ object ErrorMessages {
   val RowLevelAccessRequiresLocalBacking = "OBP-09020: use_row_level_access is only supported for locally-backed dynamic entities. This entity is routed to an external connector (a method routing for dynamicEntityProcess exists for it), where the row-level ACL cannot be enforced. Remove the method routing or disable use_row_level_access."
   val RowLevelAccessNotEnabled = "OBP-09021: The row-access endpoints are only available for dynamic entities created with use_row_level_access = true."
   val DynamicEntityJoinRequiresProjection = "OBP-09022: obp_exists / obp_not_exists join queries require the SQL projection backend (dynamic_entity.indexing.backend=auto on a supported database). This deployment serves Dynamic Entity reads in-memory, where joins are not supported."
+  val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name, the set of property names and each property's type must stay the same, and no property may be added to 'required'. Changing indexed, index, example, description, minLength, maxLength and the read/write role settings is allowed. Delete all the data before making a structural change."
 
 
   // General messages (OBP-10XXX)
@@ -103,6 +104,16 @@ object ErrorMessages {
   val InvalidFilterParameterFormat = "OBP-10016: Incorrect filter Parameters in URL. "
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
   val TooManyRequests = "OBP-10018: Too Many Requests."
+  // Three rate limiters, three codes, so a client can tell which counter it hit:
+  //  OBP-10018 the Consumer quota (RateLimitingUtil, post-auth, keyed by consumer_id or anonymous IP)
+  //  OBP-10060 the self-service limiter (SelfServiceRateLimiter, pre-auth, keyed by client IP)
+  //  OBP-10061 the authentication limiter (AuthRateLimiter, inside the credential check, keyed by IP and account)
+  val TooManyRequestsSelfService = "OBP-10060: Too Many Requests for a self-service endpoint."
+  val TooManyRequestsAuth = "OBP-10061: Too Many Requests for authentication. Too many login attempts from this address or for this account."
+  // Not an error: the text of the X-Rate-Limit-Warning header a self-service endpoint returns in
+  // shadow mode. SCOPE and LIMIT are replaced at runtime, e.g. "signup" and "5 per hour".
+  // See SelfServiceRateLimiter.warningMessage.
+  val RateLimitFutureWarning = "OBP-10059: Could conflict with a Future Rate Limit: This request might exceed the rate limit for SCOPE (LIMIT) in the future."
   val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
   val InvalidJsonContent = "OBP-10020: Incorrect json."
   val InvalidConnectorName = "OBP-10021: Incorrect Connector name."
@@ -736,6 +747,19 @@ object ErrorMessages {
   val SmtpRecipientRejected = "OBP-30344: SMTP server rejected the recipient or message. The From address may be unauthorised, the recipient may be invalid, or the message may have failed policy/anti-spam checks."
   val SmtpProtocolError = "OBP-30345: SMTP protocol error from the mail server."
 
+  // Maker/checker for dynamic code and configuration (DynamicChangeRequest)
+  val DynamicChangeRequestNotFound = "OBP-30346: Dynamic change request not found. Please specify a valid CHANGE_REQUEST_ID."
+  val DynamicChangeRequestNotInitiated = "OBP-30347: Dynamic change request is not in INITIATED status. It has already been approved, rejected, withdrawn or has expired."
+  val DynamicChangeRequestHashMismatch = "OBP-30348: The payload_hash in the approval does not match the stored hash of the change request. Re-read the request and approve exactly the content shown."
+  val DynamicChangeRequestStale = "OBP-30349: The target of this change request has changed since it was submitted. Withdraw it and submit a new request against the current version."
+  val DynamicChangeRequestTargetTypeNotManaged = "OBP-30350: This target type is not managed by maker/checker on this instance (see dynamic_code_approval_target_types)."
+  val DynamicChangeRequestApprovalRequired = "OBP-30351: Maker/checker is enabled for this target type. The change has been queued as a dynamic change request and must be approved by a second user before it takes effect."
+  val DynamicChangeRequestTargetNotFound = "OBP-30352: The target of the dynamic change request does not exist."
+  val DynamicChangeRequestNotRequestor = "OBP-30353: Only the requestor of a dynamic change request can withdraw it."
+  val DynamicChangeRequestApplyFailed = "OBP-30354: The dynamic change request was approved but could not be applied. Its status is now FAILED; see checker_comment for the reason."
+  val DynamicArtefactInactive = "OBP-30355: This dynamic artefact is deactivated and will not be executed."
+  val DynamicArtefactNotApproved = "OBP-30356: This dynamic artefact's current code has not been approved by a checker and will not be executed."
+
   // Branch related messages
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
   val BranchesNotFound = "OBP-32002: No branches available."
@@ -1076,6 +1100,8 @@ object ErrorMessages {
     DynamicEndpointNotFoundByDynamicEndpointId -> 404,
 //    NotImplemented -> 501, // 400 or 501
     TooManyRequests -> 429,
+    TooManyRequestsSelfService -> 429,
+    TooManyRequestsAuth -> 429,
     ResourceDoesNotExist -> 404,
     AuthenticatedUserIsRequired -> 401,
     DirectLoginInvalidToken -> 401,

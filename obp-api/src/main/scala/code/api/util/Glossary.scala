@@ -271,8 +271,9 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |1. **Rate Limit Records**: Stored in the `RateLimiting` table with date ranges (from_date, to_date)
 				 |2. **Multiple Records**: A consumer can have multiple active rate limit records that overlap
-				 |3. **Aggregation**: When multiple records are active, per period: a `0` in any record blocks the period; otherwise the positive values are summed; otherwise (all `-1`) the period is unlimited
+				 |3. **Aggregation**: When multiple records are active, per period: `-1` values are ignored and the rest (`0` or positive) are summed; a sum of `0` blocks the period; nothing to sum (all `-1`) means unlimited
 				 |4. **Enforcement**: On every API request, the system checks Redis counters against the aggregated limits
+				 |5. **Counting**: Every served request is counted in the Redis counter of every period, whether or not that period has a limit, so the call-counter endpoints show a Consumer's activity even when nothing limits it. A blocked period (sum `0`) serves nothing, so nothing is counted under it.
 				 |
 				 |### Time Periods
 				 |
@@ -297,6 +298,8 @@ object Glossary extends MdcLoggable  {
 				 |- `X-Rate-Limit-Limit`: Maximum allowed requests for the period
 				 |- `X-Rate-Limit-Remaining`: Remaining requests in current period
 				 |- `X-Rate-Limit-Reset`: Seconds until the limit resets
+				 |
+				 |The three headers describe the shortest period that has a positive limit (per second before per minute, and so on). When no period is limited they read `-1`.
 				 |
 				 |### HTTP Status Codes
 				 |
@@ -495,6 +498,39 @@ object Glossary extends MdcLoggable  {
 |
 |This glossary item is Work In Progress.
 |
+				 |
+				 |### Three rate limiters
+				 |
+				 |OBP runs three independent rate limiters. They are checked in this order, and each answers **429** with its own error code so a client can tell which counter it hit:
+				 |
+				 |1. **Self-service limiter** (`self_service.rate_limit.*`) runs first, before routing and before any authentication, keyed by the client IP address. It covers the endpoints anyone can call before the bank has granted them anything. Trip code: `OBP-10060`.
+				 |2. **Authentication limiter** (`auth.rate_limit.*`) runs inside the credential check of Direct Login, DAuth, Gateway Login and SIWE, before the password or token is verified, keyed by IP address and by account. It defends against brute force, credential stuffing and lockout attacks. Trip code: `OBP-10061`.
+				 |3. **Consumer quota** (the limits described above) runs after authentication, keyed by Consumer, or by IP address with a single hourly ceiling for anonymous calls. It is the commercial and fair-use quota. Trip code: `OBP-10018`.
+				 |
+				 |A login attempt is counted by the authentication limiter only; it is not a self-service scope, so no attempt is counted twice. Every limiter counts in Redis and fails open: a Redis outage never blocks a call.
+				 |
+				 |### Self-service rate limiting (per IP address, before any credential)
+				 |
+				 |The limits above are keyed by Consumer, so they cannot protect the calls a client makes before it has one. Those endpoints are covered by the self-service limiter, keyed by the client IP address, grouped in scopes:
+				 |
+				 |- **signup** — Create User (self-registration), Validate User Email, Get User Invitation Information
+				 |- **password_reset** — Request Password Reset Email, Complete Password Reset
+				 |- **consent_request** — Create Consent Request, Create Consent Request VRP
+				 |- **consumer_registration** — Create a Consumer (Dynamic Registration)
+				 |- **lookup** — Validate and check IBAN
+				 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel, over REST and gRPC alike (gRPC uses the socket peer address; if none is available it falls back to the Consumer)
+				 |
+				 |Each scope has per-minute, per-hour and per-day limits per IP, with built-in defaults chosen so that a person or a well-behaved agent never reaches them, plus an optional global per-hour cap across all addresses that acts as a circuit breaker. Every request is counted, whether or not it succeeds. Counters live in Redis and fail open.
+				 |
+				 |**Shadow mode (the default).** The limiter is on out of the box but does not block. A request over a limit is logged once per window (`event=self_service_rate_limit_shadow_trip`) and the response carries:
+				 |
+				 |    X-Rate-Limit-Warning: OBP-10059: Could conflict with a Future Rate Limit: This request might exceed the rate limit for signup (5 per hour) in the future.
+				 |
+				 |No enforcement date is claimed unless the operator sets `self_service.rate_limit.enforce_announced_from`, in which case ", from <date>" is appended. Every self-service response also carries `X-Rate-Limit-Limit`, `X-Rate-Limit-Remaining` and `X-Rate-Limit-Reset` for the window the caller is closest to exhausting, so a client can back off before enforcement starts.
+				 |
+				 |**Enforce mode.** Set `self_service.rate_limit.mode = enforce` and a trip answers **429** with `OBP-10060`, a `Retry-After` header and the same `X-Rate-Limit-*` headers, without running the endpoint.
+				 |
+				 |Limits are set with `self_service.rate_limit.<scope>.per_ip.per_minute|per_hour|per_day`, `self_service.rate_limit.<scope>.global.per_hour`, or the generic `self_service.rate_limit.per_ip.*`; -1 switches a window off and 0 blocks it. See the props template for the built-in numbers. Behind a proxy, configure `trust.proxy.enabled` and `trust.proxy.header` so the client address is the real one; otherwise every caller shares the proxy's counters.
 """)
 
 	glossaryItems += GlossaryItem(
@@ -3728,7 +3764,26 @@ object Glossary extends MdcLoggable  {
 |
 |A helper endpoint (`POST /management/dynamic-resource-docs/endpoint-code`) can generate a method-body template from example request / response bodies.
 |
-|See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks.
+|**The method body**
+|
+|The body is inlined, unchanged, into a native http4s handler. Do not wrap it in a method or class. In scope:
+|
+|* `callContext: CallContext` - the authenticated User, Consumer, `resourceDocument`, `httpBody` (the raw request body as a String) and `callContext.callContext` (the same as an `Option`).
+|* `request: org.http4s.Request[IO]` - the raw request, for headers or the URI.
+|* `pathParams: Map[String, String]` - one entry per UPPER_CASE segment of the request URL, for example `pathParams("BANK_ID")`.
+|* `RequestRootJsonClass` / `ResponseRootJsonClass` - case classes generated from the example request body and success response body. Parse the request with `JsonAliases.parse(rawBody).extract[RequestRootJsonClass]`.
+|* `errorResponse(message, code = 400)` - returns the standard OBP error JSON with that status.
+|* Imports: `Future` and the OBP execution context, `HttpCode`, `OBPReturnType`, `ErrorMessages.{InvalidJsonFormat, InvalidRequestPayload}`, `MappingException`, `cats.effect.IO`, `net.liftweb.common.{Box, Empty, Failure, Full}` (for matching on Connector results), and an implicit `formats`.
+|
+|The last expression is the response. Return `Future.successful((value, HttpCode.`200`(callContext)))` - any case class, Map or List that serialises to JSON, paired with the call context whose status was set by `HttpCode` - or `errorResponse(...)`. An implicit converts that `Future[(T, Option[CallContext])]` into the http4s response. The Lift-era shapes `Full(successJsonResponse(...))` and `Box[JsonResponse]` are not accepted; a body that returns them fails to compile (`OBP-40045`).
+|
+|The smallest valid body:
+|
+|    Future.successful((Map("hello" -> "world"), HttpCode.`200`(callContext)))
+|
+|To check a body before creating anything, `POST /obp/v7.0.0/management/dynamic-resource-docs/compile` compiles it the same way and returns the compiler's errors with line numbers relative to the body. The API Manager's Create page uses it for its Compile button and for the loop in which Opey rewrites the body until it compiles.
+|
+|See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks, and ${getGlossaryItemLink("Dynamic Change Request")} for how an operator can require a second person to approve each definition before it is compiled and served.
 |
 """.stripMargin)
 
@@ -3788,6 +3843,60 @@ object Glossary extends MdcLoggable  {
 |**Guards**
 |
 |Runtime-compiled code (Dynamic Resource Docs, Connector Methods, Dynamic Message Docs) is disabled unless the `allow_user_generated_scala_code` prop is set to true, and every creation endpoint requires its corresponding Role. Dynamic Endpoints (swagger, no code) are not affected by that prop; each generated endpoint is protected by its own auto-generated Role.
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Change Request",
+		description =
+			s"""
+|A Dynamic Change Request is a proposed create, update or delete of a runtime-defined artefact that carries code or configuration - a ${getGlossaryItemLink("Dynamic Resource Doc")}, a ${getGlossaryItemLink("Dynamic Message Doc")}, a ${getGlossaryItemLink("Connector Method")} or an ABAC Rule - held for approval by a second person. It is how OBP implements *maker/checker* for dynamic code.
+|
+|**Why**
+|
+|A Dynamic Resource Doc method body, a Connector Method or a Dynamic Message Doc is user-supplied code compiled and run inside the OBP-API JVM, with the connector credentials and reach of the whole instance. The sandbox is not a meaningful second line of defence, so the primary control is that the person who writes the code (the *maker*) can never make it live alone: a different User holding the Role `CanApproveDynamicChangeRequest` (the *checker*) reviews the exact definition and approves it.
+|
+|**How it works when approval is on**
+|
+|1) The maker calls the usual v4.0.0 / v6.0.0 create, update or delete endpoint. OBP checks the maker's Role, validates the JSON and compiles the code exactly as before, but instead of applying the change it stores a Dynamic Change Request and answers `202 Accepted` with the request instead of the artefact. Nothing is served yet.
+|
+|2) The checker reads the request (`GET /obp/v7.0.0/management/dynamic-change-requests/CHANGE_REQUEST_ID`, which returns the proposed and the current payload side by side) and approves it by quoting its `payload_hash`, the SHA-256 of the exact body, on `POST .../approval`. Only then is the change applied. OBP refuses an approval from the User who made the request (`OBP-30279`).
+|
+|3) Content is approved, not records. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose body hash equals the hash a checker approved, so a row edited directly in the database does not run.
+|
+|4) Deactivating an artefact is a direct action by a single checker (`POST .../deactivation`), with no request: four eyes to enable, one pair to disable. Enabling it again goes through a request.
+|
+|Approval is system level. Dynamic code runs in the shared JVM, so a bank-level artefact is approved by the same system-level checker; there are no bank-level change request endpoints.
+|
+|**Statuses**
+|
+|* `INITIATED` - waiting for a checker. Approve, reject and withdraw apply only in this status.
+|* `APPROVED` - applied; the artefact is compiled and served.
+|* `REJECTED` - declined by a checker with a comment. Nothing was applied.
+|* `WITHDRAWN` - taken back by the maker.
+|* `EXPIRED` - no checker acted within the request time-to-live.
+|* `FAILED` - approved, but applying the change threw. The error is recorded on the request and nothing half-applied is served.
+|
+|**Endpoints (v7.0.0, tag Dynamic-Change-Request)**
+|
+|* `GET /management/dynamic-code-approval-config` - whether approval is on, for which target types, and the request time-to-live. Any authenticated User; what a client reads to warn a maker before they submit.
+|* `GET /my/dynamic-change-requests` - the caller's own requests. No Role.
+|* `GET /management/dynamic-change-requests` and `GET .../CHANGE_REQUEST_ID` - all requests, filterable by `status`, `target_type`, `target_id` and `requestor_user_id`. Role `CanGetDynamicChangeRequests`.
+|* `POST /management/dynamic-change-requests` - submit a request explicitly with a `business_justification`, for tooling; the maker's usual create call does this implicitly.
+|* `POST .../CHANGE_REQUEST_ID/approval`, `.../rejection` (comment required), `.../withdrawal` (maker only).
+|* `POST /management/dynamic-resource-docs/ID/deactivation` and the equivalents for dynamic message docs, connector methods and ABAC rules.
+|
+|**Operator settings (props)**
+|
+|* `allow_user_generated_scala_code` - the kill switch for all runtime-compiled code. Default false: every create or update of dynamic code fails with `OBP-50020` and nothing dynamic runs, whatever the settings below say. Read once at startup, so changing it needs a restart.
+|* `dynamic_code_requires_approval` - the approval switch. Default false: writes go live immediately, today's behaviour.
+|* `dynamic_code_approval_target_types` - which target types are gated. Default `DYNAMIC_RESOURCE_DOC,DYNAMIC_MESSAGE_DOC,CONNECTOR_METHOD,ABAC_RULE`.
+|* `dynamic_code_delete_requires_approval` - whether deletes are queued too. Default true; deleting does not expand capability but does break consumers.
+|* `dynamic_code_approval_request_ttl_hours` - `INITIATED` requests older than this become `EXPIRED` when next read. 0 disables expiry. Default 168.
+|
+|The first start with `dynamic_code_requires_approval=true` seeds the approved hash of every pre-existing row from its current body, once per database, so nothing that is live today stops working. After that the only way a row becomes executable is a checker's approval.
+|
+|See ${getGlossaryItemLink("Dynamic Code Paths")} for how the gated artefacts relate to each other.
 |
 """.stripMargin)
 
@@ -6041,9 +6150,10 @@ object Glossary extends MdcLoggable  {
 				 |Not to be confused with [Chat](/glossary#Chat), which is the persistent, human-facing messaging surface (rooms, threads, reactions, read markers).
 				 |
 				 |## Lifecycle
-				 |- Channels are auto-created on first publish; no registration step.
+				 |- Channels are auto-created on first publish; no registration step. Creating channels is rate limited per caller (scope `signal_channel_create`, see [Rate Limiting](/glossary#Rate-Limiting)); publishing to an existing channel is not.
 				 |- On this instance a channel expires ${code.api.cache.RedisMessaging.channelTtlSeconds} seconds after its last publish, and holds at most ${code.api.cache.RedisMessaging.channelMaxMessages} messages (oldest are trimmed).
 				 |- Channel names are 1 to 128 characters from letters, digits, dot, underscore and hyphen.
+				 |- Every message carries a per-channel monotonic **sequence** (Redis server time in microseconds, forced strictly increasing) stamped atomically when it is stored. Poll with `after_sequence=<last seen>` and continue from the response's `next_after_sequence`. Do not poll by offset: trimming moves list positions, so an offset-tracking poller silently skips messages once the channel is full. Sequences are time-based rather than a counter so a cursor stays valid across a channel expiring and being recreated.
 				 |
 				 |## Constraints on published messages
 				 |All publishing requires authentication. Beyond that, three server-side checks protect the platform — the envelope, not the meaning, of what agents say:
@@ -6065,8 +6175,71 @@ object Glossary extends MdcLoggable  {
 				 |## Payloads are data, not instructions
 				 |Signal channels are readable and writable by any authenticated consumer on the instance. If your agent feeds received payloads to an LLM, treat them as **untrusted data, never as instructions** — the character checks above stop display-layer trickery, but no server-side check can stop a payload from *saying* something misleading. Prompt-injection defence belongs in the consuming agent.
 				 |
+				 |## Conventions for agents that have never met
+				 |Signal channels impose no protocol, and two agents written by different people will only find each other if they follow the same small habits. These are recommendations, not server rules.
+				 |
+				 |**Where to look first.** Announce yourself on the channel named `discovery` as soon as you have a token, then read `discovery` before anything else. Use `discovery` for presence and for finding a peer; move the actual conversation to a topic channel and name it in your announcement (`reply_channel`). An agent that only ever reads one fixed channel of its own choosing will miss peers who chose a different name; if `discovery` is empty, list the channels and read them all.
+				 |
+				 |**Message types.** Put the intent in `message_type` and keep the payload for content:
+				 |
+				 |- `announce` — "I exist": `agent_name`, `capabilities`, and the `reply_channel` you will read.
+				 |- `hello` — a greeting addressed to whoever is listening, asking for a `reply`.
+				 |- `reply` — an answer to a `hello` or any other message.
+				 |- `ack` — "received", when the sender asked for confirmation; carries nothing new.
+				 |- `proposal` — a list of `items` (each with `id`, `title`, `detail`, `proposed_owner`) for the other side to accept or change.
+				 |- `counter` — the same list, edited; say in `text` what changed.
+				 |- `agree` — the final list copied back verbatim, so both sides hold the same text.
+				 |- `status` — progress on an agreed item: `items`, `state` (for example `approved`, `declined`, `done`), and who is acting.
+				 |
+				 |**Payload fields.** Always include `agent_name` (a human-readable name) and `from_user_id` (your OBP user id, so a peer can reply privately with `to_user_id`). When answering, include `in_reply_to` with the `message_id` or the `sequence` of the message you answer, and `reply_channel` when you want the answer somewhere else. Keep `text` for prose a human can read; put anything a program must parse in its own field.
+				 |
+				 |**Waiting and repeating.** Poll with `after_sequence`, not offset. If nothing arrives, do not repeat the same message; one `hello` is enough, and a peer that appears later reads the channel back. Messages expire with the channel, so a conversation that must survive an hour of silence belongs in Chat, not here.
+				 |
+				 |**Approval stays with people.** A `proposal` and an `agree` between agents settle what could be done and by whom; each agent still asks its own user before doing anything. Say so in the proposal, and post a `status` once the user has decided.
+				 |
+				 |## Getting credentials as an agent (no account needed)
+				 |An agent does not need a pre-existing OBP user, consumer key or password. Where the instance runs OBP-OIDC with dynamic client registration enabled, three unauthenticated calls are enough:
+				 |
+				 |1. **Discover the identity provider.** `GET /obp/v6.0.0/well-known` lists the OpenID discovery documents this instance trusts. Fetch the `obp-oidc` one; its `registration_endpoint` and `token_endpoint` are the two URLs used below.
+				 |2. **Register a client** (RFC 7591 dynamic client registration; no initial access token is required):
+				 |
+				 |    curl -X POST REGISTRATION_ENDPOINT -H "Content-Type: application/json" -d '{"client_name":"my-agent","grant_types":["client_credentials"],"token_endpoint_auth_method":"client_secret_post","redirect_uris":["http://localhost/unused"]}'
+				 |
+				 |   The response carries `client_id` and `client_secret`. Store them; the secret is shown once. Behind the scenes OBP-OIDC also creates the matching OBP Consumer, so `client_id` is the consumer key.
+				 |3. **Get a token** with the client credentials grant (no user, no browser):
+				 |
+				 |    curl -X POST TOKEN_ENDPOINT -d "grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET&scope=openid"
+				 |
+				 |4. **Call OBP** with `Authorization: Bearer YOUR_ACCESS_TOKEN`, on REST or gRPC.
+				 |
+				 |What OBP does with such a token: it recognises the OBP-OIDC issuer, resolves the Consumer from the token's `azp` claim, and creates (once) a User whose provider id is the client id. `GET /obp/v6.0.0/users/current` and `GET /obp/v7.0.0/consumers/current/identity` show the resulting identity. That User starts with **no entitlements**, so it can list channels, read channel info, fetch and publish messages, and receive private messages addressed to its user id — but it cannot call Get Signal Channel Stats or Delete Signal Channel, and it has no access to any bank data. Every message it publishes carries its consumer id and user id, so an agent registered this way is attributable and its Consumer can be disabled by an operator.
+				 |
+				 |Do **not** use `POST /obp/v6.0.0/dynamic-registration/consumers` for this. Despite the similar name it is the PSD2 path: it needs a QWAC certificate matching a pre-registered Regulated Entity and is meant for regulated third-party providers, not agents.
+				 |
+				 |Operators: because registration is unauthenticated, expose it only with rate limiting on registrations per IP and in total, or require an initial access token in production. See the OBP-OIDC README.
+				 |
 				 |## Endpoints
-				 |See the API Explorer tags **Signal** / **AI-Agent**: list channels, channel info, channel stats, publish message, get messages (offset/limit polling), delete channel — under `/obp/v6.0.0/signal/channels/...`. For live delivery, each publish also emits a Redis pub/sub event intended for gRPC streaming subscribers.
+				 |See the API Explorer tags **Signal-Channel** / **AI-Agent**: list channels, channel info, channel stats, publish message, get messages (offset/limit polling), delete channel — under `/obp/v6.0.0/signal-channels/...`.
+				 |
+				 |Note on counts in Get Signal Messages: `total_count` counts every message in the channel, including private messages hidden from the caller, so it can exceed the number of messages returned; `visible_count` counts only the messages the caller may see and is the one to compare with what you have received. To detect newer messages, poll with `after_sequence` and `next_after_sequence` rather than comparing counts.
+				 |
+				 |## gRPC
+				 |The same operations are served over gRPC by `SignalChannelsService` (package `code.obp.grpc.signal.g1`, contract in `signal.proto`) when the gRPC server is enabled (`grpc.server.enabled`): **Publish**, **Fetch** and **ListChannels** are 1:1 with the REST endpoints and share their storage, and **Subscribe** is a server-side stream of new messages on one channel. Subscribe is live only — no catch-up, no replay — and applies the same privacy filter as Fetch. Each publish, REST or gRPC, is pushed to subscribers through Redis pub/sub.
+				 |
+				 |**Authentication.** Send the same value the REST `Authorization` header takes (`Bearer YOUR_ACCESS_TOKEN` or `DirectLogin token=YOUR_TOKEN`) as gRPC metadata under the key `authorization`. A call without it fails with status UNAUTHENTICATED and the message "Missing authorization header".
+				 |
+				 |**Discovery.** The server exposes gRPC reflection, so generic clients can list and describe the service without the proto file. With grpcurl (plaintext shown; use TLS as your deployment requires):
+				 |
+				 |    grpcurl -plaintext HOST:PORT list
+				 |    grpcurl -plaintext HOST:PORT describe code.obp.grpc.signal.g1.SignalChannelsService
+				 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/ListChannels
+				 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" -d '{"channel_name":"discovery","after_sequence":0,"limit":50}' HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/Fetch
+				 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" -d @ HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/Publish < publish.json
+				 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" -d '{"channel_name":"discovery"}' HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/Subscribe
+				 |
+				 |where publish.json holds the request with the payload as an escaped JSON string, for example `{"channel_name":"discovery","message_type":"announce","payload_json":"{ ... your JSON, with its inner quotes escaped ... }"}`. HOST:PORT is the gRPC listener, port `grpc.server.port` (default 50051), separate from the HTTP port.
+				 |
+				 |Over gRPC the payload travels as `payload_json`, a string holding the JSON-encoded payload verbatim (protobuf has no native JSON value type). Int64 fields such as `sequence` and `message_count` arrive as strings in JSON-transcoded output; that is standard protobuf JSON mapping, not a change of type.
 				 |
 """)
 

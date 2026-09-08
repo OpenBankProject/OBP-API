@@ -152,6 +152,8 @@ hikari.maximumPoolSize=20
 # ConnectorMethodTest, AbacRuleTests, DynamicResourceDocTest, DynamicMessageDocTest and
 # DynamicCodeKillSwitchTest's ON scenarios can compile/execute dynamic code locally.
 allow_user_generated_scala_code=true
+# Maker/checker for dynamic code is off by default; DynamicChangeRequestTest turns it on per scenario.
+dynamic_code_requires_approval=false
 
 # Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox.
 # Mirrors default.props / production.default.props. Required so dynamic resource-doc bodies can do

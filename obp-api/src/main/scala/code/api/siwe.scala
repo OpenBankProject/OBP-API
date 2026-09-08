@@ -257,7 +257,7 @@ object SIWE extends MdcLoggable {
   def getOrCreateUser(chainId: Long, checksumAddress: String): Box[User] = {
     val provider = "siwe." + chainId
     AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), provider, checksumAddress) match {
-      case Left(_)  => Failure(ErrorMessages.TooManyRequests)
+      case Left(_)  => Failure(ErrorMessages.TooManyRequestsAuth)
       case Right(_) => UserX.getOrCreateDauthResourceUser(provider, checksumAddress)
     }
   }

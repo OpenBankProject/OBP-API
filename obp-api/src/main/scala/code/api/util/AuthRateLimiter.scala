@@ -7,9 +7,14 @@ import code.util.Helper.MdcLoggable
 
 /** Pre-credential-check rate limiter for authentication endpoints.
  *
- *  Distinct from [[RateLimitingUtil]] (which fires post-auth, keyed by consumer_id).
+ *  One of three limiters, each with its own 429 code:
+ *   - [[RateLimitingUtil]]        post-auth, keyed by Consumer, the commercial quota   -> OBP-10018
+ *   - [[SelfServiceRateLimiter]]  pre-auth, keyed by client IP, abuse of the free tier -> OBP-10060
+ *   - this limiter                inside the credential check, keyed by IP and account -> OBP-10061
  *  This limiter fires BEFORE the password check, keyed by source IP and (provider, username),
- *  to defend against brute-force, credential-stuffing, and lockout-DoS attacks.
+ *  to defend against brute-force, credential-stuffing, and lockout-DoS attacks. It owns every
+ *  credential check: DirectLogin (via AuthUser.getResourceUserId), DAuth, GatewayLogin and SIWE.
+ *  Callers render a trip as 429 with ErrorMessages.TooManyRequestsAuth.
  *
  *  Three counters checked per call:
  *   - per-IP per minute   — burst defence
@@ -30,28 +35,35 @@ object AuthRateLimiter extends MdcLoggable {
   /** A counter that exceeded its limit. Carries the data the caller needs to render a 429. */
   case class Exceeded(counter: String, current: Long, limit: Long, retryAfterSeconds: Long)
 
-  private def enabled: Boolean         = APIUtil.getPropsAsBoolValue("auth.rate_limit.enabled", false)
-  private def mode: String             = APIUtil.getPropsValue("auth.rate_limit.mode", "shadow")
-  private def perIpPerMinute: Long     = APIUtil.getPropsAsLongValue("auth.rate_limit.per_ip.per_minute", 10L)
-  private def perIpPerHour: Long       = APIUtil.getPropsAsLongValue("auth.rate_limit.per_ip.per_hour", 100L)
-  private def perUserPerMinute: Long   = APIUtil.getPropsAsLongValue("auth.rate_limit.per_user.per_minute", 6L)
+  // Public so GET /obp/v7.0.0/management/rate-limiter-config can report the live configuration.
+  val PropsPrefix = "auth.rate_limit"
+  def enabled: Boolean         = APIUtil.getPropsAsBoolValue(s"$PropsPrefix.enabled", false)
+  def mode: String             = APIUtil.getPropsValue(s"$PropsPrefix.mode", "shadow")
+  def perIpPerMinute: Long     = APIUtil.getPropsAsLongValue(s"$PropsPrefix.per_ip.per_minute", 10L)
+  def perIpPerHour: Long       = APIUtil.getPropsAsLongValue(s"$PropsPrefix.per_ip.per_hour", 100L)
+  def perUserPerMinute: Long   = APIUtil.getPropsAsLongValue(s"$PropsPrefix.per_user.per_minute", 6L)
 
   def check(ip: String, provider: String, username: String): Either[Exceeded, Unit] = {
     if (!enabled) return Right(())
 
-    val safeIp       = if (ip == null || ip.isEmpty) "unknown" else ip
+    // "Unknown" is what APIUtil.getRemoteIpAddress() returns when no request is in scope. Pooling
+    // every such call under one "ip_Unknown" key would rate limit all users together, so an
+    // unknown IP disables the per-IP windows; the per-user window still applies.
+    val ipKnown      = ip != null && ip.trim.nonEmpty && !ip.equalsIgnoreCase("unknown")
+    val safeIp       = if (ipKnown) ip.trim else "unknown"
     val safeProvider = if (provider == null || provider.isEmpty) "local" else provider
     val safeUser     = if (username == null) "" else username
     val userHash     = sha256Hex(safeUser).take(12)
 
     val counters: List[(String, String, LimitCallPeriod, Long)] = List(
-      ("ip_per_minute",   buildKey(s"ip_$safeIp",                       PER_MINUTE), PER_MINUTE, perIpPerMinute),
+      ("ip_per_minute",   buildKey(s"ip_$safeIp",                       PER_MINUTE), PER_MINUTE, if (ipKnown) perIpPerMinute else -1L),
       ("user_per_minute", buildKey(s"user_${safeProvider}_$userHash",   PER_MINUTE), PER_MINUTE, perUserPerMinute),
-      ("ip_per_hour",     buildKey(s"ip_$safeIp",                       PER_HOUR),   PER_HOUR,   perIpPerHour)
+      ("ip_per_hour",     buildKey(s"ip_$safeIp",                       PER_HOUR),   PER_HOUR,   if (ipKnown) perIpPerHour else -1L)
     )
 
     val trips = counters.flatMap { case (name, key, period, limit) =>
-      val (ttl, current) = RateLimitingUtil.incrementCounter(key, period)
+      // limit < 0: window switched off (unknown IP), do not touch Redis
+      val (ttl, current) = if (limit < 0) (-1L, -1L) else RateLimitingUtil.incrementCounter(key, period)
       // current == -1 signals Redis-unavailable; fail open by skipping this counter.
       // limit <= 0 signals "disabled"; skip.
       if (current > 0 && limit > 0 && current > limit) {
