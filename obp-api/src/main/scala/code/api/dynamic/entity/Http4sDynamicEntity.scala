@@ -114,15 +114,20 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def deReferenceFields(bankId: Option[String], entityName: String): Map[String, String] =
     DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.referenceFields).getOrElse(Map.empty)
 
+  private def deUnindexedReferenceFields(bankId: Option[String], entityName: String): Map[String, String] =
+    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.unindexedReferenceFields).getOrElse(Map.empty)
+
   /** Resolve a join-target (child) entity's indexed + reference fields for the planner (same bank scope). */
   private def childJoinInfo(bankId: Option[String])(child: String): Option[JoinTargetInfo] =
-    DynamicEntityHelper.definitionsMap.get((bankId, child)).map(i => JoinTargetInfo(i.indexedFields, i.referenceFields))
+    DynamicEntityHelper.definitionsMap.get((bankId, child))
+      .map(i => JoinTargetInfo(i.indexedFields, i.referenceFields, i.unindexedReferenceFields))
 
   /** Parse + validate list-read query params into a QueryPlan; fail 400 (clear message) on any error. */
   private def buildQueryPlan(req: Request[IO], bankId: Option[String], entityName: String, cc: Option[CallContext]): Future[QueryPlan] = {
     val planned = QueryParamParser.parse(queryParams(req)).flatMap { case (filters, joins, sort, page) =>
       QueryPlanner.plan(filters, joins, sort, page, entityName,
-        deIndexedFields(bankId, entityName), deReferenceFields(bankId, entityName), childJoinInfo(bankId))
+        deIndexedFields(bankId, entityName), deReferenceFields(bankId, entityName), childJoinInfo(bankId),
+        deUnindexedReferenceFields(bankId, entityName))
     }
     planned match {
       case Right(plan) => Future.successful(plan)

@@ -81,6 +81,7 @@ object ErrorMessages {
   val RowLevelAccessRequiresLocalBacking = "OBP-09020: use_row_level_access is only supported for locally-backed dynamic entities. This entity is routed to an external connector (a method routing for dynamicEntityProcess exists for it), where the row-level ACL cannot be enforced. Remove the method routing or disable use_row_level_access."
   val RowLevelAccessNotEnabled = "OBP-09021: The row-access endpoints are only available for dynamic entities created with use_row_level_access = true."
   val DynamicEntityJoinRequiresProjection = "OBP-09022: obp_exists / obp_not_exists join queries require the SQL projection backend (dynamic_entity.indexing.backend=auto on a supported database). This deployment serves Dynamic Entity reads in-memory, where joins are not supported."
+  val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name, the set of property names and each property's type must stay the same, and no property may be added to 'required'. Changing indexed, index, example, description, minLength, maxLength and the read/write role settings is allowed. Delete all the data before making a structural change."
 
 
   // General messages (OBP-10XXX)

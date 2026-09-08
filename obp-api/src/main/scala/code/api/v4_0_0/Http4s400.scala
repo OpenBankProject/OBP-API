@@ -1664,14 +1664,17 @@ object Http4s400 {
     private def updateDynamicEntityImpl(bankId: Option[String], dynamicEntityId: String, json: JValue, cc: CallContext): Future[JValue] =
       for {
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankId, dynamicEntityId, Some(cc))
+        dynamicEntity <- tryOrApiFail(cc) {
+          DynamicEntityCommons(json.asInstanceOf[JObject], Some(dynamicEntityId), cc.userId, bankId)
+        }
         (box, _) <- NewStyle.function.invokeDynamicConnector(
           GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
         resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-        _ <- code.util.Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = Some(cc)) {
-          resultList.arr.isEmpty
-        }
-        dynamicEntity <- tryOrApiFail(cc) {
-          DynamicEntityCommons(json.asInstanceOf[JObject], Some(dynamicEntityId), cc.userId, bankId)
+        // A populated entity may still take a schema-compatible update (e.g. switching `indexed` on so
+        // DE_indexing can backfill it); a structural change still requires the data to be deleted first.
+        _ <- code.util.Helper.booleanToFuture(DynamicEntityUpdateNotSchemaCompatible, cc = Some(cc)) {
+          resultList.arr.isEmpty || code.api.dynamic.entity.helper.DynamicEntityHelper.isSchemaCompatibleChange(
+            entity.entityName, entity.metadataJson, dynamicEntity.entityName, dynamicEntity.metadataJson)
         }
         Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
       } yield {
@@ -1783,10 +1786,16 @@ object Http4s400 {
       "Update System Level Dynamic Entity",
       s"""Update a system level DynamicEntity.
          |
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
+         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
+         |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
+         |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
+         |
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateSystemDynamicEntity)),
       http4sPartialFunction = Some(updateSystemDynamicEntity))
@@ -1812,10 +1821,16 @@ object Http4s400 {
       "Update Bank Level Dynamic Entity",
       s"""Update a Bank Level DynamicEntity.
          |
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
+         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
+         |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
+         |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
+         |
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateBankLevelDynamicEntity)),
       http4sPartialFunction = Some(updateBankLevelDynamicEntity))
@@ -1901,18 +1916,20 @@ object Http4s400 {
             myEntity <- NewStyle.function.tryons(InvalidMyDynamicEntityUser, 400, Some(cc)) {
               entityOption.get
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(
-              GET_ALL, myEntity.entityName, None, myEntity.dynamicEntityId,
-              myEntity.bankId, None, Some(myEntity.userId), false, Some(cc))
-            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], myEntity.entityName)
-            _ <- code.util.Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = Some(cc)) {
-              resultList.arr.isEmpty
-            }
             jsonObj <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).asInstanceOf[JObject]
             }
             dynamicEntity <- tryOrApiFail(cc) {
               DynamicEntityCommons(jsonObj, Some(dynamicEntityId), user.userId, myEntity.bankId)
+            }
+            (box, _) <- NewStyle.function.invokeDynamicConnector(
+              GET_ALL, myEntity.entityName, None, myEntity.dynamicEntityId,
+              myEntity.bankId, None, Some(myEntity.userId), false, Some(cc))
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], myEntity.entityName)
+            // Same rule as updateDynamicEntityImpl: populated entities accept schema-compatible updates only.
+            _ <- code.util.Helper.booleanToFuture(DynamicEntityUpdateNotSchemaCompatible, cc = Some(cc)) {
+              resultList.arr.isEmpty || code.api.dynamic.entity.helper.DynamicEntityHelper.isSchemaCompatibleChange(
+                myEntity.entityName, myEntity.metadataJson, dynamicEntity.entityName, dynamicEntity.metadataJson)
             }
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
           } yield {
@@ -1928,10 +1945,16 @@ object Http4s400 {
       "Update My Dynamic Entity",
       s"""Update my DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
+         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
+         |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
+         |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
+         |
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi), None,
       http4sPartialFunction = Some(updateMyDynamicEntity))
 

@@ -271,8 +271,9 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |1. **Rate Limit Records**: Stored in the `RateLimiting` table with date ranges (from_date, to_date)
 				 |2. **Multiple Records**: A consumer can have multiple active rate limit records that overlap
-				 |3. **Aggregation**: When multiple records are active, per period: a `0` in any record blocks the period; otherwise the positive values are summed; otherwise (all `-1`) the period is unlimited
+				 |3. **Aggregation**: When multiple records are active, per period: `-1` values are ignored and the rest (`0` or positive) are summed; a sum of `0` blocks the period; nothing to sum (all `-1`) means unlimited
 				 |4. **Enforcement**: On every API request, the system checks Redis counters against the aggregated limits
+				 |5. **Counting**: Every served request is counted in the Redis counter of every period, whether or not that period has a limit, so the call-counter endpoints show a Consumer's activity even when nothing limits it. A blocked period (sum `0`) serves nothing, so nothing is counted under it.
 				 |
 				 |### Time Periods
 				 |
@@ -297,6 +298,8 @@ object Glossary extends MdcLoggable  {
 				 |- `X-Rate-Limit-Limit`: Maximum allowed requests for the period
 				 |- `X-Rate-Limit-Remaining`: Remaining requests in current period
 				 |- `X-Rate-Limit-Reset`: Seconds until the limit resets
+				 |
+				 |The three headers describe the shortest period that has a positive limit (per second before per minute, and so on). When no period is limited they read `-1`.
 				 |
 				 |### HTTP Status Codes
 				 |

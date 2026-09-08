@@ -9,8 +9,13 @@ import scala.util.Try
 case class FieldSpec(fieldType: DynamicEntityFieldType, indexKind: String)
 
 /** What the planner needs to know about a join target (child) entity: its indexed fields (for nested
- *  predicate validation) and its declared reference fields (for edge inference). */
-case class JoinTargetInfo(indexedFields: Map[String, FieldSpec], referenceFields: Map[String, String])
+ *  predicate validation), its indexed reference fields (for edge inference), and its reference fields
+ *  that are declared but not indexed (only used to word a precise rejection). */
+case class JoinTargetInfo(
+  indexedFields: Map[String, FieldSpec],
+  referenceFields: Map[String, String],
+  unindexedReferenceFields: Map[String, String] = Map.empty
+)
 
 /** A contract-layer validation failure (maps to HTTP 400 at the endpoint). */
 case class QueryError(message: String)
@@ -38,9 +43,11 @@ object QueryPlanner {
 
   /**
    * Full planner including one-hop join clauses. `parentReferenceFields` are the queried entity's
-   * declared reference fields (for parent→child edges); `childInfoOf` resolves a join-target entity's
-   * indexed + reference fields (None if no such entity). Joins are resolved to a concrete link field +
-   * direction here, or rejected with a clear 400.
+   * declared and indexed reference fields (for parent→child edges); `childInfoOf` resolves a join-target
+   * entity's indexed + reference fields (None if no such entity); `parentUnindexedReferenceFields` are
+   * the queried entity's reference fields that are declared but not indexed, used only to word a
+   * precise rejection. Joins are resolved to a concrete link field + direction here, or rejected with
+   * a clear 400.
    */
   def plan(
     filters: List[Filter],
@@ -50,56 +57,96 @@ object QueryPlanner {
     parentEntityName: String,
     parentIndexedFields: Map[String, FieldSpec],
     parentReferenceFields: Map[String, String],
-    childInfoOf: String => Option[JoinTargetInfo]
+    childInfoOf: String => Option[JoinTargetInfo],
+    parentUnindexedReferenceFields: Map[String, String] = Map.empty
   ): Either[QueryError, QueryPlan] =
     for {
       _     <- firstError(filters.map(validateFilter(_, parentIndexedFields)))
       _     <- firstError(sort.map(validateSort(_, parentIndexedFields)))
-      joins <- traverse(rawJoins)(resolveJoin(_, parentEntityName, parentReferenceFields, childInfoOf))
+      _     <- if (rawJoins.nonEmpty && parentIndexedFields.isEmpty) Left(parentNotIndexed(parentEntityName)) else Right(())
+      joins <- traverse(rawJoins)(resolveJoin(_, parentEntityName, parentReferenceFields, parentUnindexedReferenceFields, childInfoOf))
     } yield QueryPlan(filters, joins, sort, page)
 
   // ----- join resolution -----
+
+  /** A reference field that could have been a join edge but is not `indexed`: (field, onChild). */
+  private type UnindexedEdge = (String, Boolean)
 
   private def resolveJoin(
     raw: RawJoin,
     parentEntityName: String,
     parentReferenceFields: Map[String, String],
+    parentUnindexedReferenceFields: Map[String, String],
     childInfoOf: String => Option[JoinTargetInfo]
   ): Either[QueryError, JoinClause] =
     childInfoOf(raw.childEntity) match {
       case None => Left(QueryError(s"Cannot join '${raw.childEntity}': no such Dynamic Entity."))
       case Some(childInfo) =>
         // Candidate edges: a child field referencing the parent (onChild=true), or a parent field
-        // referencing the child (onChild=false). Edge = a declared `reference:` field only.
+        // referencing the child (onChild=false). Edge = a declared AND indexed `reference:` field only.
         val childToParent = childInfo.referenceFields.collect { case (f, t) if t == parentEntityName => (f, true) }.toList
         val parentToChild = parentReferenceFields.collect { case (f, t) if t == raw.childEntity => (f, false) }.toList
         val candidates    = childToParent ++ parentToChild
+        // Declared-but-unindexed references in either direction: not edges, but the reason to report.
+        val unindexed: List[UnindexedEdge] =
+          childInfo.unindexedReferenceFields.collect { case (f, t) if t == parentEntityName => (f, true) }.toList ++
+          parentUnindexedReferenceFields.collect { case (f, t) if t == raw.childEntity => (f, false) }.toList
         for {
-          edge <- selectEdge(raw, candidates)
+          edge <- selectEdge(raw, parentEntityName, candidates, unindexed)
           // Nested predicate validates against the CHILD's indexed fields.
           _    <- firstError(raw.predicate.map(validateFilter(_, childInfo.indexedFields)))
         } yield JoinClause(raw.quantifier, raw.childEntity, edge._1, edge._2, raw.predicate)
     }
 
-  private def selectEdge(raw: RawJoin, candidates: List[(String, Boolean)]): Either[QueryError, (String, Boolean)] =
+  private def selectEdge(
+    raw: RawJoin,
+    parentEntityName: String,
+    candidates: List[(String, Boolean)],
+    unindexed: List[UnindexedEdge]
+  ): Either[QueryError, (String, Boolean)] =
     raw.via match {
       case Some(field) =>
         candidates.filter(_._1 == field) match {
           case single :: Nil => Right(single)
           case Nil =>
-            Left(QueryError(s"No reference field '$field' links '${raw.childEntity}' to the queried entity." +
-              candidateHint(raw, candidates)))
+            unindexed.find(_._1 == field) match {
+              case Some(u) => Left(unindexedEdgeError(raw, parentEntityName, List(u)))
+              case None =>
+                Left(QueryError(s"No reference field '$field' links '${raw.childEntity}' to the queried entity." +
+                  candidateHint(raw, candidates)))
+            }
           case _ => Left(QueryError(s"Ambiguous link field '$field' for join with '${raw.childEntity}'."))
         }
       case None =>
         candidates match {
           case single :: Nil => Right(single)
+          case Nil if unindexed.nonEmpty => Left(unindexedEdgeError(raw, parentEntityName, unindexed))
           case Nil           => Left(QueryError(s"Cannot join '${raw.childEntity}': no declared reference links it to the queried entity. " +
-                                  "A join edge must be a field typed 'reference:<Entity>'."))
+                                  "A join edge must be a field typed 'reference:<Entity>' and declared \"indexed\": true."))
           case many          => Left(QueryError(s"Ambiguous join with '${raw.childEntity}': multiple reference edges " +
                                   s"(${many.map(_._1).mkString(", ")}). Specify via:<field>."))
         }
     }
+
+  /** The reference exists but is not indexed: say exactly which field on which entity needs `"indexed": true`. */
+  private def unindexedEdgeError(raw: RawJoin, parentEntityName: String, unindexed: List[UnindexedEdge]): QueryError =
+    unindexed match {
+      case (field, onChild) :: Nil =>
+        val (owner, target) = if (onChild) (raw.childEntity, parentEntityName) else (parentEntityName, raw.childEntity)
+        QueryError(s"Cannot join '${raw.childEntity}' via '$field': the field '$field' on '$owner' is typed 'reference:$target' " +
+          s"but is not declared \"indexed\": true. Add \"indexed\": true to that field on '$owner' " +
+          "(and to any field used in the nested filter) and let the index build.")
+      case many =>
+        val described = many.map { case (field, onChild) => s"'$field' on '${if (onChild) raw.childEntity else parentEntityName}'" }
+        QueryError(s"Cannot join '${raw.childEntity}': the reference fields linking it to the queried entity " +
+          s"(${described.mkString(", ")}) are not declared \"indexed\": true. Add \"indexed\": true to the one you " +
+          "want to join on (and to any field used in the nested filter), let the index build, then specify via:<field>.")
+    }
+
+  /** Joins run on the SQL projection, which only exists for entities with at least one indexed field. */
+  private def parentNotIndexed(parentEntityName: String): QueryError =
+    QueryError(s"Cannot join from '$parentEntityName': none of its fields are declared \"indexed\": true, so it has no " +
+      s"SQL projection to join on. Declare at least one field on '$parentEntityName' as \"indexed\": true and let the index build.")
 
   private def candidateHint(raw: RawJoin, candidates: List[(String, Boolean)]): String =
     if (candidates.isEmpty) "" else s" Candidates: ${candidates.map(_._1).mkString(", ")}."

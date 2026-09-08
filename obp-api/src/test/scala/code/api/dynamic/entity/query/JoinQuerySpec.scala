@@ -106,6 +106,58 @@ class JoinQuerySpec extends FlatSpec with Matchers {
     planJoin(RawJoin(Quantifier.Exists, "Contract", None, Nil), unrelated).isLeft shouldBe true
   }
 
+  // ----- planner: precise rejections when the reference exists but is not indexed -----
+
+  // child Contract whose partner_id is typed reference:Partner but NOT declared indexed
+  private val contractUnindexedEdge = JoinTargetInfo(
+    indexedFields = Map("active" -> FieldSpec(DynamicEntityFieldType.boolean, "scalar")),
+    referenceFields = Map.empty,
+    unindexedReferenceFields = Map("partner_id" -> "Partner"))
+
+  it should "name the unindexed child reference field instead of claiming no reference is declared" in {
+    val Left(err) = planJoin(RawJoin(Quantifier.Exists, "Contract", None, Nil), contractUnindexedEdge)
+    err.message should include ("via 'partner_id'")
+    err.message should include ("'partner_id' on 'Contract' is typed 'reference:Partner'")
+    err.message should include ("not declared \"indexed\": true")
+    err.message should not include ("no declared reference")
+  }
+
+  it should "name the unindexed child reference field when via: points at it" in {
+    val Left(err) = planJoin(RawJoin(Quantifier.Exists, "Contract", Some("partner_id"), Nil), contractUnindexedEdge)
+    err.message should include ("'partner_id' on 'Contract'")
+    err.message should include ("not declared \"indexed\": true")
+  }
+
+  it should "name the unindexed parent reference field for a parent -> child edge" in {
+    val childNoEdges = JoinTargetInfo(Map("active" -> FieldSpec(DynamicEntityFieldType.boolean, "scalar")), Map.empty)
+    val Left(err) = QueryPlanner.plan(Nil, List(RawJoin(Quantifier.NotExists, "Contract", None, Nil)), Nil, Page.empty,
+      "Partner", partnerIndexed, Map.empty, childInfoOf(Map("Contract" -> childNoEdges)),
+      parentUnindexedReferenceFields = Map("favourite_contract" -> "Contract"))
+    err.message should include ("'favourite_contract' on 'Partner' is typed 'reference:Contract'")
+    err.message should include ("not declared \"indexed\": true")
+  }
+
+  it should "list every unindexed reference field when more than one could be the edge" in {
+    val twoUnindexed = contractUnindexedEdge.copy(unindexedReferenceFields = Map("buyer_id" -> "Partner", "seller_id" -> "Partner"))
+    val Left(err) = planJoin(RawJoin(Quantifier.Exists, "Contract", None, Nil), twoUnindexed)
+    err.message should include ("'buyer_id' on 'Contract'")
+    err.message should include ("'seller_id' on 'Contract'")
+    err.message should include ("via:<field>")
+  }
+
+  it should "reject a join from a parent that has no indexed fields at all, saying so" in {
+    val Left(err) = QueryPlanner.plan(Nil, List(RawJoin(Quantifier.Exists, "Contract", None, Nil)), Nil, Page.empty,
+      "Partner", Map.empty, Map.empty, childInfoOf(Map("Contract" -> contractSingleEdge)))
+    err.message should include ("Cannot join from 'Partner'")
+    err.message should include ("no SQL projection")
+  }
+
+  it should "keep the generic message when no reference of any kind links the entities" in {
+    val unrelated = JoinTargetInfo(Map("active" -> FieldSpec(DynamicEntityFieldType.boolean, "scalar")), Map.empty)
+    val Left(err) = planJoin(RawJoin(Quantifier.Exists, "Contract", None, Nil), unrelated)
+    err.message should include ("no declared reference")
+  }
+
   it should "reject a join onto a non-existent entity" in {
     QueryPlanner.plan(Nil, List(RawJoin(Quantifier.Exists, "Nope", None, Nil)), Nil, Page.empty, "Partner",
       partnerIndexed, Map.empty, _ => None).isLeft shouldBe true
