@@ -9,7 +9,7 @@ import java.util.Date
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ApiTag.ResourceDocTag
 import code.api.util.Glossary.glossaryItems
-import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, I18NUtil, PegdownOptions}
+import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, Glossary, I18NUtil, PegdownOptions}
 import code.bankconnectors.LocalMappedConnector.getAllEndpointTagsBox
 import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
@@ -566,7 +566,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // Without them, a request for /obp/v7.0.0/resource-docs hits cache entries warmed by an
     // earlier /obp/dynamic-endpoint/resource-docs call and returns the wrong specified_url.
     // (Superset of upstream's specifiedUrl-only fix in 17faa09ac.)
-    val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology-requestUrl:${resourceDocUpdatedTags.requestUrl}-specifiedUrl:${resourceDocUpdatedTags.specifiedUrl.getOrElse("")}".intern()
+    // The Glossary version belongs in the key too: descriptions embed Glossary text, so a Dynamic
+    // Glossary Item that overrides a static one must not be masked by an hour-old cache entry.
+    // The value is read from an in-memory cache that re-checks the database at most once a second.
+    val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology-requestUrl:${resourceDocUpdatedTags.requestUrl}-specifiedUrl:${resourceDocUpdatedTags.specifiedUrl.getOrElse("")}-glossary:${Glossary.glossaryVersionForCacheKey}".intern()
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
       val fieldsDescription =
         if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
@@ -597,7 +600,11 @@ object JSONFactory1_4_0 extends MdcLoggable{
           locale,
           resourceDocUpdatedTags.description.stripMargin.trim
         )
-        val description = resourceDocDescription ++ fieldsDescription
+        // Expand any Glossary placeholders now, against the union of static and Dynamic Glossary
+        // Items. Doing it here rather than when the Resource Doc was built is what lets a Dynamic
+        // Glossary Item override the shipped text in an endpoint description. Translations may
+        // carry placeholders too, hence after translate.
+        val description = Glossary.expandGlossaryPlaceholders(resourceDocDescription ++ fieldsDescription)
         val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
         val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
 

@@ -35,7 +35,8 @@ object ExampleValue {
   lazy val bankIdExample = ConnectorField("gh.29.uk", s"A string that MUST uniquely identify the bank on this OBP instance. " +
     s"It COULD be a UUID but is generally a short string that easily identifies the bank / brand it represents.")
   lazy val bank_idExample = bankIdExample
-  glossaryItems += makeGlossaryItem("Bank.bank_id", bankIdExample)
+  // No glossary item for Bank.bank_id here: Glossary.scala defines a fuller one (format, version
+  // history), and two items with the same title made the Glossary return it twice.
 
   lazy val accountIdExample = ConnectorField("8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0", s"A string that, in combination with the bankId MUST uniquely identify the account on this OBP instance. SHOULD be a UUID. " +
     s"MUST NOT be able to guess accountNumber from accountId. OBP-API or Adapter keeps a mapping between accountId and accountNumber. AccountId is a non reversible hash of the human readable account number.")

@@ -1080,6 +1080,7 @@ object ToSchemify extends MdcLoggable {
     Organisation,
     RoutingScheme,
     BankSupportedRoutingScheme,
+    code.glossaryitem.DynamicGlossaryItem,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,

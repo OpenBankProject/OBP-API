@@ -8,7 +8,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
@@ -31,6 +31,7 @@ import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
 import code.organisation.Organisations
+import code.glossaryitem.DynamicGlossaryItems
 import code.routingscheme.{RoutingSchemes, RoutingSchemeValidation}
 import code.payeelookup.PayeeLookups
 import code.utilitypayment.{UtilityCallbackDispatcher, UtilityPaymentCallbacks}
@@ -3463,6 +3464,260 @@ object Http4s700 {
     )
 
     // ── End Routing Schemes ───────────────────────────────────────────────────
+
+    // ── Dynamic Glossary Items ────────────────────────────────────────────────
+    // The Glossary served by GET /obp/v3.0.0/api/glossary is the union of the static Glossary
+    // Items compiled into Glossary.scala and the Dynamic Glossary Items maintained here. A
+    // Dynamic Item replaces a static one of the same title (compared case insensitively), so an
+    // operator can correct, extend or localise shipped text without redeploying the API.
+    //
+    // Title is the resource key. TITLE segments may contain '.' and spaces — http4s matches path
+    // segments by '/' and url-decodes them, so "Bank.bank_id" is a single segment.
+
+    private val GlossaryItemMaxTitleLength = 255
+
+    private def isValidGlossaryItemTitle(title: String): Boolean =
+      title.nonEmpty && title.length <= GlossaryItemMaxTitleLength
+
+    val createDynamicGlossaryItem: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "glossary-items" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostGlossaryItemJsonV700, JSONFactory700.GlossaryItemJsonV700](req) { (user, body, cc) =>
+          // A json null extracts to a null String rather than failing, so guard before trimming.
+          val title = Option(body.title).map(_.trim).getOrElse("")
+          for {
+            _ <- Helper.booleanToFuture(InvalidGlossaryItemTitle, 400, Some(cc))(isValidGlossaryItemTitle(title))
+            existing <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemByTitle(title))
+            _ <- Helper.booleanToFuture(GlossaryItemAlreadyExists, 409, Some(cc))(existing.isEmpty)
+            created <- Future {
+              DynamicGlossaryItems.dynamicGlossaryItem.vend.createDynamicGlossaryItem(
+                title = title,
+                description = body.description,
+                createdByUserId = user.userId
+              )
+            }.map(unboxFullOrFail(_, Some(cc), CreateGlossaryItemError, 400))
+            // Reflect the write on this node at once; other nodes pick it up via the watermark.
+            _ = Glossary.invalidateGlossaryItemCache()
+          } yield JSONFactory700.createGlossaryItemJsonV700(created)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createDynamicGlossaryItem),
+      "POST",
+      "/glossary-items",
+      "Create Dynamic Glossary Item",
+      """Create a Dynamic Glossary Item.
+        |
+        |`description` is markdown, the same flavour the static Glossary uses. It is returned as both markdown and rendered html.
+        |
+        |Titles are unique case insensitively across Dynamic Glossary Items — creating one that already exists returns 409; update it with `PUT /glossary-items/TITLE` instead.
+        |
+        |A title MAY match a static Glossary Item. In that case this item replaces the static one everywhere the Glossary is listed (`GET /obp/v3.0.0/api/glossary`), and the response flags it with `overrides_static_glossary_item: true`. Deleting the Dynamic Item restores the static text.
+        |
+        |Note: the static text embedded in individual endpoint descriptions is rendered when the API starts and is not affected by Dynamic Glossary Items.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PostGlossaryItemJsonV700(
+        title = "Bank.bank_id",
+        description = "The unique identifier of the Bank on this OBP instance.\n\nExample value: gh.29.uk"
+      ),
+      JSONFactory700.GlossaryItemJsonV700(
+        glossary_item_id = "8f2b1c44-1f2a-4c3d-9a7e-5b6c7d8e9f01",
+        title = "Bank.bank_id",
+        description = JSONFactory700.GlossaryItemDescriptionJsonV700(
+          markdown = "The unique identifier of the Bank on this OBP instance.",
+          html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
+        ),
+        overrides_static_glossary_item = true,
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           InvalidGlossaryItemTitle, GlossaryItemAlreadyExists, CreateGlossaryItemError, UnknownError),
+      apiTagDocumentation :: Nil,
+      Some(List(canCreateGlossaryItem)),
+      http4sPartialFunction = Some(createDynamicGlossaryItem)
+    )
+
+    val getDynamicGlossaryItems: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "glossary-items" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          val q = req.uri.query.params
+          val title  = q.get("title").filter(_.nonEmpty)
+          val limit  = q.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(100).max(1).min(500)
+          val offset = q.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0).max(0)
+          for {
+            page <- DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItems(title, limit, offset)
+              .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
+            (rows, total) = page
+          } yield JSONFactory700.createGlossaryItemsJsonV700(rows, total, limit, offset)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicGlossaryItems),
+      "GET",
+      "/glossary-items",
+      "Get Dynamic Glossary Items",
+      """Returns the Dynamic Glossary Items only — the ones held in the database and maintained over these endpoints.
+        |
+        |For the Glossary as consumers see it (static Glossary Items unioned with these), call `GET /obp/v3.0.0/api/glossary`.
+        |
+        |Optional query parameters:
+        |
+        |* `title` — return only items whose title contains this value (case insensitive).
+        |* `limit` — page size, default 100, maximum 500.
+        |* `offset` — number of items to skip, default 0.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.GlossaryItemsJsonV700(
+        glossary_items = List(
+          JSONFactory700.GlossaryItemJsonV700(
+            glossary_item_id = "8f2b1c44-1f2a-4c3d-9a7e-5b6c7d8e9f01",
+            title = "Bank.bank_id",
+            description = JSONFactory700.GlossaryItemDescriptionJsonV700(
+              markdown = "The unique identifier of the Bank on this OBP instance.",
+              html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
+            ),
+            overrides_static_glossary_item = true,
+            created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date()
+          )
+        ),
+        pagination = JSONFactory700.GlossaryItemPaginationJsonV700(total = 1, limit = 100, offset = 0)
+      ),
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagDocumentation :: Nil,
+      None,
+      http4sPartialFunction = Some(getDynamicGlossaryItems)
+    )
+
+    val getDynamicGlossaryItem: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "glossary-items" / titleSegment =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            row <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemByTitle(titleSegment))
+              .map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
+          } yield JSONFactory700.createGlossaryItemJsonV700(row)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getDynamicGlossaryItem),
+      "GET",
+      "/glossary-items/TITLE",
+      "Get Dynamic Glossary Item",
+      """Returns one Dynamic Glossary Item by title. The title is matched case insensitively.
+        |
+        |Returns 404 if no Dynamic Glossary Item has this title, even when a static Glossary Item does — this endpoint only sees Dynamic Items.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.GlossaryItemJsonV700(
+        glossary_item_id = "8f2b1c44-1f2a-4c3d-9a7e-5b6c7d8e9f01",
+        title = "Bank.bank_id",
+        description = JSONFactory700.GlossaryItemDescriptionJsonV700(
+          markdown = "The unique identifier of the Bank on this OBP instance.",
+          html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
+        ),
+        overrides_static_glossary_item = true,
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, GlossaryItemNotFound, UnknownError),
+      apiTagDocumentation :: Nil,
+      None,
+      http4sPartialFunction = Some(getDynamicGlossaryItem)
+    )
+
+    val updateDynamicGlossaryItem: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "glossary-items" / titleSegment =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PutGlossaryItemJsonV700, JSONFactory700.GlossaryItemJsonV700](req) { (_, body, cc) =>
+          for {
+            _ <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemByTitle(titleSegment))
+              .map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
+            updated <- Future {
+              DynamicGlossaryItems.dynamicGlossaryItem.vend.updateDynamicGlossaryItem(titleSegment, body.description)
+            }.map(unboxFullOrFail(_, Some(cc), UpdateGlossaryItemError, 400))
+            _ = Glossary.invalidateGlossaryItemCache()
+          } yield JSONFactory700.createGlossaryItemJsonV700(updated)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateDynamicGlossaryItem),
+      "PUT",
+      "/glossary-items/TITLE",
+      "Update Dynamic Glossary Item",
+      """Replaces the description of a Dynamic Glossary Item. The title is the resource key and cannot be changed here — to rename an item, delete it and create a new one.
+        |
+        |`description` is markdown.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PutGlossaryItemJsonV700(
+        description = "The unique identifier of the Bank on this OBP instance.\n\nExample value: gh.29.uk"
+      ),
+      JSONFactory700.GlossaryItemJsonV700(
+        glossary_item_id = "8f2b1c44-1f2a-4c3d-9a7e-5b6c7d8e9f01",
+        title = "Bank.bank_id",
+        description = JSONFactory700.GlossaryItemDescriptionJsonV700(
+          markdown = "The unique identifier of the Bank on this OBP instance.",
+          html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
+        ),
+        overrides_static_glossary_item = true,
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           GlossaryItemNotFound, UpdateGlossaryItemError, UnknownError),
+      apiTagDocumentation :: Nil,
+      Some(List(canUpdateGlossaryItem)),
+      http4sPartialFunction = Some(updateDynamicGlossaryItem)
+    )
+
+    val deleteDynamicGlossaryItem: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "glossary-items" / titleSegment =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          for {
+            _ <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemByTitle(titleSegment))
+              .map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
+            _ <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.deleteDynamicGlossaryItem(titleSegment))
+              .map(unboxFullOrFail(_, Some(cc), DeleteGlossaryItemError, 400))
+            _ = Glossary.invalidateGlossaryItemCache()
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteDynamicGlossaryItem),
+      "DELETE",
+      "/glossary-items/TITLE",
+      "Delete Dynamic Glossary Item",
+      """Deletes a Dynamic Glossary Item.
+        |
+        |If the item was shadowing a static Glossary Item of the same title, the static text is served again from the next call to `GET /obp/v3.0.0/api/glossary`.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, GlossaryItemNotFound,
+           DeleteGlossaryItemError, UnknownError),
+      apiTagDocumentation :: Nil,
+      Some(List(canDeleteGlossaryItem)),
+      http4sPartialFunction = Some(deleteDynamicGlossaryItem)
+    )
+
+    // ── End Dynamic Glossary Items ────────────────────────────────────────────
 
     // ── Payee Lookup ──────────────────────────────────────────────────────────
     // Generic "confirmation-of-payee" / pre-payment lookup. Caller supplies

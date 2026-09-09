@@ -654,7 +654,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
 
     val operation = OperationJson(
       summary = Some(doc.summary),
-      description = Some(doc.description),
+      description = Some(Glossary.expandGlossaryPlaceholders(doc.description)),
       operationId = Some(doc.operation_id),
       tags = tags,
       parameters = if (parameters.nonEmpty) Some(parameters) else None,

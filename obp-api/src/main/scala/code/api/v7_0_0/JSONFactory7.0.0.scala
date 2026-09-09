@@ -3,6 +3,7 @@ package code.api.v7_0_0
 import code.api.Constant
 import code.api.util.{APIUtil, AuthRateLimiter, CallContext, ExampleValue, RateLimitingUtil, SelfServiceRateLimiter}
 import code.api.util.ErrorMessages
+import code.api.util.{Glossary, PegdownOptions}
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v2_0_0.EntitlementJSONs
 import code.api.v3_0_0.{UserJsonV300, ViewsJSON300}
@@ -920,6 +921,65 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       supported_routing_schemes = rows.filter(_.enabled).map(r =>
         BankSupportedRoutingSchemeJsonV700(scheme = r.scheme, bank_notes = r.bankNotes)
       )
+    )
+
+  // ── Dynamic Glossary Item JSON case classes ─────────────────────────────────
+  // Description is carried as markdown on the way in and returned as both markdown and rendered
+  // html on the way out, matching GlossaryDescriptionJsonV300 as served by GET /api/glossary.
+
+  case class PostGlossaryItemJsonV700(
+      title: String,
+      description: String
+  )
+
+  case class PutGlossaryItemJsonV700(
+      description: String
+  )
+
+  case class GlossaryItemDescriptionJsonV700(markdown: String, html: String)
+
+  case class GlossaryItemJsonV700(
+      glossary_item_id: String,
+      title: String,
+      description: GlossaryItemDescriptionJsonV700,
+      overrides_static_glossary_item: Boolean,
+      created_by_user_id: String,
+      created_at: java.util.Date,
+      updated_at: java.util.Date
+  )
+
+  case class GlossaryItemPaginationJsonV700(total: Int, limit: Int, offset: Int)
+
+  case class GlossaryItemsJsonV700(
+      glossary_items: List[GlossaryItemJsonV700],
+      pagination: GlossaryItemPaginationJsonV700
+  )
+
+  def createGlossaryItemJsonV700(r: code.glossaryitem.DynamicGlossaryItemTrait): GlossaryItemJsonV700 =
+    GlossaryItemJsonV700(
+      glossary_item_id = r.glossaryItemId,
+      title = r.title,
+      description = GlossaryItemDescriptionJsonV700(
+        markdown = r.description,
+        html = PegdownOptions.convertPegdownToHtmlTweaked(r.description)
+      ),
+      // Flagged so a caller can see at a glance that this item is shadowing shipped text.
+      overrides_static_glossary_item =
+        Glossary.glossaryItems.exists(_.title.toLowerCase == r.title.toLowerCase),
+      created_by_user_id = r.createdByUserId,
+      created_at = r.createdAt,
+      updated_at = r.updatedAt
+    )
+
+  def createGlossaryItemsJsonV700(
+      rows: List[code.glossaryitem.DynamicGlossaryItemTrait],
+      total: Int,
+      limit: Int,
+      offset: Int
+  ): GlossaryItemsJsonV700 =
+    GlossaryItemsJsonV700(
+      glossary_items = rows.map(createGlossaryItemJsonV700),
+      pagination = GlossaryItemPaginationJsonV700(total = total, limit = limit, offset = offset)
     )
 
   // ── Qualified Identifier ────────────────────────────────────────────────────

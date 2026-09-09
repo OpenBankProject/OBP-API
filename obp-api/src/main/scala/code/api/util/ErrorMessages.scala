@@ -510,6 +510,14 @@ object ErrorMessages {
   val CreateApiProductSubscriptionAttributeError = "OBP-30569: Could not create ApiProductSubscriptionAttribute."
   val DeleteApiProductSubscriptionAttributeError = "OBP-30570: Could not delete ApiProductSubscriptionAttribute."
 
+  // Dynamic Glossary Item (OBP-30571 .. OBP-30576)
+  val GlossaryItemNotFound = "OBP-30571: Glossary Item not found. Please specify a valid value for TITLE."
+  val GlossaryItemAlreadyExists = "OBP-30572: Glossary Item already exists. Please specify a different value for title, or update the existing one."
+  val InvalidGlossaryItemTitle = "OBP-30573: Invalid Glossary Item title. It must be non empty and at most 255 characters."
+  val CreateGlossaryItemError = "OBP-30574: Could not create Glossary Item."
+  val UpdateGlossaryItemError = "OBP-30575: Could not update Glossary Item."
+  val DeleteGlossaryItemError = "OBP-30576: Could not delete Glossary Item."
+
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."
   val InvalidOrganisationIdFormat = "OBP-30508: Invalid Organisation Id. The ORGANISATION_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', and be between 2 and 64 characters in length."
