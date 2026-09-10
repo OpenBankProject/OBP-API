@@ -26,10 +26,19 @@ object Glossary extends MdcLoggable  {
 	// expandGlossaryPlaceholders and its three call sites: JSONFactory1_4_0 (the Resource Docs
 	// API), SwaggerJSONFactory and OpenAPI31JSONFactory.
 
-	private val GlossaryPlaceholderPrefix = "{{OBP-GLOSSARY:"
-	private val GlossaryPlaceholder = """\{\{OBP-GLOSSARY:(FULL|SIMPLE|LINK):([^{}]*)\}\}""".r
+	// An html comment, deliberately. The placeholder is normally expanded long before anyone sees
+	// it, but if one ever does leak into a response it must be inert: `{{...}}` would have been
+	// read as an interpolation expression by a Vue or Angular client and thrown at render time.
+	// A comment renders as nothing instead.
+	private val GlossaryPlaceholderPrefix = "<!--OBP-GLOSSARY:"
+	private val GlossaryPlaceholder = """<!--OBP-GLOSSARY:(FULL|SIMPLE|LINK):(.*?)-->""".r
 
-	private def glossaryPlaceholder(mode: String, title: String): String = s"$GlossaryPlaceholderPrefix$mode:$title}}"
+	// A FULL or SIMPLE expansion embeds another Item's html, which may itself hold placeholders,
+	// and replaceAllIn does not rescan what it substitutes. So expansion repeats — bounded, so a
+	// cycle of Items referencing each other terminates and leaves an inert comment at worst.
+	private val GlossaryPlaceholderMaxPasses = 3
+
+	private def glossaryPlaceholder(mode: String, title: String): String = s"$GlossaryPlaceholderPrefix$mode:$title-->"
 
 	/** Embeds the Glossary Item as a collapsible block. */
 	def getGlossaryItem(title: String): String = glossaryPlaceholder("FULL", title)
@@ -75,9 +84,19 @@ object Glossary extends MdcLoggable  {
 	 * Expands any Glossary placeholders in the given markdown. Text with no placeholder is returned
 	 * untouched, so this is cheap to call on every description.
 	 */
-	def expandGlossaryPlaceholders(text: String): String = {
-		if (text == null || !text.contains(GlossaryPlaceholderPrefix)) text
+	def expandGlossaryPlaceholders(text: String): String =
+		expandGlossaryPlaceholders(text, GlossaryPlaceholderMaxPasses)
+
+	private def expandGlossaryPlaceholders(text: String, passesLeft: Int): String = {
+		if (text == null || passesLeft <= 0 || !text.contains(GlossaryPlaceholderPrefix)) text
 		else {
+			val expanded = expandOnce(text)
+			if (expanded == text) text else expandGlossaryPlaceholders(expanded, passesLeft - 1)
+		}
+	}
+
+	private def expandOnce(text: String): String = {
+		{
 			val byTitle = glossaryItemsByTitle
 			GlossaryPlaceholder.replaceAllIn(text, matched => {
 				val mode = matched.group(1)
@@ -127,11 +146,14 @@ object Glossary extends MdcLoggable  {
 				cachedItemsByTitle.set((now, version, byTitle))
 				(version, byTitle)
 			} else {
-				// allGlossaryItems has already dropped the static items that a Dynamic Item covers, so
-				// no static entry competes with a dynamic one here. Reversing makes a title defined
-				// twice in the static Glossary resolve to the first definition, as find() used to.
-				val rebuilt = allGlossaryItems.reverse.map(item => item.title.toLowerCase -> item).toMap
+				// allGlossaryItems yields one Item per exact title, but titles differing only in case
+				// survive and collapse together in this case-insensitive map. Reversing makes the first
+				// of those spellings win, as find() used to.
+				val items = allGlossaryItems
+				val rebuilt = items.reverse.map(item => item.title.toLowerCase -> item).toMap
 				cachedItemsByTitle.set((now, currentVersion, rebuilt))
+				// Only on a real change, so this reports each edit once rather than on every read.
+				logStaticOverrides(items.filter(_.shadowsStaticItem))
 				(currentVersion, rebuilt)
 			}
 		}
@@ -155,7 +177,13 @@ object Glossary extends MdcLoggable  {
 															 title: String,
 															 description: () => String,
 															 htmlDescription: String,
-															 textDescription: String
+															 textDescription: String,
+															 // Provenance. Static items are compiled in; dynamic ones come from the
+															 // DynamicGlossaryItem table. shadowsStaticItem is computed when the two
+															 // sets are merged: true when this dynamic item displaced a static one.
+															 isDynamic: Boolean = false,
+															 overridesStaticItem: Boolean = false,
+															 shadowsStaticItem: Boolean = false
                             )
 
 		def makeGlossaryItem (title: String, connectorField: ConnectorField) : GlossaryItem = {
@@ -195,6 +223,10 @@ object Glossary extends MdcLoggable  {
 			)
 		}
 
+		/** A Glossary Item backed by a row in the DynamicGlossaryItem table. */
+		def dynamic(title: String, description: => String, overridesStaticItem: Boolean): GlossaryItem =
+			apply(title, description).copy(isDynamic = true, overridesStaticItem = overridesStaticItem)
+
 	}
 
 
@@ -219,7 +251,7 @@ object Glossary extends MdcLoggable  {
 	/** Every Dynamic Glossary Item, rendered into the same GlossaryItem shape as the static ones. */
 	def dynamicGlossaryItems: List[GlossaryItem] = {
 		code.glossaryitem.DynamicGlossaryItems.dynamicGlossaryItem.vend.getAllDynamicGlossaryItems match {
-			case Full(rows) => rows.map(row => GlossaryItem(row.title, row.description))
+			case Full(rows) => rows.map(row => GlossaryItem.dynamic(row.title, row.description, row.overridesStaticItem))
 			case failure =>
 				// The Glossary must still be served if the table is unreachable, so fall back to static only.
 				logger.warn(s"Glossary.dynamicGlossaryItems could not read Dynamic Glossary Items: $failure")
@@ -227,12 +259,90 @@ object Glossary extends MdcLoggable  {
 		}
 	}
 
-	/** Static Glossary Items plus Dynamic ones, Dynamic winning on a title clash. */
+	/** True when the static Glossary defines an item with this title. Case insensitive. */
+	def staticGlossaryItemExists(title: String): Boolean =
+		glossaryItems.exists(_.title.toLowerCase == title.toLowerCase)
+
+	/**
+	 * Static Glossary Items plus Dynamic ones, a Dynamic Item winning on a title clash.
+	 *
+	 * Creating a Dynamic Item whose title collides with a static one is refused unless the operator
+	 * declared the override, so a clash here is normally deliberate. It can still arise without
+	 * that declaration if a static item is added later with a title a Dynamic Item already uses —
+	 * the Dynamic Item still wins, to keep one entry per title, and logStaticOverrides reports it.
+	 */
 	def allGlossaryItems: List[GlossaryItem] = {
 		val dynamic = dynamicGlossaryItems
-		val overriddenTitles = dynamic.map(_.title.toLowerCase).toSet
-		glossaryItems.toList.filterNot(item => overriddenTitles.contains(item.title.toLowerCase)) ::: dynamic
+		val staticTitles = glossaryItems.map(_.title.toLowerCase).toSet
+		val dynamicWithShadowFlag =
+			dynamic.map(item => item.copy(shadowsStaticItem = staticTitles.contains(item.title.toLowerCase)))
+		val shadowedTitles = dynamic.map(_.title.toLowerCase).toSet
+		dedupeByTitle(
+			glossaryItems.toList.filterNot(item => shadowedTitles.contains(item.title.toLowerCase)) ::: dynamicWithShadowFlag)
 	}
+
+	/**
+	 * Keeps the first Item of each exact title.
+	 *
+	 * Two Items with the identical title is a mistake in the Glossary source: only one can own the
+	 * /glossary#Title anchor, and every lookup already resolves to the first, so the second was
+	 * unreachable anyway. Emitting both also breaks any client that keys a list by title. The
+	 * listing drops it and says so, since the source is what wants fixing.
+	 *
+	 * Titles that differ only in case are left alone. Anchors are case sensitive, so those are
+	 * distinct entries to a client and dropping one would lose documentation that reads fine today
+	 * — but they are ambiguous to the case-insensitive lookups, so they are still worth reporting.
+	 */
+	private def dedupeByTitle(items: List[GlossaryItem]): List[GlossaryItem] = {
+		val duplicated = items.groupBy(_.title).collect { case (title, sharing) if sharing.size > 1 => title }
+		if (duplicated.nonEmpty) {
+			logger.warn(
+				s"Glossary: ${duplicated.size} title(s) are defined more than once and only the first of each is served: " +
+				duplicated.toList.sorted.mkString(", ") +
+				". Two Glossary Items cannot share a title — one of them needs renaming in Glossary.scala, ExampleValue.scala or docs/glossary.")
+		}
+		val caseOnlyCollisions = items.map(_.title).distinct
+			.groupBy(_.toLowerCase).collect { case (_, spellings) if spellings.size > 1 => spellings.sorted.mkString(" / ") }
+		if (caseOnlyCollisions.nonEmpty) {
+			logger.info(
+				s"Glossary: ${caseOnlyCollisions.size} title(s) differ only in case: " +
+				caseOnlyCollisions.toList.sorted.mkString(", ") +
+				". All are served, but Glossary lookups are case insensitive and resolve to the first of each.")
+		}
+		items.distinctBy(_.title)
+	}
+
+	/** Dynamic Glossary Items that are currently displacing a static Item of the same title. */
+	def shadowingGlossaryItems: List[GlossaryItem] = allGlossaryItems.filter(_.shadowsStaticItem)
+
+	/**
+	 * Reports, in the log, which static Glossary Items are currently being overridden. This is the
+	 * one place the shadowing reaches a developer editing Glossary.scala, who otherwise has no way
+	 * of knowing the database is displacing the text they just wrote. Called at boot and again
+	 * whenever the Dynamic Glossary Item set changes.
+	 */
+	def logStaticOverrides(shadowing: List[GlossaryItem]): Unit = {
+		val (declared, undeclared) = shadowing.partition(_.overridesStaticItem)
+		if (declared.nonEmpty) {
+			logger.info(
+				s"Glossary: ${declared.size} static Glossary Item(s) are deliberately overridden by Dynamic Glossary Items: " +
+				declared.map(_.title).sorted.mkString(", ") +
+				". Editing their text in Glossary.scala will have no visible effect until the Dynamic Item is removed.")
+		}
+		if (undeclared.nonEmpty) {
+			// No override was declared, so the static item was almost certainly added after the
+			// Dynamic one. Worth a warning: neither the author of the static text nor the operator
+			// asked for this.
+			logger.warn(
+				s"Glossary: ${undeclared.size} static Glossary Item(s) are shadowed by Dynamic Glossary Items that did NOT declare an override: " +
+				undeclared.map(_.title).sorted.mkString(", ") +
+				". A static Item was probably added later with a title already in use. Rename one, delete the Dynamic Item, " +
+				"or set overrides_static_item on it to confirm the override is intended.")
+		}
+	}
+
+	/** Boot-time entry point for the report above. */
+	def logStaticOverrides(): Unit = logStaticOverrides(shadowingGlossaryItems)
 
 	/**
 	 * A watermark that changes whenever any Dynamic Glossary Item is added, changed or removed,

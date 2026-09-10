@@ -392,8 +392,13 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }
     parameter match {
       case _ if isUrlParameter() =>
+        // Same precedence as the body-field branch below, then a substring match as a last resort.
+        // A bare `contains` alone is order dependent: "bank_id" is a substring of "requires_bank_id"
+        // as well as "Bank.bank_id", so whichever was appended to glossaryItems first used to win.
         glossaryItems
-          .find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}"))
+          .find(_.title.toLowerCase.equals(s"${parameter.toLowerCase}"))
+          .orElse(glossaryItems.find(_.title.toLowerCase.endsWith(s".${parameter.toLowerCase}")))
+          .orElse(glossaryItems.find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}")))
           .map(_.title).getOrElse("").replaceAll(" ","-")
       case _ =>
         // First try exact match (e.g. body field "address" → glossary item "address").
@@ -474,11 +479,17 @@ object JSONFactory1_4_0 extends MdcLoggable{
     if(glossaryItemTitle.contains("jsonstring")){
       "" 
     } else {
-    s"""
-       |
-       |[${boldIfMandatory()}](/glossary#$glossaryItemTitle): $exampleFieldValue
-       |
-       |""".stripMargin
+      // With no Glossary Item for this field, "[field](/glossary#)" would send the reader to the top
+      // of the Glossary rather than to a definition. Render the field plainly instead — a field with
+      // nothing to say about it is better than a link to nothing.
+      val field =
+        if (glossaryItemTitle.isEmpty) boldIfMandatory()
+        else s"[${boldIfMandatory()}](/glossary#$glossaryItemTitle)"
+      s"""
+         |
+         |$field: $exampleFieldValue
+         |
+         |""".stripMargin
   }
   }
 

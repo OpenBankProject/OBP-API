@@ -4,7 +4,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.v3_0_0.GlossaryItemsJsonV300
-import code.api.v7_0_0.JSONFactory700.{GlossaryItemJsonV700, GlossaryItemsJsonV700, PostGlossaryItemJsonV700, PutGlossaryItemJsonV700}
+import code.api.v7_0_0.JSONFactory700.{ApiGlossaryJsonV700, GlossaryItemJsonV700, GlossaryItemsJsonV700, PostGlossaryItemJsonV700, PutGlossaryItemJsonV700}
 import code.api.v7_0_0.Http4s700.Implementations7_0_0
 import code.entitlement.Entitlement
 import code.setup.ServerSetupWithTestData
@@ -44,26 +44,27 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
   def newTitle(): String = "Test.glossary_item_" + UUID.randomUUID().toString.take(8)
 
   // Mirrors the placeholder Glossary.getGlossaryItem and friends emit into Resource Doc descriptions.
-  val GlossaryPlaceholderInDoc = """\{\{OBP-GLOSSARY:(FULL|SIMPLE|LINK):([^{}]*)\}\}""".r
+  val GlossaryPlaceholderInDoc = """<!--OBP-GLOSSARY:(FULL|SIMPLE|LINK):(.*?)-->""".r
 
   def grantSystemRole(userId: String, role: String): Unit =
     Entitlement.entitlement.vend.addEntitlement("", userId, role)
 
   def errorOf(response: code.setup.APIResponse): String = response.body.extract[ErrorMessage].message
 
-  def post(title: String, description: String, as: Option[(Consumer, Token)]) =
+  def post(title: String, description: String, as: Option[(Consumer, Token)], overrides: Option[Boolean] = None) =
     makePostRequest((v7 / "glossary-items").POST <@ (as),
-      write(PostGlossaryItemJsonV700(title = title, description = description)))
+      write(PostGlossaryItemJsonV700(title = title, description = description, overrides_static_item = overrides)))
 
-  def put(title: String, description: String, as: Option[(Consumer, Token)]) =
+  def put(title: String, description: String, as: Option[(Consumer, Token)], overrides: Option[Boolean] = None) =
     makePutRequest((v7 / "glossary-items" / title).PUT <@ (as),
-      write(PutGlossaryItemJsonV700(description = description)))
+      write(PutGlossaryItemJsonV700(description = description, overrides_static_item = overrides)))
 
   def delete(title: String, as: Option[(Consumer, Token)]) =
     makeDeleteRequest((v7 / "glossary-items" / title).DELETE <@ (as))
 
-  def created(title: String, description: String, as: Option[(Consumer, Token)]): GlossaryItemJsonV700 = {
-    val response = post(title, description, as)
+  def created(title: String, description: String, as: Option[(Consumer, Token)],
+              overrides: Option[Boolean] = None): GlossaryItemJsonV700 = {
+    val response = post(title, description, as, overrides)
     response.code should equal(201)
     response.body.extract[GlossaryItemJsonV700]
   }
@@ -81,7 +82,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     scenario("Authentication and the role are both required", ApiEndpoint1, VersionOfApi) {
       When("no user is given")
       val anonymous = makePostRequest((v7 / "glossary-items").POST,
-        write(PostGlossaryItemJsonV700(title = newTitle(), description = "x")))
+        write(PostGlossaryItemJsonV700(title = newTitle(), description = "x", overrides_static_item = None)))
       Then("the call is unauthorised")
       anonymous.code should equal(401)
 
@@ -102,7 +103,8 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       item.title should equal(title)
       item.description.markdown should equal("A **bold** description.")
       item.description.html should include("<strong>bold</strong>")
-      item.overrides_static_glossary_item should equal(false)
+      item.overrides_static_item should equal(false)
+      item.shadows_static_glossary_item should equal(false)
       item.created_by_user_id should equal(resourceUser1.userId)
       item.glossary_item_id should not be empty
 
@@ -229,10 +231,17 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       val staticDescriptions = glossaryTitled(staticTitle)
       staticDescriptions should not be empty
 
-      When("a Dynamic Glossary Item is created with the same title")
-      val item = created(staticTitle, "Overridden by the operator.", user1)
-      Then("the response flags the override")
-      item.overrides_static_glossary_item should equal(true)
+      When("a Dynamic Glossary Item with that title is created without declaring the override")
+      val refused = post(staticTitle, "Overridden by the operator.", user1)
+      Then("it is refused, so shipped documentation is never displaced by accident")
+      refused.code should equal(409)
+      errorOf(refused) should startWith(GlossaryItemShadowsStaticItem)
+
+      When("the override is declared")
+      val item = created(staticTitle, "Overridden by the operator.", user1, overrides = Some(true))
+      Then("the response reports both the declared intent and the actual shadowing")
+      item.overrides_static_item should equal(true)
+      item.shadows_static_glossary_item should equal(true)
 
       And("the Glossary now carries exactly one item with that title, and it is the dynamic text")
       glossaryTitled(staticTitle) should equal(List("Overridden by the operator."))
@@ -241,6 +250,128 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       delete(staticTitle, user1).code should equal(204)
       Then("the static text is served again")
       glossaryTitled(staticTitle) should equal(staticDescriptions)
+    }
+  }
+
+  feature("Overriding a static Glossary Item has to be declared") {
+
+    scenario("A collision with a static title is refused unless the override is declared", ApiEndpoint1, VersionOfApi) {
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
+
+      When("the override is not mentioned at all")
+      val silent = post(staticTitle, "text", user1)
+      Then("the request is refused and says what to do about it")
+      silent.code should equal(409)
+      errorOf(silent) should startWith(GlossaryItemShadowsStaticItem)
+
+      When("the override is explicitly declined")
+      post(staticTitle, "text", user1, overrides = Some(false)).code should equal(409)
+
+      When("the override is declared")
+      Then("the item is created")
+      val item = created(staticTitle, "text", user1, overrides = Some(true))
+      item.overrides_static_item should equal(true)
+
+      delete(staticTitle, user1).code should equal(204)
+    }
+
+    scenario("A title with no static counterpart needs no declaration", ApiEndpoint1, VersionOfApi) {
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      val item = created(newTitle(), "text", user1)
+      item.overrides_static_item should equal(false)
+      item.shadows_static_glossary_item should equal(false)
+    }
+
+    scenario("The Glossary marks Dynamic Items and the ones displacing static text", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
+
+      // The provenance flags are a v7.0.0 addition: v3.0.0 is STABLE and its JSON must not change.
+      def itemInGlossary(title: String) = {
+        val response = makeGetRequest((v7 / "api" / "glossary").GET)
+        response.code should equal(200)
+        response.body.extract[ApiGlossaryJsonV700].glossary_items.find(_.title.equalsIgnoreCase(title))
+      }
+
+      Given("a static Glossary Item is reported as neither dynamic nor overriding")
+      itemInGlossary(staticTitle).map(_.is_dynamic) should equal(Some(false))
+
+      When("a Dynamic Item is added that does not displace anything")
+      val plainTitle = newTitle()
+      created(plainTitle, "standalone", user1)
+      Then("it is marked dynamic but not as an override")
+      val plain = itemInGlossary(plainTitle)
+      plain.map(_.is_dynamic) should equal(Some(true))
+      plain.map(_.overrides_static_item) should equal(Some(false))
+
+      When("a Dynamic Item is added that declares an override of a static one")
+      created(staticTitle, "overriding text", user1, overrides = Some(true))
+      Then("the Glossary marks it as both dynamic and overriding")
+      val overriding = itemInGlossary(staticTitle)
+      overriding.map(_.is_dynamic) should equal(Some(true))
+      overriding.map(_.overrides_static_item) should equal(Some(true))
+
+      delete(staticTitle, user1).code should equal(204)
+      delete(plainTitle, user1).code should equal(204)
+    }
+  }
+
+  feature("No Glossary placeholder ever reaches a client") {
+
+    // Glossary Items cross-reference each other, so their own descriptions carry placeholders too.
+    // Missing that is exactly how 60 raw tokens once reached GET /api/glossary.
+    scenario("The Glossary itself carries expanded links, not placeholders", VersionOfApi) {
+      for ((label, url) <- List("v3.0.0" -> (v3 / "api" / "glossary"), "v7.0.0" -> (v7 / "api" / "glossary"))) {
+        val response = makeGetRequest(url.GET)
+        response.code should equal(200)
+        val body = response.body.toString
+        withClue(s"$label Glossary leaked an unexpanded placeholder: ") {
+          body should not include "OBP-GLOSSARY"
+        }
+        And(s"$label carries the links those placeholders stand for")
+        body should include("/glossary#")
+      }
+    }
+  }
+
+  feature("Every Glossary title appears once") {
+
+    scenario("The Glossary has no duplicate titles", VersionOfApi) {
+      // A duplicate title breaks any client that keys a list by it, and only one of the two can own
+      // the /glossary#Title anchor. Five pairs once shipped this way.
+      val response = makeGetRequest((v3 / "api" / "glossary").GET)
+      response.code should equal(200)
+      // Exact titles: anchors are case sensitive, so Account and account are distinct entries to a
+      // client and both are served. Only an identical title breaks a keyed list.
+      val titles = response.body.extract[GlossaryItemsJsonV300].glossary_items.map(_.title)
+      val duplicated = titles.groupBy(identity).collect { case (t, ts) if ts.size > 1 => t }.toList.sorted
+      withClue("titles defined more than once: ") { duplicated should equal(Nil) }
+    }
+  }
+
+  feature("The STABLE v3.0.0 Glossary keeps its shape") {
+
+    scenario("v3.0.0 serves the same merged Glossary, without the v7 provenance fields", VersionOfApi) {
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
+      val title = newTitle()
+      created(title, "Only in the database.", user1)
+
+      When("the STABLE v3.0.0 Glossary is fetched")
+      val response = makeGetRequest((v3 / "api" / "glossary").GET)
+      response.code should equal(200)
+      Then("it carries the Dynamic Item, since the content is the same union")
+      val item = (response.body \\ "glossary_items").children
+        .find(i => (i \\ "title").extractOpt[String].contains(title))
+      item should not be empty
+
+      And("each entry has exactly the two fields v3.0.0 has always had")
+      item.get.children should have size 2
+      (item.get \\ "is_dynamic").extractOpt[Boolean] should equal(None)
+      (item.get \\ "overrides_static_item").extractOpt[Boolean] should equal(None)
+
+      delete(title, user1).code should equal(204)
     }
   }
 
@@ -287,6 +418,10 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       Then("the description carries the Glossary text, not the unexpanded placeholder")
       description should not include "OBP-GLOSSARY"
       description should include(embeddedTitle)
+
+      And("no field links to an empty Glossary anchor")
+      // "[field](/glossary#)" lands the reader at the top of the Glossary rather than a definition.
+      description should not include "(/glossary#)"
     }
 
     scenario("A Dynamic Glossary Item replaces the embedded text", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
@@ -298,7 +433,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       before should not include "Overridden in the endpoint description."
 
       When("a Dynamic Glossary Item with that title is created")
-      created(embeddedTitle, "Overridden in the endpoint description.", user1)
+      created(embeddedTitle, "Overridden in the endpoint description.", user1, overrides = Some(true))
       Then("the endpoint description carries the dynamic text, despite the Resource Doc cache")
       val during = descriptionOfEmbeddingEndpoint()
       during should include("Overridden in the endpoint description.")

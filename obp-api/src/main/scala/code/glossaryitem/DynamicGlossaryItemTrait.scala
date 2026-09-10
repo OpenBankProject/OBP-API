@@ -23,6 +23,7 @@ trait DynamicGlossaryItemProvider {
   def createDynamicGlossaryItem(
     title: String,
     description: String,
+    overridesStaticItem: Boolean,
     createdByUserId: String
   ): Box[DynamicGlossaryItemTrait]
 
@@ -44,7 +45,11 @@ trait DynamicGlossaryItemProvider {
    */
   def getDynamicGlossaryItemsVersion: Box[String]
 
-  def updateDynamicGlossaryItem(title: String, description: String): Box[DynamicGlossaryItemTrait]
+  def updateDynamicGlossaryItem(
+    title: String,
+    description: String,
+    overridesStaticItem: Option[Boolean]
+  ): Box[DynamicGlossaryItemTrait]
 
   def deleteDynamicGlossaryItem(title: String): Box[Boolean]
 }
@@ -53,6 +58,12 @@ trait DynamicGlossaryItemTrait {
   def glossaryItemId: String
   def title: String
   def description: String
+  /**
+   * Declared intent: the operator said this item deliberately overrides a static Glossary Item of
+   * the same title. Creating one that collides with a static title is refused unless this is set,
+   * so shadowing is never an accident of title choice.
+   */
+  def overridesStaticItem: Boolean
   def createdByUserId: String
   def createdAt: java.util.Date
   def updatedAt: java.util.Date

@@ -13,6 +13,7 @@ object MappedDynamicGlossaryItemProvider extends DynamicGlossaryItemProvider {
   override def createDynamicGlossaryItem(
     title: String,
     description: String,
+    overridesStaticItem: Boolean,
     createdByUserId: String
   ): Box[DynamicGlossaryItemTrait] = {
     tryo {
@@ -20,6 +21,7 @@ object MappedDynamicGlossaryItemProvider extends DynamicGlossaryItemProvider {
         .Title(title)
         .TitleLowerCase(title.toLowerCase)
         .Description(description)
+        .OverridesStaticItem(overridesStaticItem)
         .CreatedByUserId(createdByUserId)
         .saveMe()
     }
@@ -63,10 +65,15 @@ object MappedDynamicGlossaryItemProvider extends DynamicGlossaryItemProvider {
     s"$count-$newest"
   }
 
-  override def updateDynamicGlossaryItem(title: String, description: String): Box[DynamicGlossaryItemTrait] = {
+  override def updateDynamicGlossaryItem(
+    title: String,
+    description: String,
+    overridesStaticItem: Option[Boolean]
+  ): Box[DynamicGlossaryItemTrait] = {
     DynamicGlossaryItem.find(By(DynamicGlossaryItem.TitleLowerCase, title.toLowerCase)).flatMap { row =>
       tryo {
         row.Description(description)
+        overridesStaticItem.foreach(v => row.OverridesStaticItem(v))
         row.LastUpdate(new java.util.Date())
         row.saveMe()
       }
@@ -89,6 +96,10 @@ class DynamicGlossaryItem extends DynamicGlossaryItemTrait with LongKeyedMapper[
   // regardless of its collation. The static Glossary is looked up case insensitively too.
   object TitleLowerCase extends MappedString(this, 255)
   object Description extends MappedText(this) // Markdown, the same flavour the static Glossary uses
+  // Declared intent to shadow a static Glossary Item of the same title. See the trait.
+  object OverridesStaticItem extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
   object CreatedByUserId extends MappedString(this, 255)
   object CreationDate extends MappedDateTime(this) {
     override def defaultValue = new java.util.Date()
@@ -100,6 +111,7 @@ class DynamicGlossaryItem extends DynamicGlossaryItemTrait with LongKeyedMapper[
   override def glossaryItemId: String = GlossaryItemId.get
   override def title: String = Title.get
   override def description: String = Description.get
+  override def overridesStaticItem: Boolean = OverridesStaticItem.get
   override def createdByUserId: String = CreatedByUserId.get
   override def createdAt: java.util.Date = CreationDate.get
   override def updatedAt: java.util.Date = LastUpdate.get

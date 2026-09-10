@@ -3488,10 +3488,17 @@ object Http4s700 {
             _ <- Helper.booleanToFuture(InvalidGlossaryItemTitle, 400, Some(cc))(isValidGlossaryItemTitle(title))
             existing <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemByTitle(title))
             _ <- Helper.booleanToFuture(GlossaryItemAlreadyExists, 409, Some(cc))(existing.isEmpty)
+            overridesStaticItem = body.overrides_static_item.getOrElse(false)
+            // Shadowing a static Item is refused unless it was asked for, so it is never a side
+            // effect of picking a title that happens to be taken.
+            _ <- Helper.booleanToFuture(GlossaryItemShadowsStaticItem, 409, Some(cc)) {
+              overridesStaticItem || !Glossary.staticGlossaryItemExists(title)
+            }
             created <- Future {
               DynamicGlossaryItems.dynamicGlossaryItem.vend.createDynamicGlossaryItem(
                 title = title,
                 description = body.description,
+                overridesStaticItem = overridesStaticItem,
                 createdByUserId = user.userId
               )
             }.map(unboxFullOrFail(_, Some(cc), CreateGlossaryItemError, 400))
@@ -3513,14 +3520,15 @@ object Http4s700 {
         |
         |Titles are unique case insensitively across Dynamic Glossary Items — creating one that already exists returns 409; update it with `PUT /glossary-items/TITLE` instead.
         |
-        |A title MAY match a static Glossary Item. In that case this item replaces the static one everywhere the Glossary is listed (`GET /obp/v3.0.0/api/glossary`), and the response flags it with `overrides_static_glossary_item: true`. Deleting the Dynamic Item restores the static text.
+        |**Overriding a static Glossary Item.** If the title matches one of the API's own (static) Glossary Items, the request is refused with `OBP-30577` unless you set `overrides_static_item: true`. That way an item never displaces shipped documentation just because its title happened to be taken. When you do declare it, this item replaces the static one everywhere the Glossary is served — `GET /obp/v3.0.0/api/glossary` and the Glossary text embedded in endpoint descriptions — and deleting it restores the static text.
         |
-        |Note: the static text embedded in individual endpoint descriptions is rendered when the API starts and is not affected by Dynamic Glossary Items.
+        |The response reports both `overrides_static_item` (what you declared) and `shadows_static_glossary_item` (whether a static Item of this title exists right now). They differ if a static Item is added later with a title this one already used; that case is reported in the API logs at startup.
         |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostGlossaryItemJsonV700(
         title = "Bank.bank_id",
-        description = "The unique identifier of the Bank on this OBP instance.\n\nExample value: gh.29.uk"
+        description = "The unique identifier of the Bank on this OBP instance.\n\nExample value: gh.29.uk",
+        overrides_static_item = Some(true)
       ),
       JSONFactory700.GlossaryItemJsonV700(
         glossary_item_id = "8f2b1c44-1f2a-4c3d-9a7e-5b6c7d8e9f01",
@@ -3529,7 +3537,8 @@ object Http4s700 {
           markdown = "The unique identifier of the Bank on this OBP instance.",
           html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
         ),
-        overrides_static_glossary_item = true,
+        overrides_static_item = true,
+        shadows_static_glossary_item = true,
         created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -3583,7 +3592,8 @@ object Http4s700 {
               markdown = "The unique identifier of the Bank on this OBP instance.",
               html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
             ),
-            overrides_static_glossary_item = true,
+            overrides_static_item = true,
+        shadows_static_glossary_item = true,
             created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
             created_at = new java.util.Date(),
             updated_at = new java.util.Date()
@@ -3626,7 +3636,8 @@ object Http4s700 {
           markdown = "The unique identifier of the Bank on this OBP instance.",
           html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
         ),
-        overrides_static_glossary_item = true,
+        overrides_static_item = true,
+        shadows_static_glossary_item = true,
         created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -3644,7 +3655,8 @@ object Http4s700 {
             _ <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemByTitle(titleSegment))
               .map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
             updated <- Future {
-              DynamicGlossaryItems.dynamicGlossaryItem.vend.updateDynamicGlossaryItem(titleSegment, body.description)
+              DynamicGlossaryItems.dynamicGlossaryItem.vend.updateDynamicGlossaryItem(
+                titleSegment, body.description, body.overrides_static_item)
             }.map(unboxFullOrFail(_, Some(cc), UpdateGlossaryItemError, 400))
             _ = Glossary.invalidateGlossaryItemCache()
           } yield JSONFactory700.createGlossaryItemJsonV700(updated)
@@ -3661,9 +3673,12 @@ object Http4s700 {
         |
         |`description` is markdown.
         |
+        |`overrides_static_item` is optional and left as it is when omitted. Set it to confirm an override that was flagged as undeclared in the logs, or to false to record that this item is not meant to shadow static documentation.
+        |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PutGlossaryItemJsonV700(
-        description = "The unique identifier of the Bank on this OBP instance.\n\nExample value: gh.29.uk"
+        description = "The unique identifier of the Bank on this OBP instance.\n\nExample value: gh.29.uk",
+        overrides_static_item = Some(true)
       ),
       JSONFactory700.GlossaryItemJsonV700(
         glossary_item_id = "8f2b1c44-1f2a-4c3d-9a7e-5b6c7d8e9f01",
@@ -3672,7 +3687,8 @@ object Http4s700 {
           markdown = "The unique identifier of the Bank on this OBP instance.",
           html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
         ),
-        overrides_static_glossary_item = true,
+        overrides_static_item = true,
+        shadows_static_glossary_item = true,
         created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
         created_at = new java.util.Date(),
         updated_at = new java.util.Date()
@@ -3715,6 +3731,81 @@ object Http4s700 {
       apiTagDocumentation :: Nil,
       Some(List(canDeleteGlossaryItem)),
       http4sPartialFunction = Some(deleteDynamicGlossaryItem)
+    )
+
+    // The Glossary itself, at v7.0.0. v3.0.0 serves the same merged content, but that version is
+    // STABLE and its JSON cannot gain fields, so the provenance flags live here.
+
+    private val v7GlossaryDocsRequireRole = APIUtil.getPropsAsBoolValue("apiOptions.glossaryDocsRequireRole", false)
+
+    // Same key-based expiry as the v3.0.0 endpoint: rendering every item through Pegdown is too
+    // expensive per request, and a lazy val would never pick up a Dynamic Glossary Item change.
+    private val cachedApiGlossaryJson =
+      new java.util.concurrent.atomic.AtomicReference[Option[(String, JSONFactory700.ApiGlossaryJsonV700)]](None)
+
+    private def apiGlossaryJson: JSONFactory700.ApiGlossaryJsonV700 = {
+      val version = Glossary.dynamicGlossaryItemsVersion
+      cachedApiGlossaryJson.get() match {
+        case Some((cachedVersion, json)) if cachedVersion == version => json
+        case _ =>
+          val json = JSONFactory700.createApiGlossaryJsonV700(APIUtil.getGlossaryItems)
+          cachedApiGlossaryJson.set(Some((version, json)))
+          json
+      }
+    }
+
+    val getApiGlossary: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "glossary" =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
+          for {
+            _ <- if (v7GlossaryDocsRequireRole) {
+              Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc))(cc.user.isDefined).flatMap { _ =>
+                NewStyle.function.hasEntitlement("", cc.user.openOrThrowException("user required").userId, ApiRole.canReadGlossary, Some(cc))
+              }
+            } else Future.unit
+          } yield apiGlossaryJson
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getApiGlossary),
+      "GET",
+      "/api/glossary",
+      "Get Glossary of the API",
+      """Returns the glossary of the API: the union of
+        |
+        |* **Static Glossary Items**, compiled into the API and only changing when the API is redeployed, and
+        |* **Dynamic Glossary Items**, held in the database and maintained over the Glossary Item endpoints.
+        |
+        |Each entry reports where it came from:
+        |
+        |* `is_dynamic` — true when the entry is a Dynamic Glossary Item rather than one shipped with the API.
+        |* `overrides_static_item` — true when this Dynamic Item is displacing a static Glossary Item of the same title. Overriding has to be declared when the Item is created, so this is deliberate; the API also reports these in its logs at startup.
+        |
+        |This is the same Glossary that `GET /obp/v3.0.0/api/glossary` returns. That version is STABLE and its JSON cannot change, so it omits the two fields above and is otherwise identical.
+        |
+        |The response includes an **ETag** header. Clients can send **If-None-Match** with the ETag value on subsequent requests to receive a **304 Not Modified** if the content has not changed. Cache the response locally and revalidate with the ETag, since Dynamic Glossary Items can change between calls.
+        |
+        |""",
+      EmptyBody,
+      JSONFactory700.ApiGlossaryJsonV700(
+        glossary_items = List(
+          JSONFactory700.ApiGlossaryItemJsonV700(
+            title = "Bank.bank_id",
+            description = JSONFactory700.GlossaryItemDescriptionJsonV700(
+              markdown = "The unique identifier of the Bank on this OBP instance.",
+              html = "<p>The unique identifier of the Bank on this OBP instance.</p>"
+            ),
+            is_dynamic = true,
+            overrides_static_item = true
+          )
+        )
+      ),
+      List(UnknownError),
+      apiTagDocumentation :: Nil,
+      None,
+      http4sPartialFunction = Some(getApiGlossary)
     )
 
     // ── End Dynamic Glossary Items ────────────────────────────────────────────

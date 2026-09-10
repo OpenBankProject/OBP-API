@@ -929,11 +929,15 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   case class PostGlossaryItemJsonV700(
       title: String,
-      description: String
+      description: String,
+      // Declared intent to shadow a static Glossary Item of the same title. Absent or false means
+      // a collision with a static title is refused, so shadowing is never accidental.
+      overrides_static_item: Option[Boolean]
   )
 
   case class PutGlossaryItemJsonV700(
-      description: String
+      description: String,
+      overrides_static_item: Option[Boolean]
   )
 
   case class GlossaryItemDescriptionJsonV700(markdown: String, html: String)
@@ -942,7 +946,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       glossary_item_id: String,
       title: String,
       description: GlossaryItemDescriptionJsonV700,
-      overrides_static_glossary_item: Boolean,
+      // What the operator declared when creating or updating the item.
+      overrides_static_item: Boolean,
+      // What is actually true right now: a static Glossary Item of this title exists. The two
+      // differ when a static Item was added after this one, which is worth someone's attention.
+      shadows_static_glossary_item: Boolean,
       created_by_user_id: String,
       created_at: java.util.Date,
       updated_at: java.util.Date
@@ -963,13 +971,46 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         markdown = r.description,
         html = PegdownOptions.convertPegdownToHtmlTweaked(r.description)
       ),
+      overrides_static_item = r.overridesStaticItem,
       // Flagged so a caller can see at a glance that this item is shadowing shipped text.
-      overrides_static_glossary_item =
-        Glossary.glossaryItems.exists(_.title.toLowerCase == r.title.toLowerCase),
+      shadows_static_glossary_item = Glossary.staticGlossaryItemExists(r.title),
       created_by_user_id = r.createdByUserId,
       created_at = r.createdAt,
       updated_at = r.updatedAt
     )
+
+  // ── The Glossary as served: static and Dynamic Items merged ─────────────────
+  // Distinct from GlossaryItemJsonV700 above, which is the management view of one Dynamic Item.
+  // v3.0.0 serves the same Glossary without these provenance fields; that version is STABLE and
+  // its JSON must not change, so the flags are offered here instead.
+
+  case class ApiGlossaryItemJsonV700(
+      title: String,
+      description: GlossaryItemDescriptionJsonV700,
+      // True when this entry comes from the DynamicGlossaryItem table rather than the API source.
+      is_dynamic: Boolean,
+      // True when this Dynamic Item is displacing a static Glossary Item of the same title.
+      overrides_static_item: Boolean
+  )
+
+  case class ApiGlossaryJsonV700(glossary_items: List[ApiGlossaryItemJsonV700])
+
+  def createApiGlossaryItemJsonV700(item: Glossary.GlossaryItem): ApiGlossaryItemJsonV700 = {
+    // Glossary Items cross-reference each other, so expand their placeholders as well.
+    val description = Glossary.expandGlossaryPlaceholders(item.description())
+    ApiGlossaryItemJsonV700(
+      title = item.title,
+      description = GlossaryItemDescriptionJsonV700(
+        markdown = description.stripMargin,
+        html = PegdownOptions.convertPegdownToHtmlTweaked(description)
+      ),
+      is_dynamic = item.isDynamic,
+      overrides_static_item = item.shadowsStaticItem
+    )
+  }
+
+  def createApiGlossaryJsonV700(items: List[Glossary.GlossaryItem]): ApiGlossaryJsonV700 =
+    ApiGlossaryJsonV700(glossary_items = items.map(createApiGlossaryItemJsonV700))
 
   def createGlossaryItemsJsonV700(
       rows: List[code.glossaryitem.DynamicGlossaryItemTrait],
