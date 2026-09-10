@@ -5375,7 +5375,7 @@ object Http4s400 {
         "Create My Api Collection Endpoint",
         s"""Create Api Collection Endpoint.
         |
-        |${Glossary.getGlossaryItem("API Collections")}
+        |${Glossary.getGlossaryItem("API Collection")}
         |
         |
         |${userAuthenticationMessage(true)}
@@ -5397,7 +5397,7 @@ object Http4s400 {
         "Create My Api Collection Endpoint By Id",
         s"""Create Api Collection Endpoint By Id.
         |
-        |${Glossary.getGlossaryItem("API Collections")}
+        |${Glossary.getGlossaryItem("API Collection")}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -7234,7 +7234,7 @@ object Http4s400 {
         "Delete My Api Collection",
         s"""Delete Api Collection By API_COLLECTION_ID
         |
-        |${Glossary.getGlossaryItem("API Collections")}
+        |${Glossary.getGlossaryItem("API Collection")}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -7255,7 +7255,7 @@ object Http4s400 {
         "DELETE",
         "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
         "Delete My Api Collection Endpoint",
-        s"""${Glossary.getGlossaryItem("API Collections")}
+        s"""${Glossary.getGlossaryItem("API Collection")}
         |
         |
         |Delete Api Collection Endpoint By OPERATION_ID
@@ -7277,7 +7277,7 @@ object Http4s400 {
         "DELETE",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
         "Delete My Api Collection Endpoint By Id",
-        s"""${Glossary.getGlossaryItem("API Collections")}
+        s"""${Glossary.getGlossaryItem("API Collection")}
         |
         |Delete Api Collection Endpoint By OPERATION_ID
         |
@@ -7298,7 +7298,7 @@ object Http4s400 {
         "DELETE",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoint-ids/API_COLLECTION_ENDPOINT_ID",
         "Delete My Api Collection Endpoint By Id",
-        s"""${Glossary.getGlossaryItem("API Collections")}
+        s"""${Glossary.getGlossaryItem("API Collection")}
         |Delete Api Collection Endpoint
         |Delete Api Collection Endpoint By Id
         |

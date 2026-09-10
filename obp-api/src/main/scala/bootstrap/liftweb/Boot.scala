@@ -310,6 +310,10 @@ class Boot extends MdcLoggable {
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()
 
+    // Report which static Glossary Items the database is currently displacing. A developer editing
+    // Glossary.scala has no other way to find out that their text is being overridden.
+    code.api.util.Glossary.logStaticOverrides()
+
     if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)) {
       // Create system views
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
@@ -1080,6 +1084,7 @@ object ToSchemify extends MdcLoggable {
     Organisation,
     RoutingScheme,
     BankSupportedRoutingScheme,
+    code.glossaryitem.DynamicGlossaryItem,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,

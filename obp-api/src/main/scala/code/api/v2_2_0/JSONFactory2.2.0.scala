@@ -30,7 +30,7 @@ import org.json4s._
 import code.actorsystem.ObpActorConfig
 import code.api.Constant._
 import code.api.util.APIUtil.{EndpointInfo, MessageDoc, getPropsValue}
-import code.api.util.{APIUtil, ApiPropsWithAlias, CustomJsonFormats, OptionalFieldSerializer}
+import code.api.util.{APIUtil, ApiPropsWithAlias, CustomJsonFormats, Glossary, OptionalFieldSerializer}
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{JSONFactory210, LocationJsonV210, PostCounterpartyBespokeJson, ResourceUserJSON}
@@ -852,7 +852,10 @@ object JSONFactory220 {
     MessageDocJson(
       process = md.process,
       message_format = md.messageFormat,
-      description = md.description,
+      // Expanded for the same reason Resource Doc and Glossary descriptions are: no Message Doc
+      // embeds a Glossary Item today, but this is the render path that would leak the raw
+      // placeholder if one ever did.
+      description = Glossary.expandGlossaryPlaceholders(md.description),
       outbound_topic = md.outboundTopic,
       inbound_topic = md.inboundTopic,
       example_outbound_message = decompose(md.exampleOutboundMessage),

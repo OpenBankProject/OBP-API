@@ -1973,8 +1973,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          |""".stripMargin
   }
 
+  /**
+   * The Glossary as served by GET /api/glossary: the static Glossary Items compiled into
+   * Glossary.scala, unioned with the Dynamic Glossary Items held in the database. A Dynamic Item
+   * replaces a static one of the same title.
+   */
   def getGlossaryItems : List[GlossaryItem] = {
-    Glossary.glossaryItems.toList.sortBy(_.title)
+    Glossary.allGlossaryItems.sortBy(_.title)
   }
 
   case class MessageDoc(
@@ -5066,7 +5071,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean]
   ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
-    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher".intern()
+    // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
+    // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
+    // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that
+    // re-checks the database at most once a second.
+    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-glossary:${Glossary.glossaryVersionForCacheKey}".intern()
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
     if (isValidSystemViewId(targetViewId.value))

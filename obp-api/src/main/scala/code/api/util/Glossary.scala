@@ -4,8 +4,9 @@ import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory
 import code.api.util.APIUtil.{getObpApiRoot, getServerUrl}
-import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
+import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, transactionIdExample, userIdExample, viewIdExample}
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Full
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 import java.io.File
@@ -14,61 +15,160 @@ import scala.collection.mutable.ArrayBuffer
 
 object Glossary extends MdcLoggable  {
 
-	def getGlossaryItem(title: String): String = {
+	// ── Embedding Glossary text in Resource Doc descriptions ──────────────────
+	// These three helpers are called while the Resource Docs are being built, which happens at
+	// class initialisation, long before the database is available. So rather than resolving the
+	// Glossary Item there and then, they emit a placeholder that is expanded when the docs are
+	// served — against the union of static and Dynamic Glossary Items, so a Dynamic Item overrides
+	// the shipped text in endpoint descriptions just as it does in GET /api/glossary.
+	//
+	// Expansion happens on the markdown, before it is converted to html. See
+	// expandGlossaryPlaceholders and its three call sites: JSONFactory1_4_0 (the Resource Docs
+	// API), SwaggerJSONFactory and OpenAPI31JSONFactory.
 
-		//logger.debug(s"getGlossaryItem says Hello. title to find is: $title")
+	// An html comment, deliberately. The placeholder is normally expanded long before anyone sees
+	// it, but if one ever does leak into a response it must be inert: `{{...}}` would have been
+	// read as an interpolation expression by a Vue or Angular client and thrown at render time.
+	// A comment renders as nothing instead.
+	private val GlossaryPlaceholderPrefix = "<!--OBP-GLOSSARY:"
+	private val GlossaryPlaceholder = """<!--OBP-GLOSSARY:(FULL|SIMPLE|LINK):(.*?)-->""".r
 
-		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
-			case Some(foundItem) =>
-				/**
-				 * Two important rules:
-				 * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
-				 * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
-				 */
-				s"""
-				 |<details>
-				 |  <summary style="display:list-item;cursor:s-resize;">${foundItem.title}</summary>
-				 |
-				 |  ${foundItem.htmlDescription}
-				 |</details>
-				 |
-				 |<br></br>
-				 |""".stripMargin
-				case None => "glossary-item-not-found"
+	// A FULL or SIMPLE expansion embeds another Item's html, which may itself hold placeholders,
+	// and replaceAllIn does not rescan what it substitutes. So expansion repeats — bounded, so a
+	// cycle of Items referencing each other terminates and leaves an inert comment at worst.
+	private val GlossaryPlaceholderMaxPasses = 3
+
+	private def glossaryPlaceholder(mode: String, title: String): String = s"$GlossaryPlaceholderPrefix$mode:$title-->"
+
+	/** Embeds the Glossary Item as a collapsible block. */
+	def getGlossaryItem(title: String): String = glossaryPlaceholder("FULL", title)
+
+	/**
+	 * Embeds just the text of the Glossary Item, with no title and no collapsible element.
+	 * Use this if getGlossaryItem is problematic with a certain glossary item (e.g. JSON Schema
+	 * Validation Glossary Item) or you just want a simple inclusion of text.
+	 */
+	def getGlossaryItemSimple(title: String): String = glossaryPlaceholder("SIMPLE", title)
+
+	/**
+	 * Embeds a link to the Glossary Item rather than its text.
+	 * Can reduce bandwidth and maybe make things semantically clearer.
+	 */
+	def getGlossaryItemLink(title: String): String = glossaryPlaceholder("LINK", title)
+
+	/**
+	 * Two important rules for the FULL rendering:
+	 * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
+	 * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
+	 */
+	private def renderGlossaryItemFull(item: GlossaryItem): String =
+		s"""
+		 |<details>
+		 |  <summary style="display:list-item;cursor:s-resize;">${item.title}</summary>
+		 |
+		 |  ${item.htmlDescription}
+		 |</details>
+		 |
+		 |<br></br>
+		 |""".stripMargin
+
+	private def renderGlossaryItemSimple(item: GlossaryItem): String =
+		s"""
+		 |  ${item.htmlDescription}
+		 |""".stripMargin
+
+	// We use the requested title rather than the found item's, because anchors are case sensitive.
+	private def renderGlossaryItemLink(title: String): String = s"""[here](/glossary#${title})"""
+
+	/**
+	 * Expands any Glossary placeholders in the given markdown. Text with no placeholder is returned
+	 * untouched, so this is cheap to call on every description.
+	 */
+	def expandGlossaryPlaceholders(text: String): String =
+		expandGlossaryPlaceholders(text, GlossaryPlaceholderMaxPasses)
+
+	private def expandGlossaryPlaceholders(text: String, passesLeft: Int): String = {
+		if (text == null || passesLeft <= 0 || !text.contains(GlossaryPlaceholderPrefix)) text
+		else {
+			val expanded = expandOnce(text)
+			if (expanded == text) text else expandGlossaryPlaceholders(expanded, passesLeft - 1)
 		}
-		//logger.debug(s"getGlossaryItem says the text to return is $something")
-		something
 	}
 
-	def getGlossaryItemSimple(title: String): String = {
-    // This function just returns a string without Title and collapsable element.
-		// Can use this if getGlossaryItem is problematic with a certain glossary item (e.g. JSON Schema Validation Glossary Item) or just want a simple inclusion of text.
-
-		//logger.debug(s"getGlossaryItemSimple says Hello. title to find is: $title")
-
-		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
-			case Some(foundItem) =>
-				s"""
-				 |  ${foundItem.htmlDescription}
-				 |""".stripMargin
-			case None => "glossary-item-simple-not-found"
+	private def expandOnce(text: String): String = {
+		{
+			val byTitle = glossaryItemsByTitle
+			GlossaryPlaceholder.replaceAllIn(text, matched => {
+				val mode = matched.group(1)
+				val title = matched.group(2)
+				val rendered = byTitle.get(title.toLowerCase) match {
+					case Some(item) => mode match {
+						case "FULL"   => renderGlossaryItemFull(item)
+						case "SIMPLE" => renderGlossaryItemSimple(item)
+						case _        => renderGlossaryItemLink(title)
+					}
+					case None =>
+						logger.debug(s"expandGlossaryPlaceholders could not find Glossary Item: $title")
+						mode match {
+							case "FULL"   => "glossary-item-not-found"
+							case "SIMPLE" => "glossary-item-simple-not-found"
+							case _        => "glossary-item-link-not-found"
+						}
+				}
+				// The rendered text is arbitrary markdown, so $ and \ in it must not be read as
+				// replacement group references.
+				java.util.regex.Matcher.quoteReplacement(rendered)
+			})
 		}
-		//logger.debug(s"getGlossaryItemSimple says the text to return is $something")
-		something
 	}
 
-	def getGlossaryItemLink(title: String): String = {
-		// This function just returns a link to the Glossary Item in question.
-		// Can reduce bandwith and maybe make things semantically clearer if we use links instead of includes.
+	// Expansion runs once per Resource Doc per Resource Doc cache TTL, and a cold cache expands
+	// hundreds of docs in one burst, so they share a lookup map rather than each reading the
+	// database. The map is keyed on the Dynamic Glossary Item watermark, and the watermark itself
+	// is re-read at most once a second.
+	private val GlossaryCacheRecheckMillis = 1000L
+	private val cachedItemsByTitle =
+		new java.util.concurrent.atomic.AtomicReference[(Long, String, Map[String, GlossaryItem])]((0L, "", Map.empty))
 
-		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
-			case Some(foundItem) =>
-				// We use the title because anchors are case sensitive, but we find it so we can log / display not found.
-				s"""[here](/glossary#${title})"""
-			case None => "glossary-item-link-not-found"
+	/**
+	 * Drops the placeholder lookup cache so a write made on this node is reflected at once, rather
+	 * than on the next watermark re-read. Other nodes still pick the write up via the watermark.
+	 */
+	def invalidateGlossaryItemCache(): Unit = cachedItemsByTitle.set((0L, "", Map.empty))
+
+	private def glossaryState: (String, Map[String, GlossaryItem]) = {
+		val now = System.currentTimeMillis
+		val (checkedAt, version, byTitle) = cachedItemsByTitle.get()
+		if (checkedAt != 0L && now - checkedAt < GlossaryCacheRecheckMillis) (version, byTitle)
+		else {
+			val currentVersion = dynamicGlossaryItemsVersion
+			if (checkedAt != 0L && currentVersion == version) {
+				cachedItemsByTitle.set((now, version, byTitle))
+				(version, byTitle)
+			} else {
+				// allGlossaryItems yields one Item per exact title, but titles differing only in case
+				// survive and collapse together in this case-insensitive map. Reversing makes the first
+				// of those spellings win, as find() used to.
+				val items = allGlossaryItems
+				val rebuilt = items.reverse.map(item => item.title.toLowerCase -> item).toMap
+				cachedItemsByTitle.set((now, currentVersion, rebuilt))
+				// Only on a real change, so this reports each edit once rather than on every read.
+				logStaticOverrides(items.filter(_.shadowsStaticItem))
+				(currentVersion, rebuilt)
+			}
 		}
-		something
 	}
+
+	private def glossaryItemsByTitle: Map[String, GlossaryItem] = glossaryState._2
+
+	/**
+	 * A token for Resource Doc cache keys. It changes whenever a Dynamic Glossary Item is added,
+	 * changed or removed, so a cached endpoint description that embeds Glossary text is rebuilt
+	 * instead of being served stale for the rest of the Resource Doc cache TTL (an hour by
+	 * default). Glossary writes are rare, so paying for a Resource Doc re-render on each one is
+	 * the right way round.
+	 */
+	def glossaryVersionForCacheKey: String = glossaryState._1
 
 
 	// reason of description is function: because we want make description is dynamic, so description can read
@@ -77,7 +177,13 @@ object Glossary extends MdcLoggable  {
 															 title: String,
 															 description: () => String,
 															 htmlDescription: String,
-															 textDescription: String
+															 textDescription: String,
+															 // Provenance. Static items are compiled in; dynamic ones come from the
+															 // DynamicGlossaryItem table. shadowsStaticItem is computed when the two
+															 // sets are merged: true when this dynamic item displaced a static one.
+															 isDynamic: Boolean = false,
+															 overridesStaticItem: Boolean = false,
+															 shadowsStaticItem: Boolean = false
                             )
 
 		def makeGlossaryItem (title: String, connectorField: ConnectorField) : GlossaryItem = {
@@ -117,6 +223,10 @@ object Glossary extends MdcLoggable  {
 			)
 		}
 
+		/** A Glossary Item backed by a row in the DynamicGlossaryItem table. */
+		def dynamic(title: String, description: => String, overridesStaticItem: Boolean): GlossaryItem =
+			apply(title, description).copy(isDynamic = true, overridesStaticItem = overridesStaticItem)
+
 	}
 
 
@@ -125,6 +235,121 @@ object Glossary extends MdcLoggable  {
     val glossaryItems = ArrayBuffer[GlossaryItem]()
 
 	// NOTE! Some glossary items are defined in ExampleValue.scala
+
+
+	// ── Dynamic Glossary Items ────────────────────────────────────────────────
+	// Glossary Items above are static: they are compiled in and only change when the API is
+	// redeployed. Dynamic Glossary Items live in the DynamicGlossaryItem table and are maintained
+	// at runtime over the /glossary-items endpoints. GET /api/glossary returns the union of the
+	// two, a Dynamic Item replacing a static one of the same title (compared case insensitively).
+	//
+	// Note the getGlossaryItem / getGlossaryItemSimple / getGlossaryItemLink helpers above stay
+	// static only on purpose. They are called while the Resource Docs are being built, which
+	// happens at class initialisation before the database is necessarily available, and their
+	// output is baked into the docs. Only the Glossary listing itself is dynamic.
+
+	/** Every Dynamic Glossary Item, rendered into the same GlossaryItem shape as the static ones. */
+	def dynamicGlossaryItems: List[GlossaryItem] = {
+		code.glossaryitem.DynamicGlossaryItems.dynamicGlossaryItem.vend.getAllDynamicGlossaryItems match {
+			case Full(rows) => rows.map(row => GlossaryItem.dynamic(row.title, row.description, row.overridesStaticItem))
+			case failure =>
+				// The Glossary must still be served if the table is unreachable, so fall back to static only.
+				logger.warn(s"Glossary.dynamicGlossaryItems could not read Dynamic Glossary Items: $failure")
+				Nil
+		}
+	}
+
+	/** True when the static Glossary defines an item with this title. Case insensitive. */
+	def staticGlossaryItemExists(title: String): Boolean =
+		glossaryItems.exists(_.title.toLowerCase == title.toLowerCase)
+
+	/**
+	 * Static Glossary Items plus Dynamic ones, a Dynamic Item winning on a title clash.
+	 *
+	 * Creating a Dynamic Item whose title collides with a static one is refused unless the operator
+	 * declared the override, so a clash here is normally deliberate. It can still arise without
+	 * that declaration if a static item is added later with a title a Dynamic Item already uses —
+	 * the Dynamic Item still wins, to keep one entry per title, and logStaticOverrides reports it.
+	 */
+	def allGlossaryItems: List[GlossaryItem] = {
+		val dynamic = dynamicGlossaryItems
+		val staticTitles = glossaryItems.map(_.title.toLowerCase).toSet
+		val dynamicWithShadowFlag =
+			dynamic.map(item => item.copy(shadowsStaticItem = staticTitles.contains(item.title.toLowerCase)))
+		val shadowedTitles = dynamic.map(_.title.toLowerCase).toSet
+		dedupeByTitle(
+			glossaryItems.toList.filterNot(item => shadowedTitles.contains(item.title.toLowerCase)) ::: dynamicWithShadowFlag)
+	}
+
+	/**
+	 * Keeps the first Item of each exact title.
+	 *
+	 * Two Items with the identical title is a mistake in the Glossary source: only one can own the
+	 * /glossary#Title anchor, and every lookup already resolves to the first, so the second was
+	 * unreachable anyway. Emitting both also breaks any client that keys a list by title. The
+	 * listing drops it and says so, since the source is what wants fixing.
+	 *
+	 * Titles that differ only in case are left alone. Anchors are case sensitive, so those are
+	 * distinct entries to a client and dropping one would lose documentation that reads fine today
+	 * — but they are ambiguous to the case-insensitive lookups, so they are still worth reporting.
+	 */
+	private def dedupeByTitle(items: List[GlossaryItem]): List[GlossaryItem] = {
+		val duplicated = items.groupBy(_.title).collect { case (title, sharing) if sharing.size > 1 => title }
+		if (duplicated.nonEmpty) {
+			logger.warn(
+				s"Glossary: ${duplicated.size} title(s) are defined more than once and only the first of each is served: " +
+				duplicated.toList.sorted.mkString(", ") +
+				". Two Glossary Items cannot share a title — one of them needs renaming in Glossary.scala, ExampleValue.scala or docs/glossary.")
+		}
+		val caseOnlyCollisions = items.map(_.title).distinct
+			.groupBy(_.toLowerCase).collect { case (_, spellings) if spellings.size > 1 => spellings.sorted.mkString(" / ") }
+		if (caseOnlyCollisions.nonEmpty) {
+			logger.info(
+				s"Glossary: ${caseOnlyCollisions.size} title(s) differ only in case: " +
+				caseOnlyCollisions.toList.sorted.mkString(", ") +
+				". All are served, but Glossary lookups are case insensitive and resolve to the first of each.")
+		}
+		items.distinctBy(_.title)
+	}
+
+	/** Dynamic Glossary Items that are currently displacing a static Item of the same title. */
+	def shadowingGlossaryItems: List[GlossaryItem] = allGlossaryItems.filter(_.shadowsStaticItem)
+
+	/**
+	 * Reports, in the log, which static Glossary Items are currently being overridden. This is the
+	 * one place the shadowing reaches a developer editing Glossary.scala, who otherwise has no way
+	 * of knowing the database is displacing the text they just wrote. Called at boot and again
+	 * whenever the Dynamic Glossary Item set changes.
+	 */
+	def logStaticOverrides(shadowing: List[GlossaryItem]): Unit = {
+		val (declared, undeclared) = shadowing.partition(_.overridesStaticItem)
+		if (declared.nonEmpty) {
+			logger.info(
+				s"Glossary: ${declared.size} static Glossary Item(s) are deliberately overridden by Dynamic Glossary Items: " +
+				declared.map(_.title).sorted.mkString(", ") +
+				". Editing their text in Glossary.scala will have no visible effect until the Dynamic Item is removed.")
+		}
+		if (undeclared.nonEmpty) {
+			// No override was declared, so the static item was almost certainly added after the
+			// Dynamic one. Worth a warning: neither the author of the static text nor the operator
+			// asked for this.
+			logger.warn(
+				s"Glossary: ${undeclared.size} static Glossary Item(s) are shadowed by Dynamic Glossary Items that did NOT declare an override: " +
+				undeclared.map(_.title).sorted.mkString(", ") +
+				". A static Item was probably added later with a title already in use. Rename one, delete the Dynamic Item, " +
+				"or set overrides_static_item on it to confirm the override is intended.")
+		}
+	}
+
+	/** Boot-time entry point for the report above. */
+	def logStaticOverrides(): Unit = logStaticOverrides(shadowingGlossaryItems)
+
+	/**
+	 * A watermark that changes whenever any Dynamic Glossary Item is added, changed or removed,
+	 * so callers can cache the rendered Glossary and rebuild it only when it has actually moved.
+	 */
+	def dynamicGlossaryItemsVersion: String =
+		code.glossaryitem.DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemsVersion.getOrElse("unavailable")
 
 
 	val latestConnector : String = "rest_vMar2019"
@@ -1011,6 +1236,28 @@ object Glossary extends MdcLoggable  {
 	)
 
 	  glossaryItems += GlossaryItem(
+		title = "View.view_id",
+		description =
+		s"""
+		  |Identifies a View on a bank account.
+		  |
+		  |A View controls which fields of the account and its transactions a User can see, and which actions they can take on that account. Granting a User access to an account means granting them access through a particular View.
+		  |
+		  |Examples: `owner`, `accountant`, `auditor`.
+		  |
+		  |Example value: ${viewIdExample.value}
+		 """)
+
+	  glossaryItems += GlossaryItem(
+		title = "Transaction.transaction_id",
+		description =
+		s"""
+		  |Uniquely identifies a Transaction on an account at a bank.
+		  |
+		  |Example value: ${transactionIdExample.value}
+		 """)
+
+	  glossaryItems += GlossaryItem(
 		title = "Account.account_id",
 		description =
 		s"""
@@ -1441,7 +1688,7 @@ object Glossary extends MdcLoggable  {
 |
 |
 |
-				|See ${getGlossaryItemLink("Consent_OBP_Flow_Example")} for an example flow.
+				|See ${getGlossaryItemLink("Authentication: Consent OBP Flow Example")} for an example flow.
 				|See ${getGlossaryItemLink("Consent_Account_Onboarding")} for more information about onboarding.
 |
 				|<img width="468" alt="OBP Access Control Image" src="$getServerUrl/media/images/glossary/OBP_Consent_Request__3_.png"></img>

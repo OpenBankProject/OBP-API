@@ -1109,6 +1109,14 @@ object ApiRole extends MdcLoggable{
   case class CanReadGlossary(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadGlossary = CanReadGlossary()
 
+  // Dynamic Glossary Items are system level, like the static Glossary they are merged into.
+  case class CanCreateGlossaryItem(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateGlossaryItem = CanCreateGlossaryItem()
+  case class CanUpdateGlossaryItem(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateGlossaryItem = CanUpdateGlossaryItem()
+  case class CanDeleteGlossaryItem(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteGlossaryItem = CanDeleteGlossaryItem()
+
   case class CanCreateCustomerAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomerAttributeDefinitionAtOneBank = CanCreateCustomerAttributeDefinitionAtOneBank()
 

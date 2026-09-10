@@ -561,7 +561,7 @@ object SwaggerJSONFactory extends MdcLoggable {
           OperationObjectJson(
             tags = rd.tags,
             summary = rd.summary,
-            description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin).replaceAll("\n", ""),
+            description = PegdownOptions.convertPegdownToHtmlTweaked(Glossary.expandGlossaryPlaceholders(rd.description.stripMargin)).replaceAll("\n", ""),
             operationId = s"${rd.operation_id}",
             parameters ={
               val description = rd.example_request_body match {

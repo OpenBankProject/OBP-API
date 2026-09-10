@@ -137,6 +137,10 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
 
     scenario("Technology field should be http4s when includeTechnology=true and doc is http4s") {
+      // Touch Implementations7_0_0 first: resourceDocs lives on the enclosing Http4s700 object and is
+      // filled by the inner object at class init, so it is empty until something references the
+      // inner one. Without this the scenario only passes when a v7-touching suite ran before it.
+      code.api.v7_0_0.Http4s700.Implementations7_0_0
       val http4sDoc: ResourceDoc = code.api.v7_0_0.Http4s700.resourceDocs.head
       val json = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, true, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
       json.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_HTTP4S)

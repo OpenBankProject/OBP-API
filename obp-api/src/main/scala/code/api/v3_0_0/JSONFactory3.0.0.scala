@@ -29,7 +29,7 @@ package code.api.v3_0_0
 import code.api.Constant._
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.{APIUtil, PegdownOptions}
+import code.api.util.{APIUtil, Glossary, PegdownOptions}
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -597,11 +597,15 @@ object JSONFactory300{
   }
 
   def createGlossaryItemJsonV300(glossaryItem : GlossaryItem) : GlossaryItemJsonV300 = {
+    // Glossary Items cross-reference each other, so their descriptions carry Glossary placeholders
+    // just as endpoint descriptions do, and have to be expanded here too. Without this the raw
+    // placeholder reaches the client instead of the link it stands for.
+    val description = Glossary.expandGlossaryPlaceholders(glossaryItem.description())
     GlossaryItemJsonV300(
       title = glossaryItem.title,
       description = GlossaryDescriptionJsonV300 (
-        markdown = glossaryItem.description().stripMargin, //.replaceAll("\n", ""),
-        html = PegdownOptions.convertPegdownToHtmlTweaked(glossaryItem.description()) // .replaceAll("\n", "")
+        markdown = description.stripMargin, //.replaceAll("\n", ""),
+        html = PegdownOptions.convertPegdownToHtmlTweaked(description) // .replaceAll("\n", "")
       )
     )
   }
