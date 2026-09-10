@@ -4,7 +4,7 @@ import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory
 import code.api.util.APIUtil.{getObpApiRoot, getServerUrl}
-import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
+import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, transactionIdExample, userIdExample, viewIdExample}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
@@ -1234,6 +1234,28 @@ object Glossary extends MdcLoggable  {
 		description =
 			"""The user Age"""
 	)
+
+	  glossaryItems += GlossaryItem(
+		title = "View.view_id",
+		description =
+		s"""
+		  |Identifies a View on a bank account.
+		  |
+		  |A View controls which fields of the account and its transactions a User can see, and which actions they can take on that account. Granting a User access to an account means granting them access through a particular View.
+		  |
+		  |Examples: `owner`, `accountant`, `auditor`.
+		  |
+		  |Example value: ${viewIdExample.value}
+		 """)
+
+	  glossaryItems += GlossaryItem(
+		title = "Transaction.transaction_id",
+		description =
+		s"""
+		  |Uniquely identifies a Transaction on an account at a bank.
+		  |
+		  |Example value: ${transactionIdExample.value}
+		 """)
 
 	  glossaryItems += GlossaryItem(
 		title = "Account.account_id",
