@@ -69,7 +69,9 @@ object InternalConnector {
     methodNameToSignature.contains(methodName)
 
   private def getFunction(methodName: String) = {
-    ConnectorMethodProvider.provider.vend.getByMethodNameWithCache(methodName) map {
+    // Maker/checker execution guard (active + approved hash); see code.dynamicchangerequest.MakerChecker
+    ConnectorMethodProvider.provider.vend.getByMethodNameWithCache(methodName)
+      .filter(_.connectorMethodId.exists(code.dynamicchangerequest.MakerChecker.isExecutableConnectorMethod)) map {
       case v :JsonConnectorMethod =>
         createFunction(methodName, v.decodedMethodBody, v.programmingLang).openOrThrowException(s"InternalConnector method compile fail, method name $methodName")
     }

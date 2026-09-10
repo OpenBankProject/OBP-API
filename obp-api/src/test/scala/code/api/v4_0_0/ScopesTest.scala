@@ -7,7 +7,7 @@ import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, CanCreateScopeAtAnyBank, CanDeleteScopeAtAnyBank, CanGetAnyUser, CanGetEntitlementsForAnyUserAtAnyBank}
 import code.api.util.ErrorMessages._
 import code.api.v3_0_0.{CreateScopeJson, ScopeJsons}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.scope.Scope
 import code.setup.APIResponse

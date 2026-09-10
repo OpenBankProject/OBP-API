@@ -92,7 +92,7 @@ object RateLimitingUtil extends MdcLoggable {
     */
   /** THE SINGLE SOURCE OF TRUTH for active rate limits.
     * This is the ONLY function that should be called to get active rate limits.
-    * Used by BOTH enforcement (AfterApiAuth) and API reporting (APIMethods600).
+    * Used by BOTH enforcement (AfterApiAuth) and API reporting (Http4s600).
     *
     * @param consumerId The consumer ID
     * @param date The date to check active limits for
@@ -107,9 +107,16 @@ object RateLimitingUtil extends MdcLoggable {
     }
 
     def aggregateRateLimits(rateLimitRecords: List[RateLimiting]): CallLimit = {
-      def sumLimits(values: List[Long]): Long = {
-        val positiveValues = values.filter(_ > 0)
-        if (positiveValues.isEmpty) -1 else positiveValues.sum
+      // Per period, over the consumer's active rows (see Glossary "Rate Limiting"):
+      //   -1 values are ignored (unlimited rows contribute nothing)
+      //   the remaining values (>= 0) are summed: overlapping rows add up, by design
+      //   a sum of 0 means blocked: every call in that period is refused with 429. A single 0 row does
+      //     not override positive rows; it only blocks when nothing else grants calls.
+      //   nothing to sum (all -1) -> -1 unlimited. A row exists, so the rate_limiting_per_* props do not apply.
+      // No rows at all is handled below: the rate_limiting_per_* props apply.
+      def resolveLimit(values: List[Long]): Long = {
+        val counted = values.filter(_ >= 0)
+        if (counted.isEmpty) -1 else counted.sum
       }
 
       if (rateLimitRecords.nonEmpty) {
@@ -118,12 +125,12 @@ object RateLimitingUtil extends MdcLoggable {
           rateLimitRecords.find(_.apiName.isDefined).flatMap(_.apiName),
           rateLimitRecords.find(_.apiVersion.isDefined).flatMap(_.apiVersion),
           rateLimitRecords.find(_.bankId.isDefined).flatMap(_.bankId),
-          sumLimits(rateLimitRecords.map(_.perSecondCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perMinuteCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perHourCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perDayCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perWeekCallLimit)),
-          sumLimits(rateLimitRecords.map(_.perMonthCallLimit))
+          resolveLimit(rateLimitRecords.map(_.perSecondCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perMinuteCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perHourCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perDayCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perWeekCallLimit)),
+          resolveLimit(rateLimitRecords.map(_.perMonthCallLimit))
         )
       } else {
         // No records found - return system defaults
@@ -217,9 +224,11 @@ object RateLimitingUtil extends MdcLoggable {
               logger.warn(s"Unknown status '${state.status}' when checking rate limit for consumer $consumerKey, period $period - allowing request")
               true
           }
+        case 0 =>
+          // A limit of 0 means blocked: refuse every call for this period, without touching Redis
+          false
         case _ =>
-          // Rate Limiting for a Consumer <= 0 implies successful result
-          // Or any other unhandled case implies successful result
+          // A negative limit (-1) means unlimited for this period
           true
       }
     } else {
@@ -227,19 +236,6 @@ object RateLimitingUtil extends MdcLoggable {
     }
   }
 
-  /**
-   * Increment API call counter for a consumer after successful rate limit check.
-   * Called after the request passes all rate limit checks to update the counters.
-   *
-   * Counters are ALWAYS incremented regardless of limit value. This provides visibility
-   * into consumer activity even when rate limiting is disabled (limit = -1), which is
-   * useful for monitoring which apps are active and verifying the counting infrastructure.
-   *
-   * @param consumerKey The consumer ID or IP address
-   * @param period The time period (PER_SECOND, PER_MINUTE, etc.)
-   * @param limit The rate limit value (-1 means disabled, but counter still incremented)
-   * @return (TTL in seconds, current counter value) or (-1, -1) on Redis error
-   */
   /** Pure Redis INCR with create-if-missing for a fully-formed key.
    *  No gates, no key formatting — call sites pass the final key and supply their own enable flags.
    *  Returns (ttl_seconds, current_count); (-1, -1) when Redis is unreachable. */
@@ -259,13 +255,24 @@ object RateLimitingUtil extends MdcLoggable {
     }
   }
 
-  private def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): (Long, Long) = {
-    if (useConsumerLimits && limit > 0) {
-      incrementCounter(createUniqueKey(consumerKey, period), period)
-    } else {
-      (-1, -1)
-    }
-  }
+  /**
+   * Count the call in one period's counter, after the request passed every limit check.
+   *
+   * Counted whatever the period's aggregated limit is, -1 (unlimited) included. Enforcement never
+   * reads the counter of an unlimited period - underConsumerLimits decides -1 and 0 without touching
+   * Redis and only compares the counter when the limit is positive - so a counter that is always
+   * kept changes nothing about what is refused, and gives visibility of the consumer's activity
+   * through the call-counter endpoints even when no limit applies. A period whose aggregated limit
+   * is 0 is refused before counting, so nothing is ever served or counted under it.
+   *
+   * Only `use_consumer_limits=false` skips counting, so an instance without Redis is left alone.
+   *
+   * @param consumerKey The consumer ID (or the client IP for anonymous access)
+   * @param period The time period (PER_SECOND, PER_MINUTE, ...)
+   * @return (TTL in seconds, current counter value); (-1, -1) when not counted or Redis is unreachable
+   */
+  private def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod): (Long, Long) =
+    if (useConsumerLimits) incrementCounter(createUniqueKey(consumerKey, period), period) else (-1, -1)
 
   /**
    * Get remaining TTL (time to live) for a rate limit counter.
@@ -335,7 +342,7 @@ object RateLimitingUtil extends MdcLoggable {
     * ERROR HANDLING:
     * - Redis connectivity issues default to allowing the request (fail-open)
     * - Rate limiting can be globally disabled via "use_consumer_limits" property
-    * - Malformed or missing limits default to unlimited access
+    * - A limit of 0 blocks the period (429 on every call), -1 means unlimited, no records means the props defaults apply
     *
     * @param userAndCallContext Tuple containing (Box[User], Option[CallContext]) from authentication
     * @return Same tuple structure, either with updated rate limit headers or rate limit exceeded error
@@ -343,8 +350,13 @@ object RateLimitingUtil extends MdcLoggable {
   def underCallLimits(userAndCallContext: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     // Configuration and helper functions
     def perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 1000)
-    def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long, consumerId: String): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer (consumer_id: $consumerId)."
-    def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for anonymous access."
+    def composeMsgBlocked(period: LimitCallPeriod, consumerId: String): String = TooManyRequests + s" This Consumer is blocked: its active rate limit ${RateLimitingPeriod.humanReadable(period)} is 0 (consumer_id: $consumerId)."
+    def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long, consumerId: String): String =
+      if (limit == 0) composeMsgBlocked(period, consumerId)
+      else TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer (consumer_id: $consumerId)."
+    def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String =
+      if (limit == 0) TooManyRequests + s" Anonymous access is blocked: the anonymous rate limit ${RateLimitingPeriod.humanReadable(period)} is 0."
+      else TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for anonymous access."
 
     // Helper function to set rate limit headers in successful responses
     def setXRateLimits(c: CallLimit, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
@@ -432,31 +444,22 @@ object RateLimitingUtil extends MdcLoggable {
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MONTH, rl.per_month, rl.consumer_id), 429, exceededRateLimit(rl, PER_MONTH))), userAndCallContext._2)
               case _ =>
-                // All limits passed - increment counters and set rate limit headers
-                val incrementCounters = List (
-                  incrementConsumerCounters(rateLimitingKey, PER_SECOND, rl.per_second),
-                  incrementConsumerCounters(rateLimitingKey, PER_MINUTE, rl.per_minute),
-                  incrementConsumerCounters(rateLimitingKey, PER_HOUR, rl.per_hour),
-                  incrementConsumerCounters(rateLimitingKey, PER_DAY, rl.per_day),
-                  incrementConsumerCounters(rateLimitingKey, PER_WEEK, rl.per_week),
-                  incrementConsumerCounters(rateLimitingKey, PER_MONTH, rl.per_month)
+                // All limits passed - count the call in every period, then set the X-Rate-Limit-*
+                // headers from the shortest period that HAS a limit. The counter alone cannot pick
+                // that period: every period is counted, unlimited ones included, so a live
+                // per-second counter says nothing about whether a per-second limit exists. With no
+                // limited period the CallContext keeps its defaults and the headers read -1.
+                val counted: List[(LimitCallPeriod, Long, (Long, Long))] = List(
+                  (PER_SECOND, rl.per_second, incrementConsumerCounters(rateLimitingKey, PER_SECOND)),
+                  (PER_MINUTE, rl.per_minute, incrementConsumerCounters(rateLimitingKey, PER_MINUTE)),
+                  (PER_HOUR,   rl.per_hour,   incrementConsumerCounters(rateLimitingKey, PER_HOUR)),
+                  (PER_DAY,    rl.per_day,    incrementConsumerCounters(rateLimitingKey, PER_DAY)),
+                  (PER_WEEK,   rl.per_week,   incrementConsumerCounters(rateLimitingKey, PER_WEEK)),
+                  (PER_MONTH,  rl.per_month,  incrementConsumerCounters(rateLimitingKey, PER_MONTH))
                 )
-                // Set rate limit headers based on the most restrictive active period
-                incrementCounters match {
-                  case first :: _ :: _ :: _ :: _ :: _ :: Nil if first._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(rl, first, PER_SECOND))
-                  case _ :: second :: _ :: _ :: _ :: _ :: Nil if second._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(rl, second, PER_MINUTE))
-                  case _ :: _ :: third :: _ :: _ :: _ :: Nil if third._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(rl, third, PER_HOUR))
-                  case _ :: _ :: _ :: fourth :: _ :: _ :: Nil if fourth._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(rl, fourth, PER_DAY))
-                  case _ :: _ :: _ :: _ :: fifth :: _ :: Nil if fifth._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(rl, fifth, PER_WEEK))
-                  case _ :: _ :: _ :: _ :: _ :: sixth :: Nil if sixth._1 > 0 =>
-                    (userAndCallContext._1, setXRateLimits(rl, sixth, PER_MONTH))
-                  case _  =>
-                    (userAndCallContext._1, userAndCallContext._2)
+                counted.collectFirst { case (period, limit, ttlAndCount) if limit > 0 && ttlAndCount._1 > 0 => (period, ttlAndCount) } match {
+                  case Some((period, ttlAndCount)) => (userAndCallContext._1, setXRateLimits(rl, ttlAndCount, period))
+                  case None                        => (userAndCallContext._1, userAndCallContext._2)
                 }
             }
           case None => // ANONYMOUS ACCESS - no consumer credentials, use IP-based limiting
@@ -473,7 +476,7 @@ object RateLimitingUtil extends MdcLoggable {
               case _ =>
                 // Limit not exceeded - increment counter and set headers
                 val incrementCounters = List (
-                  incrementConsumerCounters(consumerId, PER_HOUR, perHourLimitAnonymous)
+                  incrementConsumerCounters(consumerId, PER_HOUR)
                 )
                 incrementCounters match {
                   case x1 :: Nil if x1._1 > 0 =>

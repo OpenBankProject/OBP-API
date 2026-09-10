@@ -17,7 +17,11 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
     // (request.json / Box[JsonResponse] / Full(errorJsonResponse(...))) will fail to compile under
     // the native http4s template. Skip (and log) such a row so one bad endpoint does not crash the
     // whole group / server boot. Re-author the body against the new native contract (see PractiseEndpoint).
-    DynamicResourceDocProvider.provider.vend.getAll(None).flatMap { dynamicDoc =>
+    // Maker/checker execution guard: only active rows whose body hash a checker approved are served
+    // (the hash check applies only when dynamic_code_requires_approval covers DYNAMIC_RESOURCE_DOC).
+    DynamicResourceDocProvider.provider.vend.getAll(None)
+      .filter(_.dynamicResourceDocId.exists(code.dynamicchangerequest.MakerChecker.isExecutableDynamicResourceDoc))
+      .flatMap { dynamicDoc =>
       try {
         Some(toResourceDoc(dynamicDoc))
       } catch {

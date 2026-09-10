@@ -32,7 +32,7 @@ import code.api.util.APIUtil.OAuth._
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired}
 import code.api.v2_0_0.CreateMeetingJson
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag

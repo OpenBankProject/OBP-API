@@ -830,7 +830,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       fullPasswordValidation("NoSpecialChar123") shouldBe false//  false（not special character）
     }
 
-    scenario(s"${nameOf(APIUtil.fullPasswordValidation _)} passphrase branch: length > 16 has no composition rules") {
+    Scenario(s"${nameOf(APIUtil.fullPasswordValidation _)} passphrase branch: length > 16 has no composition rules") {
       fullPasswordValidation("a" * 17) shouldBe true
       fullPasswordValidation("a" * 16) shouldBe false // 16 chars still falls under the composition branch
       fullPasswordValidation("a" * 512) shouldBe true
@@ -840,7 +840,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       fullPasswordValidation("pässword longer than sixteen") shouldBe false // non-ASCII rejected at any length
     }
 
-    scenario(s"${nameOf(APIUtil.fullPasswordValidation _)} composition branch boundaries (10-16 chars)") {
+    Scenario(s"${nameOf(APIUtil.fullPasswordValidation _)} composition branch boundaries (10-16 chars)") {
       fullPasswordValidation("Abcdefg!1") shouldBe false // 9 chars, all classes present
       fullPasswordValidation(validCompositionPassword) shouldBe true // 10 chars
       fullPasswordValidation("Abcdefghijklmn!1") shouldBe true // 16 chars
@@ -849,7 +849,7 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       fullPasswordValidation("") shouldBe false
     }
 
-    scenario(s"every ASCII special character satisfies the ${nameOf(APIUtil.fullPasswordValidation _)} special-character rule") {
+    Scenario(s"every ASCII special character satisfies the ${nameOf(APIUtil.fullPasswordValidation _)} special-character rule") {
       val allAsciiSpecials = """!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""
       allAsciiSpecials should have length 32
       for (specialChar <- allAsciiSpecials) withClue(s"special char [$specialChar]: ") {
@@ -857,14 +857,14 @@ class APIUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with P
       }
     }
 
-    scenario(s"${nameOf(APIUtil.basicPasswordValidation _)} boundaries and control characters") {
+    Scenario(s"${nameOf(APIUtil.basicPasswordValidation _)} boundaries and control characters") {
       basicPasswordValidation("a" * 512) shouldBe SILENCE_IS_GOLDEN
       basicPasswordValidation("Abc\tdef123!") shouldBe InvalidValueCharacters // tab is not printable ASCII
       basicPasswordValidation("Abc\ndef123!") shouldBe InvalidValueCharacters
       basicPasswordValidation("") shouldBe InvalidValueCharacters
     }
 
-    scenario(s"the published password policy (GET /public/password-config) agrees with ${nameOf(APIUtil.fullPasswordValidation _)}") {
+    Scenario(s"the published password policy (GET /public/password-config) agrees with ${nameOf(APIUtil.fullPasswordValidation _)}") {
       val publishedPolicy = code.api.v7_0_0.JSONFactory700.passwordPoliciesJsonV700
 
       // the documented client algorithm over the NORMATIVE structured fields

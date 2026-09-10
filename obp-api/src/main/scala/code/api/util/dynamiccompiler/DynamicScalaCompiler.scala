@@ -12,6 +12,13 @@ package code.api.util.dynamiccompiler
 case class DynamicCompileFailure(message: String, cause: Option[Throwable] = None)
 
 /**
+ * One compiler diagnostic from [[DynamicScalaCompiler.check]]. `line`/`column` are 1-based in
+ * the code that was checked, and 0 when the compiler could not attach a position (a failure
+ * raised before or outside parsing, e.g. a classpath problem).
+ */
+case class DynamicCompileDiagnostic(line: Int, column: Int, severity: String, message: String)
+
+/**
  * The one place that turns a string of Scala source into a runnable value.
  *
  * This exists for the Scala 3 migration. Today the implementation is a Scala 2.13
@@ -42,6 +49,17 @@ trait DynamicScalaCompiler {
 
   /** Compile `code`, evaluate it, and return its value - cached per source text. */
   def compile(code: String): Either[DynamicCompileFailure, Any]
+
+  /**
+   * Compile `code` for diagnostics only: nothing is evaluated and nothing is cached, so a caller
+   * can validate a submitted method body without running it or poisoning [[compile]]'s cache with
+   * a source it will never execute. An empty list means the code compiles.
+   *
+   * Callers must still apply the dynamic-code kill switch and a role check - this compiles
+   * caller-supplied source with obp-api's own classes in scope, which is exactly the capability
+   * `allow_user_generated_scala_code` gates.
+   */
+  def check(code: String): List[DynamicCompileDiagnostic]
 
   /** Number of distinct sources currently held in the compile cache (for logging). */
   def cachedCount: Int

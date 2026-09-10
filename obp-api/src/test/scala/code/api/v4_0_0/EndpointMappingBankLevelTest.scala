@@ -6,7 +6,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf

@@ -29,7 +29,7 @@ import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
+import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.entitlement.Entitlement
 import code.webuiprops.WebUiPropsCommons
 import com.github.dwickern.macros.NameOf.nameOf

@@ -42,6 +42,7 @@ object AppsPage {
     "public_obp_api_explorer_url" -> Set("status", "health"),
     "public_obp_mcp_url"          -> Set("status", "health", "ready"),
     "public_obp_hola_url"         -> Set("status", "health"),
+    "public_obp_stripe_url"       -> Set("status"),
   )
 
   private def probesFor(key: String): List[String] =

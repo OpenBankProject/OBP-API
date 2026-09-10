@@ -68,9 +68,9 @@ class DoobieAtmsProviderTest extends ServerSetup {
     }
 
 
-  feature("DoobieAtmsProvider") {
+  Feature("DoobieAtmsProvider") {
 
-    scenario("We try to get atms") {
+    Scenario("We try to get atms") {
 
       val fixture = defaultSetup()
 
@@ -94,7 +94,7 @@ class DoobieAtmsProviderTest extends ServerSetup {
       atms.sortBy(_.atmId.value) should equal (expectedAtms.sortBy(_.atmId.value))
     }
 
-    scenario("We try to get atms for a bank that doesn't have any") {
+    Scenario("We try to get atms for a bank that doesn't have any") {
 
       val fixture = defaultSetup()
 

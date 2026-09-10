@@ -13,7 +13,8 @@ import code.api.v4_0_0.Http4s400
 import code.api.v5_0_0.Http4s500
 import code.api.v5_1_0.Http4s510
 import code.api.v6_0_0.Http4s600
-import com.openbankproject.commons.util.ScannedApiVersion
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -26,11 +27,12 @@ import scala.collection.mutable.ArrayBuffer
  * (requestUrl, requestVerb) dedup keeping the newest version, same per-version `excludeEndpoints`
  * filter — so doc counts are unchanged. The point is that the computation no longer runs on an
  * `OBPRestHelper`/Lift object, so `ResourceDocsAPIMethods` and `Http4s700` can source the catalog
- * without touching the Lift dispatch aggregators (which are deleted in a later phase).
+ * without touching the Lift dispatch aggregators (now deleted).
  *
- * NOTE: the `excludeEndpoints` lists are still referenced from the `OBPAPIx_x_x` objects (they are
- * pure `List[String]` of partial-function names, not Lift dispatch). They move here when the
- * aggregator objects are deleted.
+ * The `excludeEndpoints` lists below moved here from those objects verbatim. They are pure
+ * `List[String]` of partial-function names (`nameOf` is a compile-time macro yielding the member
+ * name, so pointing it at `Http4sNNN.ImplementationsX` instead of the old re-export produces the
+ * same strings).
  */
 object Http4sResourceDocAggregation {
 
@@ -54,6 +56,46 @@ object Http4sResourceDocAggregation {
     result
   }
 
+  /** Moved from OBPAPI4_0_0.excludeEndpoints. */
+  lazy val excludeEndpointsV400: List[String] =
+    nameOf(Http4s121.Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
+      nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
+      nameOf(Http4s121.Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
+      nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
+      nameOf(Http4s310.Implementations3_1_0.createAccount) ::
+      nameOf(Http4s310.Implementations3_1_0.revokeConsent) ::
+      Nil
+
+  /** Moved from OBPAPI5_1_0.excludeEndpoints. */
+  lazy val excludeEndpointsV510: List[String] =
+    nameOf(Http4s300.Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
+      nameOf(Http4s310.Implementations3_1_0.getBadLoginStatus) ::
+      nameOf(Http4s310.Implementations3_1_0.unlockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.lockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
+      nameOf(Http4s400.Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
+      Nil
+
+  /** Moved from OBPAPI6_0_0.excludeEndpoints. */
+  lazy val excludeEndpointsV600: List[String] =
+    nameOf(Http4s300.Implementations3_0_0.getUserByUsername) ::
+      nameOf(Http4s310.Implementations3_1_0.getBadLoginStatus) ::
+      nameOf(Http4s310.Implementations3_1_0.unlockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.lockUser) ::
+      nameOf(Http4s400.Implementations4_0_0.createUserWithAccountAccess) ::
+      nameOf(Http4s400.Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Http4s400.Implementations4_0_0.revokeGrantUserAccessToViews) ::
+      nameOf(Http4s400.Implementations4_0_0.getMyPersonalUserAttributes) ::
+      nameOf(Http4s400.Implementations4_0_0.createMyPersonalUserAttribute) ::
+      nameOf(Http4s400.Implementations4_0_0.updateMyPersonalUserAttribute) ::
+      nameOf(Http4s510.Implementations5_1_0.createNonPersonalUserAttribute) ::
+      nameOf(Http4s510.Implementations5_1_0.getNonPersonalUserAttributes) ::
+      nameOf(Http4s510.Implementations5_1_0.deleteNonPersonalUserAttribute) ::
+      Nil
+
   private def filterExcluded(docs: ArrayBuffer[ResourceDoc], excludeEndpoints: List[String]): ArrayBuffer[ResourceDoc] =
     if (excludeEndpoints.isEmpty) docs
     else docs.filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
@@ -63,12 +105,20 @@ object Http4sResourceDocAggregation {
   // uses a Kleisli wrapper that defers ImplementationsNxx initialization to the first HTTP request, so
   // resourceDocs is empty when Http4sResourceDocAggregation is first evaluated via a resource-docs request.
   // Accessing the ImplementationsNxx object directly forces its initialization, populating the buffer.
-  // Http4s121 is the exception: its wrappedRoutesV121Services is a direct lazy val reference
-  // (not Kleisli-wrapped), so Implementations1_2_1 is always initialized by Http4sApp startup.
+  // v121 forces its own too. It used not to: Http4s121's wrappedRoutesV121Services is a direct
+  // lazy val (not Kleisli-wrapped), so Http4sApp startup initialized Implementations1_2_1 — and
+  // the OBPAPI1_2_1/OBPAPI3_1_0 objects touched it from their static initializers besides. Those
+  // objects are gone, which leaves a caller that reads a catalog without booting the server
+  // (a plain unit test) relying on the server path alone. Since every catalog below v121 snapshots
+  // it into a fresh buffer, an unpopulated v121 would drop v1.2.1 out of every later catalog for
+  // the life of the JVM, so this does not stay an exception.
   private def forceInit(impl: Any): Unit = ()
 
   // The cumulative per-version catalogs (each = all docs from v1.2.1 up to and including this version).
-  lazy val v121: ArrayBuffer[ResourceDoc] = Http4s121.resourceDocs
+  lazy val v121: ArrayBuffer[ResourceDoc] = {
+    forceInit(Http4s121.Implementations1_2_1)
+    Http4s121.resourceDocs
+  }
   lazy val v130: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s130.Implementations1_3_0)
     dedup(v121, Http4s130.resourceDocs)
@@ -99,7 +149,7 @@ object Http4sResourceDocAggregation {
   }
   lazy val v400: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s400.Implementations4_0_0)
-    filterExcluded(dedup(v310, Http4s400.resourceDocs), code.api.v4_0_0.OBPAPI4_0_0.excludeEndpoints)
+    filterExcluded(dedup(v310, Http4s400.resourceDocs), excludeEndpointsV400)
   }
   lazy val v500: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s500.Implementations5_0_0)
@@ -107,10 +157,40 @@ object Http4sResourceDocAggregation {
   }
   lazy val v510: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s510.Implementations5_1_0)
-    filterExcluded(dedup(v500, Http4s510.resourceDocs), code.api.v5_1_0.OBPAPI5_1_0.excludeEndpoints)
+    filterExcluded(dedup(v500, Http4s510.resourceDocs), excludeEndpointsV510)
   }
   lazy val v600: ArrayBuffer[ResourceDoc] = {
     forceInit(Http4s600.Implementations6_0_0)
-    filterExcluded(dedup(v510, Http4s600.resourceDocs), code.api.v6_0_0.OBPAPI6_0_0.excludeEndpoints)
+    filterExcluded(dedup(v510, Http4s600.resourceDocs), excludeEndpointsV600)
   }
+
+  /**
+   * One OBP API version: its number, its lifecycle status, and its cumulative doc catalog.
+   * `docs` is by-name because each catalog is a lazy val that forces the corresponding
+   * ImplementationsNxx initialization — callers that only want the version/status should not
+   * pay for (or trigger) that.
+   */
+  case class VersionedCatalog(version: ApiVersion, versionStatus: String, docs: () => ArrayBuffer[ResourceDoc])
+
+  /**
+   * Every OBP API version, oldest first. This is the enumeration that used to be implicit in the
+   * set of `OBPAPIx_x_x` objects implementing `VersionedOBPApis` and be recovered by classpath
+   * reflection; it is now explicit, in the one file that already had to name all twelve versions.
+   * `versionStatus` is read from each Http4sNxx rather than restated here, so there is still
+   * exactly one place declaring whether a version is DEPRECATED / STABLE / BLEEDING_EDGE.
+   */
+  lazy val allVersions: List[VersionedCatalog] = List(
+    VersionedCatalog(ApiVersion.v1_2_1, Http4s121.versionStatus, () => v121),
+    VersionedCatalog(ApiVersion.v1_3_0, Http4s130.versionStatus, () => v130),
+    VersionedCatalog(ApiVersion.v1_4_0, Http4s140.versionStatus, () => v140),
+    VersionedCatalog(ApiVersion.v2_0_0, Http4s200.versionStatus, () => v200),
+    VersionedCatalog(ApiVersion.v2_1_0, Http4s210.versionStatus, () => v210),
+    VersionedCatalog(ApiVersion.v2_2_0, Http4s220.versionStatus, () => v220),
+    VersionedCatalog(ApiVersion.v3_0_0, Http4s300.versionStatus, () => v300),
+    VersionedCatalog(ApiVersion.v3_1_0, Http4s310.versionStatus, () => v310),
+    VersionedCatalog(ApiVersion.v4_0_0, Http4s400.versionStatus, () => v400),
+    VersionedCatalog(ApiVersion.v5_0_0, Http4s500.versionStatus, () => v500),
+    VersionedCatalog(ApiVersion.v5_1_0, Http4s510.versionStatus, () => v510),
+    VersionedCatalog(ApiVersion.v6_0_0, Http4s600.versionStatus, () => v600),
+  )
 }

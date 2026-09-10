@@ -35,7 +35,7 @@ import code.api.v2_1_0.CustomerJSONs
 import code.api.v3_0_0.CustomerJSONsV300
 import code.api.v3_1_0.CustomerJsonV310
 import code.api.v4_0_0.CustomersMinimalJsonV400
-import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.usercustomerlinks.UserCustomerLink

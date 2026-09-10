@@ -118,18 +118,21 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
     }
 
   private type ProvRow = (String, String, String, Option[String], Option[String], Option[String],
-    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[String], Option[Boolean])
 
   private def toProv(r: ProvRow): ConnectorMethodWithProvenance =
     ConnectorMethodWithProvenance(
       JsonConnectorMethod(Some(r._1), r._2, r._3, r._4.getOrElse("Scala")),
       r._5, r._6, r._7,
       // java.sql.Timestamp is a java.util.Date subclass json4s renders as {} - convert.
-      r._8.map(t => new java.util.Date(t.getTime)), r._9.map(t => new java.util.Date(t.getTime)))
+      r._8.map(t => new java.util.Date(t.getTime)), r._9.map(t => new java.util.Date(t.getTime)),
+      // NULL isactive = row written before the column existed, and such a method was live.
+      r._10, r._11.getOrElse(true))
 
   private val selectProvCols: Fragment =
     fr"""SELECT connectormethodid, methodname, methodbody, lang, createdbyuserid, updatedbyuserid,
-                methodbodyhash, createdat, updatedat
+                methodbodyhash, createdat, updatedat, approvedhash, isactive
          FROM connectormethod"""
 
   /** The v7.0.0 read-only provenance endpoints; the ordinary reads keep returning the plain DTO. */
@@ -143,6 +146,29 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
       case Some(r) => Full(toProv(r))
       case None    => Empty
     }
+
+  // ── Maker/checker write helpers (upstream commit 5d4af81c3) ────────────────────────────────
+
+  def setApproved(connectorMethodId: String, hash: String): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE connectormethod
+              SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
+                  isactive = true, updatedat = $now
+            WHERE connectormethodid = $connectorMethodId""".update.run) == 1
+  }
+
+  def setActive(connectorMethodId: String, active: Boolean): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE connectormethod SET isactive = $active, updatedat = $now
+            WHERE connectormethodid = $connectorMethodId""".update.run) == 1
+  }
+
+  def findAllWithoutApprovedHash(): List[ConnectorMethodWithProvenance] =
+    DoobieUtil.runQuery(
+      (selectProvCols ++ fr"WHERE approvedhash IS NULL OR approvedhash = ''")
+        .query[ProvRow].to[List]).map(toProv)
 
   override def deleteById(id: String): Box[Boolean] = tryo {
     DoobieUtil.runUpdate(sql"DELETE FROM connectormethod WHERE connectormethodid = $id".update.run)

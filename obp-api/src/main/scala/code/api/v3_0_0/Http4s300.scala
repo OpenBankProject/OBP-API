@@ -9,7 +9,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.v2_0_0.AccountsHelper._
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
-import code.api.util.{ApiRole, FutureUtil}
+import code.api.util.{ApiRole, FutureUtil, Glossary}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -153,21 +153,12 @@ object Http4s300 {
 
     val createViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "views" =>
-        implicit val cc: CallContext = req.callContext
-        val io = for {
-          user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          bank   <- IO.fromOption(cc.bank)(new RuntimeException(BankNotFound))
-          rawBox <- IO.fromFuture(IO(Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc)).map(_._1)))
-          account <- IO(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound, 404))
-          body   <- IO.pure(cc.httpBody.getOrElse(""))
-          result <- code.api.util.http4s.RequestScopeConnection.fromFuture(
-            createViewImpl300(user, account, body, cc))
-        } yield result
-        io.attempt.flatMap {
-          case Right(result) =>
-            Created(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result)))
-          case Left(err) =>
-            code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
+        EndpointHelpers.withUserAndBankCreated(req) { (user, bank, cc) =>
+          for {
+            (rawBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
+            account     <- Future(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound, 404))
+            result      <- createViewImpl300(user, account, cc.httpBody.getOrElse(""), cc)
+          } yield result
         }
     }
 
@@ -225,19 +216,8 @@ object Http4s300 {
 
     val updateViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / viewIdStr =>
-        implicit val cc: CallContext = req.callContext
-        val io = for {
-          user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          account <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          body    <- IO.pure(cc.httpBody.getOrElse(""))
-          result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
-            updateViewImpl300(user, account, ViewId(viewIdStr), body, cc))
-        } yield result
-        io.attempt.flatMap {
-          case Right(result) =>
-            Ok(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result)))
-          case Left(err) =>
-            code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
+        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          updateViewImpl300(user, account, ViewId(viewIdStr), cc.httpBody.getOrElse(""), cc)
         }
     }
 
@@ -1659,7 +1639,7 @@ object Http4s300 {
             // A request for power is a request BY the human: under a Consent the caller is a
             // per-consent shadow, and a request filed for it would have an admin granting to
             // an identity that dies with the consent (the grant endpoint now rejects that).
-            requesterUserId = cc.accountableUserId
+            requesterUserId = cc.onBehalfOfUserId
             _ <- code.util.Helper.booleanToFuture(EntitlementRequestAlreadyExists, cc = Some(cc)) {
               EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(body.bank_id, requesterUserId, body.role_name).isEmpty
             }
@@ -1868,8 +1848,11 @@ object Http4s300 {
       "GET",
       "/my/entitlements",
       "Get Entitlements for the current User",
+      // Description deliberately extends the Lift v3.0.0 text (documentation of behaviour that
+      // already exists; the parity audit will flag this field).
       s"""Get Entitlements for the current User.
        |
+       |Stored Entitlements have an `entitlement_id`. Entries with an empty `entitlement_id` and empty `bank_id` are virtual: Roles the User holds because their USER_ID is listed in the props entry `super_admin_user_ids` (${APIUtil.superAdminVirtualRoles.mkString(", ")}) or `oidc_operator_user_ids` (${APIUtil.oidcOperatorVirtualRoles.mkString(", ")}). Virtual Entitlements satisfy direct calls but cannot be placed in a Consent; `GET /users/current` (v6.0.0 and later) also reports which props entry grants each of them in `created_by_process`.
        |
        |${userAuthenticationMessage(true)}
        |
@@ -1885,7 +1868,24 @@ object Http4s300 {
     // ─── getApiGlossary ───────────────────────────────────────────────────────
 
     private val glossaryDocsRequireRole = APIUtil.getPropsAsBoolValue("apiOptions.glossaryDocsRequireRole", false)
-    private lazy val cachedGlossaryJson = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
+
+    // Rendering the Glossary means running every item's markdown through Pegdown, so the result is
+    // cached. The static half never moves, but Dynamic Glossary Items can be created, updated or
+    // deleted at any time (and on any node), so the cache is keyed on a watermark of that table
+    // instead of being a lazy val held for the life of the JVM.
+    private val cachedGlossaryJson =
+      new java.util.concurrent.atomic.AtomicReference[Option[(String, GlossaryItemsJsonV300)]](None)
+
+    private def glossaryJson: GlossaryItemsJsonV300 = {
+      val version = Glossary.dynamicGlossaryItemsVersion
+      cachedGlossaryJson.get() match {
+        case Some((cachedVersion, json)) if cachedVersion == version => json
+        case _ =>
+          val json = JSONFactory300.createGlossaryItemsJsonV300(getGlossaryItems)
+          cachedGlossaryJson.set(Some((version, json)))
+          json
+      }
+    }
 
     val getApiGlossary: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "api" / "glossary" =>
@@ -1896,7 +1896,7 @@ object Http4s300 {
                 NewStyle.function.hasEntitlement("", cc.user.openOrThrowException("user required").userId, ApiRole.canReadGlossary, Some(cc))
               }
             } else Future.unit
-          } yield cachedGlossaryJson
+          } yield glossaryJson
         }
     }
 
@@ -1908,15 +1908,16 @@ object Http4s300 {
       "Get Glossary of the API",
       """Get API Glossary
       |
-      |Returns the glossary of the API.
+      |Returns the glossary of the API: the union of
       |
-      |The glossary content is static and only changes when the API is redeployed.
-      |This endpoint supports HTTP caching:
+      |* **Static Glossary Items**, compiled into the API and only changing when the API is redeployed, and
+      |* **Dynamic Glossary Items**, held in the database and maintained at runtime over the Glossary Item endpoints (POST / PUT / DELETE /obp/v7.0.0/glossary-items).
       |
-      |* The response includes a **Cache-Control** header (max-age=3600) indicating clients should cache for 1 hour.
-      |* The response includes an **ETag** header. Clients can send **If-None-Match** with the ETag value on subsequent requests to receive a **304 Not Modified** if the content has not changed.
+      |A Dynamic Glossary Item whose title matches a static one (compared case insensitively) replaces it, so an operator can correct or localise shipped text without a redeploy.
       |
-      |Clients and agents are encouraged to cache the glossary response locally.
+      |The response includes an **ETag** header. Clients can send **If-None-Match** with the ETag value on subsequent requests to receive a **304 Not Modified** if the content has not changed.
+      |
+      |Clients and agents are encouraged to cache the glossary response locally and revalidate with the ETag, since Dynamic Glossary Items can change between calls.
       |
       |""",
       EmptyBody,

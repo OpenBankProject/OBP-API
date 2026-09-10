@@ -13,7 +13,7 @@ class FrozenClassTest extends ServerSetup {
 
   Feature("Frozen version apis not changed") {
 
-    Scenario(s"count of STABLE OBPAPIxxxx should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"count of STABLE api versions should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
 
       val persistedStableVersions = persistedVersionToEndpointNames.map(_._1).toSet
       val currentStableVersions = versionToEndpointNames.map(_._1).toSet
@@ -22,7 +22,7 @@ class FrozenClassTest extends ServerSetup {
       increasedVersions should equal(Set.empty[ApiVersion])
     }
 
-    Scenario(s"count of STABLE OBPAPIxxxx should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"count of STABLE api versions should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
       val persistedStableVersions = persistedVersionToEndpointNames.map(_._1).toSet
       val currentStableVersions = versionToEndpointNames.map(_._1).toSet
 
@@ -30,7 +30,7 @@ class FrozenClassTest extends ServerSetup {
       reducedVersions should equal(Set.empty[ApiVersion])
     }
 
-    Scenario(s"api count of STABLE value of OBPAPIxxxx#versionStatus should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"api count of versions with STABLE versionStatus should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
       val reducedApis = for {
         (pVersion, pEndpointNames) <- persistedVersionToEndpointNames
         (version, endpointNames) <- versionToEndpointNames
@@ -43,7 +43,7 @@ class FrozenClassTest extends ServerSetup {
       reducedApis should equal(Nil)
     }
 
-    Scenario(s"api count of STABLE value of OBPAPIxxxx#versionStatus should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"api count of versions with STABLE versionStatus should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
       val increasedApis = for {
         (pVersion, pEndpointNames) <- persistedVersionToEndpointNames
         (version, endpointNames) <- versionToEndpointNames

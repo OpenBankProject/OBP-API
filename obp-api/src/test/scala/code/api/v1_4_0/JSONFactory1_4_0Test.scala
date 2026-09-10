@@ -7,8 +7,6 @@ import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{APIUtil, ExampleValue}
 import code.api.util.CustomJsonFormats
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
-import code.api.v3_0_0.OBPAPI3_0_0
-import code.api.v1_2_1.OBPAPI1_2_1
 import org.json4s.Extraction.decompose
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
@@ -16,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.{JsonSchemaFactory, SpecVersion}
 
 import scala.collection.mutable;
+import code.api.util.http4s.Http4sResourceDocAggregation
 
 case class OneClass(
   string : String = "String",
@@ -117,19 +116,19 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
     
     Scenario("createResourceDocJson should work well,  no exception is good enough") {
-      val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)
+      val resourceDoc: ResourceDoc = Http4sResourceDocAggregation.v300(5)
       val result: ResourceDocJson = JSONFactory1_4_0.createLocalisedResourceDocJson(resourceDoc,false, None, 
         includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
     }
 
     Scenario("createResourceDocsJson should work well, no exception is good enough") {
-      val resourceDoc: mutable.Seq[ResourceDoc] = OBPAPI3_0_0.allResourceDocs
+      val resourceDoc: mutable.Seq[ResourceDoc] = Http4sResourceDocAggregation.v300
       val result = JSONFactory1_4_0.createResourceDocsJson(resourceDoc.toList, false, None)
     }
 
     Scenario("Technology field should be None unless includeTechnology=true") {
       // All versions are now on http4s — use any http4s doc.
-      val http4sDoc: ResourceDoc = OBPAPI1_2_1.allResourceDocs.head
+      val http4sDoc: ResourceDoc = Http4sResourceDocAggregation.v121.head
       val json1 = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, false, None, includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
       json1.implemented_by.technology shouldBe None
 
@@ -138,6 +137,10 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
 
     Scenario("Technology field should be http4s when includeTechnology=true and doc is http4s") {
+      // Touch Implementations7_0_0 first: resourceDocs lives on the enclosing Http4s700 object and is
+      // filled by the inner object at class init, so it is empty until something references the
+      // inner one. Without this the scenario only passes when a v7-touching suite ran before it.
+      code.api.v7_0_0.Http4s700.Implementations7_0_0
       val http4sDoc: ResourceDoc = code.api.v7_0_0.Http4s700.resourceDocs.head
       val json = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, true, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
       json.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_HTTP4S)
@@ -152,7 +155,7 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
 
     Scenario("validate all the resourceDocs json schema, no exception is good enough") {
-      val resourceDocsRaw= OBPAPI3_0_0.allResourceDocs
+      val resourceDocsRaw= Http4sResourceDocAggregation.v300
       val resourceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList,false, None)
       val mapper = new ObjectMapper()
       val schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4)

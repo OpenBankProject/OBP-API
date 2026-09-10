@@ -79,6 +79,25 @@ object Http4sRequestAttributes {
   val callerCertificateTrustKey: Key[code.api.util.PeerTrust.Resolution] =
     Key.newKey[IO, code.api.util.PeerTrust.Resolution].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
+  /** Outcome of resolving the caller from the request credentials: the user (or a Failure) and the
+    * CallContext enriched by that resolution (Consumer, session, rate-limit config, ...). */
+  type ResolvedCaller = (Box[User], Option[CallContext])
+
+  /**
+   * The caller resolved on THIS request by a fallthrough hop that has no ResourceDoc for it (see
+   * ResourceDocMiddleware.resolveCallerOnce). Http4sApp attaches one empty holder to each incoming
+   * request; the first such hop fills it and every later link of the version fallthrough chain
+   * reads it instead of re-validating the credentials (JWKS lookups, Consumer lookup and save).
+   * The holder is a request attribute: it lives in memory for the duration of that one request,
+   * is never stored anywhere else and is unreachable from any other request. When it is absent
+   * (e.g. the middleware used on its own in a test) the middleware still resolves, just on every hop.
+   */
+  val callerResolvedOnThisRequestKey: Key[java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]] =
+    Key.newKey[IO, java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  def newCallerResolvedOnThisRequest: java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]] =
+    new java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]](None)
+
 
   /**
    * Implicit class that adds .callContext accessor to Request[IO].
@@ -123,9 +142,21 @@ object Http4sRequestAttributes {
     // clients (and the strict application/json check in the frontend) see the real type.
     private val jsonContentType = `Content-Type`(MediaType.application.json)
 
-    private def toJsonOk[A](result: A)(implicit formats: Formats): IO[Response[IO]] = {
+    /**
+     * Add the CallContext-derived headers (APIUtil.getHeadersNewStyle): X-Rate-Limit-Limit /
+     * -Remaining / -Reset, GatewayLogin, ASPSP-SCA-Approach, pagination Range, mirrored and
+     * echoed request headers. RateLimitingUtil.underCallLimits stamps the rate-limit values on
+     * the CallContext during ResourceDocMiddleware.authenticate; this is where they reach the
+     * client. Lift's futureToResponse did the same for every response.
+     */
+    def withCallContextHeaders(response: Response[IO])(implicit cc: CallContext): Response[IO] =
+      code.api.util.APIUtil.getHeadersNewStyle(Some(cc.toLight)).list.foldLeft(response) {
+        case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
+      }
+
+    private def toJsonOk[A](result: A)(implicit formats: Formats, cc: CallContext): IO[Response[IO]] = {
       val jsonString = prettyRender(Extraction.decompose(result))
-      Ok(jsonString, jsonContentType)
+      Ok(jsonString, jsonContentType).map(withCallContextHeaders)
     }
 
     /**
@@ -208,6 +239,25 @@ object Http4sRequestAttributes {
     }
 
     /**
+     * Execute business logic requiring both User and Bank, without a typed body.
+     * Returns 201 Created on success, converts errors via ErrorResponseConverter.
+     */
+    def withUserAndBankCreated[A](req: Request[IO])(f: (User, Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
+        bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
+        result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
      * Parse the request body from CallContext into type B.
      * Returns Left(error message) if body is absent or not valid JSON for B.
      */
@@ -246,7 +296,7 @@ object Http4sRequestAttributes {
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -288,7 +338,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -332,7 +382,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -370,7 +420,7 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
-          Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+          Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -393,7 +443,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -458,7 +508,7 @@ object Http4sRequestAttributes {
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
-          Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
+          Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -479,7 +529,29 @@ object Http4sRequestAttributes {
         case Right((result, code)) =>
           val jsonString = prettyRender(Extraction.decompose(result))
           val status = Status.fromInt(code).getOrElse(Status.Ok)
-          IO.pure(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType)).flatTap(recordMetric(result, _))
+          IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute business logic requiring validated User that returns a (result, statusCode) pair.
+     * A 204 renders with no body; any other status renders the result as JSON. Used by write
+     * endpoints that answer 201/200/204 when applied directly and 202 Accepted when maker/checker
+     * queues the change as a DynamicChangeRequest instead.
+     */
+    def withUserAndStatus[A](req: Request[IO])(f: (User, CallContext) => Future[(A, Int)])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
+        result <- RequestScopeConnection.fromFuture(f(user, cc))
+      } yield result
+      io.attempt.flatMap {
+        case Right((_, 204)) => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
+        case Right((result, code)) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          val status = Status.fromInt(code).getOrElse(Status.Ok)
+          IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -491,7 +563,7 @@ object Http4sRequestAttributes {
     def executeDelete(req: Request[IO])(f: CallContext => Future[_]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f(cc)).attempt.flatMap {
-        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Right(_)  => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -507,7 +579,7 @@ object Http4sRequestAttributes {
         result <- RequestScopeConnection.fromFuture(f(user, cc))
       } yield result
       io.attempt.flatMap {
-        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Right(_)  => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -524,7 +596,7 @@ object Http4sRequestAttributes {
         result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
       } yield result
       io.attempt.flatMap {
-        case Right(_)  => NoContent().flatTap(recordMetric("", _))
+        case Right(_)  => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -594,6 +666,10 @@ object Http4sCallContextBuilder {
    * Extract the trusted client IP. Defaults to the immediate socket peer; consults a
    * forwarded-for header only when `trust.proxy.enabled = true`. See [[RemoteIpUtil]].
    */
+  /** The trusted client IP for a request, as CallContext.ipAddress would carry it. Public so
+   *  request-level middleware (SelfServiceRateLimitMiddleware) keys on the same value. */
+  def clientIp(request: Request[IO]): String = extractIpAddress(request)
+
   private def extractIpAddress(request: Request[IO]): String = {
     val socketPeer = request.remoteAddr.map(_.toUriString).getOrElse("")
     RemoteIpUtil.resolveClientIp(

@@ -29,7 +29,7 @@ import code.api.util.ApiRole.canGetAdapterInfo
 import org.json4s.jvalue2extractable
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_0_0.AdapterInfoJsonV300
-import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.api.util.APIUtil.OAuth._
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers

@@ -29,7 +29,7 @@ import code.api.util.APIUtil
 import org.json4s.jvalue2extractable
 import org.json4s.jvalue2monadic
 import code.api.util.APIUtil.OAuth._
-import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
+import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
@@ -206,6 +206,7 @@ class AppDirectoryTest extends V600ServerSetup {
       APIUtil.publicAppUrlPropNames should contain("public_obp_hola_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_mcp_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_opey_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_stripe_url")
     }
 
     Scenario("all publicAppUrlPropNames follow public_*_url convention", VersionOfApi, ApiEndpoint) {

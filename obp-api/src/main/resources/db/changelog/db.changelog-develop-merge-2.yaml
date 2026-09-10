@@ -1,0 +1,443 @@
+databaseChangeLog:
+  # Schema for the features the second origin/develop merge brought in.
+  #
+  # Upstream creates all of this through Lift's Schemifier, driven by ToSchemify.models. This
+  # branch has no Schemifier in boot at all (ToSchemify.models was deleted; Liquibase is the sole
+  # schema authority), so every table and column upstream's new entities rely on has to be
+  # declared here or the ported Doobie stores query objects nothing ever made.
+  #
+  # Each changeset guards itself with columnExists / tableExists so a database that already has
+  # the object records the changeset as run instead of aborting the boot.
+
+  # ── Maker/checker for dynamic code (upstream commit 5d4af81c3) ─────────────────────────────
+  # Every target type of a DynamicChangeRequest gains the same two columns: the hash a checker
+  # approved, and whether the row is live. The runtime loads a row only when isactive is true
+  # and - when maker/checker is enabled for that target type - when its body hash equals the
+  # approved hash. approvedhash is written only by an approved change request (or by the one-off
+  # seeding when the feature is first switched on), never from a request body.
+
+  - changeSet:
+      id: add-maker-checker-columns-dynamicresourcedoc
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: dynamicresourcedoc
+                columnName: approvedhash
+      comment: >-
+        Maker/checker approval state for runtime-compiled endpoints.
+      changes:
+        - addColumn:
+            tableName: dynamicresourcedoc
+            columns:
+              - column: {name: approvedhash, type: VARCHAR(64)}
+              - column: {name: isactive, type: BOOLEAN, defaultValueBoolean: true}
+
+  - changeSet:
+      id: add-maker-checker-columns-dynamicmessagedoc
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: dynamicmessagedoc
+                columnName: approvedhash
+      comment: >-
+        Maker/checker approval state for runtime-compiled connector message docs.
+      changes:
+        - addColumn:
+            tableName: dynamicmessagedoc
+            columns:
+              - column: {name: approvedhash, type: VARCHAR(64)}
+              - column: {name: isactive, type: BOOLEAN, defaultValueBoolean: true}
+
+  - changeSet:
+      id: add-maker-checker-columns-connectormethod
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: connectormethod
+                columnName: approvedhash
+      comment: >-
+        Maker/checker approval state for runtime-compiled connector methods.
+      changes:
+        - addColumn:
+            tableName: connectormethod
+            columns:
+              - column: {name: approvedhash, type: VARCHAR(64)}
+              - column: {name: isactive, type: BOOLEAN, defaultValueBoolean: true}
+
+  - changeSet:
+      id: create-table-dynamicchangerequest
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: dynamicchangerequest
+      comment: >-
+        The maker/checker audit log: one row per request against a runtime-supplied artefact.
+        Rows are never deleted. No bank column by design - dynamic code runs in the shared JVM
+        and approval is system level; requestpath records the scope the maker used.
+      changes:
+        - createTable:
+            tableName: dynamicchangerequest
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: dynamicchangerequestid, type: VARCHAR(36)}
+              - column: {name: targettype, type: VARCHAR(64)}
+              - column: {name: targetid, type: VARCHAR(255)}
+              - column: {name: operation, type: VARCHAR(32)}
+              - column: {name: requestverb, type: VARCHAR(16)}
+              - column: {name: requestpath, type: VARCHAR(1024)}
+              - column: {name: proposedpayload, type: "${text.type}"}
+              - column: {name: payloadhash, type: VARCHAR(64)}
+              - column: {name: currentpayloadhash, type: VARCHAR(64)}
+              - column: {name: status, type: VARCHAR(32)}
+              - column: {name: requestoruserid, type: VARCHAR(255)}
+              - column: {name: businessjustification, type: "${text.type}"}
+              - column: {name: checkeruserid, type: VARCHAR(255)}
+              - column: {name: checkercomment, type: "${text.type}"}
+              - column: {name: actionedat, type: TIMESTAMP}
+              - column: {name: expiresat, type: TIMESTAMP}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-dynamicchangerequest
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicchangerequest_id_idx
+      comment: >-
+        Mirrors the Mapper entity's dbIndexes: unique on the external handle, plus the three
+        lookups the provider actually makes (by target, by requestor, by status).
+      changes:
+        - createIndex:
+            tableName: dynamicchangerequest
+            indexName: dynamicchangerequest_id_idx
+            unique: true
+            columns:
+              - column: {name: dynamicchangerequestid}
+        - createIndex:
+            tableName: dynamicchangerequest
+            indexName: dynamicchangerequest_target_idx
+            columns:
+              - column: {name: targettype}
+              - column: {name: targetid}
+        - createIndex:
+            tableName: dynamicchangerequest
+            indexName: dynamicchangerequest_requestor_idx
+            columns:
+              - column: {name: requestoruserid}
+        - createIndex:
+            tableName: dynamicchangerequest
+            indexName: dynamicchangerequest_status_idx
+            columns:
+              - column: {name: status}
+
+  # ── Wider dynamicresourcedoc text columns (upstream MigrationOfDynamicResourceDocTextFieldsLength) ──
+
+  - changeSet:
+      id: widen-dynamicresourcedoc-text-columns
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - sqlCheck:
+                expectedResult: 0
+                sql: >-
+                  SELECT COUNT(*) FROM information_schema.columns
+                  WHERE LOWER(table_name) = 'dynamicresourcedoc'
+                  AND LOWER(column_name) IN ('description', 'tags', 'roles_c')
+                  AND character_maximum_length = 255
+      comment: >-
+        develop widens these three with MigrationOfDynamicResourceDocTextFieldsLength, a Lift
+        migration that reads Mapper metadata this branch no longer has - so it was deleted with
+        the rest of the Mapper code and its effect is expressed here instead. This is the second
+        such widening: the sibling changeset in db.changelog-develop-merge.yaml covers
+        examplerequestbody / successresponsebody / errorresponsebodies, and these are the other
+        three columns the same class of doc routinely overflows (a description is Markdown and a
+        roles list grows with the endpoint).
+
+        Same precondition shape as that sibling, and for the same reason: it counts the columns
+        still at exactly 255 rather than testing for the widened type, because what the widened
+        type reports differs per vendor - NULL on Postgres and MySQL, 1000000000 on H2, -1 on SQL
+        Server. A database already widened counts zero and marks this run instead of re-applying.
+      changes:
+        - modifyDataType:
+            tableName: dynamicresourcedoc
+            columnName: description
+            newDataType: ${text.type}
+        - modifyDataType:
+            tableName: dynamicresourcedoc
+            columnName: tags
+            newDataType: ${text.type}
+        - modifyDataType:
+            tableName: dynamicresourcedoc
+            columnName: roles_c
+            newDataType: ${text.type}
+
+  # ── Dynamic Entity auth mode (upstream commit c583fe421) ───────────────────────────────────
+
+  - changeSet:
+      id: add-authmode-dynamicentity
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: dynamicentity
+                columnName: authmode
+      comment: >-
+        Who may hold the roles guarding this entity's data endpoints - the User's Entitlements,
+        the Consumer's Scopes, either, or both. Nullable: rows created before the column existed
+        read back through DynamicEntityAuthMode.normalise, which maps null/empty to the UserOnly
+        default rather than failing the read.
+      changes:
+        - addColumn:
+            tableName: dynamicentity
+            columns:
+              - column: {name: authmode, type: VARCHAR(32)}
+
+  # ── API Product Subscriptions (upstream commit 73cceba36) ──────────────────────────────────
+
+  - changeSet:
+      id: create-table-apiproductsubscription
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: apiproductsubscription
+      comment: >-
+        One Consumer holding one API Product for a period, with a status. Deliberately no unique
+        constraint on (consumerid, bankid, apiproductcode): cancelled rows are history, and the
+        provider enforces at most one non-cancelled subscription per that triple.
+      changes:
+        - createTable:
+            tableName: apiproductsubscription
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: apiproductsubscriptionid, type: VARCHAR(36)}
+              - column: {name: bankid, type: VARCHAR(36)}
+              - column: {name: apiproductcode, type: VARCHAR(50)}
+              # Consumer.consumerid is VARCHAR(250); mirror it so any existing id fits.
+              - column: {name: consumerid, type: VARCHAR(250)}
+              - column: {name: status, type: VARCHAR(20)}
+              - column: {name: startdate, type: TIMESTAMP}
+              - column: {name: enddate, type: TIMESTAMP}
+              - column: {name: createdbyuserid, type: VARCHAR(36)}
+              - column: {name: ratelimitingid, type: VARCHAR(50)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-apiproductsubscription
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: apiproductsubscription_id_idx
+      comment: Mirrors the Mapper entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: apiproductsubscription
+            indexName: apiproductsubscription_id_idx
+            unique: true
+            columns:
+              - column: {name: apiproductsubscriptionid}
+        - createIndex:
+            tableName: apiproductsubscription
+            indexName: apiproductsubscription_consumer_idx
+            columns:
+              - column: {name: consumerid}
+        - createIndex:
+            tableName: apiproductsubscription
+            indexName: apiproductsubscription_bank_product_idx
+            columns:
+              - column: {name: bankid}
+              - column: {name: apiproductcode}
+
+  - changeSet:
+      id: create-table-apiproductsubscriptionscope
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: apiproductsubscriptionscope
+      comment: >-
+        Which Scope rows a subscription created, so cancelling removes exactly those and never a
+        Scope granted by hand.
+      changes:
+        - createTable:
+            tableName: apiproductsubscriptionscope
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: apiproductsubscriptionid, type: VARCHAR(50)}
+              - column: {name: scopeid, type: VARCHAR(50)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-apiproductsubscriptionscope
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: apiproductsubscriptionscope_sub_idx
+      comment: Mirrors the Mapper entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: apiproductsubscriptionscope
+            indexName: apiproductsubscriptionscope_sub_idx
+            columns:
+              - column: {name: apiproductsubscriptionid}
+
+  - changeSet:
+      id: create-table-apiproductsubscriptionattribute
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: apiproductsubscriptionattribute
+      comment: >-
+        Attributes on a subscription; billing adapters store e.g. STRIPE_SUBSCRIPTION_ID here.
+        The attribute's type is stored as type_c - TYPE is a reserved word on several vendors,
+        the same reason dynamicresourcedoc stores roles as roles_c.
+      changes:
+        - createTable:
+            tableName: apiproductsubscriptionattribute
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: apiproductsubscriptionid, type: VARCHAR(50)}
+              - column: {name: apiproductsubscriptionattributeid, type: VARCHAR(36)}
+              - column: {name: name, type: VARCHAR(256)}
+              - column: {name: type_c, type: VARCHAR(50)}
+              - column: {name: value, type: VARCHAR(2000)}
+              - column: {name: isactive, type: BOOLEAN}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-apiproductsubscriptionattribute
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: apiproductsubscriptionattribute_id_idx
+      comment: Mirrors the Mapper entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: apiproductsubscriptionattribute
+            indexName: apiproductsubscriptionattribute_id_idx
+            unique: true
+            columns:
+              - column: {name: apiproductsubscriptionattributeid}
+        - createIndex:
+            tableName: apiproductsubscriptionattribute
+            indexName: apiproductsubscriptionattribute_sub_idx
+            columns:
+              - column: {name: apiproductsubscriptionid}
+
+  # ── Dynamic Glossary Items (upstream commits 7823e02b3 / 1b5c1c71a) ────────────────────────
+
+  - changeSet:
+      id: create-table-dynamicglossaryitem
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: dynamicglossaryitem
+      comment: >-
+        Glossary Items added at runtime. titlelowercase is a lower-cased copy of title so
+        uniqueness and lookup are case insensitive regardless of the database's collation -
+        the static Glossary is looked up case insensitively too.
+      changes:
+        - createTable:
+            tableName: dynamicglossaryitem
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: glossaryitemid, type: VARCHAR(36)}
+              - column: {name: title, type: VARCHAR(255)}
+              - column: {name: titlelowercase, type: VARCHAR(255)}
+              - column: {name: description, type: "${text.type}"}
+              - column: {name: overridesstaticitem, type: BOOLEAN, defaultValueBoolean: false}
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: creationdate, type: TIMESTAMP}
+              - column: {name: lastupdate, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-dynamicglossaryitem
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicglossaryitem_title_idx
+      comment: >-
+        Mirrors the Mapper entity's dbIndexes. lastupdate is indexed because the Glossary reads
+        the newest row on every call to decide whether its cached rendering is still valid.
+      changes:
+        - createIndex:
+            tableName: dynamicglossaryitem
+            indexName: dynamicglossaryitem_title_idx
+            unique: true
+            columns:
+              - column: {name: titlelowercase}
+        - createIndex:
+            tableName: dynamicglossaryitem
+            indexName: dynamicglossaryitem_lastupdate_idx
+            columns:
+              - column: {name: lastupdate}
+
+  - changeSet:
+      id: add-maker-checker-columns-abacrule
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: abacrule
+                columnName: approvedhash
+      comment: >-
+        Maker/checker approval state for ABAC rules. The rule's hash covers its RuleCode rather
+        than a method body, so the ABAC engine refuses to compile a rule whose current code hash
+        differs from the approved one. Only approvedhash is added here: abacrule already carries
+        isactive from the baseline, unlike the three dynamic-code tables above.
+      changes:
+        - addColumn:
+            tableName: abacrule
+            columns:
+              - column: {name: approvedhash, type: VARCHAR(64)}

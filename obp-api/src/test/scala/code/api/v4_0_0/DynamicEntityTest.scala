@@ -30,7 +30,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import org.json4s.JsonDSL._
@@ -1633,6 +1633,68 @@ class DynamicEntityTest extends V400ServerSetup {
 
     }
  
+  }
+
+  Feature("Update a populated Dynamic Entity: schema-compatible changes only") {
+    Scenario("indexed:true can be switched on with data present; structural changes are still refused", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateSystemLevelDynamicEntity.toString)
+
+      When("we create the FooBar entity and insert one record")
+      val response = makePostRequest((v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1), write(rightEntity))
+      response.code should equal(201)
+      val dynamicEntityId = (response.body \ "dynamicEntityId").asInstanceOf[JString].s
+      val foobarObject = parse("""{"name":"James Brown","number":698761728}""")
+      makePostRequest((dynamicEntity_Request / "FooBar").POST <@(user1), write(foobarObject)).code should equal(201)
+
+      val updateRequest = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).PUT <@(user1)
+
+      Then("switching indexed on (and touching description / example / maxLength) is accepted")
+      val indexOnly = rightEntity
+        .transformField { case JField("name", JObject(fields)) =>
+          JField("name", JObject(fields.map {
+            case JField("maxLength", _)   => JField("maxLength", JInt(40))
+            case JField("description", _) => JField("description", JString("now indexed"))
+            case other => other
+          } :+ JField("indexed", JBool(true))))
+        }
+      val okResponse = makePutRequest(updateRequest, write(indexOnly))
+      okResponse.code should equal(200)
+      (okResponse.body \ "FooBar" \ "properties" \ "name" \ "indexed") should equal(JBool(true))
+
+      And("the record is still there")
+      val getAll = makeGetRequest((dynamicEntity_Request / "FooBar").GET <@(user1))
+      getAll.code should equal(200)
+      (getAll.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should equal(1)
+
+      Then("changing a property's type is refused with " + DynamicEntityUpdateNotSchemaCompatible)
+      val typeChanged = rightEntity.transformField { case JField("number", JObject(fields)) =>
+        JField("number", JObject(fields.map {
+          case JField("type", _)    => JField("type", JString("string"))
+          case JField("example", _) => JField("example", JString("69876172"))
+          case other => other
+        }))
+      }
+      val typeResponse = makePutRequest(updateRequest, write(typeChanged))
+      typeResponse.code should equal(400)
+      typeResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
+
+      Then("adding a property is refused")
+      val propertyAdded = rightEntity.transformField { case JField("properties", JObject(fields)) =>
+        JField("properties", JObject(fields :+ JField("colour", JObject(List(JField("type", JString("string")), JField("example", JString("red")))))))
+      }
+      val addResponse = makePutRequest(updateRequest, write(propertyAdded))
+      addResponse.code should equal(400)
+      addResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
+
+      Then("making an existing optional property required is refused")
+      val requiredGrown = rightEntity.transformField { case JField("required", JArray(items)) =>
+        JField("required", JArray(items :+ JString("number")))
+      }
+      val requiredResponse = makePutRequest(updateRequest, write(requiredGrown))
+      requiredResponse.code should equal(400)
+      requiredResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
+    }
   }
 
   Feature("Test personal CRUD Records.") {

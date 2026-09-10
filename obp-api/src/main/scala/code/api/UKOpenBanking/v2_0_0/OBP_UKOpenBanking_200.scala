@@ -22,23 +22,3 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with Scanned
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sUKOBv200.resourceDocs
 }
-
-// ─── Original Lift aggregator (commented out) ────────────────────────────────
-//import code.api.UKOpenBanking.v2_0_0.APIMethods_UKOpenBanking_200._
-//import scala.collection.immutable.{Nil => immNil}
-//import code.api.util.APIUtil.getAllowedEndpoints
-//
-//  val allEndpoints =
-//    getAccountList ::
-//    getAccountTransactions ::
-//    getAccount ::
-//    getAccountBalances ::
-//    getBalances ::
-//    immNil
-//
-//  override val allResourceDocs = resourceDocs
-//
-//  override val routes : List[OBPEndpoint] = getAllowedEndpoints(allEndpoints, resourceDocs)
-//
-//  registerRoutes(routes, allResourceDocs, apiPrefix)
-//  logger.info(s"version $version has been run!")

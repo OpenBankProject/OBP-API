@@ -57,6 +57,10 @@ import code.model.dataAccess.BankAccountCreation
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
+import code.dynamicchangerequest.MakerChecker
+import code.api.v7_0_0.JSONFactory700.createDynamicChangeRequestJsonV700
+import com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.{CONNECTOR_METHOD, DYNAMIC_MESSAGE_DOC, DYNAMIC_RESOURCE_DOC}
+import com.openbankproject.commons.model.enums.{DynamicChangeRequestOperation => ChangeOp}
 import code.userlocks.UserLocksProvider
 import code.util.JsonSchemaUtil
 import code.validation.JsonValidation
@@ -1672,14 +1676,17 @@ object Http4s400 {
     private def updateDynamicEntityImpl(bankId: Option[String], dynamicEntityId: String, json: JValue, cc: CallContext): Future[JValue] =
       for {
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankId, dynamicEntityId, Some(cc))
+        dynamicEntity <- tryOrApiFail(cc) {
+          DynamicEntityCommons(json.asInstanceOf[JObject], Some(dynamicEntityId), cc.userId, bankId)
+        }
         (box, _) <- NewStyle.function.invokeDynamicConnector(
           GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
         resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-        _ <- code.util.Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = Some(cc)) {
-          resultList.arr.isEmpty
-        }
-        dynamicEntity <- tryOrApiFail(cc) {
-          DynamicEntityCommons(json.asInstanceOf[JObject], Some(dynamicEntityId), cc.userId, bankId)
+        // A populated entity may still take a schema-compatible update (e.g. switching `indexed` on so
+        // DE_indexing can backfill it); a structural change still requires the data to be deleted first.
+        _ <- code.util.Helper.booleanToFuture(DynamicEntityUpdateNotSchemaCompatible, cc = Some(cc)) {
+          resultList.arr.isEmpty || code.api.dynamic.entity.helper.DynamicEntityHelper.isSchemaCompatibleChange(
+            entity.entityName, entity.metadataJson, dynamicEntity.entityName, dynamicEntity.metadataJson)
         }
         Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
       } yield {
@@ -1791,10 +1798,16 @@ object Http4s400 {
       "Update System Level Dynamic Entity",
       s"""Update a system level DynamicEntity.
          |
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
+         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
+         |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
+         |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
+         |
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateSystemDynamicEntity)),
       http4sPartialFunction = Some(updateSystemDynamicEntity))
@@ -1820,10 +1833,16 @@ object Http4s400 {
       "Update Bank Level Dynamic Entity",
       s"""Update a Bank Level DynamicEntity.
          |
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
+         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
+         |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
+         |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
+         |
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateBankLevelDynamicEntity)),
       http4sPartialFunction = Some(updateBankLevelDynamicEntity))
@@ -1909,18 +1928,20 @@ object Http4s400 {
             myEntity <- NewStyle.function.tryons(InvalidMyDynamicEntityUser, 400, Some(cc)) {
               entityOption.get
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(
-              GET_ALL, myEntity.entityName, None, myEntity.dynamicEntityId,
-              myEntity.bankId, None, Some(myEntity.userId), false, Some(cc))
-            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], myEntity.entityName)
-            _ <- code.util.Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = Some(cc)) {
-              resultList.arr.isEmpty
-            }
             jsonObj <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).asInstanceOf[JObject]
             }
             dynamicEntity <- tryOrApiFail(cc) {
               DynamicEntityCommons(jsonObj, Some(dynamicEntityId), user.userId, myEntity.bankId)
+            }
+            (box, _) <- NewStyle.function.invokeDynamicConnector(
+              GET_ALL, myEntity.entityName, None, myEntity.dynamicEntityId,
+              myEntity.bankId, None, Some(myEntity.userId), false, Some(cc))
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], myEntity.entityName)
+            // Same rule as updateDynamicEntityImpl: populated entities accept schema-compatible updates only.
+            _ <- code.util.Helper.booleanToFuture(DynamicEntityUpdateNotSchemaCompatible, cc = Some(cc)) {
+              resultList.arr.isEmpty || code.api.dynamic.entity.helper.DynamicEntityHelper.isSchemaCompatibleChange(
+                myEntity.entityName, myEntity.metadataJson, dynamicEntity.entityName, dynamicEntity.metadataJson)
             }
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
           } yield {
@@ -1936,10 +1957,16 @@ object Http4s400 {
       "Update My Dynamic Entity",
       s"""Update my DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
+         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
+         |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
+         |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
+         |
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi), None,
       http4sPartialFunction = Some(updateMyDynamicEntity))
 
@@ -5363,7 +5390,7 @@ object Http4s400 {
         "Create My Api Collection Endpoint",
         s"""Create Api Collection Endpoint.
         |
-        |${Glossary.getGlossaryItem("API Collections")}
+        |${Glossary.getGlossaryItem("API Collection")}
         |
         |
         |${userAuthenticationMessage(true)}
@@ -5385,7 +5412,7 @@ object Http4s400 {
         "Create My Api Collection Endpoint By Id",
         s"""Create Api Collection Endpoint By Id.
         |
-        |${Glossary.getGlossaryItem("API Collections")}
+        |${Glossary.getGlossaryItem("API Collection")}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -7222,7 +7249,7 @@ object Http4s400 {
         "Delete My Api Collection",
         s"""Delete Api Collection By API_COLLECTION_ID
         |
-        |${Glossary.getGlossaryItem("API Collections")}
+        |${Glossary.getGlossaryItem("API Collection")}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -7243,7 +7270,7 @@ object Http4s400 {
         "DELETE",
         "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
         "Delete My Api Collection Endpoint",
-        s"""${Glossary.getGlossaryItem("API Collections")}
+        s"""${Glossary.getGlossaryItem("API Collection")}
         |
         |
         |Delete Api Collection Endpoint By OPERATION_ID
@@ -7265,7 +7292,7 @@ object Http4s400 {
         "DELETE",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
         "Delete My Api Collection Endpoint By Id",
-        s"""${Glossary.getGlossaryItem("API Collections")}
+        s"""${Glossary.getGlossaryItem("API Collection")}
         |
         |Delete Api Collection Endpoint By OPERATION_ID
         |
@@ -7286,7 +7313,7 @@ object Http4s400 {
         "DELETE",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoint-ids/API_COLLECTION_ENDPOINT_ID",
         "Delete My Api Collection Endpoint By Id",
-        s"""${Glossary.getGlossaryItem("API Collections")}
+        s"""${Glossary.getGlossaryItem("API Collection")}
         |Delete Api Collection Endpoint
         |Delete Api Collection Endpoint By Id
         |
@@ -8120,6 +8147,11 @@ object Http4s400 {
         }
     }
 
+    // Public counterpart of getAllJsonSchemaValidations, registered under its own name so the
+    // /endpoints/... case can carry its own ResourceDoc (see initBatch2ResourceDocs), distinct
+    // from the /management/... variant's. Same underlying route.
+    lazy val getAllJsonSchemaValidationsPublic = getAllJsonSchemaValidations
+
     lazy val getAuthenticationTypeValidation: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "authentication-type-validations" / operationId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
@@ -8143,6 +8175,11 @@ object Http4s400 {
           } yield com.openbankproject.commons.model.ListResult("authentication_types_validations", atvs)
         }
     }
+
+    // Public counterpart of getAllAuthenticationTypeValidations, registered under its own name so
+    // the /endpoints/... case can carry its own ResourceDoc (see initBatch2ResourceDocs), distinct
+    // from the /management/... variant's. Same underlying route.
+    lazy val getAllAuthenticationTypeValidationsPublic = getAllAuthenticationTypeValidations
 
     lazy val getConnectorMethod: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "connector-methods" / connectorMethodId =>
@@ -8426,6 +8463,34 @@ object Http4s400 {
         http4sPartialFunction = Some(getAllJsonSchemaValidations)
       )
 
+      // read_json_schema_validation_requires_role gates the public /endpoints/... variant below.
+      // Recovered from the commented-out Lift ResourceDoc that used to live in APIMethods400.scala
+      // (see git history for that file), which declared UserHasMissingRoles in its error list —
+      // so the intent was a role gate, not merely a login gate. The role therefore rides the same
+      // prop as the error entry: off (the default) leaves the route public, on requires
+      // canGetJsonSchemaValidation, which is what the prop's name says and what the
+      // /management/... twin enforces unconditionally.
+      val jsonSchemaValidationRequiresRole: Boolean =
+        APIUtil.getPropsAsBoolValue("read_json_schema_validation_requires_role", false)
+
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(getAllJsonSchemaValidationsPublic),
+        "GET",
+        "/endpoints/json-schema-validations",
+        "Get all JSON Schema Validations - public",
+        s"""Get all JSON Schema Validations - public.
+           |
+           |""".stripMargin,
+        EmptyBody,
+        ListResult("json_schema_validations", responseJsonSchema :: Nil),
+        (if (jsonSchemaValidationRequiresRole) List($AuthenticatedUserIsRequired) else Nil) :::
+          List(UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(apiTagJsonSchemaValidation),
+        if (jsonSchemaValidationRequiresRole) Some(List(canGetJsonSchemaValidation)) else None,
+        http4sPartialFunction = Some(getAllJsonSchemaValidationsPublic)
+      )
+
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getAuthenticationTypeValidation),
@@ -8461,6 +8526,34 @@ object Http4s400 {
         List(apiTagAuthenticationTypeValidation),
         Some(List(canGetAuthenticationTypeValidation)),
         http4sPartialFunction = Some(getAllAuthenticationTypeValidations)
+      )
+
+      // read_authentication_type_validation_requires_role gates the public /endpoints/... variant
+      // below. Same reasoning as read_json_schema_validation_requires_role above: the recovered
+      // Lift doc declared UserHasMissingRoles, so the role rides the prop rather than the route
+      // being merely login-gated when the prop is on.
+      val authenticationTypeValidationRequiresRole: Boolean =
+        APIUtil.getPropsAsBoolValue("read_authentication_type_validation_requires_role", false)
+
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(getAllAuthenticationTypeValidationsPublic),
+        "GET",
+        "/endpoints/authentication-type-validations",
+        "Get all Authentication Type Validations - public",
+        s"""Get all Authentication Type Validations - public.
+           |
+           |""".stripMargin,
+        EmptyBody,
+        ListResult(
+          "authentication_types_validations",
+          List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))
+        ),
+        (if (authenticationTypeValidationRequiresRole) List($AuthenticatedUserIsRequired) else Nil) :::
+          List(UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(apiTagAuthenticationTypeValidation),
+        if (authenticationTypeValidationRequiresRole) Some(List(canGetAuthenticationTypeValidation)) else None,
+        http4sPartialFunction = Some(getAllAuthenticationTypeValidationsPublic)
       )
 
       staticResourceDocs += ResourceDoc(
@@ -9230,7 +9323,7 @@ object Http4s400 {
 
     lazy val createConnectorMethod: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "connector-methods" =>
-        EndpointHelpers.executeFutureCreated(req) {
+        EndpointHelpers.executeFutureWithStatus(req) {
           val cc = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           for {
@@ -9254,14 +9347,17 @@ object Http4s400 {
               else ""
             _ <- code.util.Helper.booleanToFuture(errorMsg, cc = callContext) { connectorMethod.isDefined }
             _ = Validation.validateDependency(connectorMethod.head)
-            (created, _) <- NewStyle.function.createJsonConnectorMethod(jsonConnectorMethod, callContext)
-          } yield created
+            result <- interceptOrApply(CONNECTOR_METHOD, ChangeOp.CREATE, None, 201, cc) {
+              NewStyle.function.createJsonConnectorMethod(jsonConnectorMethod, callContext).map(_._1)
+            }
+          } yield result
         }
     }
 
     lazy val updateConnectorMethod: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "connector-methods" / connectorMethodId =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          val cc = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           for {
             _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
@@ -9281,9 +9377,11 @@ object Http4s400 {
               else ""
             _ <- code.util.Helper.booleanToFuture(errorMsg, cc = callContext) { connectorMethod.isDefined }
             _ = Validation.validateDependency(connectorMethod.head)
-            (updated, _) <- NewStyle.function.updateJsonConnectorMethod(
-              connectorMethodId, connectorMethodBody.methodBody, connectorMethodBody.programmingLang, callContext)
-          } yield updated
+            result <- interceptOrApply(CONNECTOR_METHOD, ChangeOp.UPDATE, Some(connectorMethodId), 200, cc) {
+              NewStyle.function.updateJsonConnectorMethod(
+                connectorMethodId, connectorMethodBody.methodBody, connectorMethodBody.programmingLang, callContext).map(_._1)
+            }
+          } yield result
         }
     }
 
@@ -9429,7 +9527,24 @@ object Http4s400 {
             case _ => true
           }
         }
+        // Column widths: say which field is too long instead of letting the database answer OBP-50000.
+        _ <- checkDynamicResourceDocFieldLengths(body, cc)
       } yield ()
+    }
+
+    private val dynamicResourceDocMaxLengths: List[(String, JsonDynamicResourceDoc => String, Int)] = List(
+      ("partial_function_name", _.partialFunctionName, 255),
+      ("request_verb", _.requestVerb, 255),
+      ("request_url", _.requestUrl, 255),
+      ("summary", _.summary, 255),
+      ("description", _.description, 2000)
+    )
+
+    private def checkDynamicResourceDocFieldLengths(body: JsonDynamicResourceDoc, cc: CallContext): Future[Unit] = {
+      val tooLong = dynamicResourceDocMaxLengths.collect {
+        case (field, read, max) if Option(read(body)).exists(_.length > max) => s"$field must be at most $max characters (got ${read(body).length})"
+      }
+      code.util.Helper.booleanToFuture(s"$InvalidJsonFormat ${tooLong.mkString("; ")}", cc = Some(cc)) { tooLong.isEmpty }.map(_ => ())
     }
 
     private def compileDynamicResourceDoc(body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
@@ -9444,7 +9559,22 @@ object Http4s400 {
       }
     }
 
-    private def createDynamicResourceDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[JsonDynamicResourceDoc] = {
+    /**
+     * Maker/checker interception (MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md): after the body has been
+     * validated and compiled exactly as before, a managed target type is queued as a
+     * DynamicChangeRequest and answered with 202 instead of being applied.
+     */
+    private def interceptOrApply[A](targetType: com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.Value,
+                                    operation: com.openbankproject.commons.model.enums.DynamicChangeRequestOperation.Value,
+                                    targetId: Option[String], appliedStatus: Int, cc: CallContext)(apply: => Future[A]): Future[(Any, Int)] =
+      Future(MakerChecker.intercept(targetType, operation, targetId, cc))
+        .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestApprovalRequired, 400))
+        .flatMap {
+          case Some(changeRequest) => Future.successful((createDynamicChangeRequestJsonV700(changeRequest), 202))
+          case None => apply.map(result => (result, appliedStatus))
+        }
+
+    private def createDynamicResourceDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
         _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
@@ -9459,11 +9589,13 @@ object Http4s400 {
         _ <- code.util.Helper.booleanToFuture(
           s"$DynamicResourceDocAlreadyExists The combination of request_url(${body.requestUrl}) and request_verb(${body.requestVerb}) must be unique",
           cc = callContext) { !isExists }
-        (created, _) <- NewStyle.function.createJsonDynamicResourceDoc(bankId, body, callContext)
-      } yield created
+        result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.CREATE, None, 201, cc) {
+          NewStyle.function.createJsonDynamicResourceDoc(bankId, body, callContext).map(_._1)
+        }
+      } yield result
     }
 
-    private def updateDynamicResourceDocImpl(bankId: Option[String], dynamicResourceDocId: String, rawBody: String, cc: CallContext): Future[JsonDynamicResourceDoc] = {
+    private def updateDynamicResourceDocImpl(bankId: Option[String], dynamicResourceDocId: String, rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
         _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
@@ -9474,14 +9606,25 @@ object Http4s400 {
         _ <- validateDynamicResourceDocBody(body, cc)
         _ = compileDynamicResourceDoc(body, cc)
         (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
-        (updated, _) <- NewStyle.function.updateJsonDynamicResourceDoc(
-          bankId, body.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext)
-      } yield updated
+        result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.UPDATE, Some(dynamicResourceDocId), 200, cc) {
+          NewStyle.function.updateJsonDynamicResourceDoc(
+            bankId, body.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext).map(_._1)
+        }
+      } yield result
+    }
+
+    private def deleteDynamicResourceDocImpl(bankId: Option[String], dynamicResourceDocId: String, cc: CallContext): Future[(Any, Int)] = {
+      for {
+        (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
+        result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.DELETE, Some(dynamicResourceDocId), 204, cc) {
+          NewStyle.function.deleteJsonDynamicResourceDocById(bankId, dynamicResourceDocId, callContext).map(_._1)
+        }
+      } yield result
     }
 
     lazy val createDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" =>
-        EndpointHelpers.executeFutureCreated(req) {
+        EndpointHelpers.executeFutureWithStatus(req) {
           val cc = req.callContext
           createDynamicResourceDocImpl(None, cc.httpBody.getOrElse(""), cc)
         }
@@ -9489,18 +9632,16 @@ object Http4s400 {
 
     lazy val updateDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "dynamic-resource-docs" / dynamicResourceDocId =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          val cc = req.callContext
           updateDynamicResourceDocImpl(None, dynamicResourceDocId, cc.httpBody.getOrElse(""), cc)
         }
     }
 
     lazy val deleteDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "dynamic-resource-docs" / dynamicResourceDocId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
-          for {
-            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(None, dynamicResourceDocId, Some(cc))
-            (deleted, _) <- NewStyle.function.deleteJsonDynamicResourceDocById(None, dynamicResourceDocId, callContext)
-          } yield deleted
+        EndpointHelpers.withUserAndStatus(req) { (_, cc) =>
+          deleteDynamicResourceDocImpl(None, dynamicResourceDocId, cc)
         }
     }
 
@@ -9524,7 +9665,7 @@ object Http4s400 {
 
     lazy val createBankLevelDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-resource-docs" =>
-        EndpointHelpers.executeFutureCreated(req) {
+        EndpointHelpers.executeFutureWithStatus(req) {
           val cc = req.callContext
           createDynamicResourceDocImpl(Some(bankIdStr), cc.httpBody.getOrElse(""), cc)
         }
@@ -9532,18 +9673,16 @@ object Http4s400 {
 
     lazy val updateBankLevelDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-resource-docs" / dynamicResourceDocId =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          val cc = req.callContext
           updateDynamicResourceDocImpl(Some(bankIdStr), dynamicResourceDocId, cc.httpBody.getOrElse(""), cc)
         }
     }
 
     lazy val deleteBankLevelDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-resource-docs" / dynamicResourceDocId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
-          for {
-            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(Some(bankIdStr), dynamicResourceDocId, Some(cc))
-            (deleted, _) <- NewStyle.function.deleteJsonDynamicResourceDocById(Some(bankIdStr), dynamicResourceDocId, callContext)
-          } yield deleted
+        EndpointHelpers.withUserAndStatus(req) { (_, cc) =>
+          deleteDynamicResourceDocImpl(Some(bankIdStr), dynamicResourceDocId, cc)
         }
     }
 
@@ -9744,7 +9883,7 @@ object Http4s400 {
     // Batch 17 — Dynamic Message Doc CRUD (system + bank level)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    private def createDynamicMessageDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[JsonDynamicMessageDoc] = {
+    private def createDynamicMessageDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
         _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
@@ -9763,11 +9902,13 @@ object Http4s400 {
           else ""
         _ <- code.util.Helper.booleanToFuture(errorMsg, cc = callContext) { connectorMethod.isDefined }
         _ = Validation.validateDependency(connectorMethod.orNull)
-        (created, _) <- NewStyle.function.createJsonDynamicMessageDoc(bankId, body, callContext)
-      } yield created
+        result <- interceptOrApply(DYNAMIC_MESSAGE_DOC, ChangeOp.CREATE, None, 201, cc) {
+          NewStyle.function.createJsonDynamicMessageDoc(bankId, body, callContext).map(_._1)
+        }
+      } yield result
     }
 
-    private def updateDynamicMessageDocImpl(bankId: Option[String], dynamicMessageDocId: String, rawBody: String, cc: CallContext): Future[JsonDynamicMessageDoc] = {
+    private def updateDynamicMessageDocImpl(bankId: Option[String], dynamicMessageDocId: String, rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
         _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
@@ -9783,14 +9924,25 @@ object Http4s400 {
         _ <- code.util.Helper.booleanToFuture(errorMsg, cc = Some(cc)) { connectorMethod.isDefined }
         _ = Validation.validateDependency(connectorMethod.orNull)
         (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(bankId, dynamicMessageDocId, Some(cc))
-        (updated, _) <- NewStyle.function.updateJsonDynamicMessageDoc(
-          bankId, body.copy(dynamicMessageDocId = Some(dynamicMessageDocId)), callContext)
-      } yield updated
+        result <- interceptOrApply(DYNAMIC_MESSAGE_DOC, ChangeOp.UPDATE, Some(dynamicMessageDocId), 200, cc) {
+          NewStyle.function.updateJsonDynamicMessageDoc(
+            bankId, body.copy(dynamicMessageDocId = Some(dynamicMessageDocId)), callContext).map(_._1)
+        }
+      } yield result
+    }
+
+    private def deleteDynamicMessageDocImpl(bankId: Option[String], dynamicMessageDocId: String, cc: CallContext): Future[(Any, Int)] = {
+      for {
+        (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(bankId, dynamicMessageDocId, Some(cc))
+        result <- interceptOrApply(DYNAMIC_MESSAGE_DOC, ChangeOp.DELETE, Some(dynamicMessageDocId), 204, cc) {
+          NewStyle.function.deleteJsonDynamicMessageDocById(bankId, dynamicMessageDocId, callContext).map(_._1)
+        }
+      } yield result
     }
 
     lazy val createDynamicMessageDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "dynamic-message-docs" =>
-        EndpointHelpers.executeFutureCreated(req) {
+        EndpointHelpers.executeFutureWithStatus(req) {
           val cc = req.callContext
           createDynamicMessageDocImpl(None, cc.httpBody.getOrElse(""), cc)
         }
@@ -9798,18 +9950,16 @@ object Http4s400 {
 
     lazy val updateDynamicMessageDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "dynamic-message-docs" / dynamicMessageDocId =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          val cc = req.callContext
           updateDynamicMessageDocImpl(None, dynamicMessageDocId, cc.httpBody.getOrElse(""), cc)
         }
     }
 
     lazy val deleteDynamicMessageDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "dynamic-message-docs" / dynamicMessageDocId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
-          for {
-            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, Some(cc))
-            (deleted, _) <- NewStyle.function.deleteJsonDynamicMessageDocById(None, dynamicMessageDocId, callContext)
-          } yield deleted
+        EndpointHelpers.withUserAndStatus(req) { (_, cc) =>
+          deleteDynamicMessageDocImpl(None, dynamicMessageDocId, cc)
         }
     }
 
@@ -9833,7 +9983,7 @@ object Http4s400 {
 
     lazy val createBankLevelDynamicMessageDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-message-docs" =>
-        EndpointHelpers.executeFutureCreated(req) {
+        EndpointHelpers.executeFutureWithStatus(req) {
           val cc = req.callContext
           createDynamicMessageDocImpl(Some(bankIdStr), cc.httpBody.getOrElse(""), cc)
         }
@@ -9841,18 +9991,16 @@ object Http4s400 {
 
     lazy val updateBankLevelDynamicMessageDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-message-docs" / dynamicMessageDocId =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          val cc = req.callContext
           updateDynamicMessageDocImpl(Some(bankIdStr), dynamicMessageDocId, cc.httpBody.getOrElse(""), cc)
         }
     }
 
     lazy val deleteBankLevelDynamicMessageDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-message-docs" / dynamicMessageDocId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
-          for {
-            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(Some(bankIdStr), dynamicMessageDocId, Some(cc))
-            (deleted, _) <- NewStyle.function.deleteJsonDynamicMessageDocById(Some(bankIdStr), dynamicMessageDocId, callContext)
-          } yield deleted
+        EndpointHelpers.withUserAndStatus(req) { (_, cc) =>
+          deleteDynamicMessageDocImpl(Some(bankIdStr), dynamicMessageDocId, cc)
         }
     }
 
@@ -10196,7 +10344,7 @@ object Http4s400 {
             // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner =
               if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id
-              else cc.accountableUserId
+              else cc.onBehalfOfUserId
             (postedOrLoggedInUser, callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
             // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
             _ <- code.util.Helper.booleanToFuture(
@@ -10272,7 +10420,7 @@ object Http4s400 {
             // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner =
               if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id
-              else cc.accountableUserId
+              else cc.onBehalfOfUserId
             (postedOrLoggedInUser, callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
             // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
             _ <- code.util.Helper.booleanToFuture(
@@ -11178,7 +11326,6 @@ object Http4s400 {
     lazy val createTransactionRequestRefund             = createTransactionRequest
     lazy val createTransactionRequestSepa               = createTransactionRequest
     lazy val createTransactionRequestSimple             = createTransactionRequest
-    lazy val getAllAuthenticationTypeValidationsPublic   = getAllAuthenticationTypeValidations
 
     // ─── path-rewriting bridge: /obp/v4.0.0/… → /obp/v3.1.0/… ──────────────
 

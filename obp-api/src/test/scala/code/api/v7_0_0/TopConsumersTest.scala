@@ -27,8 +27,8 @@ class TopConsumersTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v7_0_0.toString)
   object ApiEndpoint1 extends Tag("getTopConsumers")
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v7.0.0")
       val request = (v7_0_0_Request / "management" / "metrics" / "top-consumers").GET
       val response = makeGetRequest(request)
@@ -38,8 +38,8 @@ class TopConsumersTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v7.0.0")
       val request = (v7_0_0_Request / "management" / "metrics" / "top-consumers").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -49,8 +49,8 @@ class TopConsumersTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Top consumers by call count") {
-    scenario("Two consumers make traffic and appear ranked with their counts", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Top consumers by call count") {
+    Scenario("Two consumers make traffic and appear ranked with their counts", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 

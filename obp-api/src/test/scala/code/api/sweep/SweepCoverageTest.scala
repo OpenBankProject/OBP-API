@@ -29,9 +29,9 @@ class SweepCoverageTest extends ServerSetupWithTestData {
 
   private lazy val catalog: List[ResourceDoc] = EndpointCatalog.all
 
-  feature("The endpoint sweep covers every reachable endpoint, or says why not") {
+  Feature("The endpoint sweep covers every reachable endpoint, or says why not") {
 
-    scenario("the catalog is non-empty and deduplicated by (standard, url, verb)", SweepCoverage) {
+    Scenario("the catalog is non-empty and deduplicated by (standard, url, verb)", SweepCoverage) {
       Given("the aggregated resource docs across every standard the dispatcher serves")
       // A sweep over an empty catalog passes every assertion it makes. The floor is deliberately
       // well below the ~870 observed on this branch: its job is to catch a catalog that failed to
@@ -71,7 +71,7 @@ class SweepCoverageTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("every endpoint is either swept or skipped for a stated reason", SweepCoverage) {
+    Scenario("every endpoint is either swept or skipped for a stated reason", SweepCoverage) {
       Given(s"the ${catalog.size} endpoints in the catalog")
       val (skipped, swept) = catalog.partition(EndpointCatalog.skipReason(_).isDefined)
 
@@ -93,7 +93,7 @@ class SweepCoverageTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("the auth classification is total -- every swept endpoint is public or protected", SweepCoverage) {
+    Scenario("the auth classification is total -- every swept endpoint is public or protected", SweepCoverage) {
       val swept = catalog.filter(EndpointCatalog.skipReason(_).isEmpty)
       val protectedCount = swept.count(EndpointCatalog.needsAuthentication)
       val publicCount    = swept.size - protectedCount
@@ -110,7 +110,7 @@ class SweepCoverageTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("the failure sweep covers the same set the auth sweep does", SweepCoverage) {
+    Scenario("the failure sweep covers the same set the auth sweep does", SweepCoverage) {
       // Read each sweep's OWN scope rather than re-deriving a copy here: today both are
       // `EndpointCatalog.all.filter(EndpointCatalog.skipReason(_).isEmpty)`, so two independently
       // hand-typed copies of that expression would be equal by construction and this scenario
@@ -131,7 +131,7 @@ class SweepCoverageTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("enough endpoints carry an example body for the failure sweep to exercise writers",
+    Scenario("enough endpoints carry an example body for the failure sweep to exercise writers",
              SweepCoverage) {
       // FailureSweepTest sends exampleRequestBody to every non-GET endpoint. If almost none of
       // them had one, the sweep would be a GET-only crash test wearing a broader name -- it
@@ -148,7 +148,7 @@ class SweepCoverageTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("role-gated endpoints declare the errors their gate produces", SweepCoverage) {
+    Scenario("role-gated endpoints declare the errors their gate produces", SweepCoverage) {
       val roleGated = catalog
         .filter(EndpointCatalog.isRoleGated)
         .filter(EndpointCatalog.roleSkipReason(_).isEmpty)

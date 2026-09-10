@@ -229,10 +229,10 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
   private lazy val byVersion: Map[String, List[ResourceDoc]] =
     AuthSweepTest.scope.groupBy(_.implementedInApiVersion.toString)
 
-  feature("Every reachable endpoint enforces the authentication its ResourceDoc declares") {
+  Feature("Every reachable endpoint enforces the authentication its ResourceDoc declares") {
 
     byVersion.keys.toList.sorted.foreach { version =>
-      scenario(s"$version -- anonymous calls are refused, public ones are not", AuthSweep) {
+      Scenario(s"$version -- anonymous calls are refused, public ones are not", AuthSweep) {
         // Endpoint-level enable/disable props are read per request by ResourceDocMiddleware,
         // and a disabled endpoint falls through to 404 rather than 401 -- which would read as a
         // sweep failure. Cleared the way SwaggerDocsTest does; PropsReset restores afterwards.
@@ -262,7 +262,7 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
         .filter(EndpointCatalog.roleSkipReason(_).isEmpty)
 
       if (roleGated.nonEmpty) {
-        scenario(s"$version -- role-gated endpoints refuse a user holding no entitlements", AuthSweep) {
+        Scenario(s"$version -- role-gated endpoints refuse a user holding no entitlements", AuthSweep) {
           setPropsValues("api_disabled_endpoints" -> "[]", "api_enabled_endpoints" -> "[]")
 
           When(s"every one of the ${roleGated.size} role-gated $version endpoints is called as a user with no entitlements")
@@ -278,7 +278,7 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
     }
 
       // Declared after both version loops, so deviationsUsed is complete when it runs.
-    scenario("no expectedAuthDeviation entry outlives the behaviour it excuses", AuthSweep) {
+    Scenario("no expectedAuthDeviation entry outlives the behaviour it excuses", AuthSweep) {
       import scala.jdk.CollectionConverters._
       val used = deviationsUsed.asScala.toSet
       val stale = expectedAuthDeviation.keySet -- used

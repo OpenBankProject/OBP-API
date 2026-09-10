@@ -5,7 +5,7 @@ import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{CallContext, ErrorMessages}
 import code.api.util.ApiRole.CanVerifyUserCredentials
-import code.api.v6_0_0.APIMethods600.Implementations6_0_0
+import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt

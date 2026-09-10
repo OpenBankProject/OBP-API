@@ -15,6 +15,7 @@ message SignalMessage {
   google.protobuf.Timestamp timestamp = 6;
   string message_type = 7;
   string payload_json = 8;          // JSON-encoded payload
+  int64 sequence = 9;               // per-channel monotonic; poll with FetchRequest.after_sequence
 }
 
 // Mirrors SignalChannelInfoJsonV600
@@ -24,7 +25,7 @@ message SignalChannelInfo {
   int64 ttl_seconds = 3;
 }
 
-// --- Publish: 1:1 with POST /signal/channels/{name}/messages ---
+// --- Publish: 1:1 with POST /signal-channels/{name}/messages ---
 
 message PublishRequest {
   string channel_name = 1;
@@ -38,9 +39,10 @@ message PublishResponse {
   string channel_name = 2;
   google.protobuf.Timestamp timestamp = 3;
   int64 channel_message_count = 4;
+  int64 sequence = 5;
 }
 
-// --- Fetch: 1:1 with GET /signal/channels/{name}/messages ---
+// --- Fetch: 1:1 with GET /signal-channels/{name}/messages ---
 // Privacy filter applied server-side: caller sees broadcasts plus messages
 // to/from themselves. Same logic as REST.
 
@@ -48,6 +50,9 @@ message FetchRequest {
   string channel_name = 1;
   int32 offset = 2;
   int32 limit = 3;
+  // > 0: cursor mode, return messages with sequence > after_sequence and ignore offset.
+  // Prefer this for polling: offset paging drifts once the channel is trimmed.
+  int64 after_sequence = 4;
 }
 
 message FetchResponse {
@@ -55,9 +60,12 @@ message FetchResponse {
   repeated SignalMessage messages = 2;
   int64 total_count = 3;
   bool has_more = 4;
+  int64 latest_sequence = 5;        // newest message in the channel, 0 when empty
+  int64 next_after_sequence = 6;    // pass back as after_sequence to continue (advances past hidden private messages too)
+  int64 visible_count = 7;          // messages in the channel the caller may see; total_count includes private ones hidden from them
 }
 
-// --- ListChannels: 1:1 with GET /signal/channels ---
+// --- ListChannels: 1:1 with GET /signal-channels ---
 // Returns broadcast-visible channels only, matching REST behaviour.
 
 message ListChannelsRequest {}

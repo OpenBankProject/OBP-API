@@ -4,8 +4,9 @@ import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory
 import code.api.util.APIUtil.{getObpApiRoot, getServerUrl}
-import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
+import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, transactionIdExample, userIdExample, viewIdExample}
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.Full
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 import java.io.File
@@ -14,61 +15,160 @@ import scala.collection.mutable.ArrayBuffer
 
 object Glossary extends MdcLoggable  {
 
-    def getGlossaryItem(title: String): String = {
+    // ── Embedding Glossary text in Resource Doc descriptions ──────────────────
+    // These three helpers are called while the Resource Docs are being built, which happens at
+    // class initialisation, long before the database is available. So rather than resolving the
+    // Glossary Item there and then, they emit a placeholder that is expanded when the docs are
+    // served — against the union of static and Dynamic Glossary Items, so a Dynamic Item overrides
+    // the shipped text in endpoint descriptions just as it does in GET /api/glossary.
+    //
+    // Expansion happens on the markdown, before it is converted to html. See
+    // expandGlossaryPlaceholders and its three call sites: JSONFactory1_4_0 (the Resource Docs
+    // API), SwaggerJSONFactory and OpenAPI31JSONFactory.
 
-        //logger.debug(s"getGlossaryItem says Hello. title to find is: $title")
+    // An html comment, deliberately. The placeholder is normally expanded long before anyone sees
+    // it, but if one ever does leak into a response it must be inert: `{{...}}` would have been
+    // read as an interpolation expression by a Vue or Angular client and thrown at render time.
+    // A comment renders as nothing instead.
+    private val GlossaryPlaceholderPrefix = "<!--OBP-GLOSSARY:"
+    private val GlossaryPlaceholder = """<!--OBP-GLOSSARY:(FULL|SIMPLE|LINK):(.*?)-->""".r
 
-        val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
-            case Some(foundItem) =>
-                /**
-                 * Two important rules:
-                 * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
-                 * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
-                 */
-                s"""
-                 |<details>
-                 |  <summary style="display:list-item;cursor:s-resize;">${foundItem.title}</summary>
-                 |
-                 |  ${foundItem.htmlDescription}
-                 |</details>
-                 |
-                 |<br></br>
-                 |""".stripMargin
-            case None => "glossary-item-not-found"
+    // A FULL or SIMPLE expansion embeds another Item's html, which may itself hold placeholders,
+    // and replaceAllIn does not rescan what it substitutes. So expansion repeats — bounded, so a
+    // cycle of Items referencing each other terminates and leaves an inert comment at worst.
+    private val GlossaryPlaceholderMaxPasses = 3
+
+    private def glossaryPlaceholder(mode: String, title: String): String = s"$GlossaryPlaceholderPrefix$mode:$title-->"
+
+    /** Embeds the Glossary Item as a collapsible block. */
+    def getGlossaryItem(title: String): String = glossaryPlaceholder("FULL", title)
+
+    /**
+     * Embeds just the text of the Glossary Item, with no title and no collapsible element.
+     * Use this if getGlossaryItem is problematic with a certain glossary item (e.g. JSON Schema
+     * Validation Glossary Item) or you just want a simple inclusion of text.
+     */
+    def getGlossaryItemSimple(title: String): String = glossaryPlaceholder("SIMPLE", title)
+
+    /**
+     * Embeds a link to the Glossary Item rather than its text.
+     * Can reduce bandwidth and maybe make things semantically clearer.
+     */
+    def getGlossaryItemLink(title: String): String = glossaryPlaceholder("LINK", title)
+
+    /**
+     * Two important rules for the FULL rendering:
+     * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
+     * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
+     */
+    private def renderGlossaryItemFull(item: GlossaryItem): String =
+        s"""
+         |<details>
+         |  <summary style="display:list-item;cursor:s-resize;">${item.title}</summary>
+         |
+         |  ${item.htmlDescription}
+         |</details>
+         |
+         |<br></br>
+         |""".stripMargin
+
+    private def renderGlossaryItemSimple(item: GlossaryItem): String =
+        s"""
+         |  ${item.htmlDescription}
+         |""".stripMargin
+
+    // We use the requested title rather than the found item's, because anchors are case sensitive.
+    private def renderGlossaryItemLink(title: String): String = s"""[here](/glossary#${title})"""
+
+    /**
+     * Expands any Glossary placeholders in the given markdown. Text with no placeholder is returned
+     * untouched, so this is cheap to call on every description.
+     */
+    def expandGlossaryPlaceholders(text: String): String =
+        expandGlossaryPlaceholders(text, GlossaryPlaceholderMaxPasses)
+
+    private def expandGlossaryPlaceholders(text: String, passesLeft: Int): String = {
+        if (text == null || passesLeft <= 0 || !text.contains(GlossaryPlaceholderPrefix)) text
+        else {
+            val expanded = expandOnce(text)
+            if (expanded == text) text else expandGlossaryPlaceholders(expanded, passesLeft - 1)
         }
-        //logger.debug(s"getGlossaryItem says the text to return is $something")
-        something
     }
 
-    def getGlossaryItemSimple(title: String): String = {
-    // This function just returns a string without Title and collapsable element.
-        // Can use this if getGlossaryItem is problematic with a certain glossary item (e.g. JSON Schema Validation Glossary Item) or just want a simple inclusion of text.
-
-        //logger.debug(s"getGlossaryItemSimple says Hello. title to find is: $title")
-
-        val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
-            case Some(foundItem) =>
-                s"""
-                 |  ${foundItem.htmlDescription}
-                 |""".stripMargin
-            case None => "glossary-item-simple-not-found"
+    private def expandOnce(text: String): String = {
+        {
+            val byTitle = glossaryItemsByTitle
+            GlossaryPlaceholder.replaceAllIn(text, matched => {
+                val mode = matched.group(1)
+                val title = matched.group(2)
+                val rendered = byTitle.get(title.toLowerCase) match {
+                    case Some(item) => mode match {
+                        case "FULL"   => renderGlossaryItemFull(item)
+                        case "SIMPLE" => renderGlossaryItemSimple(item)
+                        case _        => renderGlossaryItemLink(title)
+                    }
+                    case None =>
+                        logger.debug(s"expandGlossaryPlaceholders could not find Glossary Item: $title")
+                        mode match {
+                            case "FULL"   => "glossary-item-not-found"
+                            case "SIMPLE" => "glossary-item-simple-not-found"
+                            case _        => "glossary-item-link-not-found"
+                        }
+                }
+                // The rendered text is arbitrary markdown, so $ and \ in it must not be read as
+                // replacement group references.
+                java.util.regex.Matcher.quoteReplacement(rendered)
+            })
         }
-        //logger.debug(s"getGlossaryItemSimple says the text to return is $something")
-        something
     }
 
-    def getGlossaryItemLink(title: String): String = {
-        // This function just returns a link to the Glossary Item in question.
-        // Can reduce bandwith and maybe make things semantically clearer if we use links instead of includes.
+    // Expansion runs once per Resource Doc per Resource Doc cache TTL, and a cold cache expands
+    // hundreds of docs in one burst, so they share a lookup map rather than each reading the
+    // database. The map is keyed on the Dynamic Glossary Item watermark, and the watermark itself
+    // is re-read at most once a second.
+    private val GlossaryCacheRecheckMillis = 1000L
+    private val cachedItemsByTitle =
+        new java.util.concurrent.atomic.AtomicReference[(Long, String, Map[String, GlossaryItem])]((0L, "", Map.empty))
 
-        val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
-            case Some(foundItem) =>
-                // We use the title because anchors are case sensitive, but we find it so we can log / display not found.
-                s"""[here](/glossary#${title})"""
-            case None => "glossary-item-link-not-found"
+    /**
+     * Drops the placeholder lookup cache so a write made on this node is reflected at once, rather
+     * than on the next watermark re-read. Other nodes still pick the write up via the watermark.
+     */
+    def invalidateGlossaryItemCache(): Unit = cachedItemsByTitle.set((0L, "", Map.empty))
+
+    private def glossaryState: (String, Map[String, GlossaryItem]) = {
+        val now = System.currentTimeMillis
+        val (checkedAt, version, byTitle) = cachedItemsByTitle.get()
+        if (checkedAt != 0L && now - checkedAt < GlossaryCacheRecheckMillis) (version, byTitle)
+        else {
+            val currentVersion = dynamicGlossaryItemsVersion
+            if (checkedAt != 0L && currentVersion == version) {
+                cachedItemsByTitle.set((now, version, byTitle))
+                (version, byTitle)
+            } else {
+                // allGlossaryItems yields one Item per exact title, but titles differing only in case
+                // survive and collapse together in this case-insensitive map. Reversing makes the first
+                // of those spellings win, as find() used to.
+                val items = allGlossaryItems
+                val rebuilt = items.reverse.map(item => item.title.toLowerCase -> item).toMap
+                cachedItemsByTitle.set((now, currentVersion, rebuilt))
+                // Only on a real change, so this reports each edit once rather than on every read.
+                logStaticOverrides(items.filter(_.shadowsStaticItem))
+                (currentVersion, rebuilt)
+            }
         }
-        something
     }
+
+    private def glossaryItemsByTitle: Map[String, GlossaryItem] = glossaryState._2
+
+    /**
+     * A token for Resource Doc cache keys. It changes whenever a Dynamic Glossary Item is added,
+     * changed or removed, so a cached endpoint description that embeds Glossary text is rebuilt
+     * instead of being served stale for the rest of the Resource Doc cache TTL (an hour by
+     * default). Glossary writes are rare, so paying for a Resource Doc re-render on each one is
+     * the right way round.
+     */
+    def glossaryVersionForCacheKey: String = glossaryState._1
 
 
     // reason of description is function: because we want make description is dynamic, so description can read
@@ -77,7 +177,13 @@ object Glossary extends MdcLoggable  {
                                                              title: String,
                                                              description: () => String,
                                                              htmlDescription: String,
-                                                             textDescription: String
+                                                             textDescription: String,
+                                                             // Provenance. Static items are compiled in; dynamic ones come from the
+                                                             // DynamicGlossaryItem table. shadowsStaticItem is computed when the two
+                                                             // sets are merged: true when this dynamic item displaced a static one.
+                                                             isDynamic: Boolean = false,
+                                                             overridesStaticItem: Boolean = false,
+                                                             shadowsStaticItem: Boolean = false
                             )
 
         def makeGlossaryItem (title: String, connectorField: ConnectorField) : GlossaryItem = {
@@ -117,6 +223,10 @@ object Glossary extends MdcLoggable  {
             )
         }
 
+        /** A Glossary Item backed by a row in the DynamicGlossaryItem table. */
+        def dynamic(title: String, description: => String, overridesStaticItem: Boolean): GlossaryItem =
+            apply(title, description).copy(isDynamic = true, overridesStaticItem = overridesStaticItem)
+
     }
 
 
@@ -125,6 +235,121 @@ object Glossary extends MdcLoggable  {
     val glossaryItems = ArrayBuffer[GlossaryItem]()
 
     // NOTE! Some glossary items are defined in ExampleValue.scala
+
+
+    // ── Dynamic Glossary Items ────────────────────────────────────────────────
+    // Glossary Items above are static: they are compiled in and only change when the API is
+    // redeployed. Dynamic Glossary Items live in the DynamicGlossaryItem table and are maintained
+    // at runtime over the /glossary-items endpoints. GET /api/glossary returns the union of the
+    // two, a Dynamic Item replacing a static one of the same title (compared case insensitively).
+    //
+    // Note the getGlossaryItem / getGlossaryItemSimple / getGlossaryItemLink helpers above stay
+    // static only on purpose. They are called while the Resource Docs are being built, which
+    // happens at class initialisation before the database is necessarily available, and their
+    // output is baked into the docs. Only the Glossary listing itself is dynamic.
+
+    /** Every Dynamic Glossary Item, rendered into the same GlossaryItem shape as the static ones. */
+    def dynamicGlossaryItems: List[GlossaryItem] = {
+        code.glossaryitem.DynamicGlossaryItems.dynamicGlossaryItem.vend.getAllDynamicGlossaryItems match {
+            case Full(rows) => rows.map(row => GlossaryItem.dynamic(row.title, row.description, row.overridesStaticItem))
+            case failure =>
+                // The Glossary must still be served if the table is unreachable, so fall back to static only.
+                logger.warn(s"Glossary.dynamicGlossaryItems could not read Dynamic Glossary Items: $failure")
+                Nil
+        }
+    }
+
+    /** True when the static Glossary defines an item with this title. Case insensitive. */
+    def staticGlossaryItemExists(title: String): Boolean =
+        glossaryItems.exists(_.title.toLowerCase == title.toLowerCase)
+
+    /**
+     * Static Glossary Items plus Dynamic ones, a Dynamic Item winning on a title clash.
+     *
+     * Creating a Dynamic Item whose title collides with a static one is refused unless the operator
+     * declared the override, so a clash here is normally deliberate. It can still arise without
+     * that declaration if a static item is added later with a title a Dynamic Item already uses —
+     * the Dynamic Item still wins, to keep one entry per title, and logStaticOverrides reports it.
+     */
+    def allGlossaryItems: List[GlossaryItem] = {
+        val dynamic = dynamicGlossaryItems
+        val staticTitles = glossaryItems.map(_.title.toLowerCase).toSet
+        val dynamicWithShadowFlag =
+            dynamic.map(item => item.copy(shadowsStaticItem = staticTitles.contains(item.title.toLowerCase)))
+        val shadowedTitles = dynamic.map(_.title.toLowerCase).toSet
+        dedupeByTitle(
+            glossaryItems.toList.filterNot(item => shadowedTitles.contains(item.title.toLowerCase)) ::: dynamicWithShadowFlag)
+    }
+
+    /**
+     * Keeps the first Item of each exact title.
+     *
+     * Two Items with the identical title is a mistake in the Glossary source: only one can own the
+     * /glossary#Title anchor, and every lookup already resolves to the first, so the second was
+     * unreachable anyway. Emitting both also breaks any client that keys a list by title. The
+     * listing drops it and says so, since the source is what wants fixing.
+     *
+     * Titles that differ only in case are left alone. Anchors are case sensitive, so those are
+     * distinct entries to a client and dropping one would lose documentation that reads fine today
+     * — but they are ambiguous to the case-insensitive lookups, so they are still worth reporting.
+     */
+    private def dedupeByTitle(items: List[GlossaryItem]): List[GlossaryItem] = {
+        val duplicated = items.groupBy(_.title).collect { case (title, sharing) if sharing.size > 1 => title }
+        if (duplicated.nonEmpty) {
+            logger.warn(
+                s"Glossary: ${duplicated.size} title(s) are defined more than once and only the first of each is served: " +
+                duplicated.toList.sorted.mkString(", ") +
+                ". Two Glossary Items cannot share a title — one of them needs renaming in Glossary.scala, ExampleValue.scala or docs/glossary.")
+        }
+        val caseOnlyCollisions = items.map(_.title).distinct
+            .groupBy(_.toLowerCase).collect { case (_, spellings) if spellings.size > 1 => spellings.sorted.mkString(" / ") }
+        if (caseOnlyCollisions.nonEmpty) {
+            logger.info(
+                s"Glossary: ${caseOnlyCollisions.size} title(s) differ only in case: " +
+                caseOnlyCollisions.toList.sorted.mkString(", ") +
+                ". All are served, but Glossary lookups are case insensitive and resolve to the first of each.")
+        }
+        items.distinctBy(_.title)
+    }
+
+    /** Dynamic Glossary Items that are currently displacing a static Item of the same title. */
+    def shadowingGlossaryItems: List[GlossaryItem] = allGlossaryItems.filter(_.shadowsStaticItem)
+
+    /**
+     * Reports, in the log, which static Glossary Items are currently being overridden. This is the
+     * one place the shadowing reaches a developer editing Glossary.scala, who otherwise has no way
+     * of knowing the database is displacing the text they just wrote. Called at boot and again
+     * whenever the Dynamic Glossary Item set changes.
+     */
+    def logStaticOverrides(shadowing: List[GlossaryItem]): Unit = {
+        val (declared, undeclared) = shadowing.partition(_.overridesStaticItem)
+        if (declared.nonEmpty) {
+            logger.info(
+                s"Glossary: ${declared.size} static Glossary Item(s) are deliberately overridden by Dynamic Glossary Items: " +
+                declared.map(_.title).sorted.mkString(", ") +
+                ". Editing their text in Glossary.scala will have no visible effect until the Dynamic Item is removed.")
+        }
+        if (undeclared.nonEmpty) {
+            // No override was declared, so the static item was almost certainly added after the
+            // Dynamic one. Worth a warning: neither the author of the static text nor the operator
+            // asked for this.
+            logger.warn(
+                s"Glossary: ${undeclared.size} static Glossary Item(s) are shadowed by Dynamic Glossary Items that did NOT declare an override: " +
+                undeclared.map(_.title).sorted.mkString(", ") +
+                ". A static Item was probably added later with a title already in use. Rename one, delete the Dynamic Item, " +
+                "or set overrides_static_item on it to confirm the override is intended.")
+        }
+    }
+
+    /** Boot-time entry point for the report above. */
+    def logStaticOverrides(): Unit = logStaticOverrides(shadowingGlossaryItems)
+
+    /**
+     * A watermark that changes whenever any Dynamic Glossary Item is added, changed or removed,
+     * so callers can cache the rendered Glossary and rebuild it only when it has actually moved.
+     */
+    def dynamicGlossaryItemsVersion: String =
+        code.glossaryitem.DynamicGlossaryItems.dynamicGlossaryItem.vend.getDynamicGlossaryItemsVersion.getOrElse("unavailable")
 
 
     val latestConnector : String = "rest_vMar2019"
@@ -161,34 +386,34 @@ object Glossary extends MdcLoggable  {
         description =
             s"""
                  |### A selection of links to get you started using the Open Bank Project API platform, applications and tools.
-                                 |
+                                  |
                  |[OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
-                                 |
+                                  |
                  |[OBP API Contributing](https://github.com/OpenBankProject/OBP-API/blob/develop/CONTRIBUTING.md)
-                                 |
+                                  |
                  |[Access Control](/glossary#API.Access-Control)
-                                 |
+                                  |
 |[Versioning](https://github.com/OpenBankProject/OBP-API/wiki/API-Versioning)
 |
  |[Authentication](https://github.com/OpenBankProject/OBP-API/wiki/Authentication)
 |
                  |[Interfaces](/glossary#API.Interfaces)
-                                 |
+                                  |
                  |[Endpoints](https://apiexplorersandbox.openbankproject.com)
-                                 |
+                                  |
                  |[Glossary](/glossary)
-                                 |
+                                  |
                  |[Access Control](/glossary#API.Access-Control)
-                                 |
+                                  |
                  |[OBP Akka](/glossary#Adapter.Akka.Intro)
-                                 |
+                                  |
                  |[API Explorer](https://github.com/OpenBankProject/API-Explorer/blob/develop/README.md)
-                                 |
+                                  |
                  |[API Manager](https://github.com/OpenBankProject/API-Manager/blob/master/README.md)
-                                 |
+                                  |
                  |[API Tester](https://github.com/OpenBankProject/API-Tester/blob/master/README.md)
-                                 |
-                                 |
+                                  |
+                                  |
 """)
 
 
@@ -221,9 +446,10 @@ object Glossary extends MdcLoggable  {
                  |│  │                                                                   │ │
                  |│  │  Logic:                                                           │ │
                  |│  │  1. Query RateLimiting table for active records                  │ │
-                 |│  │  2. If found:                                                     │ │
-                 |│  │     • Sum positive values (> 0) for each period                  │ │
-                 |│  │     • Return -1 if no positive values (unlimited)                │ │
+                 |│  │  2. If found, per period:                                         │ │
+                 |│  │     • Ignore -1 values (unlimited rows add nothing)               │ │
+                 |│  │     • Sum the rest; a sum of 0 -> blocked (429 on every call)     │ │
+                 |│  │     • Nothing to sum (all -1) -> -1 (unlimited)                   │ │
                  |│  │     • Extract rate_limiting_ids                                  │ │
                  |│  │  3. If not found:                                                 │ │
                  |│  │     • Return system defaults from props                          │ │
@@ -243,7 +469,7 @@ object Glossary extends MdcLoggable  {
                  |               │                               │
                  |    ┌──────────▼──────────┐         ┌──────────▼──────────┐
                  |    │                     │         │                     │
-                 |    │  AfterApiAuth.scala │         │ APIMethods600.scala │
+                 |    │  AfterApiAuth.scala │         │ Http4s600.scala     │
                  |    │                     │         │                     │
                  |    │  checkRateLimiting()│         │ getActiveCallLimits │
                  |    │                     │         │ AtDate              │
@@ -270,8 +496,9 @@ object Glossary extends MdcLoggable  {
                  |
                  |1. **Rate Limit Records**: Stored in the `RateLimiting` table with date ranges (from_date, to_date)
                  |2. **Multiple Records**: A consumer can have multiple active rate limit records that overlap
-                 |3. **Aggregation**: When multiple records are active, their limits are summed together (positive values only)
+                 |3. **Aggregation**: When multiple records are active, per period: `-1` values are ignored and the rest (`0` or positive) are summed; a sum of `0` blocks the period; nothing to sum (all `-1`) means unlimited
                  |4. **Enforcement**: On every API request, the system checks Redis counters against the aggregated limits
+                 |5. **Counting**: Every served request is counted in the Redis counter of every period, whether or not that period has a limit, so the call-counter endpoints show a Consumer's activity even when nothing limits it. A blocked period (sum `0`) serves nothing, so nothing is counted under it.
                  |
                  |### Time Periods
                  |
@@ -283,7 +510,12 @@ object Glossary extends MdcLoggable  {
                  |- **per_week_rate_limit**: Maximum requests per week
                  |- **per_month_rate_limit**: Maximum requests per month
                  |
-                 |A value of `-1` means unlimited for that period.
+                 |Each value means:
+                 |- `0`: this record grants no calls for that period. Records are summed, so a `0` only blocks the Consumer when the sum over all of its records is 0 (for example when it is the Consumer's only record). A blocked period refuses every call with 429. This is how a suspended API Product Subscription stops a Consumer whose access came from that subscription alone.
+                 |- `-1`: unlimited for that period. Once a record exists, `-1` is literal: the system default for that period does not apply. `-1` records add nothing to the sum.
+                 |- a positive number: the maximum number of calls in that period. Overlapping records are summed.
+                 |
+                 |A Consumer with no records at all gets the system defaults (see below).
                  |
                  |### HTTP Headers
                  |
@@ -291,6 +523,8 @@ object Glossary extends MdcLoggable  {
                  |- `X-Rate-Limit-Limit`: Maximum allowed requests for the period
                  |- `X-Rate-Limit-Remaining`: Remaining requests in current period
                  |- `X-Rate-Limit-Reset`: Seconds until the limit resets
+                 |
+                 |The three headers describe the shortest period that has a positive limit (per second before per minute, and so on). When no period is limited they read `-1`.
                  |
                  |### HTTP Status Codes
                  |
@@ -320,7 +554,7 @@ object Glossary extends MdcLoggable  {
                  |- `rate_limiting_per_week`
                  |- `rate_limiting_per_month`
                  |
-                 |Default value: `-1` (unlimited)
+                 |Default value: `-1` (unlimited). These defaults apply only to Consumers with no active records; a default of `0` would block every such Consumer.
                  |
                  |### Example
                  |
@@ -329,6 +563,14 @@ object Glossary extends MdcLoggable  {
                  |- Record 2: 5 requests/second, 50 requests/minute
                  |
                  |**Aggregated limits**: 15 requests/second, 150 requests/minute
+                 |
+                 |The same consumer with a third record of 0 requests/second (for example a suspended API Product Subscription) is unchanged, because the 0 adds nothing to the sum:
+                 |
+                 |**Aggregated limits**: 15 requests/second, 150 requests/minute
+                 |
+                 |A consumer whose only record is 0 requests/second:
+                 |
+                 |**Aggregated limits**: 0 requests/second (blocked, 429 on every call)
                  |
                  |### Configuration
                  |
@@ -341,7 +583,7 @@ object Glossary extends MdcLoggable  {
                  |```
                  |user_consumer_limit_anonymous_access=1000
                  |```
-                 |(Default: 1000 requests per hour)
+                 |(Default: 1000 requests per hour. `0` blocks all anonymous access, `-1` removes the limit.)
                  |
                  |### Related Concepts
                  |
@@ -481,6 +723,39 @@ object Glossary extends MdcLoggable  {
 |
 |This glossary item is Work In Progress.
 |
+                 |
+                 |### Three rate limiters
+                 |
+                 |OBP runs three independent rate limiters. They are checked in this order, and each answers **429** with its own error code so a client can tell which counter it hit:
+                 |
+                 |1. **Self-service limiter** (`self_service.rate_limit.*`) runs first, before routing and before any authentication, keyed by the client IP address. It covers the endpoints anyone can call before the bank has granted them anything. Trip code: `OBP-10060`.
+                 |2. **Authentication limiter** (`auth.rate_limit.*`) runs inside the credential check of Direct Login, DAuth, Gateway Login and SIWE, before the password or token is verified, keyed by IP address and by account. It defends against brute force, credential stuffing and lockout attacks. Trip code: `OBP-10061`.
+                 |3. **Consumer quota** (the limits described above) runs after authentication, keyed by Consumer, or by IP address with a single hourly ceiling for anonymous calls. It is the commercial and fair-use quota. Trip code: `OBP-10018`.
+                 |
+                 |A login attempt is counted by the authentication limiter only; it is not a self-service scope, so no attempt is counted twice. Every limiter counts in Redis and fails open: a Redis outage never blocks a call.
+                 |
+                 |### Self-service rate limiting (per IP address, before any credential)
+                 |
+                 |The limits above are keyed by Consumer, so they cannot protect the calls a client makes before it has one. Those endpoints are covered by the self-service limiter, keyed by the client IP address, grouped in scopes:
+                 |
+                 |- **signup** — Create User (self-registration), Validate User Email, Get User Invitation Information
+                 |- **password_reset** — Request Password Reset Email, Complete Password Reset
+                 |- **consent_request** — Create Consent Request, Create Consent Request VRP
+                 |- **consumer_registration** — Create a Consumer (Dynamic Registration)
+                 |- **lookup** — Validate and check IBAN
+                 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel, over REST and gRPC alike (gRPC uses the socket peer address; if none is available it falls back to the Consumer)
+                 |
+                 |Each scope has per-minute, per-hour and per-day limits per IP, with built-in defaults chosen so that a person or a well-behaved agent never reaches them, plus an optional global per-hour cap across all addresses that acts as a circuit breaker. Every request is counted, whether or not it succeeds. Counters live in Redis and fail open.
+                 |
+                 |**Shadow mode (the default).** The limiter is on out of the box but does not block. A request over a limit is logged once per window (`event=self_service_rate_limit_shadow_trip`) and the response carries:
+                 |
+                 |    X-Rate-Limit-Warning: OBP-10059: Could conflict with a Future Rate Limit: This request might exceed the rate limit for signup (5 per hour) in the future.
+                 |
+                 |No enforcement date is claimed unless the operator sets `self_service.rate_limit.enforce_announced_from`, in which case ", from <date>" is appended. Every self-service response also carries `X-Rate-Limit-Limit`, `X-Rate-Limit-Remaining` and `X-Rate-Limit-Reset` for the window the caller is closest to exhausting, so a client can back off before enforcement starts.
+                 |
+                 |**Enforce mode.** Set `self_service.rate_limit.mode = enforce` and a trip answers **429** with `OBP-10060`, a `Retry-After` header and the same `X-Rate-Limit-*` headers, without running the endpoint.
+                 |
+                 |Limits are set with `self_service.rate_limit.<scope>.per_ip.per_minute|per_hour|per_day`, `self_service.rate_limit.<scope>.global.per_hour`, or the generic `self_service.rate_limit.per_ip.*`; -1 switches a window off and 0 blocks it. See the props template for the built-in numbers. Behind a proxy, configure `trust.proxy.enabled` and `trust.proxy.header` so the client address is the real one; otherwise every caller shares the proxy's counters.
 """)
 
     glossaryItems += GlossaryItem(
@@ -505,6 +780,26 @@ object Glossary extends MdcLoggable  {
         title = "Roles of Open Bank Project",
         description =
             s"""<ol>${ApiRole.availableRoles.sorted.map(i => "<li>" + i + "</li>").mkString}</ol>""".stripMargin
+    )
+
+    glossaryItems += GlossaryItem(
+        title = "Virtual Entitlements",
+        description =
+            s"""A virtual Entitlement is a Role a User holds because their USER_ID is listed in an instance props entry, not because an Entitlement row exists.
+                 |
+                 |Two props entries grant them:
+                 |
+                 |* `super_admin_user_ids`: ${APIUtil.superAdminVirtualRoles.mkString(", ")}
+                 |* `oidc_operator_user_ids`: ${APIUtil.oidcOperatorVirtualRoles.mkString(", ")}
+                 |
+                 |Where they appear: `GET /my/entitlements` and `GET /users/current` list them next to stored Entitlements with an empty `entitlement_id` and an empty `bank_id`; in v6.0.0 and later `created_by_process` names the props entry.
+                 |
+                 |What they do: a virtual Entitlement satisfies the Role check of a direct call exactly as a stored one would. Super admins additionally bypass the granting-Role check of Add Entitlement, so they can grant any Role to any User (including themselves) at any Bank.
+                 |
+                 |What they do not do: they are not rows, so they cannot be deleted or listed per Bank, and they cannot be delegated. A Consent may only carry stored Entitlements of the User creating it, so a super admin who wants an agent (a consent user) to hold a Role must first grant that Role to their own USER_ID with Add Entitlement, then create the Consent that carries it. The "just in time" grant (`create_just_in_time_entitlements`) likewise honours only stored granting Roles.
+                 |
+                 |See also [Roles of Open Bank Project](/glossary#Roles-of-Open-Bank-Project) and [Consent](/glossary#Consent).
+            """.stripMargin
     )
 
 
@@ -835,8 +1130,8 @@ object Glossary extends MdcLoggable  {
 |User Views can be managed via the OBP Sofit Consent App.
 |
 |
-                                     |<img width="468" alt="OBP Access Control Image" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
-                                     |
+                                      |<img width="468" alt="OBP Access Control Image" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
+                                      |
                  |
   |
  |"""
@@ -907,6 +1202,7 @@ object Glossary extends MdcLoggable  {
                  |This speeds up the process of granting of roles. Certain roles are excluded from this automation:
                  |  - CanCreateEntitlementAtOneBank
                  |  - CanCreateEntitlementAtAnyBank
+                 |Consent users (the principal a Consent-JWT authenticates as) never receive Just in Time Entitlements: their Roles come only from the Consent, even if the Consent carries CanCreateEntitlementAtOneBank.
                  |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
                  |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
                  |
@@ -938,6 +1234,28 @@ object Glossary extends MdcLoggable  {
         description =
             """The user Age"""
     )
+
+      glossaryItems += GlossaryItem(
+        title = "View.view_id",
+        description =
+        s"""
+          |Identifies a View on a bank account.
+          |
+          |A View controls which fields of the account and its transactions a User can see, and which actions they can take on that account. Granting a User access to an account means granting them access through a particular View.
+          |
+          |Examples: `owner`, `accountant`, `auditor`.
+          |
+          |Example value: ${viewIdExample.value}
+         """)
+
+      glossaryItems += GlossaryItem(
+        title = "Transaction.transaction_id",
+        description =
+        s"""
+          |Uniquely identifies a Transaction on an account at a bank.
+          |
+          |Example value: ${transactionIdExample.value}
+         """)
 
       glossaryItems += GlossaryItem(
         title = "Account.account_id",
@@ -1229,83 +1547,83 @@ object Glossary extends MdcLoggable  {
 |
 |
 |
-      """)
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "Transaction Requests",
-    description =
-      """
-      |Transaction Requests are records of transaction / payment requests coming to the API. They may or may not result in Transactions (following authorisation, security challenges and sufficient funds etc.)
-      |
-      |A successful Transaction Request results in a Transaction.
-      |
-      |For more information [see here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
-      """)
+      glossaryItems += GlossaryItem(
+        title = "Transaction Requests",
+        description =
+          """
+            |Transaction Requests are records of transaction / payment requests coming to the API. They may or may not result in Transactions (following authorisation, security challenges and sufficient funds etc.)
+            |
+            |A successful Transaction Request results in a Transaction.
+            |
+            |For more information [see here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "User",
-    description =
-      """
-      |The entity that accesses the API with a login / authorisation token and has access to zero or more resources on the OBP API. The User is linked to the core banking user / customer at the South Side Adapter layer.
-      """)
+      glossaryItems += GlossaryItem(
+        title = "User",
+        description =
+          """
+            |The entity that accesses the API with a login / authorisation token and has access to zero or more resources on the OBP API. The User is linked to the core banking user / customer at the South Side Adapter layer.
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "User.user_id",
-    description =
-      s"""
-      |An identifier that MUST NOT leak the user name or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique on the OBP instance.
-      |
-      | Example value: ${userIdExample.value}
-      """)
+      glossaryItems += GlossaryItem(
+        title = "User.user_id",
+        description =
+          s"""
+            |An identifier that MUST NOT leak the user name or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique on the OBP instance.
+            |
+            | Example value: ${userIdExample.value}
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "User.provider",
-    description =
-      """
-      |The host name of the authentication service. e.g. the OBP hostname or OIDC host.
-      """)
+      glossaryItems += GlossaryItem(
+        title = "User.provider",
+        description =
+          """
+            |The host name of the authentication service. e.g. the OBP hostname or OIDC host.
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "User.provider_id",
-    description =
-      """
-      |The id of the user given by the authentication provider. This is UNIQUE in combination with PROVIDER name.
-      """)
+      glossaryItems += GlossaryItem(
+        title = "User.provider_id",
+        description =
+          """
+            |The id of the user given by the authentication provider. This is UNIQUE in combination with PROVIDER name.
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "Password Policy",
-    description =
-      s"""
-      |The rules a password must satisfy when it is set — at user creation (POST /users) and at password reset.
-      |
-      |A password is valid if it satisfies AT LEAST ONE of the following policies:
-      |
-      |1) **Composition**: 10 to 16 printable ASCII characters (no space), including at least one digit, one lower case letter, one upper case letter and one special character.
-      |
-      |2) **Passphrase**: 17 to 512 printable ASCII characters (no space), with no composition rules.
-      |
-      |The machine-readable policy is published anonymously at `GET /obp/v7.0.0/public/password-config`, including per-policy length bounds, required character classes, allowed characters, and an equivalent regular expression written in a portable subset that behaves identically in Java, JavaScript and Python — so client applications can validate locally, while the user types, using either the structured fields (normative) or the regex (convenience):
-      |
-      |Composition: `${APIUtil.passwordCompositionPolicyRegex}`
-      |
-      |Passphrase: `${APIUtil.passwordPassphrasePolicyRegex}`
-      |
-      |The server remains the final enforcer: a password failing the policy is rejected with error OBP-30207 (InvalidStrongPasswordFormat).
-      |
-      |The policy applies only when a password is set. Already-stored passwords are never re-checked against it, so tightening the policy does not lock out existing users.
-      """)
+      glossaryItems += GlossaryItem(
+        title = "Password Policy",
+        description =
+          s"""
+            |The rules a password must satisfy when it is set — at user creation (POST /users) and at password reset.
+            |
+            |A password is valid if it satisfies AT LEAST ONE of the following policies:
+            |
+            |1) **Composition**: 10 to 16 printable ASCII characters (no space), including at least one digit, one lower case letter, one upper case letter and one special character.
+            |
+            |2) **Passphrase**: 17 to 512 printable ASCII characters (no space), with no composition rules.
+            |
+            |The machine-readable policy is published anonymously at `GET /obp/v7.0.0/public/password-config`, including per-policy length bounds, required character classes, allowed characters, and an equivalent regular expression written in a portable subset that behaves identically in Java, JavaScript and Python — so client applications can validate locally, while the user types, using either the structured fields (normative) or the regex (convenience):
+            |
+            |Composition: `${APIUtil.passwordCompositionPolicyRegex}`
+            |
+            |Passphrase: `${APIUtil.passwordPassphrasePolicyRegex}`
+            |
+            |The server remains the final enforcer: a password failing the policy is rejected with error OBP-30207 (InvalidStrongPasswordFormat).
+            |
+            |The policy applies only when a password is set. Already-stored passwords are never re-checked against it, so tightening the policy does not lock out existing users.
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "User Customer Links",
-    description =
-      """
-      |Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
-      """)
+      glossaryItems += GlossaryItem(
+        title = "User Customer Links",
+        description =
+          """
+            |Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
+          """)
 
-    glossaryItems += GlossaryItem(
-    title = "Consent",
-    description =
-      s"""Consents provide a mechanism through which a resource owner (e.g. a customer) can grant a third party certain access to their resources.
+      glossaryItems += GlossaryItem(
+        title = "Consent",
+        description =
+            s"""Consents provide a mechanism through which a resource owner (e.g. a customer) can grant a third party certain access to their resources.
 |
 |The following are important considerations in Consent flows:
 |
@@ -1358,9 +1676,19 @@ object Glossary extends MdcLoggable  {
 |
 |This increases the security of the claims contained in the consent.
 |
+|**What an OBP Consent carries**
+|
+|| key | nature | check when the Consent is created |
+||---|---|---|
+|| `views` | the User's own account access (owned) | the User has the view |
+|| `entitlements` | Roles at a Bank or the system (granted) | the User holds the stored Entitlement; virtual Entitlements do not count |
+|| `my_resources` | the User's own personal resources (owned), one typed list per kind, e.g. `personal_dynamic_entities` | the kind and instance exist; no Role, the User owns these rows |
+|
+|`my_resources` is accepted by the Create Consent endpoint from v6.0.0 (older create-consent bodies are frozen). Example: `{"personal_dynamic_entities": [{"bank_id": "", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
 |
 |
-                |See ${getGlossaryItemLink("Consent_OBP_Flow_Example")} for an example flow.
+|
+                |See ${getGlossaryItemLink("Authentication: Consent OBP Flow Example")} for an example flow.
                 |See ${getGlossaryItemLink("Consent_Account_Onboarding")} for more information about onboarding.
 |
                 |<img width="468" alt="OBP Access Control Image" src="$getServerUrl/media/images/glossary/OBP_Consent_Request__3_.png"></img>
@@ -1649,17 +1977,17 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/users
+            |	POST $getObpApiRoot/v4.0.0/users
             |
             |Body:
             |
-            |   {  "email":"ellie@example.com",  "username":"ellie",  "password":"P@55w0RD123",  "first_name":"Ellie",  "last_name":"Williams"}
+            |	{  "email":"ellie@example.com",  "username":"ellie",  "password":"P@55w0RD123",  "first_name":"Ellie",  "last_name":"Williams"}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |Please note the user_id
             |
@@ -1669,33 +1997,33 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/customers
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/customers
             |
             |Body:
             |
-            |   {  "legal_name":"Eveline Tripman",  "mobile_phone_number":"+44 07972 444 876",  "email":"eveline@example.com",  "face_image":{    "url":"www.openbankproject",    "date":"1100-01-01T00:00:00Z"  },  "date_of_birth":"1100-01-01T00:00:00Z",  "relationship_status":"single",  "dependants":10,  "dob_of_dependants":["1100-01-01T00:00:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Master",  "employment_status":"worker",  "kyc_status":true,  "last_ok_date":"1100-01-01T00:00:00Z",  "title":"Dr.",  "branch_id":"DERBY6",  "name_suffix":"Sr"}
+            |	{  "legal_name":"Eveline Tripman",  "mobile_phone_number":"+44 07972 444 876",  "email":"eveline@example.com",  "face_image":{    "url":"www.openbankproject",    "date":"1100-01-01T00:00:00Z"  },  "date_of_birth":"1100-01-01T00:00:00Z",  "relationship_status":"single",  "dependants":10,  "dob_of_dependants":["1100-01-01T00:00:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Master",  "employment_status":"worker",  "kyc_status":true,  "last_ok_date":"1100-01-01T00:00:00Z",  "title":"Dr.",  "branch_id":"DERBY6",  "name_suffix":"Sr"}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 3) List customers for the user
             |
             |Action:
             |
-            |   GET $getObpApiRoot/v4.0.0/users/current/customers
+            |	GET $getObpApiRoot/v4.0.0/users/current/customers
             |
             |Body:
             |
-            |   Leave empty!
+            |	Leave empty!
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 4) Create user customer link
             |
@@ -1703,17 +2031,17 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/user_customer_links
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/user_customer_links
             |
             |Body:
             |
-            |   { "user_customer_link_id":"String", "customer_id":"customer-id-from-step-2", "user_id":"user-id-from-step-1", "date_inserted":"2018-03-22T00:08:00Z", "is_active":true }
+            |	{ "user_customer_link_id":"String", "customer_id":"customer-id-from-step-2", "user_id":"user-id-from-step-1", "date_inserted":"2018-03-22T00:08:00Z", "is_active":true }
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 5) Create account
             |
@@ -1721,33 +2049,33 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   PUT $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID
+            |	PUT $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID
             |
             |Body:
             |
-            |   {  "user_id":"userid-from-step-1",  "label":"My Account",  "product_code":"AC",  "balance":{    "currency":"EUR",    "amount":"10"  },  "branch_id":"DERBY6",  "account_routing":{    "scheme":"AccountNumber",    "address":"4930396"  },  "account_attributes":[{    "product_code":"saving1",    "account_attribute_id":"613c83ea-80f9-4560-8404-b9cd4ec42a7f",    "name":"OVERDRAFT_START_DATE",    "type":"DATE_WITH_DAY",    "value":"2012-04-23"  }]}
+            |	{  "user_id":"userid-from-step-1",  "label":"My Account",  "product_code":"AC",  "balance":{    "currency":"EUR",    "amount":"10"  },  "branch_id":"DERBY6",  "account_routing":{    "scheme":"AccountNumber",    "address":"4930396"  },  "account_attributes":[{    "product_code":"saving1",    "account_attribute_id":"613c83ea-80f9-4560-8404-b9cd4ec42a7f",    "name":"OVERDRAFT_START_DATE",    "type":"DATE_WITH_DAY",    "value":"2012-04-23"  }]}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 6) List accounts
             |
             |Action:
             |
-            |   GET $getObpApiRoot/v4.0.0/my/banks/BANK_ID/accounts/account-id-from-step-5/account
+            |	GET $getObpApiRoot/v4.0.0/my/banks/BANK_ID/accounts/account-id-from-step-5/account
             |
             |Body:
             |
-            |   Leave empty!
+            |	Leave empty!
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 7) Create card
             |
@@ -1755,7 +2083,7 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/management/banks/BANK_ID/cards
+            |	POST $getObpApiRoot/v4.0.0/management/banks/BANK_ID/cards
             |
             |Body:
             |
@@ -1763,25 +2091,25 @@ object Glossary extends MdcLoggable  {
       |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 8) List cards
             |
             |Action:
             |
-            |   GET $getObpApiRoot/v3.0.0/cards
+            |	GET $getObpApiRoot/v3.0.0/cards
             |
             |Body:
             |
-            |   Leave empty!
+            |	Leave empty!
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
           """)
 
@@ -1797,32 +2125,32 @@ object Glossary extends MdcLoggable  {
              |
              |Action:
              |
-             |  POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
+             |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
              |
              |Body:
              |
-       | {  "name":"_test",  "description":"This view is for family",  "metadata_view":"_test",  "is_public":true,  "which_alias_to_use":"family",  "hide_metadata_if_alias_used":false,  "allowed_actions":[$CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_METADATA,,$CAN_SEE_TRANSACTION_AMOUNT,$CAN_SEE_TRANSACTION_TYPE,$CAN_SEE_TRANSACTION_CURRENCY,$CAN_SEE_TRANSACTION_START_DATE,$CAN_SEE_TRANSACTION_FINISH_DATE,$CAN_SEE_TRANSACTION_BALANCE,$CAN_SEE_COMMENTS,$CAN_SEE_TAGS,$CAN_SEE_IMAGES,$CAN_SEE_BANK_ACCOUNT_OWNERS,$CAN_SEE_BANK_ACCOUNT_TYPE,$CAN_SEE_BANK_ACCOUNT_BALANCE,$CAN_SEE_BANK_ACCOUNT_CURRENCY,$CAN_SEE_BANK_ACCOUNT_LABEL,$CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,$CAN_SEE_BANK_ACCOUNT_IBAN,$CAN_SEE_BANK_ACCOUNT_NUMBER,$CAN_SEE_BANK_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,$CAN_SEE_OTHER_ACCOUNT_IBAN,$CAN_SEE_OTHER_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NUMBER,$CAN_SEE_OTHER_ACCOUNT_METADATA,$CAN_SEE_OTHER_ACCOUNT_KIND,$CAN_SEE_MORE_INFO,$CAN_SEE_URL,$CAN_SEE_IMAGE_URL,$CAN_SEE_OPEN_CORPORATES_URL,$CAN_SEE_CORPORATE_LOCATION,$CAN_SEE_PHYSICAL_LOCATION,$CAN_SEE_PUBLIC_ALIAS,$CAN_SEE_PRIVATE_ALIAS,$CAN_ADD_MORE_INFO,$CAN_ADD_URL,$CAN_ADD_IMAGE_URL,$CAN_ADD_OPEN_CORPORATES_URL,$CAN_ADD_CORPORATE_LOCATION,$CAN_ADD_PHYSICAL_LOCATION,$CAN_ADD_PUBLIC_ALIAS,$CAN_ADD_PRIVATE_ALIAS,$CAN_DELETE_CORPORATE_LOCATION,$CAN_DELETE_PHYSICAL_LOCATION,$CAN_ADD_COMMENT,$CAN_DELETE_COMMENT,$CAN_ADD_TAG,$CAN_DELETE_TAG,$CAN_ADD_IMAGE,$CAN_DELETE_IMAGE,$CAN_ADD_WHERE_TAG,$CAN_SEE_WHERE_TAG,$CAN_DELETE_WHERE_TAG,$CAN_SEE_BANK_ROUTING_SCHEME,$CAN_SEE_BANK_ROUTING_ADDRESS,$CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS,$CAN_SEE_OTHER_BANK_ROUTING_SCHEME,$CAN_SEE_OTHER_BANK_ROUTING_ADDRESS,$CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,$CAN_QUERY_AVAILABLE_FUNDS,$CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,$CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT,$CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT,$CAN_CREATE_DIRECT_DEBIT,$CAN_CREATE_STANDING_ORDER]}             |
+       | {  "name":"_test",  "description":"This view is for family",  "metadata_view":"_test",  "is_public":true,  "which_alias_to_use":"family",  "hide_metadata_if_alias_used":false,  "allowed_actions":[$CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_METADATA,,$CAN_SEE_TRANSACTION_AMOUNT,$CAN_SEE_TRANSACTION_TYPE,$CAN_SEE_TRANSACTION_CURRENCY,$CAN_SEE_TRANSACTION_START_DATE,$CAN_SEE_TRANSACTION_FINISH_DATE,$CAN_SEE_TRANSACTION_BALANCE,$CAN_SEE_COMMENTS,$CAN_SEE_TAGS,$CAN_SEE_IMAGES,$CAN_SEE_BANK_ACCOUNT_OWNERS,$CAN_SEE_BANK_ACCOUNT_TYPE,$CAN_SEE_BANK_ACCOUNT_BALANCE,$CAN_SEE_BANK_ACCOUNT_CURRENCY,$CAN_SEE_BANK_ACCOUNT_LABEL,$CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,$CAN_SEE_BANK_ACCOUNT_IBAN,$CAN_SEE_BANK_ACCOUNT_NUMBER,$CAN_SEE_BANK_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,$CAN_SEE_OTHER_ACCOUNT_IBAN,$CAN_SEE_OTHER_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NUMBER,$CAN_SEE_OTHER_ACCOUNT_METADATA,$CAN_SEE_OTHER_ACCOUNT_KIND,$CAN_SEE_MORE_INFO,$CAN_SEE_URL,$CAN_SEE_IMAGE_URL,$CAN_SEE_OPEN_CORPORATES_URL,$CAN_SEE_CORPORATE_LOCATION,$CAN_SEE_PHYSICAL_LOCATION,$CAN_SEE_PUBLIC_ALIAS,$CAN_SEE_PRIVATE_ALIAS,$CAN_ADD_MORE_INFO,$CAN_ADD_URL,$CAN_ADD_IMAGE_URL,$CAN_ADD_OPEN_CORPORATES_URL,$CAN_ADD_CORPORATE_LOCATION,$CAN_ADD_PHYSICAL_LOCATION,$CAN_ADD_PUBLIC_ALIAS,$CAN_ADD_PRIVATE_ALIAS,$CAN_DELETE_CORPORATE_LOCATION,$CAN_DELETE_PHYSICAL_LOCATION,$CAN_ADD_COMMENT,$CAN_DELETE_COMMENT,$CAN_ADD_TAG,$CAN_DELETE_TAG,$CAN_ADD_IMAGE,$CAN_DELETE_IMAGE,$CAN_ADD_WHERE_TAG,$CAN_SEE_WHERE_TAG,$CAN_DELETE_WHERE_TAG,$CAN_SEE_BANK_ROUTING_SCHEME,$CAN_SEE_BANK_ROUTING_ADDRESS,$CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS,$CAN_SEE_OTHER_BANK_ROUTING_SCHEME,$CAN_SEE_OTHER_BANK_ROUTING_ADDRESS,$CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,$CAN_QUERY_AVAILABLE_FUNDS,$CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,$CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT,$CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT,$CAN_CREATE_DIRECT_DEBIT,$CAN_CREATE_STANDING_ORDER]}			 |
              | Headers:
              |
-             |  Content-Type:  application/json
+             |	Content-Type:  application/json
              |
-             |  $directLoginHeaderName: token="your-token"
+             |	$directLoginHeaderName: token="your-token"
              |
              |### 3) Grant user access to view
              |
              |Action:
              |
-             |  POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/permissions/PROVIDER/PROVIDER_ID/views/view-id-from-step-2
+             |	POST $getObpApiRoot/v3.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/permissions/PROVIDER/PROVIDER_ID/views/view-id-from-step-2
              |
              |Body:
              |
-             |  {  "json_string":"{}"}
+             |	{  "json_string":"{}"}
              |
              | Headers:
              |
-             |  Content-Type:  application/json
+             |	Content-Type:  application/json
              |
-             |  $directLoginHeaderName: token="your-token"
+             |	$directLoginHeaderName: token="your-token"
              |
           """)
 
@@ -1834,49 +2162,49 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/account-id-from-account-creation/VIEW_ID/counterparties
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/account-id-from-account-creation/VIEW_ID/counterparties
             |
             |Body:
             |
-      | {  "name":"CounterpartyName",  "description":"My landlord",  "other_account_routing_scheme":"accountNumber",  "other_account_routing_address":"7987987-2348987-234234",  "other_account_secondary_routing_scheme":"IBAN",  "other_account_secondary_routing_address":"DE89370400440532013000",  "other_bank_routing_scheme":"bankCode",  "other_bank_routing_address":"10",  "other_branch_routing_scheme":"branchNumber",  "other_branch_routing_address":"10010",  "is_beneficiary":true,  "bespoke":[{    "key":"englishName",    "value":"english Name"  }]}            |
+      | {  "name":"CounterpartyName",  "description":"My landlord",  "other_account_routing_scheme":"accountNumber",  "other_account_routing_address":"7987987-2348987-234234",  "other_account_secondary_routing_scheme":"IBAN",  "other_account_secondary_routing_address":"DE89370400440532013000",  "other_bank_routing_scheme":"bankCode",  "other_bank_routing_address":"10",  "other_branch_routing_scheme":"branchNumber",  "other_branch_routing_address":"10010",  "is_beneficiary":true,  "bespoke":[{    "key":"englishName",    "value":"english Name"  }]}			|
             | Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token"
+            |	$directLoginHeaderName: token="your-token"
             |
             |### 2) Make payment by SEPA
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests
             |
             |Body:
             |
-            |   {  "value":{    "currency":"EUR",    "amount":"10"  },  "to":{    "iban":"123"  },  "description":"This is a SEPA Transaction Request",  "charge_policy":"SHARED"}
+            |	{  "value":{    "currency":"EUR",    "amount":"10"  },  "to":{    "iban":"123"  },  "description":"This is a SEPA Transaction Request",  "charge_policy":"SHARED"}
             |
             | Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token"
+            |	$directLoginHeaderName: token="your-token"
             |
             |
             |### 3) Make payment by COUNTERPARTY
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests
             |
             |Body:
             |
-            |   {  "to":{    "counterparty_id":"counterparty-id-from-step-1"  },  "value":{    "currency":"EUR",    "amount":"10"  },  "description":"A description for the transaction to the counterparty",  "charge_policy":"SHARED"}
+            |	{  "to":{    "counterparty_id":"counterparty-id-from-step-1"  },  "value":{    "currency":"EUR",    "amount":"10"  },  "description":"A description for the transaction to the counterparty",  "charge_policy":"SHARED"}
             |
             | Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token"
+            |	$directLoginHeaderName: token="your-token"
             |
             |
           """)
@@ -1893,62 +2221,62 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/views
             |
             |Body:
             |
-            |   {  "name":"_test", "description":"good", "is_public":false, "which_alias_to_use":"accountant", "hide_metadata_if_alias_used":false,  "allowed_actions": [$CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_METADATA,,$CAN_SEE_TRANSACTION_AMOUNT,$CAN_SEE_TRANSACTION_TYPE,$CAN_SEE_TRANSACTION_CURRENCY,$CAN_SEE_TRANSACTION_START_DATE,$CAN_SEE_TRANSACTION_FINISH_DATE,$CAN_SEE_TRANSACTION_BALANCE,$CAN_SEE_COMMENTS,$CAN_SEE_TAGS,$CAN_SEE_IMAGES,$CAN_SEE_BANK_ACCOUNT_OWNERS,$CAN_SEE_BANK_ACCOUNT_TYPE,$CAN_SEE_BANK_ACCOUNT_BALANCE,$CAN_SEE_BANK_ACCOUNT_CURRENCY,$CAN_SEE_BANK_ACCOUNT_LABEL,$CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,$CAN_SEE_BANK_ACCOUNT_IBAN,$CAN_SEE_BANK_ACCOUNT_NUMBER,$CAN_SEE_BANK_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,$CAN_SEE_OTHER_ACCOUNT_IBAN,$CAN_SEE_OTHER_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NUMBER,$CAN_SEE_OTHER_ACCOUNT_METADATA,$CAN_SEE_OTHER_ACCOUNT_KIND,$CAN_SEE_MORE_INFO,$CAN_SEE_URL,$CAN_SEE_IMAGE_URL,$CAN_SEE_OPEN_CORPORATES_URL,$CAN_SEE_CORPORATE_LOCATION,$CAN_SEE_PHYSICAL_LOCATION,$CAN_SEE_PUBLIC_ALIAS,$CAN_SEE_PRIVATE_ALIAS,$CAN_ADD_MORE_INFO,$CAN_ADD_URL,$CAN_ADD_IMAGE_URL,$CAN_ADD_OPEN_CORPORATES_URL,$CAN_ADD_CORPORATE_LOCATION,$CAN_ADD_PHYSICAL_LOCATION,$CAN_ADD_PUBLIC_ALIAS,$CAN_ADD_PRIVATE_ALIAS,$CAN_DELETE_CORPORATE_LOCATION,$CAN_DELETE_PHYSICAL_LOCATION,$CAN_ADD_COMMENT,$CAN_DELETE_COMMENT,$CAN_ADD_TAG,$CAN_DELETE_TAG,$CAN_ADD_IMAGE,$CAN_DELETE_IMAGE,$CAN_ADD_WHERE_TAG,$CAN_SEE_WHERE_TAG,$CAN_DELETE_WHERE_TAG,$CAN_SEE_BANK_ROUTING_SCHEME,$CAN_SEE_BANK_ROUTING_ADDRESS,$CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS,$CAN_SEE_OTHER_BANK_ROUTING_SCHEME,$CAN_SEE_OTHER_BANK_ROUTING_ADDRESS,$CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,$CAN_QUERY_AVAILABLE_FUNDS,$CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,$CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT,$CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT,$CAN_CREATE_DIRECT_DEBIT,$CAN_CREATE_STANDING_ORDER]}
+            |	{  "name":"_test", "description":"good", "is_public":false, "which_alias_to_use":"accountant", "hide_metadata_if_alias_used":false,  "allowed_actions": [$CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,$CAN_SEE_TRANSACTION_METADATA,,$CAN_SEE_TRANSACTION_AMOUNT,$CAN_SEE_TRANSACTION_TYPE,$CAN_SEE_TRANSACTION_CURRENCY,$CAN_SEE_TRANSACTION_START_DATE,$CAN_SEE_TRANSACTION_FINISH_DATE,$CAN_SEE_TRANSACTION_BALANCE,$CAN_SEE_COMMENTS,$CAN_SEE_TAGS,$CAN_SEE_IMAGES,$CAN_SEE_BANK_ACCOUNT_OWNERS,$CAN_SEE_BANK_ACCOUNT_TYPE,$CAN_SEE_BANK_ACCOUNT_BALANCE,$CAN_SEE_BANK_ACCOUNT_CURRENCY,$CAN_SEE_BANK_ACCOUNT_LABEL,$CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,$CAN_SEE_BANK_ACCOUNT_IBAN,$CAN_SEE_BANK_ACCOUNT_NUMBER,$CAN_SEE_BANK_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,$CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,$CAN_SEE_OTHER_ACCOUNT_IBAN,$CAN_SEE_OTHER_ACCOUNT_BANK_NAME,$CAN_SEE_OTHER_ACCOUNT_NUMBER,$CAN_SEE_OTHER_ACCOUNT_METADATA,$CAN_SEE_OTHER_ACCOUNT_KIND,$CAN_SEE_MORE_INFO,$CAN_SEE_URL,$CAN_SEE_IMAGE_URL,$CAN_SEE_OPEN_CORPORATES_URL,$CAN_SEE_CORPORATE_LOCATION,$CAN_SEE_PHYSICAL_LOCATION,$CAN_SEE_PUBLIC_ALIAS,$CAN_SEE_PRIVATE_ALIAS,$CAN_ADD_MORE_INFO,$CAN_ADD_URL,$CAN_ADD_IMAGE_URL,$CAN_ADD_OPEN_CORPORATES_URL,$CAN_ADD_CORPORATE_LOCATION,$CAN_ADD_PHYSICAL_LOCATION,$CAN_ADD_PUBLIC_ALIAS,$CAN_ADD_PRIVATE_ALIAS,$CAN_DELETE_CORPORATE_LOCATION,$CAN_DELETE_PHYSICAL_LOCATION,$CAN_ADD_COMMENT,$CAN_DELETE_COMMENT,$CAN_ADD_TAG,$CAN_DELETE_TAG,$CAN_ADD_IMAGE,$CAN_DELETE_IMAGE,$CAN_ADD_WHERE_TAG,$CAN_SEE_WHERE_TAG,$CAN_DELETE_WHERE_TAG,$CAN_SEE_BANK_ROUTING_SCHEME,$CAN_SEE_BANK_ROUTING_ADDRESS,$CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS,$CAN_SEE_OTHER_BANK_ROUTING_SCHEME,$CAN_SEE_OTHER_BANK_ROUTING_ADDRESS,$CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,$CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,$CAN_QUERY_AVAILABLE_FUNDS,$CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,$CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT,$CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT,$CAN_CREATE_DIRECT_DEBIT,$CAN_CREATE_STANDING_ORDER]}
             |
             | Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token"
+            |	$directLoginHeaderName: token="your-token"
             |
             |### 3) Get User (Current)
             |
             |Action:
             |
-            |   GET $getObpApiRoot/v4.0.0/users/current
+            |	GET $getObpApiRoot/v4.0.0/users/current
             |
             |
             | Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token"
+            |	$directLoginHeaderName: token="your-token"
             |
             |### 4) Grant user access to himself
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant
             |
             |Body:
             |
-            |   {  "user_id":"your-user-id-from-step3",  "view":{    "view_id":"_test",    "is_system":false  }}
+            |	{  "user_id":"your-user-id-from-step3",  "view":{    "view_id":"_test",    "is_system":false  }}
             |
             | Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token"
+            |	$directLoginHeaderName: token="your-token"
             |
             |### 5) Grant user access to view to another user
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant
+            |	POST $getObpApiRoot/v4.0.0/banks/BANK_ID/accounts/your-account-id-from-step-1/account-access/grant
             |
             |Body:
             |
-            |   {  "user_id":"another-user-id",  "view":{    "view_id":"_test",    "is_system":false  }}
+            |	{  "user_id":"another-user-id",  "view":{    "view_id":"_test",    "is_system":false  }}
             |
             | Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token"
+            |	$directLoginHeaderName: token="your-token"
             |
             |
           """)
@@ -1961,17 +2289,17 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v3.0.0/users
+            |	POST $getObpApiRoot/v3.0.0/users
             |
             |Body:
             |
-            |   {  "email":"ellie@example.com",  "username":"ellie",  "password":"P@55w0RD123",  "first_name":"Ellie",  "last_name":"Williams"}
+            |	{  "email":"ellie@example.com",  "username":"ellie",  "password":"P@55w0RD123",  "first_name":"Ellie",  "last_name":"Williams"}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |Please note the user_id
             |
@@ -1982,17 +2310,17 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
+            |	POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
             |
             |Body:
             |
-            |   {  "key":"CUSTOMER_NUMBER",  "value":"78987432"}
+            |	{  "key":"CUSTOMER_NUMBER",  "value":"78987432"}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 3) Create customer
             |
@@ -2000,33 +2328,33 @@ object Glossary extends MdcLoggable  {
             |
             |Action:
             |
-            |   POST $getObpApiRoot/v3.1.0/banks/BANK_ID/customers
+            |	POST $getObpApiRoot/v3.1.0/banks/BANK_ID/customers
             |
             |Body:
             |
-            |   {  "user_id":"user-id-from-step-1", "customer_number":"687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
+            |	{  "user_id":"user-id-from-step-1", "customer_number":"687687678", "legal_name":"NONE",  "mobile_phone_number":"+44 07972 444 876", "email":"person@example.com", "face_image":{    "url":"www.openbankproject",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":5,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             |### 4) Get Customers for Current User
             |
             |Action:
             |
-            |   GET $getObpApiRoot/v3.0.0/users/current/customers
+            |	GET $getObpApiRoot/v3.0.0/users/current/customers
             |
             |Body:
             |
-            |   Leave empty!
+            |	Leave empty!
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
 
           """)
@@ -2042,8 +2370,8 @@ object Glossary extends MdcLoggable  {
 |### 2) Solution Overview:
 |
 |In general your application will need to:
-|               1) Loop through Customers
-|       2) For each Customer, get its related Users and associated device data
+|				1) Loop through Customers
+|     	2) For each Customer, get its related Users and associated device data
 |       3) For each Customer or User get the related accounts
 |       4) For each Account, get its Transaction data
 |       5) Update the Credit Rating and Credit Rating Readiness score of the Customer.
@@ -2099,17 +2427,17 @@ object Glossary extends MdcLoggable  {
             |
             |Action: Create User Auth Context Update Request
             |
-            |   POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/SMS
+            |	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/SMS
             |
             |Body:
             |
-            |   {  "key":"ACCOUNT_NUMBER",  "value":"78987432"}
+            |	{  "key":"ACCOUNT_NUMBER",  "value":"78987432"}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
             | When customer get the the challenge answer from SMS, then need to call `Answer Auth Context Update Challenge` to varify the challenge.
             | Then the customer create the 1st `User Auth Context` successfully.
@@ -2117,17 +2445,17 @@ object Glossary extends MdcLoggable  {
             |
             |Action: Answer Auth Context Update Challenge
             |
-            |   POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge
+            |	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge
             |
             |Body:
             |
-            |   {  "answer": "12345678"}
+            |	{  "answer": "12345678"}
             |
             |Headers:
             |
-            |   Content-Type:  application/json
+            |	Content-Type:  application/json
             |
-            |   $directLoginHeaderName: token="your-token-from-direct-login"
+            |	$directLoginHeaderName: token="your-token-from-direct-login"
             |
 |### 3) Create a second User Auth Context record e.g. SMALL_PAYMENT_VERIFIED
 |
@@ -2135,17 +2463,17 @@ object Glossary extends MdcLoggable  {
 |
 |Action: Create User Auth Context Update Request
 |
-|   POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/SMS
+|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/SMS
 |
 |Body:
 |
-|   {  "key":"SMALL_PAYMENT_VERIFIED",  "value":"78987432"}
+|	{  "key":"SMALL_PAYMENT_VERIFIED",  "value":"78987432"}
 |
 |Headers:
 |
-|   Content-Type:  application/json
+|	Content-Type:  application/json
 |
-|   $directLoginHeaderName: token="your-token-from-direct-login"
+|	$directLoginHeaderName: token="your-token-from-direct-login"
 |
 |
 |
@@ -2156,17 +2484,17 @@ object Glossary extends MdcLoggable  {
 |
 |Then Action:Answer Auth Context Update Challenge
 |
-|   POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge
+|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge
 |
 |Body:
 |
-|   {  "answer": "12345678"}
+|	{  "answer": "12345678"}
 |
 |Headers:
 |
-|   Content-Type:  application/json
+|	Content-Type:  application/json
 |
-|   $directLoginHeaderName: token="your-token-from-direct-login"
+|	$directLoginHeaderName: token="your-token-from-direct-login"
 |
 | Note! The above logic must be encoded in a dynamic connector method for the OBP internal function validateUserAuthContextUpdateRequest which is used by the endpoint Create User Auth Context Update Request See the next step.
 |
@@ -2176,17 +2504,17 @@ object Glossary extends MdcLoggable  {
 |
 |Action:
 |
-|   POST $getObpApiRoot/obp/v4.0.0/management/connector-methods
+|	POST $getObpApiRoot/obp/v4.0.0/management/connector-methods
 |
 |Body:
 |
-|   {  "method_name":"validateUserAuthContextUpdateRequest",  "method_body":"%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%20%20%20%20%20%20%29"}
+|	{  "method_name":"validateUserAuthContextUpdateRequest",  "method_body":"%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%20%20%20%20%20%20%29"}
 |
 |Headers:
 |
-|   Content-Type:  application/json
+|	Content-Type:  application/json
 |
-|   $directLoginHeaderName: token="your-token-from-direct-login"
+|	$directLoginHeaderName: token="your-token-from-direct-login"
 |
 |### 5) Allow automated access to the App with Create Consent (SMS)
 |
@@ -2199,17 +2527,17 @@ object Glossary extends MdcLoggable  {
 |
 |Action:
 |
-|   POST $getObpApiRoot/obp/v4.0.0/banks/BANK_ID/my/consents/SMS
+|	POST $getObpApiRoot/obp/v4.0.0/banks/BANK_ID/my/consents/SMS
 |
 |Body:
 |
-|   {  "everything":false,  "views":[{    "bank_id":"gh.29.uk",    "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",    "view_id":${Constant.SYSTEM_OWNER_VIEW_ID}],  "entitlements":[{    "bank_id":"gh.29.uk",    "role_name":"CanGetCustomersAtOneBank"  }],  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",  "phone_number":"+44 07972 444 876",  "valid_from":"2022-04-29T10:40:03Z",  "time_to_live":3600}
+|	{  "everything":false,  "views":[{    "bank_id":"gh.29.uk",    "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",    "view_id":${Constant.SYSTEM_OWNER_VIEW_ID}],  "entitlements":[{    "bank_id":"gh.29.uk",    "role_name":"CanGetCustomersAtOneBank"  }],  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",  "phone_number":"+44 07972 444 876",  "valid_from":"2022-04-29T10:40:03Z",  "time_to_live":3600}
 |
 |Headers:
 |
-|   Content-Type:  application/json
+|	Content-Type:  application/json
 |
-|   $directLoginHeaderName: token="your-token-from-direct-login"
+|	$directLoginHeaderName: token="your-token-from-direct-login"
 |
 |![OBP User Auth Context, Views, Consents 2022](https://user-images.githubusercontent.com/485218/165982767-f656c965-089b-46de-a5e6-9f05b14db182.png)
 |
@@ -2346,28 +2674,28 @@ object Glossary extends MdcLoggable  {
  |### An ID token's payload
 |
  |
-|       {
-|       "iss": "https://accounts.google.com",
-|       "azp": "407408718192.apps.googleusercontent.com",
-|       "aud": "407408718192.apps.googleusercontent.com",
-|       "sub": "113966854245780892959",
-|       "email": "marko.milic.srbija@gmail.com",
-|       "email_verified": true,
-|       "at_hash": "nGKRToKNnVA28H6MhwXBxw",
-|       "name": "Marko Milić",
-|       "picture": "https://lh5.googleusercontent.com/-Xd44hnJ6TDo/AAAAAAAAAAI/AAAAAAAAAAA/AKxrwcadwzhm4N4tWk5E8Avxi-ZK6ks4qg/s96-c/photo.jpg",
-|       "given_name": "Marko",
-|       "family_name": "Milić",
-|       $PARAM_LOCALE: "en",
-|       "iat": 1547705691,
-|       "exp": 1547709291
-|       }
+|		{
+|		"iss": "https://accounts.google.com",
+|		"azp": "407408718192.apps.googleusercontent.com",
+|		"aud": "407408718192.apps.googleusercontent.com",
+|		"sub": "113966854245780892959",
+|		"email": "marko.milic.srbija@gmail.com",
+|		"email_verified": true,
+|		"at_hash": "nGKRToKNnVA28H6MhwXBxw",
+|		"name": "Marko Milić",
+|		"picture": "https://lh5.googleusercontent.com/-Xd44hnJ6TDo/AAAAAAAAAAI/AAAAAAAAAAA/AKxrwcadwzhm4N4tWk5E8Avxi-ZK6ks4qg/s96-c/photo.jpg",
+|		"given_name": "Marko",
+|		"family_name": "Milić",
+|		$PARAM_LOCALE: "en",
+|		"iat": 1547705691,
+|		"exp": 1547709291
+|		}
 |
 |
  |### Try a REST call using the authorization's header
-|       Using your favorite http client:
+|		Using your favorite http client:
 |
- |      GET /obp/v3.0.0/users/current
+ |		GET /obp/v3.0.0/users/current
 |
  |Body
 |
@@ -2376,44 +2704,44 @@ object Glossary extends MdcLoggable  {
  |Headers:
 |
  |
-|       Authorization: Bearer ID_TOKEN
+|		Authorization: Bearer ID_TOKEN
 |
 |
  |Here is it all together:
 |
  |
 |
- |  GET /obp/v3.0.0/users/current HTTP/1.1
-|       Host: $getServerUrl
-|       Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA
-|       Cache-Control: no-cache
+ |	GET /obp/v3.0.0/users/current HTTP/1.1
+|		Host: $getServerUrl
+|		Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA
+|		Cache-Control: no-cache
 |
  |
 |
  |CURL example:
 |
  |
-|       curl -X GET
-|       $getServerUrl/obp/v3.0.0/users/current
-|       -H 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA'
-|       -H 'Cache-Control: no-cache'
-|       -H 'Postman-Token: aa812d04-eddd-4752-adb7-4d56b3a98f36'
+|		curl -X GET
+|		$getServerUrl/obp/v3.0.0/users/current
+|		-H 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA'
+|		-H 'Cache-Control: no-cache'
+|		-H 'Postman-Token: aa812d04-eddd-4752-adb7-4d56b3a98f36'
 |
  |
 |
  |And we get the response:
 |
  |
-|       {
-|           "user_id": "6d411bce-50c1-4eb8-b8b0-3953e4211773",
-|           "email": "marko.milic.srbija@gmail.com",
-|           "provider_id": "113966854245780892959",
-|           "provider": "https://accounts.google.com",
-|           "username": "Marko Milić",
-|           "entitlements": {
-|           "list": []
-|       }
-|       }
+|		{
+|			"user_id": "6d411bce-50c1-4eb8-b8b0-3953e4211773",
+|			"email": "marko.milic.srbija@gmail.com",
+|			"provider_id": "113966854245780892959",
+|			"provider": "https://accounts.google.com",
+|			"username": "Marko Milić",
+|			"entitlements": {
+|			"list": []
+|		}
+|		}
 |
 |
 |""")
@@ -2589,7 +2917,7 @@ object Glossary extends MdcLoggable  {
 |### 2) Create / have access to a JWT
 |
 |The following videos are available:
-|   * [DAuth in local environment](https://vimeo.com/644315074)
+|	* [DAuth in local environment](https://vimeo.com/644315074)
 |
 |HEADER:ALGORITHM & TOKEN TYPE
 |
@@ -3089,6 +3417,26 @@ object Glossary extends MdcLoggable  {
  """)
 
     glossaryItems += GlossaryItem(
+        title = "API Product Subscription",
+        description = s"""An API Product Subscription records that one Consumer (the subscriber) holds one API Product for a period, with a status.
+|
+|The API Product describes the plan: which endpoints (its API Collection), how many calls (six rate limits), the monthly price, and any attributes. The Subscription is the record of who holds it. Its status is what makes the product enforceable:
+|
+|- `requested`: created, nothing granted yet.
+|- `active`: OBP-API has given the Consumer a rate limit record with the product's six limits, and a Scope for each Role required by the endpoints in the product's Collection.
+|- `past_due`: payment is overdue. A grace period; nothing changes for the Consumer.
+|- `suspended`: the subscription's rate limit record is set to `0` in every period, which blocks the Consumer's calls. Scopes are kept so reinstatement is cheap.
+|- `cancelled`: the rate limit record and the derived Scopes are removed. Terminal; a new subscription is a new record.
+|
+|Only the rate limit record and the Scopes created by the subscription are touched. Limits and Scopes granted by hand are never removed. Overlapping rate limit records are summed, so a Consumer holding two products gets both allowances.
+|
+|A developer never needs a Role to subscribe their own Consumer, read their own subscriptions or cancel them. Roles exist for bank staff (enrol a partner's Consumer, approve, suspend, reinstate) and for billing systems (move the status on payment events). Two attributes on the API Product decide the flow: `SELF_SUBSCRIBE` (may developers subscribe their own Consumers; default `true`) and `BILLING_SYSTEM` (`none` activates at once; `manual` waits for a bank admin; `stripe` or `invoice_ninja` waits for that billing system).
+|
+|OBP-API core carries no billing vocabulary: payments, invoices and refunds live in the billing system, which only ever changes the subscription status.
+|
+ """)
+
+    glossaryItems += GlossaryItem(
         title = "Space",
         description =
             s"""In OBP, if you have access to a "Space", you have access to a set of Dynamic Endpoints and Dynamic Entities that belong to that Space.
@@ -3149,8 +3497,8 @@ object Glossary extends MdcLoggable  {
 |
 |The following videos are available:
 |
-|   * [Introduction to Dynamic Entities](https://vimeo.com/426524451)
-|   * [Features of Dynamic Entities](https://vimeo.com/446465797)
+|	* [Introduction to Dynamic Entities](https://vimeo.com/426524451)
+|	* [Features of Dynamic Entities](https://vimeo.com/446465797)
 |
 """.stripMargin)
 
@@ -3199,7 +3547,7 @@ object Glossary extends MdcLoggable  {
 |
 |**IMPORTANT - JSON Structure:**
 |
-|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. The root object can contain at most TWO fields: your entity name and optionally "hasPersonalEntity".
+|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. Besides the entity name, the root object may only contain the access flags: "hasPersonalEntity", "personalRequiresRole", "hasPublicAccess", "hasCommunityAccess", "useRowLevelAccess" and "authMode" (see ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}).
 |
 |**Common mistake - DO NOT do this:**
 |```json
@@ -3405,6 +3753,58 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
     glossaryItems += GlossaryItem(
+        title = "Dynamic-Entity-Access-Model",
+        description =
+            s"""
+|A Dynamic Entity definition carries six access flags. Together they decide who may create, read, edit and delete rows, and through which route. This page is the reference; the flags are set in the definition JSON next to the entity name (see ${getGlossaryItemLink("Dynamic-Entities")}).
+|
+|**The five routes on one entity**
+|
+|| Route | Exists when | Who may read | Who may write | Which rows |
+||---|---|---|---|---|
+|| System: `/obp/dynamic-entity/ENTITY` or `/obp/dynamic-entity/banks/BANK_ID/ENTITY` | always | holders of the entity Get role | holders of the Create, Update and Delete roles | the shared pool: rows created here; never personal rows |
+|| Personal: `/obp/dynamic-entity/my/ENTITY` | `hasPersonalEntity` | any authenticated User; a role only if `personalRequiresRole`; a consent user in addition only if its Consent lists the entity in `my_resources` | same rule | the caller's own rows only, keyed by the on-behalf-of user |
+|| Community: `/obp/dynamic-entity/community/ENTITY` | `hasCommunityAccess` | authenticated holders of the Get role | nobody (read only) | every row, personal rows included |
+|| Public: `/obp/dynamic-entity/public/ENTITY` | `hasPublicAccess` | anyone, no login | nobody (read only) | the shared pool only |
+|| Row level: the System routes with `useRowLevelAccess` | `useRowLevelAccess` | per row, whoever the access list marks readable; lists are filtered | per row, access list Update and Delete; the creator is granted read, update, delete and grant on their own row | whatever the access list says |
+|
+|The entity roles are named after the entity: `CanCreateDynamicEntity_SystemENTITY`, `CanGetDynamicEntity_SystemENTITY`, `CanUpdateDynamicEntity_SystemENTITY`, `CanDeleteDynamicEntity_SystemENTITY` (without `System` for bank level entities, held at the bank).
+|
+|Two settings apply on top of the routes:
+|
+|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserOrApplication`, `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
+|* Field roles: a field with a `read_role` is omitted from every response unless the caller holds that role; a field with a `write_role` is only changed by PATCH from a holder (POST ignores it, PUT preserves its value).
+|
+|**Authorship and editing by actor**
+|
+|| Actor | Shared pool | Own rows via `my` | Other Users' personal rows |
+||---|---|---|---|
+|| Anonymous | read, if `hasPublicAccess` | none | none |
+|| Authenticated User, no role | none | create, edit, delete (unless `personalRequiresRole`) | none |
+|| Get role holder | read | as above | read them all via `community`, if `hasCommunityAccess` |
+|| Create, Update, Delete role holders | write | as above | none: personal rows are invisible to the System route |
+|| Row access list grantee | per row | as above | per row, if granted |
+|| Consent user (a User minted by a Consent) | as the roles its Consent carries | only if the Consent lists the entity in `my_resources.personal_dynamic_entities` with the needed action (plus the role when `personalRequiresRole`); rows it writes belong to the User who granted the Consent | none |
+|
+|**Patterns**
+|
+|| Pattern | Flags | Behaviour |
+||---|---|---|
+|| Curated reference data | personal off, public on | role holders maintain it, everyone reads it |
+|| Restricted registry | personal off, public off, community off | role holders only |
+|| Team space | personal on, `personalRequiresRole` on, community on | members write their own rows, the whole team reads everything; the entity roles define the team |
+|| User owned records | personal on, `personalRequiresRole` off, community off, public off | each User has their own rows; an agent reaches them only through a Consent whose `my_resources` lists the entity |
+|| Shared records with per row sharing | `useRowLevelAccess` on | the creator owns the row and grants others read, update, delete or grant |
+|
+|One combination deserves care: personal on, `personalRequiresRole` off, community on. It shows every User's personal rows to any holder of the Get role, which is rarely intended.
+|
+|`personalRequiresRole` gates the `my` route with the entity's own roles, the same roles that open the shared pool. It therefore suits the team space pattern, where the users of `my` are the role holders anyway. It is not a way to restrict ordinary Users' personal use: giving a User the Get role so they may use `my` also lets them read the shared pool.
+|
+|See also ${getGlossaryItemLink("My-Dynamic-Entities")}, ${getGlossaryItemLink("Consent")} and ${getGlossaryItemLink("Virtual Entitlements")}.
+|"""
+    )
+
+    glossaryItems += GlossaryItem(
         title = "My-Dynamic-Entities",
         description =
             s"""
@@ -3586,15 +3986,15 @@ object Glossary extends MdcLoggable  {
 |
 |The following videos are available:
 |
-|   * [Introduction to Dynamic Endpoints](https://vimeo.com/426235612)
-|   * [Features of Dynamic Endpoints](https://vimeo.com/444133309)
+|	* [Introduction to Dynamic Endpoints](https://vimeo.com/426235612)
+|	* [Features of Dynamic Endpoints](https://vimeo.com/444133309)
 |
 """.stripMargin)
 
-  glossaryItems += GlossaryItem(
-    title = "Dynamic Resource Doc",
-    description =
-      s"""
+    glossaryItems += GlossaryItem(
+        title = "Dynamic Resource Doc",
+        description =
+            s"""
 |A Dynamic Resource Doc defines a *single* Endpoint at runtime: its verb, URL path, summary, description, example request and response bodies, error list, tags and Roles - plus a *method body* written in Scala which is compiled at runtime and becomes the handler of the Endpoint.
 |
 |Whereas a Dynamic Endpoint (see ${getGlossaryItemLink("Dynamic Endpoint Manage")}) is created from a Swagger / OpenAPI file and contains *no code* (its behaviour is selected by the swagger `host` field), a Dynamic Resource Doc *is* code: the method body has access to the full CallContext and can transform payloads, call Connector methods and NewStyle functions, or invoke Dynamic Message Docs.
@@ -3611,14 +4011,33 @@ object Glossary extends MdcLoggable  {
 |
 |A helper endpoint (`POST /management/dynamic-resource-docs/endpoint-code`) can generate a method-body template from example request / response bodies.
 |
-|See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks.
+|**The method body**
+|
+|The body is inlined, unchanged, into a native http4s handler. Do not wrap it in a method or class. In scope:
+|
+|* `callContext: CallContext` - the authenticated User, Consumer, `resourceDocument`, `httpBody` (the raw request body as a String) and `callContext.callContext` (the same as an `Option`).
+|* `request: org.http4s.Request[IO]` - the raw request, for headers or the URI.
+|* `pathParams: Map[String, String]` - one entry per UPPER_CASE segment of the request URL, for example `pathParams("BANK_ID")`.
+|* `RequestRootJsonClass` / `ResponseRootJsonClass` - case classes generated from the example request body and success response body. Parse the request with `JsonAliases.parse(rawBody).extract[RequestRootJsonClass]`.
+|* `errorResponse(message, code = 400)` - returns the standard OBP error JSON with that status.
+|* Imports: `Future` and the OBP execution context, `HttpCode`, `OBPReturnType`, `ErrorMessages.{InvalidJsonFormat, InvalidRequestPayload}`, `MappingException`, `cats.effect.IO`, `net.liftweb.common.{Box, Empty, Failure, Full}` (for matching on Connector results), and an implicit `formats`.
+|
+|The last expression is the response. Return `Future.successful((value, HttpCode.`200`(callContext)))` - any case class, Map or List that serialises to JSON, paired with the call context whose status was set by `HttpCode` - or `errorResponse(...)`. An implicit converts that `Future[(T, Option[CallContext])]` into the http4s response. The Lift-era shapes `Full(successJsonResponse(...))` and `Box[JsonResponse]` are not accepted; a body that returns them fails to compile (`OBP-40045`).
+|
+|The smallest valid body:
+|
+|    Future.successful((Map("hello" -> "world"), HttpCode.`200`(callContext)))
+|
+|To check a body before creating anything, `POST /obp/v7.0.0/management/dynamic-resource-docs/compile` compiles it the same way and returns the compiler's errors with line numbers relative to the body. The API Manager's Create page uses it for its Compile button and for the loop in which Opey rewrites the body until it compiles.
+|
+|See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks, and ${getGlossaryItemLink("Dynamic Change Request")} for how an operator can require a second person to approve each definition before it is compiled and served.
 |
 """.stripMargin)
 
-  glossaryItems += GlossaryItem(
-    title = "Dynamic Code Paths",
-    description =
-      s"""
+    glossaryItems += GlossaryItem(
+        title = "Dynamic Code Paths",
+        description =
+            s"""
 |OBP offers several building blocks for defining API behaviour at *runtime* - stored in the OBP database as instance configuration rather than compiled into the source code. This item explains how they fit together.
 |
 |**The building blocks**
@@ -3674,10 +4093,64 @@ object Glossary extends MdcLoggable  {
 |
 """.stripMargin)
 
-  glossaryItems += GlossaryItem(
-    title = "Endpoint Mapping",
-    description =
-      s"""
+    glossaryItems += GlossaryItem(
+        title = "Dynamic Change Request",
+        description =
+            s"""
+|A Dynamic Change Request is a proposed create, update or delete of a runtime-defined artefact that carries code or configuration - a ${getGlossaryItemLink("Dynamic Resource Doc")}, a ${getGlossaryItemLink("Dynamic Message Doc")}, a ${getGlossaryItemLink("Connector Method")} or an ABAC Rule - held for approval by a second person. It is how OBP implements *maker/checker* for dynamic code.
+|
+|**Why**
+|
+|A Dynamic Resource Doc method body, a Connector Method or a Dynamic Message Doc is user-supplied code compiled and run inside the OBP-API JVM, with the connector credentials and reach of the whole instance. The sandbox is not a meaningful second line of defence, so the primary control is that the person who writes the code (the *maker*) can never make it live alone: a different User holding the Role `CanApproveDynamicChangeRequest` (the *checker*) reviews the exact definition and approves it.
+|
+|**How it works when approval is on**
+|
+|1) The maker calls the usual v4.0.0 / v6.0.0 create, update or delete endpoint. OBP checks the maker's Role, validates the JSON and compiles the code exactly as before, but instead of applying the change it stores a Dynamic Change Request and answers `202 Accepted` with the request instead of the artefact. Nothing is served yet.
+|
+|2) The checker reads the request (`GET /obp/v7.0.0/management/dynamic-change-requests/CHANGE_REQUEST_ID`, which returns the proposed and the current payload side by side) and approves it by quoting its `payload_hash`, the SHA-256 of the exact body, on `POST .../approval`. Only then is the change applied. OBP refuses an approval from the User who made the request (`OBP-30279`).
+|
+|3) Content is approved, not records. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose body hash equals the hash a checker approved, so a row edited directly in the database does not run.
+|
+|4) Deactivating an artefact is a direct action by a single checker (`POST .../deactivation`), with no request: four eyes to enable, one pair to disable. Enabling it again goes through a request.
+|
+|Approval is system level. Dynamic code runs in the shared JVM, so a bank-level artefact is approved by the same system-level checker; there are no bank-level change request endpoints.
+|
+|**Statuses**
+|
+|* `INITIATED` - waiting for a checker. Approve, reject and withdraw apply only in this status.
+|* `APPROVED` - applied; the artefact is compiled and served.
+|* `REJECTED` - declined by a checker with a comment. Nothing was applied.
+|* `WITHDRAWN` - taken back by the maker.
+|* `EXPIRED` - no checker acted within the request time-to-live.
+|* `FAILED` - approved, but applying the change threw. The error is recorded on the request and nothing half-applied is served.
+|
+|**Endpoints (v7.0.0, tag Dynamic-Change-Request)**
+|
+|* `GET /management/dynamic-code-approval-config` - whether approval is on, for which target types, and the request time-to-live. Any authenticated User; what a client reads to warn a maker before they submit.
+|* `GET /my/dynamic-change-requests` - the caller's own requests. No Role.
+|* `GET /management/dynamic-change-requests` and `GET .../CHANGE_REQUEST_ID` - all requests, filterable by `status`, `target_type`, `target_id` and `requestor_user_id`. Role `CanGetDynamicChangeRequests`.
+|* `POST /management/dynamic-change-requests` - submit a request explicitly with a `business_justification`, for tooling; the maker's usual create call does this implicitly.
+|* `POST .../CHANGE_REQUEST_ID/approval`, `.../rejection` (comment required), `.../withdrawal` (maker only).
+|* `POST /management/dynamic-resource-docs/ID/deactivation` and the equivalents for dynamic message docs, connector methods and ABAC rules.
+|
+|**Operator settings (props)**
+|
+|* `allow_user_generated_scala_code` - the kill switch for all runtime-compiled code. Default false: every create or update of dynamic code fails with `OBP-50020` and nothing dynamic runs, whatever the settings below say. Read once at startup, so changing it needs a restart.
+|* `dynamic_code_requires_approval` - the approval switch. Default false: writes go live immediately, today's behaviour.
+|* `dynamic_code_approval_target_types` - which target types are gated. Default `DYNAMIC_RESOURCE_DOC,DYNAMIC_MESSAGE_DOC,CONNECTOR_METHOD,ABAC_RULE`.
+|* `dynamic_code_delete_requires_approval` - whether deletes are queued too. Default true; deleting does not expand capability but does break consumers.
+|* `dynamic_code_approval_request_ttl_hours` - `INITIATED` requests older than this become `EXPIRED` when next read. 0 disables expiry. Default 168.
+|
+|The first start with `dynamic_code_requires_approval=true` seeds the approved hash of every pre-existing row from its current body, once per database, so nothing that is live today stops working. After that the only way a row becomes executable is a checker's approval.
+|
+|See ${getGlossaryItemLink("Dynamic Code Paths")} for how the gated artefacts relate to each other.
+|
+""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Endpoint Mapping",
+        description =
+            s"""
    |Endpoint Mapping can be used to map each JSON field in a Dynamic Endpoint to different Dynamic Entity fields.
    |
    |This document assumes you already have some knowledge of OBP Dynamic Endpoints and Dynamic Entities.
@@ -3734,7 +4207,7 @@ object Glossary extends MdcLoggable  {
    |
      |For more details and a walk through, please see the following video:
      |
-     |  * [Endpoint Mapping](https://vimeo.com/553369108)
+     |	* [Endpoint Mapping](https://vimeo.com/553369108)
    |""".stripMargin)
 
     glossaryItems += GlossaryItem(
@@ -3804,9 +4277,9 @@ object Glossary extends MdcLoggable  {
    |A User must have at least one Account Access record record in order to interact with a Bank Account over the OBP API.
    |""".stripMargin)
 
-//  val allTagNames: Set[String] = ApiTag.allDisplayTagNames
-//  val existingItems: Set[String] = glossaryItems.map(_.title).toSet
-//  allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
+//	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
+//	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
+//	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
 
     glossaryItems += GlossaryItem(
         title = "Static Endpoint",
@@ -3820,10 +4293,10 @@ object Glossary extends MdcLoggable  {
 |Modifications to Static endpoint core properties such as URLs and response bodies require source code changes and an instance restart. However, JSON Schema Validation and Dynamic Connector changes can be applied in real-time.
 """.stripMargin)
 
-  glossaryItems += GlossaryItem(
-    title = "Resource Doc",
-    description =
-      s"""
+    glossaryItems += GlossaryItem(
+        title = "Resource Doc",
+        description =
+            s"""
 |A Resource Doc is the machine readable definition / description of an OBP Endpoint.
 |
 |The aim is that as much endpoint definition as possible is *defined first* within the Resource Doc making the Resource Doc the canonical source of truth about the endpoints structure and behaviour.
@@ -3861,10 +4334,10 @@ object Glossary extends MdcLoggable  {
 |
 """.stripMargin)
 
-  glossaryItems += GlossaryItem(
-    title = "Message Doc",
-    description =
-      s"""
+    glossaryItems += GlossaryItem(
+        title = "Message Doc",
+        description =
+            s"""
 |OBP can communicate with core banking systems (CBS) and other back end services using a "Connector -> Adapter" approach.
 |
 |The OBP Connector is a core part of the OBP-API and is written in Scala / Java and potentially other JVM languages.
@@ -4011,101 +4484,101 @@ object Glossary extends MdcLoggable  {
             |don't yet exist in the OBP code. In this case you can use these endpoints to create your own internal Scala methods.
       |
       |You can also use these endpoints to create your own helper methods in OBP code.
-      |
-      |The following videos are available:
-      |* [Introduction to Dynamic Message Doc] (https://vimeo.com/623317747)
-      |
-      |""".stripMargin)
+            |
+          |The following videos are available:
+            |* [Introduction to Dynamic Message Doc] (https://vimeo.com/623317747)
+          |
+          |""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "QWAC",
-      description =
-        s"""A Qualified Website Authentication Certificate is a qualified digital certificate under the trust services defined in the European Union eIDAS Regulation.
-           |A website authentication certificate makes it possible to establish a Transport Layer Security channel with the subject of the certificate, which secures data transferred through the channel.""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "QWAC",
+            description =
+                s"""A Qualified Website Authentication Certificate is a qualified digital certificate under the trust services defined in the European Union eIDAS Regulation.
+                     |A website authentication certificate makes it possible to establish a Transport Layer Security channel with the subject of the certificate, which secures data transferred through the channel.""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "Dynamic linking (PSD2 context)",
-      description =
-        s"""Dynamic linking is a security requirement under PSD2's Strong Customer Authentication (SCA) rules.
-           |
-           |When a payer initiates an electronic payment transaction, the authentication code must be dynamically linked to:
-           |
-           |1. **The amount** of the transaction
-           |2. **The payee** (recipient) of the transaction
-           |
-           |This means if either the amount or payee is modified after authentication, the authentication code becomes invalid. This protects against man-in-the-middle attacks where an attacker might try to redirect funds or change the payment amount after the user has authenticated.
-           |
-           |The requirement is specified in Article 97(2) of PSD2 and further detailed in the Regulatory Technical Standards (RTS) on SCA (Articles 5 and 6).
-           |""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "Dynamic linking (PSD2 context)",
+            description =
+                s"""Dynamic linking is a security requirement under PSD2's Strong Customer Authentication (SCA) rules.
+                     |
+                     |When a payer initiates an electronic payment transaction, the authentication code must be dynamically linked to:
+                     |
+                     |1. **The amount** of the transaction
+                     |2. **The payee** (recipient) of the transaction
+                     |
+                     |This means if either the amount or payee is modified after authentication, the authentication code becomes invalid. This protects against man-in-the-middle attacks where an attacker might try to redirect funds or change the payment amount after the user has authenticated.
+                     |
+                     |The requirement is specified in Article 97(2) of PSD2 and further detailed in the Regulatory Technical Standards (RTS) on SCA (Articles 5 and 6).
+                     |""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "TPP",
-      description =
-        s"""(TPP) Third Party Providers are authorised/registered organisations or natural persons that use APIs developed to Standards to access customer’s accounts, in order to provide account information services and/or to initiate payments.
-           |Third Party Providers are either/both Payment Initiation Service Providers (PISPs) and/or Account Information Service Providers (AISPs).""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "TPP",
+            description =
+                s"""(TPP) Third Party Providers are authorised/registered organisations or natural persons that use APIs developed to Standards to access customer’s accounts, in order to provide account information services and/or to initiate payments.
+                     |Third Party Providers are either/both Payment Initiation Service Providers (PISPs) and/or Account Information Service Providers (AISPs).""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "QSealC",
-      description =
-        s"""Qualified electronic Seal Certificate.
-           |A certificate for electronic seals allows the relying party to validate the identity of the subject of the certificate,
-           |as well as the authenticity and integrity of the sealed data, and also prove it to third parties.
-           |The electronic seal provides strong evidence, capable of having legal effect, that given data is originated by the legal entity identified in the certificate.""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "QSealC",
+            description =
+                s"""Qualified electronic Seal Certificate.
+                     |A certificate for electronic seals allows the relying party to validate the identity of the subject of the certificate,
+                     |as well as the authenticity and integrity of the sealed data, and also prove it to third parties.
+                     |The electronic seal provides strong evidence, capable of having legal effect, that given data is originated by the legal entity identified in the certificate.""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "CRL",
-      description =
-        s"""Certificate Revocation List.
-           |CRL issuers issue CRLs. The CRL issuer is either the CA (certification authority) or an entity that has been authorized by the CA to issue CRLs.
-           |CAs publish CRLs to provide status information about the certificates they issued.
-           |However, a CA may delegate this responsibility to another trusted authority.
-           |It is described in RFC 5280.""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "CRL",
+            description =
+                s"""Certificate Revocation List.
+                     |CRL issuers issue CRLs. The CRL issuer is either the CA (certification authority) or an entity that has been authorized by the CA to issue CRLs.
+                     |CAs publish CRLs to provide status information about the certificates they issued.
+                     |However, a CA may delegate this responsibility to another trusted authority.
+                     |It is described in RFC 5280.""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "OCSP",
-      description =
-        s"""The Online Certificate Status Protocol (OCSP) is an Internet protocol used for obtaining the revocation status of an X.509 digital certificate.
-           |It is described in RFC 6960 and is on the Internet standards track. It was created as an alternative to certificate revocation lists (CRL),""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "OCSP",
+            description =
+                s"""The Online Certificate Status Protocol (OCSP) is an Internet protocol used for obtaining the revocation status of an X.509 digital certificate.
+                     |It is described in RFC 6960 and is on the Internet standards track. It was created as an alternative to certificate revocation lists (CRL),""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "Cross-Device Authorization",
-      description =
-        s"""
-           |Cross-device authorization flows enable a user to initiate an authorization flow on one device
-           |(the Consumption Device) and then use a second, personally trusted, device (Authorization Device) to
-           |authorize the Consumption Device to access a resource (e.g., access to a service).
-           |Two examples of popular cross-device authorization flows are:
-           | - The Device Authorization Grant [RFC8628](https://datatracker.ietf.org/doc/html/rfc8628)
-           | - Client-Initiated Backchannel Authentication [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html))
-           |""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "Cross-Device Authorization",
+            description =
+                s"""
+                     |Cross-device authorization flows enable a user to initiate an authorization flow on one device
+                     |(the Consumption Device) and then use a second, personally trusted, device (Authorization Device) to
+                     |authorize the Consumption Device to access a resource (e.g., access to a service).
+                     |Two examples of popular cross-device authorization flows are:
+                     | - The Device Authorization Grant [RFC8628](https://datatracker.ietf.org/doc/html/rfc8628)
+                     | - Client-Initiated Backchannel Authentication [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html))
+                     |""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "Consumption Device (CD)",
-      description =
-        s"""The Consumption Device is the device that helps the user consume the service. In the [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)) use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "Consumption Device (CD)",
+            description =
+                s"""The Consumption Device is the device that helps the user consume the service. In the [CIBA]((https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)) use case, the user is not necessarily in control of the CD. For example, the CD may be in the control of an RP agent (e.g. at a bank teller) or might be a device controlled by the RP (e.g. a petrol pump)|""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "Authentication Device (AD)",
-      description =
-        s"""The device on which the user will authenticate and authorize the request, often a smartphone.""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "Authentication Device (AD)",
+            description =
+                s"""The device on which the user will authenticate and authorize the request, often a smartphone.""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "Risk-based authentication",
-      description =
-        s"""Please take a look at "Adaptive authentication" glossary item.""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "Risk-based authentication",
+            description =
+                s"""Please take a look at "Adaptive authentication" glossary item.""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "Adaptive authentication",
-      description =
-        s"""Adaptive authentication, also known as risk-based authentication, is dynamic in a way it automatically triggers additional authentication factors, usually via MFA factors, depending on a user's risk profile.
-           |An example of this authentication at OBP-API side is the feature "Transaction request challenge threshold".
-           | -
-           |""".stripMargin)
+        glossaryItems += GlossaryItem(
+            title = "Adaptive authentication",
+            description =
+                s"""Adaptive authentication, also known as risk-based authentication, is dynamic in a way it automatically triggers additional authentication factors, usually via MFA factors, depending on a user's risk profile.
+                     |An example of this authentication at OBP-API side is the feature "Transaction request challenge threshold".
+                     | -
+                     |""".stripMargin)
 
-    glossaryItems += GlossaryItem(
-      title = "Transaction request challenge threshold",
-      description =
-        s"""Is an example of "Adaptive authentication" where, in a dynamic way, we get challenge threshold via CBS depending on a user's risk profile.
+        glossaryItems += GlossaryItem(
+            title = "Transaction request challenge threshold",
+            description =
+                s"""Is an example of "Adaptive authentication" where, in a dynamic way, we get challenge threshold via CBS depending on a user's risk profile.
    |It implies that in a case of risky transaction request, over a certain amount, a user is prompted to answer the challenge.""".stripMargin)
 
         glossaryItems += GlossaryItem(
@@ -4242,9 +4715,9 @@ object Glossary extends MdcLoggable  {
    |
      |""".stripMargin)
 
-//  val exchangeRates =
-//      APIUtil.getPropsValue("webui_api_explorer_url", "") +
-//          "/more?version=OBPv4.0.0&list-all-banks=false&core=&psd2=&obwg=#OBPv2_2_0-getCurrentFxRate"
+//	val exchangeRates =
+//		APIUtil.getPropsValue("webui_api_explorer_url", "") +
+//			"/more?version=OBPv4.0.0&list-all-banks=false&core=&psd2=&obwg=#OBPv2_2_0-getCurrentFxRate"
 
     glossaryItems += GlossaryItem(
         title = "FX-Rates",
@@ -5680,7 +6153,7 @@ object Glossary extends MdcLoggable  {
                  |- `Connector.scala` — `checkExternalUserCredentials()` abstract method
                  |- `AkkaConnector_vDec2018.scala` — Akka connector implementation
                  |- `StoredProcedureConnector_vDec2019.scala` — Stored procedure connector implementation
-                 |- `APIMethods600.scala` — `verifyUserCredentials` endpoint definition
+                 |- `Http4s600.scala` — `verifyUserCredentials` endpoint definition
                  |
 """)
 
@@ -5913,187 +6386,251 @@ object Glossary extends MdcLoggable  {
                  |
 """)
 
-  glossaryItems += GlossaryItem(
-    title = "Signal Channels",
-    description =
-      s"""
-         |# Signal Channels
-         |
-         |**Signal Channels** are short-lived, Redis-backed message channels for lightweight coordination between AI agents and other OBP consumers — service discovery, task hand-off, presence announcements. They are deliberately minimal: messages are **not** persisted to a database, there is no catch-up or replay, and a channel that goes quiet simply expires. Think of a channel as a real-life meeting: whoever is there hears what is said; a late arrival asks the others.
-         |
-         |Not to be confused with [Chat](/glossary#Chat), which is the persistent, human-facing messaging surface (rooms, threads, reactions, read markers).
-         |
-         |## Lifecycle
-         |- Channels are auto-created on first publish; no registration step.
-         |- On this instance a channel expires ${code.api.cache.RedisMessaging.channelTtlSeconds} seconds after its last publish, and holds at most ${code.api.cache.RedisMessaging.channelMaxMessages} messages (oldest are trimmed).
-         |- Channel names are 1 to 128 characters from letters, digits, dot, underscore and hyphen.
-         |
-         |## Constraints on published messages
-         |All publishing requires authentication. Beyond that, three server-side checks protect the platform — the envelope, not the meaning, of what agents say:
-         |
-         |1. **Size cap** — the whole publish request body may be up to ${code.signal.SignalContentPolicy.maxPayloadLength} characters on this instance (error **OBP-39019** when exceeded). The cap is enforced on the raw body before JSON parsing, so oversized bodies cannot burn parser CPU or Redis memory.
-         |2. **Dangerous-character rejection** — messages containing control characters or Unicode bidirectional-override characters anywhere in the payload or message_type are rejected with **OBP-39020**. See "Why bidirectional-override characters are rejected" below.
-         |3. **Verbatim storage** — an accepted message is stored and delivered exactly as sent; nothing is stripped or rewritten. Agents may therefore hash, sign, or byte-compare payloads. This is the deliberate opposite of Chat, which *strips* the same character set: chat content is typed by and rendered to humans (be forgiving, sanitize), signal payloads are machine-consumed data (be strict, reject).
-         |
-         |## Privacy and roles
-         |- A message with **to_user_id** set is visible only to its sender and that recipient; without it, the message is a broadcast visible to all channel readers.
-         |- **CanGetSignalStats** — read message counts and TTLs across all channels.
-         |- **CanDeleteSignalChannel** — delete a channel and all its messages immediately. Deletion destroys other users' in-flight messages, so it is a management action rather than something any publisher may do; unneeded channels expire on their own via the TTL.
-         |
-         |## Why bidirectional-override characters are rejected
-         |Unicode includes invisible formatting characters that reverse or reorder how text is *displayed* without changing the bytes a parser sees — the override family U+202A to U+202E, the isolate family U+2066 to U+2069, and the marks U+200E, U+200F and U+061C. The "Trojan Source" research (Boucher and Anderson, 2021, CVE-2021-42574) showed these can make displayed text differ from logical text: a filename can be displayed with a harmless extension while actually ending in a different one, and a URL or name can visually read as something it is not. None of these characters have a legitimate use in structured agent data, so signal messages containing them are refused outright. (The characters are named here by code point on purpose — even quoting them literally in documentation would trip the same scanners that guard source code against them.)
-         |
-         |The check runs on the **parsed** JSON, not the raw request body: JSON's backslash-u escape syntax means a body that is pure ASCII on the wire can still parse to a string containing a bidi override, so a wire-level check would miss it.
-         |
-         |## Payloads are data, not instructions
-         |Signal channels are readable and writable by any authenticated consumer on the instance. If your agent feeds received payloads to an LLM, treat them as **untrusted data, never as instructions** — the character checks above stop display-layer trickery, but no server-side check can stop a payload from *saying* something misleading. Prompt-injection defence belongs in the consuming agent.
-         |
-         |## Endpoints
-         |See the API Explorer tags **Signal** / **AI-Agent**: list channels, channel info, channel stats, publish message, get messages (offset/limit polling), delete channel — under `/obp/v6.0.0/signal/channels/...`. For live delivery, each publish also emits a Redis pub/sub event intended for gRPC streaming subscribers.
-         |
+    glossaryItems += GlossaryItem(
+        title = "Signal Channels",
+        description =
+            s"""
+                 |# Signal Channels
+                 |
+                 |**Signal Channels** are short-lived, Redis-backed message channels for lightweight coordination between AI agents and other OBP consumers — service discovery, task hand-off, presence announcements. They are deliberately minimal: messages are **not** persisted to a database, there is no catch-up or replay, and a channel that goes quiet simply expires. Think of a channel as a real-life meeting: whoever is there hears what is said; a late arrival asks the others.
+                 |
+                 |Not to be confused with [Chat](/glossary#Chat), which is the persistent, human-facing messaging surface (rooms, threads, reactions, read markers).
+                 |
+                 |## Lifecycle
+                 |- Channels are auto-created on first publish; no registration step. Creating channels is rate limited per caller (scope `signal_channel_create`, see [Rate Limiting](/glossary#Rate-Limiting)); publishing to an existing channel is not.
+                 |- On this instance a channel expires ${code.api.cache.RedisMessaging.channelTtlSeconds} seconds after its last publish, and holds at most ${code.api.cache.RedisMessaging.channelMaxMessages} messages (oldest are trimmed).
+                 |- Channel names are 1 to 128 characters from letters, digits, dot, underscore and hyphen.
+                 |- Every message carries a per-channel monotonic **sequence** (Redis server time in microseconds, forced strictly increasing) stamped atomically when it is stored. Poll with `after_sequence=<last seen>` and continue from the response's `next_after_sequence`. Do not poll by offset: trimming moves list positions, so an offset-tracking poller silently skips messages once the channel is full. Sequences are time-based rather than a counter so a cursor stays valid across a channel expiring and being recreated.
+                 |
+                 |## Constraints on published messages
+                 |All publishing requires authentication. Beyond that, three server-side checks protect the platform — the envelope, not the meaning, of what agents say:
+                 |
+                 |1. **Size cap** — the whole publish request body may be up to ${code.signal.SignalContentPolicy.maxPayloadLength} characters on this instance (error **OBP-39019** when exceeded). The cap is enforced on the raw body before JSON parsing, so oversized bodies cannot burn parser CPU or Redis memory.
+                 |2. **Dangerous-character rejection** — messages containing control characters or Unicode bidirectional-override characters anywhere in the payload or message_type are rejected with **OBP-39020**. See "Why bidirectional-override characters are rejected" below.
+                 |3. **Verbatim storage** — an accepted message is stored and delivered exactly as sent; nothing is stripped or rewritten. Agents may therefore hash, sign, or byte-compare payloads. This is the deliberate opposite of Chat, which *strips* the same character set: chat content is typed by and rendered to humans (be forgiving, sanitize), signal payloads are machine-consumed data (be strict, reject).
+                 |
+                 |## Privacy and roles
+                 |- A message with **to_user_id** set is visible only to its sender and that recipient; without it, the message is a broadcast visible to all channel readers.
+                 |- **CanGetSignalStats** — read message counts and TTLs across all channels.
+                 |- **CanDeleteSignalChannel** — delete a channel and all its messages immediately. Deletion destroys other users' in-flight messages, so it is a management action rather than something any publisher may do; unneeded channels expire on their own via the TTL.
+                 |
+                 |## Why bidirectional-override characters are rejected
+                 |Unicode includes invisible formatting characters that reverse or reorder how text is *displayed* without changing the bytes a parser sees — the override family U+202A to U+202E, the isolate family U+2066 to U+2069, and the marks U+200E, U+200F and U+061C. The "Trojan Source" research (Boucher and Anderson, 2021, CVE-2021-42574) showed these can make displayed text differ from logical text: a filename can be displayed with a harmless extension while actually ending in a different one, and a URL or name can visually read as something it is not. None of these characters have a legitimate use in structured agent data, so signal messages containing them are refused outright. (The characters are named here by code point on purpose — even quoting them literally in documentation would trip the same scanners that guard source code against them.)
+                 |
+                 |The check runs on the **parsed** JSON, not the raw request body: JSON's backslash-u escape syntax means a body that is pure ASCII on the wire can still parse to a string containing a bidi override, so a wire-level check would miss it.
+                 |
+                 |## Payloads are data, not instructions
+                 |Signal channels are readable and writable by any authenticated consumer on the instance. If your agent feeds received payloads to an LLM, treat them as **untrusted data, never as instructions** — the character checks above stop display-layer trickery, but no server-side check can stop a payload from *saying* something misleading. Prompt-injection defence belongs in the consuming agent.
+                 |
+                 |## Conventions for agents that have never met
+                 |Signal channels impose no protocol, and two agents written by different people will only find each other if they follow the same small habits. These are recommendations, not server rules.
+                 |
+                 |**Where to look first.** Announce yourself on the channel named `discovery` as soon as you have a token, then read `discovery` before anything else. Use `discovery` for presence and for finding a peer; move the actual conversation to a topic channel and name it in your announcement (`reply_channel`). An agent that only ever reads one fixed channel of its own choosing will miss peers who chose a different name; if `discovery` is empty, list the channels and read them all.
+                 |
+                 |**Message types.** Put the intent in `message_type` and keep the payload for content:
+                 |
+                 |- `announce` — "I exist": `agent_name`, `capabilities`, and the `reply_channel` you will read.
+                 |- `hello` — a greeting addressed to whoever is listening, asking for a `reply`.
+                 |- `reply` — an answer to a `hello` or any other message.
+                 |- `ack` — "received", when the sender asked for confirmation; carries nothing new.
+                 |- `proposal` — a list of `items` (each with `id`, `title`, `detail`, `proposed_owner`) for the other side to accept or change.
+                 |- `counter` — the same list, edited; say in `text` what changed.
+                 |- `agree` — the final list copied back verbatim, so both sides hold the same text.
+                 |- `status` — progress on an agreed item: `items`, `state` (for example `approved`, `declined`, `done`), and who is acting.
+                 |
+                 |**Payload fields.** Always include `agent_name` (a human-readable name) and `from_user_id` (your OBP user id, so a peer can reply privately with `to_user_id`). When answering, include `in_reply_to` with the `message_id` or the `sequence` of the message you answer, and `reply_channel` when you want the answer somewhere else. Keep `text` for prose a human can read; put anything a program must parse in its own field.
+                 |
+                 |**Waiting and repeating.** Poll with `after_sequence`, not offset. If nothing arrives, do not repeat the same message; one `hello` is enough, and a peer that appears later reads the channel back. Messages expire with the channel, so a conversation that must survive an hour of silence belongs in Chat, not here.
+                 |
+                 |**Approval stays with people.** A `proposal` and an `agree` between agents settle what could be done and by whom; each agent still asks its own user before doing anything. Say so in the proposal, and post a `status` once the user has decided.
+                 |
+                 |## Getting credentials as an agent (no account needed)
+                 |An agent does not need a pre-existing OBP user, consumer key or password. Where the instance runs OBP-OIDC with dynamic client registration enabled, three unauthenticated calls are enough:
+                 |
+                 |1. **Discover the identity provider.** `GET /obp/v6.0.0/well-known` lists the OpenID discovery documents this instance trusts. Fetch the `obp-oidc` one; its `registration_endpoint` and `token_endpoint` are the two URLs used below.
+                 |2. **Register a client** (RFC 7591 dynamic client registration; no initial access token is required):
+                 |
+                 |    curl -X POST REGISTRATION_ENDPOINT -H "Content-Type: application/json" -d '{"client_name":"my-agent","grant_types":["client_credentials"],"token_endpoint_auth_method":"client_secret_post","redirect_uris":["http://localhost/unused"]}'
+                 |
+                 |   The response carries `client_id` and `client_secret`. Store them; the secret is shown once. Behind the scenes OBP-OIDC also creates the matching OBP Consumer, so `client_id` is the consumer key.
+                 |3. **Get a token** with the client credentials grant (no user, no browser):
+                 |
+                 |    curl -X POST TOKEN_ENDPOINT -d "grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET&scope=openid"
+                 |
+                 |4. **Call OBP** with `Authorization: Bearer YOUR_ACCESS_TOKEN`, on REST or gRPC.
+                 |
+                 |What OBP does with such a token: it recognises the OBP-OIDC issuer, resolves the Consumer from the token's `azp` claim, and creates (once) a User whose provider id is the client id. `GET /obp/v6.0.0/users/current` and `GET /obp/v7.0.0/consumers/current/identity` show the resulting identity. That User starts with **no entitlements**, so it can list channels, read channel info, fetch and publish messages, and receive private messages addressed to its user id — but it cannot call Get Signal Channel Stats or Delete Signal Channel, and it has no access to any bank data. Every message it publishes carries its consumer id and user id, so an agent registered this way is attributable and its Consumer can be disabled by an operator.
+                 |
+                 |Do **not** use `POST /obp/v6.0.0/dynamic-registration/consumers` for this. Despite the similar name it is the PSD2 path: it needs a QWAC certificate matching a pre-registered Regulated Entity and is meant for regulated third-party providers, not agents.
+                 |
+                 |Operators: because registration is unauthenticated, expose it only with rate limiting on registrations per IP and in total, or require an initial access token in production. See the OBP-OIDC README.
+                 |
+                 |## Endpoints
+                 |See the API Explorer tags **Signal-Channel** / **AI-Agent**: list channels, channel info, channel stats, publish message, get messages (offset/limit polling), delete channel — under `/obp/v6.0.0/signal-channels/...`.
+                 |
+                 |Note on counts in Get Signal Messages: `total_count` counts every message in the channel, including private messages hidden from the caller, so it can exceed the number of messages returned; `visible_count` counts only the messages the caller may see and is the one to compare with what you have received. To detect newer messages, poll with `after_sequence` and `next_after_sequence` rather than comparing counts.
+                 |
+                 |## gRPC
+                 |The same operations are served over gRPC by `SignalChannelsService` (package `code.obp.grpc.signal.g1`, contract in `signal.proto`) when the gRPC server is enabled (`grpc.server.enabled`): **Publish**, **Fetch** and **ListChannels** are 1:1 with the REST endpoints and share their storage, and **Subscribe** is a server-side stream of new messages on one channel. Subscribe is live only — no catch-up, no replay — and applies the same privacy filter as Fetch. Each publish, REST or gRPC, is pushed to subscribers through Redis pub/sub.
+                 |
+                 |**Authentication.** Send the same value the REST `Authorization` header takes (`Bearer YOUR_ACCESS_TOKEN` or `DirectLogin token=YOUR_TOKEN`) as gRPC metadata under the key `authorization`. A call without it fails with status UNAUTHENTICATED and the message "Missing authorization header".
+                 |
+                 |**Discovery.** The server exposes gRPC reflection, so generic clients can list and describe the service without the proto file. With grpcurl (plaintext shown; use TLS as your deployment requires):
+                 |
+                 |    grpcurl -plaintext HOST:PORT list
+                 |    grpcurl -plaintext HOST:PORT describe code.obp.grpc.signal.g1.SignalChannelsService
+                 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/ListChannels
+                 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" -d '{"channel_name":"discovery","after_sequence":0,"limit":50}' HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/Fetch
+                 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" -d @ HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/Publish < publish.json
+                 |    grpcurl -plaintext -H "authorization: Bearer YOUR_ACCESS_TOKEN" -d '{"channel_name":"discovery"}' HOST:PORT code.obp.grpc.signal.g1.SignalChannelsService/Subscribe
+                 |
+                 |where publish.json holds the request with the payload as an escaped JSON string, for example `{"channel_name":"discovery","message_type":"announce","payload_json":"{ ... your JSON, with its inner quotes escaped ... }"}`. HOST:PORT is the gRPC listener, port `grpc.server.port` (default 50051), separate from the HTTP port.
+                 |
+                 |Over gRPC the payload travels as `payload_json`, a string holding the JSON-encoded payload verbatim (protobuf has no native JSON value type). Int64 fields such as `sequence` and `message_count` arrive as strings in JSON-transcoded output; that is standard protobuf JSON mapping, not a change of type.
+                 |
 """)
 
-  glossaryItems += GlossaryItem(
-    title = "OBP-MCP",
-    description =
-      s"""
-         |# OBP-MCP
-         |
-         |**OBP-MCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server for the Open Bank Project API. It lets AI assistants (Claude, Opey, IDE agents, custom LLM tooling) discover and call OBP-API endpoints as MCP *tools*, without hard-coding any knowledge of the 600+ endpoints.
-         |
-         |Repository: [github.com/OpenBankProject/OBP-MCP](https://github.com/OpenBankProject/OBP-MCP)
-         |
-         |## What it does
-         |
-         |OBP-MCP is a thin protocol bridge. AI clients speak **MCP** to it; it speaks **HTTPS / REST** to OBP-API on their behalf, attaching the user's OAuth token or Consent-JWT.
-         |
-         |```
-         |┌──────────────────┐   MCP    ┌────────────────────────┐   HTTPS    ┌──────────────┐
-         |│  AI client       │ ───────▶ │      OBP-MCP           │ ─────────▶ │   OBP-API    │
-         |│  (Claude, Opey,  │ ◀─────── │   (FastMCP server)     │ ◀───────── │              │
-         |│   IDE agent)     │  tools   │                        │  JSON      │              │
-         |└──────────────────┘          └────────────────────────┘            └──────────────┘
-         |```
-         |
-         |## Architecture diagram
-         |
-         |The full picture — Portal/API Explorer, Opey, external MCP clients (Claude Code, Claude Desktop, IDE agents), OBP-OIDC, the numbered consent flow, and OBP-API down to the core banking systems:
-         |
-         |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
-         |
-         |The editable master is a Lucidchart document linked from the [OBP-MCP README](https://github.com/OpenBankProject/OBP-MCP#architecture).
-         |
-         |## Three-step discovery + call (no RAG, no vector DB)
-         |
-         |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
-         |
-         |1. **`list_endpoints_by_tag(tags)`** — returns lightweight summaries (~50–100 tokens each) from a local `endpoint_index.json`. Lets the LLM narrow down to a handful of candidate endpoints by tag (e.g. `Account`, `Transaction-Request`, `Consent`).
-         |2. **`get_endpoint_schema(endpoint_id)`** — lazy-loads the full OpenAPI schema for one endpoint from a local `endpoint_schemas.json`.
-         |3. **`call_obp_api(endpoint_id, path_params, query_params, body, headers)`** — actually executes the HTTP request against the live OBP-API.
-         |
-         |Two further tools cover the glossary itself: **`list_glossary_terms(search_query)`** and **`get_glossary_term(term_id)`**, backed by a local `glossary_index.json` of 800+ banking terms.
-         |
-         |## Three kinds of traffic
-         |
-         |It is important to understand that OBP-MCP is **not** a documentation lookup tool — it makes real, authenticated business calls:
-         |
-         |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
-         |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
-         |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's [Resource Docs](/glossary#Resource-Doc) and swagger to rebuild the local indexes, so discovery stays fast and offline.
-         |
-         |## Authentication and authorization
-         |
-         |OBP-MCP supports several modes via the `AUTH_PROVIDER` environment variable for client-to-MCP auth:
-         |
-         || Mode           | Use case                              | Notes                                              |
-         ||----------------|---------------------------------------|----------------------------------------------------|
-         || `bearer-only`  | Internal agents (e.g. Opey)           | JWT validation only, multi-issuer                  |
-         || `obp-oidc`     | External MCP clients                  | Full OAuth 2.1 + Dynamic Client Registration       |
-         || `keycloak`     | External MCP clients                  | OAuth 2.1 + minimal DCR proxy workaround           |
-         || `none`         | Development / testing                 | No auth required                                   |
-         |
-         |For onward calls to OBP-API, `OBP_AUTHORIZATION_VIA` selects:
-         |
-         |- **`oauth`** — pulls the access token from the MCP request context and sends `Authorization: Bearer ...`.
-         |- **`consent`** — the default mode for user-facing deployments. `call_obp_api` requires a `Consent-JWT` for **every** endpoint except a small allowlist of genuinely public ones (`GET /root`, the bank directory `/banks` and `/banks/{BANK_ID}`, glossary, resource-docs, API metadata). For any other endpoint called without a `Consent-JWT`, the tool returns a `consent_required` payload — required roles, bank / account / view scope, and `requires_view_access` / `is_user_scoped` flags — so the client can build the right consent and retry with a `Consent-JWT` header. Consent is required **by default**, not only for role-gated endpoints, because many identity-bound endpoints (`/users/current`, `/my/*`, account-access-via-view endpoints) declare no roles yet still need the caller's identity — a role-only gate would call them unauthenticated. The allowlist is deliberately conservative: a wrongly-excluded endpoint costs only an extra prompt, whereas wrongly skipping consent fails silently.
-         |- **`none`** — calls OBP unauthenticated (only useful for genuinely public endpoints).
-         |
-         |This means the consent flow is enforced at the MCP layer, not just at OBP-API: an agent cannot accidentally call a privileged endpoint without explicit user consent.
-         |
-         |## Why it matters
-         |
-         |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
-         |
-         |See also: [Opey](/glossary#Opey), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
-         |
+    glossaryItems += GlossaryItem(
+        title = "OBP-MCP",
+        description =
+            s"""
+                 |# OBP-MCP
+                 |
+                 |**OBP-MCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server for the Open Bank Project API. It lets AI assistants (Claude, Opey, IDE agents, custom LLM tooling) discover and call OBP-API endpoints as MCP *tools*, without hard-coding any knowledge of the 600+ endpoints.
+                 |
+                 |Repository: [github.com/OpenBankProject/OBP-MCP](https://github.com/OpenBankProject/OBP-MCP)
+                 |
+                 |## What it does
+                 |
+                 |OBP-MCP is a thin protocol bridge. AI clients speak **MCP** to it; it speaks **HTTPS / REST** to OBP-API on their behalf, attaching the user's OAuth token or Consent-JWT.
+                 |
+                 |```
+                 |┌──────────────────┐   MCP    ┌────────────────────────┐   HTTPS    ┌──────────────┐
+                 |│  AI client       │ ───────▶ │      OBP-MCP           │ ─────────▶ │   OBP-API    │
+                 |│  (Claude, Opey,  │ ◀─────── │   (FastMCP server)     │ ◀───────── │              │
+                 |│   IDE agent)     │  tools   │                        │  JSON      │              │
+                 |└──────────────────┘          └────────────────────────┘            └──────────────┘
+                 |```
+                 |
+                 |## Architecture diagram
+                 |
+                 |The full picture — Portal/API Explorer, Opey, external MCP clients (Claude Code, Claude Desktop, IDE agents), OBP-OIDC, the numbered consent flow, and OBP-API down to the core banking systems:
+                 |
+                 |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+                 |
+                 |The editable master is a Lucidchart document linked from the [OBP-MCP README](https://github.com/OpenBankProject/OBP-MCP#architecture).
+                 |
+                 |## Three-step discovery + call (no RAG, no vector DB)
+                 |
+                 |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
+                 |
+                 |1. **`list_endpoints_by_tag(tags)`** — returns lightweight summaries (~50–100 tokens each) from a local `endpoint_index.json`. Lets the LLM narrow down to a handful of candidate endpoints by tag (e.g. `Account`, `Transaction-Request`, `Consent`).
+                 |2. **`get_endpoint_schema(endpoint_id)`** — lazy-loads the full OpenAPI schema for one endpoint from a local `endpoint_schemas.json`.
+                 |3. **`call_obp_api(endpoint_id, path_params, query_params, body, headers)`** — actually executes the HTTP request against the live OBP-API.
+                 |
+                 |Two further tools cover the glossary itself: **`list_glossary_terms(search_query)`** and **`get_glossary_term(term_id)`**, backed by a local `glossary_index.json` of 800+ banking terms.
+                 |
+                 |## Three kinds of traffic
+                 |
+                 |It is important to understand that OBP-MCP is **not** a documentation lookup tool — it makes real, authenticated business calls:
+                 |
+                 |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
+                 |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
+                 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's [Resource Docs](/glossary#Resource-Doc) and swagger to rebuild the local indexes, so discovery stays fast and offline.
+                 |
+                 |## Authentication and authorization
+                 |
+                 |OBP-MCP supports several modes via the `AUTH_PROVIDER` environment variable for client-to-MCP auth:
+                 |
+                 || Mode           | Use case                              | Notes                                              |
+                 ||----------------|---------------------------------------|----------------------------------------------------|
+                 || `bearer-only`  | Internal agents (e.g. Opey)           | JWT validation only, multi-issuer                  |
+                 || `obp-oidc`     | External MCP clients                  | Full OAuth 2.1 + Dynamic Client Registration       |
+                 || `keycloak`     | External MCP clients                  | OAuth 2.1 + minimal DCR proxy workaround           |
+                 || `none`         | Development / testing                 | No auth required                                   |
+                 |
+                 |For onward calls to OBP-API, `OBP_AUTHORIZATION_VIA` selects:
+                 |
+                 |- **`oauth`** — pulls the access token from the MCP request context and sends `Authorization: Bearer ...`.
+                 |- **`consent`** — the default mode for user-facing deployments. `call_obp_api` requires a `Consent-JWT` for **every** endpoint except a small allowlist of genuinely public ones (`GET /root`, the bank directory `/banks` and `/banks/{BANK_ID}`, glossary, resource-docs, API metadata). For any other endpoint called without a `Consent-JWT`, the tool returns a `consent_required` payload — required roles, bank / account / view scope, and `requires_view_access` / `is_user_scoped` flags — so the client can build the right consent and retry with a `Consent-JWT` header. Consent is required **by default**, not only for role-gated endpoints, because many identity-bound endpoints (`/users/current`, `/my/*`, account-access-via-view endpoints) declare no roles yet still need the caller's identity — a role-only gate would call them unauthenticated. The allowlist is deliberately conservative: a wrongly-excluded endpoint costs only an extra prompt, whereas wrongly skipping consent fails silently.
+                 |- **`none`** — calls OBP unauthenticated (only useful for genuinely public endpoints).
+                 |
+                 |This means the consent flow is enforced at the MCP layer, not just at OBP-API: an agent cannot accidentally call a privileged endpoint without explicit user consent.
+                 |
+                 |## Why it matters
+                 |
+                 |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
+                 |
+                 |See also: [Opey](/glossary#Opey), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+                 |
 """)
 
 
-  glossaryItems += GlossaryItem(
-    title = "Opey",
-    description =
-      s"""
-         |# Opey
-         |
-         |**Opey** (current generation: **Opey II**) is the Open Bank Project's agentic AI assistant — a chatbot that lets users explore and operate the OBP API in natural language. It is built on [LangGraph](https://www.langchain.com/langgraph), is provider-agnostic across LLMs (Anthropic, OpenAI, Ollama), and is the chat backend used by **OBP-Portal**.
-         |
-         |Repository: [github.com/OpenBankProject/OBP-Opey-II](https://github.com/OpenBankProject/OBP-Opey-II)
-         |
-         |## Opey is an agent. OBP-MCP is its tool surface.
-         |
-         |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
-         |
-         |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
-         |
-         |Besides the MCP path shown above, Opey makes some direct HTTP calls to OBP-API for its own infrastructure (session validation via `/users/current`, admin DirectLogin operations, persisting LangGraph checkpoints as dynamic entities, and health probes) — see the architecture section of the [Opey README](https://github.com/OpenBankProject/OBP-Opey-II#architecture-how-opey-reaches-the-obp-api) for the detail diagram.
-         |
-         |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
-         |
-         |```json
-         |{
-         |  "servers": [
-         |    {
-         |      "name": "obp",
-         |      "url": "http://0.0.0.0:9100/mcp",
-         |      "transport": "http",
-         |      "requires_auth": true
-         |    }
-         |  ]
-         |}
-         |```
-         |
-         |The Opey README puts it bluntly: *"As a minimum, Opey should be connected to OBP-MCP, or it won't know anything about the Open Bank Project except for what you put in the system prompt."*
-         |
-         |## What OBP-MCP took over
-         |
-         |Subsystems that used to live in Opey are now generic MCP tools any client can use:
-         |
-         || Old Opey responsibility                                                              | Now in OBP-MCP                                              |
-         ||--------------------------------------------------------------------------------------|-------------------------------------------------------------|
-         || Endpoint Retrieval RAG pipeline (vector store of swagger, query reformulation, etc.) | `list_endpoints_by_tag` + `get_endpoint_schema`             |
-         || Glossary Retrieval RAG pipeline                                                      | `list_glossary_terms` + `get_glossary_term`                 |
-         || `OBPClient` (aiohttp + OAuth + consent JWT) — the actual HTTP layer to OBP-API       | `call_obp_api` (`oauth` / `consent` / `none` modes)         |
-         || "Which endpoint should I call?" logic baked into the agent                           | Externalised — any MCP client can now discover and call     |
-         |
-         |## What Opey still uniquely does
-         |
-         |OBP-MCP is stateless and has no model — it cannot reason, plan, or hold a conversation. Everything below is what makes Opey *Opey*:
-         |
-         |- **The LLM loop itself.** Opey runs the actual reasoning via a LangGraph state machine (`START → Opey Agent → Tools → Sanitize → Opey → Summarize → END`), with **task follow-through**: when a tool call fails (e.g. missing entitlement), Opey reuses tools to self-correct instead of bouncing the problem back to the user.
-         |- **Human-in-the-loop approval — richer than MCP's `consent_required`.** A `ToolRegistry` classifies operations as **SAFE / MODERATE / DANGEROUS / CRITICAL**. An `ApprovalManager` persists "approve once / session / user / workspace" decisions with TTLs. The human-review node only interrupts when truly needed. OBP-MCP just *says* consent is required; Opey decides **how** to ask, **whether** to ask again, and **remembers** the answer.
-         |- **Conversation state.** SQLite-backed LangGraph checkpoints (`checkpoints.db`), token counting, automatic summarisation when approaching the model context limit, and graceful degradation in long sessions.
-         |- **The streaming chat service.** FastAPI endpoints (`POST /invoke`, `POST /stream` SSE, `POST /submit_approval`, `GET /user/consent`, `GET /status`) — this is what OBP-Portal's chat UI actually talks to. Streaming events are produced by dedicated processors (token, tool, human-review, metadata, end).
-         |- **Session, auth, usage.** OBP user session management, consent-JWT parsing for user identification, rate limiting, usage tracking, and an admin-client singleton for system-level operations.
-         |- **Domain-tuned system prompt.** Behavioural guidelines such as *Tool-First / Knowledge-Second*, *No Hallucination*, *Proactive Verification*, and *Transparent Errors*. Configurable via `OPEY_SYSTEM_PROMPT`.
-         |- **Model abstraction.** Provider-agnostic via `MODEL_PROVIDER` / `MODEL_NAME` — swap Claude for GPT or a local Ollama model without touching the graph. New models are registered in `MODEL_CONFIGS` (`src/agent/utils/model_factory.py`).
-         |- **Evaluation framework.** Parameter-sweep experiments over batch size, k-value, retry thresholds; CSV export of precision / recall / latency P50–P99; combined scoring (e.g. 70% recall + 30% speed) to find sweet spots. Something a tool surface like MCP has no concept of.
-         |
-         |## One-line summary
-         |
-         |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
-         |
-         |See also: [OBP-MCP](/glossary#OBP-MCP), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
-         |
+    glossaryItems += GlossaryItem(
+        title = "Opey",
+        description =
+            s"""
+                 |# Opey
+                 |
+                 |**Opey** (current generation: **Opey II**) is the Open Bank Project's agentic AI assistant — a chatbot that lets users explore and operate the OBP API in natural language. It is built on [LangGraph](https://www.langchain.com/langgraph), is provider-agnostic across LLMs (Anthropic, OpenAI, Ollama), and is the chat backend used by **OBP-Portal**.
+                 |
+                 |Repository: [github.com/OpenBankProject/OBP-Opey-II](https://github.com/OpenBankProject/OBP-Opey-II)
+                 |
+                 |## Opey is an agent. OBP-MCP is its tool surface.
+                 |
+                 |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
+                 |
+                 |![How Opey, Claude Code and OBP-MCP call OBP-API](https://github.com/user-attachments/assets/d3ff5c10-7167-4034-98f7-c53a323bf985)
+                 |
+                 |Besides the MCP path shown above, Opey makes some direct HTTP calls to OBP-API for its own infrastructure (session validation via `/users/current`, admin DirectLogin operations, persisting LangGraph checkpoints as dynamic entities, and health probes) — see the architecture section of the [Opey README](https://github.com/OpenBankProject/OBP-Opey-II#architecture-how-opey-reaches-the-obp-api) for the detail diagram.
+                 |
+                 |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
+                 |
+                 |```json
+                 |{
+                 |  "servers": [
+                 |    {
+                 |      "name": "obp",
+                 |      "url": "http://0.0.0.0:9100/mcp",
+                 |      "transport": "http",
+                 |      "requires_auth": true
+                 |    }
+                 |  ]
+                 |}
+                 |```
+                 |
+                 |The Opey README puts it bluntly: *"As a minimum, Opey should be connected to OBP-MCP, or it won't know anything about the Open Bank Project except for what you put in the system prompt."*
+                 |
+                 |## What OBP-MCP took over
+                 |
+                 |Subsystems that used to live in Opey are now generic MCP tools any client can use:
+                 |
+                 || Old Opey responsibility                                                              | Now in OBP-MCP                                              |
+                 ||--------------------------------------------------------------------------------------|-------------------------------------------------------------|
+                 || Endpoint Retrieval RAG pipeline (vector store of swagger, query reformulation, etc.) | `list_endpoints_by_tag` + `get_endpoint_schema`             |
+                 || Glossary Retrieval RAG pipeline                                                      | `list_glossary_terms` + `get_glossary_term`                 |
+                 || `OBPClient` (aiohttp + OAuth + consent JWT) — the actual HTTP layer to OBP-API       | `call_obp_api` (`oauth` / `consent` / `none` modes)         |
+                 || "Which endpoint should I call?" logic baked into the agent                           | Externalised — any MCP client can now discover and call     |
+                 |
+                 |## What Opey still uniquely does
+                 |
+                 |OBP-MCP is stateless and has no model — it cannot reason, plan, or hold a conversation. Everything below is what makes Opey *Opey*:
+                 |
+                 |- **The LLM loop itself.** Opey runs the actual reasoning via a LangGraph state machine (`START → Opey Agent → Tools → Sanitize → Opey → Summarize → END`), with **task follow-through**: when a tool call fails (e.g. missing entitlement), Opey reuses tools to self-correct instead of bouncing the problem back to the user.
+                 |- **Human-in-the-loop approval — richer than MCP's `consent_required`.** A `ToolRegistry` classifies operations as **SAFE / MODERATE / DANGEROUS / CRITICAL**. An `ApprovalManager` persists "approve once / session / user / workspace" decisions with TTLs. The human-review node only interrupts when truly needed. OBP-MCP just *says* consent is required; Opey decides **how** to ask, **whether** to ask again, and **remembers** the answer.
+                 |- **Conversation state.** SQLite-backed LangGraph checkpoints (`checkpoints.db`), token counting, automatic summarisation when approaching the model context limit, and graceful degradation in long sessions.
+                 |- **The streaming chat service.** FastAPI endpoints (`POST /invoke`, `POST /stream` SSE, `POST /submit_approval`, `GET /user/consent`, `GET /status`) — this is what OBP-Portal's chat UI actually talks to. Streaming events are produced by dedicated processors (token, tool, human-review, metadata, end).
+                 |- **Session, auth, usage.** OBP user session management, consent-JWT parsing for user identification, rate limiting, usage tracking, and an admin-client singleton for system-level operations.
+                 |- **Domain-tuned system prompt.** Behavioural guidelines such as *Tool-First / Knowledge-Second*, *No Hallucination*, *Proactive Verification*, and *Transparent Errors*. Configurable via `OPEY_SYSTEM_PROMPT`.
+                 |- **Model abstraction.** Provider-agnostic via `MODEL_PROVIDER` / `MODEL_NAME` — swap Claude for GPT or a local Ollama model without touching the graph. New models are registered in `MODEL_CONFIGS` (`src/agent/utils/model_factory.py`).
+                 |- **Evaluation framework.** Parameter-sweep experiments over batch size, k-value, retry thresholds; CSV export of precision / recall / latency P50–P99; combined scoring (e.g. 70% recall + 30% speed) to find sweet spots. Something a tool surface like MCP has no concept of.
+                 |
+                 |## One-line summary
+                 |
+                 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
+                 |
+                 |See also: [OBP-MCP](/glossary#OBP-MCP), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+                 |
 """)
 
 

@@ -60,13 +60,18 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           dynamicEntityId = existsDynamicEntity.toOption.flatMap(_.dynamicEntityId),
           entityName = dynamicEntity.entityName,
           metadataJson = dynamicEntity.metadataJson,
-          userId = dynamicEntity.userId,
+          // Definition creator resolves to the on-behalf-of user (UserReference.DynamicEntityUser):
+          // a consent user owns nothing durable. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+          userId = code.users.Users.users.vend
+            .attributedUserId(dynamicEntity.userId, code.users.UserReference.DynamicEntityUser)
+            .openOr(dynamicEntity.userId),
           bankId = dynamicEntity.bankId,
           hasPersonalEntity = dynamicEntity.hasPersonalEntity,
           hasPublicAccess = dynamicEntity.hasPublicAccess,
           hasCommunityAccess = dynamicEntity.hasCommunityAccess,
           personalRequiresRole = dynamicEntity.personalRequiresRole,
-          useRowLevelAccess = dynamicEntity.useRowLevelAccess)
+          useRowLevelAccess = dynamicEntity.useRowLevelAccess,
+          authMode = dynamicEntity.authMode)
         // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
         // Guarded by projectionEnabled (default off); best-effort (a failure leaves the definition saved
         // and queries reporting pending, not a broken create). Fields passed explicitly because the new
@@ -75,7 +80,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           try {
             val info = code.api.dynamic.entity.helper.DynamicEntityInfo(
               dynamicEntity.metadataJson, dynamicEntity.entityName, dynamicEntity.bankId,
-              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole, dynamicEntity.useRowLevelAccess)
+              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole, dynamicEntity.useRowLevelAccess, dynamicEntity.authMode)
             val scalar = code.api.dynamic.entity.projection.ProjectionProvisioner.scalarFieldsOf(info.indexedFields)
             if (scalar.nonEmpty)
               code.api.dynamic.entity.projection.ProjectionProvisioner
@@ -127,7 +132,10 @@ case class DynamicEntity(
   hasPublicAccess: Boolean,
   hasCommunityAccess: Boolean,
   personalRequiresRole: Boolean,
-  useRowLevelAccess: Boolean
+  useRowLevelAccess: Boolean,
+  // Upstream commit c583fe421. Null / empty on rows created before the column existed, which
+  // DynamicEntityAuthMode.normalise reads back as the UserOnly default.
+  authMode: String = DynamicEntityAuthMode.default
 ) extends DynamicEntityT {
   override def dynamicEntityId: Option[String] = Option(dynamicEntityIdRaw)
   override def bankId: Option[String] = bankIdRaw.filter(b => b != null && b.nonEmpty)
@@ -137,22 +145,25 @@ object DynamicEntity {
 
   private val selectColumns =
     fr"""SELECT dynamicentityid, entityname, metadatajson, userid, bankid, haspersonalentity,
-                haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess
+                haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess,
+                authmode
          FROM dynamicentity"""
 
   // Option wherever the insert binds Option, and for the flags too: Mapper's MappedBoolean read a
   // NULL column as false rather than throwing, and older rows predate these columns.
   private type Row = (Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[Boolean], Option[Boolean], Option[Boolean], Option[Boolean],
-    Option[Boolean])
+    Option[Boolean], Option[String])
 
   private def fromRow(row: Row): DynamicEntity = row match {
     case (dynamicEntityId, entityName, metadataJson, userId, bankId, hasPersonalEntity,
-          hasPublicAccess, hasCommunityAccess, personalRequiresRole, useRowLevelAccess) =>
+          hasPublicAccess, hasCommunityAccess, personalRequiresRole, useRowLevelAccess,
+          authMode) =>
       DynamicEntity(dynamicEntityId.orNull, entityName.orNull, metadataJson.orNull, userId.orNull,
         bankId, hasPersonalEntity.getOrElse(false), hasPublicAccess.getOrElse(false),
         hasCommunityAccess.getOrElse(false), personalRequiresRole.getOrElse(false),
-        useRowLevelAccess.getOrElse(false))
+        useRowLevelAccess.getOrElse(false),
+        DynamicEntityAuthMode.normalise(authMode.orNull))
   }
 
   private def query(condition: Fragment): List[DynamicEntity] =
@@ -189,7 +200,7 @@ object DynamicEntity {
   def upsert(dynamicEntityId: Option[String], entityName: String, metadataJson: String,
              userId: String, bankId: Option[String], hasPersonalEntity: Boolean,
              hasPublicAccess: Boolean, hasCommunityAccess: Boolean, personalRequiresRole: Boolean,
-             useRowLevelAccess: Boolean): DynamicEntity = {
+             useRowLevelAccess: Boolean, authMode: String): DynamicEntity = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     val id = dynamicEntityId.getOrElse(APIUtil.generateUUID())
     val updated = DoobieUtil.runUpdate(
@@ -198,17 +209,19 @@ object DynamicEntity {
               haspersonalentity = $hasPersonalEntity, haspublicaccess = $hasPublicAccess,
               hascommunityaccess = $hasCommunityAccess,
               personalrequiresrole = $personalRequiresRole,
-              userowlevelaccess = $useRowLevelAccess, updatedat = $now
+              userowlevelaccess = $useRowLevelAccess,
+              authmode = ${Option(DynamicEntityAuthMode.normalise(authMode))}, updatedat = $now
             WHERE dynamicentityid = $id""".update.run)
     if (updated == 0) {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO dynamicentity
               (dynamicentityid, entityname, metadatajson, userid, bankid, haspersonalentity,
                haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess,
-               createdat, updatedat)
+               authmode, createdat, updatedat)
               VALUES ($id, ${Option(entityName)}, ${Option(metadataJson)}, ${Option(userId)},
                $bankId, $hasPersonalEntity, $hasPublicAccess, $hasCommunityAccess,
-               $personalRequiresRole, $useRowLevelAccess, $now, $now)"""
+               $personalRequiresRole, $useRowLevelAccess,
+               ${Option(DynamicEntityAuthMode.normalise(authMode))}, $now, $now)"""
           .update.run)
     }
     findById(id).openOrThrowException("the dynamic entity just written must be readable")

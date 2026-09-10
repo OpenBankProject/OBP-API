@@ -7,17 +7,19 @@ Statically reproduces Http4s700.allResourceDocs.
 Inputs are derived from source — no hardcoded data tables:
   * Version files are discovered by globbing obp-api/src/main/scala/code/api/v*/
     for Http4s{NNN}.scala. All registrations live in Http4s files now — the
-    older Lift APIMethods*.scala files have been emptied/commented out.
-  * excludeEndpoints lists are extracted from each version's OBPAPI{a}_{b}_{c}.scala
-    (or OBPAPI{a}.{b}.{c}.scala for v1.2.1) — and from Http4s700.scala for v7
-    which has no OBPAPI counterpart.
+    older Lift APIMethods*.scala files have been deleted (their historical
+    ResourceDoc text lives on in scripts/resource_doc_baseline/, see that
+    directory's README).
+  * excludeEndpoints lists are extracted from Http4sResourceDocAggregation.scala
+    (as excludeEndpointsV{nnn}) — and from Http4s700.scala for v7, which keeps
+    its own list.
 
-Aggregation chain (matches the runtime code in each OBPAPI{a}_{b}_{c}.scala):
-  OBPAPI1_2_1.allResourceDocs = Http4s121.resourceDocs                    (chain root)
-  OBPAPI{N}.allResourceDocs   = collectResourceDocs(OBPAPI{N-1}, Http4s{N})
-                                  .filterNot(excludeEndpoints if any)
-  Http4s700.allResourceDocs   = collectResourceDocs(OBPAPI6_0_0, Http4s700)
-                                  .filterNot(v7 excludeEndpoints — currently Nil)
+Aggregation chain (matches the runtime code in Http4sResourceDocAggregation):
+  v121 = Http4s121.resourceDocs                                           (chain root)
+  v{N} = collectResourceDocs(v{N-1}, Http4s{N})
+           .filterNot(excludeEndpointsV{N} if any)
+  Http4s700.allResourceDocs = collectResourceDocs(v600, Http4s700)
+                                .filterNot(v7 excludeEndpoints — currently Nil)
 
 collectResourceDocs: concat, stable sort by version descending, dedup by (url, verb).
 filterNot: drop docs whose partialFunctionName is in the excluded-names set.
@@ -41,7 +43,7 @@ VERSION_DIR_RE = re.compile(r"^v(\d+)_(\d+)_(\d+)$")
 REG_START      = re.compile(r"^\s*(?:static)?[Rr]esourceDocs\s*\+=\s*ResourceDoc\s*\(")
 ANY_REG_REF    = re.compile(r"\w*[Rr]esourceDocs\s*\+=\s*ResourceDoc\b")
 NAMEOF_RE      = re.compile(r"nameOf\s*\(\s*[\w.]*?(\w+)\s*\)")
-EXCLUDE_DEF_RE = re.compile(r"(?:lazy\s+)?val\s+excludeEndpoints\b[^=]*=")
+EXCLUDE_DEF_RE = re.compile(r"(?:lazy\s+)?val\s+excludeEndpoints(?P<suffix>V\d{3})?\b[^=]*=")
 
 HTTP_VERBS = {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
 
@@ -63,8 +65,8 @@ def discover_version_files() -> list[tuple[tuple, Path]]:
     """Find every v*/ directory and resolve its Http4s{NNN}.scala source file.
 
     Every version's contribution to the aggregation chain lives in its
-    Http4s{NNN}.scala (the older Lift APIMethods*.scala files have been
-    commented out and no longer carry registrations).
+    Http4s{NNN}.scala (the older Lift APIMethods*.scala files that used to
+    carry registrations have been deleted).
     """
     found = []
     for entry in sorted(SRC.iterdir()):
@@ -86,34 +88,41 @@ def discover_version_files() -> list[tuple[tuple, Path]]:
     return found
 
 
-def find_obpapi_file(version: tuple) -> Path | None:
+AGGREGATION_FILE = SRC / "util" / "http4s" / "Http4sResourceDocAggregation.scala"
+
+
+def find_exclude_source(version: tuple) -> Path | None:
     """Locate the file that owns this version's excludeEndpoints list.
 
-    Most versions: OBPAPI{a}_{b}_{c}.scala. v1.2.1 is an outlier
-    (OBPAPI1.2.1.scala with dots). v7 has no OBPAPI counterpart — its
-    excludeEndpoints lives in Http4s700.scala.
+    The v1.2.1-v6.0.0 lists live together in Http4sResourceDocAggregation.scala
+    as excludeEndpointsV{nnn} (they moved there when the OBPAPI* aggregator
+    objects were deleted). v7.0.0 keeps its own `excludeEndpoints` in
+    Http4s700.scala.
     """
     a, b, c = version
-    vdir = SRC / f"v{a}_{b}_{c}"
-    for candidate in (
-        vdir / f"OBPAPI{a}_{b}_{c}.scala",
-        vdir / f"OBPAPI{a}.{b}.{c}.scala",
-        vdir / f"Http4s{a}{b}{c}.scala",
-    ):
-        if candidate.is_file():
-            return candidate
-    return None
+    own = SRC / f"v{a}_{b}_{c}" / f"Http4s{a}{b}{c}.scala"
+    if own.is_file() and EXCLUDE_DEF_RE.search(own.read_text(encoding="utf-8")):
+        return own
+    return AGGREGATION_FILE if AGGREGATION_FILE.is_file() else None
 
 
 # -- excludeEndpoints extraction ---------------------------------------
 
-def extract_excludes(path: Path) -> set[str]:
-    """Pull names from `(lazy )?val excludeEndpoints = nameOf(...) :: ... :: Nil`.
+def extract_excludes(path: Path, version: tuple) -> set[str]:
+    """Pull names from `(lazy )?val excludeEndpoints[V{nnn}] = nameOf(...) :: ... :: Nil`.
 
-    Returns the empty set if the val is absent (e.g. v3.0.0, v5.0.0).
+    One file can hold several versions' lists (Http4sResourceDocAggregation), so the
+    val is matched by its V{nnn} suffix; an unsuffixed name is the file's own list.
+    Returns the empty set if there is no such val (e.g. v3.0.0, v5.0.0).
     """
+    want = "V" + "".join(str(p) for p in version)
     lines = path.read_text(encoding="utf-8").splitlines()
-    start = next((i for i, line in enumerate(lines) if EXCLUDE_DEF_RE.search(line)), None)
+    start = None
+    for i, line in enumerate(lines):
+        m = EXCLUDE_DEF_RE.search(line)
+        if m and (m.group("suffix") or want) == want:
+            start = i
+            break
     if start is None:
         return set()
 
@@ -213,13 +222,29 @@ def parse_file(path: Path, version: tuple) -> tuple[list[Doc], set[int]]:
         chunk = chunk[chunk.index("ResourceDoc") + len("ResourceDoc"):]
         chunk = chunk[chunk.index("(") + 1:]
         args = split_top_level_args(chunk, want=5)
-        if len(args) < 5:
+        if len(args) < 4:
             print(f"  WARN: incomplete args at {path.name}:{idx + 1}", file=sys.stderr)
             continue
-        m = NAMEOF_RE.search(args[2])
-        func = m.group(1) if m else strip_str_literal(args[2])
-        verb = strip_str_literal(args[3]).upper()
-        url  = strip_str_literal(args[4])
+        # Detect which ResourceDoc constructor signature this call uses: the Lift
+        # teardown removed the leading `partialFunction` parameter, so a
+        # pre-teardown call (name/verb/url at args[2]/[3]/[4]) and a current one
+        # (args[1]/[2]/[3], no leading partialFunction) put every field at a
+        # different offset. Same detection check_lift_http4s_resource_doc_parity.py
+        # uses for its own POSITIONAL_FIELDS/CURRENT_POSITIONAL_FIELDS split —
+        # every current Http4sXYZ.scala uses the second form, which the previous,
+        # hardcoded-to-the-first-form version of this function silently matched
+        # zero endpoints against.
+        if strip_str_literal(args[2]).upper() in HTTP_VERBS:
+            name_idx, verb_idx, url_idx = 1, 2, 3
+        else:
+            name_idx, verb_idx, url_idx = 2, 3, 4
+        if len(args) <= url_idx:
+            print(f"  WARN: incomplete args at {path.name}:{idx + 1}", file=sys.stderr)
+            continue
+        m = NAMEOF_RE.search(args[name_idx])
+        func = m.group(1) if m else strip_str_literal(args[name_idx])
+        verb = strip_str_literal(args[verb_idx]).upper()
+        url  = strip_str_literal(args[url_idx])
         if verb not in HTTP_VERBS:
             print(f"  WARN: unexpected verb {verb!r} at {path.name}:{idx + 1}",
                   file=sys.stderr)
@@ -272,7 +297,7 @@ def collect(*buckets: list[Doc]) -> list[Doc]:
 def main() -> None:
     version_files = discover_version_files()
     if not version_files:
-        sys.exit("ERROR: no v*/Http4s*.scala or APIMethods*.scala files found")
+        sys.exit("ERROR: no v*/Http4s*.scala files found")
 
     by_version: dict[tuple, list[Doc]] = {}
     self_check_warnings: list[str] = []
@@ -289,17 +314,17 @@ def main() -> None:
     excludes: dict[tuple, set[str]] = {}
     print("Extracting excludeEndpoints lists from source:")
     for version, _ in version_files:
-        owner = find_obpapi_file(version)
+        owner = find_exclude_source(version)
         if owner is None:
             continue
-        ex = extract_excludes(owner)
+        ex = extract_excludes(owner, version)
         if ex:
             excludes[version] = ex
             print(f"  v{'.'.join(map(str, version))}: "
                   f"{len(ex)} excludes ({owner.relative_to(REPO)})")
     print()
 
-    # Chain root: OBPAPI1_2_1.allResourceDocs = Http4s121.resourceDocs (no concat).
+    # Chain root: v121 = Http4s121.resourceDocs (no concat).
     # Every later version: collectResourceDocs(prev, this) [.filterNot(excludes)].
     versions_asc = sorted(by_version.keys())
     if not versions_asc:

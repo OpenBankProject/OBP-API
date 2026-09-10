@@ -35,6 +35,39 @@ object ToolBoxScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
 
   def cachedCount: Int = compiled.size()
 
+  /**
+   * Dry run: compile for diagnostics only, evaluate nothing, cache nothing.
+   *
+   * This is upstream's own ToolBox implementation of the check (develop commit bdcb4e671), kept
+   * on the 2.13 side where a ToolBox exists at all. The front end is collected explicitly because
+   * the default one keeps only the messages, and positions are what a caller wants to show against
+   * the submitted body. A second ToolBox so a dry-run check never touches the memoised compile
+   * results of the real one; ToolBoxes are not thread-safe, so checks are serialised.
+   */
+  private class CollectingFrontEnd extends scala.tools.reflect.FrontEnd {
+    // FrontEnd.log already records every diagnostic in `infos`; nothing to print.
+    override def display(info: Info): Unit = ()
+  }
+  private val checkFrontEnd = new CollectingFrontEnd
+  private val checkToolBox: ToolBox[universe.type] =
+    runtimeMirror(getClass.getClassLoader).mkToolBox(frontEnd = checkFrontEnd)
+
+  def check(code: String): List[DynamicCompileDiagnostic] = checkToolBox.synchronized {
+    checkFrontEnd.reset()
+    val failure: Option[String] =
+      try { checkToolBox.typecheck(checkToolBox.parse(code)); None }
+      catch { case e: ToolBoxError => Some(e.message) }
+    val collected = checkFrontEnd.infos.toList.filter(_.severity == checkFrontEnd.ERROR).map { info =>
+      val (line, column) =
+        if (info.pos != null && info.pos.isDefined) (info.pos.line, info.pos.column) else (0, 0)
+      DynamicCompileDiagnostic(line, column, "ERROR", info.msg)
+    }
+    if (collected.nonEmpty) collected
+    else failure.map(m => DynamicCompileDiagnostic(0, 0, "ERROR",
+      m.stripPrefix("reflective typecheck has failed:")
+       .stripPrefix("reflective compilation has failed:").trim)).toList
+  }
+
   def compile(code: String): Either[DynamicCompileFailure, Any] = {
     logger.trace(s"ToolBoxScalaCompiler cache size is ${compiled.size()}")
     compiled.computeIfAbsent(code, _ => {

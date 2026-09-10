@@ -9,7 +9,7 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ErrorMessageBG, 
 import code.api.util.APIUtil.JsonResponseExtractor
 import code.api.util.BerlinGroupError
 import code.api.util.ErrorMessages._
-import code.api.util.CallContext
+import code.api.util.{CallContext, CallContextLight}
 import net.liftweb.common.{Failure => LiftFailure}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.json4s.Extraction
@@ -41,16 +41,30 @@ object ErrorResponseConverter {
   implicit val formats: Formats = CustomJsonFormats.formats
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
 
+  /**
+   * Correlation-Id plus the CallContext-derived headers of APIUtil.getHeadersNewStyle
+   * (X-Rate-Limit-*, GatewayLogin, mirrored and echoed request headers, ...). The failure's own
+   * CallContextLight is preferred when it carries one: a 429 from RateLimitingUtil.underCallLimits
+   * stamps the exhausted limit and its reset time there, while the CallContext the middleware still
+   * holds predates the rate-limit check.
+   */
+  private def withResponseHeaders(response: Response[IO], callContext: CallContext, callContextLight: Option[CallContextLight]): Response[IO] = {
+    val withCorrelationId = response.putHeaders(Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
+    code.api.util.APIUtil.getHeadersNewStyle(Some(callContextLight.getOrElse(callContext.toLight))).list.foldLeft(withCorrelationId) {
+      case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
+    }
+  }
+
   private val obpErrorCodePrefix = "^OBP-\\d{5}: ".r
 
   private def tryExtractApiFailureFromExceptionMessage(error: Throwable): Option[APIFailureNewStyle] = {
     val msg = Option(error.getMessage).getOrElse("").trim
     if (msg.startsWith("{") && msg.contains("\"failCode\"") && msg.contains("\"failMsg\"")) {
       try {
-        val jv       = parse(msg)
-        val failCode = (jv \ "failCode").extract[Int]
-        val failMsg  = (jv \ "failMsg").extract[String]
-        Some(APIFailureNewStyle(failMsg, failCode))
+        val jsonValue = parse(msg)
+        val failCode  = (jsonValue \ "failCode").extract[Int]
+        val failMsg   = (jsonValue \ "failMsg").extract[String]
+        Some(APIFailureNewStyle(failMsg, failCode, (jsonValue \ "callContextLight").extractOpt[CallContextLight]))
       } catch {
         case _: Throwable => None
       }
@@ -123,12 +137,7 @@ object ErrorResponseConverter {
     val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(code, message, callContext)
                else toJsonString(OBPErrorResponse(code, message))
     val status = org.http4s.Status.fromInt(code).getOrElse(org.http4s.Status.BadRequest)
-    IO.pure(
-      Response[IO](status)
-        .withEntity(body)
-        .withContentType(jsonContentType)
-        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
-    )
+    IO.pure(withResponseHeaders(Response[IO](status).withEntity(body).withContentType(jsonContentType), callContext, None))
   }
   
   /** Old-style versions keep raw 400 codes — they never promote to 403/401/etc.
@@ -157,12 +166,7 @@ object ErrorResponseConverter {
     val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(resolvedCode, failure.failMsg, callContext)
                else toJsonString(OBPErrorResponse(resolvedCode, failure.failMsg))
     val status = org.http4s.Status.fromInt(resolvedCode).getOrElse(org.http4s.Status.BadRequest)
-    IO.pure(
-      Response[IO](status)
-        .withEntity(body)
-        .withContentType(jsonContentType)
-        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
-    )
+    IO.pure(withResponseHeaders(Response[IO](status).withEntity(body).withContentType(jsonContentType), callContext, failure.callContextLight))
   }
   
   /**
@@ -172,12 +176,7 @@ object ErrorResponseConverter {
   def boxFailureToResponse(failure: LiftFailure, callContext: CallContext): IO[Response[IO]] = {
     val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(400, failure.msg, callContext)
                else toJsonString(OBPErrorResponse(400, failure.msg))
-    IO.pure(
-      Response[IO](org.http4s.Status.BadRequest)
-        .withEntity(body)
-        .withContentType(jsonContentType)
-        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
-    )
+    IO.pure(withResponseHeaders(Response[IO](org.http4s.Status.BadRequest).withEntity(body).withContentType(jsonContentType), callContext, None))
   }
   
   /**
@@ -189,26 +188,16 @@ object ErrorResponseConverter {
     val message = s"$UnknownError: ${e.getMessage}"
     val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(500, message, callContext)
                else toJsonString(OBPErrorResponse(500, message))
-    IO.pure(
-      Response[IO](org.http4s.Status.InternalServerError)
-        .withEntity(body)
-        .withContentType(jsonContentType)
-        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
-    )
+    IO.pure(withResponseHeaders(Response[IO](org.http4s.Status.InternalServerError).withEntity(body).withContentType(jsonContentType), callContext, None))
   }
 
   /**
    * Create error response with specific status code and message.
    */
-  def createErrorResponse(statusCode: Int, message: String, callContext: CallContext): IO[Response[IO]] = {
+  def createErrorResponse(statusCode: Int, message: String, callContext: CallContext, callContextLight: Option[CallContextLight] = None): IO[Response[IO]] = {
     val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(statusCode, message, callContext)
                else toJsonString(OBPErrorResponse(statusCode, message))
     val status = org.http4s.Status.fromInt(statusCode).getOrElse(org.http4s.Status.BadRequest)
-    IO.pure(
-      Response[IO](status)
-        .withEntity(body)
-        .withContentType(jsonContentType)
-        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
-    )
+    IO.pure(withResponseHeaders(Response[IO](status).withEntity(body).withContentType(jsonContentType), callContext, callContextLight))
   }
 }

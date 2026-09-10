@@ -49,9 +49,9 @@ class VersionResourceDocsNonEmptyTest extends ServerSetup {
       ("v6.0.0", { code.api.v6_0_0.Http4s600.Implementations6_0_0.hashCode(); code.api.v6_0_0.Http4s600.resourceDocs.size }),
       ("v7.0.0", { code.api.v7_0_0.Http4s700.Implementations7_0_0.hashCode(); code.api.v7_0_0.Http4s700.resourceDocs.size }))
 
-  feature("every API version registers resource docs") {
+  Feature("every API version registers resource docs") {
 
-    scenario("no version registers an empty set") {
+    Scenario("no version registers an empty set") {
       val unregistered = versions.collect { case (name, 0) => name }
       withClue("these versions registered no resource docs, so ResourceDocMiddleware has no index " +
         s"entries for them and every request to them skips auth and role checks: ${unregistered.mkString(", ")} ") {
@@ -59,7 +59,7 @@ class VersionResourceDocsNonEmptyTest extends ServerSetup {
       }
     }
 
-    scenario("each version registers more than a token handful") {
+    Scenario("each version registers more than a token handful") {
       // A floor, not a count: this fails when a version stops registering, not when one is added.
       versions.foreach { case (name, size) =>
         withClue(s"$name registered only $size resource docs: ") {

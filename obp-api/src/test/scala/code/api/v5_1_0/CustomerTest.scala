@@ -33,7 +33,7 @@ import code.api.util.ApiRole.CanGetCustomersAtOneBank
 import code.api.util.ErrorMessages._
 import code.api.v3_0_0.CustomerJSONsV300
 import code.api.v3_1_0.CustomerJsonV310
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.usercustomerlinks.UserCustomerLink

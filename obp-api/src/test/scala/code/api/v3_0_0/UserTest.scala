@@ -7,7 +7,7 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v2_0_0.JSONFactory200.UsersJsonV200
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf

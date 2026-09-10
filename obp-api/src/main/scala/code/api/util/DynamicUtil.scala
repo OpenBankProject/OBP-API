@@ -45,6 +45,21 @@ object DynamicUtil extends MdcLoggable{
   // implementation (Scala 3 has no ToolBox) without touching any caller.
   private val scalaCompiler: DynamicScalaCompiler = DotcScalaCompiler
 
+  /** One compiler diagnostic from [[checkScalaCode]]. `line`/`column` are 1-based in the code that was checked; 0 when unknown. */
+  case class CompileProblem(line: Int, column: Int, severity: String, message: String)
+
+  /**
+   * Compile `code` for diagnostics only: nothing is evaluated, nothing is cached. Empty list = compiles.
+   * Callers must apply the kill switch and a role.
+   *
+   * Upstream implemented this on a second Scala 2 `ToolBox`; Scala 3 has no ToolBox, so it
+   * delegates to the same `DynamicScalaCompiler` the real compile path uses, whose `check` runs
+   * the compiler without evaluating or caching. That also removes upstream's serialisation
+   * requirement - there is no shared mutable front end to guard.
+   */
+  def checkScalaCode(code: String): List[CompileProblem] =
+    scalaCompiler.check(code).map(d => CompileProblem(d.line, d.column, d.severity, d.message))
+
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
 
   /**

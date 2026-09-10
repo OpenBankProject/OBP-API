@@ -5,7 +5,7 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.JwsUtil.{getPem, signRequest, verifyJws}
 import code.api.util.X509.validate
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v4_0_0.V400ServerSetup
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Full

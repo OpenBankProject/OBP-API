@@ -9,7 +9,7 @@ import code.api.util.ExampleValue.{customerAttributeValueExample,customerAttribu
 import code.api.v3_0_0.CustomerAttributeResponseJsonV300
 import code.api.v3_1_0.CustomerWithAttributesJsonV310
 import com.openbankproject.commons.model.ListResult
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage

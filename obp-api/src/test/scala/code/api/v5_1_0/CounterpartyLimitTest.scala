@@ -5,8 +5,8 @@ import code.api.Constant.{SYSTEM_OWNER_VIEW_ID}
 import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.OAuth._
 import code.api.v2_1_0.{CounterpartyIdJson, TransactionRequestBodyCounterpartyJSON}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion

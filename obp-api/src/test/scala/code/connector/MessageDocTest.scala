@@ -2,7 +2,7 @@ package code.connector
 
 import org.json4s._
 import code.api.v2_2_0.JSONFactory220.MessageDocJson
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
+import code.api.v2_2_0.Http4s220.Implementations2_2_0
 import code.api.v2_2_0.V220ServerSetup
 import code.bankconnectors.LocalMappedConnector
 import code.setup.DefaultUsers

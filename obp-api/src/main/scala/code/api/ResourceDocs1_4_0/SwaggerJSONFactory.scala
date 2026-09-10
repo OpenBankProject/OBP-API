@@ -561,7 +561,7 @@ object SwaggerJSONFactory extends MdcLoggable {
           OperationObjectJson(
             tags = rd.tags,
             summary = rd.summary,
-            description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin).replaceAll("\n", ""),
+            description = PegdownOptions.convertPegdownToHtmlTweaked(Glossary.expandGlossaryPlaceholders(rd.description.stripMargin)).replaceAll("\n", ""),
             operationId = s"${rd.operation_id}",
             parameters ={
               val description = rd.example_request_body match {
@@ -680,7 +680,16 @@ object SwaggerJSONFactory extends MdcLoggable {
         case _ => paramValue
       }
 
-      val definition = buildSwaggerSchema(paramType, exampleValue)
+      // buildSwaggerSchema's failures name neither the class nor the field, and this runs over
+      // every published definition - so an unusable example surfaced as a bare "Example should
+      // neither be JNothing nor JNull" with no way to tell which field to fix. Name it here.
+      val definition =
+        try buildSwaggerSchema(paramType, exampleValue)
+        catch {
+          case e: RuntimeException =>
+            throw new RuntimeException(
+              s"${entityType.typeSymbol.fullName}.${it._1}: ${e.getMessage}", e)
+        }
 
       s""" "$paramName": $definition """
     })
@@ -828,6 +837,16 @@ object SwaggerJSONFactory extends MdcLoggable {
         buildSwaggerSchema(tp, value)
 
       //JValue type
+      // A field declared as a bare JValue whose example is empty is not a documentation bug: the
+      // value is genuinely absent from some responses. DynamicChangeRequestJsonV700.current_payload
+      // is JNothing for a CREATE - there is no current payload to show - and json4s omits the field
+      // from the body entirely. No type can be recovered, and "object" is exactly what the null
+      // branch further down already answers for the same field. The guard below still fails every
+      // other declared type whose example is empty, which is where it earns its keep.
+      case _ if isTypeOf(SwaggerTypes.tJValue) &&
+                (exampleValue == null || exampleValue == JNull || exampleValue == JNothing) =>
+        """ {"type":"object"}"""
+
       case _ if exampleValue == JNull || exampleValue == JNothing => throw new RuntimeException("Example should neither be JNothing nor JNull")
 
       case _ if isTypeOf(SwaggerTypes.tJArray)                   =>

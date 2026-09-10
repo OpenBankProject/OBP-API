@@ -32,9 +32,9 @@ import net.liftweb.util.Helpers
  */
 class ConsumerNullCreatedByUserIdTest extends ServerSetup {
 
-  feature("a consumer row whose createdbyuserid is NULL") {
+  Feature("a consumer row whose createdbyuserid is NULL") {
 
-    scenario("is readable, and reads back as null the way Mapper did") {
+    Scenario("is readable, and reads back as null the way Mapper did") {
       val key = "nullcreator_" + Helpers.randomString(12).toLowerCase
       // Raw SQL on purpose: the provider always supplies a creator, so this is the only way to
       // produce the row a long-lived database carries.
@@ -60,7 +60,7 @@ class ConsumerNullCreatedByUserIdTest extends ServerSetup {
       }
     }
 
-    scenario("can still be rendered as JSON, rather than taking the endpoint down with an NPE") {
+    Scenario("can still be rendered as JSON, rather than taking the endpoint down with an NPE") {
       val key = "nullcreator_" + Helpers.randomString(12).toLowerCase
       DoobieUtil.runUpdate(
         sql"""INSERT INTO consumer

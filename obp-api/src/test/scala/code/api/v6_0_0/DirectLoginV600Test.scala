@@ -29,7 +29,7 @@ import org.json4s._
 import code.api.Constant.localIdentityProvider
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
-import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
+import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.api.v3_0_0.UserJsonV300
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
@@ -91,13 +91,20 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
   def directLoginV600Request = v6_0_0_Request / "my" / "logins" / "direct"
 
   before {
-    if (AuthUser.findByUsername(USERNAME).isEmpty)
-      AuthUser(
-        email = EMAIL,
-        username = USERNAME,
-        validated = true,
-        firstName = randomString(10),
-        lastName = randomString(10)).withPassword(VALID_PW).saveMe()
+    // TestPasswordConfig.VALID_PASSWORD is generated per JVM unless pinned in props, and
+    // ServerSetup preserves AuthUser rows across suites and runs. So an existing row created by
+    // an earlier JVM carries a password this run does not know: reset it instead of skipping.
+    AuthUser.findByUsername(USERNAME) match {
+      case net.liftweb.common.Full(existing) =>
+        AuthUser.update(existing.withPassword(VALID_PW).copy(validated = true))
+      case _ =>
+        AuthUser(
+          email = EMAIL,
+          username = USERNAME,
+          validated = true,
+          firstName = randomString(10),
+          lastName = randomString(10)).withPassword(VALID_PW).saveMe()
+    }
 
     if (Consumers.consumers.vend.getConsumerByConsumerKey(KEY).isEmpty)
       Consumers.consumers.vend.createConsumer(

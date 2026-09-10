@@ -35,9 +35,9 @@ class ConnectorRowJsonRoundTripTest extends code.setup.ServerSetupWithTestData {
     json.extract[T]
   }
 
-  feature("a row a connector returns re-extracts as its commons type") {
+  Feature("a row a connector returns re-extracts as its commons type") {
 
-    scenario("a stored balance") {
+    Scenario("a stored balance") {
       val row = code.bankaccountbalance.BankAccountBalance(
         balanceId = BalanceId("b1"),
         bankId = BankId("bank1"),
@@ -57,7 +57,7 @@ class ConnectorRowJsonRoundTripTest extends code.setup.ServerSetupWithTestData {
       commons.referenceDate should equal(Some("2026-08-18"))
     }
 
-    scenario("an account, end to end through the registered proxy connector") {
+    Scenario("an account, end to end through the registered proxy connector") {
       // ProxyConnectorTest pins getBanks this way; accounts are the higher-traffic type and reach
       // the same InBound extraction, so whatever survives for banks has to survive here too.
       val bankId = BankId("proxy-round-trip-bank")
@@ -76,7 +76,7 @@ class ConnectorRowJsonRoundTripTest extends code.setup.ServerSetupWithTestData {
       account.currency should equal("EUR")
     }
 
-    scenario("a not-found result comes back as the box it is, not as an exception") {
+    Scenario("a not-found result comes back as the box it is, not as an exception") {
       // Stripping fields off an Empty or a Failure means serializing the box and reading it back as
       // the payload type, which throws. A connector that cannot find the account has to be able to
       // say so.
@@ -87,7 +87,7 @@ class ConnectorRowJsonRoundTripTest extends code.setup.ServerSetupWithTestData {
       box.isEmpty should equal(true)
     }
 
-    scenario("a list payload, which is most of them, through the registered proxy") {
+    Scenario("a list payload, which is most of them, through the registered proxy") {
       // List and Option are abstract classes themselves, so a conversion that checks "is the
       // target abstract?" before unwrapping them declines to convert every list - and every
       // list-returning connector method stays broken while the single-value ones look fixed.

@@ -9,7 +9,7 @@ import code.api.util.ErrorMessages._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
 import code.api.v2_1_0._
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.model.BankAccountX
 import code.setup.DefaultUsers
 import code.views.system.ViewPermission

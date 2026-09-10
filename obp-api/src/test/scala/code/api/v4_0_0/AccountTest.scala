@@ -9,7 +9,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFoundByAccountRouting, UserHas
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v2_0_0.BasicAccountJSON
 import code.api.v3_1_0.{CreateAccountResponseJsonV310, CustomerJsonV310, PostCustomerNumberJsonV310, PostPutProductJsonV310, ProductJsonV310}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme

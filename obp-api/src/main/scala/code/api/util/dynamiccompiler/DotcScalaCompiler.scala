@@ -78,6 +78,64 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
     compiled.computeIfAbsent(code, _ => compileAndEvaluate(code))
   }
 
+  /**
+   * Dry run: compile and report, evaluate nothing, cache nothing.
+   *
+   * It goes through the same wrapping/hoisting as `compileAndEvaluate` on purpose - the wrapper
+   * object and the prepended imports change what compiles, so checking the bare snippet would
+   * report errors the real compile never sees (and miss ones it does). Positions are therefore
+   * reported in the wrapped unit; they are useful for ordering and for the message, not as an
+   * exact offset into the caller's own text.
+   */
+  def check(code: String): List[DynamicCompileDiagnostic] = {
+    val wrapperName = s"DynCheck_${nextId.incrementAndGet()}"
+    val withImports = s"${_root_.code.api.util.DynamicUtil.importStatements}\n$code"
+    val (hoisted, kept) = hoistTypeDefinitions(withImports)
+    val source =
+      s"""object $wrapperName {
+         |${hoisted.mkString("\n")}
+         |  def result: Any = {
+         |${kept.mkString("\n")}
+         |  }
+         |}
+         |""".stripMargin
+
+    var workDir: Path = null
+    try {
+      workDir = Files.createTempDirectory("obp-dynamic-check")
+      val srcDir = Files.createDirectory(workDir.resolve("src"))
+      val outDir = Files.createDirectory(workDir.resolve("out"))
+      val sourceFile = srcDir.resolve(s"$wrapperName.scala")
+      Files.write(sourceFile, source.getBytes(StandardCharsets.UTF_8))
+
+      val args = Array(
+        "-classpath", runtimeClasspath,
+        "-d", outDir.toString,
+        "-deprecation",
+        "-feature",
+        "-source:3.3",
+        sourceFile.toString
+      )
+
+      val reporter = new Driver().process(args)
+      reporter.allErrors.reverse.map { error =>
+        // Same Java-facing interfaces API as formatErrors, and for the same reason: the
+        // Scala-side accessors need an implicit Context this call site does not have.
+        val diagnostic: dotty.tools.dotc.interfaces.Diagnostic = error
+        val position = diagnostic.position()
+        val (line, column) =
+          if (position.isPresent) (position.get().line(), position.get().column()) else (0, 0)
+        DynamicCompileDiagnostic(line, column, "ERROR", diagnostic.message())
+      }
+    } catch {
+      case NonFatal(e) =>
+        List(DynamicCompileDiagnostic(0, 0, "ERROR", Option(e.getMessage).getOrElse(e.toString)))
+    } finally {
+      // Unlike compileAndEvaluate nothing here is ever loaded, so the output can go immediately.
+      if (workDir != null) registerForDeleteOnExit(workDir)
+    }
+  }
+
   private def compileAndEvaluate(code: String): Either[DynamicCompileFailure, Any] = {
     val wrapperName = s"DynCompiled_${nextId.incrementAndGet()}"
     // `code.api.util.DynamicUtil.importStatements` is prepended unconditionally - some

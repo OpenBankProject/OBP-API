@@ -43,7 +43,13 @@ case class DynamicResourceDoc(
   // CreatedUpdated's two columns. Read as java.util.Date, not the java.sql.Timestamp the driver
   // hands back: json4s serialises the subclass as an empty JSON object.
   createdAt: Option[Date],
-  updatedAt: Option[Date]
+  updatedAt: Option[Date],
+  // Maker/checker (upstream commit 5d4af81c3): the hash a checker approved, and whether the row
+  // is live. The runtime loads this doc only when isActive and - when maker/checker is enabled
+  // for DYNAMIC_RESOURCE_DOC - when methodBodyHash equals approvedHash. Written only by an
+  // approved DynamicChangeRequest, never from a request body.
+  approvedHash: Option[String],
+  isActive: Boolean
 )
 
 object DynamicResourceDoc {
@@ -53,7 +59,7 @@ object DynamicResourceDoc {
     fr"""SELECT dynamicresourcedocid, bankid, partialfunctionname, requestverb, requesturl, summary,
                 description, examplerequestbody, successresponsebody, errorresponsebodies, tags,
                 roles_c, methodbody, createdbyuserid, updatedbyuserid, methodbodyhash,
-                createdat, updatedat
+                createdat, updatedat, approvedhash, isactive
          FROM dynamicresourcedoc"""
 
   // Every column the insert below binds through Option is read as one too. A doc posted with a
@@ -63,7 +69,8 @@ object DynamicResourceDoc {
     Option[String], Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String],
-    Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[String], Option[Boolean])
 
   /** java.sql.Timestamp is a java.util.Date subclass, but json4s renders it as {} - convert. */
   private def readDate(value: Option[java.sql.Timestamp]): Option[Date] =
@@ -72,14 +79,20 @@ object DynamicResourceDoc {
   private def fromRow(row: Row): DynamicResourceDoc = row match {
     case (dynamicResourceDocId, bankId, partialFunctionName, requestVerb, requestUrl, summary,
           description, exampleRequestBody, successResponseBody, errorResponseBodies, tags, roles,
-          methodBody, createdByUserId, updatedByUserId, methodBodyHash, createdAt, updatedAt) =>
+          methodBody, createdByUserId, updatedByUserId, methodBodyHash, createdAt, updatedAt,
+          approvedHash, isActive) =>
       // orNull, not "": MappedString handed a NULL column back as null and the JSON showed null.
       DynamicResourceDoc(dynamicResourceDocId.orNull, bankId, partialFunctionName.orNull,
         requestVerb.orNull, requestUrl.orNull, summary.orNull, description.orNull,
         exampleRequestBody, successResponseBody, errorResponseBodies.orNull, tags.orNull,
         roles.orNull, methodBody.orNull,
         createdByUserId, updatedByUserId, methodBodyHash,
-        readDate(createdAt), readDate(updatedAt))
+        readDate(createdAt), readDate(updatedAt),
+        // isactive is nullable in the changeset (rows written before the column existed have it
+        // NULL); Mapper's MappedBoolean read a NULL as false, but the column's own default is
+        // true and a pre-existing dynamic doc was live - so a NULL here means "made before
+        // maker/checker" and must stay live.
+        approvedHash, isActive.getOrElse(true))
   }
 
   private def query(condition: Fragment): List[DynamicResourceDoc] =
@@ -162,6 +175,45 @@ object DynamicResourceDoc {
         bankFilter(bankId)).update.run)
     true
   }
+
+
+  // ── Maker/checker write helpers (upstream commit 5d4af81c3) ────────────────────────────────
+  // Upstream drives these off the Mapper entity (`r.MethodBodyHash(h).ApprovedHash(h).IsActive(true).save`);
+  // with a Doobie store the same three writes are one statement.
+
+  /** Record `hash` as both the current body hash and the approved one, and make the row live. */
+  def setApproved(dynamicresourcedocid: String, hash: String): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicresourcedoc
+              SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
+                  isactive = true, updatedat = $now
+            WHERE dynamicresourcedocid = $dynamicresourcedocid""".update.run) == 1
+  }
+
+  /** Activate or deactivate without touching the approved hash. */
+  def setActive(dynamicresourcedocid: String, active: Boolean): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicresourcedoc SET isactive = $active, updatedat = $now
+            WHERE dynamicresourcedocid = $dynamicresourcedocid""".update.run) == 1
+  }
+
+  /** Rows that have never been approved - the one-off seeding set when the feature is enabled. */
+  def findAllWithoutApprovedHash(): List[DynamicResourceDoc] =
+    query(fr"WHERE approvedhash IS NULL OR approvedhash = '' ORDER BY id ASC")
+
+  /**
+   * Write only the body hash, leaving the approved hash alone.
+   *
+   * Exists for the maker/checker guard test, which has to simulate the body being changed behind
+   * the API's back - the one case the guard is there to catch. No production path writes these
+   * two apart: an approved change writes both through setApproved.
+   */
+  def setMethodBodyHash(dynamicResourceDocId: String, hash: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicresourcedoc SET methodbodyhash = ${Option(hash)}
+            WHERE dynamicresourcedocid = $dynamicResourceDocId""".update.run) == 1
 
   def deleteAll(): Unit = {
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicresourcedoc".update.run)

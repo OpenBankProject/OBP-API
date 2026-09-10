@@ -776,6 +776,24 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteApiProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteApiProductAttribute = CanDeleteApiProductAttribute()
 
+  // API Product Subscription roles, held at the product's bank (a billing adapter serving several
+  // banks is granted the role at each of them). Developers need none of these for their own
+  // consumers: ownership is enforced in the handler. See API_PRODUCT_SUBSCRIPTION_PLAN.md.
+  case class CanCreateApiProductSubscriptionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateApiProductSubscriptionAtOneBank = CanCreateApiProductSubscriptionAtOneBank()
+  case class CanGetApiProductSubscriptionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetApiProductSubscriptionAtOneBank = CanGetApiProductSubscriptionAtOneBank()
+  case class CanUpdateApiProductSubscriptionStatusAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateApiProductSubscriptionStatusAtOneBank = CanUpdateApiProductSubscriptionStatusAtOneBank()
+  case class CanDeleteApiProductSubscriptionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteApiProductSubscriptionAtOneBank = CanDeleteApiProductSubscriptionAtOneBank()
+  case class CanCreateApiProductSubscriptionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateApiProductSubscriptionAttributeAtOneBank = CanCreateApiProductSubscriptionAttributeAtOneBank()
+  case class CanUpdateApiProductSubscriptionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateApiProductSubscriptionAttributeAtOneBank = CanUpdateApiProductSubscriptionAttributeAtOneBank()
+  case class CanDeleteApiProductSubscriptionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteApiProductSubscriptionAttributeAtOneBank = CanDeleteApiProductSubscriptionAttributeAtOneBank()
+
   case class CanCreateSystemView(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateSystemView = CanCreateSystemView()
   case class CanUpdateSystemView(requiresBankId: Boolean = false) extends ApiRole
@@ -1090,6 +1108,14 @@ object ApiRole extends MdcLoggable{
 
   case class CanReadGlossary(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadGlossary = CanReadGlossary()
+
+  // Dynamic Glossary Items are system level, like the static Glossary they are merged into.
+  case class CanCreateGlossaryItem(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateGlossaryItem = CanCreateGlossaryItem()
+  case class CanUpdateGlossaryItem(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateGlossaryItem = CanUpdateGlossaryItem()
+  case class CanDeleteGlossaryItem(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteGlossaryItem = CanDeleteGlossaryItem()
 
   case class CanCreateCustomerAttributeDefinitionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomerAttributeDefinitionAtOneBank = CanCreateCustomerAttributeDefinitionAtOneBank()
@@ -1447,6 +1473,12 @@ object ApiRole extends MdcLoggable{
 
   case class CanUpdateAccountAccessRequestAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAccountAccessRequestAtAnyBank = CanUpdateAccountAccessRequestAtAnyBank()
+
+  // Maker/checker for dynamic code: approval is system level only (dynamic code runs in the shared JVM)
+  case class CanApproveDynamicChangeRequest(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canApproveDynamicChangeRequest = CanApproveDynamicChangeRequest()
+  case class CanGetDynamicChangeRequests(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicChangeRequests = CanGetDynamicChangeRequests()
   case class CanUpdateAccountAccessRequestAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccountAccessRequestAtOneBank = CanUpdateAccountAccessRequestAtOneBank()
 

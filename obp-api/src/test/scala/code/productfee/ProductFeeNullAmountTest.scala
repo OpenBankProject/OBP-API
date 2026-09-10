@@ -26,9 +26,9 @@ import net.liftweb.util.Helpers
  */
 class ProductFeeNullAmountTest extends ServerSetup {
 
-  feature("a productfee row whose amount column is NULL") {
+  Feature("a productfee row whose amount column is NULL") {
 
-    scenario("reads back as zero rather than failing the whole query") {
+    Scenario("reads back as zero rather than failing the whole query") {
       val suffix = Helpers.randomString(12).toLowerCase
       val bankId = "bank_" + suffix
       val productCode = "product_" + suffix

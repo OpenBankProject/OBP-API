@@ -7,7 +7,7 @@ import code.api.util.ApiRole.CanCreateBank
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.util.{APIUtil, ApiRole, ErrorMessages, NewStyle}
 import code.api.util.APIUtil.OAuth._
-import code.api.v5_0_0.APIMethods500.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf

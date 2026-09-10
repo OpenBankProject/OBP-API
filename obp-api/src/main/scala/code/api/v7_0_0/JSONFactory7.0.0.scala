@@ -1,13 +1,16 @@
 package code.api.v7_0_0
 
 import code.api.Constant
-import code.api.util.{APIUtil, CallContext, ExampleValue}
+import code.api.util.{APIUtil, AuthRateLimiter, CallContext, ExampleValue, RateLimitingUtil, SelfServiceRateLimiter}
 import code.api.util.ErrorMessages
+import code.api.util.{Glossary, PegdownOptions}
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v2_0_0.EntitlementJSONs
 import code.api.v3_0_0.{UserJsonV300, ViewsJSON300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400, UserAgreementJson}
 import code.api.v6_0_0.{EntitlementsJsonV600, JSONFactory600, UserInfoDetailJsonV600, UserV600}
+import code.apiproductsubscription.ApiProductSubscriptionTrait
+import code.apiproductsubscriptionattribute.ApiProductSubscriptionAttributeTrait
 import code.bankconnectors.Connector
 import code.customer.CustomerX
 import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsArchiveRunTrait, MetricsProps}
@@ -21,6 +24,8 @@ import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankAccount, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
 import com.openbankproject.commons.util.ApiVersion
 import java.util.Date
+import org.json4s.{Extraction, JValue}
+import org.json4s.JsonAST.{JNothing, JString}
 import net.liftweb.common.Full
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,7 +42,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     updated_by_user_id: Option[String],
     method_body_hash: Option[String],
     created_at: Option[String],
-    updated_at: Option[String]
+    updated_at: Option[String],
+    // maker/checker: the body hash a checker approved (None when never approved) and the active flag
+    approved_hash: Option[String] = None,
+    is_active: Option[Boolean] = None
   )
   case class DynamicResourceDocProvenanceJsonV700(dynamic_resource_doc: JsonDynamicResourceDoc, provenance: ProvenanceJsonV700)
   case class DynamicResourceDocsProvenanceJsonV700(dynamic_resource_docs: List[DynamicResourceDocProvenanceJsonV700])
@@ -56,7 +64,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         entity.createdByUserId.filter(StringUtils.isNotBlank),
         entity.updatedByUserId.filter(StringUtils.isNotBlank),
         entity.methodBodyHash.filter(StringUtils.isNotBlank),
-        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate))
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate),
+        // maker/checker, added upstream: the approved hash and the active flag
+        entity.approvedHash.filter(StringUtils.isNotBlank), Some(entity.isActive))
     )
 
   def createConnectorMethodProvenanceJsonV700(entity: ConnectorMethodWithProvenance): ConnectorMethodProvenanceJsonV700 =
@@ -66,7 +76,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         entity.createdByUserId.filter(StringUtils.isNotBlank),
         entity.updatedByUserId.filter(StringUtils.isNotBlank),
         entity.methodBodyHash.filter(StringUtils.isNotBlank),
-        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate))
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate),
+        // maker/checker, added upstream: the approved hash and the active flag
+        entity.approvedHash.filter(StringUtils.isNotBlank), Some(entity.isActive))
     )
 
   def createDynamicMessageDocProvenanceJsonV700(entity: DynamicMessageDoc): DynamicMessageDocProvenanceJsonV700 =
@@ -76,10 +88,216 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         entity.createdByUserId.filter(StringUtils.isNotBlank),
         entity.updatedByUserId.filter(StringUtils.isNotBlank),
         entity.methodBodyHash.filter(StringUtils.isNotBlank),
-        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate))
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate),
+        // maker/checker, added upstream: the approved hash and the active flag
+        entity.approvedHash.filter(StringUtils.isNotBlank), Some(entity.isActive))
     )
 
+  // ─── Maker/checker: dynamic change requests (design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
+  case class PostDynamicChangeRequestJsonV700(
+    target_type: String,
+    operation: String,
+    target_id: Option[String],
+    bank_id: Option[String],
+    proposed_payload: JValue,
+    business_justification: Option[String]
+  )
+  case class PostApproveDynamicChangeRequestJsonV700(payload_hash: String, checker_comment: Option[String])
+  case class PostRejectDynamicChangeRequestJsonV700(comment: String)
+  case class PostWithdrawDynamicChangeRequestJsonV700(comment: Option[String])
+  case class PostDeactivateDynamicArtefactJsonV700(comment: Option[String])
+
+  case class DynamicChangeRequestJsonV700(
+    dynamic_change_request_id: String,
+    target_type: String,
+    target_id: String,
+    operation: String,
+    status: String,
+    request_verb: String,
+    request_path: String,
+    payload_hash: String,
+    current_payload_hash: String,
+    proposed_payload: JValue,
+    current_payload: JValue,
+    requestor_user_id: String,
+    business_justification: String,
+    checker_user_id: String,
+    checker_comment: String,
+    created_at: String,
+    actioned_at: String,
+    expires_at: String
+  )
+  case class DynamicChangeRequestsJsonV700(dynamic_change_requests: List[DynamicChangeRequestJsonV700])
+
+  private def parseOrString(s: String): JValue =
+    com.openbankproject.commons.util.JsonAliases.parseOpt(Option(s).getOrElse("")).getOrElse(if (StringUtils.isBlank(s)) JNothing else JString(s))
+
+  /** The live target's JSON, so a client can diff proposed vs current; JNothing when it does not exist. */
+  def currentPayloadOf(targetType: String, targetId: String): JValue = {
+    import code.abacrule.MappedAbacRuleProvider
+    import com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType._
+    if (StringUtils.isBlank(targetId)) JNothing
+    else scala.util.Try(com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.withName(targetType)).toOption.map {
+      case DYNAMIC_RESOURCE_DOC => code.dynamicResourceDoc.DynamicResourceDocProvider.provider.vend.getById(None, targetId).map(Extraction.decompose(_)).getOrElse(JNothing)
+      case DYNAMIC_MESSAGE_DOC  => code.dynamicMessageDoc.DynamicMessageDocProvider.provider.vend.getById(None, targetId).map(Extraction.decompose(_)).getOrElse(JNothing)
+      case CONNECTOR_METHOD     => code.connectormethod.ConnectorMethodProvider.provider.vend.getById(targetId).map(Extraction.decompose(_)).getOrElse(JNothing)
+      case ABAC_RULE            => MappedAbacRuleProvider.getAbacRuleById(targetId).map(r => Extraction.decompose(JSONFactory600.createAbacRuleJsonV600(r))).getOrElse(JNothing)
+      case _                    => JNothing
+    }.getOrElse(JNothing)
+  }
+
+  def createDynamicChangeRequestJsonV700(r: code.dynamicchangerequest.DynamicChangeRequestTrait): DynamicChangeRequestJsonV700 =
+    DynamicChangeRequestJsonV700(
+      dynamic_change_request_id = r.dynamicChangeRequestId,
+      target_type = r.targetType,
+      target_id = r.targetId,
+      operation = r.operation,
+      status = r.status,
+      request_verb = r.requestVerb,
+      request_path = r.requestPath,
+      payload_hash = r.payloadHash,
+      current_payload_hash = r.currentPayloadHash,
+      proposed_payload = parseOrString(r.proposedPayload),
+      current_payload = currentPayloadOf(r.targetType, r.targetId),
+      requestor_user_id = r.requestorUserId,
+      business_justification = r.businessJustification,
+      checker_user_id = r.checkerUserId,
+      checker_comment = r.checkerComment,
+      created_at = APIUtil.formatDate(r.created),
+      actioned_at = r.actionedAt.map(APIUtil.formatDate).getOrElse(""),
+      expires_at = r.expiresAt.map(APIUtil.formatDate).getOrElse("")
+    )
+
+
   case class ErrorMessageEntryJsonV700(code: String, name: String, message: String)
+
+  // ─── API tags (GET /api/tags) ─────────────────────────────────────────────────────────────
+  /** One API tag and the number of endpoints in the aggregated v7.0.0 resource docs that carry it. */
+  case class ApiTagJsonV700(tag: String, number_of_endpoints: Int)
+
+  /**
+   * All API tags with per-tag endpoint counts, sorted by number_of_endpoints descending then tag name.
+   * `number_of_endpoints` at the top level is the number of distinct endpoints counted; an endpoint
+   * with several tags is counted once under each of them, so the per-tag counts sum to more than that.
+   */
+  case class ApiTagsJsonV700(tags: List[ApiTagJsonV700], number_of_endpoints: Int)
+
+  val apiTagsJsonV700Example: ApiTagsJsonV700 = ApiTagsJsonV700(
+    tags = List(
+      ApiTagJsonV700(tag = "Account", number_of_endpoints = 42),
+      ApiTagJsonV700(tag = "Bank", number_of_endpoints = 17),
+      ApiTagJsonV700(tag = "Transaction Request", number_of_endpoints = 12)
+    ),
+    number_of_endpoints = 900
+  )
+
+  /**
+   * Counts endpoints per tag over the given resource docs and merges the result with every tag known to
+   * `ApiTag` (static and dynamic), so tags with no endpoints still appear with a count of 0.
+   */
+  def createApiTagsJsonV700(resourceDocs: Seq[APIUtil.ResourceDoc]): ApiTagsJsonV700 = {
+    val counts: Map[String, Int] = resourceDocs
+      .flatMap(_.tags.map(_.displayTag).distinct)
+      .groupBy(identity)
+      .map { case (tag, occurrences) => tag -> occurrences.size }
+    val allTagNames: Set[String] = code.api.util.ApiTag.allDisplayTagNames ++ counts.keySet
+    val tags = allTagNames.toList
+      .map(tag => ApiTagJsonV700(tag, counts.getOrElse(tag, 0)))
+      .sortBy(t => (-t.number_of_endpoints, t.tag))
+    ApiTagsJsonV700(tags, resourceDocs.size)
+  }
+
+  // ─── Rate limiter config (GET /management/rate-limiter-config) ─────────────────────────
+  /** One limit row of a rate limiter. Windows the limiter does not have are absent; -1 means unlimited, 0 blocks. */
+  case class RateLimiterLimitJsonV700(
+    scope: String,
+    per_second: Option[Long] = None,
+    per_minute: Option[Long] = None,
+    per_hour: Option[Long] = None,
+    per_day: Option[Long] = None,
+    per_week: Option[Long] = None,
+    per_month: Option[Long] = None,
+    global_per_hour: Option[Long] = None
+  )
+  /** One of the three rate limiters, in the order they are checked. `mode` is shadow or enforce. */
+  case class RateLimiterJsonV700(
+    name: String,
+    order: Int,
+    error_code: String,
+    enabled: Boolean,
+    mode: String,
+    keyed_by: String,
+    runs: String,
+    props_prefix: String,
+    limits: List[RateLimiterLimitJsonV700]
+  )
+  case class RateLimitersJsonV700(rate_limiters: List[RateLimiterJsonV700])
+
+  val rateLimitersJsonV700Example: RateLimitersJsonV700 = RateLimitersJsonV700(List(
+    RateLimiterJsonV700("self_service", 1, "OBP-10060", enabled = true, "shadow", "client IP address",
+      "before routing and before authentication, on the self-service endpoints", "self_service.rate_limit",
+      // Every window is named here even though the self-service limiter only configures four of
+      // them: swagger takes a List's published element type from its FIRST element, and an
+      // Option[Long] left None there has no type to recover, so the field publishes as a dangling
+      // $ref to Object (SwaggerFactoryUnitTest's "no dangling $ref" scenario catches it). -1 is
+      // the codebase's "not limited" value and reads correctly as one.
+      List(RateLimiterLimitJsonV700("signup", per_second = Some(-1), per_minute = Some(3), per_hour = Some(5),
+        per_day = Some(10), per_week = Some(-1), per_month = Some(-1), global_per_hour = Some(500)))),
+    RateLimiterJsonV700("authentication", 2, "OBP-10061", enabled = false, "shadow", "client IP address and account",
+      "inside the credential check of Direct Login, DAuth, Gateway Login and SIWE", "auth.rate_limit",
+      List(RateLimiterLimitJsonV700("ip", per_minute = Some(10), per_hour = Some(100)), RateLimiterLimitJsonV700("account", per_minute = Some(6)))),
+    RateLimiterJsonV700("consumer", 3, "OBP-10018", enabled = true, "enforce", "Consumer, or client IP address for anonymous calls",
+      "after authentication, on every endpoint", "rate_limiting_per_*",
+      List(RateLimiterLimitJsonV700("consumer_default", Some(-1), Some(-1), Some(-1), Some(-1), Some(-1), Some(-1)), RateLimiterLimitJsonV700("anonymous", per_hour = Some(1000))))
+  ))
+
+  /** The live configuration of the three rate limiters, from props and built-in defaults. */
+  def createRateLimitersJsonV700(): RateLimitersJsonV700 = {
+    def errorCode(msg: String): String = APIUtil.extractErrorMessageCode(msg)
+    def prop(name: String, default: Long): Long = APIUtil.getPropsAsLongValue(name, default)
+    def opt(v: Long): Option[Long] = Some(v)
+
+    val selfService = RateLimiterJsonV700(
+      name = "self_service", order = 1, error_code = errorCode(ErrorMessages.TooManyRequestsSelfService),
+      enabled = SelfServiceRateLimiter.enabled, mode = SelfServiceRateLimiter.mode,
+      keyed_by = "client IP address",
+      runs = "before routing and before authentication, on the self-service endpoints",
+      props_prefix = SelfServiceRateLimiter.PropsPrefix,
+      limits = SelfServiceRateLimiter.scopeDefaults.keys.toList.sorted.map { scope =>
+        RateLimiterLimitJsonV700(scope,
+          per_minute = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_minute")),
+          per_hour = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_hour")),
+          per_day = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_day")),
+          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)))
+      }
+    )
+    val authentication = RateLimiterJsonV700(
+      name = "authentication", order = 2, error_code = errorCode(ErrorMessages.TooManyRequestsAuth),
+      enabled = AuthRateLimiter.enabled, mode = AuthRateLimiter.mode,
+      keyed_by = "client IP address and account",
+      runs = "inside the credential check of Direct Login, DAuth, Gateway Login and SIWE",
+      props_prefix = AuthRateLimiter.PropsPrefix,
+      limits = List(
+        RateLimiterLimitJsonV700("ip", per_minute = opt(AuthRateLimiter.perIpPerMinute), per_hour = opt(AuthRateLimiter.perIpPerHour)),
+        RateLimiterLimitJsonV700("account", per_minute = opt(AuthRateLimiter.perUserPerMinute)))
+    )
+    val consumer = RateLimiterJsonV700(
+      name = "consumer", order = 3, error_code = errorCode(ErrorMessages.TooManyRequests),
+      enabled = RateLimitingUtil.useConsumerLimits, mode = "enforce",
+      keyed_by = "Consumer, or client IP address for anonymous calls",
+      runs = "after authentication, on every endpoint",
+      props_prefix = "rate_limiting_per_*",
+      limits = List(
+        // Props defaults apply to a Consumer with no rate limit rows; rows written by the management
+        // endpoints and API Product Subscriptions override them per Consumer.
+        RateLimiterLimitJsonV700("consumer_default",
+          per_second = opt(prop("rate_limiting_per_second", -1)), per_minute = opt(prop("rate_limiting_per_minute", -1)),
+          per_hour = opt(prop("rate_limiting_per_hour", -1)), per_day = opt(prop("rate_limiting_per_day", -1)),
+          per_week = opt(prop("rate_limiting_per_week", -1)), per_month = opt(prop("rate_limiting_per_month", -1))),
+        RateLimiterLimitJsonV700("anonymous", per_hour = opt(prop("user_consumer_limit_anonymous_access", 1000))))
+    )
+    RateLimitersJsonV700(List(selfService, authentication, consumer))
+  }
 
   // Cached for server lifetime: ErrorMessages is a static catalog of `val X = "OBP-NNNNN: ..."`
   // strings, so reflecting over it once at first access is sufficient. Filters:
@@ -733,6 +951,106 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       supported_routing_schemes = rows.filter(_.enabled).map(r =>
         BankSupportedRoutingSchemeJsonV700(scheme = r.scheme, bank_notes = r.bankNotes)
       )
+    )
+
+  // ── Dynamic Glossary Item JSON case classes ─────────────────────────────────
+  // Description is carried as markdown on the way in and returned as both markdown and rendered
+  // html on the way out, matching GlossaryDescriptionJsonV300 as served by GET /api/glossary.
+
+  case class PostGlossaryItemJsonV700(
+      title: String,
+      description: String,
+      // Declared intent to shadow a static Glossary Item of the same title. Absent or false means
+      // a collision with a static title is refused, so shadowing is never accidental.
+      overrides_static_item: Option[Boolean]
+  )
+
+  case class PutGlossaryItemJsonV700(
+      description: String,
+      overrides_static_item: Option[Boolean]
+  )
+
+  case class GlossaryItemDescriptionJsonV700(markdown: String, html: String)
+
+  case class GlossaryItemJsonV700(
+      glossary_item_id: String,
+      title: String,
+      description: GlossaryItemDescriptionJsonV700,
+      // What the operator declared when creating or updating the item.
+      overrides_static_item: Boolean,
+      // What is actually true right now: a static Glossary Item of this title exists. The two
+      // differ when a static Item was added after this one, which is worth someone's attention.
+      shadows_static_glossary_item: Boolean,
+      created_by_user_id: String,
+      created_at: java.util.Date,
+      updated_at: java.util.Date
+  )
+
+  case class GlossaryItemPaginationJsonV700(total: Int, limit: Int, offset: Int)
+
+  case class GlossaryItemsJsonV700(
+      glossary_items: List[GlossaryItemJsonV700],
+      pagination: GlossaryItemPaginationJsonV700
+  )
+
+  def createGlossaryItemJsonV700(r: code.glossaryitem.DynamicGlossaryItemTrait): GlossaryItemJsonV700 =
+    GlossaryItemJsonV700(
+      glossary_item_id = r.glossaryItemId,
+      title = r.title,
+      description = GlossaryItemDescriptionJsonV700(
+        markdown = r.description,
+        html = PegdownOptions.convertPegdownToHtmlTweaked(r.description)
+      ),
+      overrides_static_item = r.overridesStaticItem,
+      // Flagged so a caller can see at a glance that this item is shadowing shipped text.
+      shadows_static_glossary_item = Glossary.staticGlossaryItemExists(r.title),
+      created_by_user_id = r.createdByUserId,
+      created_at = r.createdAt,
+      updated_at = r.updatedAt
+    )
+
+  // ── The Glossary as served: static and Dynamic Items merged ─────────────────
+  // Distinct from GlossaryItemJsonV700 above, which is the management view of one Dynamic Item.
+  // v3.0.0 serves the same Glossary without these provenance fields; that version is STABLE and
+  // its JSON must not change, so the flags are offered here instead.
+
+  case class ApiGlossaryItemJsonV700(
+      title: String,
+      description: GlossaryItemDescriptionJsonV700,
+      // True when this entry comes from the DynamicGlossaryItem table rather than the API source.
+      is_dynamic: Boolean,
+      // True when this Dynamic Item is displacing a static Glossary Item of the same title.
+      overrides_static_item: Boolean
+  )
+
+  case class ApiGlossaryJsonV700(glossary_items: List[ApiGlossaryItemJsonV700])
+
+  def createApiGlossaryItemJsonV700(item: Glossary.GlossaryItem): ApiGlossaryItemJsonV700 = {
+    // Glossary Items cross-reference each other, so expand their placeholders as well.
+    val description = Glossary.expandGlossaryPlaceholders(item.description())
+    ApiGlossaryItemJsonV700(
+      title = item.title,
+      description = GlossaryItemDescriptionJsonV700(
+        markdown = description.stripMargin,
+        html = PegdownOptions.convertPegdownToHtmlTweaked(description)
+      ),
+      is_dynamic = item.isDynamic,
+      overrides_static_item = item.shadowsStaticItem
+    )
+  }
+
+  def createApiGlossaryJsonV700(items: List[Glossary.GlossaryItem]): ApiGlossaryJsonV700 =
+    ApiGlossaryJsonV700(glossary_items = items.map(createApiGlossaryItemJsonV700))
+
+  def createGlossaryItemsJsonV700(
+      rows: List[code.glossaryitem.DynamicGlossaryItemTrait],
+      total: Int,
+      limit: Int,
+      offset: Int
+  ): GlossaryItemsJsonV700 =
+    GlossaryItemsJsonV700(
+      glossary_items = rows.map(createGlossaryItemJsonV700),
+      pagination = GlossaryItemPaginationJsonV700(total = total, limit = limit, offset = offset)
     )
 
   // ── Qualified Identifier ────────────────────────────────────────────────────
@@ -1500,6 +1818,121 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     sca_enabled = true
   )
 
+  // ─── Consumer rate limits across all consumers — what overrides the consumer limiter's defaults ──
+
+  case class ConsumerRateLimitJsonV700(
+    rate_limiting_id: String,
+    consumer_id: String,
+    consumer_name: String,
+    api_version: Option[String],
+    api_name: Option[String],
+    bank_id: Option[String],
+    from_date: java.util.Date,
+    to_date: java.util.Date,
+    is_active: Boolean,
+    per_second_call_limit: String,
+    per_minute_call_limit: String,
+    per_hour_call_limit: String,
+    per_day_call_limit: String,
+    per_week_call_limit: String,
+    per_month_call_limit: String,
+    created_at: java.util.Date,
+    updated_at: java.util.Date
+  )
+  case class ConsumerRateLimitsJsonV700(rate_limits: List[ConsumerRateLimitJsonV700])
+
+  def createConsumerRateLimitJsonV700(r: code.ratelimiting.RateLimiting, consumerName: String, now: java.util.Date): ConsumerRateLimitJsonV700 =
+    ConsumerRateLimitJsonV700(
+      rate_limiting_id = r.rateLimitingId,
+      consumer_id = r.consumerId,
+      consumer_name = consumerName,
+      api_version = r.apiVersion,
+      api_name = r.apiName,
+      bank_id = r.bankId,
+      from_date = r.fromDate,
+      to_date = r.toDate,
+      is_active = !now.before(r.fromDate) && !now.after(r.toDate),
+      per_second_call_limit = r.perSecondCallLimit.toString,
+      per_minute_call_limit = r.perMinuteCallLimit.toString,
+      per_hour_call_limit = r.perHourCallLimit.toString,
+      per_day_call_limit = r.perDayCallLimit.toString,
+      per_week_call_limit = r.perWeekCallLimit.toString,
+      per_month_call_limit = r.perMonthCallLimit.toString,
+      created_at = r.createdAt,
+      updated_at = r.updatedAt
+    )
+
+  lazy val consumerRateLimitsJsonV700Example = ConsumerRateLimitsJsonV700(List(ConsumerRateLimitJsonV700(
+    rate_limiting_id = "2f1b6c0e-9d5a-4c3b-8e7f-1a2b3c4d5e6f",
+    consumer_id = "8e716299-4668-4efd-976a-67f57a9984ec",
+    consumer_name = "Mobile App",
+    api_version = None,
+    api_name = None,
+    bank_id = None,
+    from_date = APIUtil.DateWithDayExampleObject,
+    to_date = APIUtil.DateWithDayExampleObject,
+    is_active = true,
+    per_second_call_limit = "-1",
+    per_minute_call_limit = "-1",
+    per_hour_call_limit = "1000",
+    per_day_call_limit = "10000",
+    per_week_call_limit = "-1",
+    per_month_call_limit = "-1",
+    created_at = APIUtil.DateWithDayExampleObject,
+    updated_at = APIUtil.DateWithDayExampleObject
+  )))
+
+  // ─── Dynamic resource doc dry-run compile ─────────────────────────────────
+
+  /** Request: the parts of a Dynamic Resource Doc that shape the compiled code. */
+  case class DynamicResourceDocCompileJsonV700(
+    request_verb: String,
+    request_url: String,
+    method_body: String,
+    example_request_body: Option[JValue],
+    success_response_body: Option[JValue]
+  )
+  case class DynamicCompileErrorJsonV700(line: Int, column: Int, severity: String, message: String)
+  case class DynamicCompileResultJsonV700(
+    compiles: Boolean,
+    errors: List[DynamicCompileErrorJsonV700],
+    dependency_error: Option[String],
+    duration_ms: Long
+  )
+  lazy val dynamicResourceDocCompileJsonV700Example = DynamicResourceDocCompileJsonV700(
+    request_verb = "GET",
+    request_url = "/hello/world",
+    method_body = java.net.URLEncoder.encode("Future.successful((Map(\"hello\" -> \"world\"), HttpCode.`200`(callContext)))", "UTF-8"),
+    example_request_body = None,
+    success_response_body = Some(org.json4s.JsonAST.JObject(List(org.json4s.JsonAST.JField("hello", org.json4s.JsonAST.JString("world")))))
+  )
+  lazy val dynamicCompileResultJsonV700Example = DynamicCompileResultJsonV700(
+    compiles = false,
+    errors = List(DynamicCompileErrorJsonV700(1, 24, "ERROR", "not found: value Full")),
+    dependency_error = None,
+    duration_ms = 850
+  )
+
+  // ─── Dynamic code approval config — whether maker/checker gates dynamic artefacts on this instance ──
+
+  case class DynamicCodeApprovalConfigJsonV700(
+    dynamic_code_execution_enabled: Boolean,
+    requires_approval: Boolean,
+    target_types: List[String],
+    delete_requires_approval: Boolean,
+    request_ttl_hours: Int,
+    approval_role: String
+  )
+
+  lazy val dynamicCodeApprovalConfigJsonV700Example = DynamicCodeApprovalConfigJsonV700(
+    dynamic_code_execution_enabled = true,
+    requires_approval = true,
+    target_types = List("DYNAMIC_RESOURCE_DOC", "DYNAMIC_MESSAGE_DOC", "CONNECTOR_METHOD", "ABAC_RULE"),
+    delete_requires_approval = true,
+    request_ttl_hours = 168,
+    approval_role = "CanApproveDynamicChangeRequest"
+  )
+
   // ─── User JSON — v7 adds the user's own OBP-verified mobile phone fields ───────
   // Distinct from Customer.mobile_phone_number (bank-scoped KYC data): this is the
   // authenticated person's number, global across banks, stored on ResourceUser.
@@ -1709,6 +2142,23 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class RequiredCharacterClassJsonV700(
     name: String,
     regex: String
+  )
+
+  /** The calling Consumer's identity and nothing else: no description, no limits, no counters, no key. */
+  case class CurrentConsumerIdentityJsonV700(
+    consumer_id: String,
+    consumer_name: String
+  )
+
+  def createCurrentConsumerIdentityJsonV700(consumer: code.model.Consumer): CurrentConsumerIdentityJsonV700 =
+    CurrentConsumerIdentityJsonV700(
+      consumer_id = consumer.consumerId,
+      consumer_name = Option(consumer.name).getOrElse("")
+    )
+
+  lazy val currentConsumerIdentityJsonV700Example = CurrentConsumerIdentityJsonV700(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    consumer_name = "OBP Portal"
   )
 
   case class PasswordPolicyJsonV700(
@@ -2214,4 +2664,110 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     ),
     everything_as_expected = true
   )
+
+  // ─── API Product Subscription (v7.0.0). See API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
+
+  case class PostApiProductSubscriptionJsonV700(
+    consumer_id: String,
+    start_date: Option[Date],
+    end_date: Option[Date]
+  )
+
+  case class PutApiProductSubscriptionStatusJsonV700(
+    status: String,
+    end_date: Option[Date]
+  )
+
+  case class ApiProductSubscriptionAttributeJsonV700(
+    name: String,
+    `type`: String,
+    value: String,
+    is_active: Option[Boolean]
+  )
+
+  case class ApiProductSubscriptionAttributeResponseJsonV700(
+    api_product_subscription_id: String,
+    api_product_subscription_attribute_id: String,
+    name: String,
+    `type`: String,
+    value: String,
+    is_active: Option[Boolean]
+  )
+
+  case class ApiProductSubscriptionJsonV700(
+    api_product_subscription_id: String,
+    bank_id: String,
+    api_product_code: String,
+    consumer_id: String,
+    status: String,
+    start_date: Date,
+    end_date: Option[Date],
+    created_by_user_id: String,
+    rate_limiting_id: Option[String],
+    created_at: Date,
+    updated_at: Date,
+    attributes: Option[List[ApiProductSubscriptionAttributeResponseJsonV700]]
+  )
+
+  case class ApiProductSubscriptionsJsonV700(api_product_subscriptions: List[ApiProductSubscriptionJsonV700])
+
+  def createApiProductSubscriptionAttributeResponseJsonV700(attribute: ApiProductSubscriptionAttributeTrait): ApiProductSubscriptionAttributeResponseJsonV700 =
+    ApiProductSubscriptionAttributeResponseJsonV700(
+      api_product_subscription_id = attribute.apiProductSubscriptionId,
+      api_product_subscription_attribute_id = attribute.apiProductSubscriptionAttributeId,
+      name = attribute.name,
+      `type` = attribute.attributeType,
+      value = attribute.value,
+      is_active = attribute.isActive
+    )
+
+  def createApiProductSubscriptionJsonV700(subscription: ApiProductSubscriptionTrait, attributes: Option[List[ApiProductSubscriptionAttributeTrait]]): ApiProductSubscriptionJsonV700 =
+    ApiProductSubscriptionJsonV700(
+      api_product_subscription_id = subscription.apiProductSubscriptionId,
+      bank_id = subscription.bankId,
+      api_product_code = subscription.apiProductCode,
+      consumer_id = subscription.consumerId,
+      status = subscription.status,
+      start_date = subscription.startDate,
+      end_date = subscription.endDate,
+      created_by_user_id = subscription.createdByUserId,
+      rate_limiting_id = subscription.rateLimitingId,
+      created_at = subscription.createdAtDate,
+      updated_at = subscription.updatedAtDate,
+      attributes = attributes.map(_.map(createApiProductSubscriptionAttributeResponseJsonV700))
+    )
+
+  def createApiProductSubscriptionsJsonV700(subscriptions: List[ApiProductSubscriptionJsonV700]): ApiProductSubscriptionsJsonV700 =
+    ApiProductSubscriptionsJsonV700(subscriptions)
+
+  // Examples for the resource docs.
+  lazy val postApiProductSubscriptionJsonV700Example = PostApiProductSubscriptionJsonV700(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    start_date = Some(APIUtil.DateWithDayExampleObject),
+    end_date = None
+  )
+  lazy val putApiProductSubscriptionStatusJsonV700Example = PutApiProductSubscriptionStatusJsonV700(status = "active", end_date = None)
+  lazy val apiProductSubscriptionAttributeJsonV700Example = ApiProductSubscriptionAttributeJsonV700(
+    name = "STRIPE_SUBSCRIPTION_ID", `type` = "STRING", value = "sub_1234567890", is_active = Some(true)
+  )
+  lazy val apiProductSubscriptionAttributeResponseJsonV700Example = ApiProductSubscriptionAttributeResponseJsonV700(
+    api_product_subscription_id = "api-product-subscription-id-123",
+    api_product_subscription_attribute_id = "api-product-subscription-attribute-id-123",
+    name = "STRIPE_SUBSCRIPTION_ID", `type` = "STRING", value = "sub_1234567890", is_active = Some(true)
+  )
+  lazy val apiProductSubscriptionJsonV700Example = ApiProductSubscriptionJsonV700(
+    api_product_subscription_id = "api-product-subscription-id-123",
+    bank_id = ExampleValue.bankIdExample.value,
+    api_product_code = ExampleValue.productCodeExample.value,
+    consumer_id = ExampleValue.consumerIdExample.value,
+    status = "active",
+    start_date = APIUtil.DateWithDayExampleObject,
+    end_date = None,
+    created_by_user_id = ExampleValue.userIdExample.value,
+    rate_limiting_id = Some("rate-limiting-id-123"),
+    created_at = APIUtil.DateWithDayExampleObject,
+    updated_at = APIUtil.DateWithDayExampleObject,
+    attributes = Some(List(apiProductSubscriptionAttributeResponseJsonV700Example))
+  )
+  lazy val apiProductSubscriptionsJsonV700Example = ApiProductSubscriptionsJsonV700(List(apiProductSubscriptionJsonV700Example))
 }

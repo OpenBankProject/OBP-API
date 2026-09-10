@@ -1,0 +1,516 @@
+{
+  "schema_version": 1,
+  "version": "v5_0_0",
+  "source_file": "obp-api/src/main/scala/code/api/v5_0_0/APIMethods500.scala",
+  "exported_from_git_commit": "e198c922328095b9abbd1370056fb5ee002f7980",
+  "endpoint_count": 39,
+  "endpoints": {
+    "root": {
+      "partial_function_name_raw": "\"root\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/root\"",
+      "summary": "\"Get API Info (root)\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API version\n       |* Hosted by information\n       |* Hosted at information\n       |* Energy source information\n       |* Git Commit\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiInfoJson400",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi  :: Nil"
+    },
+    "getBank": {
+      "partial_function_name_raw": "nameOf(getBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID\"",
+      "summary": "\"Get Bank\"",
+      "description": "\"\"\"Get the bank specified by BANK_ID\n       |Returns information about a single bank specified by BANK_ID including:\n       |\n       |* Bank code and full name of bank\n       |* Logo URL\n       |* Website\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "bankJson500",
+      "error_response_bodies": "List(UnknownError, BankNotFound)",
+      "tags": "apiTagBank :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "createBank": {
+      "partial_function_name_raw": "\"createBank\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks\"",
+      "summary": "\"Create Bank\"",
+      "description": "s\"\"\"Create a new bank (Authenticated access).\n        |\n        |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.\n        |Thus the User can manage the bank they create and assign Roles to other Users.\n        |\n        |Only SANDBOX mode (i.e. when connector=mapped in properties file)\n        |The settlement accounts are automatically created by the system when the bank is created.\n        |Name and account id are created in accordance to the next rules:\n        |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)\n        |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)\n        |\n        |\"\"\"",
+      "example_request_body": "postBankJson500",
+      "success_response_body": "bankJson500",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       $AuthenticatedUserIsRequired,\n       InsufficientAuthorisationToCreateBank,\n       UnknownError\n     )",
+      "tags": "List(apiTagBank)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateBank))"
+      }
+    },
+    "updateBank": {
+      "partial_function_name_raw": "\"updateBank\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks\"",
+      "summary": "\"Update Bank\"",
+      "description": "s\"\"\"Update an existing bank (Authenticated access).\n        |\n        |\"\"\"",
+      "example_request_body": "postBankJson500",
+      "success_response_body": "bankJson500",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       $AuthenticatedUserIsRequired,\n       BankNotFound,\n       updateBankError,\n       UnknownError\n     )",
+      "tags": "List(apiTagBank)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateBank))"
+      }
+    },
+    "createAccount": {
+      "partial_function_name_raw": "\"createAccount\"",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID\"",
+      "summary": "\"Create Account (PUT)\"",
+      "description": "\"\"\"Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.\n       |\n       |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.\n       |\n       |If the PUT body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.\n       |\n       |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.\n       |\n       |The 'product_code' field SHOULD be a product_code from Product.\n       |If the 'product_code' matches a product_code from Product, account attributes will be created that match the Product Attributes.\n       |\n       |Note: The Amount MUST be zero.\"\"\".stripMargin",
+      "example_request_body": "createAccountRequestJsonV500",
+      "success_response_body": "createAccountResponseJsonV310",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       BankNotFound,\n       AuthenticatedUserIsRequired,\n       InvalidUserId,\n       InvalidAccountIdFormat,\n       InvalidBankIdFormat,\n       UserNotFoundById,\n       UserHasMissingRoles,\n       InvalidAccountBalanceAmount,\n       InvalidAccountInitialBalance,\n       InitialBalanceMustBeZero,\n       InvalidAccountBalanceCurrency,\n       AccountIdAlreadyExists,\n       UnknownError\n     )",
+      "tags": "List(apiTagAccount,apiTagOnboarding)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateAccount))"
+      }
+    },
+    "createUserAuthContext": {
+      "partial_function_name_raw": "nameOf(createUserAuthContext)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/users/USER_ID/auth-context\"",
+      "summary": "\"Create User Auth Context\"",
+      "description": "s\"\"\"Create User Auth Context. These key value pairs will be propagated over connector to adapter. Normally used for mapping OBP user and \n        | Bank User/Customer. \n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "postUserAuthContextJson",
+      "success_response_body": "userAuthContextJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       CreateUserAuthContextError,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateUserAuthContext))"
+      }
+    },
+    "getUserAuthContexts": {
+      "partial_function_name_raw": "nameOf(getUserAuthContexts)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/users/USER_ID/auth-context\"",
+      "summary": "\"Get User Auth Contexts\"",
+      "description": "s\"\"\"Get User Auth Contexts for a User.\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "userAuthContextJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(canGetUserAuthContext :: Nil)"
+      }
+    },
+    "createUserAuthContextUpdateRequest": {
+      "partial_function_name_raw": "nameOf(createUserAuthContextUpdateRequest)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD\"",
+      "summary": "\"Create User Auth Context Update Request\"",
+      "description": "s\"\"\"Create User Auth Context Update Request.\n        |${userAuthenticationMessage(true)}\n        |\n        |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD\n        |SCA_METHOD is typically \"SMS\" or \"EMAIL\". \"EMAIL\" is used for testing purposes.\n        |\n        |\"\"\"",
+      "example_request_body": "postUserAuthContextJson",
+      "success_response_body": "userAuthContextUpdateJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       CreateUserAuthContextError,\n       UnknownError\n     )",
+      "tags": "List(apiTagUser)",
+      "extra_named_args": {
+        "roles": "None"
+      }
+    },
+    "answerUserAuthContextUpdateChallenge": {
+      "partial_function_name_raw": "nameOf(answerUserAuthContextUpdateChallenge)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge\"",
+      "summary": "\"Answer User Auth Context Update Challenge\"",
+      "description": "s\"\"\"\n        |Answer User Auth Context Update Challenge.\n        |\"\"\"",
+      "example_request_body": "postUserAuthContextUpdateJsonV310",
+      "success_response_body": "userAuthContextUpdateJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       InvalidConnectorResponse,\n       UnknownError\n     )",
+      "tags": "apiTagUser  :: Nil"
+    },
+    "createConsentRequest": {
+      "partial_function_name_raw": "nameOf(createConsentRequest)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/consumer/consent-requests\"",
+      "summary": "\"Create Consent Request\"",
+      "description": "s\"\"\"\n        |Create a Consent Request — the first step of the OBP Consent flow.\n        |\n        |The calling application (TPP) authenticates with Client Credentials and posts the consent details (entitlements, account_access, VRP fields, etc.). The User then completes the flow by calling Create Consent By CONSENT_REQUEST_ID.\n        |\n        |The Consent Request is recorded against the calling consumer (its creator).\n        |\n        |Optional body fields of note:\n        |\n        |- `consumer_id`: if set, the resulting Consent (created when the User answers this request) will be pinned to this consumer instead of the creator. Use only when the consent is intended for a different application than the one creating the request. Most TPPs should omit this field — when omitted, the resulting Consent is pinned to the creator. Note: this override is being deprecated; v6.0.0 will pin the resulting Consent to the creator unconditionally.\n        |- `email` / `phone_number`: surface in the SCA challenge if the User chooses EMAIL or SMS at answer time.\n        |- `valid_from` / `time_to_live`: control the lifetime of the resulting Consent.\n        |\n        |Authentication:\n        |\n        |The client needs to authenticate themselves for this request. In case of public client we use client_id and private key to obtain access token; otherwise we use client_id and client_secret. The obtained access token is used in the HTTP Bearer auth header of our request.\n        |\n        |Example:\n        |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0\n        |\n        |After successfully creating the Consent Request, call Create Consent By CONSENT_REQUEST_ID to finalize.\n        |\n        |See Glossary entry \"Authentication: Consent OBP Flow Example\" for an end-to-end walk-through.\n        |\n        |${applicationAccessMessage(true)}\n        |\n        |${userAuthenticationMessage(false)}\n        |\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "postConsentRequestJsonV500",
+      "success_response_body": "consentRequestResponseJson",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       ConsentMaxTTL,\n       X509CannotGetCertificate,\n       X509GeneralError,\n       InvalidConnectorResponse,\n       UnknownError\n       )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "getConsentRequest": {
+      "partial_function_name_raw": "nameOf(getConsentRequest)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/consumer/consent-requests/CONSENT_REQUEST_ID\"",
+      "summary": "\"Get Consent Request\"",
+      "description": "s\"\"\"\n        |Return the full payload of a previously-created Consent Request — the JSON the TPP submitted to Create Consent Request, plus the consent_request_id and the creating consumer_id.\n        |\n        |Use this endpoint to verify the contents of a Consent Request before the User answers it.\n        |\n        |Authentication: Application access (any registered consumer/application can read any Consent Request by ID).\n        |\n        |Note: this endpoint will be restricted to the creating consumer in v6.0.0. Until then, treat CONSENT_REQUEST_IDs as sensitive — they reveal entitlements, account routings, and contact details (email/phone) submitted at creation.\n        |\n        |\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentRequestResponseJson",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       ConsentMaxTTL,\n       X509CannotGetCertificate,\n       X509GeneralError,\n       InvalidConnectorResponse,\n       UnknownError\n       )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "getConsentByConsentRequestId": {
+      "partial_function_name_raw": "nameOf(getConsentByConsentRequestId)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/consumer/consent-requests/CONSENT_REQUEST_ID/consents\"",
+      "summary": "\"Get Consent By Consent Request Id via Consumer\"",
+      "description": "s\"\"\"\n        |\n        |This endpoint gets the Consent By consent request id.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentJsonV500",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UnknownError\n       )",
+      "tags": "List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)"
+    },
+    "createConsentByConsentRequestIdEmail": {
+      "partial_function_name_raw": "nameOf(createConsentByConsentRequestIdEmail)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents\"",
+      "summary": "\"Create Consent By CONSENT_REQUEST_ID (EMAIL)\"",
+      "description": "s\"\"\"\n        |Answer a Consent Request and create the resulting Consent, with an EMAIL Strong Customer Authentication challenge.\n        |\n        |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).\n        |\n        |An SCA challenge code is sent to the email address that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.\n        |\n        |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).\n        |\n        |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.\n        |\n        |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.\n        |\n        |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InvalidJsonFormat,\n       ConsentAllowedScaMethods,\n       RolesAllowedInConsent,\n       ViewsAllowedInConsent,\n       ConsumerNotFoundByConsumerId,\n       ConsumerIsDisabled,\n       InvalidConnectorResponse,\n       UnknownError\n       )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: apiTagVrp :: Nil"
+    },
+    "createConsentByConsentRequestIdSms": {
+      "partial_function_name_raw": "nameOf(createConsentByConsentRequestIdSms)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents\"",
+      "summary": "\"Create Consent By CONSENT_REQUEST_ID (SMS)\"",
+      "description": "s\"\"\"\n        |Answer a Consent Request and create the resulting Consent, with an SMS Strong Customer Authentication challenge.\n        |\n        |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).\n        |\n        |An SCA challenge code is sent to the phone number that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.\n        |\n        |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).\n        |\n        |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.\n        |\n        |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.\n        |\n        |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       ConsentRequestIsInvalid,\n       ConsentAllowedScaMethods,\n       RolesAllowedInConsent,\n       ViewsAllowedInConsent,\n       ConsumerNotFoundByConsumerId,\n       ConsumerIsDisabled,\n       MissingPropsValueAtThisInstance,\n       SmsServerNotResponding,\n       InvalidConnectorResponse,\n       UnknownError\n       )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "createConsentByConsentRequestIdImplicit": {
+      "partial_function_name_raw": "nameOf(createConsentByConsentRequestIdImplicit)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/consumer/consent-requests/CONSENT_REQUEST_ID/IMPLICIT/consents\"",
+      "summary": "\"Create Consent By CONSENT_REQUEST_ID (IMPLICIT)\"",
+      "description": "s\"\"\"\n        |Answer a Consent Request and create the resulting Consent, without a Strong Customer Authentication challenge — the Consent is moved directly from INITIATED to ACCEPTED.\n        |\n        |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).\n        |\n        |IMPLICIT means no SCA challenge is sent. The Consent is immediately ACCEPTED. Use only in flows where the User has already been strongly authenticated by upstream means; for production use behind a public TPP, prefer EMAIL or SMS.\n        |\n        |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).\n        |\n        |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.\n        |\n        |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.\n        |\n        |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "consentJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       ConsentRequestIsInvalid,\n       ConsentAllowedScaMethods,\n       RolesAllowedInConsent,\n       ViewsAllowedInConsent,\n       ConsumerNotFoundByConsumerId,\n       ConsumerIsDisabled,\n       MissingPropsValueAtThisInstance,\n       SmsServerNotResponding,\n       InvalidConnectorResponse,\n       UnknownError\n       )",
+      "tags": "apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil"
+    },
+    "headAtms": {
+      "partial_function_name_raw": "nameOf(headAtms)",
+      "request_verb": "\"HEAD\"",
+      "request_url": "\"/banks/BANK_ID/atms\"",
+      "summary": "\"Head Bank ATMS\"",
+      "description": "s\"\"\"Head Bank ATMS.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "atmsJsonV400",
+      "error_response_bodies": "List(\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagATM)"
+    },
+    "createCustomer": {
+      "partial_function_name_raw": "nameOf(createCustomer)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customers\"",
+      "summary": "\"Create Customer\"",
+      "description": "s\"\"\"\n        |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.\n        |Dates need to be in the format 2013-01-21T23:08:00Z\n        |\n        |If kyc_status is not provided, it defaults to false.\n        |\n        |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "postCustomerJsonV500",
+      "success_response_body": "customerJsonV310",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       InvalidJsonFormat,\n       CustomerNumberAlreadyExists,\n       UserNotFoundById,\n       CustomerAlreadyExistsForUser,\n       CreateConsumerError,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagPerson)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateCustomer,canCreateCustomerAtAnyBank))"
+      }
+    },
+    "getCustomerOverview": {
+      "partial_function_name_raw": "nameOf(getCustomerOverview)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customers/customer-number-query/overview\"",
+      "summary": "\"Get Customer Overview\"",
+      "description": "s\"\"\"Gets the Customer Overview specified by customer_number and bank_code.\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "postCustomerOverviewJsonV500",
+      "success_response_body": "customerOverviewJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagKyc)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomerOverview))"
+      }
+    },
+    "getCustomerOverviewFlat": {
+      "partial_function_name_raw": "nameOf(getCustomerOverviewFlat)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customers/customer-number-query/overview-flat\"",
+      "summary": "\"Get Customer Overview Flat\"",
+      "description": "s\"\"\"Gets the Customer Overview Flat specified by customer_number and bank_code.\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "postCustomerOverviewJsonV500",
+      "success_response_body": "customerOverviewFlatJsonV500",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagKyc)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomerOverviewFlat))"
+      }
+    },
+    "getMyCustomersAtAnyBank": {
+      "partial_function_name_raw": "nameOf(getMyCustomersAtAnyBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/my/customers\"",
+      "summary": "\"Get My Customers\"",
+      "description": "\"\"\"Gets all Customers that are linked to me.\n       |\n       |Authentication via OAuth is required.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerJsonV210",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagUser)"
+    },
+    "getMyCustomersAtBank": {
+      "partial_function_name_raw": "nameOf(getMyCustomersAtBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/my/customers\"",
+      "summary": "\"Get My Customers at Bank\"",
+      "description": "s\"\"\"Returns a list of Customers at the Bank that are linked to the currently authenticated User.\n        |\n        |\n        |${userAuthenticationMessage(true)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerJSONs",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer)"
+    },
+    "getCustomersAtOneBank": {
+      "partial_function_name_raw": "nameOf(getCustomersAtOneBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customers\"",
+      "summary": "\"Get Customers at Bank\"",
+      "description": "s\"\"\"Get Customers at Bank.\n        |\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customersJsonV300",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomersAtOneBank))"
+      }
+    },
+    "getCustomersMinimalAtOneBank": {
+      "partial_function_name_raw": "nameOf(getCustomersMinimalAtOneBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customers-minimal\"",
+      "summary": "\"Get Customers Minimal at Bank\"",
+      "description": "s\"\"\"Get Customers Minimal at Bank.\n        |\n        |\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customersMinimalJsonV300",
+      "error_response_bodies": "List(\n       UserCustomerLinksNotFoundForUser,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagUser)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomersMinimalAtOneBank))"
+      }
+    },
+    "createProduct": {
+      "partial_function_name_raw": "nameOf(createProduct)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/products/PRODUCT_CODE\"",
+      "summary": "\"Create Product\"",
+      "description": "s\"\"\"Create or Update Product for the Bank.\n        |\n        |The combination of bank_id and product_code is unique. If a Product already exists for the bank_id and product_code, it will be updated.\n        |\n        |Typical Super Family values / Asset classes are:\n        |\n        |Debt\n        |Equity\n        |FX\n        |Commodity\n        |Derivative\n        |\n        |$productHiearchyAndCollectionNote\n        |\n        |\n        |${userAuthenticationMessage(true) }\n        |\n        |\n        |\"\"\"",
+      "example_request_body": "putProductJsonV500",
+      "success_response_body": "productJsonV400.copy(attributes = None, fees = None)",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagProduct)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateProduct, canCreateProductAtAnyBank))"
+      }
+    },
+    "addCardForBank": {
+      "partial_function_name_raw": "nameOf(addCardForBank)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/management/banks/BANK_ID/cards\"",
+      "summary": "\"Create Card\"",
+      "description": "s\"\"\"Create Card at bank specified by BANK_ID .\n        |\n        |${userAuthenticationMessage(true)}\n        |\"\"\"",
+      "example_request_body": "createPhysicalCardJsonV500",
+      "success_response_body": "physicalCardJsonV500",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserHasMissingRoles,\n       AllowedValuesAre,\n       UnknownError\n     )",
+      "tags": "List(apiTagCard)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateCardsForBank))"
+      }
+    },
+    "getViewsForBankAccount": {
+      "partial_function_name_raw": "nameOf(getViewsForBankAccount)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/views\"",
+      "summary": "\"Get Views for Account\"",
+      "description": "s\"\"\"#Views\n        |\n        |\n        |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.\n        |\n        |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.\n        |\n        |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.\n        |\n        |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.\n        |\n        |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.\n        |\n        |**Metadata:**\n        |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.\n        |\n        |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).\n        |\n        |# All\n        |*Optional*\n        |\n        |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.\n        |\n        |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "viewsJsonV500",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankAccountNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagView, apiTagAccount)"
+    },
+    "deleteSystemView": {
+      "partial_function_name_raw": "\"deleteSystemView\"",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/system-views/VIEW_ID\"",
+      "summary": "\"Delete System View\"",
+      "description": "\"Deletes the system view specified by VIEW_ID\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankAccountNotFound,\n       UnknownError,\n       \"user does not have owner access\"\n     )",
+      "tags": "List(apiTagSystemView)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteSystemView))"
+      }
+    },
+    "getMetricsAtBank": {
+      "partial_function_name_raw": "nameOf(getMetricsAtBank)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/management/metrics/banks/BANK_ID\"",
+      "summary": "\"Get Metrics at Bank\"",
+      "description": "s\"\"\"Get the all metrics at the Bank specified by BANK_ID\n        |\n        |require CanReadMetrics role\n        |\n        |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics\n        |\n        |Should be able to filter on the following metrics fields\n        |\n        |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2\n        |\n        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString\n        |\n        |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString\n        |\n        |3 limit (for pagination: defaults to 50)  eg:limit=200\n        |\n        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10\n        |\n        |5 sort_by (defaults to date field) eg: sort_by=date\n        |  possible values:\n        |    \"url\",\n        |    \"date\",\n        |    \"username\" (or \"user_name\" for backward compatibility),\n        |    \"app_name\",\n        |    \"developer_email\",\n        |    \"implemented_by_partial_function\",\n        |    \"implemented_in_version\",\n        |    \"consumer_id\",\n        |    \"verb\"\n        |\n        |6 direction (defaults to date desc) eg: direction=desc\n        |\n        |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78\n        |\n        |Other filters:\n        |\n        |7 consumer_id  (if null ignore)\n        |\n        |8 user_id (if null ignore)\n        |\n        |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)\n        |\n        |10 url (if null ignore), note: can not contain '&'.\n        |\n        |11 app_name (if null ignore)\n        |\n        |12 implemented_by_partial_function (if null ignore),\n        |\n        |13 implemented_in_version (if null ignore)\n        |\n        |14 verb (if null ignore)\n        |\n        |15 correlation_id (if null ignore)\n        |\n        |16 duration (if null ignore) non digit chars will be silently omitted\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "metricsJson",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagMetric, apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetMetricsAtOneBank))"
+      }
+    },
+    "getSystemView": {
+      "partial_function_name_raw": "\"getSystemView\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system-views/VIEW_ID\"",
+      "summary": "\"Get System View\"",
+      "description": "s\"\"\"Get System View\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "viewJsonV500",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemView)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemView))"
+      }
+    },
+    "getSystemViewsIds": {
+      "partial_function_name_raw": "nameOf(getSystemViewsIds)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/system-views-ids\"",
+      "summary": "\"Get Ids of System Views\"",
+      "description": "s\"\"\"Get Ids of System Views\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "viewIdsJsonV500",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemView)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetSystemView))"
+      }
+    },
+    "createSystemView": {
+      "partial_function_name_raw": "nameOf(createSystemView)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/system-views\"",
+      "summary": "\"Create System View\"",
+      "description": "s\"\"\"Create a system view\n        |\n        | ${userAuthenticationMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.\n        |\n        | The 'allowed_actions' field is a list containing the names of the actions allowed through this view.\n        | All the actions contained in the list will be set to `true` on the view creation, the rest will be set to `false`.\n        |\n        | The 'alias' field in the JSON can take one of three values:\n        |\n        | * _public_: to use the public alias if there is one specified for the other account.\n        | * _private_: to use the private alias if there is one specified for the other account.\n        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.\n        |\n        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.\n        |\n        | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.\n        |\n        | System views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError\n        | \"\"\"",
+      "example_request_body": "createSystemViewJsonV500",
+      "success_response_body": "viewJsonV500",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       InvalidJsonFormat,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemView)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateSystemView))"
+      }
+    },
+    "updateSystemView": {
+      "partial_function_name_raw": "nameOf(updateSystemView)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/system-views/VIEW_ID\"",
+      "summary": "\"Update System View\"",
+      "description": "s\"\"\"Update an existing view on a bank account\n        |\n        |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.\n        |\n        |The json sent is the same as during view creation (above), with one difference: the 'name' field\n        |of a view is not editable (it is only set when a view is created)\"\"\"",
+      "example_request_body": "updateSystemViewJson500",
+      "success_response_body": "viewJsonV500",
+      "error_response_bodies": "List(\n       InvalidJsonFormat,\n       $AuthenticatedUserIsRequired,\n       BankAccountNotFound,\n       UnknownError\n     )",
+      "tags": "List(apiTagSystemView)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateSystemView))"
+      }
+    },
+    "createCustomerAccountLink": {
+      "partial_function_name_raw": "nameOf(createCustomerAccountLink)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customer-account-links\"",
+      "summary": "\"Create Customer Account Link\"",
+      "description": "s\"\"\"Link a Customer to a Account\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "createCustomerAccountLinkJson",
+      "success_response_body": "customerAccountLinkJson",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       BankAccountNotFound,\n       InvalidJsonFormat,\n       CustomerNotFoundByCustomerId,\n       UserHasMissingRoles,\n       AccountAlreadyExistsForCustomer,\n       CreateCustomerAccountLinkError,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer, apiTagAccount)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateCustomerAccountLink))"
+      }
+    },
+    "getCustomerAccountLinksByCustomerId": {
+      "partial_function_name_raw": "nameOf(getCustomerAccountLinksByCustomerId)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customers/CUSTOMER_ID/customer-account-links\"",
+      "summary": "\"Get Customer Account Links by CUSTOMER_ID\"",
+      "description": "s\"\"\" Get Customer Account Links by CUSTOMER_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerAccountLinksJson",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       CustomerNotFoundByCustomerId,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomerAccountLinks))"
+      }
+    },
+    "getCustomerAccountLinksByBankIdAccountId": {
+      "partial_function_name_raw": "nameOf(getCustomerAccountLinksByBankIdAccountId)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/customer-account-links\"",
+      "summary": "\"Get Customer Account Links by ACCOUNT_ID\"",
+      "description": "s\"\"\" Get Customer Account Links by ACCOUNT_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerAccountLinksJson",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       BankAccountNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomerAccountLinks))"
+      }
+    },
+    "getCustomerAccountLinkById": {
+      "partial_function_name_raw": "nameOf(getCustomerAccountLinkById)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID\"",
+      "summary": "\"Get Customer Account Link by Id\"",
+      "description": "s\"\"\" Get Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerAccountLinkJson",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetCustomerAccountLink))"
+      }
+    },
+    "updateCustomerAccountLinkById": {
+      "partial_function_name_raw": "nameOf(updateCustomerAccountLinkById)",
+      "request_verb": "\"PUT\"",
+      "request_url": "\"/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID\"",
+      "summary": "\"Update Customer Account Link by Id\"",
+      "description": "s\"\"\" Update Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "updateCustomerAccountLinkJson",
+      "success_response_body": "customerAccountLinkJson",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canUpdateCustomerAccountLink))"
+      }
+    },
+    "deleteCustomerAccountLinkById": {
+      "partial_function_name_raw": "nameOf(deleteCustomerAccountLinkById)",
+      "request_verb": "\"DELETE\"",
+      "request_url": "\"/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID\"",
+      "summary": "\"Delete Customer Account Link\"",
+      "description": "s\"\"\" Delete Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID\n        |\n        |${userAuthenticationMessage(true)}\n        |\n        |\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "EmptyBody",
+      "error_response_bodies": "List(\n       $AuthenticatedUserIsRequired,\n       $BankNotFound,\n       UserHasMissingRoles,\n       UnknownError\n     )",
+      "tags": "List(apiTagCustomer)",
+      "extra_named_args": {
+        "roles": "Some(List(canDeleteCustomerAccountLink))"
+      }
+    },
+    "getAdapterInfo": {
+      "partial_function_name_raw": "nameOf(getAdapterInfo)",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/adapter\"",
+      "summary": "\"Get Adapter Info\"",
+      "description": "s\"\"\"Get basic information about the Adapter.\n        |\n        |${userAuthenticationMessage(true)}\n        |\n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "adapterInfoJsonV500",
+      "error_response_bodies": "List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError)",
+      "tags": "List(apiTagApi)",
+      "extra_named_args": {
+        "roles": "Some(List(canGetAdapterInfo))"
+      }
+    }
+  }
+}

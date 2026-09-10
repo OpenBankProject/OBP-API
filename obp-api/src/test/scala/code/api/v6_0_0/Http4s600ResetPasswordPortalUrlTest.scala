@@ -23,16 +23,16 @@ class Http4s600ResetPasswordPortalUrlTest extends V600ServerSetup {
   private def resultOf[T](f: => T): Either[Throwable, T] =
     try Right(f) catch { case t: Throwable => Left(t) }
 
-  feature("resetPasswordUrl reports a missing portal URL as a server misconfiguration, not a client error") {
+  Feature("resetPasswordUrl reports a missing portal URL as a server misconfiguration, not a client error") {
 
-    scenario("a configured portal URL is used as-is") {
+    Scenario("a configured portal URL is used as-is") {
       val url = Await.result(
         Http4s600.Implementations6_0_0.resolveResetPasswordPortalUrl(Full("https://portal.example.com")),
         5.seconds)
       url shouldBe "https://portal.example.com"
     }
 
-    scenario("an unconfigured portal URL fails with 503, not 400") {
+    Scenario("an unconfigured portal URL fails with 503, not 400") {
       val outcome = resultOf(Await.result(
         Http4s600.Implementations6_0_0.resolveResetPasswordPortalUrl(Empty), 5.seconds))
 

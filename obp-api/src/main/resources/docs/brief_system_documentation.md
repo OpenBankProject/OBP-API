@@ -14,11 +14,11 @@ _System Architecture, Workflows, Security, and API Reference_
 - **Connectors**: northbound to OBP APIs; southbound to data sources (core banking, caches). Kafka/RabbitMQ and Akka remote supported for decoupling and scale.
 - **Consent & OAuth helpers**: example apps (e.g., OBP‑Hola) to demonstrate OAuth2/OIDC, consents, mTLS/JWS profiles.
 - **Persistence**: PostgreSQL (production), H2 (dev); optional caches.
-- **Runtime options**: Jetty (war), Docker, Kubernetes.
+- **Runtime options**: plain jar (http4s embedded server), Docker, Kubernetes.
 
 **Reference deployment views**
 
-- _Monolith + DB_: OBP‑API on Jetty/Tomcat with PostgreSQL.
+- _Monolith + DB_: OBP‑API (http4s) with PostgreSQL.
 - _Containerised_: OBP‑API image + Postgres; optional API Explorer/Manager containers.
 - _Kubernetes_: OBP‑API Deployment + Service, Postgres Stateful workload, optional Ingress & secrets, externalized config.
 - _Decoupled storage_: OBP‑API (stateless) + Akka Remote storage node with DB access; optional Kafka/RabbitMQ between API and core adapters.
@@ -26,7 +26,7 @@ _System Architecture, Workflows, Security, and API Reference_
 **Key integration points**
 
 - **AuthN/AuthZ**: OAuth 2.0, OIDC, DirectLogin; role‑based entitlements; fine‑grained _Views_ for account/transaction level access; Consents for OB/PSD2 style access.
-- **Standards**: UK OB, Berlin Group, Bahrain OBF mapping via endpoints/consents; JWS signatures, mTLS where required.
+- **Standards**: UK OB, Berlin Group mapping via endpoints/consents; JWS signatures, mTLS where required.
 
 ---
 
@@ -97,7 +97,7 @@ User ──(has roles/entitlements)──► Bank/System actions
 
 - Clone `OBP-API` → open in IntelliJ (Scala/Java toolchain).
 - Create `default.props` (dev) and choose connector (`mapped` for demo) and DB (H2 or Postgres).
-- `mvn package` → produce `.war`; run with Jetty or use IntelliJ runner.
+- `mvn package` → produce `obp-api.jar` + `lib/`; run with `java -jar` or use IntelliJ runner.
 
 ### Option B — Docker (recommended for evaluation)
 

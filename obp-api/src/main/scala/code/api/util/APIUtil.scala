@@ -49,8 +49,7 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v6_0_0.OBPAPI6_0_0
+import code.api.v2_2_0.Http4s220.Implementations2_2_0
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -509,7 +508,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
+  /**
+   * Response headers derived from the CallContext: GatewayLogin, ASPSP-SCA-Approach (Berlin Group
+   * consents), X-Rate-Limit-Limit / -Remaining / -Reset, the pagination Range header, request
+   * headers mirrored back (`mirror_request_headers_to_response`) and echoed back
+   * (`echo_request_headers`). Lift's futureToResponse added these to every response; on http4s
+   * EndpointHelpers (success) and ErrorResponseConverter (errors) do.
+   */
+  def getHeadersNewStyle(cc: Option[CallContextLight]): CustomResponseHeaders = {
     CustomResponseHeaders(
       getGatewayLoginHeader(cc).list :::
         getRequestHeadersBerlinGroup(cc).list :::
@@ -709,8 +715,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val jsonAst: JValue = {
       val partialFunctionName = callContext.map(_.resourceDocument.map(_.partialFunctionName)).flatten.getOrElse("")
       if (
-        nameOf(code.api.v5_1_0.APIMethods510.Implementations5_1_0.getMetrics).equals(partialFunctionName) ||
-        nameOf(code.api.v5_0_0.APIMethods500.Implementations5_0_0.getMetricsAtBank).equals(partialFunctionName) ||
+        nameOf(code.api.v5_1_0.Http4s510.Implementations5_1_0.getMetrics).equals(partialFunctionName) ||
+        nameOf(code.api.v5_0_0.Http4s500.Implementations5_0_0.getMetricsAtBank).equals(partialFunctionName) ||
         nameOf(Implementations2_2_0.getConnectorMetrics).equals(partialFunctionName)
       ) {
         ApiSession.processJson(Extraction.decompose(cc)(CustomJsonFormats.losslessFormats), callContext)
@@ -776,7 +782,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       message.contains(extractErrorMessageCode(requestTimeout))
     }
     def check429(message: String): Boolean = {
-      message.contains(extractErrorMessageCode(TooManyRequests))
+      List(TooManyRequests, TooManyRequestsSelfService, TooManyRequestsAuth)
+        .exists(m => message.contains(extractErrorMessageCode(m)))
     }
     val (code, responseHeaders) =
       message match {
@@ -1960,8 +1967,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
          |""".stripMargin
   }
 
+  /**
+   * The Glossary as served by GET /api/glossary: the static Glossary Items compiled into
+   * Glossary.scala, unioned with the Dynamic Glossary Items held in the database. A Dynamic Item
+   * replaces a static one of the same title.
+   */
   def getGlossaryItems : List[GlossaryItem] = {
-    Glossary.glossaryItems.toList.sortBy(_.title)
+    Glossary.allGlossaryItems.sortBy(_.title)
   }
 
   case class MessageDoc(
@@ -2241,6 +2253,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
+  /**
+   * A consent user (the per-consent principal a Consent-JWT authenticates as) never gets
+   * just-in-time entitlements. Its roles come from the consent alone: a consent may carry
+   * CanCreateEntitlementAtOneBank so the agent can grant bank roles to humans, and
+   * addEntitlement redirects any grant aimed at a consent user to its granting human. Without
+   * this guard the JIT path would call addEntitlement, see the redirected row as a success,
+   * and let the consent user through with a role the consent never named.
+   */
+  def isConsentUser(userId: String): Boolean =
+    Users.users.vend.getUserByUserId(userId).exists(_.isConsentUser)
+
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
     case role =>
@@ -2310,7 +2333,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       def userHasTheRoles: Boolean = {
         val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
         userHasTheRole || {
-          getPropsAsBoolValue("create_just_in_time_entitlements", false) && {
+          getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
             // If a user is trying to use a Role and the user could grant them selves the required Role(s),
             // then just automatically grant the Role(s)!
             (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
@@ -2371,7 +2394,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         def userHasTheRoles: Boolean = {
           val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
           userHasTheRole || {
-            getPropsAsBoolValue("create_just_in_time_entitlements", false) && {
+            getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
               (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
                 hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
                 roles.forall { role =>
@@ -2650,7 +2673,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /*
   If a version is allowed, enable its endpoints.
-  Note a version such as v3_0_0.OBPAPI3_0_0 may well include routes from other earlier versions.
+  Note a version such as v3.0.0 may well include routes from other earlier versions.
    */
 
   def enableVersionIfAllowed(version: ScannedApiVersion) : Boolean = {
@@ -3079,8 +3102,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * user and session, verify the signed request, run the Berlin Group checks and apply rate
    * limiting. Each caller decides on its own what to make of the outcome.
    * @param cc The call context of an request
+   * @param applyRateLimiting false skips the rate-limit step (the call is neither refused nor
+   *                          counted). Only [[resolveCallerWithoutRateLimiting]] passes false.
    */
-  private def accessPipeline(cc: CallContext): OBPReturnType[Box[User]] = {
+  private def accessPipeline(cc: CallContext, applyRateLimiting: Boolean = true): OBPReturnType[Box[User]] = {
     getUserAndSessionContextFuture(cc) map { result =>
       val (body, verb, url, reqHeaders) = requestPartsOf(result)
       // Verify signed request
@@ -3091,13 +3116,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
     } map {
       result =>
-        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
-        cc.resourceDocument.map(_.partialFunctionName) match {
-          case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
-          case _ => RateLimitingUtil.underCallLimits(result)
+        if (!applyRateLimiting) result
+        else {
+          val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
+          cc.resourceDocument.map(_.partialFunctionName) match {
+            case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
+            case _ => RateLimitingUtil.underCallLimits(result)
+          }
         }
     }
   }
+
+  /**
+   * Resolve the caller (user and Consumer) from the request credentials WITHOUT applying rate
+   * limiting: the call is neither refused for exceeding a limit nor counted against one.
+   *
+   * For the http4s version fallthrough chain only (ResourceDocMiddleware.resolveCallerOnce). A hop
+   * that has no ResourceDoc for the request is almost always about to pass it on to the next
+   * version, and the hop that finally serves it applies rate limiting itself through
+   * [[anonymousAccess]] / [[applicationAccess]]. Counting the call on every hop charged one unit per
+   * hop: `GET /obp/v5.1.0/users/current` is served by v3.0.0 after six hops, so it cost seven
+   * units and a Consumer with a per-second limit below seven could never call it (429 OBP-10018).
+   *
+   * A Failure is returned in the Box, never thrown; the middleware decides what to do with it.
+   */
+  def resolveCallerWithoutRateLimiting(cc: CallContext): OBPReturnType[Box[User]] =
+    accessPipeline(cc, applyRateLimiting = false)
 
   /**
    * This function is used to introduce Rate Limit at an unauthorized endpoint
@@ -3198,12 +3242,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             Failure (m, e, c) ?~! af.translatedErrorMessage
         }
         val failuresMsg = filterMessage(obj)
-        val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-        val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
+        val callContext = af.callContextLight.map(_.copy(httpCode = Some(af.failCode)))
+        val apiFailure = af.copy(failMsg = failuresMsg).copy(callContextLight = callContext)
         throw new Exception(com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(_, _, _, failure : APIFailure) =>
         val callContext = CallContextLight()
-        val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, ccl = Some(callContext))
+        val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, callContextLight = Some(callContext))
         throw new Exception(com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
@@ -3744,6 +3788,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:48123"),
     "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
     "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
+    "public_obp_stripe_url" -> getPropsValue("public_obp_stripe_url").openOr("http://localhost:4242"),
     "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")
   )
   val publicAppUrlPropNames: List[String] = publicAppUrlDefaults.keys.toList.sorted
@@ -4313,17 +4358,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       canRevokeAccessToAllSystemTargetViews
     } else {//if both allCanRevokeAccessToViews and allSystemTargetViewIs are empty,
       false
-    }
-  }
-
-  def getJValueFromJsonFile(path: String) = {
-    val stream = getClass().getClassLoader().getResourceAsStream(path)
-    try {
-      val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
-      val jsonStringFromFile = bufferedSource.mkString
-      json.parse(jsonStringFromFile);
-    } finally {
-      stream.close()
     }
   }
 
@@ -5053,7 +5087,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean]
   ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
-    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher".intern()
+    // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
+    // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
+    // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that
+    // re-checks the database at most once a second.
+    s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-glossary:${Glossary.glossaryVersionForCacheKey}".intern()
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 
     if (isValidSystemViewId(targetViewId.value))

@@ -37,7 +37,7 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.util.APIUtil
 import code.api.v1_2_1.APIInfoJSON
 import code.api.v3_0_0.ViewJsonV300
-import code.api.v3_1_0.APIMethods310.Implementations3_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.APIResponse
 import code.views.MapperViews

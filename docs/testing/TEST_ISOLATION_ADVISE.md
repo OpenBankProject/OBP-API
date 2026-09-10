@@ -2,7 +2,7 @@
 
 ## The rule
 
-**Every `setPropsValues(...)`, `LiftRules.*`, or other global-state mutation MUST live inside a `scenario(...)` block — never at `feature(...)` body level.**
+**Every `setPropsValues(...)` or other global-state mutation MUST live inside a `scenario(...)` block — never at `feature(...)` body level.**
 
 ```scala
 // ❌ WRONG — runs at class instantiation, before any test
@@ -43,7 +43,7 @@ mvn test -pl obp-api -DwildcardSuites="<suspect-suite>"           # passes
 mvn test -pl obp-api -DwildcardSuites="<suspect>,<other-suite>"   # fails
 
 # Find culprits
-grep -rn "setPropsValues\|LiftRules\." obp-api/src/test/scala \
+grep -rn "setPropsValues" obp-api/src/test/scala \
   | grep -v "scenario\|//\s*"   # rough filter
 ```
 
@@ -53,7 +53,6 @@ Any hit at a feature-body level (between `feature("...") {` and the first `scena
 
 The same rule covers anything that touches process-global state:
 
-- `LiftRules.statelessDispatch` / `statefulDispatch` modifications
 - `System.setProperty`
 - Static singletons (`SomeObject.foo = ...`)
 - Mutable connector-vendor assignments (`Connector.connector.default.set(...)`)

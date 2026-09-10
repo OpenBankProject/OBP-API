@@ -33,9 +33,9 @@ import code.api.util.ApiRole._
 import code.api.util.{APIUtil, Consent}
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v4_0_0.UsersJsonV400
-import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.consent.ConsentStatus
 import code.entitlement.Entitlement
 import code.setup.PropsReset
@@ -66,7 +66,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
   lazy val bankId = testBankId1.value
-  lazy val forbiddenEntitlementOneBank = List(PostConsentEntitlementJsonV310(testBankId1.value, CanCreateEntitlementAtOneBank.toString()))
+  lazy val entitlementOneBank = List(PostConsentEntitlementJsonV310(testBankId1.value, CanCreateEntitlementAtOneBank.toString()))
   lazy val forbiddenEntitlementAnyBank = List(PostConsentEntitlementJsonV310("", CanCreateEntitlementAtAnyBank.toString()))
   lazy val accountAccess = List(AccountAccessV500(
     account_routing = AccountRoutingJsonV121(
@@ -262,21 +262,24 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       forbiddenRoleResponse.body.extract[ErrorMessage].message should equal (RolesForbiddenInConsent)
     }
 
-    Scenario(s"Check the forbidden roles ${CanCreateEntitlementAtOneBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario(s"Check the role ${CanCreateEntitlementAtOneBank.toString()} is allowed in a consent", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
-      val postJsonForbiddenEntitlementAtOneBank = postConsentRequestJson.copy(entitlements = Some(forbiddenEntitlementOneBank))
-      val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postJsonForbiddenEntitlementAtOneBank))
+      // An agent acting under a consent may grant bank roles to humans, so this role is allowed
+      // (only CanCreateEntitlementAtAnyBank is forbidden). The user must already hold it.
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
+      val postJsonEntitlementAtOneBank = postConsentRequestJson.copy(entitlements = Some(entitlementOneBank))
+      val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postJsonEntitlementAtOneBank))
       Then("We should get a 201")
       createConsentResponse.code should equal(201)
       val createConsentRequestResponseJson = createConsentResponse.body.extract[ConsentRequestResponseJson]
       val consentRequestId = createConsentRequestResponseJson.consent_request_id
 
-      // Role CanCreateEntitlementAtOneBank MUST be forbidden
-      val forbiddenRoleResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
-      Then("We should get a 400")
-      forbiddenRoleResponse.code should equal(400)
-      forbiddenRoleResponse.code should equal(400)
-      forbiddenRoleResponse.body.extract[ErrorMessage].message should equal (RolesForbiddenInConsent)
+      val allowedRoleResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+      Then("We should get a 201")
+      allowedRoleResponse.code should equal(201)
+      // The role must actually be in the consent, not silently dropped
+      val jwt = allowedRoleResponse.body.extract[ConsentJsonV500].jwt
+      code.api.util.JwtUtil.getSignedPayloadAsJson(jwt).openOrThrowException("cannot read consent JWT") should include (CanCreateEntitlementAtOneBank.toString)
     }
 
   }

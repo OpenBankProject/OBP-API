@@ -154,7 +154,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 #### 1.2.10 Regulatory & Compliance
 
-- **Multi-Standard Support**: Open Bank Project, Berlin Group NextGenPSD2, UK Open Banking, Bahrain OBF, STET, Polish API, AU CDR, Mexico OF
+- **Multi-Standard Support**: Open Bank Project, Berlin Group NextGenPSD2, UK Open Banking
 - **PSD2 Compliance**: SCA, consent management, TPP access
 - **Regulated Entities**: Manage regulatory registrations
 - **Tax Residence**: Customer tax information management
@@ -199,7 +199,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 ### 1.2.15 Technical Capabilities
 
-- **Multi-Standard Support:** Open Bank Project, Berlin Group NextGenPSD2, UK Open Banking, Bahrain OBF, STET PSD2, Polish API, AU CDR, Mexico OF
+- **Multi-Standard Support:** Open Bank Project, Berlin Group NextGenPSD2, UK Open Banking
 - **Authentication Methods:** OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login
 - **Extensibility:** Dynamic endpoints, dynamic entities, connector architecture, method routing
 - **Rate Limiting:** Built-in support with Redis or in-memory backends
@@ -1401,7 +1401,6 @@ The server starts at `http://localhost:9100` with the MCP endpoint at `/mcp`.
 **API Version Support:**
 
 - Berlin Group 1.3
-- STET 1.4
 
 **Key Endpoints:**
 
@@ -1486,28 +1485,7 @@ POST /open-banking/v3.1/cbpii/funds-confirmation-consents
 - Webhook Management
 - Dynamic Resources
 
-### 4.4 Other Supported Standards
-
-**Polish API 2.1.1.1:**
-
-- Polish Banking API standard
-- Local market adaptations
-
-**AU CDR v1.0.0:**
-
-- Australian Consumer Data Right
-- Banking sector implementation
-
-**BAHRAIN OBF 1.0.0:**
-
-- Bahrain Open Banking Framework
-- Central Bank of Bahrain standard
-
-**CNBV v1.0.0:**
-
-- Mexican banking standard
-
-**Regulatory Compliance:**
+### 4.4 Regulatory Compliance
 
 - GDPR (EU data protection)
 - PSD2 (EU payment services)
@@ -1925,7 +1903,7 @@ curl -s https://api.example.com/obp/v5.1.0/resource-docs/v5.1.0/obp | \
 
 **Method 3: Check Source Code**
 
-Operation IDs are defined in the API implementation files (e.g., `APIMethods510.scala`):
+Operation IDs are defined in the API implementation files (e.g., `Http4s510.scala`):
 
 ```scala
 lazy val getBanks: OBPEndpoint = {
@@ -3234,7 +3212,6 @@ For comprehensive use case examples and implementation guides, see the dedicated
 
 ```xml
 <!-- Enable specific components -->
-<logger name="code.api.v5_1_0.APIMethods510" level="DEBUG"/>
 <logger name="code.bankconnectors.Connector" level="TRACE"/>
 <logger name="code.api.util.RateLimiting" level="DEBUG"/>
 ```
@@ -4316,8 +4293,6 @@ docker run -p 8080:8080 \
 
 **Consent:** Permission granted by user for data access
 
-**isNaturalPerson:** Boolean field on User that distinguishes human users (true, default) from service accounts/machine users (false)
-
 **Mandate:** Formal agreement between a corporate customer and a bank defining who can operate an account, what they can do, and under what conditions
 
 **Direct Login:** Username/password authentication method
@@ -4334,7 +4309,7 @@ docker run -p 8080:8080 \
 
 **Opey:** AI-powered banking assistant
 
-**principalUserId:** Optional field on User that links a service/agent user back to the human principal it acts on behalf of, formalising the Human Agent delegation chain
+**on_behalf_of_user_id:** The user a request is made on behalf of: for a consent user (a User row created by a Consent, `created_by_consent_id` set) it is the Consent's user; for any other user it is the user itself. Not a stored column on User — resolved from the Consent at read time. Distinct from `user_id`, which is always the authenticated caller
 
 **Props:** Configuration properties file
 

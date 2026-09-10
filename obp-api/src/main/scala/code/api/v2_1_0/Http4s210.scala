@@ -39,7 +39,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType, TransactionRequestTypes}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
-import net.liftweb.common.{Failure, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import com.openbankproject.commons.util.JsonAliases.{compactRender, prettyRender}
 import org.json4s.JsonDSL._
 import org.json4s.{Extraction, Formats}
@@ -188,26 +188,20 @@ object Http4s210 {
 
     val createTransactionRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" =>
-        implicit val cc: CallContext = req.callContext
-        // Use cc.httpBody (cached by ResourceDocMiddleware via cachedBodyKey) instead of re-reading
-        // req.bodyText, which is empty after the bridge cascade has already consumed the stream.
-        (for {
-          // Check type validity before requiring middleware-resolved entities: for an invalid
-          // type the middleware finds no matching ResourceDoc and skips bankAccount resolution,
-          // so cc.bankAccount is None — checking the type first avoids a misleading AccountNotFound.
-          _ <- if (v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr)) IO.unit
-               else IO.raiseError(new RuntimeException(liftWrite(code.api.APIFailureNewStyle(
-                 s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", 400, Some(cc.toLight)))))
-          jsonBody <- IO.pure(cc.httpBody.getOrElse(""))
-          user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          account  <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          result   <- code.api.util.http4s.RequestScopeConnection.fromFuture(
-            createTransactionRequestImpl(jsonBody, user, account, ViewId(viewIdStr), transactionRequestTypeStr, cc))
-        } yield result).attempt.flatMap {
-          case Right(result) =>
-            Created(prettyRender(Extraction.decompose(result)))
-          case Left(err) =>
-            code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
+        // Check the type before requiring middleware-resolved entities: for an invalid type the
+        // middleware finds no matching ResourceDoc and skips bankAccount resolution, so cc.bankAccount
+        // is None; checking the type first avoids a misleading AccountNotFound. cc.httpBody is the body
+        // cached by ResourceDocMiddleware; req.bodyText is empty once the bridge cascade consumed it.
+        EndpointHelpers.executeFutureCreated(req) {
+          val cc: CallContext = req.callContext
+          for {
+            _       <- code.util.Helper.booleanToFuture(s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", cc = Some(cc)) {
+                         v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr)
+                       }
+            user    <- Future(unboxFullOrFail(cc.user, Some(cc), AuthenticatedUserIsRequired, 401))
+            account <- Future(unboxFullOrFail(Box(cc.bankAccount), Some(cc), AccountNotFound))
+            result  <- createTransactionRequestImpl(cc.httpBody.getOrElse(""), user, account, ViewId(viewIdStr), transactionRequestTypeStr, cc)
+          } yield result
         }
     }
 
@@ -409,7 +403,7 @@ object Http4s210 {
       // logic (maker-checker, ChallengeJsonV400 shape, attribute attachment). Routing
       // them through this handler returns the v2.1.0 shape and skips v4 validation,
       // so the test sees "400 did not equal 202". Let unknown types fall through to
-      // the Lift fallback where APIMethods400.answerTransactionRequestChallenge runs.
+      // the http4s v4.0.0 bridge, where Http4s400's answerTransactionRequestChallenge runs.
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" / transReqIdStr / "challenge"
           if v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr) =>
         implicit val cc: CallContext = req.callContext

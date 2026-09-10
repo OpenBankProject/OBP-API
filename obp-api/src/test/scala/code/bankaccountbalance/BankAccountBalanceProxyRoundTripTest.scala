@@ -20,9 +20,9 @@ class BankAccountBalanceProxyRoundTripTest extends ServerSetup {
 
   override implicit val formats: Formats = LocalMappedConnector.formats
 
-  feature("a stored balance crossing the connector boundary") {
+  Feature("a stored balance crossing the connector boundary") {
 
-    scenario("re-extracts as BankAccountBalanceTraitCommons with its values intact") {
+    Scenario("re-extracts as BankAccountBalanceTraitCommons with its values intact") {
       val row = BankAccountBalance(
         balanceId = BalanceId("balance-round-trip"),
         bankId = BankId("bank-round-trip"),

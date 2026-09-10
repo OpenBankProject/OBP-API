@@ -33,7 +33,7 @@ import code.api.util.ApiRole._
 import code.api.util.Consent
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{ConsentJsonV310, PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf
@@ -48,7 +48,7 @@ import org.scalatest.Tag
  * GET /obp/v5.1.0/user/current/consents/CONSENT_ID compared the consent's PSU against
  * CallContext.userId -- the authenticated principal. Under Consent-Id / Consent-JWT authentication
  * that principal is the per-consent shadow user, never the human, so the comparison could not match
- * and the PSU was told their own consent did not exist. The subject is now CallContext.humanUser,
+ * and the PSU was told their own consent did not exist. The subject is now CallContext.onBehalfOfUser,
  * the accessor the codebase already keeps for exactly this distinction.
  *
  * The rule, and why a consent with no PSU yet stays readable by anyone, is in

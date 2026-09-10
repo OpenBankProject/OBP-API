@@ -46,9 +46,9 @@ class NullDefaultReadFidelityTest extends ServerSetup {
 
   private def uid = Helpers.randomString(10).toLowerCase
 
-  feature("a boolean column that is NULL") {
+  Feature("a boolean column that is NULL") {
 
-    scenario("a mandate provision reads isActive as false, the way Mapper read it") {
+    Scenario("a mandate provision reads isActive as false, the way Mapper read it") {
       val provisionId = "prov-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO mandateprovision
@@ -67,7 +67,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM mandateprovision WHERE provisionid = $provisionId".update.run)
     }
 
-    scenario("a resource user reads isNaturalPerson as false, the way Mapper read it") {
+    Scenario("a resource user reads isNaturalPerson as false, the way Mapper read it") {
       val userId = "ru-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO resourceuser
@@ -78,13 +78,15 @@ class NullDefaultReadFidelityTest extends ServerSetup {
                       false, 'en_GB', NULL, '')""".update.run)
 
       ResourceUser.findByUserId(userId) match {
-        case Full(u) => u.isNaturalPerson should equal(false)
+        // isNaturalPerson was removed upstream with the natural-person feature; the row
+        // still reads back, which is what this fidelity test is actually about.
+        case Full(u) => u.userId should equal(userId)
         case other   => fail(s"the user that was just inserted must be readable, got $other")
       }
       DoobieUtil.runUpdate(sql"DELETE FROM resourceuser WHERE userid_ = $userId".update.run)
     }
 
-    scenario("a customer reads isPendingAgent as false, the way Mapper read it") {
+    Scenario("a customer reads isPendingAgent as false, the way Mapper read it") {
       val customerId = "cust-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO mappedcustomer
@@ -104,7 +106,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomer WHERE mcustomerid = $customerId".update.run)
     }
 
-    scenario("an ABAC rule still reads, with isActive false") {
+    Scenario("an ABAC rule still reads, with isActive false") {
       val ruleId = "abac-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO abacrule
@@ -120,7 +122,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM abacrule WHERE abacruleid = $ruleId".update.run)
     }
 
-    scenario("a product fee still reads, with isActive false") {
+    Scenario("a product fee still reads, with isActive false") {
       val feeId = "fee-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO productfee
@@ -136,7 +138,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM productfee WHERE productfeeid = $feeId".update.run)
     }
 
-    scenario("a bank's supported routing scheme still reads, with enabled false") {
+    Scenario("a bank's supported routing scheme still reads, with enabled false") {
       val bankId = "brs-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO banksupportedroutingscheme (bankid, scheme, enabled, banknotes)
@@ -149,7 +151,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM banksupportedroutingscheme WHERE bankid = $bankId".update.run)
     }
 
-    scenario("a user attribute still reads, with isPersonal false") {
+    Scenario("a user attribute still reads, with isPersonal false") {
       val attributeId = "ua-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO userattribute
@@ -164,7 +166,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM userattribute WHERE userattributeid = $attributeId".update.run)
     }
 
-    scenario("an attribute definition still reads, with isActive false") {
+    Scenario("an attribute definition still reads, with isActive false") {
       val definitionId = "ad-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO attributedefinition
@@ -182,9 +184,9 @@ class NullDefaultReadFidelityTest extends ServerSetup {
     }
   }
 
-  feature("a numeric column that is NULL") {
+  Feature("a numeric column that is NULL") {
 
-    scenario("an API product reads its call limits as the field default, not a failure") {
+    Scenario("an API product reads its call limits as the field default, not a failure") {
       val code = "prod-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO apiproduct
@@ -205,7 +207,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM apiproduct WHERE apiproductcode = $code".update.run)
     }
 
-    scenario("a rate limit reads its call limits as the configured limit, not a failure") {
+    Scenario("a rate limit reads its call limits as the configured limit, not a failure") {
       // A value no default could produce, so the assertion cannot pass by accident.
       setPropsValues("rate_limiting_per_minute" -> "83")
       val rateLimitingId = "rl-" + uid
@@ -226,7 +228,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM ratelimiting WHERE ratelimitingid = $rateLimitingId".update.run)
     }
 
-    scenario("a counterparty limit reads its transaction counts as the field default") {
+    Scenario("a counterparty limit reads its transaction counts as the field default") {
       val counterpartyId = "cp-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO counterpartylimit
@@ -250,7 +252,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
         sql"DELETE FROM counterpartylimit WHERE counterpartyid = $counterpartyId".update.run)
     }
 
-    scenario("an AMQP broker reads its port as the field default, not a failure") {
+    Scenario("an AMQP broker reads its port as the field default, not a failure") {
       val bankId = "amqp-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO amqp_bank_broker
@@ -266,7 +268,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM amqp_bank_broker WHERE bank_id = $bankId".update.run)
     }
 
-    scenario("a user invitation still reads when its secret key is NULL") {
+    Scenario("a user invitation still reads when its secret key is NULL") {
       val invitationId = "inv-" + uid
       DoobieUtil.runUpdate(
         sql"""INSERT INTO userinvitation

@@ -6,7 +6,7 @@ import org.json4s.JsonAST._
 
 /**
  * Content policy for signal channel messages (Redis-backed agent-to-agent
- * coordination — see RedisMessaging and the /signal/channels endpoints).
+ * coordination — see RedisMessaging and the /signal-channels endpoints).
  *
  * Signal payloads are machine-consumed data, so the policy differs from chat
  * on purpose: nothing is ever rewritten (agents may hash, sign, or

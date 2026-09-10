@@ -6,7 +6,7 @@ import scala.language.reflectiveCalls
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v3_0_0.{CoreTransactionsJsonV300, ModeratedTransactionCoreWithAttributes}
-import code.api.v4_0_0.{BankJson400, BanksJson400, JSONFactory400, OBPAPI4_0_0}
+import code.api.v4_0_0.{BankJson400, BanksJson400, JSONFactory400}
 import code.obp.grpc.api.BanksJson400Grpc.{BankJson400Grpc, BankRoutingJsonV121Grpc}
 import code.obp.grpc.api._
 import code.util.Helper
@@ -25,7 +25,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 /**
- * OBP gRPC server — serves banking RPCs (ObpService) and chat streaming RPCs (ChatStreamService).
+ * OBP gRPC server — serves banking RPCs (ObpService), chat streaming RPCs (ChatStreamService)
+ * and signal channel RPCs (SignalChannelsService: publish/fetch/list plus a live Subscribe stream).
  * Enable via grpc.server.enabled=true in props.
  */
 object ObpGrpcServer {
@@ -57,6 +58,7 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
   @volatile private[this] var startedChatBus = false
   @volatile private[this] var startedLogCacheBus = false
   @volatile private[this] var startedMetricsBus = false
+  @volatile private[this] var startedSignalBus = false
   @volatile private[this] var shutdownHook: scala.sys.ShutdownHookThread = null
 
   def start(): Unit = {
@@ -97,6 +99,11 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
     code.logcache.LogCacheEventBus.start()
     startedLogCacheBus = !logCacheWasRunning && code.logcache.LogCacheEventBus.isRunning
 
+    // Start signal event bus for the SignalChannelsService Subscribe stream
+    val signalWasRunning = code.signal.SignalEventBus.isRunning
+    code.signal.SignalEventBus.start()
+    startedSignalBus = !signalWasRunning && code.signal.SignalEventBus.isRunning
+
     // Start metrics event bus (no-op if grpc.metrics_stream.enabled=false)
     val metricsWasRunning = code.metricsstream.MetricsEventBus.isRunning
     code.metricsstream.MetricsEventBus.start()
@@ -106,6 +113,8 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
       .addService(ObpServiceGrpc.bindService(ObpServiceImpl, executionContext))
       .addService(code.obp.grpc.chat.api.ChatStreamServiceGrpc.bindService(
         code.obp.grpc.chat.ChatStreamServiceImpl, executionContext))
+      .addService(code.obp.grpc.signal.api.SignalChannelsServiceGrpc.bindService(
+        code.obp.grpc.signal.SignalChannelsServiceImpl, executionContext))
       .addService(io.grpc.protobuf.services.ProtoReflectionService.newInstance())
       .intercept(new code.obp.grpc.chat.AuthInterceptor())
 
@@ -140,6 +149,7 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
     if (startedChatBus) { code.chat.ChatEventBus.stop(); startedChatBus = false }
     if (startedLogCacheBus) { code.logcache.LogCacheEventBus.stop(); startedLogCacheBus = false }
     if (startedMetricsBus) { code.metricsstream.MetricsEventBus.stop(); startedMetricsBus = false }
+    if (startedSignalBus) { code.signal.SignalEventBus.stop(); startedSignalBus = false }
     if (server != null) {
       server.shutdown()
       server = null
@@ -198,7 +208,7 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
     //  } yield {
     //    val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bankId)
     //    val availablePrivateAccounts = bank.privateAccounts(privateAccountAccess)
-    //    val jValue = OBPAPI4_0_0.Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
+    //    val jValue = Http4s200.Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
     //    val jArray = JArray(
     //      jValue.asInstanceOf[JArray].arr.map(it => {
     //        val bankIdJObject: JObject = "bankId" -> (it \ "bank_id")

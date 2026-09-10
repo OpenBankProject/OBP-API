@@ -57,27 +57,3 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedA
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sBGv13.resourceDocs
 }
-
-// ─── Original Lift aggregator (commented out) ────────────────────────────────
-// The 5 builder *Api.scala files (AccountInformationServiceAISApi,
-// PaymentInitiationServicePISApi, ConfirmationOfFundsServicePIISApi,
-// SigningBasketsApi, CommonServicesApi) have been commented out.
-// Their endpoints are now served by the corresponding Http4sBGv13* objects.
-//
-//  val endpoints =
-//    APIMethods_AccountInformationServiceAISApi.endpoints ++
-//    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
-//    APIMethods_PaymentInitiationServicePISApi.endpoints ++
-//    APIMethods_SigningBasketsApi.endpoints ++
-//    APIMethods_CommonServicesApi.endpoints
-//
-//  override val allResourceDocs: ArrayBuffer[ResourceDoc] =
-//    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
-//    APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
-//    APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
-//    APIMethods_SigningBasketsApi.resourceDocs ++
-//    APIMethods_CommonServicesApi.resourceDocs
-//
-//  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
-//  registerRoutes(routes, allResourceDocs, apiPrefix)
-//  logger.info(s"version $version has been run!")

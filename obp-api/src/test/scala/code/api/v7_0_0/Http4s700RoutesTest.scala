@@ -1148,9 +1148,9 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   // ─── getCurrentUser (v7 native — adds the user's mobile phone fields) ─────────
 
-  feature("Http4s700 getCurrentUser endpoint") {
+  Feature("Http4s700 getCurrentUser endpoint") {
 
-    scenario("Reject unauthenticated access to /users/current", Http4s700RoutesTag) {
+    Scenario("Reject unauthenticated access to /users/current", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/users/current with no auth headers")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/users/current")
 
@@ -1166,7 +1166,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 200 with mobile phone fields served natively by v7", Http4s700RoutesTag) {
+    Scenario("Return 200 with mobile phone fields served natively by v7", Http4s700RoutesTag) {
       Given("resourceUser1 has a validated mobile phone number")
       val ru = code.model.dataAccess.ResourceUser.findByUserId(resourceUser1.userId).openOrThrowException("resourceUser1 must exist")
       code.model.dataAccess.ResourceUser.update(ru.copy(
@@ -1198,7 +1198,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   // ─── createUser (v7 native — adds the optional mobile_phone_number) ───────────
 
-  feature("Http4s700 createUser endpoint") {
+  Feature("Http4s700 createUser endpoint") {
 
     val strongPassword = "StrongP@ssw0rd123!"
 
@@ -1212,7 +1212,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     def deleteAuthUser(username: String): Unit =
       AuthUser.deleteAllByUsername(username)
 
-    scenario("Create a user with a mobile phone number, stored unverified, served natively by v7", Http4s700RoutesTag) {
+    Scenario("Create a user with a mobile phone number, stored unverified, served natively by v7", Http4s700RoutesTag) {
       Given("email validation is skipped and a fresh username")
       setPropsValues("authUser.skipEmailValidation" -> "true")
       val username = newUsername()
@@ -1251,7 +1251,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       deleteAuthUser(username)
     }
 
-    scenario("Create a user without a mobile phone number", Http4s700RoutesTag) {
+    Scenario("Create a user without a mobile phone number", Http4s700RoutesTag) {
       Given("email validation is skipped and a fresh username")
       setPropsValues("authUser.skipEmailValidation" -> "true")
       val username = newUsername()
@@ -1272,7 +1272,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       deleteAuthUser(username)
     }
 
-    scenario("Reject a malformed mobile phone number without creating the user", Http4s700RoutesTag) {
+    Scenario("Reject a malformed mobile phone number without creating the user", Http4s700RoutesTag) {
       Given("a fresh username")
       setPropsValues("authUser.skipEmailValidation" -> "true")
       val username = newUsername()
@@ -1294,7 +1294,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       AuthUser.findByUsername(username).isDefined shouldBe false
     }
 
-    scenario("Reject a duplicate username with 409", Http4s700RoutesTag) {
+    Scenario("Reject a duplicate username with 409", Http4s700RoutesTag) {
       Given("a user that already exists")
       setPropsValues("authUser.skipEmailValidation" -> "true")
       val username = newUsername()
@@ -1321,9 +1321,9 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   // ─── updateMyMobilePhoneNumber ────────────────────────────────────────────────
 
-  feature("Http4s700 updateMyMobilePhoneNumber endpoint") {
+  Feature("Http4s700 updateMyMobilePhoneNumber endpoint") {
 
-    scenario("Reject unauthenticated PUT to /my/user/mobile-phone-number", Http4s700RoutesTag) {
+    Scenario("Reject unauthenticated PUT to /my/user/mobile-phone-number", Http4s700RoutesTag) {
       Given("PUT /obp/v7.0.0/my/user/mobile-phone-number with no auth headers")
       val body = """{"mobile_phone_number":"+49123456789"}"""
       val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/my/user/mobile-phone-number", body)
@@ -1340,7 +1340,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Setting a different number resets the validated flag but keeps the validated date", Http4s700RoutesTag) {
+    Scenario("Setting a different number resets the validated flag but keeps the validated date", Http4s700RoutesTag) {
       Given("resourceUser1 has a validated mobile phone number")
       val ru = code.model.dataAccess.ResourceUser.findByUserId(resourceUser1.userId).openOrThrowException("resourceUser1 must exist")
       code.model.dataAccess.ResourceUser.update(ru.copy(
@@ -1374,7 +1374,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       reloaded.mobilePhoneNumberValidatedDate.isDefined shouldBe true
     }
 
-    scenario("Re-submitting the same number keeps the validated flag", Http4s700RoutesTag) {
+    Scenario("Re-submitting the same number keeps the validated flag", Http4s700RoutesTag) {
       Given("resourceUser1 has a validated mobile phone number")
       val ru = code.model.dataAccess.ResourceUser.findByUserId(resourceUser1.userId).openOrThrowException("resourceUser1 must exist")
       code.model.dataAccess.ResourceUser.update(ru.copy(
@@ -1398,7 +1398,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject an invalid phone number with 400", Http4s700RoutesTag) {
+    Scenario("Reject an invalid phone number with 400", Http4s700RoutesTag) {
       When("PUT /obp/v7.0.0/my/user/mobile-phone-number with a non-numeric value")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val body = """{"mobile_phone_number":"not-a-phone-number"}"""
@@ -1419,7 +1419,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   // ─── getMyMetrics ─────────────────────────────────────────────────────────────
 
-  feature("Http4s700 getMyMetrics endpoint") {
+  Feature("Http4s700 getMyMetrics endpoint") {
 
     def createTestMetric(userId: String, userName: String, partialFunctionName: String): Unit =
       // Doobie: the store writes through the batch writer, so flush before reading back.
@@ -1447,7 +1447,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         authType = null)
       code.metrics.MetricBatchWriter.flush()
 
-    scenario("Reject unauthenticated access to /my/metrics", Http4s700RoutesTag) {
+    Scenario("Reject unauthenticated access to /my/metrics", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/my/metrics with no auth headers")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/my/metrics")
 
@@ -1463,7 +1463,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject a user_id filter with 400 UserFilterParametersNotSupported", Http4s700RoutesTag) {
+    Scenario("Reject a user_id filter with 400 UserFilterParametersNotSupported", Http4s700RoutesTag) {
       When("GET /obp/v7.0.0/my/metrics with a user_id filter pointing at resourceUser2")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) =
@@ -1483,7 +1483,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Reject username and anon filters with 400", Http4s700RoutesTag) {
+    Scenario("Reject username and anon filters with 400", Http4s700RoutesTag) {
       When("GET /obp/v7.0.0/my/metrics with username and anon filters")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) =
@@ -1504,7 +1504,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return only the logged in user's own metrics", Http4s700RoutesTag) {
+    Scenario("Return only the logged in user's own metrics", Http4s700RoutesTag) {
       Given("a metric row for resourceUser1 and one for resourceUser2")
       createTestMetric(resourceUser1.userId, resourceUser1.name, "getMyMetricsTestOwn")
       createTestMetric(resourceUser2.userId, resourceUser2.name, "getMyMetricsTestOther")

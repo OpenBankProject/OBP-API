@@ -21,18 +21,33 @@ import org.apache.commons.lang3.StringUtils
  * This provides a unified view of a user's data whether it was created via /my/ or non-/my/ endpoints.
  */
 object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonFormats{
+
+  /**
+   * The user a row belongs to: the caller, or the user its consent names (attribution policy
+   * UserReference.DynamicDataUser). Applied on every entry point that takes a userId, for
+   * reads as well as writes, so a consent user reads, updates and deletes the same rows it
+   * writes. The resolver logs each redirect; a Failure (invariant broken) keeps the caller.
+   * The endpoint decides who may reach this provider (a consent user needs the entity's role,
+   * see Http4sDynamicEntity.personalRoleWaived). ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+   */
+  private def ownerOf(userId: Option[String]): Option[String] =
+    userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicDataUser).openOr(id))
+
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
     val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
     // Create inserts; it must not fall back to updating whatever row already holds this id. The
     // id can be supplied by the caller, so an upsert here would overwrite another user's record.
-    writeRecord(bankId, entityName, requestBody, userId, isPersonalEntity, idValue,
+    writeRecord(bankId, entityName, requestBody, ownerOf(userId), isPersonalEntity, idValue,
       DynamicData.insert)
   }
   override def update(bankId: Option[String], entityName: String, requestBody: JObject, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     // get scopes by user and bank, so reaching the write below means the caller owns the row.
-    val dynamicData = get(bankId, entityName, id, userId, isPersonalEntity).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id").asInstanceOf[DynamicData]
-    writeRecord(bankId, entityName, requestBody, userId, isPersonalEntity,
+    // Resolve the owner once and use it for both the read and the write, so an agent updates the
+    // same row it created rather than looking for one under its own id.
+    val owner = ownerOf(userId)
+    val dynamicData = get(bankId, entityName, id, owner, isPersonalEntity).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id").asInstanceOf[DynamicData]
+    writeRecord(bankId, entityName, requestBody, owner, isPersonalEntity,
       dynamicData.dynamicDataId.getOrElse(""), DynamicData.updateById)
   }
 
@@ -48,7 +63,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     // Four scopes, unchanged: (system|bank) x (impersonal|personal). The personal ones compare
     // userid with `= ?` even when userId is None, which renders `= NULL` and matches nothing.
     val found =
-      if (isPersonalEntity) DynamicData.findPersonal(bankId, entityName, id, userId)
+      if (isPersonalEntity) DynamicData.findPersonal(bankId, entityName, id, ownerOf(userId))
       else DynamicData.findImpersonal(bankId, entityName, id)
     found match {
       case Full(dynamicData) => Full(dynamicData)
@@ -71,7 +86,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   override def getAll(bankId: Option[String], entityName: String, userId: Option[String], isPersonalEntity: Boolean): List[DynamicDataT] = {
-    if (isPersonalEntity) DynamicData.findAllPersonal(bankId, entityName, userId)
+    if (isPersonalEntity) DynamicData.findAllPersonal(bankId, entityName, ownerOf(userId))
     else DynamicData.findAllImpersonal(bankId, entityName)
   }
 
@@ -124,7 +139,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   override def existsData(bankId: Option[String], dynamicEntityName: String, userId: Option[String], isPersonalEntity: Boolean): Boolean = {
-    if (isPersonalEntity) DynamicData.findAllPersonal(bankId, dynamicEntityName, userId).nonEmpty
+    if (isPersonalEntity) DynamicData.findAllPersonal(bankId, dynamicEntityName, ownerOf(userId)).nonEmpty
     else DynamicData.findAllImpersonal(bankId, dynamicEntityName).nonEmpty
   }
 

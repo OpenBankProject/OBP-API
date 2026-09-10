@@ -32,10 +32,10 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, Consent}
 import code.api.util.APIUtil.OAuth._
-import code.api.v3_0_0.{APIMethods300, UserJsonV300}
+import code.api.v3_0_0.{Http4s300, UserJsonV300}
 import code.api.v3_1_0.{ConsentJsonV310, PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -57,13 +57,15 @@ class ConsentObpTest extends V510ServerSetup {
   object AnswerConsentChallenge extends Tag(nameOf(Implementations3_1_0.answerConsentChallenge))
 
   object VersionOfApi2 extends Tag(ApiVersion.v3_0_0.toString)
-  object GetUserByUserId extends Tag(nameOf(APIMethods300.Implementations3_0_0.getUserByUserId))
+  object GetUserByUserId extends Tag(nameOf(Http4s300.Implementations3_0_0.getUserByUserId))
 
   val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
 
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccount(bankId)
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
+  lazy val entitlementOneBank = List(PostConsentEntitlementJsonV310(bankId, CanCreateEntitlementAtOneBank.toString()))
+  lazy val forbiddenEntitlementAnyBank = List(PostConsentEntitlementJsonV310("", CanCreateEntitlementAtAnyBank.toString()))
   lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentEmailJsonV310 = SwaggerDefinitionsJSON.postConsentEmailJsonV310
     .copy(entitlements=entitlements)
@@ -113,6 +115,15 @@ class ConsentObpTest extends V510ServerSetup {
     // Create a consent as the user1.
     // Must fail because we try to assign a role other that user already have access to the request 
     val request = (v5_1_0_Request / "my" / "consents" / "IMPLICIT").POST <@ (user1)
+
+    // Must fail loudly, never silently drop the role: CanCreateEntitlementAtAnyBank is forbidden in consents
+    List(forbiddenEntitlementAnyBank).foreach { forbidden =>
+      val responseForbidden = makePostRequest(request, write(postConsentImplicitJsonV310.copy(entitlements = forbidden)), validHeaderConsumerKey)
+      Then("We should get a 400")
+      responseForbidden.code should equal(400)
+      responseForbidden.body.extract[ErrorMessage].message should equal(RolesForbiddenInConsent)
+    }
+
     val response = makePostRequest(request, write(postConsentImplicitJsonV310), validHeaderConsumerKey)
     Then("We should get a 400")
     response.code should equal(400)
@@ -175,6 +186,39 @@ class ConsentObpTest extends V510ServerSetup {
       case false =>
         // Due to missing props at the instance the request must fail
         responseGetUserByUserId.body.extract[ErrorMessage].message should include(ConsentDisabled)
+    }
+  }
+
+  Feature(s"$CreateConsent version $VersionOfApi - a consent may carry CanCreateEntitlementAtOneBank, and Just in Time Entitlements never widen it") {
+    Scenario("A consent user holding CanCreateEntitlementAtOneBank gets no just-in-time roles", CreateConsent, AnswerConsentChallenge, VersionOfApi) {
+      setPropsValues("consents.allowed" -> "true", "consumer_validation_method_for_consent" -> "CONSUMER_KEY_VALUE", "create_just_in_time_entitlements" -> "true")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
+
+      When("We create a consent that carries CanCreateEntitlementAtOneBank")
+      val request = (v5_1_0_Request / "my" / "consents" / "IMPLICIT").POST <@ (user1)
+      val created = makePostRequest(request, write(postConsentImplicitJsonV310.copy(entitlements = entitlementOneBank)), validHeaderConsumerKey)
+      Then("We should get a 201")
+      created.code should equal(201)
+      val consentId = created.body.extract[ConsentJsonV310].consent_id
+      val jwt = created.body.extract[ConsentJsonV310].jwt
+
+      And("We answer the SCA challenge")
+      val answerConsentChallengeRequest = (v5_1_0_Request / "banks" / bankId / "consents" / consentId / "challenge").POST <@ (user1)
+      val answered = makePostRequest(answerConsentChallengeRequest, write(PostConsentChallengeJsonV310(answer = Consent.challengeAnswerAtTestEnvironment)))
+      answered.code should equal(201)
+      val header = List((RequestHeader.`Consent-JWT`, jwt)) ::: validHeaderConsumerKey
+
+      Then("The consent user holds the role the consent names")
+      val current = makeGetRequest((v5_1_0_Request / "users" / "current").GET, header)
+      current.code should equal(200)
+      val user = current.body.extract[UserJsonV300]
+      user.user_id should not equal (resourceUser1.userId)
+      user.entitlements.list.map(e => PostConsentEntitlementJsonV310(e.bank_id, e.role_name)) should contain (entitlementOneBank.head)
+
+      And("A role the consent does not name is refused even though the user could grant it: JIT is off for consent users")
+      val metrics = makeGetRequest((v5_1_0_Request / "management" / "metrics" / "banks" / bankId).GET, header)
+      metrics.code should equal(403)
+      metrics.body.extract[ErrorMessage].message should include (UserHasMissingRoles)
     }
   }
 }

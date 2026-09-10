@@ -63,6 +63,16 @@ else
     exit 1
 fi
 
+# Per-shard hard kill. It exists to stop a JVM whose Pekko non-daemon threads hang after the
+# tests themselves are done, not to bound how long the tests may take - so it has to sit well
+# above the slowest legitimate shard. 1200s covers H2 comfortably (slowest shard ~10 min), but
+# Postgres is roughly twice as slow per test and three of the four shards were being killed
+# mid-run at 20 min, each still emitting test output at the moment it died. A killed shard
+# reports zero failures while silently dropping ~800 tests from the audit line, which reads as a
+# pass unless you check the per-shard durations - so raise it rather than accept the gap.
+# SHARD_TIMEOUT_SECONDS overrides it; --db=postgres defaults to double.
+SHARD_TIMEOUT_SECONDS="${SHARD_TIMEOUT_SECONDS:-}"
+
 # Maven is required (every dev has it via the project README's setup).
 command -v mvn >/dev/null 2>&1 || { echo "ERROR: 'mvn' (Maven) not found on PATH" >&2; exit 1; }
 
@@ -144,6 +154,11 @@ pg_drop_shard_databases() {
 }
 
 TOTAL_SHARDS_PLANNED="$SHARDS"
+# Default the shard timeout now that $DB is known: Postgres is about twice as slow per test as H2.
+if [[ -z "$SHARD_TIMEOUT_SECONDS" ]]; then
+  if [[ "$DB" == "postgres" ]]; then SHARD_TIMEOUT_SECONDS=2400; else SHARD_TIMEOUT_SECONDS=1200; fi
+fi
+echo "Per-shard hard timeout: ${SHARD_TIMEOUT_SECONDS}s (db=$DB)"
 if [[ "$DB" == "postgres" ]]; then
   command -v psql >/dev/null || { echo "❌ --db=postgres needs psql on PATH" >&2; exit 1; }
   pg_psql "SELECT 1" >/dev/null 2>&1 || {
@@ -338,13 +353,20 @@ run_shard() {
     # code path now requires: SecurityManager is gone on this JDK (JEP 486), so the sandbox
     # enforces nothing and compileScalaCode refuses with OBP-50021 unless the operator says
     # so a second time. The suite is exactly that case - knowingly unsandboxed, throwaway data.
+    # OBP_BERLIN_GROUP_V1_3_ALIAS_PATH mirrors CI's berlin_group_v1_3_alias_path=0.6/v1
+    # (injected by both workflows' "Setup props" step): without it, OBP_BERLIN_GROUP_1_3_Alias
+    # reports an empty ScannedApiVersion("","","") and ScannedApis.isAddressable filters it
+    # out of versionMapScannedApis entirely, so ApiVersionUtilsTest's `versions.length shouldBe(21)`
+    # sees only 20 (CI green, local red) -- confirmed by reproducing the failure on a clean
+    # checkout with this var unset, then reproducing the pass with it set.
     # -pl obp-commons,obp-api mirrors CI: obp-commons' own util suites run on whichever
     # shard's filter matches com.openbankproject.* (the shard-4 catch-all); on every other
     # shard the filter matches nothing in obp-commons -> 0 tests there.
     # OBP_TESTS_PORT + OBP_HTTP4S_TEST_PORT carry the two dynamically-allocated free
     # ports (both test servers bind a real socket; see the port-allocation block).
     # Tests only, no recompile (the compile already happened in the pre-compile step).
-    # ${TIMEOUT_BIN} 1200: hard-kill after 20 min to prevent Pekko non-daemon threads from hanging.
+    # ${TIMEOUT_BIN} ${SHARD_TIMEOUT_SECONDS}: hard-kill to prevent Pekko non-daemon threads from
+    # hanging the run; see the SHARD_TIMEOUT_SECONDS block at the top of this file for the value.
     # OBP_API_INSTANCE_ID feeds Constant.getGlobalCacheNamespacePrefix, which prefixes every
     # Redis cache key with "{api_instance_id}_{runmode}_". Ports and the H2 database are already
     # isolated per run, but Redis is not: every checkout on this machine talks to the same
@@ -364,9 +386,10 @@ run_shard() {
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE_WITHOUT_SANDBOX="true" \
+    OBP_BERLIN_GROUP_V1_3_ALIAS_PATH="0.6/v1" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     env "${db_env[@]}" \
-    "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
+    "$TIMEOUT_BIN" "$SHARD_TIMEOUT_SECONDS" mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
     local rc=$?
@@ -605,13 +628,69 @@ else
     TOTAL_SHARDS=4
 fi
 
+# PropGatedPublicEndpoint: JsonSchemaValidationPublicPropTrueTest /
+# AuthenticationTypeValidationPublicPropTrueTest need
+# read_json_schema_validation_requires_role / read_authentication_type_validation_requires_role
+# forced true. That value is baked into Http4s400's ResourceDoc error list at object-init time, so
+# it needs its own JVM (pom.xml's default tagsToExclude skips this tag in every shard above, which
+# all boot with the props unset i.e. false). Run sequentially, after the main shards, so it shares
+# no DB connection pool contention with them; its surefire XML lands in the same
+# obp-api/target/surefire-reports directory the audit below already scans, so no separate
+# reporting path is needed.
+# Shard wall-clock is taken before the sequential step below, so the figure printed
+# next to the per-shard timings covers the same work they do.
+SHARDS_END=$(date +%s)
+
+echo ""
+echo "Running PropGatedPublicEndpoint tests (prop=true JVM)..."
+# Port allocation failure records a failing RC instead of exiting: the four shards
+# have already run by this point, and a hard exit here would skip the summary,
+# the per-shard failure diagnostics and the Surefire audit below — throwing away
+# their results over an unrelated transient.
+if ! alloc_free_port; then
+    echo "  ✗ PropGatedPublicEndpoint tests skipped — could not allocate a test port"
+    PROP_RC=1
+else
+    PROP_PORT=$ALLOC_PORT
+    if ! alloc_free_port; then
+        echo "  ✗ PropGatedPublicEndpoint tests skipped — could not allocate an http4s port"
+        PROP_RC=1
+    else
+        PROP_HTTP4S_PORT=$ALLOC_PORT
+        MAVEN_OPTS="$MVN_OPTS" \
+        OBP_TESTS_PORT="${PROP_PORT}" \
+        OBP_HOSTNAME="http://localhost:${PROP_PORT}" \
+        OBP_HTTP4S_TEST_PORT="${PROP_HTTP4S_PORT}" \
+        OBP_MAIL_TEST_MODE="true" \
+        OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
+        OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
+        OBP_BERLIN_GROUP_V1_3_ALIAS_PATH="0.6/v1" \
+        OBP_API_INSTANCE_ID="prop_gated_${PROP_PORT}" \
+        OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true" \
+        OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true" \
+        "$TIMEOUT_BIN" 300 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
+            "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest" \
+            -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= \
+            > test-results/parallel/prop_gated_public_endpoint.log 2>&1
+        PROP_RC=$?
+        if [[ $PROP_RC -ne 0 ]]; then
+            echo "  ✗ PropGatedPublicEndpoint tests failed — see test-results/parallel/prop_gated_public_endpoint.log"
+        else
+            echo "  ✓ PropGatedPublicEndpoint tests passed"
+        fi
+    fi
+fi
+RCS+=($PROP_RC)
+
 END=$(date +%s)
-ELAPSED=$(( (END - START) / 60 ))
-SEC=$(( (END - START) % 60 ))
+ELAPSED=$(( (SHARDS_END - START) / 60 ))
+SEC=$(( (SHARDS_END - START) % 60 ))
+TOTAL_ELAPSED=$(( (END - START) / 60 ))
+TOTAL_SEC=$(( (END - START) % 60 ))
 
 echo ""
 echo "══════════════════════════════════════"
-echo "All ${TOTAL_SHARDS} shards done in ${ELAPSED}m ${SEC}s"
+echo "All ${TOTAL_SHARDS} shards done in ${ELAPSED}m ${SEC}s (whole run ${TOTAL_ELAPSED}m ${TOTAL_SEC}s incl. the prop-gated step)"
 echo ""
 
 for (( n=1; n<=TOTAL_SHARDS; n++ )); do

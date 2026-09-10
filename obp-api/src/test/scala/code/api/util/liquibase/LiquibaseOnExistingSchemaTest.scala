@@ -77,7 +77,7 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
     try {
       LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
       withClue("every table must have been created: ") {
-        tableCount(db) should equal(147L)
+        tableCount(db) should equal(152L)
       }
     } finally withConnection(db)(execute(_, "DROP ALL OBJECTS"))
   }
@@ -97,7 +97,7 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
       }
       val before = tableCount(db)
       withClue("the fixture must have built the schema: ") {
-        before should equal(147L)
+        before should equal(152L)
       }
 
       LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
@@ -162,7 +162,7 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
       LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
 
       withClue("the tables must be left alone: ") {
-        tableCount(db) should equal(147L)
+        tableCount(db) should equal(152L)
       }
       withClue("the record must be complete again, so the next boot is a no-op: ") {
         appliedChangesets(db) should equal(fullyAdopted)
@@ -284,13 +284,13 @@ class LiquibaseOnExistingSchemaTest extends AnyFlatSpec with Matchers {
 
       val partialTables = tableCount(db)
       withClue("the fixture must have stopped part-way, not at either end: ") {
-        partialTables should (be > 0L and be < 147L)
+        partialTables should (be > 0L and be < 152L)
       }
 
       LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
 
       withClue("the remaining changesets must run, without redoing the applied ones: ") {
-        tableCount(db) should equal(147L)
+        tableCount(db) should equal(152L)
       }
     } finally withConnection(db)(execute(_, "DROP ALL OBJECTS"))
   }

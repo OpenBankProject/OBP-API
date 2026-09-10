@@ -6,7 +6,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateBankAttribute, CanDeleteBankAttribute, CanGetBankAttribute, CanUpdateBankAttribute}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf

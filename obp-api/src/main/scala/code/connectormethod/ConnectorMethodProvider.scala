@@ -47,5 +47,8 @@ case class ConnectorMethodWithProvenance(
   updatedByUserId: Option[String],
   methodBodyHash: Option[String],
   createdAt: Option[java.util.Date],
-  updatedAt: Option[java.util.Date]
+  updatedAt: Option[java.util.Date],
+  // Maker/checker (upstream commit 5d4af81c3) - see DynamicResourceDoc for the full contract.
+  approvedHash: Option[String] = None,
+  isActive: Boolean = true
 )

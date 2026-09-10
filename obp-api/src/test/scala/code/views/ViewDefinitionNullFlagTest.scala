@@ -26,9 +26,9 @@ import net.liftweb.util.Helpers
  */
 class ViewDefinitionNullFlagTest extends ServerSetup {
 
-  feature("a view row whose boolean flags are NULL in the database") {
+  Feature("a view row whose boolean flags are NULL in the database") {
 
-    scenario("reads every flag as false, isFirehose included") {
+    Scenario("reads every flag as false, isFirehose included") {
       val viewId = "null-flag-" + Helpers.randomString(8).toLowerCase
       // Written with raw SQL on purpose: the store's own writers always bind a non-null Boolean,
       // so this is the only way to produce the row an operator restore or import could leave.
@@ -56,7 +56,7 @@ class ViewDefinitionNullFlagTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM viewdefinition WHERE view_id = $viewId".update.run)
     }
 
-    scenario("a freshly built view still carries the entity's own defaults") {
+    Scenario("a freshly built view still carries the entity's own defaults") {
       // The other half of MappedBoolean's behaviour: a new instance does start from defaultValue,
       // and for isFirehose_ that is true.
       ViewDefinition().isFirehose_ should equal(true)

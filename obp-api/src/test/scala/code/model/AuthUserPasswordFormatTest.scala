@@ -24,9 +24,9 @@ class AuthUserPasswordFormatTest extends ServerSetup {
 
   private val plainPassword = "n0t-a-real-password!"
 
-  feature("the stored password columns") {
+  Feature("the stored password columns") {
 
-    scenario("keep the shape v_oidc_users and its consumers expect") {
+    Scenario("keep the shape v_oidc_users and its consumers expect") {
       val (passwordPw, passwordSlt) = AuthUser.hashPassword(plainPassword)
 
       passwordPw.startsWith("b;") should equal(true)
@@ -36,7 +36,7 @@ class AuthUserPasswordFormatTest extends ServerSetup {
       passwordSlt.length should equal(16)
     }
 
-    scenario("reassemble into a hash bcrypt accepts, which is what OBP-OIDC does") {
+    Scenario("reassemble into a hash bcrypt accepts, which is what OBP-OIDC does") {
       val (passwordPw, passwordSlt) = AuthUser.hashPassword(plainPassword)
 
       // Exactly the reassembly an external verifier performs from the two view columns.
@@ -46,7 +46,7 @@ class AuthUserPasswordFormatTest extends ServerSetup {
       BCrypt.checkpw("some other password", reassembled) should equal(false)
     }
 
-    scenario("verify a hash written the way Lift's MappedPassword wrote it") {
+    Scenario("verify a hash written the way Lift's MappedPassword wrote it") {
       // A row that predates this migration: bcrypt, split at 44, exactly as the Mapper field did.
       val bcrypted = BCrypt.hashpw(plainPassword, BCrypt.gensalt())
       val legacyPw = "b;" + bcrypted.substring(0, 44)
@@ -56,7 +56,7 @@ class AuthUserPasswordFormatTest extends ServerSetup {
       AuthUser.matchPassword("wrong", legacyPw, legacySlt) should equal(false)
     }
 
-    scenario("still verify the pre-bcrypt digest older rows carry") {
+    Scenario("still verify the pre-bcrypt digest older rows carry") {
       // Rows written before bcrypt keep a salted digest and no "b;" prefix. MappedPassword kept
       // accepting them, so this branch has to survive too or those users cannot log in.
       val salt = "0123456789abcdef"
@@ -66,7 +66,7 @@ class AuthUserPasswordFormatTest extends ServerSetup {
       AuthUser.matchPassword("wrong", digest, salt) should equal(false)
     }
 
-    scenario("reject a password against a row that never had one set") {
+    Scenario("reject a password against a row that never had one set") {
       // hashPassword refuses anything too short, storing "*" - which must not match anything.
       val (unsetPw, unsetSlt) = AuthUser.hashPassword("abc")
       unsetPw should equal("*")
@@ -77,9 +77,9 @@ class AuthUserPasswordFormatTest extends ServerSetup {
     }
   }
 
-  feature("a saved AuthUser") {
+  Feature("a saved AuthUser") {
 
-    scenario("stores the two columns so the view can serve it") {
+    Scenario("stores the two columns so the view can serve it") {
       val username = "pwformat_" + Helpers.randomString(10).toLowerCase
       val saved = AuthUser(
         firstName = "Password",

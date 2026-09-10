@@ -31,7 +31,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, DynamicResourceDocAlreadyExists, DynamicResourceDocNotFound, UserHasMissingRoles}
 import code.api.util.ApiRole
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -338,7 +338,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
     // workflow — copy the generated process body into a dynamic resource doc's method_body —
     // yields code that compiles and serves. The template previously emitted the retired Lift
     // contract (Box[JsonResponse], request.json, errorJsonResponse), which no longer compiles.
-    scenario("The generated endpoint-code template compiles and serves as a dynamic resource doc method body", ApiEndpoint1, VersionOfApi) {
+    Scenario("The generated endpoint-code template compiles and serves as a dynamic resource doc method body", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
       When("We generate the endpoint code template for a POST endpoint with example bodies")
@@ -388,9 +388,9 @@ class DynamicResourceDocTest extends V400ServerSetup {
   // Provenance is captured server-side into the DB columns but intentionally NOT surfaced in the
   // v4.0.0 (STABLE) response JSON — the v4 shape is frozen, so we assert against the stored entity,
   // not the response. (Exposure of these fields is planned for a new, v7, endpoint version.)
-  feature("Provenance is captured on runtime-compiled dynamic resource docs") {
+  Feature("Provenance is captured on runtime-compiled dynamic resource docs") {
 
-    scenario("Create stores created_by_user_id + method_body hash; update records the updater and refreshes the hash", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario("Create stores created_by_user_id + method_body hash; update records the updater and refreshes the hash", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canUpdateDynamicResourceDoc.toString)
 

@@ -76,13 +76,13 @@ object APIFailure {
 
 case class APIFailureNewStyle(failMsg: String,
                               failCode: Int = 400,
-                              ccl: Option[CallContextLight] = None
+                              callContextLight: Option[CallContextLight] = None
                              ){
   def translatedErrorMessage = {
     val errorCode = extractErrorMessageCode(failMsg)
     val errorBody = extractErrorMessageBody(failMsg)
 
-    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""), PARAM_LOCALE)
+    val localeUrlParameter = getHttpRequestUrlParam(callContextLight.map(_.url).getOrElse(""), PARAM_LOCALE)
     val localeFromUrl = I18NUtil.computeLocale(localeUrlParameter)
     val locale: Locale =
       if (localeFromUrl.toString.equals("")) I18NUtil.getDefaultLocale()

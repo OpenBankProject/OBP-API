@@ -4335,7 +4335,7 @@ object Http4s310 {
             loggedInUserId = user.userId
             // Implicit owner resolves to the HUMAN: under a Consent the caller is the
             // per-consent shadow, and an account held by it strands when the consent dies.
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.accountableUserId
+            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
             _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
             (accountOwner, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
@@ -4431,6 +4431,13 @@ object Http4s310 {
                 case Some(ttl) => ttl <= maxTimeToLive
                 case _ => true
               }
+            }
+            // Reject CanCreateEntitlementAtAnyBank explicitly (same rule as the consent-request flow).
+            // createConsentJWT drops it anyway, but silently omitting a requested role is worse
+            // than a 400: the caller must never believe a consent carries a role it does not.
+            // CanCreateEntitlementAtOneBank is allowed, see createConsentByConsentRequestId.
+            _ <- code.util.Helper.booleanToFuture(RolesForbiddenInConsent, cc = Some(cc)) {
+              !consentJson.entitlements.map(_.role_name).contains(canCreateEntitlementAtAnyBank.toString())
             }
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             _ <- code.util.Helper.booleanToFuture(RolesAllowedInConsent, cc = Some(cc)) {
@@ -4602,7 +4609,7 @@ object Http4s310 {
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
-        RolesAllowedInConsent,
+        RolesAllowedInConsent, RolesForbiddenInConsent,
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
@@ -4683,7 +4690,7 @@ object Http4s310 {
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
-        RolesAllowedInConsent,
+        RolesAllowedInConsent, RolesForbiddenInConsent,
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
@@ -4763,7 +4770,7 @@ object Http4s310 {
         BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
-        RolesAllowedInConsent,
+        RolesAllowedInConsent, RolesForbiddenInConsent,
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,

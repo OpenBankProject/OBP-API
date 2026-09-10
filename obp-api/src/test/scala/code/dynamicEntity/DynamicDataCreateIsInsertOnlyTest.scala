@@ -31,9 +31,9 @@ class DynamicDataCreateIsInsertOnlyTest extends ServerSetup {
   private def body(id: String, marker: String): JObject =
     (idField -> id) ~ ("marker" -> marker)
 
-  feature("creating a record whose id already exists") {
+  Feature("creating a record whose id already exists") {
 
-    scenario("does not overwrite the existing row, and does not re-own it") {
+    Scenario("does not overwrite the existing row, and does not re-own it") {
       val victimId = APIUtil.generateUUID()
       val victimBank = Some("insertonly-victim-bank")
       val victimUser = Some("insertonly-victim-user")
@@ -66,9 +66,9 @@ class DynamicDataCreateIsInsertOnlyTest extends ServerSetup {
     }
   }
 
-  feature("the update path") {
+  Feature("the update path") {
 
-    scenario("still rewrites the record it was given, for its owner") {
+    Scenario("still rewrites the record it was given, for its owner") {
       val id = APIUtil.generateUUID()
       val bank = Some("insertonly-update-bank")
       val user = Some("insertonly-update-user-" + Helpers.randomString(6).toLowerCase)

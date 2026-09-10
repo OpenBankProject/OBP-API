@@ -371,6 +371,8 @@ public_keycloak_url=http://localhost:7787
 public_obp_hola_url=http://localhost:8087
 public_obp_mcp_url=http://localhost:9100
 public_obp_opey_url=http://localhost:5000
+# OBP-Stripe subscription / payment service (Go server, default port 4242)
+public_obp_stripe_url=http://localhost:4242
 
 ## This port is used for local development
 ## Note: OBP-API now uses http4s server
@@ -847,10 +849,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # "OBPv3.1.0" or "v3.1.0"
 # "OBPv3.0.0" or "v3.0.0"
 # "BGv1.3" or "v1.3"
-# "PAPIv2.1.1.1" or "v2.1.1.1"
-# "STETv1.4" or "v1.4"
 # "UKv2.0" or "v2.0"
-# "AUv1.0.0" or "v1.0.0"
 # "UKv3.1" or "v3.1"
 #
 # Note: we recommend to use the fullyQualifiedVersion. The apiShortVersion is depreciated here.
@@ -1158,18 +1157,67 @@ featured_apis=elasticSearchWarehouseV300
 # Default is now true. This property may be removed in a future version.
 # Set to false to use only system-wide defaults (not recommended)
 # use_consumer_limits=true
-# In case isn't defined default value is 60
-# user_consumer_limit_anonymous_access=100
+# Per-hour limit for anonymous calls (no consumer). Default 1000. 0 blocks all anonymous access, -1 removes the limit.
+# user_consumer_limit_anonymous_access=1000
 # For the Rate Limiting feature we use Redis cache instance
 # In case isn't defined default value is root
 # rate_limiting.exclude_endpoints=root
-## Default rate limiting for a new consumer
+## Default rate limits for a consumer that has no rate limit records at all.
+## -1 = unlimited, 0 = blocked, positive = max calls in the period.
+## Once a consumer has any record, the record's values apply instead (its -1 is a literal unlimited).
 # rate_limiting_per_second = -1
 # rate_limiting_per_minute = -1
 # rate_limiting_per_hour = -1
 # rate_limiting_per_day = -1
 # rate_limiting_per_week = -1
 # rate_limiting_per_month = -1
+#
+# -- Three rate limiters --
+# OBP has three rate limiters. Each answers 429 with its own error code so a client knows which one it hit:
+#   1. Self-service (self_service.rate_limit.*)  runs first, before routing and authentication, keyed by
+#      client IP, on the endpoints anyone can call before the bank has granted them anything -> OBP-10060
+#   2. Authentication (auth.rate_limit.*)        runs inside the credential check of DirectLogin, DAuth,
+#      GatewayLogin and SIWE, keyed by IP and by account, against brute force and lockout    -> OBP-10061
+#   3. Consumer quota (rate_limiting_per_* and the rate limit rows written by the management endpoints and
+#      API Product Subscriptions) runs after authentication, keyed by consumer_id            -> OBP-10018
+#
+# -- Authentication rate limiting (per IP and per account, before the password is checked) --
+# Off by default. When enabled, shadow mode logs trips (event=auth_rate_limit_shadow_trip) and allows the
+# attempt; enforce mode answers 429 OBP-10061. Counters live in Redis and fail open.
+# auth.rate_limit.enabled = false
+# auth.rate_limit.mode = shadow
+# auth.rate_limit.per_ip.per_minute = 10
+# auth.rate_limit.per_ip.per_hour = 100
+# auth.rate_limit.per_user.per_minute = 6
+#
+# -- Self-service rate limiting (per client IP, before any credential) --
+# Applies to the endpoints a caller can use before it holds credentials, grouped in scopes.
+# Logins are not a scope here; the authentication limiter above counts them.
+#   signup                POST /users, /users/email-validation, /banks/BANK_ID/user-invitations
+#   password_reset        POST /users/password-reset-url, /users/password
+#   consent_request       POST /consumer/consent-requests, /consumer/vrp-consent-requests
+#   consumer_registration POST /dynamic-registration/consumers
+#   lookup                POST /account/check/scheme/iban
+#   signal_channel_create POST /signal-channels/CHANNEL_NAME/messages when the channel does not exist yet
+# Enabled by default in shadow mode: a trip is logged (event=self_service_rate_limit_shadow_trip)
+# and reported to the caller in the X-Rate-Limit-Warning header (OBP-10059), but the request is
+# allowed. Set mode to enforce to answer 429 OBP-10060 instead. Counters live in Redis and fail open.
+# self_service.rate_limit.enabled = true
+# self_service.rate_limit.mode = shadow
+# Generic per-IP limits; -1 switches a window off, 0 blocks every call in it.
+# Built-in per-scope defaults (applied when neither a scope prop nor a generic prop is set):
+#   signup 3/5/10 | password_reset 3/5/10 | consent_request 10/30/100
+#   consumer_registration 5/10/20 | lookup 20/60/200 | signal_channel_create 5/20/50
+# self_service.rate_limit.per_ip.per_minute = 10
+# self_service.rate_limit.per_ip.per_hour = 60
+# self_service.rate_limit.per_ip.per_day = 200
+# Per-scope overrides, e.g.:
+# self_service.rate_limit.signup.per_ip.per_hour = 5
+# Global per-hour cap per scope across all IPs (circuit breaker against a distributed spray).
+# Built-in defaults: 500 for signup, password_reset and consumer_registration; off (-1) elsewhere.
+# self_service.rate_limit.signup.global.per_hour = 500
+# Optional text appended to the warning when you have announced an enforcement date.
+# self_service.rate_limit.enforce_announced_from = 2026-10-01
 # -----------------------------------------------------
 
 # -- Migration Scripts ----------------------------
@@ -1354,7 +1402,7 @@ database_messages_scheduler_interval=3600
 # chat.email_digest_active_grace_minutes = 10
 
 # Signal channels -----------------------------------------------------------
-# Redis-backed ephemeral channels (/signal/channels endpoints) for lightweight
+# Redis-backed ephemeral channels (/signal-channels endpoints) for lightweight
 # agent-to-agent coordination. Per-channel TTL (refreshed on every publish)
 # and per-channel message cap:
 # messaging.channel.ttl.seconds = 3600
@@ -1741,6 +1789,32 @@ dynamic_code_compile_validate_dependencies=[\
       "scala.reflect.runtime.package\$" -> "universe",\
       PractiseEndpoint.getClass.getTypeName + "*" -> "*"\
 ]
+
+# --- Dynamic code requires approval (maker/checker, see MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ---
+# dynamic_code_requires_approval=true enforces two things for the target types listed below:
+#  1. Writes are queued, not applied. Create/update/delete via the v4.0.0/v6.0.0 endpoints still check the
+#     caller's role, validate and compile the body, then store a DynamicChangeRequest and answer 202 Accepted.
+#     A DIFFERENT user holding CanApproveDynamicChangeRequest applies it by quoting the payload's SHA-256 at
+#     /obp/v7.0.0/management/dynamic-change-requests/ID/approval.
+#  2. The runtime executes only approved code. A row is served/compiled only when it is active and its body
+#     hash equals the hash a checker approved. Rows edited or inserted directly in the database are not run.
+# The first boot with this true seeds the approved hash of every pre-existing row from its current body,
+# once per database (logged in MigrationScriptLog as seedDynamicCodeApprovedHashes). After that, the only way
+# a row becomes executable is a checker's approval (or an ACTIVATE change request for a row that has none).
+# Approval is system level: dynamic code runs in the shared JVM, so a bank-level artefact is still approved by
+# a system-level checker. Deactivation is a direct action by a single approver (four eyes to enable, one pair
+# to disable) and works whether or not this prop is set.
+# Defaults to false: sandboxes and local development keep today's behaviour, nothing is queued or gated.
+dynamic_code_requires_approval=false
+# Which target types the above applies to. Phase 1 supports the four code families.
+dynamic_code_approval_target_types=DYNAMIC_RESOURCE_DOC,DYNAMIC_MESSAGE_DOC,CONNECTOR_METHOD,ABAC_RULE
+# Deleting does not expand capability but does break consumers; set false to let makers delete directly.
+dynamic_code_delete_requires_approval=true
+# INITIATED requests older than this are marked EXPIRED when next read. 0 disables expiry.
+dynamic_code_approval_request_ttl_hours=168
+# Connector methods and dynamic message docs are looked up per call, so their active/approved check is
+# memoised for this long. An approval or deactivation takes up to this long to reach those two families.
+dynamic_code_approval_guard_cache_ttl_seconds=10
 
 ###################################################
 ## "Optional" / "Placeholder" JSON field behaviour

@@ -215,7 +215,7 @@ case class AggregateMetrics(
   minResponseTime: Double,
   maxResponseTime: Double,
   // Distinct humans behind the calls: consent-borne rows are attributed to the granting
-  // (on-behalf-of) user via the consent table, mirroring CallContext.accountableUserId.
+  // (on-behalf-of) user via the consent table, mirroring CallContext.onBehalfOfUserId.
   distinctUserCount: Int,
   distinctConsumerCount: Int,
   // Calls that arrived under a consent (metric.consent_reference_id not null), and how many

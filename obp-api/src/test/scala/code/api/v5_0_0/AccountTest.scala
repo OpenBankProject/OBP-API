@@ -8,12 +8,12 @@ import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_0_0.BasicAccountJSON
-import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
+import code.api.v2_0_0.Http4s200.Implementations2_0_0
 import code.api.v3_0_0.CoreAccountsJsonV300
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.{AccountsBalancesJsonV400, ModeratedCoreAccountJsonV400}
-import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf

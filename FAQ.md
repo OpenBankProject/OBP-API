@@ -3,7 +3,7 @@
 
 ## How do I create new endpoints in OBP API?
 
-See lazy val getCustomersForUser in /src/main/scala/code/api/v3_0_0/APIMethods300.scala as a code example
+See lazy val getCustomersForUser in /src/main/scala/code/api/v3_0_0/Http4s300.scala as a code example
 
 
 ## How do I minimise merge conflicts in my fork?
@@ -30,7 +30,7 @@ In more detail:
 
 2) Each version's endpoints are defined as native http4s `HttpRoutes[IO]` in `code.api.vX.Http4sXxx` (e.g. `Http4s300`) and exposed via `wrappedRoutesVXxxServices`. These are wired, in priority order, into `Http4sApp.baseServices` (see `obp-api/src/main/scala/code/api/util/http4s/Http4sApp.scala`). Each version's routes are wrapped by `Http4sApp.gate`, which returns `HttpRoutes.empty` when the version is disabled.
 
-The matching Lift `OBPAPI3_0_0.scala` / `APIMethods300.scala` files are retained only as commented-out source-of-truth and as the `allResourceDocs` registry used by the resource-docs aggregation — they no longer serve requests.
+`OBPAPI3_0_0.scala` has been deleted too: the resource-docs aggregation that was its last purpose now lives in `Http4sResourceDocAggregation`. The original Lift `APIMethods300.scala` has been deleted; its ResourceDoc text lives on in `scripts/resource_doc_baseline/lift_resource_docs_v3_0_0.json` (see that directory's README).
 
 3) Per-endpoint enable/disable is enforced at request time by `ResourceDocMiddleware`, which reads the Props for explicitly enabled/disabled endpoints (`api_enabled_endpoints` / `api_disabled_endpoints`) and also performs authentication, role checks, and entity resolution.
 

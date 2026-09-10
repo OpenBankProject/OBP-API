@@ -206,10 +206,17 @@ class Boot extends MdcLoggable {
     // refuses `ALTER TABLE consumer ALTER COLUMN aud TYPE text` while a view depends on that
     // column. H2 does not enforce it, so only a real Postgres start shows this.
     code.api.util.liquibase.LiquibaseSchemaSetup.createOidcViews(APIUtil.vendor.HikariDatasource.ds)
+    // Maker/checker for dynamic code: when first enabled, pre-existing code rows get their current
+    // body hash recorded as approved so enabling the feature does not silently disable them.
+    code.dynamicchangerequest.MakerChecker.seedApprovedHashesIfEnabled()
 
     // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, bill, utility, etc.).
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()
+
+    // Report which static Glossary Items the database is currently displacing. A developer editing
+    // Glossary.scala has no other way to find out that their text is being overridden.
+    code.api.util.Glossary.logStaticOverrides()
 
     if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)) {
       // Create system views

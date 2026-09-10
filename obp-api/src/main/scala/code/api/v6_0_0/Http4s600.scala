@@ -1,5 +1,10 @@
 package code.api.v6_0_0
 
+import code.api.util.{Consent, SecureRandomUtil}
+import code.consent.{ConsentStatus, Consents, MappedConsent}
+import code.api.v3_1_0.{ConsentJsonV310, PostConsentEmailJsonV310, PostConsentPhoneJsonV310}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
+import net.liftweb.util.Props
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
@@ -20,6 +25,8 @@ import code.api.util.APIUtil.{
 import code.api.util.{ExampleValue, Glossary}
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
+import code.dynamicchangerequest.MakerChecker
+import code.api.v7_0_0.JSONFactory700.createDynamicChangeRequestJsonV700
 import code.bankconnectors.LocalMappedConnectorInternal.transactionRequestGeneralText
 import code.webuiprops.WebUiPropsPutJsonV600
 import com.openbankproject.commons.model.{
@@ -118,7 +125,7 @@ object Http4s600 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v6_0_0
-  val versionStatus: String = ApiVersionStatus.BLEEDING_EDGE.toString
+  val versionStatus: String = ApiVersionStatus.DRAFT.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
   object Implementations6_0_0 extends code.util.Helper.MdcLoggable {
@@ -126,7 +133,7 @@ object Http4s600 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
     // Local config flag referenced by some lifted product-endpoint descriptions.
-    // Mirrors the same `val` in `code.api.v2_1_0.{APIMethods210, Http4s210}`.
+    // Mirrors the same `val` in `code.api.v2_1_0.Http4s210`.
     val getProductsIsPublic =
       APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
@@ -174,7 +181,7 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/users/current
     // Auth-only. Returns the logged-in user enriched with entitlements,
     // virtual roles (super_admin / oidc_operator), permissions, and the
-    // optional on-behalf-of user when impersonation headers are set.
+    // optional on-behalf-of user when the request runs under a consent.
     lazy val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "users" / "current" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
@@ -202,15 +209,18 @@ object Http4s600 {
               }
             }
             val currentUser = UserV600(user, entitlements ::: virtualEntitlements, permissions)
+            // The delegated on-behalf-of user only (consentCreator for OBP-native consents,
+            // consenter for BG/UK) — NOT cc.onBehalfOfUser, whose .or(user) fallback would show a
+            // plain user as their own on-behalf-of. Null unless a consent is in play.
             val onBehalfOfUser =
-              if (cc.onBehalfOfUser.isDefined) {
-                val u = cc.onBehalfOfUser.toOption.get
+              if (cc.consentCreator.or(cc.consenter).isDefined) {
+                val u = cc.consentCreator.or(cc.consenter).toOption.get
                 val ents = Entitlement.entitlement.vend.getEntitlementsByUserId(u.userId)
                   .headOption.toList.flatten
                 val perms = Views.views.vend.getPermissionForUser(u).toOption
                 Some(UserV600(u, ents, perms))
               } else None
-            JSONFactory600.createUserInfoJSON(currentUser, onBehalfOfUser)
+            JSONFactory600.createUserInfoJSON(currentUser, onBehalfOfUser, cc.consentMyResources.map(code.api.util.ConsentMyResources.toJson))
           }
         }
     }
@@ -490,7 +500,7 @@ object Http4s600 {
       // Creator grants target the HUMAN (see createBank): a per-consent shadow principal
       // must not end up owning the entity's admin roles.
       crudRoles.foreach(role =>
-        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.accountableUserId, role.toString(),
+        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.onBehalfOfUserId, role.toString(),
           grantedByUserId = Some(cc.userId)))
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }
@@ -871,7 +881,7 @@ object Http4s600 {
             // Consent the principal is a per-consent shadow user, and a role granted to it
             // is stranded when the consent dies (and invisible to the human's next consent).
             // grantedByUserId stays the principal — the audit trail records who acted.
-            humanUserId = cc.accountableUserId
+            humanUserId = cc.onBehalfOfUserId
             entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
             entitlementsByBank = entitlements.filter(_.bankId == postJson.bank_id)
             _ = if (!entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString))
@@ -1250,11 +1260,204 @@ object Http4s600 {
     }
 
 
+    // Create Consent, v6.0.0 override of the v5.1.0 endpoint: the same flow with the v6 body, which adds
+    // `my_resources` (the granting User's own resources the consent user may act on). Owned, not granted,
+    // so no Role is checked for the block: Consent.validateMyResources checks kind, shape and existence.
+    // Lives in v6 because v5.1.0 is next in line to be frozen. ideas/CONSENT_MY_RESOURCES.md
+    lazy val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "consents" / scaMethod
+        if scaMethod == "EMAIL" || scaMethod == "SMS" || scaMethod == "IMPLICIT" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val callContextOpt = Some(cc)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc = callContextOpt) {
+              List(StrongCustomerAuthentication.SMS.toString(),
+                   StrongCustomerAuthentication.EMAIL.toString(),
+                   StrongCustomerAuthentication.IMPLICIT.toString()).contains(scaMethod)
+            }
+            consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentBodyJsonV600 ", 400, callContextOpt) {
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentBodyJsonV600]
+            }
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = Constant.DEFAULT_CONSENT_TTL)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _         => true
+              }
+            }
+            requestedEntitlements = consentJson.entitlements
+            // Reject CanCreateEntitlementAtAnyBank explicitly (same rule as the consent-request flow).
+            // createConsentJWT drops it anyway, but silently omitting a requested role is worse
+            // than a 400: the caller must never believe a consent carries a role it does not.
+            // CanCreateEntitlementAtOneBank is allowed, see createConsentByConsentRequestId.
+            _ <- Helper.booleanToFuture(RolesForbiddenInConsent, cc = callContextOpt) {
+              !requestedEntitlements.map(_.role_name).contains(canCreateEntitlementAtAnyBank.toString())
+            }
+            myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContextOpt) {
+              requestedEntitlements.forall(re =>
+                myEntitlements.getOrElse(Nil).exists(e => e.roleName == re.role_name && e.bankId == re.bank_id))
+            }
+            requestedViews = consentJson.views
+            (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+            _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
+              requestedViews.forall(rv =>
+                assignedViews.exists(e =>
+                  e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
+            }
+            _ <- Consent.validateMyResources(consentJson.my_resources, callContextOpt)
+            consumerFromBodyTuple <- consentJson.consumer_id match {
+              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))
+              case None     => Future.successful((None: Option[Consumer], "Any application"))
+            }
+            (consumerFromRequestBody, applicationText) = consumerFromBodyTuple
+            challengeAnswer = Props.mode match {
+              case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
+              case _                   => SecureRandomUtil.numeric()
+            }
+            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, None, consumerFromRequestBody))
+              .map(i => APIUtil.connectorEmptyResponse(i, callContextOpt))
+            consentJWT = Consent.createConsentJWT(
+              user, consentJson.toCommon, createdConsent.secret, createdConsent.consentId,
+              consumerFromRequestBody.map(_.consumerId),
+              consentJson.valid_from,
+              consentJson.time_to_live.getOrElse(3600),
+              None,
+              myResources = consentJson.my_resources
+            )
+            _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT))
+              .map(i => APIUtil.connectorEmptyResponse(i, callContextOpt))
+            validUntil = Helper.calculateValidTo(consentJson.valid_from, consentJson.time_to_live.getOrElse(3600))
+            _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
+              .map(i => APIUtil.connectorEmptyResponse(i, callContextOpt))
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
+            granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
+            shouldSkip = APIUtil.skipConsentScaForConsumerIdPairs.contains(
+              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
+            mappedConsent <- if (shouldSkip) {
+              Future {
+                // Atomic guarded auto-accept: only move INITIATED -> ACCEPTED. If the consent was
+                // concurrently revoked, the conditional UPDATE is a 0-row no-op and the revoke stands,
+                // instead of the skip-SCA write blindly resurrecting it to ACCEPTED.
+                code.bankconnectors.DoobieConsentStatusQueries.conditionalStatusTransitionByConsentId(
+                  createdConsent.consentId, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
+                MappedConsent.findByConsentId(createdConsent.consentId)
+                  .openOrThrowException(s"Consent ${createdConsent.consentId} not found immediately after creation")
+              }
+            } else {
+              val challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
+              scaMethod match {
+                case v if v == StrongCustomerAuthentication.EMAIL.toString =>
+                  for {
+                    postEmail <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentEmailJsonV310", 400, callContextOpt) {
+                      com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentEmailJsonV310]
+                    }
+                    _ <- NewStyle.function.sendCustomerNotification(
+                      StrongCustomerAuthentication.EMAIL, postEmail.email,
+                      Some("OBP Consent Challenge"), challengeText, callContextOpt)
+                  } yield createdConsent
+                case v if v == StrongCustomerAuthentication.SMS.toString =>
+                  for {
+                    postPhone <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310", 400, callContextOpt) {
+                      com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentPhoneJsonV310]
+                    }
+                    _ <- NewStyle.function.sendCustomerNotification(
+                      StrongCustomerAuthentication.SMS, postPhone.phone_number, None, challengeText, callContextOpt)
+                  } yield createdConsent
+                case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
+                  for {
+                    (consentImplicitSCA, _) <- NewStyle.function.getConsentImplicitSCA(user, callContextOpt)
+                    _ <- consentImplicitSCA.scaMethod match {
+                      case x if x == StrongCustomerAuthentication.EMAIL =>
+                        NewStyle.function.sendCustomerNotification(
+                          StrongCustomerAuthentication.EMAIL, consentImplicitSCA.recipient,
+                          Some("OBP Consent Challenge"), challengeText, callContextOpt)
+                      case x if x == StrongCustomerAuthentication.SMS =>
+                        NewStyle.function.sendCustomerNotification(
+                          StrongCustomerAuthentication.SMS, consentImplicitSCA.recipient,
+                          None, challengeText, callContextOpt)
+                      case _ => Future.successful("Success")
+                    }
+                  } yield createdConsent
+                case _ => Future.successful(createdConsent)
+              }
+            }
+          } yield ConsentJsonV310(mappedConsent.consentId, consentJWT, mappedConsent.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion, nameOf(createConsent), "POST",
+      "/my/consents/IMPLICIT", "Create Consent (IMPLICIT)",
+      s"""
+      |
+      |This endpoint starts the process of creating a Consent.
+      |
+      |The Consent is created in an ${ConsentStatus.INITIATED} state.
+      |
+      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+      |SCA_METHOD is typically "SMS","EMAIL" or "IMPLICIT". "EMAIL" is used for testing purposes. OBP mapped mode "IMPLICIT" is "EMAIL".
+      |Other mode, bank can decide it in the connector method 'getConsentImplicitSCA'.
+      |
+      |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
+      |
+      |${Http4s510.generalObpConsentTextForV600}
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |Example 1:
+      |{
+      |  "everything": true,
+      |  "views": [],
+      |  "entitlements": [],
+      |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+      |}
+      |
+      |Please note that consumer_id is optional field
+      |Example 2:
+      |{
+      |  "everything": true,
+      |  "views": [],
+      |  "entitlements": [],
+      |}
+      |
+      |Please note if everything=false you need to explicitly specify views and entitlements
+      |Example 3:
+      |{
+      |  "everything": false,
+      |  "views": [
+      |    {
+      |      "bank_id": "GENODEM1GLS",
+      |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+      |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
+      |    }
+      |  ],
+      |  "entitlements": [
+      |    {
+      |      "bank_id": "GENODEM1GLS",
+      |      "role_name": "CanGetCustomersAtOneBank"
+      |    }
+      |  ],
+      |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+      |}
+      |
+      |""",
+      postConsentBodyJsonV600, consentJsonV310,
+      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
+        RolesAllowedInConsent, RolesForbiddenInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(createConsent)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
         root(req)
           .orElse(getScannedApiVersions(req))
           .orElse(getCurrentUser(req))
+          .orElse(createConsent(req))
           .orElse(getBanks(req))
           .orElse(getBank(req))
           .orElse(getCustomersAtOneBank(req))
@@ -2655,32 +2858,18 @@ object Http4s600 {
 
     // ─── Phase 2: Signal bucket (6 endpoints) ────────────────────────────
 
-    // GET /obp/v6.0.0/signal/channels
+    // GET /obp/v6.0.0/signal-channels
     lazy val getSignalChannels: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" =>
+      case req @ GET -> `prefixPath` / "signal-channels" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future {
-            val names = code.api.cache.RedisMessaging.listChannels()
-            val infos = names.flatMap { name =>
-              code.api.cache.RedisMessaging.channelInfo(name).map { case (count, ttl) =>
-                val (messages, _) = code.api.cache.RedisMessaging.fetchMessages(name, 0, count.toInt)
-                val hasBroadcast = messages.exists { s =>
-                  scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(s).extract[SignalMessageJsonV600].to_user_id.isEmpty).getOrElse(false)
-                }
-                (name, count, ttl, hasBroadcast)
-              }
-            }
-            val channels = infos.filter(_._4).map { case (name, count, ttl, _) =>
-              SignalChannelInfoJsonV600(name, count, ttl)
-            }
-            SignalChannelsJsonV600(channels)
-          }
+          // Shared with the gRPC SignalChannelsService.ListChannels, see code.signal.SignalChannels
+          Future(SignalChannelsJsonV600(code.signal.SignalChannels.listBroadcastChannels()))
         }
     }
 
-    // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/info
+    // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/info
     lazy val getSignalChannelInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" / channelName / "info" =>
+      case req @ GET -> `prefixPath` / "signal-channels" / channelName / "info" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
@@ -2704,9 +2893,9 @@ object Http4s600 {
         }
     }
 
-    // GET /obp/v6.0.0/signal/channels/stats
+    // GET /obp/v6.0.0/signal-channels/stats
     lazy val getSignalStats: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" / "stats" =>
+      case req @ GET -> `prefixPath` / "signal-channels" / "stats" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           Future {
             val names = code.api.cache.RedisMessaging.listChannels()
@@ -2723,9 +2912,9 @@ object Http4s600 {
         }
     }
 
-    // POST /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages (201)
+    // POST /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages (201)
     lazy val publishSignalMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "signal" / "channels" / channelName / "messages" =>
+      case req @ POST -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
@@ -2748,29 +2937,18 @@ object Http4s600 {
               !code.signal.SignalContentPolicy.containsDangerousCharacters(postJson.payload) &&
                 postJson.message_type.forall(messageType => !code.util.DangerousCharacters.containsAny(messageType))
             }
+            // Envelope building and storage are shared with the gRPC SignalChannelsService.Publish
             published <- Future {
               val consumerId = cc.consumer match { case Full(c) => c.consumerId; case _ => "" }
-              val messageId = randomUUID().toString
-              val sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
-              val timestamp = sdf.format(new java.util.Date())
-              val envelope = SignalMessageJsonV600(
-                message_id = messageId, channel_name = channelName,
-                sender_consumer_id = consumerId, sender_user_id = u.userId,
-                to_user_id = postJson.to_user_id, timestamp = timestamp,
-                message_type = postJson.message_type.getOrElse(""),
-                payload = postJson.payload)
-              val msgStr = com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(envelope))
-              val count = code.api.cache.RedisMessaging.publishMessage(channelName, msgStr)
-              SignalMessagePublishedJsonV600(messageId, channelName, timestamp, count)
+              code.signal.SignalChannels.publish(channelName, u.userId, consumerId, postJson)
             }
           } yield published
         }
     }
 
-    // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages
+    // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages
     lazy val getSignalMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "signal" / "channels" / channelName / "messages" =>
+      case req @ GET -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
@@ -2780,24 +2958,24 @@ object Http4s600 {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             limit = obpQueryParams.collectFirst { case code.api.util.OBPLimit(value) => value }.getOrElse(50)
             offset = obpQueryParams.collectFirst { case code.api.util.OBPOffset(value) => value }.getOrElse(0)
-            (rawMessages, totalCount) <- Future(code.api.cache.RedisMessaging.fetchMessages(channelName, offset, limit))
-          } yield {
-            val parsed = rawMessages.flatMap { s =>
-              scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(s).extract[SignalMessageJsonV600]).toOption
+            // after_sequence switches to a cursor read that survives the channel being trimmed;
+            // offset paging is kept for browsing what the channel holds right now.
+            afterSequenceParam = req.uri.query.params.get("after_sequence").map(_.trim).filter(_.nonEmpty)
+            afterSequence <- afterSequenceParam match {
+              case None => Future.successful(None)
+              case Some(raw) => NewStyle.function.tryons(s"$InvalidNumber after_sequence must be an integer, got: $raw", 400, Some(cc)) {
+                Some(raw.toLong)
+              }
             }
-            val filtered = parsed.filter { msg =>
-              msg.to_user_id.isEmpty ||
-                msg.to_user_id.contains(user.userId) ||
-                msg.sender_user_id == user.userId
-            }
-            SignalMessagesJsonV600(channelName, filtered, totalCount, (offset + limit) < totalCount)
-          }
+            // Storage access and privacy filter shared with the gRPC SignalChannelsService.Fetch
+            page <- Future(code.signal.SignalChannels.fetch(channelName, offset, limit, afterSequence, user.userId))
+          } yield page
         }
     }
 
-    // DELETE /obp/v6.0.0/signal/channels/CHANNEL_NAME (200 with body — not 204)
+    // DELETE /obp/v6.0.0/signal-channels/CHANNEL_NAME (200 with body — not 204)
     lazy val deleteSignalChannel: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "signal" / "channels" / channelName =>
+      case req @ DELETE -> `prefixPath` / "signal-channels" / channelName =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
@@ -5681,7 +5859,7 @@ object Http4s600 {
     // Route: POST /obp/v6.0.0/management/abac-rules (201)
     lazy val createAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" =>
-        EndpointHelpers.executeFutureCreated(req) {
+        EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -5694,12 +5872,20 @@ object Http4s600 {
             _ <- Helper.booleanToFuture("Rule code must not be empty", cc = Some(cc)) { createJson.rule_code.nonEmpty }
             _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
               .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
-            rule <- Future(MappedAbacRuleProvider.createAbacRule(
-              ruleName = createJson.rule_name, ruleCode = createJson.rule_code,
-              description = createJson.description, policy = createJson.policy,
-              isActive = createJson.is_active, createdBy = user.userId
-            )).map(unboxFullOrFail(_, Some(cc), "Could not create ABAC rule", 400))
-          } yield createAbacRuleJsonV600(rule)
+            // Maker/checker: a managed instance queues the rule for a second user's approval (202)
+            intercepted <- Future(MakerChecker.intercept(
+              com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
+              com.openbankproject.commons.model.enums.DynamicChangeRequestOperation.CREATE, None, cc))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestApprovalRequired, 400))
+            result <- intercepted match {
+              case Some(changeRequest) => Future.successful((createDynamicChangeRequestJsonV700(changeRequest), 202))
+              case None => Future(MappedAbacRuleProvider.createAbacRule(
+                ruleName = createJson.rule_name, ruleCode = createJson.rule_code,
+                description = createJson.description, policy = createJson.policy,
+                isActive = createJson.is_active, createdBy = user.userId
+              )).map(unboxFullOrFail(_, Some(cc), "Could not create ABAC rule", 400)).map(rule => (createAbacRuleJsonV600(rule), 201))
+            }
+          } yield result
         }
     }
 
@@ -5737,7 +5923,8 @@ object Http4s600 {
     // Route: PUT /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
     lazy val updateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "abac-rules" / ruleId =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          implicit val cc: CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
@@ -5747,14 +5934,25 @@ object Http4s600 {
             }
             _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
               .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
-            rule <- Future(MappedAbacRuleProvider.updateAbacRule(
-              ruleId = ruleId, ruleName = updateJson.rule_name,
-              ruleCode = updateJson.rule_code, description = updateJson.description,
-              policy = updateJson.policy, isActive = updateJson.is_active,
-              updatedBy = user.userId
-            )).map(unboxFullOrFail(_, Some(cc), s"Could not update ABAC rule with ID: $ruleId", 400))
-            _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
-          } yield createAbacRuleJsonV600(rule)
+            _ <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
+              .map(unboxFullOrFail(_, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
+            intercepted <- Future(MakerChecker.intercept(
+              com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
+              com.openbankproject.commons.model.enums.DynamicChangeRequestOperation.UPDATE, Some(ruleId), cc))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestApprovalRequired, 400))
+            result <- intercepted match {
+              case Some(changeRequest) => Future.successful((createDynamicChangeRequestJsonV700(changeRequest), 202))
+              case None => for {
+                rule <- Future(MappedAbacRuleProvider.updateAbacRule(
+                  ruleId = ruleId, ruleName = updateJson.rule_name,
+                  ruleCode = updateJson.rule_code, description = updateJson.description,
+                  policy = updateJson.policy, isActive = updateJson.is_active,
+                  updatedBy = user.userId
+                )).map(unboxFullOrFail(_, Some(cc), s"Could not update ABAC rule with ID: $ruleId", 400))
+                _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
+              } yield (createAbacRuleJsonV600(rule), 200)
+            }
+          } yield result
         }
     }
 
@@ -5762,12 +5960,24 @@ object Http4s600 {
     // Route: DELETE /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
     lazy val deleteAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "abac-rules" / ruleId =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+        EndpointHelpers.executeFutureWithStatus(req) {
+          implicit val cc: CallContext = req.callContext
           for {
-            _ <- Future(MappedAbacRuleProvider.deleteAbacRule(ruleId))
+            _ <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
               .map(unboxFullOrFail(_, Some(cc), s"Could not delete ABAC rule with ID: $ruleId", 400))
-            _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
-          } yield ""
+            intercepted <- Future(MakerChecker.intercept(
+              com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
+              com.openbankproject.commons.model.enums.DynamicChangeRequestOperation.DELETE, Some(ruleId), cc))
+              .map(unboxFullOrFail(_, Some(cc), DynamicChangeRequestApprovalRequired, 400))
+            result <- intercepted match {
+              case Some(changeRequest) => Future.successful((createDynamicChangeRequestJsonV700(changeRequest), 202))
+              case None => for {
+                _ <- Future(MappedAbacRuleProvider.deleteAbacRule(ruleId))
+                  .map(unboxFullOrFail(_, Some(cc), s"Could not delete ABAC rule with ID: $ruleId", 400))
+                _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
+              } yield ("", 200)
+            }
+          } yield result
         }
     }
 
@@ -6186,6 +6396,8 @@ object Http4s600 {
     }
 
 
+
+
     // ─── Phase 2: mandates bucket (10 endpoints) ──────────────────────────
 
     // Parse `yyyy-MM-dd'T'HH:mm:ss'Z'` UTC strings; v6 Lift's exact format.
@@ -6498,7 +6710,16 @@ object Http4s600 {
         "GET",
         "/users/current",
         "Get User (Current)",
-        s"""Get the logged in user
+        // Description deliberately extends the Lift v6 text (documentation of behaviour that
+        // already exists; the parity audit will flag this field).
+        s"""Get the logged in user.
+           |
+           |`entitlements.list` is every Role the User can rely on for a direct call, in two kinds:
+           |
+           |* stored Entitlements: `entitlement_id` set, `bank_id` set for bank-level Roles, `created_by_process` says how the row came to exist (`manual`, `create_just_in_time_entitlements`, `consent_user`, ...).
+           |* virtual Entitlements: `entitlement_id` empty, `bank_id` empty, `created_by_process` names the props entry that grants them: `super_admin_user_ids` or `oidc_operator_user_ids`. On this instance super admins hold ${APIUtil.superAdminVirtualRoles.mkString(", ")} and OIDC operators hold ${APIUtil.oidcOperatorVirtualRoles.mkString(", ")}. A virtual Entitlement is not a row, so it cannot be deleted, and it cannot be delegated: a Consent may only carry stored Entitlements of its creator, so a super admin who wants an agent to hold a Role must first grant it to themselves (Add Entitlement, targeting their own USER_ID), then create the Consent.
+           |
+           |`on_behalf_of` is null unless the call is made with a Consent. Then `user_id` is the consent user and `on_behalf_of` is the User who granted the Consent, the owner of anything durable the call creates.
            |
            |${userAuthenticationMessage(true)}
         """.stripMargin,
@@ -7018,6 +7239,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |
@@ -7088,6 +7310,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |
@@ -7160,6 +7383,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |
@@ -7223,6 +7447,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |
@@ -7292,6 +7517,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |
@@ -10209,7 +10435,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalChannels),
         "GET",
-        "/signal/channels",
+        "/signal-channels",
         "List Signal Channels",
         s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
@@ -10218,13 +10444,21 @@ object Http4s600 {
         |Only channels that contain at least one broadcast message (no to_user_id) are listed.
         |Private-only channels are not shown.
         |
+        |**Getting credentials as an agent.** No pre-existing OBP account is needed. Register an OAuth2 client
+        |with the OBP-OIDC dynamic client registration endpoint (RFC 7591; its URL is the registration_endpoint
+        |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
+        |and client_secret for an access token with grant_type=client_credentials, and send it as
+        |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
+        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
+        |
         |Authentication is Required.
         |
         |""".stripMargin,
         EmptyBody,
         signalChannelsJsonV600,
         List($AuthenticatedUserIsRequired, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(getSignalChannels)
       )
@@ -10232,7 +10466,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalChannelInfo),
         "GET",
-        "/signal/channels/CHANNEL_NAME/info",
+        "/signal-channels/CHANNEL_NAME/info",
         "Get Signal Channel Info",
         s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
@@ -10245,7 +10479,7 @@ object Http4s600 {
         EmptyBody,
         signalChannelInfoJsonV600,
         List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(getSignalChannelInfo)
       )
@@ -10253,7 +10487,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalStats),
         "GET",
-        "/signal/channels/stats",
+        "/signal-channels/stats",
         "Get Signal Channel Stats",
         s"""Returns statistics for all signal channels, including private-only channels.
         |
@@ -10266,7 +10500,7 @@ object Http4s600 {
         EmptyBody,
         signalStatsJsonV600,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         Some(canGetSignalStats :: Nil),
         http4sPartialFunction = Some(getSignalStats)
       )
@@ -10274,7 +10508,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(publishSignalMessage),
         "POST",
-        "/signal/channels/CHANNEL_NAME/messages",
+        "/signal-channels/CHANNEL_NAME/messages",
         "Publish Signal Message",
         s"""Publish a message to a signal channel.
         |
@@ -10282,7 +10516,10 @@ object Http4s600 {
         |AI agents and other OBP consumers. Messages are not persisted to a database.
         |
         |Channels are auto-created on first publish and expire after a configurable TTL (default 1 hour).
-        |Messages are capped at a configurable maximum per channel (default 1000).
+        |Messages are capped at a configurable maximum per channel (default 1000); the oldest are trimmed.
+        |
+        |The response carries the per-channel monotonic `sequence` stamped on the stored message. Readers
+        |poll with `after_sequence` on Get Signal Messages, which is unaffected by trimming.
         |
         |The payload field accepts any valid JSON content. On this instance the whole request body
         |may be up to ${code.signal.SignalContentPolicy.maxPayloadLength} characters.
@@ -10293,6 +10530,20 @@ object Http4s600 {
         |
         |Set to_user_id to send a private message visible only to the sender and recipient.
         |Leave to_user_id empty for a broadcast message visible to all channel readers.
+        |
+        |Live delivery: every publish is also pushed to gRPC clients streaming the channel via
+        |SignalChannelsService.Subscribe (see signal.proto). The same service offers Publish, Fetch
+        |and ListChannels as 1:1 equivalents of the REST endpoints, over the same Redis storage.
+        |gRPC calls authenticate with the same Authorization value sent as metadata under the key
+        |`authorization`; the server supports reflection, so grpcurl can discover the service.
+        |
+        |**Getting credentials as an agent.** No pre-existing OBP account is needed. Register an OAuth2 client
+        |with the OBP-OIDC dynamic client registration endpoint (RFC 7591; its URL is the registration_endpoint
+        |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
+        |and client_secret for an access token with grant_type=client_credentials, and send it as
+        |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
+        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
         |
         |Authentication is Required.
         |
@@ -10310,7 +10561,7 @@ object Http4s600 {
           SignalMessageContainsDangerousCharacters,
           UnknownError
         ),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(publishSignalMessage)
       )
@@ -10318,27 +10569,42 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getSignalMessages),
         "GET",
-        "/signal/channels/CHANNEL_NAME/messages",
+        "/signal-channels/CHANNEL_NAME/messages",
         "Get Signal Messages",
         s"""Fetch messages from a signal channel with offset/limit pagination.
         |
         |Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery
         |and coordination, but usable by any authenticated OBP consumer.
         |
-        |Messages are returned oldest-first.
+        |Messages are returned oldest-first. Every message carries a per-channel monotonic
+        |**sequence** stamped when it was published.
         |
         |Privacy filtering is applied server-side: you will only see broadcast messages (no to_user_id)
         |and private messages addressed to you (to_user_id matches your user ID) or sent by you.
         |
-        |Use the offset parameter to poll for new messages by tracking your position.
+        |**To poll, use `after_sequence`**, not offset: `?after_sequence=<last sequence you saw>&limit=50`
+        |returns only newer messages. A channel keeps just its newest messages (default 1000) and trims
+        |the oldest, which moves list positions, so a poller that tracks an offset silently skips messages
+        |once the channel fills. The response's `next_after_sequence` is the value to send next; it
+        |advances even when every message in the window was private to someone else, and `has_more`
+        |says whether newer messages remain. `latest_sequence` is the newest message in the channel.
+        |Start with `after_sequence=0` for everything the channel still holds.
+        |
+        |Without `after_sequence`, offset and limit page over the channel's current contents.
+        |
+        |`total_count` is the number of messages in the channel including private messages hidden
+        |from you, so it can be larger than the number of messages returned. `visible_count` is the
+        |number you may see, over the whole channel, and is the one to compare with what you have
+        |received. Neither is a way to detect missed messages; use `after_sequence` and
+        |`next_after_sequence` for that.
         |
         |Authentication is Required.
         |
         |""".stripMargin,
         EmptyBody,
         signalMessagesJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, InvalidNumber, UnknownError),
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         None,
         http4sPartialFunction = Some(getSignalMessages)
       )
@@ -10346,7 +10612,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(deleteSignalChannel),
         "DELETE",
-        "/signal/channels/CHANNEL_NAME",
+        "/signal-channels/CHANNEL_NAME",
         "Delete Signal Channel",
         s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
         |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
@@ -10364,7 +10630,7 @@ object Http4s600 {
         // the CanDeleteSignalChannel role gate was added after the migration —
         // an ungated delete let any authenticated user destroy any channel.
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidSignalChannelName, UnknownError),
-        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        apiTagAiAgent :: apiTagSignalChannel :: Nil,
         Some(canDeleteSignalChannel :: Nil),
         http4sPartialFunction = Some(deleteSignalChannel)
       )
@@ -14363,6 +14629,19 @@ object Http4s600 {
         s"""
         |Create Rate Limits for a Consumer
         |
+        |Each of the six limits is one of:
+        |
+        |* `0`: this record grants no calls in that period. Records are summed, so the consumer is blocked (every call refused with 429) only when the sum over all of its records for that period is 0.
+        |* `-1`: unlimited for that period, adding nothing to the sum. Once a record exists, the system default for that period no longer applies.
+        |* a positive number: the maximum number of calls in that period. Overlapping records for the consumer are summed.
+        |
+        |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
+        |
+        |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
+        |subscription's next status change and removed when the subscription is cancelled.
+        |
+        |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
+        |
         |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
@@ -14394,9 +14673,22 @@ object Http4s600 {
         |Per Second
         |Per Minute
         |Per Hour
+        |Per Day
         |Per Week
         |Per Month
         |
+        |Each of the six limits is one of:
+        |
+        |* `0`: this record grants no calls in that period. Records are summed, so the consumer is blocked (every call refused with 429) only when the sum over all of its records for that period is 0.
+        |* `-1`: unlimited for that period, adding nothing to the sum. Once a record exists, the system default for that period no longer applies.
+        |* a positive number: the maximum number of calls in that period. Overlapping records for the consumer are summed.
+        |
+        |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
+        |
+        |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
+        |subscription's next status change and removed when the subscription is cancelled.
+        |
+        |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
         |${userAuthenticationMessage(true)}
         |
@@ -14425,6 +14717,8 @@ object Http4s600 {
         s"""
         |Delete a specific Rate Limit by Rate Limiting ID
         |
+        |A record created by an API Product Subscription will be recreated on the subscription's next status change; cancel the subscription instead.
+        |
         |${userAuthenticationMessage(true)}
         |
         |""".stripMargin,
@@ -14449,6 +14743,8 @@ object Http4s600 {
         "Get Active Rate Limits (Current)",
         s"""
         |Get the active rate limits for a consumer at the current date/time. Returns the aggregated rate limits from all active records at this moment.
+        |
+        |A value of `0` means the consumer is blocked for that period, `-1` means unlimited, and a consumer with no records shows the system defaults.
         |
         |This is a convenience endpoint that uses the current date/time automatically.
         |
@@ -14478,6 +14774,8 @@ object Http4s600 {
         "Get Active Rate Limits for Hour",
         s"""
         |Get the active rate limits for a consumer for a specific hour. Returns the aggregated rate limits from all active records during that hour.
+        |
+        |A value of `0` means the consumer is blocked for that period, `-1` means unlimited, and a consumer with no records shows the system defaults.
         |
         |Rate limits are cached and queried at hour-level granularity.
         |
@@ -14605,6 +14903,20 @@ object Http4s600 {
         "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
         "Create Api Product",
         s"""Create an Api Product for the Bank.
+        |
+        |An Api Product describes a plan: which endpoints (collection_id), how many calls (the six call limits), the price (monthly_subscription_amount), tiers (parent_api_product_code) and anything else (attributes).
+        |
+        |Call limits: `-1` means unlimited for that period once a consumer subscribes (it is copied literally to the consumer's rate limit record; it does not mean "inherit the system default"). `0` means blocked. A positive number is the maximum number of calls in that period.
+        |
+        |Recognised attribute names (set with the Api Product Attribute endpoints):
+        |
+        |* `SELF_SUBSCRIBE`: `true` (default) or `false`. Whether developers may subscribe their own consumers, or only the bank may enrol them.
+        |* `BILLING_SYSTEM`: `none` (default), `manual`, `stripe` or `invoice_ninja`. Which system moves a subscription from requested to active.
+        |* `INCLUDED_CALLS_PER_MONTH`: calls included in the monthly price.
+        |* `OVERAGE_PRICE_PER_CALL`: price per call above the included calls.
+        |* `TRIAL_DAYS`: free trial length in days.
+        |
+        |See ${Glossary.getGlossaryItemLink("API Product Subscription")} for how subscriptions use these.
         |
         |Authentication is Required.
         |
@@ -15208,7 +15520,7 @@ object Http4s600 {
   private lazy val v6ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
     ResourceDocMatcher.buildIndex(resourceDocs)
 
-  // `lazy val`, not `val`: `OBPAPI6_0_0` and `APIMethods600` reference
+  // `lazy val`, not `val`: other objects reference
   // `Http4s600.Implementations6_0_0` directly via getstatic. When either is loaded
   // first (during Lift's Boot), the JVM triggers `Implementations6_0_0.<clinit>`
   // before `Http4s600.<clinit>`. Resource-doc registrations inside Impl6.<init>

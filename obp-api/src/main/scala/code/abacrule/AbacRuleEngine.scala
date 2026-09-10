@@ -44,6 +44,10 @@ object AbacRuleEngine {
    * @return Box containing the compiled function or error
    */
   def compileRule(ruleId: String, ruleCode: String): Box[AbacRuleFunction] = {
+    // Maker/checker execution guard: on a managed instance a rule whose current code hash differs
+    // from the checker-approved hash is never compiled or run (see MakerChecker.isApprovedAbacRule).
+    if (!code.dynamicchangerequest.MakerChecker.isApprovedAbacRule(ruleId))
+      return Failure(ErrorMessages.DynamicArtefactNotApproved)
     compiledRulesCache.get(ruleId) match {
       case Some(cachedFunction) => cachedFunction
       case None =>

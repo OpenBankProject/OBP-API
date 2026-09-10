@@ -27,9 +27,9 @@ class NullableColumnRoundTripTest extends ServerSetup {
     DynamicMessageDoc.deleteAll()
   }
 
-  feature("a resource doc whose optional free-text columns are null") {
+  Feature("a resource doc whose optional free-text columns are null") {
 
-    scenario("survives the read-back inside insert") {
+    Scenario("survives the read-back inside insert") {
       val id = code.api.util.APIUtil.generateUUID()
       val inserted = DynamicResourceDoc.insert(
         dynamicResourceDocId = id,
@@ -61,7 +61,7 @@ class NullableColumnRoundTripTest extends ServerSetup {
       }
     }
 
-    scenario("does not take the listing down with it") {
+    Scenario("does not take the listing down with it") {
       // Reading many rows is where this bites hardest: one NULL fails the whole query, so every
       // other doc becomes unreachable too.
       val id = code.api.util.APIUtil.generateUUID()
@@ -86,9 +86,9 @@ class NullableColumnRoundTripTest extends ServerSetup {
     }
   }
 
-  feature("a message doc whose optional free-text columns are null") {
+  Feature("a message doc whose optional free-text columns are null") {
 
-    scenario("survives the read-back inside insert") {
+    Scenario("survives the read-back inside insert") {
       val id = code.api.util.APIUtil.generateUUID()
       val process = s"nullMessageDoc_$uniqueSuffix"
       DynamicMessageDoc.insert(
@@ -116,7 +116,7 @@ class NullableColumnRoundTripTest extends ServerSetup {
     }
   }
 
-  feature("a resource doc whose bodies are longer than a legacy varchar(255)") {
+  Feature("a resource doc whose bodies are longer than a legacy varchar(255)") {
 
     // develop widens examplerequestbody, successresponsebody and errorresponsebodies with
     // MigrationOfDynamicResourceDocBodyFieldsLength, whose own comment says the value "routinely
@@ -128,7 +128,7 @@ class NullableColumnRoundTripTest extends ServerSetup {
     // failure is at write time ("Value too long for column" on H2, "value too long for type
     // character varying(255)" on Postgres), and the endpoints wrap the write, so a caller sees a
     // generic error rather than a length complaint.
-    scenario("stores and reads back bodies well past 255 characters") {
+    Scenario("stores and reads back bodies well past 255 characters") {
       // Shaped like a real response example rather than one long run of 'x', so the failure is
       // the column width and not something about the content.
       val longBody =

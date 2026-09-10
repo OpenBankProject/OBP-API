@@ -3,7 +3,7 @@ package code.api.dynamic.entity.helper
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, userAuthenticationMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired, ConsentMyResourcesMissing}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
@@ -145,10 +145,55 @@ object EntityAccessName {
 }
 
 object DynamicEntityHelper {
+
+  /**
+   * DE_indexing: may this definition update be applied to an entity that already has rows?
+   *
+   * The stored rows stay valid when the entity name, the set of property names and each property's `type`
+   * are unchanged and `required` does not grow. Everything else — `indexed`, `index`, `example`,
+   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*` — may change freely; in
+   * particular this is what lets an operator switch indexing on for an existing, populated entity
+   * (the projection backfill then does the rest). Unparseable input is treated as incompatible.
+   */
+  def isSchemaCompatibleChange(oldEntityName: String, oldMetadataJson: String,
+                               newEntityName: String, newMetadataJson: String): Boolean = {
+    // The stored metadataJson is the whole definition request, i.e. `{"<EntityName>": {"properties": ...}}`
+    // (DynamicEntityCommons.apply keeps the outer object). Accept the bare inner object too.
+    def definitionOf(metadataJson: String, entityName: String): Option[JValue] =
+      scala.util.Try(parse(metadataJson)).toOption.flatMap {
+        case root: JObject =>
+          (root \ entityName) match {
+            case inner: JObject => Some(inner)
+            case _ if (root \ "properties").isInstanceOf[JObject] => Some(root)
+            case _ => None
+          }
+        case _ => None
+      }
+    def propertyTypes(definition: JValue): Map[String, String] =
+      (definition \ "properties") match {
+        case props: JObject => props.obj.map { case JField(name, propDef) =>
+          name -> ((propDef \ "type") match { case JString(t) => t; case _ => "" })
+        }.toMap
+        case _ => Map.empty[String, String]
+      }
+    def requiredNames(definition: JValue): Set[String] =
+      (definition \ "required") match {
+        case JArray(items) => items.collect { case JString(n) => n }.toSet
+        case _ => Set.empty[String]
+      }
+
+    oldEntityName == newEntityName && {
+      (definitionOf(oldMetadataJson, oldEntityName), definitionOf(newMetadataJson, newEntityName)) match {
+        case (Some(oldDef), Some(newDef)) =>
+          propertyTypes(oldDef) == propertyTypes(newDef) && requiredNames(newDef).subsetOf(requiredNames(oldDef))
+        case _ => false
+      }
+    }
+  }
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess))).toMap
+  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap { dEntity =>
     val baseRoles = DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId)
@@ -274,7 +319,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.GET_ONE, splitNameWithBankId) -> ResourceDoc(
@@ -301,7 +347,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, splitNameWithBankId) -> ResourceDoc(
@@ -330,7 +377,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, splitNameWithBankId) -> ResourceDoc(
@@ -359,7 +407,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.PATCH, splitNameWithBankId) -> ResourceDoc(
@@ -395,7 +444,8 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, splitNameWithBankId) -> ResourceDoc(
@@ -421,13 +471,17 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole)),
-      createdByBankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId,
+      authMode = dynamicEntityInfo.endpointAuthMode
     )
 
     if(hasPersonalEntity){ //only hasPersonalEntity == true, then create the myEndpoints
       val personalRequiresRole = dynamicEntityInfo.personalRequiresRole
-      val myErrorMessages = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError) else List(AuthenticatedUserIsRequired, UnknownError)
-      val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError)
+      val myErrorMessages = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, ConsentMyResourcesMissing, UnknownError) else List(AuthenticatedUserIsRequired, ConsentMyResourcesMissing, UnknownError)
+      val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, ConsentMyResourcesMissing, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, ConsentMyResourcesMissing, InvalidJsonFormat, UnknownError)
+      val myConsentUserNote =
+        "With a Consent: the consent user may use this endpoint only if the Consent lists this entity in `my_resources.personal_dynamic_entities` with the needed action (`read` for GET, `write` otherwise); rows written with a Consent belong to the User who granted it." +
+        (if (personalRequiresRole) " The role is required in addition." else "")
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
         implementedInApiVersion,
@@ -443,6 +497,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
            |""".stripMargin,
@@ -468,6 +524,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getSingleExample,
@@ -492,6 +550,8 @@ object DynamicEntityHelper {
            |
            |${userAuthenticationMessage(true)}
            |
+           |$myConsentUserNote
+           |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
         dynamicEntityInfo.getSingleExample,
@@ -515,6 +575,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
@@ -543,6 +605,8 @@ object DynamicEntityHelper {
            |
            |${userAuthenticationMessage(true)}
            |
+           |$myConsentUserNote
+           |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
@@ -563,6 +627,8 @@ object DynamicEntityHelper {
            |${methodRoutingExample(entityName)}
            |
            |${userAuthenticationMessage(true)}
+           |
+           |$myConsentUserNote
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
@@ -742,7 +808,15 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false, useRowLevelAccess: Boolean = false) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false, useRowLevelAccess: Boolean = false, authMode: String = code.dynamicEntity.DynamicEntityAuthMode.default) {
+
+  /** The entity's auth mode as the framework type; unknown or empty values read as UserOnly. */
+  val endpointAuthMode: code.api.util.APIUtil.EndpointAuthMode = authMode match {
+    case code.dynamicEntity.DynamicEntityAuthMode.ApplicationOnly => code.api.util.APIUtil.ApplicationOnly
+    case code.dynamicEntity.DynamicEntityAuthMode.UserOrApplication => code.api.util.APIUtil.UserOrApplication
+    case code.dynamicEntity.DynamicEntityAuthMode.UserAndApplication => code.api.util.APIUtil.UserAndApplication
+    case _ => code.api.util.APIUtil.UserOnly
+  }
 
   import com.openbankproject.commons.util.json
   import code.api.dynamic.entity.query.FieldSpec
@@ -898,21 +972,39 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   }
 
   /**
-   * Indexed `reference:<Target>` fields: fieldName -> target entity name (the part after "reference:").
-   * The join planner uses this to resolve one-hop EXISTS/NOT EXISTS edges between entities; only
-   * declared reference fields are joinable (a plain string field holding ids is not). See
-   * ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md.
+   * Every `reference:<Target>` field, indexed or not: fieldName -> target entity name (the part after
+   * "reference:"). Only the indexed subset ([[referenceFields]]) forms a join edge; the rest
+   * ([[unindexedReferenceFields]]) exist so the planner can tell a developer precisely which field to
+   * mark `"indexed": true` instead of claiming no reference is declared at all.
    */
-  lazy val referenceFields: Map[String, String] = (entity \ "properties") match {
+  lazy val allReferenceFields: Map[String, String] = (entity \ "properties") match {
     case props: JObject => props.obj.collect {
       case JField(name, propDef: JObject)
-        if (propDef \ "indexed") == JBool(true) &&
-           ((propDef \ "type") match { case JString(s) => s.startsWith("reference:"); case _ => false }) =>
+        if ((propDef \ "type") match { case JString(s) => s.startsWith("reference:"); case _ => false }) =>
         val target = ((propDef \ "type"): @unchecked) match { case JString(s) => s.stripPrefix("reference:") }
         name -> target
     }.toMap
     case _ => Map.empty
   }
+
+  private lazy val indexedPropertyNames: Set[String] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) if (propDef \ "indexed") == JBool(true) => name
+    }.toSet
+    case _ => Set.empty
+  }
+
+  /**
+   * Indexed `reference:<Target>` fields: fieldName -> target entity name (the part after "reference:").
+   * The join planner uses this to resolve one-hop EXISTS/NOT EXISTS edges between entities; only
+   * declared reference fields are joinable (a plain string field holding ids is not). See
+   * ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md.
+   */
+  lazy val referenceFields: Map[String, String] =
+    allReferenceFields.filter { case (name, _) => indexedPropertyNames.contains(name) }
+
+  /** `reference:<Target>` fields that are declared but NOT `indexed`, so they cannot be joined on (yet). */
+  lazy val unindexedReferenceFields: Map[String, String] = allReferenceFields -- referenceFields.keys
 
   /**
    * Human-facing documentation of the list-endpoint query grammar (filter / sort / paginate / one-hop

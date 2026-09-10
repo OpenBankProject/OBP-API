@@ -45,9 +45,9 @@ class NullableColumnReadTest extends ServerSetup {
   override def beforeAll() = { super.beforeAll(); wipe() }
   override def afterEach() = { super.afterEach(); wipe() }
 
-  feature("a Doobie store reads a legacy row whose later-added columns are NULL") {
+  Feature("a Doobie store reads a legacy row whose later-added columns are NULL") {
 
-    scenario("account attributes: mproductinstancecode was added with no backfill") {
+    Scenario("account attributes: mproductinstancecode was added with no backfill") {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO mappedaccountattribute
                 (mbankidid, maccountid, mcode, maccountattributeid, mtype, mname, mvalue)
@@ -68,7 +68,7 @@ class NullableColumnReadTest extends ServerSetup {
       attributes.head.name should equal("n")
     }
 
-    scenario("api collections: description was added with no backfill") {
+    Scenario("api collections: description was added with no backfill") {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO apicollection (apicollectionid, userid, apicollectionname, issharable)
               VALUES ('coll-null-1', 'user-null-1', 'my-collection', true)""".update.run)
@@ -79,7 +79,7 @@ class NullableColumnReadTest extends ServerSetup {
       collections.head.apiCollectionName should equal("my-collection")
     }
 
-    scenario("customer account links: bankid was added with no backfill") {
+    Scenario("customer account links: bankid was added with no backfill") {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO customeraccountlink
                 (customeraccountlinkid, customerid, accountid, relationshiptype)
@@ -93,7 +93,7 @@ class NullableColumnReadTest extends ServerSetup {
       links.head.relationshipType should equal("owner")
     }
 
-    scenario("crm events: the sandbox importer never set user, scheduled date or result") {
+    Scenario("crm events: the sandbox importer never set user, scheduled date or result") {
       // LocalMappedConnectorDataImport logs "Note: We are not saving API User, Result or Scheduled
       // Date" and leaves those three columns unset; mUserId was a MappedLongForeignKey and
       // mScheduledDate a MappedDateTime, both of which write SQL NULL when undefined.
@@ -115,7 +115,7 @@ class NullableColumnReadTest extends ServerSetup {
       events.head.result should equal(null)
     }
 
-    scenario("physical cards: mcvv and mbrand were added with no backfill") {
+    Scenario("physical cards: mcvv and mbrand were added with no backfill") {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO mappedphysicalcard
                 (mcardid, mbankid, mbankcardnumber, mcardtype, mnameoncard, mserialnumber)

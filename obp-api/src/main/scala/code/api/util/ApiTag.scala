@@ -26,6 +26,7 @@ object ApiTag {
   val apiTagAccountAttribute = ResourceDocTag("Account-Attribute")
   val apiTagAccountAccess = ResourceDocTag("Account-Access")
   val apiTagAccountAccessRequest = ResourceDocTag("Account-Access-Request")
+  val apiTagDynamicChangeRequest = ResourceDocTag("Dynamic-Change-Request")
   val apiTagDirectDebit = ResourceDocTag("Direct-Debit")
   val apiTagStandingOrder = ResourceDocTag("Standing-Order")
   val apiTagAccountMetadata = ResourceDocTag("Account-Metadata")
@@ -74,6 +75,7 @@ object ApiTag {
   val apiTagProductCollection = ResourceDocTag("Product-Collection")
   val apiTagApiProduct = ResourceDocTag("Api-Product")
   val apiTagApiProductAttribute = ResourceDocTag("Api-Product-Attribute")
+  val apiTagApiProductSubscription = ResourceDocTag("Api-Product-Subscription")
   val apiTagOpenData = ResourceDocTag("Open-Data")
   val apiTagConsumer = ResourceDocTag("Consumer")
   val apiTagSearchWarehouse = ResourceDocTag("Data-Warehouse")
@@ -169,9 +171,7 @@ object ApiTag {
   val apiTagBanking = ResourceDocTag("AU-Banking")
 
   val apiTagAiAgent = ResourceDocTag("AI-Agent")
-  val apiTagSignal = ResourceDocTag("Signal")
-  val apiTagSignalling = ResourceDocTag("Signalling")
-  val apiTagChannel = ResourceDocTag("Channel")
+  val apiTagSignalChannel = ResourceDocTag("Signal-Channel")
   val apiTagFinancialCrime = ResourceDocTag("Financial-Crime")
 
   private[this] val tagNameSymbolMapTag: MutableMap[String, ResourceDocTag] = MutableMap()

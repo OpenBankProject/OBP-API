@@ -5,7 +5,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetAnyUser, CanGetEntitlementsForAnyUserAtAnyBank, CanValidateUser}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, attemptedToOpenAnEmptyBox}
 import code.api.v3_0_0.UserJsonV300
-import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import code.model.UserX
 import code.model.dataAccess.AuthUser

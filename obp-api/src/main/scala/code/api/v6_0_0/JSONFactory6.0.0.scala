@@ -302,7 +302,10 @@ case class UserJsonV600(
     username: String,
     entitlements: EntitlementsJsonV600,
     views: Option[ViewsJSON300],
-    on_behalf_of: Option[UserJsonV300]
+    on_behalf_of: Option[UserJsonV300],
+    // The `my_resources` block of the Consent in play (the on-behalf-of User's own resources the
+    // caller may act on); null without an OBP Consent.
+    my_resources: Option[PostConsentMyResourcesJson]
 )
 
 case class UserV600(
@@ -996,6 +999,7 @@ case class DynamicEntityDefinitionJsonV600(
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
     use_row_level_access: Boolean = false,
+    auth_mode: String = "UserOnly",
     schema: org.json4s.JsonAST.JObject,
     _links: Option[DynamicEntityLinksJsonV600] = None
 )
@@ -1015,6 +1019,7 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
     use_row_level_access: Boolean = false,
+    auth_mode: String = "UserOnly",
     schema: org.json4s.JsonAST.JObject,
     record_count: Long,
     _links: Option[DynamicEntityLinksJsonV600] = None
@@ -1032,6 +1037,7 @@ case class CreateDynamicEntityRequestJsonV600(
     has_community_access: Option[Boolean] = None,  // defaults to false if not provided
     personal_requires_role: Option[Boolean] = None,  // defaults to false if not provided
     use_row_level_access: Option[Boolean] = None,  // defaults to false if not provided
+    auth_mode: Option[String] = None,  // UserOnly | ApplicationOnly | UserOrApplication | UserAndApplication; defaults to UserOnly
     schema: org.json4s.JsonAST.JObject
 )
 
@@ -1043,6 +1049,7 @@ case class UpdateDynamicEntityRequestJsonV600(
     has_community_access: Option[Boolean] = None,
     personal_requires_role: Option[Boolean] = None,
     use_row_level_access: Option[Boolean] = None,
+    auth_mode: Option[String] = None,
     schema: org.json4s.JsonAST.JObject
 )
 
@@ -1197,6 +1204,11 @@ case class PostSignalMessageJsonV600(
 
 case class SignalMessageJsonV600(
     message_id: String,
+    // Per-channel monotonic sequence stamped atomically at publish (Redis server time in
+    // microseconds, forced strictly increasing). Poll with after_sequence=<last seen>, never by
+    // offset: the channel list is trimmed to its newest N messages, which shifts list indexes.
+    // Defaulted so envelopes stored before this field existed still parse (they read as 0).
+    sequence: Long = 0L,
     channel_name: String,
     sender_consumer_id: String,
     sender_user_id: String,
@@ -1209,15 +1221,25 @@ case class SignalMessageJsonV600(
 case class SignalMessagesJsonV600(
     channel_name: String,
     messages: List[SignalMessageJsonV600],
+    // Every message in the channel, including private messages hidden from the caller.
     total_count: Long,
-    has_more: Boolean
+    has_more: Boolean,
+    // Sequence of the newest message in the channel (0 when empty).
+    latest_sequence: Long,
+    // Pass this back as after_sequence to continue. It advances past messages the privacy
+    // filter hid from you, so a page can be empty and the cursor still moves.
+    next_after_sequence: Long,
+    // Messages in the channel the caller may see (broadcasts plus private messages to or from
+    // them). Compare this, not total_count, with what you have received.
+    visible_count: Long
 )
 
 case class SignalMessagePublishedJsonV600(
     message_id: String,
     channel_name: String,
     timestamp: String,
-    channel_message_count: Long
+    channel_message_count: Long,
+    sequence: Long
 )
 
 case class SignalChannelInfoJsonV600(
@@ -1451,7 +1473,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
   def createUserInfoJSON(
       current_user: UserV600,
-      onBehalfOfUser: Option[UserV600]
+      onBehalfOfUser: Option[UserV600],
+      consentMyResources: Option[PostConsentMyResourcesJson] = None
   ): UserJsonV600 = {
     UserJsonV600(
       user_id = current_user.user.userId,
@@ -1505,7 +1528,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
             )
           )
         )
-      }
+      },
+      my_resources = consentMyResources
     )
   }
 
@@ -2632,7 +2656,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
-        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess")
+        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess", "authMode")
         val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
           throw new IllegalStateException(
@@ -2656,6 +2680,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
           use_row_level_access = entity.useRowLevelAccess,
+          auth_mode = entity.authMode,
           schema = schemaObj,
           _links = Some(links)
         )
@@ -2679,7 +2704,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
-        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess")
+        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess", "authMode")
         val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
           throw new IllegalStateException(
@@ -2703,6 +2728,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
           use_row_level_access = entity.useRowLevelAccess,
+          auth_mode = entity.authMode,
           schema = schema,
           record_count = recordCount,
           _links = Some(links)
@@ -2735,6 +2761,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     val hasCommunityAccess = request.has_community_access.getOrElse(false)
     val personalRequiresRole = request.personal_requires_role.getOrElse(false)
     val useRowLevelAccess = request.use_row_level_access.getOrElse(false)
+    val authMode = code.dynamicEntity.DynamicEntityAuthMode.normalise(request.auth_mode.getOrElse(""))
 
     // Build the internal format: entity name as dynamic key + flags
     JObject(
@@ -2744,6 +2771,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
       JField("personalRequiresRole", JBool(personalRequiresRole)) ::
       JField("useRowLevelAccess", JBool(useRowLevelAccess)) ::
+      JField("authMode", JString(authMode)) ::
       Nil
     )
   }
@@ -2756,6 +2784,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     val hasCommunityAccess = request.has_community_access.getOrElse(false)
     val personalRequiresRole = request.personal_requires_role.getOrElse(false)
     val useRowLevelAccess = request.use_row_level_access.getOrElse(false)
+    val authMode = code.dynamicEntity.DynamicEntityAuthMode.normalise(request.auth_mode.getOrElse(""))
 
     // Build the internal format: entity name as dynamic key + flags
     JObject(
@@ -2765,6 +2794,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
       JField("personalRequiresRole", JBool(personalRequiresRole)) ::
       JField("useRowLevelAccess", JBool(useRowLevelAccess)) ::
+      JField("authMode", JString(authMode)) ::
       Nil
     )
   }
@@ -3352,4 +3382,29 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     ReactionsJsonV600(reactions.map(createReactionJson))
   }
 
+}
+
+/** One personal dynamic entity the Consent may act on for the granting User: bank_id "" for a
+ *  system-level entity; actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
+case class PostConsentPersonalDynamicEntityJson(bank_id: String, entity_name: String, actions: List[String])
+/** The User's own resources a Consent may act on (owned, not granted): one typed list per kind. */
+case class PostConsentMyResourcesJson(personal_dynamic_entities: Option[List[PostConsentPersonalDynamicEntityJson]])
+/**
+ * v6.0.0 create-consent body: the v3.1.0 body plus `my_resources`. Older versions are STABLE or
+ * next in line to be frozen, so the field lives here. Appended at the end of the file on purpose:
+ * json4s reads the Scala signature from the first top-level class of a source file.
+ */
+case class PostConsentBodyJsonV600(
+  everything: Boolean,
+  bank_id: Option[String],
+  views: List[code.api.v3_1_0.PostConsentViewJsonV310],
+  entitlements: List[code.api.v3_1_0.PostConsentEntitlementJsonV310],
+  consumer_id: Option[String],
+  consent_request_id: Option[String],
+  valid_from: Option[java.util.Date],
+  time_to_live: Option[Long],
+  my_resources: Option[PostConsentMyResourcesJson]
+) extends code.api.v3_1_0.PostConsentCommonBody {
+  def toCommon: code.api.v3_1_0.PostConsentBodyCommonJson = code.api.v3_1_0.PostConsentBodyCommonJson(
+    everything, bank_id, views, entitlements, consumer_id, consent_request_id, valid_from, time_to_live)
 }

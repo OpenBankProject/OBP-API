@@ -28,7 +28,7 @@ package code.api.v4_0_0
 import code.api.util.APIUtil
 import org.json4s.jvalue2extractable
 import code.api.util.ApiRole._
-import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf

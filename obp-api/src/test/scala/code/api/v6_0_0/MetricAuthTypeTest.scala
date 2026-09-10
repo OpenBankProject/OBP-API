@@ -25,8 +25,8 @@ class MetricAuthTypeTest extends V600ServerSetup {
   private val KnownAuthTypes =
     Set("Consent", "OAuth2", "OAuth1", "DirectLogin", "GatewayLogin", "DAuth", "Anonymous", "Other")
 
-  feature(s"test auth_type on metric rows version $VersionOfApi") {
-    scenario("Rows carry the scheme that authenticated them", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test auth_type on metric rows version $VersionOfApi") {
+    Scenario("Rows carry the scheme that authenticated them", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 

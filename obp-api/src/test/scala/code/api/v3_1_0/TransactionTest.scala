@@ -38,9 +38,9 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
 import code.api.v2_2_0.CounterpartyWithMetadataJson
 import code.api.v3_0_0.{NewModeratedCoreAccountJsonV300, TransactionJsonV300}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations2_2_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
+import code.api.v2_2_0.Http4s220.Implementations2_2_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121

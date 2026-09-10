@@ -5,7 +5,7 @@ import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.{CanGetEntitlementRequestsAtAnyBank}
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole}
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf

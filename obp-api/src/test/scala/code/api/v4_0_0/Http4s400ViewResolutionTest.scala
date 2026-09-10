@@ -33,9 +33,9 @@ class Http4s400ViewResolutionTest extends V400ServerSetup {
   private def resultOf[T](f: => T): Either[Throwable, T] =
     try Right(f) catch { case t: Throwable => Left(t) }
 
-  feature("createTransactionRequest's view lookup distinguishes not-found from infra failure") {
+  Feature("createTransactionRequest's view lookup distinguishes not-found from infra failure") {
 
-    scenario("a lookup that finds nothing fails with the JSON-encoded 404 envelope") {
+    Scenario("a lookup that finds nothing fails with the JSON-encoded 404 envelope") {
       val notFound: () => Box[View] = () => Empty
       val outcome = resultOf(Await.result(
         Http4s400.Implementations4_0_0.resolveCreateTransactionRequestView("nonexistent-view", notFound),
@@ -53,7 +53,7 @@ class Http4s400ViewResolutionTest extends V400ServerSetup {
       }
     }
 
-    scenario("a lookup that throws for an infra reason propagates that exception, not a 404") {
+    Scenario("a lookup that throws for an infra reason propagates that exception, not a 404") {
       val infraFailure = new RuntimeException("connection pool exhausted")
       val broken: () => Box[View] = () => throw infraFailure
       val outcome = resultOf(Await.result(

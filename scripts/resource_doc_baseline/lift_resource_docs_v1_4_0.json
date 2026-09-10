@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "version": "v1_4_0",
+  "source_file": "obp-api/src/main/scala/code/api/v1_4_0/APIMethods140.scala",
+  "exported_from_git_commit": "e198c922328095b9abbd1370056fb5ee002f7980",
+  "endpoint_count": 10,
+  "endpoints": {
+    "root": {
+      "partial_function_name_raw": "\"root\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/root\"",
+      "summary": "\"Get API Info (root)\"",
+      "description": "\"\"\"Returns information about:\n       |\n       |* API version\n       |* Hosted by information\n       |* Git Commit\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "apiInfoJSON",
+      "error_response_bodies": "List(UnknownError, MandatoryPropertyIsNotSet)",
+      "tags": "apiTagApi :: Nil"
+    },
+    "getCustomer": {
+      "partial_function_name_raw": "\"getCustomer\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customer\"",
+      "summary": "\"Get customer for logged in user\"",
+      "description": "\"\"\"Information about the currently authenticated user.\n       |\n       |Authentication via OAuth is required.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerJsonV140",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagCustomer, apiTagOldStyle)"
+    },
+    "getCustomersMessages": {
+      "partial_function_name_raw": "\"getCustomersMessages\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/customer/messages\"",
+      "summary": "\"Get Customer Messages for all Customers\"",
+      "description": "\"\"\"Get messages for the logged in customer\n       |Messages sent to the currently authenticated user.\n       |\n       |Authentication via OAuth is required.\"\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "customerMessagesJson",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagMessage, apiTagCustomer)"
+    },
+    "addCustomerMessage": {
+      "partial_function_name_raw": "nameOf(addCustomerMessage)",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customer/CUSTOMER_ID/messages\"",
+      "summary": "\"Create Customer Message\"",
+      "description": "\"Create a message for the customer specified by CUSTOMER_ID\"",
+      "example_request_body": "addCustomerMessageJson",
+      "success_response_body": "successMessage",
+      "error_response_bodies": "List(AuthenticatedUserIsRequired, UnknownError)",
+      "tags": "List(apiTagMessage, apiTagCustomer, apiTagPerson)"
+    },
+    "getBranches": {
+      "partial_function_name_raw": "\"getBranches\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/branches\"",
+      "summary": "\"Get Bank Branches\"",
+      "description": "s\"\"\"Returns information about branches for a single bank specified by BANK_ID including:\n        |\n        |* Name\n        |* Address\n        |* Geo Location\n        |* License the data under this endpoint is released under\n        |\n       ${urlParametersDocument(false, false)}\n        |\n        |You can use the url query parameters *limit* and *offset* for pagination\n        |\n        |${userAuthenticationMessage(!getBranchesIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "branchesJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       \"No branches available. License may not be set.\",\n       UnknownError)",
+      "tags": "List(apiTagBranch, apiTagOldStyle)"
+    },
+    "getAtms": {
+      "partial_function_name_raw": "\"getAtms\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/atms\"",
+      "summary": "\"Get Bank ATMS\"",
+      "description": "s\"\"\"Returns information about ATMs for a single bank specified by BANK_ID including:\n        |\n        |* Address\n        |* Geo Location\n        |* License the data under this endpoint is released under\n        |\n        |\n        |${urlParametersDocument(false,false)}\n        |\n        |${userAuthenticationMessage(!getAtmsIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "atmsJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       \"No ATMs available. License may not be set.\",\n       UnknownError)",
+      "tags": "List(apiTagBank, apiTagOldStyle)"
+    },
+    "getProducts": {
+      "partial_function_name_raw": "\"getProducts\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/products\"",
+      "summary": "\"Get Bank Products\"",
+      "description": "s\"\"\"Returns information about the financial products offered by a bank specified by BANK_ID including:\n        |\n        |* Name\n        |* Code\n        |* Category\n        |* Family\n        |* Super Family\n        |* More info URL\n        |* Description\n        |* Terms and Conditions\n        |* License the data under this endpoint is released under\n        |${userAuthenticationMessage(!getProductsIsPublic)}\"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "productsJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       \"No products available.\",\n       \"License may not be set.\",\n       UnknownError)",
+      "tags": "List(apiTagBank, apiTagOldStyle)"
+    },
+    "getCrmEvents": {
+      "partial_function_name_raw": "\"getCrmEvents\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/crm-events\"",
+      "summary": "\"Get CRM Events\"",
+      "description": "\"\"",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "crmEventsJson",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       \"No CRM Events available.\",\n       UnknownError)",
+      "tags": "List(apiTagCustomer)"
+    },
+    "getTransactionRequestTypes": {
+      "partial_function_name_raw": "\"getTransactionRequestTypes\"",
+      "request_verb": "\"GET\"",
+      "request_url": "\"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types\"",
+      "summary": "\"Get Transaction Request Types for Account\"",
+      "description": "\"\"\"Returns the Transaction Request Types that the account specified by ACCOUNT_ID and view specified by VIEW_ID has access to.\n       |\n       |These are the ways this API Server can create a Transaction via a Transaction Request\n       |(as opposed to Transaction Types which include external types too e.g. for Transactions created by core banking etc.)\n       |\n       | A Transaction Request Type internally determines:\n       |\n       | * the required Transaction Request 'body' i.e. fields that define the 'what' and 'to' of a Transaction Request,\n       | * the type of security challenge that may be be raised before the Transaction Request proceeds, and\n       | * the threshold of that challenge.\n       |\n       | For instance in a 'SANDBOX_TAN' Transaction Request, for amounts over 1000 currency units, the user must supply a positive integer to complete the Transaction Request and create a Transaction.\n       |\n       | This approach aims to provide only one endpoint for initiating transactions, and one that handles challenges, whilst still allowing flexibility with the payload and internal logic.\n       | \n     \"\"\".stripMargin",
+      "example_request_body": "EmptyBody",
+      "success_response_body": "transactionRequestTypesJsonV140",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       AccountNotFound,\n       \"Please specify a valid value for CURRENCY of your Bank Account. \"\n       ,\"Current user does not have access to the view \",\n       \"account not found at bank\",\n       \"user does not have access to owner view\",\n       TransactionRequestsNotEnabled,\n       UnknownError)",
+      "tags": "List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)"
+    },
+    "addCustomer": {
+      "partial_function_name_raw": "\"addCustomer\"",
+      "request_verb": "\"POST\"",
+      "request_url": "\"/banks/BANK_ID/customer\"",
+      "summary": "\"Add a customer.\"",
+      "description": "s\"\"\"Add a customer linked to the currently authenticated user.\n        |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.\n        |This call may require additional permissions/role in the future.\n        |For now the authenticated user can create at most one linked customer.\n        |Dates need to be in the format 2013-01-21T23:08:00Z\n        |${userAuthenticationMessage(true) }\n        |Note: This call is depreciated in favour of v.2.0.0 createCustomer\n        |\"\"\"",
+      "example_request_body": "code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createCustomerJson",
+      "success_response_body": "customerJsonV140",
+      "error_response_bodies": "List(\n       AuthenticatedUserIsRequired,\n       BankNotFound,\n       InvalidJsonFormat,\n       \"entitlements required\",\n       CustomerNumberAlreadyExists,\n       \"Problem getting user_id\",\n       UserNotFoundById,\n       \"Could not create customer\",\n       \"Could not create user_customer_links\",\n       UnknownError)",
+      "tags": "List(apiTagCustomer, apiTagOldStyle)",
+      "extra_named_args": {
+        "roles": "Some(List(canCreateCustomer, canCreateUserCustomerLink))"
+      }
+    }
+  }
+}

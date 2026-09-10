@@ -8,7 +8,7 @@ import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ApiRole.CanCreateDirectDebitAtOneBank
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.{NoViewPermission, UserHasMissingRoles, AuthenticatedUserIsRequired}
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag

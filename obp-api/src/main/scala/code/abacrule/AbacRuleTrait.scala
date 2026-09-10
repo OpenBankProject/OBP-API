@@ -39,27 +39,32 @@ case class AbacRule(
   description: String,
   policy: String,
   createdByUserId: String,
-  updatedByUserId: String
+  updatedByUserId: String,
+  // Maker/checker (upstream commit 5d4af81c3): SHA-256 of the RuleCode a checker approved. When
+  // maker/checker is enabled for ABAC_RULE the engine refuses to compile a rule whose current
+  // code hash differs from this. isActive above already existed on this entity.
+  approvedHash: Option[String] = None
 ) extends AbacRuleTrait
 
 object AbacRule {
 
   private val selectColumns =
     fr"""SELECT abacruleid, rulename, rulecode, isactive, description, policy, createdbyuserid,
-                updatedbyuserid
+                updatedbyuserid, approvedhash
          FROM abacrule"""
 
   private type Row = (Option[String], Option[String], Option[String], Option[Boolean],
-    Option[String], Option[String], Option[String], Option[String])
+    Option[String], Option[String], Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): AbacRule = row match {
     case (abacRuleId, ruleName, ruleCode, isActive, description, policy, createdByUserId,
-          updatedByUserId) =>
+          updatedByUserId, approvedHash) =>
         // MappedBoolean read a NULL column as false - `data openOr false`, with a NULL
         // setting `data = Empty` - so it never failed the read and never returned the
         // field's declared defaultValue. Binding the column as Option keeps both halves.
       AbacRule(abacRuleId.orNull, ruleName.orNull, ruleCode.orNull, isActive.getOrElse(false),
-        description.orNull, policy.orNull, createdByUserId.orNull, updatedByUserId.orNull)
+        description.orNull, policy.orNull, createdByUserId.orNull, updatedByUserId.orNull,
+        approvedHash)
   }
 
   private def query(condition: Fragment): List[AbacRule] =
@@ -104,6 +109,22 @@ object AbacRule {
   def findAll(): List[AbacRule] = query(fr"ORDER BY id ASC")
 
   def findAllActive(): List[AbacRule] = query(fr"WHERE isactive = true ORDER BY id ASC")
+
+  // ── Maker/checker write helpers (upstream commit 5d4af81c3) ────────────────────────────────
+  // An ABAC rule's approved hash covers its RuleCode, not a method body: the engine refuses to
+  // compile a rule whose current code hash differs from the one a checker approved.
+
+  def setApproved(abacRuleId: String, hash: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE abacrule SET approvedhash = ${Option(hash)}, isactive = true
+            WHERE abacruleid = $abacRuleId""".update.run) == 1
+
+  def setActive(abacRuleId: String, active: Boolean): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE abacrule SET isactive = $active WHERE abacruleid = $abacRuleId""".update.run) == 1
+
+  def findAllWithoutApprovedHash(): List[AbacRule] =
+    query(fr"WHERE approvedhash IS NULL OR approvedhash = '' ORDER BY id ASC")
 
   def delete(abacRuleId: String): Boolean =
     DoobieUtil.runUpdate(sql"DELETE FROM abacrule WHERE abacruleid = $abacRuleId".update.run) > 0

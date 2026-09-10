@@ -133,7 +133,7 @@ object DirectLogin extends MdcLoggable {
         message = ErrorMessages.UserEmailNotValidated
         httpCode = 401
       } else if (userId == AuthUser.rateLimitExceededStateCode) {
-        message = ErrorMessages.TooManyRequests
+        message = ErrorMessages.TooManyRequestsAuth
         httpCode = 429
       } else {
         val jwtPayloadAsJson =

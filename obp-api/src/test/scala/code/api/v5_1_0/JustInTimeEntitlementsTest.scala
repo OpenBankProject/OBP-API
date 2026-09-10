@@ -5,7 +5,7 @@ import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanCreateEntitlementAtOneBank, CanGetAnyUser, CanGetMetricsAtOneBank}
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v2_1_0.MetricsJson
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v4_0_0.UserJsonV400
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}

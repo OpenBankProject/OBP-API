@@ -115,7 +115,10 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
     "UKv4.0.1-getBalances"    -> ("403 OBP-35036: The Consent was created by a different API standard " +
       "than the endpoint using it -- UK Open Banking requires a UK-tagged consent"),
     "UKv4.0.1-getTransactions" -> ("403 OBP-35036: The Consent was created by a different API standard " +
-      "than the endpoint using it -- UK Open Banking requires a UK-tagged consent")
+      "than the endpoint using it -- UK Open Banking requires a UK-tagged consent"),
+    "OBPv7.0.0-getDynamicGlossaryItem"      -> ("404 OBP-30571: no Dynamic Glossary Item titled TITLE. " +
+      "Like SCHEME above, TITLE is a placeholder the catalog does not substitute, so the literal " +
+      "path is called")
   )
 
   private def get(path: String, headers: Map[String, String]): (Int, JValue) = {
@@ -138,7 +141,7 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
    * EndpointCatalog.hasPlaceholder, not a local copy of the rule. This used to hold its own,
    * and the two had already drifted: the catalog substitutes any segment ending in ID, _CODE or
    * _NAME, this one looked for _ID and _CODE and had never learnt about _NAME. So
-   * `/signal/channels/CHANNEL_NAME/info` was a placeholder to the catalog -- which duly replaced
+   * `/signal-channels/CHANNEL_NAME/info` was a placeholder to the catalog -- which duly replaced
    * it with a channel that does not exist -- and NOT a placeholder here, so this suite selected
    * it as an endpoint that "needs nothing created first" and then failed it for answering 404.
    *
@@ -173,10 +176,10 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
     }
   }
 
-  feature("Endpoints that require no setup answer a fully-entitled caller") {
+  Feature("Endpoints that require no setup answer a fully-entitled caller") {
 
     byVersion.keys.toList.sorted.foreach { version =>
-      scenario(s"$version -- every no-argument GET returns data", SuccessSweep) {
+      Scenario(s"$version -- every no-argument GET returns data", SuccessSweep) {
         setPropsValues("api_disabled_endpoints" -> "[]", "api_enabled_endpoints" -> "[]")
         // Once per scenario -- beforeEach wipes the entitlement table, so a class-level
         // lazy val would leave every scenario after the first calling without roles.

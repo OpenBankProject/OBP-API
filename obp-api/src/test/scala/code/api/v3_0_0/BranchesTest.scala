@@ -5,7 +5,6 @@ import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanDeleteBranchAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.OBPQueryParam
-import code.api.v3_1_0.OBPAPI3_1_0
 import code.bankconnectors.Connector
 import code.branches.Branches.Branch
 import code.branches.{Branches, BranchesProvider}
@@ -18,6 +17,8 @@ import org.scalatest.Tag
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
+import code.api.v3_0_0.Http4s300
+import code.api.v3_1_0.Http4s310
 
 /*
 Note This does not test retrieval from a backend.
@@ -331,7 +332,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
   override def afterEach(): Unit = super.afterEach()
 
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
-  object ApiEndpoint extends Tag(nameOf(OBPAPI3_0_0.Implementations3_0_0.getBranches))
+  object ApiEndpoint extends Tag(nameOf(Http4s300.Implementations3_0_0.getBranches))
 
   Feature("getBranches -- /banks/BANK_ID/branches -- V300") {
 
@@ -411,7 +412,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     // But, because the delete branch endpoint unitest need get all branches endpoint, to check whether given branch is deleted
     // So the delete branch endpoint unit test put at here.
     object VersionOfApi_3_1_0 extends Tag(ApiVersion.v3_1_0.toString)
-    object ApiEndpoint_delete_branch extends Tag(nameOf(OBPAPI3_1_0.Implementations3_1_0.deleteBranch))
+    object ApiEndpoint_delete_branch extends Tag(nameOf(Http4s310.Implementations3_1_0.deleteBranch))
 
     Scenario("We try to delete bank branche", VersionOfApi_3_1_0, ApiEndpoint_delete_branch) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteBranchAtAnyBank.toString())

@@ -15,9 +15,9 @@ import net.liftweb.util.Helpers
  */
 class DoobieInvestigationQueriesTest extends ServerSetup {
 
-  feature("the investigation report's customer-link query") {
+  Feature("the investigation report's customer-link query") {
 
-    scenario("runs against the real schema and returns the linked customer") {
+    Scenario("runs against the real schema and returns the linked customer") {
       val customerId = "inv-" + Helpers.randomString(10).toLowerCase
       val otherCustomerId = "inv-other-" + Helpers.randomString(10).toLowerCase
       val bankId = "inv-bank-" + Helpers.randomString(6).toLowerCase
@@ -36,7 +36,7 @@ class DoobieInvestigationQueriesTest extends ServerSetup {
       link.customerLinkId should not be empty
     }
 
-    scenario("returns nothing for a customer with no links, rather than failing") {
+    Scenario("returns nothing for a customer with no links, rather than failing") {
       DoobieInvestigationQueries.getCustomerLinks("inv-no-links-" + Helpers.randomString(8)) should be(empty)
     }
   }

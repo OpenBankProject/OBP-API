@@ -23,9 +23,9 @@ import net.liftweb.util.Helpers
  */
 class ConsumerNullCallLimitTest extends ServerSetup {
 
-  feature("a consumer row whose call-limit columns are NULL") {
+  Feature("a consumer row whose call-limit columns are NULL") {
 
-    scenario("reads back the configured limit, not unlimited") {
+    Scenario("reads back the configured limit, not unlimited") {
       // A value no default could produce, so the assertion cannot pass by accident.
       setPropsValues("rate_limiting_per_minute" -> "97")
 
@@ -54,7 +54,7 @@ class ConsumerNullCallLimitTest extends ServerSetup {
       DoobieUtil.runUpdate(sql"DELETE FROM consumer WHERE key_c = $key".update.run)
     }
 
-    scenario("a consumer created through the provider carries the configured limit too") {
+    Scenario("a consumer created through the provider carries the configured limit too") {
       setPropsValues("rate_limiting_per_minute" -> "97")
 
       val row = Consumer.defaults

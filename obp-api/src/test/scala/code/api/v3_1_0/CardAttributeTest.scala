@@ -7,13 +7,14 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createPhysicalCardJsonV
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateCustomer
 import code.api.util.ApiRole
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
+import code.api.util.http4s.Http4sResourceDocAggregation
 
 class CardAttributeTest extends V310ServerSetup with DefaultUsers {
 
@@ -93,7 +94,7 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
 
       Then(s"We call the create card attribute")
       val requestForCreateCardAttribute = (v3_1_0_Request / "management"/ "banks" / testBankId1.value / "cards" /cardId /"attribute").POST <@(user1)
-      val properCreateCardAttributeJson = OBPAPI3_1_0.allResourceDocs.filter(_.partialFunctionName==nameOf(Implementations3_1_0.createCardAttribute)).head.exampleRequestBody.asInstanceOf[CardAttributeJson]
+      val properCreateCardAttributeJson = Http4sResourceDocAggregation.v310.filter(_.partialFunctionName==nameOf(Implementations3_1_0.createCardAttribute)).head.exampleRequestBody.asInstanceOf[CardAttributeJson]
       val responseForCreateCardAttribute = makePostRequest(requestForCreateCardAttribute, write(properCreateCardAttributeJson))
       responseForCreateCardAttribute.code should be (201)
       responseForCreateCardAttribute.body.toString contains (properCreateCardAttributeJson.name) should be (true)

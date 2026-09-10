@@ -5,18 +5,12 @@ import org.json4s.native.JsonMethods.parse
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.V140ServerSetup
-import code.api.v2_1_0.OBPAPI2_1_0
-import code.api.v2_2_0.OBPAPI2_2_0
-import code.api.v3_0_0.OBPAPI3_0_0
-import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.v4_0_0.OBPAPI4_0_0
-import code.api.v5_0_0.OBPAPI5_0_0
-import code.api.v5_1_0.OBPAPI5_1_0
-import code.api.v6_0_0.OBPAPI6_0_0
-import code.api.v7_0_0.Http4s700
+
 import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer
+import code.api.util.http4s.Http4sResourceDocAggregation
+import code.api.v7_0_0.Http4s700
 
 // Test case classes for JSON escaping tests
 case class TestWithQuotes(name: String, description: String)
@@ -88,25 +82,15 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
     "Test all V300, V220 and V210, exampleRequestBodies and successResponseBodies and all the case classes in SwaggerDefinitionsJSON"
   ) {
     Scenario("Test all the case classes") {
-      // The concatenation used to be written as a bare expression with `resourceDocList` left as
-      // the empty buffer it was initialised to, so every assertion below ran over an empty list and
-      // could not fail. Bind it.
-      val resourceDocList: ArrayBuffer[ResourceDoc] =
-        // allResourceDocs, not resourceDocs: the latter is an ArrayBuffer filled by
-        // Implementations7_0_0's body, and touching Http4s700 alone does not initialise that
-        // nested object - so `resourceDocs` reads empty unless some other suite happened to
-        // serve a v7 request first. allResourceDocs forces it (see its own comment).
-        Http4s700.allResourceDocs ++
-          OBPAPI6_0_0.allResourceDocs ++
-          OBPAPI5_1_0.allResourceDocs ++
-          OBPAPI5_0_0.allResourceDocs ++
-          OBPAPI4_0_0.allResourceDocs ++
-          OBPAPI3_1_0.allResourceDocs ++
-          OBPAPI3_0_0.allResourceDocs ++
-          OBPAPI2_2_0.allResourceDocs ++
-          OBPAPI2_1_0.allResourceDocs
-
-      resourceDocList.size should be > 500
+      val resourceDocList: ArrayBuffer[ResourceDoc] = ArrayBuffer.empty
+      Http4sResourceDocAggregation.v600 ++
+        Http4sResourceDocAggregation.v510 ++
+        Http4sResourceDocAggregation.v500 ++
+        Http4sResourceDocAggregation.v400 ++
+        Http4sResourceDocAggregation.v310 ++
+        Http4sResourceDocAggregation.v300 ++
+        Http4sResourceDocAggregation.v220 ++
+        Http4sResourceDocAggregation.v210
 
       // Translate every entity(JSON Case Class) in a list to appropriate swagger format
       val listOfExampleRequestBodyDefinition =
@@ -176,15 +160,9 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
         // Implementations7_0_0's body, and touching Http4s700 alone does not initialise that
         // nested object - so `resourceDocs` reads empty unless some other suite happened to
         // serve a v7 request first. allResourceDocs forces it (see its own comment).
-        Http4s700.allResourceDocs ++
-          OBPAPI6_0_0.allResourceDocs ++
-          OBPAPI5_1_0.allResourceDocs ++
-          OBPAPI5_0_0.allResourceDocs ++
-          OBPAPI4_0_0.allResourceDocs ++
-          OBPAPI3_1_0.allResourceDocs ++
-          OBPAPI3_0_0.allResourceDocs ++
-          OBPAPI2_2_0.allResourceDocs ++
-          OBPAPI2_1_0.allResourceDocs
+        // v600 is the cumulative catalog - each version's docs plus every older version's - so
+        // it already carries v2.1.0 through v6.0.0; only v7 sits outside it.
+        Http4s700.allResourceDocs ++ Http4sResourceDocAggregation.v600
 
       resourceDocList.size should be > 500
 

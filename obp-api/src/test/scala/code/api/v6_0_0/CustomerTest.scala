@@ -31,7 +31,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateCustomer, CanGetCustomersAtOneBank}
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.PostCustomerNumberJsonV310
-import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
+import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.api.v6_0_0.{CustomerJsonV600, CustomerJSONsV600, CustomerWithAttributesJsonV600, PostCustomerJsonV600}
 import code.customer.CustomerX
 import code.entitlement.Entitlement

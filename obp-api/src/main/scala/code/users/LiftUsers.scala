@@ -11,7 +11,7 @@ import code.model.dataAccess.{AuthUser, ResourceUser, UserQuery}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.util.Helpers
 
 import scala.collection.immutable
@@ -19,6 +19,88 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object LiftUsers extends Users with MdcLoggable{
+
+  // ---- on-behalf-of resolution (ON_BEHALF_OF_USER_ID_PLAN.md, Phase 1) ----------------------
+
+  /** What the chain resolved to, and whether the answer is stable enough to cache. */
+  private case class Resolved(onBehalfOfUserId: Box[String], consentId: Option[String], cacheable: Boolean)
+
+  /** Non-empty, bound answers only: the consent -> human binding never changes once set. The
+   *  "consent has no human yet" answer (BG/UK before authorisation) must not be pinned, or a
+   *  consent bound a minute later stays on the consent user for the TTL. */
+  private lazy val onBehalfOfCacheTtlSeconds: Long =
+    APIUtil.getPropsAsLongValue("on_behalf_of_user_id.cache_ttl_seconds", 600L)
+  private lazy val onBehalfOfCache: com.google.common.cache.Cache[String, Resolved] =
+    com.google.common.cache.CacheBuilder.newBuilder()
+      .expireAfterWrite(onBehalfOfCacheTtlSeconds, java.util.concurrent.TimeUnit.SECONDS)
+      .maximumSize(100000)
+      .build[String, Resolved]()
+
+  private def nonBlank(s: String): Boolean = s != null && s.nonEmpty
+
+  private def resolveOnBehalfOf(userId: String): Resolved = {
+    if (!nonBlank(userId)) return Resolved(Full(userId), None, cacheable = false)
+    val cached = if (onBehalfOfCacheTtlSeconds > 0) Option(onBehalfOfCache.getIfPresent(userId)) else None
+    if (cached.isDefined) return cached.get
+    // findByUserId, not Mapper's find(By(...)): ResourceUser is a Doobie store on this branch.
+    // createdByConsentId is an Option here rather than a MappedString, so the consent id comes
+    // out of the Option instead of off a field accessor -- isConsentUser is exactly
+    // `createdByConsentId.nonEmpty`, so the guard above already proves it is a Some.
+    val resolved: Resolved = ResourceUser.findByUserId(userId) match {
+      case Full(ru) if ru.isConsentUser =>
+        val consentId = ru.createdByConsentId.getOrElse("")
+        code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
+          case Full(consent) if nonBlank(consent.userId) =>
+            ResourceUser.findByUserId(consent.userId) match {
+              case Full(target) if target.isOriginalUser =>
+                Resolved(Full(consent.userId), Some(consentId), cacheable = true)
+              case Full(_) =>
+                logger.warn(s"onBehalfOfUserIdOf: consent user $userId's consent $consentId names ${consent.userId}, which is itself a consent user — invariant broken, refusing")
+                Resolved(Failure(s"${ErrorMessages.InvalidUserId} consent $consentId names a consent user as its on-behalf-of user"), Some(consentId), cacheable = false)
+              case _ =>
+                logger.warn(s"onBehalfOfUserIdOf: consent user $userId's consent $consentId names unknown user ${consent.userId}; keeping $userId (fails closed)")
+                Resolved(Full(userId), Some(consentId), cacheable = false)
+            }
+          case Full(_) =>
+            logger.warn(s"onBehalfOfUserIdOf: consent user $userId's consent $consentId has no human yet (not authorised); keeping $userId (fails closed, not cached)")
+            Resolved(Full(userId), Some(consentId), cacheable = false)
+          case _ =>
+            logger.warn(s"onBehalfOfUserIdOf: consent user $userId names consent $consentId, which does not exist; keeping $userId (fails closed)")
+            Resolved(Full(userId), Some(consentId), cacheable = false)
+        }
+      case Full(_) => Resolved(Full(userId), None, cacheable = true)
+      case _ =>
+        logger.warn(s"onBehalfOfUserIdOf: no ResourceUser $userId; keeping it (fails closed)")
+        Resolved(Full(userId), None, cacheable = false)
+    }
+    if (resolved.cacheable && onBehalfOfCacheTtlSeconds > 0) onBehalfOfCache.put(userId, resolved)
+    resolved
+  }
+
+  override def onBehalfOfUserIdOf(userId: String): Box[String] = resolveOnBehalfOf(userId).onBehalfOfUserId
+
+  override def attributionOf(userId: String, ref: UserReference): Box[Attribution] = ref.policy match {
+    case AttributionPolicy.KeepUserId =>
+      Full(Attribution(userId, userId, None, ref))
+    case AttributionPolicy.UseOnBehalfOfUserId =>
+      val r = resolveOnBehalfOf(userId)
+      r.onBehalfOfUserId.map { h =>
+        val a = Attribution(userId, h, r.consentId, ref)
+        if (a.isDelegated)
+          logger.warn(s"attribution ${ref.name}: user $userId is a consent user (consent ${r.consentId.getOrElse("?")}); writing on-behalf-of user $h to ${ref.mapperClass}.${ref.fields.mkString("/")}")
+        a
+      }
+    case AttributionPolicy.Reject =>
+      val r = resolveOnBehalfOf(userId)
+      r.onBehalfOfUserId.flatMap { h =>
+        if (h == userId) Full(Attribution(userId, h, r.consentId, ref))
+        else {
+          logger.warn(s"attribution ${ref.name}: user $userId is a consent user (on behalf of $h); a consent user must not write ${ref.mapperClass}.${ref.fields.mkString("/")} — rejected")
+          Failure(s"${ErrorMessages.InvalidUserId} ${ref.name}: user $userId is a consent user; this action must be performed by the user it acts for ($h)")
+        }
+      }
+  }
+
 
   //UserId here is the resourceuser.id field
   def getUserByResourceUserId(id : Long) : Box[User] = {
@@ -295,17 +377,13 @@ object LiftUsers extends Users with MdcLoggable{
                                   userId: Option[String],
                                   createdByUserInvitationId: Option[String],
                                   company: Option[String],
-                                  lastMarketingAgreementSignedDate: Option[Date],
-                                  isNaturalPerson: Option[Boolean] = Some(true),
-                                  principalUserId: Option[String] = None): Box[ResourceUser] = {
+                                  lastMarketingAgreementSignedDate: Option[Date]): Box[ResourceUser] = {
     Full(ResourceUser.insert(
       buildResourceUser(provider, providerId, name, email, userId).copy(
         createdByConsentId = createdByConsentId,
         createdByUserInvitationId = createdByUserInvitationId,
         company = company.getOrElse(""),
-        lastMarketingAgreementSignedDate = lastMarketingAgreementSignedDate,
-        isNaturalPerson = isNaturalPerson.getOrElse(true),
-        principalUserIdOption = principalUserId)))
+        lastMarketingAgreementSignedDate = lastMarketingAgreementSignedDate)))
   }
 
   override def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {

@@ -31,7 +31,7 @@ import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanGetMetricsAtOneBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_1_0.MetricsJson
-import code.api.v5_0_0.APIMethods500.Implementations5_0_0
+import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.entitlement.Entitlement
 import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf

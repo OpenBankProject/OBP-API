@@ -27,6 +27,9 @@ trait AccountHolders {
    * @return
    */
   def getAccountsHeldByUser(user: User, source: Option[String] = None): Set[BankIdAccountId]
+  /** Links the account to its holder. The holder is the on-behalf-of user of `user`
+   *  (UserReference.AccountHolderUser): a consent user never holds an account, the user its
+   *  consent names does. Same user for an original user. */
   def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId, source: Option[String] = None): Box[MapperAccountHolders] //There is no AccountHolder trait, database structure different with view
   def deleteAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[Boolean] 
   def bulkDeleteAllAccountHolders(): Box[Boolean]

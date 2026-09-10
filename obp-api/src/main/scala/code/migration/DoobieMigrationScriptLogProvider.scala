@@ -71,6 +71,16 @@ object DoobieMigrationScriptLogProvider extends MigrationScriptLogProvider with 
   override def isExecuted(name: String): Boolean =
     findOne(name, isSuccessful = true).isDefined
 
+  /**
+   * Remove every log row for one migration name.
+   *
+   * Test support: the seeding test has to re-run a once-per-database migration, which is exactly
+   * what isExecuted refuses. No production path deletes from this table - it is the record of
+   * what has run.
+   */
+  def deleteByName(name: String): Int =
+    DoobieUtil.runUpdate(sql"DELETE FROM migrationscriptlog WHERE name = $name".update.run)
+
   override def getMigrationScriptLogs(): List[MigrationScriptLogTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"ORDER BY createdat DESC")

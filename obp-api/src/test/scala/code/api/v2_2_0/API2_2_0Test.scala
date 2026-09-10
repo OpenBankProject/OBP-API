@@ -38,7 +38,7 @@ import code.setup.{APIResponse, DefaultUsers}
 import com.openbankproject.commons.model.CreateViewJson
 import net.liftweb.util.Helpers._
 import org.scalatest._
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
+import code.api.v2_2_0.Http4s220.Implementations2_2_0
 import com.github.dwickern.macros.NameOf.nameOf
 
 import scala.util.Random._

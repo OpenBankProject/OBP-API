@@ -14,7 +14,7 @@ object ErrorUtil {
     val apiFailure = APIFailureNewStyle(
       failMsg = errorMessage,
       failCode = httpCode,
-      ccl = second.map(_.toLight)
+      callContextLight = second.map(_.toLight)
     )
     val failureBox = Empty ~> apiFailure
     (
@@ -27,7 +27,7 @@ object ErrorUtil {
     val apiFailure = APIFailureNewStyle(
       failMsg = errorMessage,
       failCode = httpCode,
-      ccl = cc.map(_.toLight)
+      callContextLight = cc.map(_.toLight)
     )
     val failureBox: Box[T] = Empty ~> apiFailure
     fullBoxOrException(failureBox)

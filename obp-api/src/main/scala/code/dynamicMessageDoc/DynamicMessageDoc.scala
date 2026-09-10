@@ -41,7 +41,10 @@ case class DynamicMessageDoc(
   updatedByUserId: Option[String],
   methodBodyHash: Option[String],
   createdAt: Option[Date],
-  updatedAt: Option[Date]
+  updatedAt: Option[Date],
+  // Maker/checker (upstream commit 5d4af81c3) - see DynamicResourceDoc for the full contract.
+  approvedHash: Option[String],
+  isActive: Boolean
 )
 
 object DynamicMessageDoc {
@@ -50,7 +53,8 @@ object DynamicMessageDoc {
     fr"""SELECT dynamicmessagedocid, bankid, process, messageformat, description, outboundtopic,
                 inboundtopic, exampleoutboundmessage, exampleinboundmessage, outboundavroschema,
                 inboundavroschema, adapterimplementation, methodbody, lang,
-                createdbyuserid, updatedbyuserid, methodbodyhash, createdat, updatedat
+                createdbyuserid, updatedbyuserid, methodbodyhash, createdat, updatedat,
+                approvedhash, isactive
          FROM dynamicmessagedoc"""
 
   // Read as Option wherever the insert binds Option: a doc stored with a null topic or schema is
@@ -59,7 +63,8 @@ object DynamicMessageDoc {
     Option[String], Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String],
-    Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[String], Option[Boolean])
 
   /** java.sql.Timestamp is a java.util.Date subclass, but json4s renders it as {} - convert. */
   private def readDate(value: Option[java.sql.Timestamp]): Option[Date] =
@@ -69,7 +74,8 @@ object DynamicMessageDoc {
     case (dynamicMessageDocId, bankId, process, messageFormat, description, outboundTopic,
           inboundTopic, exampleOutboundMessage, exampleInboundMessage, outboundAvroSchema,
           inboundAvroSchema, adapterImplementation, methodBody, programmingLang,
-          createdByUserId, updatedByUserId, methodBodyHash, createdAt, updatedAt) =>
+          createdByUserId, updatedByUserId, methodBodyHash, createdAt, updatedAt,
+          approvedHash, isActive) =>
       // orNull, as MappedString did on read.
       DynamicMessageDoc(dynamicMessageDocId.orNull, bankId, process.orNull, messageFormat.orNull,
         description.orNull, outboundTopic.orNull, inboundTopic.orNull,
@@ -77,7 +83,9 @@ object DynamicMessageDoc {
         inboundAvroSchema.orNull, adapterImplementation.orNull, methodBody.orNull,
         programmingLang.orNull,
         createdByUserId, updatedByUserId, methodBodyHash,
-        readDate(createdAt), readDate(updatedAt))
+        readDate(createdAt), readDate(updatedAt),
+        // NULL isactive = written before the column existed, and such a doc was live: keep it so.
+        approvedHash, isActive.getOrElse(true))
   }
 
   private def query(condition: Fragment): List[DynamicMessageDoc] =
@@ -166,6 +174,33 @@ object DynamicMessageDoc {
         bankFilter(bankId)).update.run)
     true
   }
+
+
+  // ── Maker/checker write helpers (upstream commit 5d4af81c3) ────────────────────────────────
+  // Upstream drives these off the Mapper entity (`r.MethodBodyHash(h).ApprovedHash(h).IsActive(true).save`);
+  // with a Doobie store the same three writes are one statement.
+
+  /** Record `hash` as both the current body hash and the approved one, and make the row live. */
+  def setApproved(dynamicmessagedocid: String, hash: String): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicmessagedoc
+              SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
+                  isactive = true, updatedat = $now
+            WHERE dynamicmessagedocid = $dynamicmessagedocid""".update.run) == 1
+  }
+
+  /** Activate or deactivate without touching the approved hash. */
+  def setActive(dynamicmessagedocid: String, active: Boolean): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicmessagedoc SET isactive = $active, updatedat = $now
+            WHERE dynamicmessagedocid = $dynamicmessagedocid""".update.run) == 1
+  }
+
+  /** Rows that have never been approved - the one-off seeding set when the feature is enabled. */
+  def findAllWithoutApprovedHash(): List[DynamicMessageDoc] =
+    query(fr"WHERE approvedhash IS NULL OR approvedhash = '' ORDER BY id ASC")
 
   def deleteAll(): Unit = {
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicmessagedoc".update.run)
