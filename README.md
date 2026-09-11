@@ -1017,4 +1017,4 @@ Please note that default translation file is `lift-core.properties`
 
 ## Funding Note
 
-This repository has recived funding via The OGCR Project which has received funding from the European Union's Horizon Europe programme under grant agreement 101218854.
+This repository has received funding via The OGCR Project which has received funding from the European Union's Horizon Europe programme under grant agreement 101218854.
