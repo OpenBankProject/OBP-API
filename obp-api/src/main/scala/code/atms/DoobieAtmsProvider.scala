@@ -257,9 +257,15 @@ object DoobieAtmsProvider extends AtmsProvider {
       .getOrElse(throw new RuntimeException(s"ATM not found after upsert: ${atm.atmId.value}")))
   }
 
+  // Scoped by the pair, like every other statement in this store: mappedatm_mbankid_matmid is
+  // unique on (mbankid, matmid), not on matmid alone, so two banks may hold the same atm id.
+  // Mapper deleted through find(By(mAtmId, ...)), which returned at most one row - a plain DELETE
+  // on the id alone removes every bank's row that shares it.
   override def deleteAtm(atm: AtmT): Box[Boolean] =
     Full(DoobieUtil.runUpdate(
-      sql"DELETE FROM mappedatm WHERE matmid = ${nn(atm.atmId.value)}".update.run) > 0)
+      sql"""DELETE FROM mappedatm
+            WHERE mbankid = ${nn(atm.bankId.value)} AND matmid = ${nn(atm.atmId.value)}"""
+        .update.run) > 0)
 
   // Mirrors Lift `MappedAtm.findAll()` (no bankId filter); keeps OBP LIMIT/OFFSET handling.
   override def getAllAtms(queryParams: List[OBPQueryParam]): List[AtmT] = {
