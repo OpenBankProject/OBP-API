@@ -1314,6 +1314,22 @@
       "reason": "Same rate-limiting doc expansion as the other call-limit endpoints.",
       "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
       "http4s_digest": "229b587b60d0eec166b7f962703514c81e5d176ee65dd70de0c131efc221bd8c"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "elasticSearchWarehouse",
+      "field": "requestUrl",
+      "reason": "URL template widened to three segments to match the http4s route pattern. ResourceDocMatcher indexes on segment count, so the two-segment Lift template never matched a real /search/warehouse/QUERY call and the middleware skipped rate limiting, endpoint-disable, auth-type and JSON-schema validation for this endpoint. SEARCH_QUERY is a wildcard placeholder, not a literal segment.",
+      "lift_digest": "98b4712c7a2371c331975ff8bf843b479fad54b5d7ca5fb93bc7dd73a6b28f98",
+      "http4s_digest": "9db34ca7f4a180326701e682ed4872004dd054fb303f2d13e476e2b5900dcde2"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "elasticSearchMetrics",
+      "field": "requestUrl",
+      "reason": "URL template widened to three segments to match the http4s route pattern - see elasticSearchWarehouse.",
+      "lift_digest": "1132e0dd343990bc0b4b0258f46e9b13bcda43939f6cb99d6b4dc6b34f5080e2",
+      "http4s_digest": "e2343167cfba167cbfdcd301c760b3b304d627ef7133909198d62d9dd1bd78e5"
     }
   ]
 }

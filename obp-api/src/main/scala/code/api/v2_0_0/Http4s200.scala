@@ -1373,7 +1373,13 @@ object Http4s200 {
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(elasticSearchWarehouse), "GET",
-      "/search/warehouse",
+      // Three segments, matching the route pattern. The Lift template was "/search/warehouse",
+      // which is two - and ResourceDocMatcher indexes on (verb, version, segment count), so a
+      // real call to /search/warehouse/q=x found no doc at all. With no doc, the middleware takes
+      // its unmatched branch: no consumer rate limiting, no api_disabled_endpoints check, no
+      // auth-type or JSON-schema validation, and a metric row with an empty operationId.
+      // SEARCH_QUERY is outside literalAllCapsSegments, so it stays a wildcard.
+      "/search/warehouse/SEARCH_QUERY",
       "Search Warehouse Data Via Elasticsearch",
       """
       |Search warehouse data via Elastic Search.
@@ -1465,7 +1471,8 @@ object Http4s200 {
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(elasticSearchMetrics), "GET",
-      "/search/metrics",
+      // Three segments, matching the route pattern - see elasticSearchWarehouse above.
+      "/search/metrics/SEARCH_QUERY",
       "Search API Metrics via Elasticsearch",
       """
       |Search the API calls made to this API instance via Elastic Search.
