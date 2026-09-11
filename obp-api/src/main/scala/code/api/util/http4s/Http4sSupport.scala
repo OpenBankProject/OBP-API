@@ -759,7 +759,18 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     val segCount     = strippedPath.split("/").count(_.nonEmpty)
     val lookupKey    = (verb.toUpperCase, apiVersion, segCount)
     val candidates   = index.getOrElse(lookupKey, Nil)
-    val result       = candidates.find(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+    // Most specific match wins, not the first registered. Two docs can share (verb, version,
+    // segment count) and both match a path when one of them spells a segment as an all-caps
+    // wildcard: `/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests` is a
+    // deliberate catch-all that also matches `/FREE_FORM/`. Picking by registration order made
+    // the catch-all shadow the per-type docs, and with it their roles - the FREE_FORM doc's
+    // canCreateAnyTransactionRequest was never enforced because the matched doc declared none.
+    // Ordering by literal-segment count puts the per-type doc first; sortBy is stable, so docs
+    // of equal specificity keep the order they were registered in.
+    val result       = candidates
+      .filter(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+      .sortBy(doc => -literalSegmentCount(doc.requestUrl))
+      .headOption
     if (result.isEmpty) {
       logger.debug(
         s"[ResourceDocMatcher] No match for $verb $pathString. " +
@@ -788,6 +799,10 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
   ): Option[ResourceDoc] =
     findResourceDoc(verb, path, buildIndex(resourceDocs))
   
+  /** How many of a template's segments are literals rather than wildcards - its specificity. */
+  private def literalSegmentCount(template: String): Int =
+    template.split("/").count(seg => seg.nonEmpty && !isTemplateVariable(seg))
+
   /**
    * Check if a path matches a URL template
    * Template segments in uppercase are treated as variables
@@ -833,6 +848,8 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     "ACCOUNT", "ACCOUNT_OTP", "REFUND", "SIMPLE",
     "AGENT_CASH_WITHDRAWAL", "CARD",
     "OPEN_CORRIDOR_PROMISE", "OPEN_CORRIDOR_SETTLEMENT",
+    "BULK", "HOLD", "MOBILE_WALLET", "UTILITY", "CARDANO",
+    "ETH_SEND_TRANSACTION", "ETH_SEND_RAW_TRANSACTION",
     // SCA methods (POST /banks/BANK_ID/my/consents/{EMAIL|SMS|IMPLICIT})
     "EMAIL", "SMS", "IMPLICIT", "NOT_EMAIL_NEITHER_SMS"
   )

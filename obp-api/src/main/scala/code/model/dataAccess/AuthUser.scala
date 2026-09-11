@@ -32,12 +32,12 @@ import code.api._
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil._
-import code.api.util.CommonFunctions.validUri
 import code.api.util.CommonsEmailWrapper._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
+import code.model.toUserExtended
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.token.TokensOpenIDConnect
@@ -48,10 +48,14 @@ import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.tesobe.CacheKeyFromArguments
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common._
-import net.liftweb.mapper._
 import net.liftweb.util._
+import net.liftweb.util.Helpers.tryo
+import org.mindrot.jbcrypt.BCrypt
 import org.apache.commons.lang3.StringUtils
 
 import java.util.UUID.randomUUID
@@ -59,241 +63,74 @@ import scala.concurrent.Future
 import scala.xml.{Elem, NodeSeq, Text}
 
 /**
- * An O-R mapped "User" class that includes first name, last name, password
+  * 1 AuthUser: used for authentication only - the credentials and the sign-up, email-validation and
+  *   password-reset flows around them.
   *
-  * 1 AuthUser : is used for authentication, only for webpage Login in stuff
-  *   1) It is MegaProtoUser, has lots of methods for validation username, password, email ....
-  *      Such as lost password, reset password ..... 
-  *      Lift have some helper methods to make these things easily. 
-  *   
-  *  
-  * 
-  * 2 ResourceUser: is only a normal LongKeyedMapper 
-  *   1) All the accounts, transactions ,roles, views, accountHolders, customers... should be linked to ResourceUser.userId_ field.
-  *   2) The consumer keys, tokens are also belong ResourceUser
-  *  
-  * 
+  * 2 ResourceUser: everything else. All the accounts, transactions, roles, views, accountHolders,
+  *   customers... are linked to its userId field, and the consumer keys and tokens belong to it too.
+  *
   * 3 RelationShips:
-  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save --> create ResourceUser user.
+  *   1) When `Sign up` new user --> create AuthUser --> call AuthUser.save --> create ResourceUser.
   *      They share the same username and email.
-  *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
-  *      one AuthUser <---> one ResourceUser 
-  *
+  *   2) AuthUser's `user` field is the foreign key to the ResourceUser.
+  *      one AuthUser <---> one ResourceUser
  */
-class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLoggable {
-  def getSingleton = AuthUser // what's the "meta" server
-
-  object user extends MappedLongForeignKey(this, ResourceUser)
-  
-  object passwordShouldBeChanged extends MappedBoolean(this)
-
-  override lazy val firstName = new MyFirstName
-  
-  protected class MyFirstName extends MappedString(this, 100) {
-    def isEmpty(msg: => String)(value: String): List[FieldError] =
-      value match {
-        case null                  => List(FieldError(this, Text(msg))) // issue 179
-        case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
-        case _                     => Nil
-      }
-    
-    override def displayName = fieldOwner.firstNameDisplayName
-    override val fieldId = Some(Text("txtFirstName"))
-    override def validations = isEmpty(Helper.i18n("Please.enter.your.first.name")) _ :: super.validations
-  }
-  
-  override lazy val lastName = new MyLastName
-
-  protected class MyLastName extends MappedString(this, 100) {
-    def isEmpty(msg: => String)(value: String): List[FieldError] =
-      value match {
-        case null                  => List(FieldError(this, Text(msg))) // issue 179
-        case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
-        case _                     => Nil
-      }
-
-    override def displayName = fieldOwner.lastNameDisplayName
-    override val fieldId = Some(Text("txtLastName"))
-    override def validations = isEmpty(Helper.i18n("Please.enter.your.last.name")) _ :: super.validations
-  }
-  
-  /**
-   * Username is a valid email address or the regex below:
-   * Regex to validate a username
-   * 
-   * ^(?=.{8,100}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$
-   * └─────┬────┘└───┬──┘└─────┬─────┘└─────┬─────┘ └───┬───┘
-   *       │         │         │            │           no _ or . at the end
-   *       │         │         │            │
-   *       │         │         │            allowed characters
-   *       │         │         │
-   *       │         │         no __ or _. or ._ or .. inside
-   *       │         │
-   *       │         no _ or . at the beginning
-   *       │
-   *       username is 8-100 characters long
-   *       
-   */
-  private val usernameRegex = """^(?=.{8,100}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$""".r
-
-  /**
-    * The username field for the User.
-    */
-  lazy val username: userName = new userName()
-  class userName extends MappedString(this, 100) {
-    def isEmpty(msg: => String)(value: String): List[FieldError] =
-      value match {
-        case null                  => List(FieldError(this, Text(msg))) // issue 179
-        case e if e.trim.isEmpty   => List(FieldError(this, Text(msg))) // issue 179
-        case _                     => Nil
-      }
-    def usernameIsValid(msg: => String)(e: String) = e match {
-      case null                                             => List(FieldError(this, Text(msg)))
-      case e if e.trim.isEmpty                              => List(FieldError(this, Text(msg)))
-      case e if emailRegex.findFirstMatchIn(e).isDefined    => Nil // Email is valid username
-      case e if usernameRegex.findFirstMatchIn(e).isDefined => Nil
-      case _                                                => List(FieldError(this, Text(msg)))
-    }
-    override def displayName = Helper.i18n("Username")
-    @deprecated("Use UniqueIndex(username, provider)","27 December 2021")
-    override def dbIndexed_? = false // We use more general index UniqueIndex(username, provider) :: super.dbIndexes
-    override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ ::
-                               usernameIsValid(Helper.i18n("invalid.username")) _ ::
-                               valUnique(Helper.i18n("unique.username")) _ ::
-                               valUniqueExternally(Helper.i18n("unique.username")) _ ::
-                               super.validations
-    override val fieldId = Some(Text("txtUsername"))
-
-    /**
-     * Make sure that the field is unique in the CBS
-     */
-    def valUniqueExternally(msg: => String)(uniqueUsername: String): List[FieldError] ={
-      if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false)) {
-        logger.info(s"valUniqueExternally: calling checkExternalUserExists for username: $uniqueUsername")
-        val connectorResult = Connector.connector.vend.checkExternalUserExists(uniqueUsername, None)
-        logger.info(s"valUniqueExternally: checkExternalUserExists returned: ${connectorResult.getClass.getSimpleName}")
-        connectorResult.map(_.sub) match {
-          case Full(returnedUsername) => // Get the username via connector
-            logger.info(s"valUniqueExternally: checkExternalUserExists returned username: $returnedUsername")
-            if(uniqueUsername == returnedUsername) { // Username is NOT unique
-              logger.info(s"valUniqueExternally: username $uniqueUsername already exists externally")
-              List(FieldError(this, Text(msg))) // provide the error message
-            } else {
-              logger.info(s"valUniqueExternally: username $uniqueUsername is unique (returned different: $returnedUsername)")
-              Nil // All good. Allow username creation
-            }
-          case ParamFailure(message,_,_,APIFailure(errorMessage, errorCode)) if errorMessage.contains("NO DATA") => // Cannot get the username via connector
-            logger.info(s"valUniqueExternally: checkExternalUserExists returned NO DATA for username: $uniqueUsername - allowing creation")
-            Nil // All good. Allow username creation
-          case Failure(failureMsg, exception, chain) =>
-            logger.warn(s"valUniqueExternally: checkExternalUserExists failed for username: $uniqueUsername, message: $failureMsg, exception: ${exception.map(_.getMessage)}, chain: $chain")
-            List(FieldError(this, Text(ErrorMessages.ExternalUserCheckFailed)))
-          case Empty =>
-            logger.warn(s"valUniqueExternally: checkExternalUserExists returned Empty for username: $uniqueUsername")
-            List(FieldError(this, Text(ErrorMessages.ExternalUserCheckFailed)))
-          case _ => // Any other case we provide error message
-            logger.warn(s"valUniqueExternally: checkExternalUserExists returned unexpected result for username: $uniqueUsername")
-            List(FieldError(this, Text(ErrorMessages.ExternalUserCheckFailed)))
-        }
-      } else {
-        Nil // All good. Allow username creation
-      }
-    }
-      
-      
-  }
-
-  override lazy val password = new MyPasswordNew
-  
-  lazy val signupPasswordRepeatText = getWebUiPropsValue("webui_signup_body_password_repeat_text", "repeat")
-
-  class MyPasswordNew extends MappedPassword(this) {
-    lazy val preFilledPassword = if (APIUtil.getPropsAsBoolValue("allow_pre_filled_password", true)) {get.toString} else ""
-
-    override def displayName = fieldOwner.passwordDisplayName
-    
-    private var passwordValue = ""
-    private var invalidPw = false
-    private var invalidMsg = ""
-
-    // TODO Remove double negative and abreviation.
-    // TODO  “invalidPw” = false -> “strongPassword = true” etc.
-    override def setFromAny(f: Any): String = {
-      def checkPassword() = {
-        def isPasswordEmpty() = {
-          if (passwordValue.isEmpty())
-            true
-          else {
-            passwordValue match {
-              case "*" | null | MappedPassword.blankPw =>
-                true
-              case _ =>
-                false
-            }
-          }
-        }
-        isPasswordEmpty() match {
-          case true =>
-            invalidPw = true
-            invalidMsg = Helper.i18n("please.enter.your.password")
-          case false =>
-            if (fullPasswordValidation(passwordValue))
-              invalidPw = false
-            else {
-              invalidPw = true
-              invalidMsg = ErrorMessages.InvalidStrongPasswordFormat.split(':')(1).trim
-            }
-        }
-      }
-      f match {
-        case a: Array[String] if (a.length == 2 && a(0) == a(1)) => {
-          passwordValue = a(0).toString
-          checkPassword()
-          this.set(a(0))
-        }
-        case l: List[_] if (l.length == 2 && l.head.asInstanceOf[String] == l(1).asInstanceOf[String]) => {
-          passwordValue = l(0).asInstanceOf[String]
-          checkPassword()
-          this.set(l.head.asInstanceOf[String])
-        }
-        case _ => {
-          invalidPw = true
-          invalidMsg = Helper.i18n("passwords.do.not.match")
-        }
-      }
-      get
-    }
-    
-    override def validate: List[FieldError] = {
-      if (!invalidPw && password.get != "*") super.validate
-      else if (invalidPw) List(FieldError(this, Text(invalidMsg))) ++ super.validate
-      else List(FieldError(this, Text(Helper.i18n("please.enter.your.password")))) ++ super.validate
-    }
-    
-  }
-
-  /**
-   * The provider field for the User.
-   */
-  lazy val provider: userProvider = new userProvider()
-  class userProvider extends MappedString(this, 100) {
-    override def displayName = "provider"
-    override val fieldId = Some(Text("txtProvider"))
-    override def validations = validUri(this) _ :: super.validations
-    override def defaultValue: String = Constant.localIdentityProvider
-  }
-
+/**
+ * The login half of a user: a username, a password, an email address and the ResourceUser they
+ * belong to.
+ *
+ * 1 AuthUser is used for authentication only - the credentials and the sign-up/validation flow.
+ * 2 ResourceUser is what the rest of the API hangs off: accounts, transactions, roles, views,
+ *   account holders, customers, consumers and tokens all reference its userId.
+ * 3 Signing up creates an AuthUser, whose save creates the matching ResourceUser; they share a
+ *   username and email, and `user` holds RESOURCEUSER.ID.
+ *
+ * The password lives in two columns because that is how MappedPassword stored it and how
+ * v_oidc_users - the view OBP-OIDC and the Keycloak provider authenticate against - reads it back.
+ * See AuthUser.hashPassword for the format.
+ */
+case class AuthUser(
+  id: Long = 0L,
+  firstName: String = "",
+  lastName: String = "",
+  email: String = "",
+  username: String = "",
+  passwordPw: String = AuthUser.unsetPassword,
+  passwordSlt: String = "",
+  provider: String = Constant.localIdentityProvider,
+  uniqueId: String = Helpers.randomString(32),
+  superUser: Boolean = false,
+  validated: Boolean = false,
+  passwordShouldBeChanged: Boolean = false,
+  locale: String = java.util.Locale.getDefault.toString,
+  timezone: String = java.util.TimeZone.getDefault.getID,
+  user: Long = 0L,
+  createdAt: java.util.Date = null,
+  updatedAt: java.util.Date = null
+) extends MdcLoggable {
 
   def getProvider() = {
-    if(provider.get == null || provider.get == "") {
-      Constant.localIdentityProvider
-    } else {
-      provider.get
-    }
+    if(provider == null || provider.isEmpty) Constant.localIdentityProvider else provider
   }
 
+  def getEmail: String = email
+  def getUniqueId(): String = uniqueId
+  def validated_? : Boolean = validated
+  def setValidated(value: Boolean): AuthUser = copy(validated = value)
+  def resetUniqueId(): AuthUser = copy(uniqueId = Helpers.randomString(32))
+
+  /** Hashes `plain` into the two password columns, as MappedPassword did on every set. */
+  def withPassword(plain: String): AuthUser = {
+    val (pw, salt) = AuthUser.hashPassword(plain)
+    copy(passwordPw = pw, passwordSlt = salt)
+  }
+
+  /** What MappedPassword.match_? did: bcrypt when the hash is prefixed, the legacy digest else. */
+  def testPassword(toMatch: Box[String]): Boolean =
+    toMatch.map(AuthUser.matchPassword(_, passwordPw, passwordSlt)).openOr(false)
+
   def createUnsavedResourceUser() : ResourceUser = {
-    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username.get), Some(username.get), Some(email.get), None).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username), Some(username), Some(email), None).openOrThrowException(attemptedToOpenAnEmptyBox)
     user
   }
 
@@ -308,60 +145,28 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     Users.users.vend.getUserByProviderAndUsername(provider, username)
   }
 
-  override def save(): Boolean = {
-    if(! (user.defined_?)){
-      logger.info("user reference is null. We will create a ResourceUser")
-      val resourceUser = createUnsavedResourceUser()
-      val savedUser = Users.users.vend.saveResourceUser(resourceUser)
-      user(savedUser)   //is this saving resourceUser into a user field?
-    }
-    else {
-      logger.info("user reference is not null. Trying to update the ResourceUser")
-      Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>{
-          logger.info("API User found ")
-          u.name_(username.get)
-          .email(email.get)
-          .providerId(username.get)
-          .save
-        }
-      }
-    }
-    super.save
-  }
+  /**
+   * Writes the row and keeps the ResourceUser beside it in step, which is what the Mapper override
+   * did: an AuthUser without one gets a ResourceUser created and its key stored, and one that
+   * already has it gets that user's name, email and provider id refreshed.
+   *
+   * Returns the persisted row - the caller needs it, because the id and the ResourceUser key are
+   * assigned here and an immutable row cannot carry them back on its own.
+   */
+  def saveMe(): AuthUser = AuthUser.saveWithResourceUser(this)
 
-  override def delete_!(): Boolean = {
-    user.obj.map(u => Users.users.vend.deleteResourceUser(u.id.get))
-    super.delete_!
-  }
+  def save: Boolean = { AuthUser.saveWithResourceUser(this); true }
 
-  // Regex to validate an email address as per W3C recommendations: https://www.w3.org/TR/html5/forms.html#valid-e-mail-address
-  private val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
-
-  def isEmailValid(e: String): Boolean = e match{
-    case null                                           => false
-    case e if e.trim.isEmpty                            => false
-    case e if emailRegex.findFirstMatchIn(e).isDefined  => true
-    case _                                              => false
-  }
-
-  // Override the validate method of MappedEmail class
-  // There's no way to override the default emailPattern from MappedEmail object
-  override lazy val email = new MyEmail(this, 48) {
-    override def validations = super.validations
-    override def dbIndexed_? = false
-    override def validate = i_is_! match {
-      case null                  => List(FieldError(this, Text(Helper.i18n("Please.enter.your.email"))))
-      case e if e.trim.isEmpty   => List(FieldError(this, Text(Helper.i18n("Please.enter.your.email"))))
-      case e if (!isEmailValid(e))  => List(FieldError(this, Text(Helper.i18n("invalid.email.address"))))
-      case _                     => Nil
-    }
+  def delete_! : Boolean = {
+    ResourceUser.findByPrimaryKey(user).map(u => Users.users.vend.deleteResourceUser(u.id))
+    AuthUser.delete(id)
   }
 }
 
 /**
  * The singleton that has methods for accessing the database
  */
-object AuthUser extends AuthUser with MetaMegaProtoUser[AuthUser]{
+object AuthUser extends MdcLoggable {
 import net.liftweb.util.Helpers._
 
   /**Marking the locked state to show different error message */
@@ -374,26 +179,329 @@ import net.liftweb.util.Helpers._
   val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
 
-  override def dbIndexes: List[BaseIndex[AuthUser]] = UniqueIndex(username, provider) ::super.dbIndexes
-  
-  override def emailFrom = Constant.mailUsersUserinfoSenderAddress
+  def emailFrom = Constant.mailUsersUserinfoSenderAddress
 
-  // screenWrap removed - API-only mode, no portal pages
-  override def screenWrap = Empty
-  // define the order fields will appear in forms and output
-  override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
-  override def signupFields = List(firstName, lastName, email, username, password)
+  /** ProtoUser's default: nothing is blind-copied on the emails this object sends. */
+  def bccEmail: Box[String] = Empty
+
+  /** ProtoUser computed this from basePath; the one live caller builds a logout link out of it. */
+  val logoutPath: List[String] = List("user_mgt", "logout")
 
   // To force validation of email addresses set this to false (default as of 29 June 2021)
-  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
+  def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
 
-  // Legacy Lift login UI - no longer used (API-only mode)
-  // Login is handled via OIDC/DirectLogin APIs, not HTML forms
-  override def loginXhtml = <div/>
-  
-  // Legacy Lift login method - no longer used (no frontend pages)
-  // Authentication is now handled via DirectLogin API endpoints
-  override def login: NodeSeq = <div/>
+  def userNameNotFoundString: String = "Thank you. If we found a matching user, password reset instructions have been sent."
+
+  /**
+   * The password columns, exactly as MappedPassword wrote and read them.
+   *
+   * A set bcrypts the value and splits the 60-character result: "b;" plus its first 44 characters
+   * into PASSWORD_PW, the remaining 16 into PASSWORD_SLT. Verification concatenates them back.
+   * Rows written before bcrypt keep a salted digest instead, and are still accepted - that legacy
+   * branch is why the salt is compared rather than ignored.
+   *
+   * v_oidc_users reads both columns straight out of the table, so this format is a contract with
+   * OBP-OIDC and the Keycloak user storage provider, not an implementation detail.
+   */
+  val unsetPassword = "*"
+
+  def hashPassword(plain: String): (String, String) = plain match {
+    case null => (unsetPassword, "")
+    case value if value.length > 4 =>
+      val bcrypted = BCrypt.hashpw(value, BCrypt.gensalt())
+      ("b;" + bcrypted.substring(0, 44), bcrypted.substring(44))
+    case _ => (unsetPassword, "")
+  }
+
+  def matchPassword(plain: String, passwordPw: String, passwordSlt: String): Boolean = {
+    val pw = if (passwordPw == null) "" else passwordPw
+    val salt = if (passwordSlt == null) "" else passwordSlt
+    if (pw.startsWith("b;")) BCrypt.checkpw(plain, pw.substring(2) + salt)
+    else Helpers.secureEquals(Helpers.hash("{" + plain + "} salt={" + salt + "}"), pw)
+  }
+
+  /**
+   * The field validations Mapper ran on save, in field-declaration order and with the same
+   * messages, because sign-up and the bootstrap paths report them to the caller.
+   *
+   * The username rules are the interesting ones: it must be present, must look like either an
+   * email address or the documented username shape, must be unique here, and - when
+   * connector.user.authentication is on - must not already exist in the core banking system.
+   */
+  def validate(row: AuthUser): List[String] = {
+    def isBlank(value: String) = value == null || value.trim.isEmpty
+    val firstNameErrors = if (isBlank(row.firstName)) List(Helper.i18n("Please.enter.your.first.name")) else Nil
+    val lastNameErrors = if (isBlank(row.lastName)) List(Helper.i18n("Please.enter.your.last.name")) else Nil
+    val emailErrors =
+      if (isBlank(row.email)) List(Helper.i18n("Please.enter.your.email"))
+      else if (!isEmailValid(row.email)) List(Helper.i18n("invalid.email.address"))
+      else Nil
+    val usernameErrors =
+      if (isBlank(row.username)) List(Helper.i18n("Please.enter.your.username"))
+      else if (!isUsernameValid(row.username)) List(Helper.i18n("invalid.username"))
+      else if (findByUsername(row.username).exists(_.id != row.id)) List(Helper.i18n("unique.username"))
+      else validateUsernameIsUniqueExternally(row.username)
+    val passwordErrors =
+      if (row.passwordPw == unsetPassword || isBlank(row.passwordPw)) List(Helper.i18n("please.enter.your.password"))
+      else Nil
+    val providerErrors =
+      if (isBlank(row.provider) || tryo(new java.net.URI(row.provider)).isDefined) Nil
+      else List("provider must be a valid URI")
+    firstNameErrors ::: lastNameErrors ::: emailErrors ::: usernameErrors ::: passwordErrors :::
+      providerErrors
+  }
+
+  // Regex to validate an email address as per W3C recommendations: https://www.w3.org/TR/html5/forms.html#valid-e-mail-address
+  private val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+
+  /**
+   * Username is a valid email address or the regex below:
+   *
+   * ^(?=.{8,100}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$
+   * └─────┬────┘└───┬──┘└─────┬─────┘└─────┬─────┘ └───┬───┘
+   *       │         │         │            │           no _ or . at the end
+   *       │         │         │            allowed characters
+   *       │         │         no __ or _. or ._ or .. inside
+   *       │         no _ or . at the beginning
+   *       username is 8-100 characters long
+   */
+  private val usernameRegex = """^(?=.{8,100}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$""".r
+
+  def isEmailValid(e: String): Boolean = e match {
+    case null                                           => false
+    case e if e.trim.isEmpty                            => false
+    case e if emailRegex.findFirstMatchIn(e).isDefined  => true
+    case _                                              => false
+  }
+
+  def isUsernameValid(value: String): Boolean = value match {
+    case null                                                 => false
+    case e if e.trim.isEmpty                                  => false
+    case e if emailRegex.findFirstMatchIn(e).isDefined        => true // Email is valid username
+    case e if usernameRegex.findFirstMatchIn(e).isDefined      => true
+    case _                                                    => false
+  }
+
+  /** Make sure that the username is unique in the CBS. */
+  private def validateUsernameIsUniqueExternally(uniqueUsername: String): List[String] = {
+    if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false)) {
+      logger.info(s"valUniqueExternally: calling checkExternalUserExists for username: $uniqueUsername")
+      val connectorResult = Connector.connector.vend.checkExternalUserExists(uniqueUsername, None)
+      logger.info(s"valUniqueExternally: checkExternalUserExists returned: ${connectorResult.getClass.getSimpleName}")
+      connectorResult.map(_.sub) match {
+        case Full(returnedUsername) => // Get the username via connector
+          logger.info(s"valUniqueExternally: checkExternalUserExists returned username: $returnedUsername")
+          if(uniqueUsername == returnedUsername) { // Username is NOT unique
+            logger.info(s"valUniqueExternally: username $uniqueUsername already exists externally")
+            List(Helper.i18n("unique.username")) // provide the error message
+          } else {
+            logger.info(s"valUniqueExternally: username $uniqueUsername is unique (returned different: $returnedUsername)")
+            Nil // All good. Allow username creation
+          }
+        case ParamFailure(message,_,_,APIFailure(errorMessage, errorCode)) if errorMessage.contains("NO DATA") => // Cannot get the username via connector
+          logger.info(s"valUniqueExternally: checkExternalUserExists returned NO DATA for username: $uniqueUsername - allowing creation")
+          Nil // All good. Allow username creation
+        case Failure(failureMsg, exception, chain) =>
+          logger.warn(s"valUniqueExternally: checkExternalUserExists failed for username: $uniqueUsername, message: $failureMsg, exception: ${exception.map(_.getMessage)}, chain: $chain")
+          List(ErrorMessages.ExternalUserCheckFailed)
+        case Empty =>
+          logger.warn(s"valUniqueExternally: checkExternalUserExists returned Empty for username: $uniqueUsername")
+          List(ErrorMessages.ExternalUserCheckFailed)
+        case _ => // Any other case we provide error message
+          logger.warn(s"valUniqueExternally: checkExternalUserExists returned unexpected result for username: $uniqueUsername")
+          List(ErrorMessages.ExternalUserCheckFailed)
+      }
+    } else {
+      Nil // All good. Allow username creation
+    }
+  }
+
+  /**
+   * The logged-in user, as ProtoUser tracked it.
+   *
+   * OBP authenticates through DirectLogin and OAuth rather than a Lift session, so this is normally
+   * Empty and getCurrentUser falls through to those mechanisms; it is kept because the sign-up flow
+   * still sets it and getCurrentUser still reads it. A per-thread holder, which is what the
+   * webkit-free RequestVar it replaces already was.
+   */
+  private val currentUserHolder = new ThreadLocal[Box[AuthUser]]()
+
+  def currentUser: Box[AuthUser] = Option(currentUserHolder.get).getOrElse(Empty)
+
+  def logUserIn(who: AuthUser): Unit = currentUserHolder.set(Full(who))
+
+  def logUserOut(): Unit = currentUserHolder.remove()
+
+  // ---------------------------------------------------------------------------------------------
+  // Store
+  // ---------------------------------------------------------------------------------------------
+
+  private val selectColumns =
+    fr"""SELECT id, firstname, lastname, email, username, password_pw, password_slt, provider,
+                uniqueid, superuser, validated, passwordshouldbechanged, locale, timezone, user_c,
+                createdat, updatedat
+         FROM authuser"""
+
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[Boolean],
+    Option[Boolean], Option[Boolean], Option[String], Option[String], Option[Long],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  private def readDate(value: Option[java.sql.Timestamp]): java.util.Date =
+    value.map(t => new java.util.Date(t.getTime)).orNull
+
+  private def fromRow(row: Row): AuthUser = row match {
+    case (id, firstName, lastName, email, username, passwordPw, passwordSlt, provider, uniqueId,
+          superUser, validated, passwordShouldBeChanged, locale, timezone, user, createdAt,
+          updatedAt) =>
+      AuthUser(
+        id = id,
+        firstName = firstName.orNull,
+        lastName = lastName.orNull,
+        email = email.orNull,
+        username = username.orNull,
+        passwordPw = passwordPw.orNull,
+        passwordSlt = passwordSlt.orNull,
+        provider = provider.orNull,
+        uniqueId = uniqueId.orNull,
+        superUser = superUser.getOrElse(false),
+        validated = validated.getOrElse(false),
+        passwordShouldBeChanged = passwordShouldBeChanged.getOrElse(false),
+        locale = locale.orNull,
+        timezone = timezone.orNull,
+        // The foreign key is NULL while an AuthUser has no ResourceUser; 0 is what the Mapper
+        // field read that as.
+        user = user.getOrElse(0L),
+        createdAt = readDate(createdAt),
+        updatedAt = readDate(updatedAt))
+  }
+
+  private def query(condition: Fragment): List[AuthUser] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def opt(value: String): Option[String] = Option(value)
+
+  private def one(condition: Fragment): Box[AuthUser] =
+    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def findByPrimaryKey(id: Long): Box[AuthUser] = one(fr"WHERE id = $id")
+  def findByUsername(username: String): Box[AuthUser] = one(fr"WHERE username = ${opt(username)}")
+  def findByUsernameAndProvider(username: String, provider: String): Box[AuthUser] =
+    one(fr"WHERE username = ${opt(username)} AND provider = ${opt(provider)}")
+  def findByResourceUserPrimaryKey(userPrimaryKey: Long): Box[AuthUser] =
+    one(fr"WHERE user_c = $userPrimaryKey")
+  def findByUniqueId(uniqueId: String): Box[AuthUser] = one(fr"WHERE uniqueid = ${opt(uniqueId)}")
+  def findAllByEmail(email: String): List[AuthUser] = query(fr"WHERE email = ${opt(email)}")
+  def findAllByUsername(username: String): List[AuthUser] = query(fr"WHERE username = ${opt(username)}")
+  def findAll(): List[AuthUser] = query(Fragment.empty)
+  def count(): Long = DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM authuser".query[Long].unique)
+
+  /** Rows whose provider was never filled in - what populateMissingProviderWithLocalIdentity repairs. */
+  def findAllWithoutProvider(): List[AuthUser] =
+    query(fr"WHERE provider IS NULL OR provider = ''")
+
+  /**
+   * What MappedEmail's setFilter did on every set - `notNull :: toLower :: trim`.
+   *
+   * The Lift entity declared this column as MappedEmail, so the normalisation lived in the field
+   * type and the entity never mentioned it; carrying the column across as a plain String dropped it
+   * silently, and `" Bob@Example.COM "` began persisting verbatim. ResourceUser's half of the same
+   * migration kept it (ResourceUser.normalizeEmail), so the two copies of one user's address had
+   * been disagreeing about case and whitespace. Reused rather than re-implemented so they cannot
+   * drift apart again. AuthUserEmailNormalisationTest covers insert and update.
+   */
+  private def normalisedEmail(row: AuthUser): String = ResourceUser.normalizeEmail(row.email)
+
+  /**
+   * The resourceuser FK as a bindable parameter.
+   *
+   * `user_c` is a nullable BIGINT and an AuthUser that has not been linked yet is a legitimate row,
+   * so the unlinked case has to bind SQL NULL. Written inline in the interpolator - as
+   * `${if (row.user > 0L) Some(row.user) else None}` - it was not bound as a parameter at all: the
+   * database rejected the statement with a syntax error at that position, and because it is one
+   * statement the whole insert failed, not just the FK column. Naming the value in a method with a
+   * declared `Option[Long]` result is what makes it bind. AuthUserUnboundInsertTest covers it: it
+   * fails with the syntax error on the inline form and passes on this one.
+   */
+  private def userFk(row: AuthUser): Option[Long] =
+    if (row.user > 0L) Some(row.user) else None
+
+  def insert(row: AuthUser): AuthUser = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO authuser
+            (firstname, lastname, email, username, password_pw, password_slt, provider, uniqueid,
+             superuser, validated, passwordshouldbechanged, locale, timezone, user_c,
+             createdat, updatedat)
+            VALUES (${opt(row.firstName)}, ${opt(row.lastName)}, ${opt(normalisedEmail(row))},
+             ${opt(row.username)}, ${opt(row.passwordPw)}, ${opt(row.passwordSlt)},
+             ${opt(row.provider)}, ${opt(row.uniqueId)}, ${row.superUser}, ${row.validated},
+             ${row.passwordShouldBeChanged}, ${opt(row.locale)}, ${opt(row.timezone)},
+             ${userFk(row)}, $now, $now)"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    // email carries the normalised value too, not just the row in the database: returning the
+    // caller's raw string would hand back an object that disagrees with what was just stored.
+    row.copy(id = id, email = normalisedEmail(row),
+      createdAt = new java.util.Date(now.getTime), updatedAt = new java.util.Date(now.getTime))
+  }
+
+  def update(row: AuthUser): AuthUser = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE authuser
+            SET firstname = ${opt(row.firstName)}, lastname = ${opt(row.lastName)},
+                email = ${opt(normalisedEmail(row))}, username = ${opt(row.username)},
+                password_pw = ${opt(row.passwordPw)}, password_slt = ${opt(row.passwordSlt)},
+                provider = ${opt(row.provider)}, uniqueid = ${opt(row.uniqueId)},
+                superuser = ${row.superUser}, validated = ${row.validated},
+                passwordshouldbechanged = ${row.passwordShouldBeChanged},
+                locale = ${opt(row.locale)}, timezone = ${opt(row.timezone)},
+                user_c = ${userFk(row)}, updatedat = $now
+            WHERE id = ${row.id}"""
+        .update.run)
+    row.copy(email = normalisedEmail(row), updatedAt = new java.util.Date(now.getTime))
+  }
+
+  def delete(id: Long): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM authuser WHERE id = $id".update.run) > 0
+
+  def deleteAllByUsername(username: String): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM authuser WHERE username = ${opt(username)}".update.run) > 0
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM authuser".update.run)
+    ()
+  }
+
+  /**
+   * Writes an AuthUser and the ResourceUser beside it, as the Mapper save override did: one without
+   * a ResourceUser gets it created and its key stored, one that has it gets that user's name, email
+   * and provider id refreshed from these credentials.
+   */
+  def saveWithResourceUser(row: AuthUser): AuthUser = {
+    val withResourceUser =
+      if (row.user == 0L) {
+        logger.info("user reference is null. We will create a ResourceUser")
+        val resourceUser = row.createUnsavedResourceUser()
+        Users.users.vend.saveResourceUser(resourceUser) match {
+          case Full(saved) => row.copy(user = saved.id)
+          case _ => row
+        }
+      } else {
+        logger.info("user reference is not null. Trying to update the ResourceUser")
+        Users.users.vend.getResourceUserByResourceUserId(row.user).map { u =>
+          Users.users.vend.saveResourceUser(u.copy(
+            name = row.username,
+            emailAddress = ResourceUser.normalizeEmail(row.email),
+            idGivenByProvider = row.username))
+        }
+        row
+      }
+    if (withResourceUser.id == 0L) insert(withResourceUser) else update(withResourceUser)
+  }
 
 
   // Update ResourceUser.LastUsedLocale only once per session in 60 seconds
@@ -406,19 +514,17 @@ import net.liftweb.util.Helpers._
      */
     import scala.concurrent.duration._
     val ttl: Duration = FiniteDuration(60, "second")
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(ttl) {
-        logger.debug(s"AuthUser.updateComputedLocale(sessionId = $sessionId, computedLocale = $computedLocale)")
-        getCurrentUser.map(_.userPrimaryKey.value) match {
-          case Full(id) =>
-            Users.users.vend.getResourceUserByResourceUserId(id).map {
-              u =>
-                u.LastUsedLocale(computedLocale).save
-                logger.debug(s"ResourceUser.LastUsedLocale is saved for the resource user id: $id")
-            }.isDefined
-          case _ => true// There is no current user
-        }
+    val cacheKey = ("code.model.dataAccess.AuthUser", "updateComputedLocale", List(sessionId, computedLocale).mkString("_"))
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(ttl) {
+      logger.debug(s"AuthUser.updateComputedLocale(sessionId = $sessionId, computedLocale = $computedLocale)")
+      getCurrentUser.map(_.userPrimaryKey.value) match {
+        case Full(id) =>
+          Users.users.vend.getResourceUserByResourceUserId(id).map {
+            u =>
+              ResourceUser.update(u.copy(lastUsedLocale = Option(computedLocale)))
+              logger.debug(s"ResourceUser.LastUsedLocale is saved for the resource user id: $id")
+          }.isDefined
+        case _ => true// There is no current user
       }
     }
   }
@@ -441,11 +547,11 @@ import net.liftweb.util.Helpers._
         val user = AuthUser.currentUser.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox)
         // In case that the provider is empty field we default to "local_identity_provider" or "hostname"
         val provider = 
-          if(user.provider.get == null || user.provider.get.isEmpty) 
+          if(user.provider == null || user.provider.isEmpty) 
             Constant.localIdentityProvider 
           else 
-            user.provider.get
-        Users.users.vend.getUserByProviderAndUsername(provider, user.username.get)
+            user.provider
+        Users.users.vend.getUserByProviderAndUsername(provider, user.username)
       } else if (directLogin.isDefined) // Direct Login
         DirectLogin.getUser
       else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
@@ -479,7 +585,7 @@ import net.liftweb.util.Helpers._
     if(APIUtil.getPropsAsBoolValue("openid_connect.show_tokens", false)) {
       AuthUser.currentUser match {
         case Full(authUser) =>
-          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id.get).map(_.idToken).getOrElse("")
+          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id).map(_.idToken).getOrElse("")
         case _ => ""
       }
     } else { 
@@ -490,7 +596,7 @@ import net.liftweb.util.Helpers._
     if(APIUtil.getPropsAsBoolValue("openid_connect.show_tokens", false)) {
       AuthUser.currentUser match {
         case Full(authUser) =>
-          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id.get).map(_.accessToken).getOrElse("")
+          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id).map(_.accessToken).getOrElse("")
         case _ => ""
       }
     } else { 
@@ -513,32 +619,9 @@ import net.liftweb.util.Helpers._
   }
 
   /**
-    * The string that's generated when the user name is not found.  By
-    * default: S.?("email.address.not.found")
-    * The function is overridden in order to prevent leak of information at password reset page if username / email exists or do not exist.
-    * I.e. we want to prevent case in which an anonymous user can get information from the message does some username/email exist or no in our system.
-    */
-  override def userNameNotFoundString: String = "Thank you. If we found a matching user, password reset instructions have been sent."
-
-
-  // sendPasswordReset removed - legacy Lift method, replaced by API endpoint /obp/v6.0.0/users/password-reset-url
-  override def sendPasswordReset(name: String) = {
-    // No-op: Password reset now handled via RESTful API endpoints
-  }
-
-  // lostPasswordXhtml simplified - API-only mode, no portal pages
-  // Password reset is handled via API endpoints
-  override def lostPasswordXhtml = <div/>
-
-  // lostPassword simplified - API-only mode, no portal pages
-  override def lostPassword = NodeSeq.Empty
-
-  //override def def passwordResetMailBody(user: TheUserType, resetLink: String): Elem = { }
-
-  /**
-   * Overridden to use the hostname set in the props file
+   * Sends the sign-up validation email, using the hostname set in the props file.
    */
-  override def sendValidationEmail(user: TheUserType): Unit = {
+  def sendValidationEmail(user: AuthUser): Unit = {
     APIUtil.getPropsValue("portal_external_url") match {
       case Full(portalUrl) =>
         // Create a JWT token with the uniqueId as subject and configurable expiry
@@ -573,14 +656,14 @@ import net.liftweb.util.Helpers._
     }
   }
 
-   def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
-     tryo{getResourceUserByProviderAndUsername(user.getProvider(), user.username.get).head.userId} match {
+   def grantDefaultEntitlementsToAuthUser(user: AuthUser) = {
+     tryo{user.getResourceUserByProviderAndUsername(user.getProvider(), user.username).head.userId} match {
        case Full(userId)=>APIUtil.grantDefaultEntitlementsToNewUser(userId)
        case _ => logger.error("Can not getResourceUserByUsername here, so it breaks the grantDefaultEntitlementsToNewUser process.")
      }
    }
 
-  override def validateUser(id: String): NodeSeq = {
+  def validateUser(id: String): NodeSeq = {
     // Extract uniqueId from JWT token: verify signature and expiry
     val uniqueIdBox: Box[String] = tryo {
       val signedJWT = com.nimbusds.jwt.SignedJWT.parse(id)
@@ -594,57 +677,19 @@ import net.liftweb.util.Helpers._
       signedJWT.getJWTClaimsSet.getSubject
     }
 
-    val userBox = uniqueIdBox.flatMap(findUserByUniqueId)
+    val userBox = uniqueIdBox.flatMap(findByUniqueId)
 
     userBox match {
       case Full(user) if !user.validated_? =>
-        user.setValidated(true).resetUniqueId().save
-        grantDefaultEntitlementsToAuthUser(user)
+        val validated = user.setValidated(true).resetUniqueId().saveMe()
+        grantDefaultEntitlementsToAuthUser(validated)
       case _ =>
         logger.warn("validateUser: invalid or expired token")
     }
     NodeSeq.Empty
   }
 
-  override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
-    theUser.setValidated(skipEmailValidation).resetUniqueId()
-    theUser.save
-    val privacyPolicyValue: String = getWebUiPropsValue("webui_privacy_policy", "")
-    val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
-    // User Agreement table
-    UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
-      theUser.user.foreign.map(_.userId).getOrElse(""), "privacy_conditions", privacyPolicyValue)
-    UserAgreementProvider.userAgreementProvider.vend.createUserAgreement(
-      theUser.user.foreign.map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
-    if (!skipEmailValidation) {
-      sendValidationEmail(theUser)
-      func()
-    } else {
-      grantDefaultEntitlementsToAuthUser(theUser)
-      logUserIn(theUser, () => func())
-    }
-  }
-  // agreeTermsDiv simplified - API-only mode, no portal pages
-  def agreeTermsDiv = NodeSeq.Empty
-
-  // legalNoticeDiv simplified - API-only mode, no portal pages
-  def legalNoticeDiv = NodeSeq.Empty
-
-  // agreePrivacyPolicy simplified - API-only mode, no portal pages
-  def agreePrivacyPolicy = NodeSeq.Empty
-
-  // enableDisableSignUpButton simplified - API-only mode, no portal pages
-  def enableDisableSignUpButton = NodeSeq.Empty
-
   def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", "sign.up")
-
-  // signupXhtml simplified - API-only mode, no portal pages
-  // Signup is handled via API endpoints, not HTML forms
-  override def signupXhtml (user:AuthUser) = <div/>
-
-
-  // localForm simplified - API-only mode, no portal pages
-  override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = NodeSeq.Empty
 
 
 
@@ -778,9 +823,9 @@ import net.liftweb.util.Helpers._
           // Password correct - extract user ID safely
           logger.info(s"getResourceUserId says: password correct, username: $username, provider: $normalizedProvider")
           LoginAttempt.resetBadLoginAttempts(Constant.localIdentityProvider, username)
-          user.user.obj match {
+          ResourceUser.findByPrimaryKey(user.user) match {
             case Full(resourceUser) =>
-              Full(resourceUser.id.get)
+              Full(resourceUser.id)
             case _ =>
               logger.error(s"getResourceUserId: user.user foreign key not set for username: $username")
               Empty
@@ -826,9 +871,9 @@ import net.liftweb.util.Helpers._
         
         // Call connector validation and safely extract user ID
         val connectorResult = checkExternalUserViaConnector(username, password).flatMap { authUser =>
-          authUser.user.obj match {
+          ResourceUser.findByPrimaryKey(authUser.user) match {
             case Full(resourceUser) =>
-              Full(resourceUser.id.get)
+              Full(resourceUser.id)
             case _ =>
               logger.error(s"getResourceUserId: external user.user foreign key not set for username: $username")
               Empty
@@ -917,7 +962,7 @@ import net.liftweb.util.Helpers._
             logger.debug("external user already exists locally, using that one")
             userAuthContexts match {
               case Some(authContexts) => // Write user auth context to the database
-                UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(user.userIdAsString, authContexts)
+                UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(user.id.toString, authContexts)
               case None => // Do nothing
             }
             user
@@ -925,21 +970,21 @@ import net.liftweb.util.Helpers._
             // Create AuthUser using fetched data from connector
             // assuming that user's email is always validated
             logger.debug("external user "+ sub + " does not exist locally, creating one")
-            AuthUser.create
-              .firstName(name.getOrElse(sub))
-              .email(email.getOrElse(""))
-              .username(sub)
-              // No need to store password, so store dummy string instead
-              .password(generateUUID())
+            AuthUser(
+              firstName = name.getOrElse(sub),
+              email = email.getOrElse(""),
+              username = sub,
               // TODO add field stating external password check only.
-              .provider(iss)
-              .validated(emailVerified.exists(_.equalsIgnoreCase("true")))
+              provider = iss,
+              validated = emailVerified.exists(_.equalsIgnoreCase("true")))
+              // No need to store a real password, so store a dummy one instead
+              .withPassword(generateUUID())
               .saveMe() //NOTE, we will create the resourceUser in the `saveMe()` method.
         }
         userAuthContexts match {
           case Some(authContexts) => { // Write user auth context to the database
               // get resourceUserId from AuthUser.
-              val resourceUserId = user.user.foreign.map(_.userId).getOrElse("")
+              val resourceUserId = ResourceUser.findByPrimaryKey(user.user).map(_.userId).getOrElse("")
               // we try to catch this exception, the createOrUpdateUserAuthContexts can not break the login process.
               tryo {UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(resourceUserId, authContexts)}
                 .openOr(logger.error(s"${resourceUserId} checkExternalUserViaConnector.createOrUpdateUserAuthContexts throw exception! "))
@@ -965,11 +1010,6 @@ def restoreSomeSessions(): Unit = {
   activeBrand()
 }
 
-  override protected def capturePreLoginState(): () => Unit = () => {restoreSomeSessions}
-
-
-  override protected def loginMenuLocParams = Nil
-
   /**
    * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space,
    * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create
@@ -982,7 +1022,7 @@ def restoreSomeSessions(): Unit = {
     if (user.validated_?) {
       //userEmail = robert.uk.29@example.com
       // 2st get the email domain - `example.com`
-      val emailDomain = StringUtils.substringAfterLast(user.email.get, "@")
+      val emailDomain = StringUtils.substringAfterLast(user.email, "@")
 
       //3 return the bankIds
       emailDomainToSpaceMappings.collectFirst {
@@ -997,7 +1037,7 @@ def restoreSomeSessions(): Unit = {
   def grantEntitlementsToUseDynamicEndpointsInSpaces(user: AuthUser) = {
     if(emailDomainToSpaceMappings.nonEmpty) {
       val createdByProcess = "grantEntitlementsToUseDynamicEndpointsInSpaces"
-      val userId = user.user.obj.map(_.userId).getOrElse("")
+      val userId = ResourceUser.findByPrimaryKey(user.user).map(_.userId).getOrElse("")
 
       // user's already auto granted entitlements.
       val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
@@ -1041,7 +1081,7 @@ def restoreSomeSessions(): Unit = {
   def grantEmailDomainEntitlementsToUser(user: AuthUser) = {
     if(emailDomainToEntitlementMappings.nonEmpty){
       val createdByProcess = "grantEmailDomainEntitlementsToUser"
-      val userId = user.user.obj.map(_.userId).getOrElse("")
+      val userId = ResourceUser.findByPrimaryKey(user.user).map(_.userId).getOrElse("")
 
       // user's already auto granted entitlements.
       val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
@@ -1054,7 +1094,7 @@ def restoreSomeSessions(): Unit = {
       val allEntitlementsFromCurrentProps: List[(String, String)] = for{
         emailDomainToEntitlementMapping <- emailDomainToEntitlementMappings
         domain = emailDomainToEntitlementMapping.domain
-        entitlement <- emailDomainToEntitlementMapping.entitlements if StringUtils.substringAfterLast(user.email.get, "@") == domain
+        entitlement <- emailDomainToEntitlementMapping.entitlements if StringUtils.substringAfterLast(user.email, "@") == domain
         roleName = entitlement.role_name
         roleBankId = entitlement.bank_id
       } yield {
@@ -1126,7 +1166,7 @@ def restoreSomeSessions(): Unit = {
       if(user.isOriginalUser){
         //first, we compare the accounts in obp  and the accounts in cbs,
         val (_, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
-        val obpAccountAccessBankAccountIds = privateAccountAccess.map(accountAccess =>BankIdAccountId(BankId(accountAccess.bank_id.get), AccountId(accountAccess.account_id.get))).toSet
+        val obpAccountAccessBankAccountIds = privateAccountAccess.map(accountAccess =>BankIdAccountId(BankId(accountAccess.bankId), AccountId(accountAccess.accountId))).toSet
 
         // This will return all account held for the user, no mater what the source is.
         val userOwnBankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
@@ -1252,56 +1292,45 @@ def restoreSomeSessions(): Unit = {
                 │BOX[USER]│
                 └─────────┘
   */
-  def findAuthUserByUsernameAndProvider(name: String, provider: String): Box[TheUserType] = {
-    find(By(this.username, name), By(this.provider, provider))
+  def findAuthUserByUsernameAndProvider(name: String, provider: String): Box[AuthUser] = {
+    findByUsernameAndProvider(name, provider)
   }
-  def findAuthUserByPrimaryKey(key: Long): Box[TheUserType] = {
-    find(By(this.user, key))
+  def findAuthUserByPrimaryKey(key: Long): Box[AuthUser] = {
+    findByResourceUserPrimaryKey(key)
   }
 
   def passwordResetUrl(name: String, email: String, userId: String): String = {
-    find(By(this.username, name)) match {
+    findByUsername(name) match {
       case Full(authUser) if authUser.validated_? && authUser.email == email =>
         Users.users.vend.getUserByUserId(userId) match {
           case Full(u) if u.name == name && u.emailAddress == email =>
-            authUser.resetUniqueId().save
+            val withNewToken = authUser.resetUniqueId().saveMe()
             val resetLink = Constant.HostName+
-              passwordResetPath.mkString("/", "/", "/")+java.net.URLEncoder.encode(authUser.getUniqueId(), "UTF-8")
+              passwordResetPath.mkString("/", "/", "/")+java.net.URLEncoder.encode(withNewToken.getUniqueId(), "UTF-8")
             logger.warn(s"Password reset url is created for this user: $email")
             // TODO Notify via email appropriate persons 
             resetLink
           case _ => ""
         }
-        case _ => ""
+      case _ => ""
     }
   }
 
   // passwordResetXhtml simplified - API-only mode, no portal pages
-  // Password reset is handled via POST /obp/v6.0.0/users/password API endpoint
-  override def passwordResetXhtml = <div/>
-  
-  /**
-    * Find the authUsers by author email(authUser and resourceUser are the same).
-    * Only search for the local database. 
-    */
-  protected def findUsersByEmailLocally(email: String): List[TheUserType] = {
-    val usernames: List[String] = this.getResourceUsersByEmail(email).map(_.user.name)
-    findAll(ByList(this.username, usernames))
-  }
+  /** ProtoUser computed this from basePath; the reset link above is built out of it. */
+  val passwordResetPath: List[String] = List("user_mgt", "reset_password")
+
   def signupSubmitButtonValue() = getWebUiPropsValue("webui_signup_form_submit_button_value", "sign.up")
 
-  override def signup = NodeSeq.Empty
-
   def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {
-    AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
-      case Full(user) => 
-        val scrambledUser = user.firstName(Helpers.randomString(16))
-          .email(Helpers.randomString(10) + "@example.com")
-          .username("DELETED-" + Helpers.randomString(16))
-          .firstName(Helpers.randomString(16))
-          .lastName(Helpers.randomString(16))
-          .password(Helpers.randomString(40))
-          .validated(false)
+    AuthUser.findByResourceUserPrimaryKey(userPrimaryKey.value) match {
+      case Full(user) =>
+        val scrambledUser = user.copy(
+          email = Helpers.randomString(10) + "@example.com",
+          username = "DELETED-" + Helpers.randomString(16),
+          firstName = Helpers.randomString(16),
+          lastName = Helpers.randomString(16),
+          validated = false).withPassword(Helpers.randomString(40))
         scrambledUser.save
       case Empty => true // There is a resource user but no the correlated Auth user 
       case _ => false // Error case
@@ -1309,9 +1338,9 @@ def restoreSomeSessions(): Unit = {
   }
 
   def validateAuthUser(userPrimaryKey: UserPrimaryKey): Box[AuthUser] = tryo {
-    AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
+    AuthUser.findByResourceUserPrimaryKey(userPrimaryKey.value) match {
       case Full(user) =>
-        user.validated(true).saveMe()
+        user.setValidated(true).saveMe()
     }
   }
   
@@ -1323,7 +1352,7 @@ def restoreSomeSessions(): Unit = {
    * @return Box containing the AuthUser if found, Empty if not found, or Failure on error
    */
   def findUserByValidationToken(token: String): Box[AuthUser] = {
-    findUserByUniqueId(token)
+    findByUniqueId(token)
   }
   
   /**
@@ -1333,9 +1362,7 @@ def restoreSomeSessions(): Unit = {
    * @param user The AuthUser to validate
    * @return The validated AuthUser with reset unique ID
    */
-  def validateAndResetToken(user: AuthUser): AuthUser = {
-    user.validated(true).resetUniqueId().save
-    user
-  }
+  def validateAndResetToken(user: AuthUser): AuthUser =
+    user.setValidated(true).resetUniqueId().saveMe()
   
 }

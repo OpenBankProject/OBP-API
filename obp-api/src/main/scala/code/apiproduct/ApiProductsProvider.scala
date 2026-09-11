@@ -2,7 +2,6 @@ package code.apiproduct
 
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
-import net.liftweb.mapper.{By, Like}
 import net.liftweb.util.Helpers.tryo
 
 trait ApiProductsProvider {
@@ -65,56 +64,26 @@ object MappedApiProductsProvider extends MdcLoggable with ApiProductsProvider {
     perMonthCallLimit: Long,
     tags: List[String]
   ): Box[ApiProductTrait] = {
-    val existing = ApiProduct.find(
-      By(ApiProduct.BankId, bankId),
-      By(ApiProduct.ApiProductCode, apiProductCode)
-    )
+    val existing = ApiProduct.findByBankIdAndCode(bankId, apiProductCode)
     val encodedTags = ApiProduct.encodeTags(tags)
     existing match {
-      case net.liftweb.common.Full(product) =>
+      case net.liftweb.common.Full(_) =>
         tryo(
-          product
-            .ParentApiProductCode(parentApiProductCode)
-            .Name(name)
-            .Category(category)
-            .MoreInfoUrl(moreInfoUrl)
-            .TermsAndConditionsUrl(termsAndConditionsUrl)
-            .Description(description)
-            .CollectionId(collectionId)
-            .MonthlySubscriptionCurrency(monthlySubscriptionCurrency)
-            .MonthlySubscriptionAmount(monthlySubscriptionAmount)
-            .PerSecondCallLimit(perSecondCallLimit)
-            .PerMinuteCallLimit(perMinuteCallLimit)
-            .PerHourCallLimit(perHourCallLimit)
-            .PerDayCallLimit(perDayCallLimit)
-            .PerWeekCallLimit(perWeekCallLimit)
-            .PerMonthCallLimit(perMonthCallLimit)
-            .Tags(encodedTags)
-            .saveMe()
+          ApiProduct.updateByBankIdAndCode(
+            bankId, apiProductCode, parentApiProductCode, name, category, moreInfoUrl,
+            termsAndConditionsUrl, description, collectionId, monthlySubscriptionCurrency,
+            monthlySubscriptionAmount, perSecondCallLimit, perMinuteCallLimit, perHourCallLimit,
+            perDayCallLimit, perWeekCallLimit, perMonthCallLimit, encodedTags
+          ).openOrThrowException("the row just matched must still be readable")
         )
       case _ =>
         tryo(
-          ApiProduct
-            .create
-            .BankId(bankId)
-            .ApiProductCode(apiProductCode)
-            .ParentApiProductCode(parentApiProductCode)
-            .Name(name)
-            .Category(category)
-            .MoreInfoUrl(moreInfoUrl)
-            .TermsAndConditionsUrl(termsAndConditionsUrl)
-            .Description(description)
-            .CollectionId(collectionId)
-            .MonthlySubscriptionCurrency(monthlySubscriptionCurrency)
-            .MonthlySubscriptionAmount(monthlySubscriptionAmount)
-            .PerSecondCallLimit(perSecondCallLimit)
-            .PerMinuteCallLimit(perMinuteCallLimit)
-            .PerHourCallLimit(perHourCallLimit)
-            .PerDayCallLimit(perDayCallLimit)
-            .PerWeekCallLimit(perWeekCallLimit)
-            .PerMonthCallLimit(perMonthCallLimit)
-            .Tags(encodedTags)
-            .saveMe()
+          ApiProduct.insert(
+            bankId, apiProductCode, parentApiProductCode, name, category, moreInfoUrl,
+            termsAndConditionsUrl, description, collectionId, monthlySubscriptionCurrency,
+            monthlySubscriptionAmount, perSecondCallLimit, perMinuteCallLimit, perHourCallLimit,
+            perDayCallLimit, perWeekCallLimit, perMonthCallLimit, encodedTags
+          )
         )
     }
   }
@@ -122,28 +91,21 @@ object MappedApiProductsProvider extends MdcLoggable with ApiProductsProvider {
   override def getApiProductByBankIdAndCode(
     bankId: String,
     apiProductCode: String
-  ): Box[ApiProductTrait] = ApiProduct.find(
-    By(ApiProduct.BankId, bankId),
-    By(ApiProduct.ApiProductCode, apiProductCode)
-  )
+  ): Box[ApiProductTrait] = ApiProduct.findByBankIdAndCode(bankId, apiProductCode)
 
   override def getApiProductsByBankId(
     bankId: String,
     tag: Option[String] = None
   ): List[ApiProductTrait] = {
-    val baseParams = List(By(ApiProduct.BankId, bankId))
-    val params = tag.map(_.trim.toLowerCase).filter(_.nonEmpty) match {
-      case Some(t) => baseParams :+ Like(ApiProduct.Tags, s"%|$t|%")
-      case None => baseParams
+    tag.map(_.trim.toLowerCase).filter(_.nonEmpty) match {
+      case Some(t) => ApiProduct.findAllByBankIdAndTag(bankId, t)
+      case None => ApiProduct.findAllByBankId(bankId)
     }
-    ApiProduct.findAll(params: _*)
   }
 
   override def deleteApiProduct(
     bankId: String,
     apiProductCode: String
-  ): Box[Boolean] = ApiProduct.find(
-    By(ApiProduct.BankId, bankId),
-    By(ApiProduct.ApiProductCode, apiProductCode)
-  ).map(_.delete_!)
+  ): Box[Boolean] = ApiProduct.findByBankIdAndCode(bankId, apiProductCode)
+    .map(_ => ApiProduct.deleteByBankIdAndCode(bankId, apiProductCode))
 }

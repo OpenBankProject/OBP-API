@@ -38,8 +38,8 @@ class AtmsTest extends V400ServerSetup {
   val bankId = testBankId1;
   val postAtmJson = SwaggerDefinitionsJSON.atmJsonV400.copy(bank_id= testBankId1.value)
 
-  feature("Test Create/Update -- error cases ") {
-    scenario("Create-error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
+  Feature("Test Create/Update -- error cases ") {
+    Scenario("Create-error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
 
       When(" no authentications")
       val requestCreateAtmNoAuth = (v4_0_0_Request / "banks" /bankId.value / "atms").POST
@@ -56,7 +56,7 @@ class AtmsTest extends V400ServerSetup {
       responseCreateAtmNoRole.body.extract[ErrorMessage].message.contains(canUpdateAtmAtAnyBank)
     }
 
-    scenario("Put - error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
+    Scenario("Put - error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
       When(" Put - no authentications")
       val requestUpdateAtmNoAuth = (v4_0_0_Request / "banks" /bankId.value / "atms"/ "xxx").PUT
       val responseCreateAtmNoAuth = makePutRequest(requestUpdateAtmNoAuth, write(postAtmJson))
@@ -73,8 +73,8 @@ class AtmsTest extends V400ServerSetup {
     }
   }
   
-  feature("Test Create/Update/Get -- successful cases") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1,ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, VersionOfApi) {
+  Feature("Test Create/Update/Get -- successful cases") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1,ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, VersionOfApi) {
       When("We need to grant role and create atm")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
       val requestCreateAtm = (v4_0_0_Request / "banks" /bankId.value / "atms").POST <@ (user1)
@@ -120,8 +120,8 @@ class AtmsTest extends V400ServerSetup {
     }
   }
 
-  feature("We need to first create Atm and update the supported-currencies") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1,ApiEndpoint2, VersionOfApi) {
+  Feature("We need to first create Atm and update the supported-currencies") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1,ApiEndpoint2, VersionOfApi) {
       
       val postSupportedCurrenciesJson = SwaggerDefinitionsJSON.supportedCurrenciesJson
       When("We need to grant role and create atm")
@@ -141,8 +141,8 @@ class AtmsTest extends V400ServerSetup {
     }
   }
  
-  feature("We need to first create Atm and update the accessibility features") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint4,ApiEndpoint2, VersionOfApi) {
+  Feature("We need to first create Atm and update the accessibility features") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint4,ApiEndpoint2, VersionOfApi) {
       val postAccessibilityFeaturesJson = SwaggerDefinitionsJSON.accessibilityFeaturesJson
 
       When("We need to grant role and create atm")
@@ -162,8 +162,8 @@ class AtmsTest extends V400ServerSetup {
     }
   }
 
-  feature("We need to first create Atm and update the supported-languages") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint5, ApiEndpoint2, VersionOfApi) {
+  Feature("We need to first create Atm and update the supported-languages") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, ApiEndpoint2, VersionOfApi) {
       val postSupportedLanguagesJson = SwaggerDefinitionsJSON.supportedLanguagesJson
 
       When("We need to grant role and create atm")
@@ -183,8 +183,8 @@ class AtmsTest extends V400ServerSetup {
     }
   }
 
-  feature("We need to first create Atm and update the services") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint3, VersionOfApi) {
+  Feature("We need to first create Atm and update the services") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint3, VersionOfApi) {
       val postAtmServicesJson = SwaggerDefinitionsJSON.atmServicesJson
 
       When("We need to grant role and create atm")
@@ -204,8 +204,8 @@ class AtmsTest extends V400ServerSetup {
     }
   }
 
-  feature("We need to first create Atm and update the notes") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint6, VersionOfApi) {
+  Feature("We need to first create Atm and update the notes") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint6, VersionOfApi) {
       val postAtmNotesJson = SwaggerDefinitionsJSON.atmNotesJson
 
       When("We need to grant role and create atm")
@@ -225,8 +225,8 @@ class AtmsTest extends V400ServerSetup {
     }
   }
 
-  feature("We need to first create Atm and update the location-categories") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint7, VersionOfApi) {
+  Feature("We need to first create Atm and update the location-categories") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint7, VersionOfApi) {
       val postAtmLocationCategoriesJson = SwaggerDefinitionsJSON.atmLocationCategoriesJsonV400
 
       When("We need to grant role and create atm")

@@ -8,7 +8,7 @@ import org.reflections.util.{ClasspathHelper, ConfigurationBuilder}
 import com.openbankproject.commons.util.ReflectUtils
 
 import scala.jdk.CollectionConverters._
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.{ClassTag, classTag}
 
 /**
   * Utility methods to scan classes using Reflections library.
@@ -27,22 +27,31 @@ object ClassScanUtils extends MdcLoggable {
 
   /**
     * get companion object or singleton object by class name
+    *
+    * U carries no constraint - the cast on the last line is unchecked either way - so there is
+    * nothing here for a TypeTag (a Scala 2 compiler feature Scala 3 does not implement) to do
+    * that an unconstrained type parameter does not already do.
     * @param name object class name
     * @tparam U expect type
     * @return companion object or singleton object
     */
-  def companion[U: TypeTag](name: String): U = {
+  def companion[U](name: String): U = {
     val className = if (name.endsWith("$")) name else name + "$"
     Class.forName(className).getDeclaredField("MODULE$").get(null).asInstanceOf[U]
   }
 
   /**
     * scan classpath to get all companion objects or singleton objects those implements given trait
+    *
+    * `T: ClassTag` rather than `T: TypeTag`: only the erased runtime `Class[_]` is needed (to ask
+    * the Reflections library for its subtypes), never the full compile-time `Type`. `ClassTag`
+    * synthesis is a core Scala feature both the 2.13 and the 3 compiler implement, unlike
+    * `TypeTag`'s - so call sites (ScannedApis, FrozenClassUtil) need no change at all.
     * @tparam T the trait type parameter
     * @return all companion objects or singleton objects those implement the given trait
     */
-  def getSubTypeObjects[T: TypeTag]: List[T] = {
-    val clazz = ReflectUtils.typeTagToClass[T]
+  def getSubTypeObjects[T: ClassTag]: List[T] = {
+    val clazz = classTag[T].runtimeClass
     try {
       val subTypes = reflections.getSubTypesOf(clazz).asScala.toList
       logger.info(s"ClassScanUtils (Reflections) found ${subTypes.size} subtypes of ${clazz.getName}")
@@ -85,27 +94,6 @@ object ClassScanUtils extends MdcLoggable {
     } catch {
       case e: Exception =>
         logger.warn(s"ClassScanUtils.findTypes failed: ${e.getMessage}")
-        Nil
-    }
-  }
-
-  /**
-    * get all subtype of net.liftweb.mapper.LongKeyedMapper, so we can register scanned db models dynamically
-    * @param packageName scanned root package name
-    * @return all matching class names
-    */
-  def getMappers(packageName: String = ""): Seq[String] = {
-    try {
-      val mapperInterface = Class.forName("net.liftweb.mapper.LongKeyedMapper")
-      val all = reflections.getSubTypesOf(mapperInterface).asScala.toSeq
-        .map(_.getName)
-      if (StringUtils.isNotBlank(packageName))
-        all.filter(_.startsWith(packageName))
-      else
-        all
-    } catch {
-      case e: Exception =>
-        logger.warn(s"ClassScanUtils.getMappers failed: ${e.getMessage}")
         Nil
     }
   }

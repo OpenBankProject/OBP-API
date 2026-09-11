@@ -989,7 +989,7 @@ field	code.api.v2_0_0.BasicAccountsJSON	accounts	List[code.api.v2_0_0.BasicAccou
 field	code.api.v2_0_0.BasicViewJson	id	String
 field	code.api.v2_0_0.BasicViewJson	is_public	Boolean
 field	code.api.v2_0_0.BasicViewJson	short_name	String
-field	code.api.v2_0_0.CoreAccountJSON	_links	org.json4s.JsonAST.JValue
+field	code.api.v2_0_0.CoreAccountJSON	_links	org.json4s.JValue
 field	code.api.v2_0_0.CoreAccountJSON	bank_id	String
 field	code.api.v2_0_0.CoreAccountJSON	id	String
 field	code.api.v2_0_0.CoreAccountJSON	label	String
@@ -1416,12 +1416,12 @@ field	code.api.v2_2_0.JSONFactory220.AdapterImplementationJson	suggested_order	I
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	adapter_implementation	code.api.v2_2_0.JSONFactory220.AdapterImplementationJson
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	dependent_endpoints	List[code.api.util.APIUtil.EndpointInfo]
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	description	String
-field	code.api.v2_2_0.JSONFactory220.MessageDocJson	example_inbound_message	org.json4s.JsonAST.JValue
-field	code.api.v2_2_0.JSONFactory220.MessageDocJson	example_outbound_message	org.json4s.JsonAST.JValue
-field	code.api.v2_2_0.JSONFactory220.MessageDocJson	inboundAvroSchema	Option[org.json4s.JsonAST.JValue]
+field	code.api.v2_2_0.JSONFactory220.MessageDocJson	example_inbound_message	org.json4s.JValue
+field	code.api.v2_2_0.JSONFactory220.MessageDocJson	example_outbound_message	org.json4s.JValue
+field	code.api.v2_2_0.JSONFactory220.MessageDocJson	inboundAvroSchema	Option[org.json4s.JValue]
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	inbound_topic	Option[String]
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	message_format	String
-field	code.api.v2_2_0.JSONFactory220.MessageDocJson	outboundAvroSchema	Option[org.json4s.JsonAST.JValue]
+field	code.api.v2_2_0.JSONFactory220.MessageDocJson	outboundAvroSchema	Option[org.json4s.JValue]
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	outbound_topic	Option[String]
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	process	String
 field	code.api.v2_2_0.JSONFactory220.MessageDocJson	requiredFieldInfo	Option[com.openbankproject.commons.util.RequiredFields]
@@ -2755,7 +2755,7 @@ field	code.api.v4_0_0.ProductFeeResponseJsonV400	name	String
 field	code.api.v4_0_0.ProductFeeResponseJsonV400	product_code	String
 field	code.api.v4_0_0.ProductFeeResponseJsonV400	product_fee_id	String
 field	code.api.v4_0_0.ProductFeeResponseJsonV400	value	code.api.v4_0_0.ProductFeeValueJsonV400
-field	code.api.v4_0_0.ProductFeeValueJsonV400	amount	BigDecimal
+field	code.api.v4_0_0.ProductFeeValueJsonV400	amount	scala.math.BigDecimal
 field	code.api.v4_0_0.ProductFeeValueJsonV400	currency	String
 field	code.api.v4_0_0.ProductFeeValueJsonV400	frequency	String
 field	code.api.v4_0_0.ProductFeeValueJsonV400	type	String
@@ -2962,7 +2962,7 @@ field	code.api.v5_0_0.AdapterInfoJsonV500	backend_messages	List[com.openbankproj
 field	code.api.v5_0_0.AdapterInfoJsonV500	date	String
 field	code.api.v5_0_0.AdapterInfoJsonV500	git_commit	String
 field	code.api.v5_0_0.AdapterInfoJsonV500	name	String
-field	code.api.v5_0_0.AdapterInfoJsonV500	total_duration	BigDecimal
+field	code.api.v5_0_0.AdapterInfoJsonV500	total_duration	scala.math.BigDecimal
 field	code.api.v5_0_0.AdapterInfoJsonV500	version	String
 field	code.api.v5_0_0.BankJson500	attributes	Option[List[code.api.v4_0_0.BankAttributeBankResponseJsonV400]]
 field	code.api.v5_0_0.BankJson500	bank_code	String
@@ -2982,7 +2982,7 @@ field	code.api.v5_0_0.ConsentJsonV500	jwt	String
 field	code.api.v5_0_0.ConsentJsonV500	status	String
 field	code.api.v5_0_0.ConsentRequestResponseJson	consent_request_id	String
 field	code.api.v5_0_0.ConsentRequestResponseJson	consumer_id	String
-field	code.api.v5_0_0.ConsentRequestResponseJson	payload	org.json4s.JsonAST.JValue
+field	code.api.v5_0_0.ConsentRequestResponseJson	payload	org.json4s.JValue
 field	code.api.v5_0_0.ContractJsonV500	branch_code	Option[String]
 field	code.api.v5_0_0.ContractJsonV500	cancellation_date	Option[String]
 field	code.api.v5_0_0.ContractJsonV500	contract_code	String
@@ -3251,6 +3251,7 @@ field	code.api.v5_0_0.ViewJsonV500	metadata_view	String
 field	code.api.v5_0_0.ViewJsonV500	short_name	String
 field	code.api.v5_0_0.ViewsIdsJsonV500	views	List[code.api.v5_0_0.ViewIdJsonV500]
 field	code.api.v5_0_0.ViewsJsonV500	views	List[code.api.v5_0_0.ViewJsonV500]
+field	code.api.v5_1_0.APITags	tags	List[String]
 field	code.api.v5_1_0.AgentJsonV510	agent_id	String
 field	code.api.v5_1_0.AgentJsonV510	agent_number	String
 field	code.api.v5_1_0.AgentJsonV510	bank_id	String
@@ -3653,8 +3654,8 @@ field	code.dynamicMessageDoc.JsonDynamicMessageDoc	adapterImplementation	String
 field	code.dynamicMessageDoc.JsonDynamicMessageDoc	bankId	Option[String]
 field	code.dynamicMessageDoc.JsonDynamicMessageDoc	description	String
 field	code.dynamicMessageDoc.JsonDynamicMessageDoc	dynamicMessageDocId	Option[String]
-field	code.dynamicMessageDoc.JsonDynamicMessageDoc	exampleInboundMessage	org.json4s.JsonAST.JValue
-field	code.dynamicMessageDoc.JsonDynamicMessageDoc	exampleOutboundMessage	org.json4s.JsonAST.JValue
+field	code.dynamicMessageDoc.JsonDynamicMessageDoc	exampleInboundMessage	org.json4s.JValue
+field	code.dynamicMessageDoc.JsonDynamicMessageDoc	exampleOutboundMessage	org.json4s.JValue
 field	code.dynamicMessageDoc.JsonDynamicMessageDoc	inboundAvroSchema	String
 field	code.dynamicMessageDoc.JsonDynamicMessageDoc	inboundTopic	String
 field	code.dynamicMessageDoc.JsonDynamicMessageDoc	messageFormat	String

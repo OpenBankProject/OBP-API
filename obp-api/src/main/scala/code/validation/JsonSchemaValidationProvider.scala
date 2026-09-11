@@ -14,7 +14,9 @@ object JsonSchemaValidationProvider extends SimpleInjector {
 
   val validationProvider = new Inject(() => buildOne) {}
 
-  def buildOne: MappedJsonSchemaValidationProvider.type = MappedJsonSchemaValidationProvider
+  // Widened from MappedJsonSchemaValidationProvider.type: the return type named the concrete
+  // object, so the provider could not be swapped without changing this line too.
+  def buildOne: JsonSchemaValidationProvider = DoobieJsonSchemaValidationProvider
 }
 
 case class JsonValidation(operationId: String, jsonSchema: String) extends JsonAble {

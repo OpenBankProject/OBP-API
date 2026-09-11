@@ -3,7 +3,8 @@ package code.api.ResourceDocs1_4_0
 import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0
 import com.openbankproject.commons.util.ApiVersion
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import code.api.util.http4s.Http4sResourceDocAggregation
 
 /**
@@ -24,7 +25,7 @@ import code.api.util.http4s.Http4sResourceDocAggregation
  * the fix, and the name survives nowhere else.) The question here is not whether the old leak is
  * gone - it is - but whether anything still describes what the array contains.
  */
-class SwaggerPathOrderAndArrayBodyTest extends FlatSpec with Matchers {
+class SwaggerPathOrderAndArrayBodyTest extends AnyFlatSpec with Matchers {
 
   /** Real docs rather than synthetic ones: the ordering only matters for what actually ships. */
   private lazy val swagger: SwaggerJSONFactory.SwaggerResourceDoc = {

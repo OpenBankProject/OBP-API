@@ -15,7 +15,6 @@ import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType,
 import code.messageoutbox.MessageOutbox
 import code.transactionrequests.MappedTransactionRequest
 import net.liftweb.common.Box
-import net.liftweb.mapper.By
 
 import java.util.Date
 import org.json4s.native.Serialization.write
@@ -279,12 +278,12 @@ object OpenCorridorProcessor {
     evidence: Map[String, String]
   ): Unit =
     MappedTransactionRequest
-      .find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+      .findByTransactionRequestId(transactionRequestId.value)
       .foreach { row =>
         // The CBS is asked to credit a specific customer: name + account
         // routing, read back from the promise TR's stored create body
         // (`mDetails`). Absent only when a legacy row predates the field.
-        val beneficiary = scala.util.Try(org.json4s.native.JsonMethods.parse(row.mDetails.get))
+        val beneficiary = scala.util.Try(org.json4s.native.JsonMethods.parse(row.details))
           .toOption.flatMap { details =>
             def str(field: JValue): Option[String] = field match {
               case JString(s) if s.trim.nonEmpty => Some(s)
@@ -302,12 +301,12 @@ object OpenCorridorProcessor {
           }
         val wireBody = OutBoundOpenCorridorCreditNotification(
           transaction_request_id = transactionRequestId.value,
-          value = OpenCorridorMoneyValue(row.mBody_Value_Currency.get, row.mBody_Value_Amount.get),
-          description = Option(row.mBody_Description.get).filter(_.nonEmpty),
-          originator = Option(row.mOriginator_Name.get).filter(_.nonEmpty).map(name =>
-            OpenCorridorOriginator(name, Option(row.mOriginator_Address.get).filter(_.nonEmpty))),
+          value = OpenCorridorMoneyValue(row.bodyValueCurrency, row.bodyValueAmount),
+          description = Option(row.bodyDescription).filter(_.nonEmpty),
+          originator = Option(row.originatorName).filter(_.nonEmpty).map(name =>
+            OpenCorridorOriginator(name, Option(row.originatorAddress).filter(_.nonEmpty))),
           beneficiary = beneficiary,
-          return_of = scala.util.Try(org.json4s.native.JsonMethods.parse(row.mDetails.get))
+          return_of = scala.util.Try(org.json4s.native.JsonMethods.parse(row.details))
             .toOption.flatMap(_ \ "return_of" match {
               case JString(s) if s.trim.nonEmpty => Some(s)
               case _ => None
@@ -322,7 +321,7 @@ object OpenCorridorProcessor {
         MessageOutbox.enqueue(
           MessageOutbox.TYPE_OPEN_CORRIDOR, transactionRequestId.value,
           MessageOutbox.SUBJECT_TYPE_TRANSACTION_REQUEST_ID,
-          "obp_credit_notification", row.mTo_BankId.get,
+          "obp_credit_notification", row.toBankId,
           Serialization.write(wireBody))
       }
 

@@ -3,7 +3,7 @@ package code.api.sweep
 // EndpointAuthMode and its four cases are members of the APIUtil object, not of the package.
 import code.api.util.APIUtil.{ResourceDoc, UserOnly}
 import code.api.util.ErrorMessages.$AuthenticatedUserIsRequired
-import code.api.util.ApiTag
+import code.api.util.{ApiTag, ResourceDocRegistry}
 
 /**
  * The one place that answers "what endpoints exist, and what does each one claim about auth".
@@ -17,8 +17,14 @@ import code.api.util.ApiTag
  * 1. The docs live on the Http4s objects, NOT on APIMethods*. Every APIMethods{121..600}.scala
  *    is now a stub whose entire body is `val ImplementationsX = Http4sX.ImplementationsX` — the
  *    Lift registrations below it are commented out. Reading those files for a catalog finds
- *    nothing. Http4s700.allResourceDocs is the aggregate: every version's docs, deduplicated by
- *    (requestUrl, requestVerb) keeping the newest, which is exactly the set a caller can reach.
+ *    nothing. `ResourceDocRegistry.allStaticResourceDocs` is the aggregate: the OBP-standard
+ *    surface (deduplicated by operation id, keeping the newest OBP version) PLUS every other
+ *    standard the dispatcher serves (Berlin Group v1.3 and its alias, Berlin Group v2, UK Open
+ *    Banking) — the same union `APIUtil.getAllResourceDocs` exposes. `Http4s700.allResourceDocs`
+ *    alone is OBP-only: this catalog used to be built from it, which silently excluded every
+ *    Berlin Group and UK endpoint from AuthSweepTest's coverage — a BG/UK doc missing
+ *    `$AuthenticatedUserIsRequired` with empty roles would never fail the sweep, because it was
+ *    never IN the sweep's catalog to begin with.
  *
  * 2. "Needs authentication" is derived, not declared. There is no flag on ResourceDoc; the
  *    middleware's own predicate is
@@ -34,8 +40,8 @@ import code.api.util.ApiTag
  */
 object EndpointCatalog {
 
-  /** Every endpoint a caller can reach, newest version of each (url, verb). */
-  def all: List[ResourceDoc] = code.api.v7_0_0.Http4s700.allResourceDocs.toList
+  /** Every endpoint a caller can reach, across every standard the dispatcher serves. */
+  def all: List[ResourceDoc] = ResourceDocRegistry.allStaticResourceDocs
 
   /** The middleware's own rule, reproduced. See ResourceDocMiddleware.needsAuthentication. */
   def needsAuthentication(doc: ResourceDoc): Boolean =
@@ -139,7 +145,16 @@ object EndpointCatalog {
     val segments = doc.requestUrl.split("/").map { seg =>
       if (isPlaceholder(seg)) entities.getOrElse(seg, defaultValue(seg)) else seg
     }
-    "/obp/" + doc.implementedInApiVersion.apiShortVersion + segments.mkString("/")
+    // Every standard's route tree matches on Root / urlPrefix / apiShortVersion / ... (see e.g.
+    // Http4sBGv13AIS.bgV13Prefix, Http4sUKOBv310's own prefix val) -- there is no separate "/obp"
+    // literal prepended for non-OBP standards. OBP itself is not a special case here: its
+    // urlPrefix is "obp" by construction (ApiVersion.setUrlPrefix patches every OBP-standard
+    // ScannedApiVersion's urlPrefix to code.api.Constant.ApiPathZero at boot), so using
+    // implementedInApiVersion.urlPrefix uniformly reproduces the old hard-coded "/obp/" prefix
+    // for OBP docs while giving Berlin Group ("berlin-group") and UK Open Banking
+    // ("open-banking") their own real prefix instead of a nonexistent "/obp/v1.3/..." path that
+    // 404s before the request ever reaches a route.
+    "/" + doc.implementedInApiVersion.urlPrefix + "/" + doc.implementedInApiVersion.apiShortVersion + segments.mkString("/")
   }
 
   /** Well-formed, and deliberately not present. */

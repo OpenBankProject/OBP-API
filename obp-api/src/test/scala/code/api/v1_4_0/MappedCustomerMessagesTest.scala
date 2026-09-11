@@ -17,8 +17,8 @@ import org.json4s.native.Serialization.write
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
   //TODO: need better tests
-  feature("Customer messages") {
-    scenario("Getting messages when none exist") {
+  Feature("Customer messages") {
+    Scenario("Getting messages when none exist") {
       Given("No messages exist")
       MappedCustomerMessage.count() should equal(0)
 
@@ -34,7 +34,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       json.messages.size should equal(0)
     }
 
-    scenario("Adding a message") {
+    Scenario("Adding a message") {
       //first add a customer to send message to
       var request = (v1_4Request / "banks" / testBankId1.value / "customer").POST <@ user1
       val customerJson = CreateCustomerJson(
@@ -92,14 +92,14 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    MappedCustomerMessage.bulkDelete_!!()
+    MappedCustomerMessage.deleteAll()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
     CustomerX.customerProvider.vend.bulkDeleteCustomers()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    MappedCustomerMessage.bulkDelete_!!()
+    MappedCustomerMessage.deleteAll()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
     CustomerX.customerProvider.vend.bulkDeleteCustomers()
   }

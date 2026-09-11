@@ -15,6 +15,26 @@ import scala.collection.mutable
  */
 object SecureLogging {
 
+  // sensitivePatterns' own initializer calls APIUtil.getPropsAsBoolValue below, which is the
+  // first touch of APIUtil$ on this thread and so triggers APIUtil$'s class init - which
+  // eagerly evaluates every APIUtil val, not just publicAppUrlDefaults (e.g. `vendor = new
+  // CustomDBVendor(..., getPropsValue("db.password"))`), and some of those calls getPropsValue,
+  // which logs a debug message when a prop is sourced from a sys-env var - a normal deployment
+  // pattern for db.password. Every log call in MdcLoggable routes through maskSensitive, which
+  // needs sensitivePatterns to mask anything, so this calls back into
+  // maskSensitive -> sensitivePatterns, on the very same thread, before the first call has
+  // returned. Scala 2's lazy val used a reentrant `synchronized` block, so the recursive call
+  // silently passed through; Scala 3's LazyVals uses a CountDownLatch, which is not reentrant,
+  // so the same thread deadlocks waiting on a latch only it could count down. This flag detects
+  // that specific bootstrap window and applies bootstrapPatterns instead of recursing - not
+  // "return unmasked", because the window is not limited to SecureLogging/APIUtil's own
+  // messages: it is the whole APIUtil$ class-init cascade, on whatever thread first happens to
+  // touch it, which can be a request thread just as easily as a startup thread, and can carry a
+  // credential (db.password, db.url) through a log line that would otherwise be masked.
+  private[util] val computingSensitivePatterns = new ThreadLocal[Boolean] {
+    override def initialValue(): Boolean = false
+  }
+
   /**
    * Conditional inclusion helper using APIUtil.getPropsAsBoolValue
    */
@@ -42,6 +62,8 @@ object SecureLogging {
    * When adding new categories here, also update that shared list.
    */
   private lazy val sensitivePatterns: List[(Pattern, Matcher => String)] = {
+    computingSensitivePatterns.set(true)
+    try {
     val patterns = Seq(
       // OAuth2 / API secrets
       conditionalPattern("securelogging_mask_secret") {
@@ -128,7 +150,44 @@ object SecureLogging {
     )
 
     patterns.flatten.toList
+    } finally {
+      computingSensitivePatterns.set(false)
+    }
   }
+
+  // Used only inside the computingSensitivePatterns window (see above): plain vals, no props
+  // lookup, so applying them can't recurse back into APIUtil/sensitivePatterns and deadlock.
+  // Not the full configurable pattern set - just the categories most likely to appear in a live
+  // credential during this window (password, secret, token, a handful of "*_key" prefixes - see
+  // the key pattern's own comment below for exactly which - Authorization header, jdbc URL) - so
+  // the bootstrap window degrades to a narrower mask instead of no mask at all. Regex find()
+  // matches anywhere in the string, not just at a word boundary, so "token" also catches
+  // access_token/refresh_token/id_token without a separate pattern per variant.
+  //
+  // The key pattern requires an api_/private_/secret_/access_/encryption_/consumer_ prefix
+  // rather than a bare "key", unlike sensitivePatterns' own (props-gated, opt-outable) "key"
+  // pattern above: that bare form also matches "cache key: ..."/"primary key: ..." debug lines
+  // that carry no credential (MappedMetrics.getAllAggregateMetricsBox logs exactly this shape),
+  // and this list is neither configurable nor limited to messages that are actually
+  // credential-shaped the way the full sensitivePatterns list's toggles let an operator scope
+  // it - a false-positive redaction here silently destroys debug output with no way to turn it
+  // back on.
+  //
+  // This prefix list is a known-common-case enumeration, not a closed/exhaustive one - "*_key"
+  // credential vocabulary in this codebase is open-ended (grep turned up public_key/session_key
+  // too, but neither has a confirmed log call site the way consumer_key does at
+  // ConsentUtil.scala's "consumer_key='$consentConsumerKey'" debug line, so they were left out
+  // rather than added speculatively). If a future log statement logs another "*_key"-shaped
+  // credential during this window, add its prefix here rather than assuming the list already
+  // covers it.
+  private val bootstrapPatterns: List[(Pattern, Matcher => String)] = List(
+    (Pattern.compile("(?i)(password[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(secret[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(token[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)((?:api|private|secret|access|encryption|consumer)_key[\"']?\\s*[:=]\\s*[\"']?)([^\"',\\s&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(Authorization:\\s*Bearer\\s+)([^\\s,&]+)"), staticReplacement("$1***")),
+    (Pattern.compile("(?i)(jdbc:[^\\s]+://[^:]+:)([^@\\s]+)(@)"), staticReplacement("$1***$3"))
+  )
 
   // ===== Pattern cache for custom usage =====
   // Thread-safe: maskWithCustomPattern is called concurrently from many request threads. A plain
@@ -139,11 +198,8 @@ object SecureLogging {
     customPatternCache.getOrElseUpdate(regex, Pattern.compile(regex, Pattern.CASE_INSENSITIVE))
 
   // ===== Masking Logic =====
-  def maskSensitive(msg: AnyRef): String = {
-    val msgString = Option(msg).map(_.toString).getOrElse("")
-    if (msgString.isEmpty) return msgString
-
-    sensitivePatterns.foldLeft(msgString) { case (acc, (pattern, replaceFn)) =>
+  private def applyPatterns(msgString: String, patterns: List[(Pattern, Matcher => String)]): String = {
+    patterns.foldLeft(msgString) { case (acc, (pattern, replaceFn)) =>
       val matcher = pattern.matcher(acc)
       val sb = new StringBuffer()
       while (matcher.find()) {
@@ -160,6 +216,14 @@ object SecureLogging {
       matcher.appendTail(sb)
       sb.toString
     }
+  }
+
+  def maskSensitive(msg: AnyRef): String = {
+    val msgString = Option(msg).map(_.toString).getOrElse("")
+    if (msgString.isEmpty) return msgString
+    if (computingSensitivePatterns.get()) return applyPatterns(msgString, bootstrapPatterns)
+
+    applyPatterns(msgString, sensitivePatterns)
   }
 
   def maskSensitive(msg: String): String = maskSensitive(msg.asInstanceOf[AnyRef])

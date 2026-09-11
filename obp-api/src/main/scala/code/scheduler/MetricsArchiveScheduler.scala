@@ -5,10 +5,9 @@ import java.util.{Calendar, Date}
 import code.actorsystem.ObpActorSystem
 import code.api.Constant
 import code.api.util.APIUtil.generateUUID
-import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
+import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun, MetricsArchiveRunTrait, MetricsProps}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{Ascending, By, By_<=, By_>=, MaxRows, OrderBy}
 
 import scala.concurrent.duration._
 
@@ -28,7 +27,7 @@ case class ArchiveMoveResult(moved: Int, failed: Int)
 /** Outcome of a single [[MetricsArchiveScheduler.runOnce]] invocation. */
 sealed trait RunOutcome
 /** A run executed and was recorded (inspect `run.Success` for whether it errored). */
-case class RunCompleted(run: MetricsArchiveRun) extends RunOutcome
+case class RunCompleted(run: MetricsArchiveRunTrait) extends RunOutcome
 /**
  * No run started because one was already in progress (a `JobScheduler` lock is
  * present). Carries the held lock's details so callers can tell a genuinely
@@ -41,7 +40,7 @@ case class RunSkippedAlreadyInProgress(jobId: String, apiInstanceId: String, sta
 object MetricsArchiveScheduler extends MdcLoggable {
 
   private lazy val actorSystem = ObpActorSystem.localActorSystem
-  implicit lazy val executor = actorSystem.dispatcher
+  implicit lazy val executor: scala.concurrent.ExecutionContextExecutor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
   private val oneDayInMillis: Long = 86400000
   private val jobName = "MetricsArchiveScheduler"
@@ -59,16 +58,16 @@ object MetricsArchiveScheduler extends MdcLoggable {
     // `By(Name, apiInstanceId)` never matched and a redeploy could not self-heal
     // (only the 5-day sweep below would, leaving archiving stalled up to 5 days).
     // Keyed on this instance's own id, so another node's running job is untouched.
-    JobScheduler.findAll(By(JobScheduler.ApiInstanceId, apiInstanceId)).map { i =>
+    JobScheduler.findAllByApiInstanceId(apiInstanceId).map { i =>
       logger.info(s"Deleting leftover Job name: ${i.name}, Date: ${i.createdAt}, api_instance_id: $apiInstanceId")
       i
-    }.map(_.delete_!)
+    }.map(JobScheduler.delete)
     logger.info(s"Delete all Jobs older than 5 days")
     val fiveDaysAgo: Date = new Date(new Date().getTime - (oneDayInMillis * 5))
-    JobScheduler.findAll(By_<=(JobScheduler.createdAt, fiveDaysAgo)).map { i =>
+    JobScheduler.findAllCreatedOnOrBefore(fiveDaysAgo).map { i =>
       println(s"Job name: ${i.name}, Date: ${i.createdAt}, api_instance_id: ${apiInstanceId}")
       i
-    }.map(_.delete_!)
+    }.map(JobScheduler.delete)
     
     scheduler.schedule(
       initialDelay = Duration(intervalInSeconds, TimeUnit.SECONDS),
@@ -93,17 +92,13 @@ object MetricsArchiveScheduler extends MdcLoggable {
    * respects exactly the same checks and retention rules as a scheduled one.
    */
   def runOnce(): RunOutcome = {
-    JobScheduler.find(By(JobScheduler.Name, jobName)) match {
+    JobScheduler.findByName(jobName) match {
       case Full(job) => // There is an ongoing/hanging job
-        logger.info(s"MetricsArchiveScheduler.runOnce skipped due to ongoing job. Job ID: ${job.JobId.get}, started at: ${job.createdAt.get}, api_instance_id: ${job.ApiInstanceId.get}")
-        RunSkippedAlreadyInProgress(job.JobId.get, job.ApiInstanceId.get, job.createdAt.get)
+        logger.info(s"MetricsArchiveScheduler.runOnce skipped due to ongoing job. Job ID: ${job.jobId}, started at: ${job.createdAt}, api_instance_id: ${job.apiInstanceId}")
+        RunSkippedAlreadyInProgress(job.jobId, job.apiInstanceId, job.createdAt)
       case _ => // Start a new job
         val uniqueId = generateUUID()
-        val job = JobScheduler.create
-          .JobId(uniqueId)
-          .Name(jobName)
-          .ApiInstanceId(apiInstanceId)
-          .saveMe()
+        val job = JobScheduler.createJob(uniqueId, jobName, apiInstanceId)
         logger.info(s"Starting Job ID: $uniqueId")
         val startedAt = new Date()
         var rowsMoved = 0
@@ -129,7 +124,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
               rowsMoved, rowsDeleted, success = false, Some(Option(e.getMessage).getOrElse(e.toString)))
             RunCompleted(run)
         } finally {
-          JobScheduler.delete_!(job) // Allow future jobs
+          JobScheduler.delete(job) // Allow future jobs
           logger.info(s"End of Job ID: $uniqueId (rows moved to archive: $rowsMoved, outdated archive rows deleted: $rowsDeleted)")
         }
     }
@@ -142,9 +137,9 @@ object MetricsArchiveScheduler extends MdcLoggable {
     val days = MetricsProps.retainArchiveMetricsDays
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Count before deleting so the run log records how many rows were removed.
-    val outdatedCount = MetricArchive.count(By_<=(MetricArchive.date, someYearsAgo)).toInt
+    val outdatedCount = MetricArchive.countOnOrBefore(someYearsAgo).toInt
     // Delete the outdated rows from the table "MetricArchive"
-    MetricArchive.bulkDelete_!!(By_<=(MetricArchive.date, someYearsAgo))
+    MetricArchive.deleteOnOrBefore(someYearsAgo)
     logger.info(s"Bye from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive (deleted $outdatedCount rows)")
     outdatedCount
   }
@@ -168,11 +163,8 @@ object MetricsArchiveScheduler extends MdcLoggable {
     // permanently occupying the candidate window and stalling the job. copyRowToMetricsArchive
     // now assigns those rows a synthetic "ORIGINALLY_NOT_SET-<uuid>" correlation id so
     // they archive normally instead of accumulating forever in the live table.
-    val candidateMetricRowsToMove: List[MappedMetric] = MappedMetric.findAll(
-      By_<=(MappedMetric.date, someDaysAgo),
-      OrderBy(MappedMetric.date, Ascending),
-      MaxRows(limit)
-    )
+    val candidateMetricRowsToMove: List[MappedMetric] =
+      MappedMetric.findOldestOnOrBefore(someDaysAgo, limit)
     logger.info(s"MetricsArchiveScheduler.conditionalDeleteMetricsRow: ${candidateMetricRowsToMove.length} candidate rows to move")
 
     var moved = 0
@@ -181,8 +173,8 @@ object MetricsArchiveScheduler extends MdcLoggable {
       // Copy first, then delete the source row only if the archive copy both saved
       // and is verifiably readable back by metricId.
       val copied = copyRowToMetricsArchive(i)
-      if (copied && MetricArchive.find(By(MetricArchive.metricId, i.getMetricId())).isDefined) {
-        MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getMetricId()))
+      if (copied && MetricArchive.findByMetricId(i.getMetricId()).isDefined) {
+        MappedMetric.deleteByPrimaryKey(i.getMetricId())
         moved += 1
       } else {
         failed += 1

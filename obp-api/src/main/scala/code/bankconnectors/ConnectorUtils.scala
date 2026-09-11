@@ -6,7 +6,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{InBoundTrait, OutInBoundTransfer}
 import com.openbankproject.commons.model.TopicTrait
 import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import com.openbankproject.commons.util.json
 import org.json4s.JsonDSL._
 import org.json4s.{Formats, JObject, JValue}
@@ -40,10 +40,54 @@ object ConnectorUtils {
   private def deleteIgnoreFieldValue(obj: Any, inBoundClass: Class[_]): Any = obj match {
     case x: Future[_] => x.map(deleteIgnoreFieldValue(_, inBoundClass))
     case x @(Full(v), _: Option[CallContext]) => x.copy(_1 = Full(deleteIgnoreFields(v, inBoundClass)))
+    // An Empty or a Failure carries no payload to strip fields from. Sending it through
+    // deleteIgnoreFields serializes the box itself and then tries to read it back as the DTO's
+    // data type, which throws MappingException("Expected collection but got JObject(box_failure...")
+    // - so a connector method that simply did not find the account raised an exception instead of
+    // returning the box the caller was ready to handle.
+    case x @(box: Box[_], _: Option[CallContext]) => x.copy(_1 = box)
     case x @(v, _: Option[CallContext]) => x.copy(_1 = deleteIgnoreFields(v, inBoundClass))
     case Full((v, cc: Option[CallContext])) => Full(deleteIgnoreFields(v, inBoundClass) -> cc)
     case Full(v) => Full(deleteIgnoreFields(v, inBoundClass))
+    case box: Box[_] => box
     case v => deleteIgnoreFields(v, inBoundClass)
+  }
+
+  /**
+   * Reshapes a connector result into the payload type its InBound DTO declares.
+   *
+   * The serialization below is json4s decompose, which writes a case class's CONSTRUCTOR
+   * PARAMETERS and ignores its trait accessors. A row named after its columns - MappedBankAccount's
+   * accountBalance / theAccountId, say - therefore produces JSON that BankAccountCommons cannot
+   * read, and extraction fails with "No usable value for balance" rather than returning a partly
+   * filled object. Converting first, through the same reflective sibling conversion the Converter
+   * companions use, makes the JSON match by construction: toOther reads the trait accessors by the
+   * target's parameter names.
+   *
+   * Anything without a usable sibling - a primitive, a type that is already the DTO's, an abstract
+   * target - is passed through untouched, which is what happened to everything before.
+   */
+  private def toDeclaredPayloadType(obj: Any, inBoundClass: Class[_]): Any = {
+    val dataType: Option[universe.Type] =
+      ReflectUtils.classToType(inBoundClass).members
+        .find(m => m.isMethod && m.name.decodedName.toString == "data")
+        .map(_.asMethod.returnType)
+
+    // The collection cases come first on purpose: List and Option are themselves abstract classes,
+    // so an isAbstract check placed above them would decline to convert every list payload - which
+    // is most of them - and the whole thing would quietly do nothing.
+    def convert(value: Any, tp: universe.Type): Any = value match {
+      case null => null
+      case list: List[_] if tp.typeArgs.nonEmpty =>
+        list.map(item => convert(item, tp.typeArgs.head))
+      case option: Option[_] if tp.typeArgs.nonEmpty =>
+        option.map(item => convert(item, tp.typeArgs.head))
+      case _ if tp.typeSymbol.isAbstract => value
+      case single =>
+        scala.util.Try(ReflectUtils.toOther[Any](single, tp)).getOrElse(single)
+    }
+
+    dataType.map(tp => convert(obj, tp)).getOrElse(obj)
   }
 
   private def deleteIgnoreFields(obj: Any, inBoundClass:  Class[_]): Any = {
@@ -51,7 +95,8 @@ object ConnectorUtils {
     def processIgnoreFields(fields: List[String]): List[String] = fields.collect {
       case x if x.startsWith("data.") => StringUtils.substringAfter(x, "data.")
     }
-    val zson = OptionalFieldSerializer.toIgnoreFieldJson(obj, ReflectUtils.classToType(inBoundClass), processIgnoreFields)
+    val payload = toDeclaredPayloadType(obj, inBoundClass)
+    val zson = OptionalFieldSerializer.toIgnoreFieldJson(payload, ReflectUtils.classToType(inBoundClass), processIgnoreFields)
 
     val jObj: JValue = "data" -> zson
 
@@ -64,9 +109,24 @@ object ConnectorUtils {
 object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
   private val ConnectorMethodRegex = "(?i)OutBound(.)(.+)".r
   private lazy val connector: Connector = LocalMappedConnector
-  private val queryParamType = universe.typeOf[List[OBPQueryParam]]
-  private val callContextType = universe.typeOf[Option[CallContext]]
-  private implicit val formats = CustomJsonFormats.nullTolerateFormats
+  // typeOf[List[OBPQueryParam]]/typeOf[Option[CallContext]] would need the Scala 2 compiler to
+  // synthesise a TypeTag - a feature Scala 3 does not implement - AND both OBPQueryParam and this
+  // CallContext (code.api.util.CallContext, not the obp-commons one of the same simple name) are
+  // obp-api's own types, so there is no 2.13-compiled module this could be pushed to the way
+  // SwaggerTypes/CustomJsonFormatsTypes push obp-commons types. Built at runtime instead, from
+  // class names rather than compile-time type literals: appliedType/ReflectUtils.forType are
+  // ordinary value-level operations on already-built Type objects, needing no TypeTag synthesis
+  // under either compiler. Proven interchangeable with the type it replaces (=:= true, the
+  // strongest equality) before this landed.
+  private val queryParamType =
+    universe.appliedType(
+      ReflectUtils.forType("scala.collection.immutable.List").typeConstructor,
+      ReflectUtils.forType("code.api.util.OBPQueryParam"))
+  private val callContextType =
+    universe.appliedType(
+      ReflectUtils.forType("scala.Option").typeConstructor,
+      ReflectUtils.forType("code.api.util.CallContext"))
+  private implicit val formats: org.json4s.Formats = CustomJsonFormats.nullTolerateFormats
 
   override def transfer(outbound: TopicTrait): Future[InBoundTrait[_]] = {
     val connectorMethod: String = outbound.getClass.getSimpleName match {

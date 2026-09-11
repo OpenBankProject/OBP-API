@@ -21,7 +21,7 @@ import scala.util.Try
  */
 object ChatStreamServiceImpl extends ChatStreamServiceGrpc.ChatStreamService with MdcLoggable {
 
-  implicit val formats = json.DefaultFormats
+  implicit val formats: org.json4s.DefaultFormats.type = json.DefaultFormats
 
   // --- StreamMessages: server-side stream ---
 

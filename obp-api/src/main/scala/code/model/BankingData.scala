@@ -51,20 +51,20 @@ case class BankExtended(bank: Bank) {
 
   def publicAccounts(publicAccountAccessForBank: List[AccountAccess]) : List[BankAccount] = {
     publicAccountAccessForBank
-      .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
+      .map(a=>BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   // TODO refactor this function to get accounts from list in a single call via connector
   def privateAccounts(privateAccountAccessAtOneBank : List[AccountAccess]) : List[BankAccount] = {
     privateAccountAccessAtOneBank
-      .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
+      .map(a=>BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   def privateAccountsFuture(privateAccountAccessAtOneBank : List[AccountAccess], callContext: Option[CallContext]): Future[(List[BankAccount], Option[CallContext])] = {
     val accounts: List[BankIdAccountId] = privateAccountAccessAtOneBank
-      .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
+      .map(a=>BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct
     Connector.connector.vend.getBankAccounts(accounts, callContext) map { i =>
       (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound", 400 ), i._2)
     }
@@ -174,10 +174,10 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
         val provider = ""
         val emailAddress = ""
         val name : String = bankAccount.accountHolder
-        val createdByConsentId = None
-        val createdByUserInvitationId = None
-        val isDeleted = None
-        val lastMarketingAgreementSignedDate = None
+        val createdByConsentId: None.type = None
+        val createdByUserInvitationId: None.type = None
+        val isDeleted: None.type = None
+        val lastMarketingAgreementSignedDate: None.type = None
       })
     } else {
       accountHolders
@@ -573,13 +573,13 @@ object BankAccountX {
 
   def publicAccounts(publicAccountAccess: List[AccountAccess]) : List[BankAccount] = {
     publicAccountAccess
-      .map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
+      .map(a => BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   def privateAccounts(privateViewsUserCanAccess: List[AccountAccess]) : List[BankAccount] = {
     privateViewsUserCanAccess
-      .map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct.
+      .map(a => BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct.
       flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 }

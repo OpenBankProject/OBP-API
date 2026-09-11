@@ -716,7 +716,7 @@ object OAuth2Login extends MdcLoggable {
         case "ID" => super.applyIdTokenRules(token, cc) // Authentication
         case "Bearer" => // Authorization
           val result = super.applyAccessTokenRules(token, cc)
-          result._2.flatMap(_.consumer.map(_.id.get)) match {
+          result._2.flatMap(_.consumer.map(_.id)) match {
             case Some(consumerPrimaryKey) =>
               addScopesToConsumer(token, consumerPrimaryKey)
             case None => // Do nothing

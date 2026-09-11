@@ -44,7 +44,7 @@ import scala.language.postfixOps
 trait CardanoConnector_vJun2025 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
 
-  implicit override val nameOfConnector = CardanoConnector_vJun2025.toString
+  implicit override val nameOfConnector: String = CardanoConnector_vJun2025.toString
   
   val messageFormat: String = "Jun2025"
 
@@ -84,7 +84,7 @@ trait CardanoConnector_vJun2025 extends Connector with MdcLoggable {
                      |  $metadataJson
                      |}""".stripMargin
 
-      request = prepareHttpRequest(paramUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocol("HTTP/1.1"), jsonToSend)
+      request = prepareHttpRequest(paramUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocols.`HTTP/1.1`, jsonToSend)
       _ = logger.debug(s"CardanoConnector_vJun2025.makePaymentv210 request is : $request")
 
       response <- NewStyle.function.tryons(s"${ErrorMessages.UnknownError} Failed to make HTTP request to Cardano API", 500, callContext) {

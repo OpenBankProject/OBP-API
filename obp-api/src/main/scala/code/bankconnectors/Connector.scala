@@ -8,8 +8,6 @@ import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{APIFailure, APIFailureNewStyle}
-import code.atmattribute.AtmAttribute
-import code.bankattribute.BankAttribute
 import code.mandate.{MandateTrait, MandateProvisionTrait, SignatoryPanelTrait}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.cardano.CardanoConnector_vJun2025
@@ -18,7 +16,6 @@ import code.bankconnectors.grpc.GrpcConnector_vFeb2026
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
-import code.model.dataAccess.BankAccountRouting
 import code.users.UserAttribute
 import code.util.Helper._
 import com.github.dwickern.macros.NameOf.nameOf
@@ -123,7 +120,7 @@ trait Connector extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
 
   val messageDocs = ArrayBuffer[MessageDoc]()
-  protected implicit val nameOfConnector = Connector.getClass.getSimpleName
+  protected implicit val nameOfConnector: String = Connector.getClass.getSimpleName
 
   //Move all the cache ttl to Connector, all the sub-connectors share the same cache.
 
@@ -158,8 +155,26 @@ trait Connector extends MdcLoggable {
    *  3. no override
    *  4. is not $default$
    */
+  // Connector declares eight protected implicit def conversions (boxToTuple, tupleToBoxTuple,
+  // tupleToBox, futureReturnTypeToOBPReturnType, OBPReturnTypeToFutureReturnType,
+  // OBPReturnTypeToTupleBox, OBPReturnTypeToBoxTuple, OBPReturnTypeToBox) that exist to adapt
+  // between OBPReturnType and Box/Future shapes, not to be dynamic-dispatch connector methods.
+  // Both isPublic (they're protected) and isImplicit (they're `implicit def`) are source-level
+  // information Scala 2.13's scala.reflect.runtime.universe cannot recover from a Scala
+  // 3-compiled trait - tried both, neither excluded them - so they otherwise pass every filter
+  // below. Named explicitly, same as InternalConnector.knownConnectorVals.
+  private val connectorAdapterMethods = Set(
+    "boxToTuple", "tupleToBoxTuple", "tupleToBox", "futureReturnTypeToOBPReturnType",
+    "OBPReturnTypeToFutureReturnType", "OBPReturnTypeToTupleBox", "OBPReturnTypeToBoxTuple",
+    "OBPReturnTypeToBox"
+  )
+
   protected lazy val connectorMethods: Map[String, MethodSymbol] = {
-    val tp = typeOf[Connector]
+    // typeOf[Connector] needs the Scala 2 compiler to synthesise a TypeTag for Connector - this
+    // very trait - which Scala 3 does not implement. Built from the class name at runtime instead
+    // (ReflectUtils.forType is an ordinary value-level lookup, no synthesis involved), the same
+    // fix as the identical typeOf[Connector] a few lines below in implementedMethods.
+    val tp = ReflectUtils.forType("code.bankconnectors.Connector")
     val result = tp.decls
       .withFilter(_.isPublic)
       .withFilter(_.isMethod)
@@ -169,7 +184,16 @@ trait Connector extends MdcLoggable {
           if method.overrides.isEmpty &&
             method.paramLists.nonEmpty &&
             method.paramLists.head.nonEmpty &&
-            !name.contains("$default$") => kv
+            !name.contains("$default$") &&
+            // Same synthetic-setter leak as implementedMethods below, but this filter runs
+            // directly against Connector's own decls rather than a concrete subtype's members -
+            // a trait-level protected val's setter is declared on Connector itself, so it needs
+            // excluding here too, not only where implementedMethods unions this map in. The
+            // decoded name renders the compiler's internal "$" as "_setter_$xyz_=" for most
+            // vals but "_setter_@xyz_=" for a couple of them - matching the bare "_setter_"
+            // substring covers both instead of chasing each decoding variant.
+            !name.contains("_setter_") &&
+            !connectorAdapterMethods.contains(name) => kv
       }.toMap
     result
   }
@@ -179,6 +203,10 @@ trait Connector extends MdcLoggable {
    */
   protected lazy val implementedMethods: Map[String, MethodSymbol] = {
     val tp = ReflectUtils.getType(this)
+    // Hoisted out of the .collect predicate (was re-resolving "code.bankconnectors.Connector" via
+    // mirror.staticClass once per candidate member of tp) - same hoist connectorMethods above
+    // already does for its own copy of this lookup.
+    val connectorTp = ReflectUtils.forType("code.bankconnectors.Connector")
     val result = tp.members
         .withFilter(_.isPublic)
         .withFilter(_.isMethod)
@@ -188,8 +216,18 @@ trait Connector extends MdcLoggable {
             if method.overrides.nonEmpty &&
             method.paramLists.nonEmpty &&
             method.paramLists.head.nonEmpty &&
-            method.owner != typeOf[Connector] &&
-            !name.contains("$default$") => kv
+            method.owner != connectorTp &&
+            !name.contains("$default$") &&
+            // Scala 3 compiles a trait's own protected val (bankTTL, banksTTL, ...) into a
+            // synthetic cross-module setter named "code$bankconnectors$Connector$_setter_$xyz_=",
+            // and isPublic on that symbol reads incorrectly through Scala 2.13's
+            // scala.reflect.runtime.universe (the same cross-compiler gap fixed elsewhere this
+            // migration for isVal/isVar) - so it otherwise passes every filter above and gets
+            // counted as a connector method missing its callContext parameter. The "_setter_$"
+            // marker is a stable Scala compiler naming convention, not implementation detail this
+            // code invented, so filtering on it is safe regardless of which reflection flags are
+            // trustworthy for this symbol.
+            !name.contains("_setter_") => kv
         }.toMap
     connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
@@ -506,8 +544,8 @@ trait Connector extends MdcLoggable {
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError(nameOf(getBankAccountByIban _))),callContext)}
   def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError(nameOf(getBankAccountByRoutingLegacy _)))
   def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError(nameOf(getBankAccountByRouting _))), callContext)}
-  def getAccountRoutingsByScheme(bankId: Option[BankId], scheme : String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = Future{(Failure(setUnimplementedError(nameOf(getAccountRoutingsByScheme _))),callContext)}
-  def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRouting, Option[CallContext])]= Failure(setUnimplementedError(nameOf(getAccountRouting _)))
+  def getAccountRoutingsByScheme(bankId: Option[BankId], scheme : String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRoutingTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getAccountRoutingsByScheme _))),callContext)}
+  def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRoutingTrait, Option[CallContext])]= Failure(setUnimplementedError(nameOf(getAccountRouting _)))
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[BankAccount]]]= Future{(Failure(setUnimplementedError(nameOf(getBankAccounts _))), callContext)}
 
@@ -1329,7 +1367,7 @@ trait Connector extends MdcLoggable {
                                   value: String,
                                   isActive: Option[Boolean],
                                   callContext: Option[CallContext]
-                                 ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError(nameOf(createOrUpdateBankAttribute _))), callContext)}
+                                 ): OBPReturnType[Box[BankAttributeTrait]] = Future{(Failure(setUnimplementedError(nameOf(createOrUpdateBankAttribute _))), callContext)}
 
   def createOrUpdateAtmAttribute(bankId: BankId,
                                  atmId: AtmId,
@@ -1339,20 +1377,20 @@ trait Connector extends MdcLoggable {
                                  value: String,
                                  isActive: Option[Boolean],
                                  callContext: Option[CallContext]
-                                ): OBPReturnType[Box[AtmAttribute]] = Future{(Failure(setUnimplementedError(nameOf(createOrUpdateAtmAttribute _))), callContext)}
+                                ): OBPReturnType[Box[AtmAttributeTrait]] = Future{(Failure(setUnimplementedError(nameOf(createOrUpdateAtmAttribute _))), callContext)}
   
   def getBankAttributesByBank(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttributeTrait]]] =
     Future{(Failure(setUnimplementedError(nameOf(getBankAttributesByBank _))), callContext)}
 
-  def getAtmAttributesByAtm(bank: BankId, atm: AtmId, callContext: Option[CallContext]): OBPReturnType[Box[List[AtmAttribute]]] =
+  def getAtmAttributesByAtm(bank: BankId, atm: AtmId, callContext: Option[CallContext]): OBPReturnType[Box[List[AtmAttributeTrait]]] =
     Future{(Failure(setUnimplementedError(nameOf(getAtmAttributesByAtm _))), callContext)}
 
   def getBankAttributeById(bankAttributeId: String,
                            callContext: Option[CallContext]
-                          ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError(nameOf(getBankAttributeById _))), callContext)}
+                          ): OBPReturnType[Box[BankAttributeTrait]] = Future{(Failure(setUnimplementedError(nameOf(getBankAttributeById _))), callContext)}
 
   def getAtmAttributeById(atmAttributeId: String, 
-                          callContext: Option[CallContext]): OBPReturnType[Box[AtmAttribute]] = 
+                          callContext: Option[CallContext]): OBPReturnType[Box[AtmAttributeTrait]] =
     Future{(Failure(setUnimplementedError(nameOf(getAtmAttributeById _))), callContext)}
   
   def getProductAttributeById(

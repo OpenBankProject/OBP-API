@@ -1,8 +1,10 @@
 package code.api.v1_4_0
 
 import org.json4s.JsonAST.{JNothing, JString, JValue}
+import org.json4s.jvalue2monadic
 import org.json4s.native.JsonMethods.parse
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * A response body that is a bare Scala collection must be described as an array of its element.
@@ -20,7 +22,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * Three endpoints return this shape today - getSystemLevelEndpointTags, getBankLevelEndpointTags,
  * createUserWithAccountAccessById - across five API versions each.
  */
-class JSONFactory1_4_0RootListTest extends FlatSpec with Matchers {
+class JSONFactory1_4_0RootListTest extends AnyFlatSpec with Matchers {
 
   case class Tag(tag_id: String, tag_name: String)
 

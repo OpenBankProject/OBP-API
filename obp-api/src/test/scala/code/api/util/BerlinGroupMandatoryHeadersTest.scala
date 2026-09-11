@@ -59,9 +59,9 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Missing header tests ────────────────────────────────────────────────
 
-  feature("BG mandatory headers - missing header") {
+  Feature("BG mandatory headers - missing header") {
 
-    scenario("Request without X-Request-ID is rejected", MandatoryHeaders) {
+    Scenario("Request without X-Request-ID is rejected", MandatoryHeaders) {
       Given("A BG request with no headers at all")
       val result = callValidate(bgUrl, headers = Map.empty)
 
@@ -71,7 +71,7 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
       result.asInstanceOf[Failure].msg should include("x-request-id")
     }
 
-    scenario("Non-BG URL skips the check", MandatoryHeaders) {
+    Scenario("Non-BG URL skips the check", MandatoryHeaders) {
       Given("A non-BG URL with no headers")
       val result = callValidate("/obp/v4.0.0/banks", headers = Map.empty)
 
@@ -82,20 +82,20 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── X-Request-ID format tests ───────────────────────────────────────────
 
-  feature("BG mandatory headers - X-Request-ID format") {
+  Feature("BG mandatory headers - X-Request-ID format") {
 
-    scenario("Valid UUID X-Request-ID is accepted", MandatoryHeaders) {
+    Scenario("Valid UUID X-Request-ID is accepted", MandatoryHeaders) {
       val result = callValidate(bgUrl, headers = Map("X-Request-ID" -> UUID.randomUUID().toString))
       result shouldBe net.liftweb.common.Empty
     }
 
-    scenario("Non-UUID X-Request-ID is rejected", MandatoryHeaders) {
+    Scenario("Non-UUID X-Request-ID is rejected", MandatoryHeaders) {
       val result = callValidate(bgUrl, headers = Map("X-Request-ID" -> "not-a-uuid"))
       result shouldBe a[Failure]
       result.asInstanceOf[Failure].msg should include("OBP-20253")
     }
 
-    scenario("Empty X-Request-ID is rejected", MandatoryHeaders) {
+    Scenario("Empty X-Request-ID is rejected", MandatoryHeaders) {
       val result = callValidate(bgUrl, headers = Map("X-Request-ID" -> ""))
       result shouldBe a[Failure]
     }
@@ -103,9 +103,9 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Date format tests ───────────────────────────────────────────────────
 
-  feature("BG mandatory headers - Date format") {
+  Feature("BG mandatory headers - Date format") {
 
-    scenario("Valid RFC 7231 Date is accepted", MandatoryHeaders) {
+    Scenario("Valid RFC 7231 Date is accepted", MandatoryHeaders) {
       // Build a valid RFC 7231 date directly with the same format used by isValidRfc7231Date
       val fmt = new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", java.util.Locale.ENGLISH)
       fmt.setTimeZone(java.util.TimeZone.getTimeZone("GMT"))
@@ -117,7 +117,7 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
       result shouldBe net.liftweb.common.Empty
     }
 
-    scenario("ISO date format is rejected (not RFC 7231)", MandatoryHeaders) {
+    Scenario("ISO date format is rejected (not RFC 7231)", MandatoryHeaders) {
       val result = callValidate(bgUrl, headers = Map(
         "X-Request-ID" -> UUID.randomUUID().toString,
         "Date" -> "2026-03-17"
@@ -129,9 +129,9 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Consent endpoint extra header tests ─────────────────────────────────
 
-  feature("BG mandatory headers - /consents TPP-Redirect-URI") {
+  Feature("BG mandatory headers - /consents TPP-Redirect-URI") {
 
-    scenario("Consent request missing TPP-Redirect-URI is rejected", MandatoryHeaders) {
+    Scenario("Consent request missing TPP-Redirect-URI is rejected", MandatoryHeaders) {
       setPropsValues(
         "berlin_group_mandatory_headers" -> "X-Request-ID",
         "berlin_group_mandatory_header_consent" -> "TPP-Redirect-URI"
@@ -142,7 +142,7 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
       result.asInstanceOf[Failure].msg should include("tpp-redirect-uri")
     }
 
-    scenario("Consent request with TPP-Redirect-URI passes header check", MandatoryHeaders) {
+    Scenario("Consent request with TPP-Redirect-URI passes header check", MandatoryHeaders) {
       setPropsValues(
         "berlin_group_mandatory_headers" -> "X-Request-ID",
         "berlin_group_mandatory_header_consent" -> "TPP-Redirect-URI"
@@ -157,9 +157,9 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Disabled check ───────────────────────────────────────────────────────
 
-  feature("BG mandatory headers - disabled when list is empty") {
+  Feature("BG mandatory headers - disabled when list is empty") {
 
-    scenario("All requests pass when mandatory headers list is empty", MandatoryHeaders) {
+    Scenario("All requests pass when mandatory headers list is empty", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe net.liftweb.common.Empty
@@ -168,9 +168,9 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Multiple missing headers ─────────────────────────────────────────────
 
-  feature("BG mandatory headers - multiple missing headers") {
+  Feature("BG mandatory headers - multiple missing headers") {
 
-    scenario("Multiple missing headers are all reported", MandatoryHeaders) {
+    Scenario("Multiple missing headers are all reported", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "X-Request-ID,Content-Type,Date")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
@@ -181,7 +181,7 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
       result.asInstanceOf[Failure].msg should include("date")
     }
 
-    scenario("Providing one of two required headers still fails", MandatoryHeaders) {
+    Scenario("Providing one of two required headers still fails", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "X-Request-ID,Content-Type")
       val result = callValidate(bgUrl, headers = Map("X-Request-ID" -> UUID.randomUUID().toString))
       result shouldBe a[Failure]
@@ -191,16 +191,16 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Content-Type header ──────────────────────────────────────────────────
 
-  feature("BG mandatory headers - Content-Type") {
+  Feature("BG mandatory headers - Content-Type") {
 
-    scenario("Missing Content-Type is rejected", MandatoryHeaders) {
+    Scenario("Missing Content-Type is rejected", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "Content-Type")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
       result.asInstanceOf[Failure].msg should include("content-type")
     }
 
-    scenario("Present Content-Type passes", MandatoryHeaders) {
+    Scenario("Present Content-Type passes", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "Content-Type")
       val result = callValidate(bgUrl, headers = Map("Content-Type" -> "application/json"))
       result shouldBe net.liftweb.common.Empty
@@ -209,16 +209,16 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Digest header ────────────────────────────────────────────────────────
 
-  feature("BG mandatory headers - Digest") {
+  Feature("BG mandatory headers - Digest") {
 
-    scenario("Missing Digest is rejected", MandatoryHeaders) {
+    Scenario("Missing Digest is rejected", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "Digest")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
       result.asInstanceOf[Failure].msg should include("digest")
     }
 
-    scenario("Present Digest passes header presence check", MandatoryHeaders) {
+    Scenario("Present Digest passes header presence check", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "Digest")
       val digest = "SHA-256=" + java.util.Base64.getEncoder.encodeToString(
         java.security.MessageDigest.getInstance("SHA-256").digest("{}".getBytes("UTF-8"))
@@ -230,30 +230,30 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── PSU headers ──────────────────────────────────────────────────────────
 
-  feature("BG mandatory headers - PSU device headers") {
+  Feature("BG mandatory headers - PSU device headers") {
 
-    scenario("Missing PSU-IP-Address is rejected", MandatoryHeaders) {
+    Scenario("Missing PSU-IP-Address is rejected", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "PSU-IP-Address")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
       result.asInstanceOf[Failure].msg should include("psu-ip-address")
     }
 
-    scenario("Missing PSU-Device-ID is rejected", MandatoryHeaders) {
+    Scenario("Missing PSU-Device-ID is rejected", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "PSU-Device-ID")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
       result.asInstanceOf[Failure].msg should include("psu-device-id")
     }
 
-    scenario("Missing PSU-Device-Name is rejected", MandatoryHeaders) {
+    Scenario("Missing PSU-Device-Name is rejected", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "PSU-Device-Name")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
       result.asInstanceOf[Failure].msg should include("psu-device-name")
     }
 
-    scenario("All PSU headers present passes", MandatoryHeaders) {
+    Scenario("All PSU headers present passes", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "PSU-IP-Address,PSU-Device-ID,PSU-Device-Name")
       val result = callValidate(bgUrl, headers = Map(
         "PSU-IP-Address"  -> "192.168.1.1",
@@ -266,16 +266,16 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Signature + TPP-Signature-Certificate headers ────────────────────────
 
-  feature("BG mandatory headers - Signature and TPP-Signature-Certificate") {
+  Feature("BG mandatory headers - Signature and TPP-Signature-Certificate") {
 
-    scenario("Missing Signature is rejected", MandatoryHeaders) {
+    Scenario("Missing Signature is rejected", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "Signature")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
       result.asInstanceOf[Failure].msg should include("signature")
     }
 
-    scenario("Missing TPP-Signature-Certificate is rejected", MandatoryHeaders) {
+    Scenario("Missing TPP-Signature-Certificate is rejected", MandatoryHeaders) {
       setPropsValues("berlin_group_mandatory_headers" -> "TPP-Signature-Certificate")
       val result = callValidate(bgUrl, headers = Map.empty)
       result shouldBe a[Failure]
@@ -285,9 +285,9 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
 
   // ─── Full default header set ──────────────────────────────────────────────
 
-  feature("BG mandatory headers - full default set") {
+  Feature("BG mandatory headers - full default set") {
 
-    scenario("All 9 default headers missing are all reported", MandatoryHeaders) {
+    Scenario("All 9 default headers missing are all reported", MandatoryHeaders) {
       setPropsValues(
         "berlin_group_mandatory_headers" ->
           "Content-Type,Date,Digest,PSU-Device-ID,PSU-Device-Name,PSU-IP-Address,Signature,TPP-Signature-Certificate,X-Request-ID"

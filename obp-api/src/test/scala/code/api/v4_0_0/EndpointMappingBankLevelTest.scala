@@ -33,8 +33,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
   val rightEntity = endpointMappingRequestBodyExample
   val wrongEntity = jsonCodeTemplateJson
   
-  feature("Add a EndpointMapping v4.0.0- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Add a EndpointMapping v4.0.0- Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value  / "endpoint-mappings").POST
 
@@ -45,8 +45,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update a EndpointMapping v4.0.0- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature("Update a EndpointMapping v4.0.0- Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value  / "endpoint-mappings"/ "some-method-routing-id").PUT
       val response400 = makePutRequest(request400, write(rightEntity))
@@ -56,8 +56,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Get EndpointMappings v4.0.0- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature("Get EndpointMappings v4.0.0- Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value  / "endpoint-mappings").GET  <<? (List(("method_name", "getBank")))
       val response400 = makeGetRequest(request400)
@@ -67,8 +67,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Delete the EndpointMapping specified by METHOD_ROUTING_ID v4.0.0- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature("Delete the EndpointMapping specified by METHOD_ROUTING_ID v4.0.0- Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value  / "endpoint-mappings" / "METHOD_ROUTING_ID").DELETE
       val response400 = makeDeleteRequest(request400)
@@ -80,8 +80,8 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
   }
 
 
-  feature("Add a EndpointMapping v4.0.0- Unauthorized access - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + CanCreateBankLevelEndpointMapping, ApiEndpoint1, VersionOfApi) {
+  Feature("Add a EndpointMapping v4.0.0- Unauthorized access - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + CanCreateBankLevelEndpointMapping, ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0without a Role " + CanCreateBankLevelEndpointMapping)
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value  / "endpoint-mappings").POST <@(user1)
       val response400 = makePostRequest(request400, write(rightEntity))
@@ -92,7 +92,7 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message contains  (CanCreateBankLevelEndpointMapping )
     }
 
-    scenario("We will call the endpoint with the proper Role " + canCreateBankLevelEndpointMapping , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canCreateBankLevelEndpointMapping , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelEndpointMapping.toString)
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value  / "endpoint-mappings").POST <@(user1)

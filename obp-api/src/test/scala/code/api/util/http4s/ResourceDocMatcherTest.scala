@@ -7,9 +7,11 @@ import com.openbankproject.commons.util.ApiShortVersions
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST.JObject
 import org.http4s._
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
 
 import scala.collection.mutable.ArrayBuffer
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for ResourceDocMatcher
@@ -24,7 +26,7 @@ import scala.collection.mutable.ArrayBuffer
  * - Path parameter extraction for all variable types
  * 
  */
-class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThen {
+class ResourceDocMatcherTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
   
   object ResourceDocMatcherTag extends Tag("ResourceDocMatcher")
   private val v700 = ApiShortVersions.`v7.0.0`.toString
@@ -51,9 +53,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     )
   }
   
-  feature("ResourceDocMatcher - Exact path matching") {
+  Feature("ResourceDocMatcher - Exact path matching") {
     
-    scenario("Match GET request with exact path", ResourceDocMatcherTag) {
+    Scenario("Match GET request with exact path", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks")
@@ -68,7 +70,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getBanks")
     }
     
-    scenario("Match POST request with exact path", ResourceDocMatcherTag) {
+    Scenario("Match POST request with exact path", ResourceDocMatcherTag) {
       Given("A ResourceDoc for POST /banks")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("POST", "/banks", "createBank")
@@ -83,7 +85,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("createBank")
     }
     
-    scenario("Match request with multi-segment path", ResourceDocMatcherTag) {
+    Scenario("Match request with multi-segment path", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /management/metrics")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/management/metrics", "getMetrics")
@@ -98,7 +100,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getMetrics")
     }
     
-    scenario("Verb mismatch returns None", ResourceDocMatcherTag) {
+    Scenario("Verb mismatch returns None", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks")
@@ -112,7 +114,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result should be(None)
     }
     
-    scenario("Path mismatch returns None", ResourceDocMatcherTag) {
+    Scenario("Path mismatch returns None", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks")
@@ -127,9 +129,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - BANK_ID variable matching") {
+  Feature("ResourceDocMatcher - BANK_ID variable matching") {
     
-    scenario("Match request with BANK_ID variable", ResourceDocMatcherTag) {
+    Scenario("Match request with BANK_ID variable", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID", "getBank")
@@ -144,7 +146,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getBank")
     }
     
-    scenario("Match request with BANK_ID and additional segments", ResourceDocMatcherTag) {
+    Scenario("Match request with BANK_ID and additional segments", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts", "getBankAccounts")
@@ -159,7 +161,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getBankAccounts")
     }
     
-    scenario("Extract BANK_ID parameter value", ResourceDocMatcherTag) {
+    Scenario("Extract BANK_ID parameter value", ResourceDocMatcherTag) {
       Given("A matched ResourceDoc with BANK_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
@@ -173,9 +175,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - BANK_ID + ACCOUNT_ID variables") {
+  Feature("ResourceDocMatcher - BANK_ID + ACCOUNT_ID variables") {
     
-    scenario("Match request with BANK_ID and ACCOUNT_ID variables", ResourceDocMatcherTag) {
+    Scenario("Match request with BANK_ID and ACCOUNT_ID variables", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts/ACCOUNT_ID")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID", "getBankAccount")
@@ -190,7 +192,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getBankAccount")
     }
     
-    scenario("Extract BANK_ID and ACCOUNT_ID parameter values", ResourceDocMatcherTag) {
+    Scenario("Extract BANK_ID and ACCOUNT_ID parameter values", ResourceDocMatcherTag) {
       Given("A matched ResourceDoc with BANK_ID and ACCOUNT_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID", "getBankAccount")
       
@@ -205,7 +207,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params("ACCOUNT_ID") should equal("test1")
     }
     
-    scenario("Match request with BANK_ID, ACCOUNT_ID and additional segments", ResourceDocMatcherTag) {
+    Scenario("Match request with BANK_ID, ACCOUNT_ID and additional segments", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts/ACCOUNT_ID/transactions")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions", "getTransactions")
@@ -221,9 +223,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - BANK_ID + ACCOUNT_ID + VIEW_ID variables") {
+  Feature("ResourceDocMatcher - BANK_ID + ACCOUNT_ID + VIEW_ID variables") {
     
-    scenario("Match request with BANK_ID, ACCOUNT_ID and VIEW_ID variables", ResourceDocMatcherTag) {
+    Scenario("Match request with BANK_ID, ACCOUNT_ID and VIEW_ID variables", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions", "getTransactionsForView")
@@ -238,7 +240,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getTransactionsForView")
     }
     
-    scenario("Extract BANK_ID, ACCOUNT_ID and VIEW_ID parameter values", ResourceDocMatcherTag) {
+    Scenario("Extract BANK_ID, ACCOUNT_ID and VIEW_ID parameter values", ResourceDocMatcherTag) {
       Given("A matched ResourceDoc with BANK_ID, ACCOUNT_ID and VIEW_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions", "getTransactionsForView")
       
@@ -255,7 +257,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params("VIEW_ID") should equal("owner")
     }
     
-    scenario("Match request with VIEW_ID in different position", ResourceDocMatcherTag) {
+    Scenario("Match request with VIEW_ID in different position", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account", "getAccountForView")
@@ -271,9 +273,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - COUNTERPARTY_ID variable") {
+  Feature("ResourceDocMatcher - COUNTERPARTY_ID variable") {
     
-    scenario("Match request with COUNTERPARTY_ID variable", ResourceDocMatcherTag) {
+    Scenario("Match request with COUNTERPARTY_ID variable", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID", "getCounterparty")
@@ -288,7 +290,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getCounterparty")
     }
     
-    scenario("Extract COUNTERPARTY_ID parameter value", ResourceDocMatcherTag) {
+    Scenario("Extract COUNTERPARTY_ID parameter value", ResourceDocMatcherTag) {
       Given("A matched ResourceDoc with COUNTERPARTY_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID", "getCounterparty")
       
@@ -307,7 +309,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params("COUNTERPARTY_ID") should equal("ff010868-ac7d-4f96-9fc5-70dd5757e891")
     }
     
-    scenario("Match request with COUNTERPARTY_ID in different URL structure", ResourceDocMatcherTag) {
+    Scenario("Match request with COUNTERPARTY_ID in different URL structure", ResourceDocMatcherTag) {
       Given("A ResourceDoc for DELETE /management/counterparties/COUNTERPARTY_ID")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("DELETE", "/management/counterparties/COUNTERPARTY_ID", "deleteCounterparty")
@@ -323,9 +325,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - Non-matching requests") {
+  Feature("ResourceDocMatcher - Non-matching requests") {
     
-    scenario("Return None when no ResourceDoc matches", ResourceDocMatcherTag) {
+    Scenario("Return None when no ResourceDoc matches", ResourceDocMatcherTag) {
       Given("ResourceDocs for specific endpoints")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks"),
@@ -341,7 +343,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result should be(None)
     }
     
-    scenario("Return None when verb doesn't match", ResourceDocMatcherTag) {
+    Scenario("Return None when verb doesn't match", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks")
@@ -355,7 +357,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result should be(None)
     }
     
-    scenario("Return None when path segment count doesn't match", ResourceDocMatcherTag) {
+    Scenario("Return None when path segment count doesn't match", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts", "getBankAccounts")
@@ -369,7 +371,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result should be(None)
     }
     
-    scenario("Return None when literal segments don't match", ResourceDocMatcherTag) {
+    Scenario("Return None when literal segments don't match", ResourceDocMatcherTag) {
       Given("A ResourceDoc for GET /banks/BANK_ID/accounts")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks/BANK_ID/accounts", "getBankAccounts")
@@ -384,9 +386,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - Path parameter extraction edge cases") {
+  Feature("ResourceDocMatcher - Path parameter extraction edge cases") {
     
-    scenario("Extract parameters from path with no variables", ResourceDocMatcherTag) {
+    Scenario("Extract parameters from path with no variables", ResourceDocMatcherTag) {
       Given("A ResourceDoc with no path variables")
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       
@@ -398,7 +400,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params should be(empty)
     }
     
-    scenario("Extract parameters with special characters in values", ResourceDocMatcherTag) {
+    Scenario("Extract parameters with special characters in values", ResourceDocMatcherTag) {
       Given("A ResourceDoc with BANK_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
@@ -411,7 +413,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params("BANK_ID") should equal("gh.29.de-test_bank")
     }
     
-    scenario("Return empty map when path doesn't match template", ResourceDocMatcherTag) {
+    Scenario("Return empty map when path doesn't match template", ResourceDocMatcherTag) {
       Given("A ResourceDoc for /banks/BANK_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
@@ -424,9 +426,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - attachToCallContext") {
+  Feature("ResourceDocMatcher - attachToCallContext") {
     
-    scenario("Attach ResourceDoc to CallContext", ResourceDocMatcherTag) {
+    Scenario("Attach ResourceDoc to CallContext", ResourceDocMatcherTag) {
       Given("A CallContext and a matched ResourceDoc")
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       val callContext = code.api.util.CallContext(
@@ -441,7 +443,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       updatedContext.resourceDocument.get should equal(resourceDoc)
     }
     
-    scenario("Attach ResourceDoc sets operationId", ResourceDocMatcherTag) {
+    Scenario("Attach ResourceDoc sets operationId", ResourceDocMatcherTag) {
       Given("A CallContext and a matched ResourceDoc")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       val callContext = code.api.util.CallContext(
@@ -456,7 +458,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       updatedContext.operationId.get should equal(resourceDoc.operationId)
     }
     
-    scenario("Preserve other CallContext fields when attaching ResourceDoc", ResourceDocMatcherTag) {
+    Scenario("Preserve other CallContext fields when attaching ResourceDoc", ResourceDocMatcherTag) {
       Given("A CallContext with existing fields")
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       val originalContext = code.api.util.CallContext(
@@ -477,9 +479,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - Multiple ResourceDocs selection") {
+  Feature("ResourceDocMatcher - Multiple ResourceDocs selection") {
     
-    scenario("Select correct ResourceDoc from multiple candidates", ResourceDocMatcherTag) {
+    Scenario("Select correct ResourceDoc from multiple candidates", ResourceDocMatcherTag) {
       Given("Multiple ResourceDocs with different paths")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks"),
@@ -497,7 +499,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getBankAccounts")
     }
     
-    scenario("Match first ResourceDoc when multiple exact matches exist", ResourceDocMatcherTag) {
+    Scenario("Match first ResourceDoc when multiple exact matches exist", ResourceDocMatcherTag) {
       Given("Multiple ResourceDocs with same path and verb")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks1"),
@@ -514,9 +516,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - Case sensitivity") {
+  Feature("ResourceDocMatcher - Case sensitivity") {
     
-    scenario("HTTP verb matching is case-insensitive", ResourceDocMatcherTag) {
+    Scenario("HTTP verb matching is case-insensitive", ResourceDocMatcherTag) {
       Given("A ResourceDoc with uppercase GET")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks")
@@ -531,7 +533,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result.get.partialFunctionName should equal("getBanks")
     }
     
-    scenario("Path matching is case-sensitive for literal segments", ResourceDocMatcherTag) {
+    Scenario("Path matching is case-sensitive for literal segments", ResourceDocMatcherTag) {
       Given("A ResourceDoc for /banks")
       val resourceDocs = ArrayBuffer(
         createResourceDoc("GET", "/banks", "getBanks")

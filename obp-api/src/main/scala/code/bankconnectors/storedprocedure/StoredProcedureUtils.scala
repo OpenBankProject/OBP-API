@@ -16,7 +16,6 @@ import doobie.free.{connection => FC}
 import doobie.util.transactor.Strategy
 import net.liftweb.common.{Box, Empty, Full}
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.Schemifier
 
 /**
  * Stored procedure utils.
@@ -25,7 +24,7 @@ import net.liftweb.mapper.Schemifier
  */
 object StoredProcedureUtils extends MdcLoggable{
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   // lazy initial DB connection: separate HikariCP pool dedicated to the stored procedure connector
   private lazy val spTransactor: Transactor[IO] = {
@@ -195,7 +194,7 @@ object StoredProcedureUtils extends MdcLoggable{
 object StoredProceduresMockedData {
   def createOrDropMockedPostgresStoredProcedures() = {
     def create(): String = {
-      DbFunction.maybeWrite(true, Schemifier.infoF _) {
+      DbFunction.maybeWrite(true) {
         () => """CREATE OR REPLACE FUNCTION public.get_banks(p_out_bound_json text, INOUT in_bound_json text)
                 | RETURNS text
                 | LANGUAGE plpgsql
@@ -235,7 +234,7 @@ object StoredProceduresMockedData {
       }
     }
     def drop(): String = {
-      DbFunction.maybeWrite(true, Schemifier.infoF _) {
+      DbFunction.maybeWrite(true) {
         () => "DROP FUNCTION public.get_banks(text, text);"
       }
     }

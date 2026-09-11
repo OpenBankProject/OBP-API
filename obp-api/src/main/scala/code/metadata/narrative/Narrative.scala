@@ -7,7 +7,7 @@ object Narrative extends SimpleInjector {
 
   val narrative = new Inject(() => buildOne) {}
 
-  def buildOne: Narrative = MappedNarratives
+  def buildOne: Narrative = DoobieNarratives
 
 }
 

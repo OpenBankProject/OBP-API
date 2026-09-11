@@ -4,9 +4,10 @@ import java.util.Date
 import java.util.concurrent.{CountDownLatch, Executors, TimeUnit}
 
 import net.liftweb.common.Full
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.jdk.CollectionConverters._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * SimpleDateFormat is not thread-safe: parse and format both mutate the internal Calendar,
@@ -15,7 +16,7 @@ import scala.jdk.CollectionConverters._
  * (from_date/to_date parsing and response formatting) from many threads and assert every
  * result is present and identical.
  */
-class DateFormatConcurrencyTest extends FlatSpec with Matchers {
+class DateFormatConcurrencyTest extends AnyFlatSpec with Matchers {
 
   private val threads = 32
   private val iterationsPerThread = 200

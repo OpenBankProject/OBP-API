@@ -2,7 +2,7 @@ package code.api.util
 
 import code.api.Constant
 import net.liftweb.db.DB
-import net.liftweb.mapper.DefaultConnectionIdentifier
+import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers.tryo
 
 import java.sql.{ResultSet, Types}

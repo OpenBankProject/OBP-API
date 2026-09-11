@@ -156,7 +156,21 @@ object ResourceDocRegistry {
     registry.keys.filter(v => v == obpUnionVersion || !isObpStandard(v)).toSeq
 
   /** The global operation-id union. Deduped by operationId: the surfaces legitimately overlap, and
-   * consumers only ever `.find`/build a lookup map from this list, never rely on duplicates. */
+   * consumers only ever `.find`/build a lookup map from this list, never rely on duplicates.
+   *
+   * LAST wins, not first — the same direction as the `.toMap` consumers `unionVersions`' ordering
+   * was built for. `distinctBy` keeps the FIRST occurrence, which ran the ordering backwards and
+   * broke the very case the ordering exists for: the Berlin Group v1.3 alias re-stamps the
+   * canonical docs with `implementedInApiVersion.copy(apiStandard = "BG")`, so with the natural
+   * configuration `berlin_group_v1_3_alias_path=<prefix>/v1.3` its operation ids are BYTE-IDENTICAL
+   * to the canonical ones (fullyQualifiedVersion is apiStandard + apiShortVersion, and neither
+   * differs). Ranked `derivedStandardRank` the alias sorts FIRST, so first-wins silently replaced
+   * all 55 canonical BG v1.3 docs with alias copies whose url prefix is the alias path — leaving
+   * the union with zero new operation ids and the canonical ones resolving to the wrong URL.
+   *
+   * reverse/distinctBy/reverse rather than a Map: it keeps the last occurrence while preserving
+   * the relative order of everything that survives, which the `.toMap` consumers do not care
+   * about but `ResourceDocRegistryParityTest` and the resource-docs listing do. */
   lazy val allStaticResourceDocs: List[ResourceDoc] =
-    unionVersions.flatMap(docsFor).toList.distinctBy(_.operationId)
+    unionVersions.flatMap(docsFor).toList.reverse.distinctBy(_.operationId).reverse
 }

@@ -5,7 +5,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import code.connector.RestConnector_vMar2019_FrozenUtil
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Keeps the two frozen-contract fixtures reviewable: each Java-serialized blob has a checked-in
@@ -15,7 +16,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * This only compares. It does not write - a test that repairs the tree it is checking hides the
  * thing it was added to surface, and would leave a release build with a file nobody reviewed.
  */
-class FrozenMetaDataTextTest extends FlatSpec with Matchers {
+class FrozenMetaDataTextTest extends AnyFlatSpec with Matchers {
 
   private def checkFixture(blobPath: String, render: String => String): Unit = {
     assume(new File(blobPath).exists(), s"fixture not persisted yet: $blobPath")

@@ -16,12 +16,16 @@
 # catch-all mechanism, without exhausting the single local DB connection pool
 # (> 4 shards causes connection-pool contention and spurious failures).
 # Catch-all logic (build_s4) is a direct port of CI's shard-8 catch-all.
-# Usage: ./run_tests_parallel.sh [--shards=4|6]
+# Usage: ./run_tests_parallel.sh [--shards=4|6] [--db=h2|postgres]
 #
 # ── CI step → local equivalent (how cross-machine machinery is replaced) ───
 #   CI (multi-machine)                            Local (single machine)
 #   ───────────────────────────────────────────  ──────────────────────────────
 #   lint: check_test_isolation.py                same (run before tests; abort on fail)
+#   lint: check_nullable_column_reads.py         same (run before tests; abort on fail)
+#   lint: check_changelog_data_migrations.py     same (run before tests; abort on fail)
+#   lint: check_no_blind_commons_casts.py        same (run before tests; abort on fail)
+#   lint: check_changelog_preconditions.py       same (run before tests; abort on fail)
 #   compile job: mvn clean install -Pprod        pre-compile once: install obp-commons
 #     + upload-artifact(target/)                   into shared ~/.m2 + test-compile
 #   test job: download-artifact + touch +          obp-api into shared target/ — a
@@ -59,6 +63,16 @@ else
     exit 1
 fi
 
+# Per-shard hard kill. It exists to stop a JVM whose Pekko non-daemon threads hang after the
+# tests themselves are done, not to bound how long the tests may take - so it has to sit well
+# above the slowest legitimate shard. 1200s covers H2 comfortably (slowest shard ~10 min), but
+# Postgres is roughly twice as slow per test and three of the four shards were being killed
+# mid-run at 20 min, each still emitting test output at the moment it died. A killed shard
+# reports zero failures while silently dropping ~800 tests from the audit line, which reads as a
+# pass unless you check the per-shard durations - so raise it rather than accept the gap.
+# SHARD_TIMEOUT_SECONDS overrides it; --db=postgres defaults to double.
+SHARD_TIMEOUT_SECONDS="${SHARD_TIMEOUT_SECONDS:-}"
+
 # Maven is required (every dev has it via the project README's setup).
 command -v mvn >/dev/null 2>&1 || { echo "ERROR: 'mvn' (Maven) not found on PATH" >&2; exit 1; }
 
@@ -87,11 +101,74 @@ OBC_LOCK="/tmp/obp-commons-m2-install.lock"
 trap '[[ "$(cat "$OBC_LOCK/pid" 2>/dev/null)" == "$$" ]] && rm -rf "$OBC_LOCK"' EXIT
 
 SHARDS=4
+DB=h2
 for arg in "$@"; do
   case $arg in
     --shards=*) SHARDS="${arg#*=}" ;;
+    --db=*)     DB="${arg#*=}" ;;
   esac
 done
+
+# ── --db=postgres ─────────────────────────────────────────────────────────
+# H2 is forgiving in ways Postgres is not, so it is worth running the whole suite on Postgres
+# whenever the data layer changes. It cannot be done by editing the props file alone: every test
+# class opens with ~140 DELETE FROM, so four shards pointed at one database wipe each other. Each
+# shard therefore gets a database of its own, created here and dropped at the end.
+#
+# The names begin with obp_suite_ because that is the prefix code.setup.DisposableDatabaseGuard
+# admits. Everything else - obp-mapped included - is refused by the guard before Boot runs, so a
+# typo here cannot empty a real database.
+#
+# Postgres needs headroom for this: four shards at hikari.maximumPoolSize=20 want 80 connections
+# on top of whatever else is connected, and max_connections defaults to 100 on a Homebrew install.
+# Raising the pool is not the alternative - a pool of 10 exhausts at five concurrent requests.
+PG_ADMIN_URL="${OBP_TEST_POSTGRES_URL:-jdbc:postgresql://localhost:5432/postgres}"
+PG_HOST="$(echo "$PG_ADMIN_URL" | sed -E 's|jdbc:postgresql://([^:/]+).*|\1|')"
+# The port is optional in a JDBC URL, and a sed that assumes it is there returns the whole URL
+# unchanged when it is not - psql then fails with something that names neither the URL nor the port.
+PG_PORT="$(echo "$PG_ADMIN_URL" | sed -nE 's|jdbc:postgresql://[^:/]+:([0-9]+).*|\1|p')"
+PG_PORT="${PG_PORT:-5432}"
+PG_USER="${OBP_TEST_POSTGRES_USER:-$USER}"
+PG_DB_PREFIX="obp_suite_shard_"
+
+pg_psql() { PGPASSWORD="${OBP_TEST_POSTGRES_PASSWORD:-}" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -tAc "$1"; }
+
+pg_create_shard_databases() {
+  local n
+  for ((n = 1; n <= TOTAL_SHARDS_PLANNED; n++)); do
+    pg_psql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${PG_DB_PREFIX}${n}' AND pid <> pg_backend_pid()" >/dev/null
+    pg_psql "DROP DATABASE IF EXISTS ${PG_DB_PREFIX}${n}" >/dev/null
+    pg_psql "CREATE DATABASE ${PG_DB_PREFIX}${n}" >/dev/null || {
+      echo "❌ could not create ${PG_DB_PREFIX}${n} on $PG_HOST:$PG_PORT as $PG_USER" >&2; exit 1; }
+  done
+  echo "Postgres: created ${PG_DB_PREFIX}1..${TOTAL_SHARDS_PLANNED}"
+}
+
+pg_drop_shard_databases() {
+  local n
+  for ((n = 1; n <= TOTAL_SHARDS_PLANNED; n++)); do
+    pg_psql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${PG_DB_PREFIX}${n}' AND pid <> pg_backend_pid()" >/dev/null
+    pg_psql "DROP DATABASE IF EXISTS ${PG_DB_PREFIX}${n}" >/dev/null
+  done
+  echo "Postgres: dropped ${PG_DB_PREFIX}1..${TOTAL_SHARDS_PLANNED}"
+}
+
+TOTAL_SHARDS_PLANNED="$SHARDS"
+# Default the shard timeout now that $DB is known: Postgres is about twice as slow per test as H2.
+if [[ -z "$SHARD_TIMEOUT_SECONDS" ]]; then
+  if [[ "$DB" == "postgres" ]]; then SHARD_TIMEOUT_SECONDS=2400; else SHARD_TIMEOUT_SECONDS=1200; fi
+fi
+echo "Per-shard hard timeout: ${SHARD_TIMEOUT_SECONDS}s (db=$DB)"
+if [[ "$DB" == "postgres" ]]; then
+  command -v psql >/dev/null || { echo "❌ --db=postgres needs psql on PATH" >&2; exit 1; }
+  pg_psql "SELECT 1" >/dev/null 2>&1 || {
+    echo "❌ cannot reach Postgres at $PG_HOST:$PG_PORT as $PG_USER" >&2; exit 1; }
+  pg_create_shard_databases
+  # Drop them however this ends, including Ctrl-C: they are large and there is one per shard.
+  trap 'pg_drop_shard_databases; [[ "$(cat "$OBC_LOCK/pid" 2>/dev/null)" == "$$" ]] && rm -rf "$OBC_LOCK"' EXIT
+elif [[ "$DB" != "h2" ]]; then
+  echo "❌ --db must be h2 or postgres (got: $DB)" >&2; exit 1
+fi
 
 # ── Dynamic free-port allocation ──────────────────────────────────────────
 # Each shard is its own `mvn scalatest:test` JVM that binds TWO sockets:
@@ -148,36 +225,48 @@ code.customer,code.errormessages"
 # Shard 4 base — auth/login/connector/util plus any packages not in shards 1-3
 S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0,\
 code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
-code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
+code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.api.AliveCheckRoutesTest,\
+code.api.OAuth2,code.api.SIWETest,code.util,code.connector"
 
-# ── Shard 4 catch-all: discover every package not covered by shards 1–3 ───
-#    (same logic as CI shard-8 catch-all — ensures no new package is silently skipped)
-build_s4() {
-  local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')"
-  local ALL_PKGS
-  ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
-               -name "*.scala" 2>/dev/null \
-             | sed 's|.*/test/scala/||; s|/[^/]*\.scala$||; s|/|.|g' \
-             | sort -u)
-  local EXTRAS=""
-  for pkg in $ALL_PKGS; do
-    local covered=false
-    for prefix in $ASSIGNED; do
+# ── Catch-all: every package not named by any shard, appended to the last one ────
+#    (same logic as CI's shard-8 catch-all — a new package is never silently skipped)
+#
+#    This has to exist in EVERY mode, not just the 4-shard one. Without it a package
+#    that no shard names simply does not run, and the script still prints
+#    "ALL SHARDS PASSED" — a green that means nothing. The 6-shard mode had no
+#    catch-all and was skipping 36 of the 87 test packages.
+all_test_packages() {
+  find obp-api/src/test/scala obp-commons/src/test/scala \
+       -name "*.scala" 2>/dev/null \
+    | sed 's|.*/test/scala/||; s|/[^/]*\.scala$||; s|/|.|g' \
+    | sort -u
+}
+
+# catch_all_extras <label> <assigned-prefixes-space-separated>
+#   -> ",pkg1,pkg2,..." for every package none of the prefixes covers
+catch_all_extras() {
+  local label=$1
+  local assigned=$2
+  local extras=""
+  local pkg prefix covered
+  for pkg in $(all_test_packages); do
+    covered=false
+    for prefix in $assigned; do
       if [[ "$pkg" == "$prefix" || "$pkg" == "$prefix."* || "$prefix" == "$pkg."* ]]; then
         covered=true; break
       fi
     done
-    [[ "$covered" = "false" ]] && EXTRAS="${EXTRAS},${pkg}"
+    [[ "$covered" = "false" ]] && extras="${extras},${pkg}"
   done
-  if [[ -n "$EXTRAS" ]]; then
-    echo "  [Shard 4] Catch-all extras: $EXTRAS" >&2
+  if [[ -n "$extras" ]]; then
+    echo "  [$label] Catch-all extras: $extras" >&2
   fi
-  echo "${S4_BASE}${EXTRAS}"
+  echo "$extras"
 }
 
-S4=$(build_s4)
+S4="${S4_BASE}$(catch_all_extras "Shard 4" "$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')")"
 
-# ── 6-shard definitions (split the original shards 3 and 4; no catch-all) ──
+# ── 6-shard definitions (split the original shards 3 and 4; shard 6 catches all) ──
 S3_6="code.api.v1_2_1"
 
 S4_6="code.api.ResourceDocs1_4_0,code.api.util,code.api.berlin,\
@@ -186,8 +275,40 @@ code.customer,code.errormessages"
 
 S5_6="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0"
 
-S6_6="code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
-code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
+S6_6_BASE="code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
+code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.api.AliveCheckRoutesTest,\
+code.api.OAuth2,code.api.SIWETest,code.util,code.connector"
+
+S6_6="${S6_6_BASE}$(catch_all_extras "Shard 6" "$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3_6" | tr ',' ' ') $(echo "$S4_6" | tr ',' ' ') $(echo "$S5_6" | tr ',' ' ') $(echo "$S6_6_BASE" | tr ',' ' ')")"
+
+# ── Coverage self-check: refuse to run a shard layout that does not cover every package ──
+#    A package no shard names does not run, and the run still ends in "ALL SHARDS PASSED".
+#    That green is worth nothing, and it is not hypothetical: the 6-shard layout was missing
+#    36 of the 87 packages. The catch-all above is what keeps this at zero; this is the assertion
+#    that says so out loud, before any test starts, rather than leaving it to be noticed later.
+assert_full_coverage() {
+  local label=$1
+  local assigned
+  assigned=$(echo "$2" | tr ',' ' ')
+  local missing=""
+  local pkg prefix covered
+  for pkg in $(all_test_packages); do
+    covered=false
+    for prefix in $assigned; do
+      if [[ "$pkg" == "$prefix" || "$pkg" == "$prefix."* || "$prefix" == "$pkg."* ]]; then
+        covered=true; break
+      fi
+    done
+    [[ "$covered" = "false" ]] && missing="${missing} ${pkg}"
+  done
+  if [[ -n "$missing" ]]; then
+    echo "❌ $label leaves these test packages in no shard — they would silently not run:" >&2
+    for pkg in $missing; do echo "     $pkg" >&2; done
+    echo "   Add them to a shard, or to the catch-all's last shard." >&2
+    return 1
+  fi
+  echo "Coverage: $label covers every test package."
+}
 
 run_shard() {
     local n=$1
@@ -195,7 +316,21 @@ run_shard() {
     local port=$3          # tests.port       — TestServer       (OBP_TESTS_PORT)
     local http4s_port=$4   # http4s.test.port — Http4sTestServer (OBP_HTTP4S_TEST_PORT)
     local log="test-results/parallel/shard${n}.log"
-    echo "[Shard $n] Starting... (tests.port=$port, http4s.test.port=$http4s_port)"
+    # This shard's own database, for --db=postgres. Passed through `env` rather than as a command
+    # prefix: bash decides what is an assignment BEFORE expanding, so a ${VAR:+NAME=VALUE} in
+    # prefix position is taken as the command name, not as an assignment - it fails with
+    # "NAME=VALUE: command not found", or worse, is simply absent and the shard quietly runs on
+    # whatever the props file says. An empty array expands to nothing, so h2 is unaffected.
+    local -a db_env=()
+    if [[ -n "$DB_ENV_URL_PREFIX" ]]; then
+        db_env=(
+            OBP_DB_DRIVER="$DB_ENV_DRIVER"
+            OBP_DB_URL="${DB_ENV_URL_PREFIX}${n}"
+            OBP_DB_USER="$DB_ENV_USER"
+            OBP_DB_PASSWORD="$DB_ENV_PASSWORD"
+        )
+    fi
+    echo "[Shard $n] Starting... (tests.port=$port, http4s.test.port=$http4s_port${DB_ENV_URL_PREFIX:+, db=${PG_DB_PREFIX}${n}})"
     # OBP_* env vars take priority over the props file (see APIUtil.getPropsValue:
     # property name . -> _, uppercased, prefixed with OBP_). This is the local
     # equivalent of CI's "Setup props" step: the local test.default.props lacks
@@ -214,6 +349,10 @@ run_shard() {
     # fallback, so DynamicUtilTest / ConnectorMethodTest / AbacRuleTests /
     # DynamicResourceDocTest / DynamicMessageDocTest / DynamicCodeKillSwitchTest's ON
     # scenarios need this set explicitly or they fail locally with OBP-50020.
+    # OBP_ALLOW_USER_GENERATED_SCALA_CODE_WITHOUT_SANDBOX is the second acceptance the same
+    # code path now requires: SecurityManager is gone on this JDK (JEP 486), so the sandbox
+    # enforces nothing and compileScalaCode refuses with OBP-50021 unless the operator says
+    # so a second time. The suite is exactly that case - knowingly unsandboxed, throwaway data.
     # OBP_BERLIN_GROUP_V1_3_ALIAS_PATH mirrors CI's berlin_group_v1_3_alias_path=0.6/v1
     # (injected by both workflows' "Setup props" step): without it, OBP_BERLIN_GROUP_1_3_Alias
     # reports an empty ScannedApiVersion("","","") and ScannedApis.isAddressable filters it
@@ -226,7 +365,8 @@ run_shard() {
     # OBP_TESTS_PORT + OBP_HTTP4S_TEST_PORT carry the two dynamically-allocated free
     # ports (both test servers bind a real socket; see the port-allocation block).
     # Tests only, no recompile (the compile already happened in the pre-compile step).
-    # ${TIMEOUT_BIN} 1200: hard-kill after 20 min to prevent Pekko non-daemon threads from hanging.
+    # ${TIMEOUT_BIN} ${SHARD_TIMEOUT_SECONDS}: hard-kill to prevent Pekko non-daemon threads from
+    # hanging the run; see the SHARD_TIMEOUT_SECONDS block at the top of this file for the value.
     # OBP_API_INSTANCE_ID feeds Constant.getGlobalCacheNamespacePrefix, which prefixes every
     # Redis cache key with "{api_instance_id}_{runmode}_". Ports and the H2 database are already
     # isolated per run, but Redis is not: every checkout on this machine talks to the same
@@ -245,9 +385,11 @@ run_shard() {
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
+    OBP_ALLOW_USER_GENERATED_SCALA_CODE_WITHOUT_SANDBOX="true" \
     OBP_BERLIN_GROUP_V1_3_ALIAS_PATH="0.6/v1" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
-    "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
+    env "${db_env[@]}" \
+    "$TIMEOUT_BIN" "$SHARD_TIMEOUT_SECONDS" mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
     local rc=$?
@@ -315,6 +457,26 @@ if [[ "$HAVE_PY3" = "1" ]]; then
   echo "Lint: test-isolation check..."
   if ! python3 .github/scripts/check_test_isolation.py; then
     echo "❌ Lint failed (setPropsValues at class/feature body). Fix before running." >&2
+    exit 1
+  fi
+  echo "Lint: nullable-column reads..."
+  if ! python3 .github/scripts/check_nullable_column_reads.py; then
+    echo "❌ Lint failed (a nullable column is read into a non-nullable type). Fix before running." >&2
+    exit 1
+  fi
+  echo "Lint: changelog data migrations..."
+  if ! python3 .github/scripts/check_changelog_data_migrations.py; then
+    echo "❌ Lint failed (a de-duplication changeset is missing from the changelog). Fix before running." >&2
+    exit 1
+  fi
+  echo "Lint: blind Commons list casts..."
+  if ! python3 .github/scripts/check_no_blind_commons_casts.py; then
+    echo "❌ Lint failed (a provider result is cast to a Commons list instead of converted). Fix before running." >&2
+    exit 1
+  fi
+  echo "Lint: changelog existence preconditions..."
+  if ! python3 .github/scripts/check_changelog_preconditions.py; then
+    echo "❌ Lint failed (a baseline changeset has no existence precondition). Fix before running." >&2
     exit 1
   fi
 else
@@ -394,9 +556,29 @@ fi
 # Fresh verdict basis: stale surefire XMLs from earlier runs would poison both the
 # surefire audit below and the speed report (observed: test counts drifting across runs).
 rm -rf obp-api/target/surefire-reports obp-commons/target/surefire-reports
+# Recreate them here rather than leaving it to the shards. Having just deleted the directories, all
+# four shards start at once and each asks the scalatest plugin to create the same one; the plugin
+# checks existence and then creates, so two arriving together means one of them fails the build
+# outright with "Cannot create directory .../target/surefire-reports" and runs zero tests. Seen
+# once - shard 3 reported BUILD FAILURE with 0 scenarios while the other three passed - and it is
+# a race, so it is intermittent rather than absent the rest of the time.
+mkdir -p obp-api/target/surefire-reports obp-commons/target/surefire-reports
 
 echo "Pre-compile done, starting shards..." 
 echo ""
+
+# The db.* props are read through APIUtil.getPropsValue, which consults sys.env first (name's
+# dots -> underscores, uppercased, OBP_ prefix), so these override test.default.props for this
+# process only - the user's own props file is left alone. Empty for h2, which just uses the file.
+if [[ "$DB" == "postgres" ]]; then
+  DB_ENV_DRIVER="org.postgresql.Driver"
+  DB_ENV_URL_PREFIX="jdbc:postgresql://${PG_HOST}:${PG_PORT}/${PG_DB_PREFIX}"
+  DB_ENV_USER="$PG_USER"
+  DB_ENV_PASSWORD="${OBP_TEST_POSTGRES_PASSWORD:-}"
+  echo "Database: Postgres, one per shard (${PG_DB_PREFIX}N)"
+else
+  DB_ENV_DRIVER=""; DB_ENV_URL_PREFIX=""; DB_ENV_USER=""; DB_ENV_PASSWORD=""
+fi
 
 if [[ "$SHARDS" = "6" ]]; then
     echo "Starting 6 shards in parallel..."
@@ -409,6 +591,7 @@ if [[ "$SHARDS" = "6" ]]; then
     alloc_free_port || exit 1; P4=$ALLOC_PORT; alloc_free_port || exit 1; H4=$ALLOC_PORT
     alloc_free_port || exit 1; P5=$ALLOC_PORT; alloc_free_port || exit 1; H5=$ALLOC_PORT
     alloc_free_port || exit 1; P6=$ALLOC_PORT; alloc_free_port || exit 1; H6=$ALLOC_PORT
+    assert_full_coverage "the 6-shard layout" "$S1 $S2 $S3_6 $S4_6 $S5_6 $S6_6" || exit 1
     run_shard 1 "$S1"   "$P1" "$H1" & PID1=$!
     run_shard 2 "$S2"   "$P2" "$H2" & PID2=$!
     run_shard 3 "$S3_6" "$P3" "$H3" & PID3=$!
@@ -432,6 +615,7 @@ else
     alloc_free_port || exit 1; P2=$ALLOC_PORT; alloc_free_port || exit 1; H2=$ALLOC_PORT
     alloc_free_port || exit 1; P3=$ALLOC_PORT; alloc_free_port || exit 1; H3=$ALLOC_PORT
     alloc_free_port || exit 1; P4=$ALLOC_PORT; alloc_free_port || exit 1; H4=$ALLOC_PORT
+    assert_full_coverage "the 4-shard layout" "$S1 $S2 $S3 $S4" || exit 1
     run_shard 1 "$S1" "$P1" "$H1" & PID1=$!
     run_shard 2 "$S2" "$P2" "$H2" & PID2=$!
     run_shard 3 "$S3" "$P3" "$H3" & PID3=$!

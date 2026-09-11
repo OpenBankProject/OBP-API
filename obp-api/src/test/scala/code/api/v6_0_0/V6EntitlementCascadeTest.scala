@@ -14,9 +14,9 @@ class V6EntitlementCascadeTest extends V600ServerSetup with DefaultUsers {
 
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
 
-  feature(s"POST /users/USER_ID/entitlements must reach a handler at $VersionOfApi via the bridge cascade") {
+  Feature(s"POST /users/USER_ID/entitlements must reach a handler at $VersionOfApi via the bridge cascade") {
 
-    scenario("Unauthenticated POST /obp/v6.0.0/users/USER_ID/entitlements must NOT 404", VersionOfApi) {
+    Scenario("Unauthenticated POST /obp/v6.0.0/users/USER_ID/entitlements must NOT 404", VersionOfApi) {
       When("We POST without credentials to the v6.0.0 path")
       val requestPost =
         (v6_0_0_Request / "users" / resourceUser1.userId / "entitlements").POST
@@ -30,7 +30,7 @@ class V6EntitlementCascadeTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("Unauthenticated GET /obp/v6.0.0/users/USER_ID/entitlements must NOT 404", VersionOfApi) {
+    Scenario("Unauthenticated GET /obp/v6.0.0/users/USER_ID/entitlements must NOT 404", VersionOfApi) {
       When("We GET without credentials")
       val requestGet =
         (v6_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET

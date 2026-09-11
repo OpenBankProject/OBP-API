@@ -38,8 +38,8 @@ class TransactionAttributesTest extends V400ServerSetup {
 
   
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
       lazy val transactionId = transaction.id
@@ -52,8 +52,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
       lazy val transactionId = transaction.id
       
@@ -66,8 +66,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       lazy val bankId = testBankId1.value
       lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
       lazy val accountId = bankAccount.id
@@ -97,8 +97,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
       lazy val transactionId = transaction.id
@@ -110,8 +110,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
       lazy val transactionId = transaction.id
       When("We make a request v4.0.0")
@@ -123,8 +123,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
       lazy val transactionId = transaction.id
       When("We make a request v4.0.0")
@@ -146,8 +146,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - wrong transactionAttributeId") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - wrong transactionAttributeId") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
       lazy val transactionId = transaction.id
       
@@ -169,8 +169,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - with transactionAttributeId") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - with transactionAttributeId") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
 
       lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
       lazy val transactionId = transaction.id
@@ -191,8 +191,8 @@ class TransactionAttributesTest extends V400ServerSetup {
     }
   }
 
-    feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access - with role - wrong transactionAttributeId") {
-      scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+    Feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access - with role - wrong transactionAttributeId") {
+      Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
 
         lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
         lazy val transactionId = transaction.id
@@ -217,8 +217,8 @@ class TransactionAttributesTest extends V400ServerSetup {
       }
     }
 
-    feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access - with role - with transactionAttributeId") {
-      scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+    Feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access - with role - with transactionAttributeId") {
+      Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
 
         lazy val transaction = randomTransactionViaEndpoint(bankId, accountId, view)
         lazy val transactionId = transaction.id

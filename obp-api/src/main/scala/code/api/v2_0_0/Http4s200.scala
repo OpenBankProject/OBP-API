@@ -37,7 +37,6 @@ import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedAp
 import net.liftweb.common._
 import org.json4s.JsonAST.JValue
 import org.json4s.{Extraction, Formats}
-import net.liftweb.mapper.By
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -950,32 +949,32 @@ object Http4s200 {
               fullPasswordValidation(body.password)
             }
             _ <- code.util.Helper.booleanToFuture(DuplicateUsername, failCode = 409, cc = Some(cc)) {
-              AuthUser.find(By(AuthUser.username, body.username)).isEmpty
+              AuthUser.findByUsername(body.username).isEmpty
             }
             userCreated <- Future {
-              AuthUser.create
-                .firstName(body.first_name)
-                .lastName(body.last_name)
-                .username(body.username)
-                .email(body.email)
-                .password(body.password)
-                .validated(APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false))
+              AuthUser(
+                firstName = body.first_name,
+                lastName = body.last_name,
+                username = body.username,
+                email = body.email,
+                validated = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
+              ).withPassword(body.password)
             }
             _ <- code.util.Helper.booleanToFuture(
-              InvalidJsonFormat + userCreated.validate.map(_.msg).mkString(";"), cc = Some(cc)) {
-              userCreated.validate.isEmpty
+              InvalidJsonFormat + AuthUser.validate(userCreated).mkString(";"), cc = Some(cc)) {
+              AuthUser.validate(userCreated).isEmpty
             }
             savedUser <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               userCreated.saveMe()
             }
             _ <- code.util.Helper.booleanToFuture(s"$UnknownError Error occurred during user creation.", cc = Some(cc)) {
-              userCreated.saved_?
+              savedUser.id > 0
             }
           } yield {
             val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
             if (!skipEmailValidation) AuthUser.sendValidationEmail(savedUser)
             AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
-            createUserJSONfromAuthUser(userCreated)
+            createUserJSONfromAuthUser(savedUser)
           }
         }
     }
@@ -1116,7 +1115,7 @@ object Http4s200 {
               APIUtil.hasEntitlement("", user.userId, canGetAnyUser)
             }
             users <- Future {
-              AuthUser.getResourceUsersByEmail(userEmail)
+              Users.users.vend.getUserByEmail(userEmail).getOrElse(Nil)
             }
           } yield JSONFactory200.createUserJSONs(users)
         }
@@ -1374,7 +1373,13 @@ object Http4s200 {
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(elasticSearchWarehouse), "GET",
-      "/search/warehouse",
+      // Three segments, matching the route pattern. The Lift template was "/search/warehouse",
+      // which is two - and ResourceDocMatcher indexes on (verb, version, segment count), so a
+      // real call to /search/warehouse/q=x found no doc at all. With no doc, the middleware takes
+      // its unmatched branch: no consumer rate limiting, no api_disabled_endpoints check, no
+      // auth-type or JSON-schema validation, and a metric row with an empty operationId.
+      // SEARCH_QUERY is outside literalAllCapsSegments, so it stays a wildcard.
+      "/search/warehouse/SEARCH_QUERY",
       "Search Warehouse Data Via Elasticsearch",
       """
       |Search warehouse data via Elastic Search.
@@ -1466,7 +1471,8 @@ object Http4s200 {
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(elasticSearchMetrics), "GET",
-      "/search/metrics",
+      // Three segments, matching the route pattern - see elasticSearchWarehouse above.
+      "/search/metrics/SEARCH_QUERY",
       "Search API Metrics via Elasticsearch",
       """
       |Search the API calls made to this API instance via Elastic Search.

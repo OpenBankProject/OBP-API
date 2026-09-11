@@ -1,20 +1,21 @@
 package deletion
 
-import code.accountattribute.MappedAccountAttribute
+import code.accountattribute.DoobieAccountAttributeProvider
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, DoobieBankAccountRoutingQueries}
 import code.cards.MappedPhysicalCard
 import code.entitlement.MappedEntitlement
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount, MappedBankAccountData}
+import code.api.util.DoobieUtil
+import code.model.dataAccess.MappedBankAccount
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
 import com.openbankproject.commons.model.{AccountId, BankId}
 import deletion.DeletionUtil.databaseAtomicTask
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
-import net.liftweb.mapper.{By, ByList}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import scala.collection.immutable.List
@@ -48,65 +49,47 @@ object DeleteAccountCascade {
   }
 
   private def deleteAccount(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedBankAccount.bulkDelete_!!(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value)
+    MappedBankAccount.delete(bankId.value, accountId.value
     )
   }
   private def deleteEntitlements(bankId: BankId, accountId: AccountId): Boolean = {
-    val userIds = AccountAccess.findAll(By(AccountAccess.account_id, accountId.value)).map(_.user_fk.foreign.map(_.userId).getOrElse(""))
-    MappedEntitlement.bulkDelete_!!(
-      By(MappedEntitlement.mBankId, bankId.value),
-      ByList(MappedEntitlement.mUserId, userIds)
-    )
+    // user_fk holds RESOURCEUSER's numeric key; resolve each to the public user id as before, with
+    // an unresolvable key contributing "" exactly as the Lift foreign key did.
+    val userIds = AccountAccess.findAllByAccountId(accountId.value)
+      .map(a => code.model.dataAccess.ResourceUser.findByPrimaryKey(a.userPrimaryKey)
+        .map(_.userId).getOrElse(""))
+    MappedEntitlement.deleteByBankIdAndUserIds(bankId.value, userIds)
   }
   
   private def deleteCards(accountId: AccountId): Boolean = {
-    MappedBankAccount.findAll(
-      By(MappedBankAccount.theAccountId, accountId.value)
+    MappedBankAccount.findAllByAccountId(accountId.value
     ) map (
       account =>
-        MappedPhysicalCard.bulkDelete_!!(
-          By(MappedPhysicalCard.mAccount, account.id.get)
-        )
+        MappedPhysicalCard.deleteByAccountKey(account.accountPrimaryKey)
     )
   }.forall(_ == true)
   
   private def deleteBankAccountData(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedBankAccountData.bulkDelete_!!(
-      By(MappedBankAccountData.bankId, bankId.value),
-      By(MappedBankAccountData.accountId, accountId.value)
-    )
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedbankaccountdata WHERE bankid = ${bankId.value} AND accountid = ${accountId.value}"
+        .update.run)
+    true
   }  
   private def deleteAccountWebhooks(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedAccountWebhook.bulkDelete_!!(
-      By(MappedAccountWebhook.mBankId, bankId.value),
-      By(MappedAccountWebhook.mAccountId, accountId.value)
-    )
+    MappedAccountWebhook.deleteByBankAccount(bankId.value, accountId.value)
   }   
   private def deleteAccountAttributes(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedAccountAttribute.bulkDelete_!!(
-      By(MappedAccountAttribute.mBankIdId, bankId.value),
-      By(MappedAccountAttribute.mAccountId, accountId.value)
-    )
-  }  
+    DoobieAccountAttributeProvider.deleteAccountAttributesByBankAndAccount(bankId.value, accountId.value)
+  }
   private def deleteCustomViews(bankId: BankId, accountId: AccountId): Boolean = {
-    ViewDefinition.bulkDelete_!!(
-      By(ViewDefinition.bank_id, bankId.value),
-      By(ViewDefinition.account_id, accountId.value)
-    )
+    ViewDefinition.deleteByBankAccount(bankId.value, accountId.value)
   }  
   private def deleteAccountAccess(bankId: BankId, accountId: AccountId): Boolean = {
-    AccountAccess.bulkDelete_!!(
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.account_id, accountId.value)
-    )
+    AccountAccess.deleteByBankIdAccountId(bankId, accountId)
   }
   private def deleteAccountRoutings(bankId: BankId, accountId: AccountId): Boolean = {
-    BankAccountRouting.bulkDelete_!!(
-      By(BankAccountRouting.BankId, bankId.value),
-      By(BankAccountRouting.AccountId, accountId.value)
-    )
+    DoobieBankAccountRoutingQueries.deleteByBankAccount(bankId, accountId)
+    true
   }
 
   private def deleteTransactions(bankId: BankId, accountId: AccountId): Boolean = {

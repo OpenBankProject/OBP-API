@@ -5,7 +5,9 @@ import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ApiTag.ResourceDocTag
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.json4s.JsonAST.JObject
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for `ResourceDocMiddleware.isEndpointEnabled`.
@@ -23,7 +25,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
  * contract — anyone restoring a per-request version check in the middleware will
  * break those scenarios.
  */
-class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers with GivenWhenThen {
+class ResourceDocMiddlewareEnableDisableTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   object EnableDisableTag extends Tag("EnableDisable")
 
@@ -42,9 +44,9 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       roles = None
     )
 
-  feature("ResourceDocMiddleware.isEndpointEnabled — endpoint-level gating") {
+  Feature("ResourceDocMiddleware.isEndpointEnabled — endpoint-level gating") {
 
-    scenario("baseline: no Props set → endpoint is enabled", EnableDisableTag) {
+    Scenario("baseline: no Props set → endpoint is enabled", EnableDisableTag) {
       Given("a ResourceDoc and empty disabled/enabled sets")
       val rd = doc("getBank")
 
@@ -57,7 +59,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       result shouldBe true
     }
 
-    scenario("operationId in api_disabled_endpoints → disabled", EnableDisableTag) {
+    Scenario("operationId in api_disabled_endpoints → disabled", EnableDisableTag) {
       Given("a ResourceDoc whose operationId is listed in disabled")
       val rd = doc("getBank")
 
@@ -70,7 +72,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       result shouldBe false
     }
 
-    scenario("api_enabled_endpoints is non-empty and excludes this operationId → disabled", EnableDisableTag) {
+    Scenario("api_enabled_endpoints is non-empty and excludes this operationId → disabled", EnableDisableTag) {
       Given("an enabled allowlist that does not contain this operationId")
       val rd = doc("getBank")
       val other = doc("getBanks")
@@ -84,7 +86,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       result shouldBe false
     }
 
-    scenario("api_enabled_endpoints contains this operationId → enabled", EnableDisableTag) {
+    Scenario("api_enabled_endpoints contains this operationId → enabled", EnableDisableTag) {
       Given("an enabled allowlist that contains this operationId")
       val rd = doc("getBank")
 
@@ -97,7 +99,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       result shouldBe true
     }
 
-    scenario("empty api_enabled_endpoints does NOT disable anything (allow-all semantics)", EnableDisableTag) {
+    Scenario("empty api_enabled_endpoints does NOT disable anything (allow-all semantics)", EnableDisableTag) {
       Given("an empty enabled allowlist")
       val rd = doc("getBank")
 
@@ -110,7 +112,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       result shouldBe true
     }
 
-    scenario("disabled wins over enabled — operationId in both sets → disabled", EnableDisableTag) {
+    Scenario("disabled wins over enabled — operationId in both sets → disabled", EnableDisableTag) {
       Given("an operationId that is both enabled and disabled")
       val rd = doc("getBank")
 
@@ -126,7 +128,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
     }
   }
 
-  feature("ResourceDocMiddleware.isEndpointEnabled — version-level gating is delegated to Http4sApp.gate") {
+  Feature("ResourceDocMiddleware.isEndpointEnabled — version-level gating is delegated to Http4sApp.gate") {
 
     // These scenarios encode an intentional design decision: the middleware does NOT
     // re-check `implementedInApiVersion` against `api_disabled_versions` /
@@ -140,7 +142,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
     // version check inside `isEndpointEnabled`, these scenarios will flip and a
     // reviewer will be forced to revisit the design before merging.
 
-    scenario("isEndpointEnabled has no `versionAllowed` parameter — pins the API shape", EnableDisableTag) {
+    Scenario("isEndpointEnabled has no `versionAllowed` parameter — pins the API shape", EnableDisableTag) {
       Given("a ResourceDoc on any version, e.g. v6")
       val rd = doc("getBank", version = ApiVersion.v6_0_0)
 
@@ -153,7 +155,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       result shouldBe true
     }
 
-    scenario("the version on the ResourceDoc never influences the decision", EnableDisableTag) {
+    Scenario("the version on the ResourceDoc never influences the decision", EnableDisableTag) {
       Given("two ResourceDocs that differ only in version")
       val rd6 = doc("getBank", version = ApiVersion.v6_0_0)
       val rd7 = doc("getBank", version = ApiVersion.v7_0_0)
@@ -167,7 +169,7 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
       r7 shouldBe true
     }
 
-    scenario("endpoint-level disable still applies regardless of version", EnableDisableTag) {
+    Scenario("endpoint-level disable still applies regardless of version", EnableDisableTag) {
       Given("a v6 ResourceDoc whose operationId is in api_disabled_endpoints")
       val rd = doc("getBank", version = ApiVersion.v6_0_0)
 

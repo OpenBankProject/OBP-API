@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.Constant
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanUseAccountFirehose, CanUseAccountFirehoseAtAnyBank}
@@ -25,9 +26,9 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.getFirehoseTransactionsForBankAccount))
   
 
-  feature(s"test ${ApiEndpoint2}") {
+  Feature(s"test ${ApiEndpoint2}") {
 
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint2) {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint2) {
       setPropsValues("allow_account_firehose" -> "true")
       setPropsValues("enable.force_error"->"true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
@@ -38,7 +39,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       response.code should equal(200)
       response.body.extract[ModeratedCoreAccountsJsonV300]
     }
-    scenario("We will call the endpoint with user credentials, props alias", VersionOfApi, ApiEndpoint2) {
+    Scenario("We will call the endpoint with user credentials, props alias", VersionOfApi, ApiEndpoint2) {
       setPropsValues("allow_firehose_views" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
       When("We send the request")
@@ -50,7 +51,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
     }
 
 
-    scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint2) {
+    Scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint2) {
       setPropsValues("allow_account_firehose" -> "true")
       When("We send the request")
       val request = (v3_0Request / "banks" / testBankId1.value / "firehose" / "accounts" / "views" / "firehose").GET <@ (user1)
@@ -60,7 +61,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       response.body.toString contains (CanUseAccountFirehoseAtAnyBank.toString()) should be(true)
     }
 
-    scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint2) {
+    Scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
       When("We send the request")
       val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / "views"/"firehose").GET <@ (user1)
@@ -71,9 +72,9 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
     }
   }
 
-  feature(s"test ${ApiEndpoint4.name}") {
+  Feature(s"test ${ApiEndpoint4.name}") {
 
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_account_firehose" -> "true")
       setPropsValues("enable.force_error"->"true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
@@ -85,7 +86,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       response.body.extract[ModeratedCoreAccountsJsonV300]
     }
 
-    scenario("We will call the endpoint with user credentials - bank level role", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint with user credentials - bank level role", VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_account_firehose" -> "true")
       setPropsValues("enable.force_error" -> "true")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanUseAccountFirehose.toString)
@@ -97,7 +98,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       response.body.extract[ModeratedCoreAccountsJsonV300]
     }
     
-    scenario("We will call the endpoint with user credentials, props alias", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint with user credentials, props alias", VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_firehose_views" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
       When("We send the request")
@@ -109,7 +110,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
     }
 
 
-    scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_account_firehose" -> "true")
       When("We send the request")
       val request = (v3_0Request / "banks" / testBankId1.value / "firehose" / "accounts" / testAccountId1.value /"views" / Constant.SYSTEM_OWNER_VIEW_ID/"transactions").GET <@ (user1)
@@ -120,7 +121,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
       response.body.toString contains (CanUseAccountFirehose.toString()) should be(true)
     }
 
-    scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint4) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseAccountFirehoseAtAnyBank.toString)
       When("We send the request")
       val request = (v3_0Request / "banks" / testBankId1.value /"firehose" / "accounts" / testAccountId1.value / "views"/Constant.SYSTEM_OWNER_VIEW_ID/"transactions").GET <@ (user1)

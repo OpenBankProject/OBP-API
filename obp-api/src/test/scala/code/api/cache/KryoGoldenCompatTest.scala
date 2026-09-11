@@ -1,6 +1,7 @@
 package code.api.cache
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.util.Base64
 import scala.io.Source
@@ -61,7 +62,7 @@ import scala.util.Try
  * about two third-party libraries, not something this branch controls, and an assertion on it
  * would freeze a number nobody could act on. What the run is for is the last two outcomes.
  */
-class KryoGoldenCompatTest extends FlatSpec with Matchers {
+class KryoGoldenCompatTest extends AnyFlatSpec with Matchers {
 
   private val JAVA_FIXTURE  = "/kryo_golden_chill_0_9_3.txt"
   private val SCALA_FIXTURE = "/kryo_scala_golden_chill_0_9_3.tsv"

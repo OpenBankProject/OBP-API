@@ -12,7 +12,7 @@ object TransactionImages  extends SimpleInjector {
 
   val transactionImages = new Inject(() => buildOne) {}
 
-  def buildOne: TransactionImages = MapperTransactionImages
+  def buildOne: TransactionImages = DoobieTransactionImages
   
 }
 

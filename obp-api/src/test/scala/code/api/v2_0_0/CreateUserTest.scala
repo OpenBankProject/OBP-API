@@ -49,9 +49,9 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
     format(USERNAME, PASSWORD, KEY))
   val validHeaders = List(accessControlOriginHeader, validHeader)
 
-  feature("we can create an user and login as newly created user using directLogin") {
+  Feature("we can create an user and login as newly created user using directLogin") {
 
-    scenario("we create an user with email, first name, last name, username and password", CreateUser) {
+    Scenario("we create an user with email, first name, last name, username and password", CreateUser) {
       When("we create a new user")
       val params = Map("email" -> EMAIL,
         "username" -> USERNAME,
@@ -65,7 +65,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
       response.code should equal(201)
     }
 
-    scenario("we login using directLogin as newly created user", CreateUser) {
+    Scenario("we login using directLogin as newly created user", CreateUser) {
       When("we request a directLogin token")
       var request = directLoginRequest
       var response = makePostRequestAdditionalHeader(request, "", validHeaders)
@@ -82,7 +82,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
       token.size should not equal (0)
     }
 
-    scenario("we try to create a same user again", CreateUser) {
+    Scenario("we try to create a same user again", CreateUser) {
       When("we create a same user")
       val params = Map("email" -> EMAIL,
         "username" -> USERNAME,

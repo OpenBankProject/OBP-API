@@ -27,13 +27,15 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import code.util.Helper.MdcLoggable
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
-class PasswordUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcLoggable {
+class PasswordUtilTest extends AnyFeatureSpec with Matchers with GivenWhenThen with MdcLoggable {
 
-  feature("Evaluate password strength using Zxcvbn") {
+  Feature("Evaluate password strength using Zxcvbn") {
 
-    scenario("Very weak password should return low score and be unacceptable") {
+    Scenario("Very weak password should return low score and be unacceptable") {
       Given("a common password '12345678'")
       val password = "12345678"
 
@@ -45,7 +47,7 @@ class PasswordUtilTest extends FeatureSpec with Matchers with GivenWhenThen with
       PasswordUtil.isAcceptable(password) should be (false)
     }
 
-    scenario("Moderate password should be acceptable") {
+    Scenario("Moderate password should be acceptable") {
       Given("a moderately strong password 'OpenBank2025$'")
       val password = "OpenBank2025$"
 
@@ -57,7 +59,7 @@ class PasswordUtilTest extends FeatureSpec with Matchers with GivenWhenThen with
       PasswordUtil.isAcceptable(password) should be (true)
     }
 
-    scenario("Strong password with emoji and unicode should be acceptable") {
+    Scenario("Strong password with emoji and unicode should be acceptable") {
       Given("a complex password '🔥MySecurę密码2025!'")
       val password = "🔥MySecurę密码2025!"
 
@@ -69,7 +71,7 @@ class PasswordUtilTest extends FeatureSpec with Matchers with GivenWhenThen with
       PasswordUtil.isAcceptable(password) should be (true)
     }
 
-    scenario("Very strong password should be clearly acceptable") {
+    Scenario("Very strong password should be clearly acceptable") {
       Given("a very strong password 'G@lacticSafe#AlphaZebra99!!'")
       val password = "G@lacticSafe#AlphaZebra99!!"
 

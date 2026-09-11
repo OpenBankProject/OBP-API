@@ -56,8 +56,8 @@ class WebUiPropsTest extends V310ServerSetup {
   val wrongEntity = WebUiPropsCommons("hello_api_explorer_url", "https://apiexplorer.openbankproject.com") // name not start with "webui_"
 
 
-  feature("Add a WebUiProps v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Add a WebUiProps v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "webui_props").POST
       val response310 = makePostRequest(request310, write(rightEntity))
@@ -68,8 +68,8 @@ class WebUiPropsTest extends V310ServerSetup {
     }
   }
 
-  feature("Get WebUiPropss v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature("Get WebUiPropss v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "webui_props").GET
       val response310 = makeGetRequest(request310)
@@ -79,8 +79,8 @@ class WebUiPropsTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Delete the WebUiProps specified by METHOD_ROUTING_ID v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature("Delete the WebUiProps specified by METHOD_ROUTING_ID v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "webui_props" / "WEB_UI_PROPS_ID").DELETE
       val response310 = makeDeleteRequest(request310)
@@ -92,8 +92,8 @@ class WebUiPropsTest extends V310ServerSetup {
   }
 
 
-  feature("Add a WebUiProps v3.1.0 - Unauthorized access - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canCreateWebUiProps, ApiEndpoint1, VersionOfApi) {
+  Feature("Add a WebUiProps v3.1.0 - Unauthorized access - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canCreateWebUiProps, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canCreateTaxResidence)
       val request310 = (v3_1_0_Request / "management" / "webui_props").POST <@(user1)
       val response310 = makePostRequest(request310, write(rightEntity))
@@ -103,7 +103,7 @@ class WebUiPropsTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateWebUiProps)
     }
 
-    scenario("We will call the endpoint with the proper Role " + canCreateWebUiProps , ApiEndpoint1, ApiEndpoint2, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canCreateWebUiProps , ApiEndpoint1, ApiEndpoint2, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "webui_props").POST <@(user1)

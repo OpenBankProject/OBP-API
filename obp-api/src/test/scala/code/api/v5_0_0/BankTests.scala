@@ -41,9 +41,9 @@ class BankTests extends V500ServerSetup with DefaultUsers {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getBank))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.updateBank))
 
-  feature(s"Assuring that endpoint createBank works as expected - $VersionOfApi") {
+  Feature(s"Assuring that endpoint createBank works as expected - $VersionOfApi") {
 
-    scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val request = (v5_0_0_Request / "banks").POST
       val response = makePostRequest(request, write(postBankJson500))
@@ -53,7 +53,7 @@ class BankTests extends V500ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val request = (v5_0_0_Request / "banks").POST <@ (user1)
       val response = makePostRequest(request, write(postBankJson500))
@@ -63,7 +63,7 @@ class BankTests extends V500ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateBank)
     }
 
-    scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
       And("We make the request")

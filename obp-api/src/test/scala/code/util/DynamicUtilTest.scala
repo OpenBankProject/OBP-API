@@ -35,18 +35,23 @@ import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common.{Box}
 import com.openbankproject.commons.util.json
-import org.scalatest.{FeatureSpec, FlatSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
 
 import java.io.File
 import java.security.{AccessControlException}
 import scala.collection.immutable.List
 import scala.io.Source
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class DynamicUtilTest extends FlatSpec with Matchers {
+class DynamicUtilTest extends AnyFlatSpec with Matchers {
   object DynamicUtilsTag extends Tag("DynamicUtil")
 
   private val securityManagerUnavailable =
     "SecurityManager enforcement is not available on JDK 17+ (JEP 411); skip on JDK 21"
+
+  implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.formats
 
   /**
    * Skip the sandbox checks when no SecurityManager can enforce them -- but let CI refuse the skip.
@@ -77,7 +82,6 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       else cancel(securityManagerUnavailable)
     }
 
-  implicit val formats = code.api.util.CustomJsonFormats.formats
 
 
   "DynamicUtil.compileScalaCode method" should "return correct function" taggedAs DynamicUtilsTag in {

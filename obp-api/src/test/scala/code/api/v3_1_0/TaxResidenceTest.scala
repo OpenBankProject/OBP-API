@@ -56,8 +56,8 @@ class TaxResidenceTest extends V310ServerSetup {
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
   lazy val bankId = randomBankId
 
-  feature("Add the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Add the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").POST
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
@@ -67,8 +67,8 @@ class TaxResidenceTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residences").GET
       val response310 = makeGetRequest(request310)
@@ -78,8 +78,8 @@ class TaxResidenceTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature("Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residencies" / "TAX_RESIDENCE_ID").DELETE
       val response310 = makeDeleteRequest(request310)
@@ -91,8 +91,8 @@ class TaxResidenceTest extends V310ServerSetup {
   }
 
 
-  feature("Add the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
+  Feature("Add the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canCreateTaxResidence)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
@@ -103,7 +103,7 @@ class TaxResidenceTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (CanCreateTaxResidence.toString()) should be (true)
     }
-    scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canCreateTaxResidence + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").POST <@(user1)
@@ -113,7 +113,7 @@ class TaxResidenceTest extends V310ServerSetup {
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
-    scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence + " and an existing customer", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence + " and an existing customer", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val requestCustomer310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
@@ -154,8 +154,8 @@ class TaxResidenceTest extends V310ServerSetup {
   }
 
 
-  feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
+  Feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetTaxResidence)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residences").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -166,7 +166,7 @@ class TaxResidenceTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (CanGetTaxResidence.toString()) should be (true)
     }
-    scenario("We will call the endpoint with the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canGetTaxResidence + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residences").GET <@(user1)
@@ -179,8 +179,8 @@ class TaxResidenceTest extends V310ServerSetup {
   }
 
 
-  feature("Delete the Tax Residence of the Customer specified by CUSTOMER_ID and TAX_RESIDENCE_ID v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canDeleteTaxResidence, ApiEndpoint3, VersionOfApi) {
+  Feature("Delete the Tax Residence of the Customer specified by CUSTOMER_ID and TAX_RESIDENCE_ID v3.1.0 - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canDeleteTaxResidence, ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canDeleteTaxResidence)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residencies" / "TAX_RESIDENCE_ID").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
@@ -191,7 +191,7 @@ class TaxResidenceTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (CanDeleteTaxResidence.toString()) should be (true)
     }
-    scenario("We will call the endpoint with the proper Role " + canDeleteTaxResidence, ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canDeleteTaxResidence, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canDeleteTaxResidence + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residencies" / "TAX_RESIDENCE_ID").DELETE <@(user1)

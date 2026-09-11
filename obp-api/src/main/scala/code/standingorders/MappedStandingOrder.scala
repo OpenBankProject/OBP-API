@@ -2,100 +2,132 @@ package code.standingorders
 
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, DoobieUtil}
+import code.util.Helper
 import code.util.Helper.convertToSmallestCurrencyUnits
-import code.util.{Helper, UUIDString}
-import net.liftweb.common.Box
-import net.liftweb.mapper._
 import com.openbankproject.commons.model.StandingOrderTrait
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.Box
+
 import scala.math.BigDecimal
 
+/**
+ * A standing order on an account.
+ *
+ * Unlike DIRECTDEBIT this table has no unique index: repeat standing orders between the same
+ * parties are legitimate, differing by amount, schedule or start date.
+ *
+ * `amountValue` is stored as a BIGINT in the currency's smallest unit and converted on the way in
+ * and out. `dateCancelled` is written by no code path and so is always null, as is `whenDetail`
+ * beyond the empty default createStandingOrder leaves behind.
+ */
+case class StandingOrder(
+  standingOrderId: String,
+  bankId: String,
+  accountId: String,
+  customerId: String,
+  userId: String,
+  counterpartyId: String,
+  amountValue: BigDecimal,
+  amountCurrency: String,
+  whenFrequency: String,
+  whenDetail: String,
+  dateSigned: Date,
+  dateCancelled: Date,
+  dateStarts: Date,
+  dateExpires: Date,
+  active: Boolean
+) extends StandingOrderTrait
+
+object StandingOrder {
+
+  private val selectColumns =
+    fr"""SELECT standingorderid, bankid, accountid, customerid, userid, couterpartyid, amountvalue,
+                amountcurrency, whenfrequency, whendetail, datesigned, datecancelled, datestarts,
+                dateexpires, active
+         FROM standingorder"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[Long], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[Boolean])
+
+  private def fromRow(row: Row): StandingOrder = row match {
+    case (standingOrderId, bankId, accountId, customerId, userId, counterpartyId, amountValue,
+          amountCurrency, whenFrequency, whenDetail, dateSigned, dateCancelled, dateStarts,
+          dateExpires, active) =>
+      StandingOrder(standingOrderId.orNull, bankId.orNull, accountId.orNull, customerId.orNull,
+        userId.orNull, counterpartyId.orNull,
+        Helper.smallestCurrencyUnitToBigDecimal(amountValue.getOrElse(0L), amountCurrency.orNull),
+        amountCurrency.orNull, whenFrequency.orNull, whenDetail.orNull, dateSigned.orNull,
+        dateCancelled.orNull, dateStarts.orNull, dateExpires.orNull, active.getOrElse(false))
+  }
+
+  private def query(condition: Fragment): List[StandingOrder] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def insert(bankId: String, accountId: String, customerId: String, userId: String,
+             counterpartyId: String, amountValue: BigDecimal, amountCurrency: String,
+             whenFrequency: String, dateSigned: Date, dateStarts: Date,
+             dateExpires: Option[Date]): StandingOrder = {
+    val standingOrderId = APIUtil.generateUUID()
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    val signed = new java.sql.Timestamp(dateSigned.getTime)
+    val starts = new java.sql.Timestamp(dateStarts.getTime)
+    val expires = dateExpires.map(d => new java.sql.Timestamp(d.getTime))
+    val smallestUnits = convertToSmallestCurrencyUnits(amountValue, amountCurrency)
+    // whenDetail is never supplied on create; Mapper stored MappedString's "" default, so the
+    // column starts empty rather than NULL.
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO standingorder
+            (standingorderid, bankid, accountid, customerid, userid, couterpartyid, amountvalue,
+             amountcurrency, whenfrequency, whendetail, datesigned, datestarts, dateexpires, active,
+             createdat, updatedat)
+            VALUES ($standingOrderId, $bankId, $accountId, $customerId, $userId, $counterpartyId,
+             $smallestUnits, $amountCurrency, $whenFrequency, '', $signed, $starts, $expires, true,
+             $now, $now)"""
+        .update.run)
+    StandingOrder(standingOrderId, bankId, accountId, customerId, userId, counterpartyId,
+      Helper.smallestCurrencyUnitToBigDecimal(smallestUnits, amountCurrency), amountCurrency,
+      whenFrequency, "", dateSigned, null, dateStarts, dateExpires.orNull, active = true)
+  }
+
+  // Newest first — updatedat orders every listing below, so any future write must stamp it.
+  def findAllByBankAccount(bankId: String, accountId: String): List[StandingOrder] =
+    query(fr"WHERE bankid = $bankId AND accountid = $accountId ORDER BY updatedat DESC, id DESC")
+
+  def findAllByCustomerId(customerId: String): List[StandingOrder] =
+    query(fr"WHERE customerid = $customerId ORDER BY updatedat DESC, id DESC")
+
+  def findAllByUserId(userId: String): List[StandingOrder] =
+    query(fr"WHERE userid = $userId ORDER BY updatedat DESC, id DESC")
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM standingorder".update.run)
+    ()
+  }
+}
+
 object MappedStandingOrderProvider extends StandingOrderProvider {
-  def createStandingOrder(bankId: String,
-                          accountId: String,
-                          customerId: String,
-                          userId: String,
-                          couterpartyId: String,
-                          amountValue: BigDecimal,
-                          amountCurrency: String,
-                          whenFrequency: String,
-                          whenDetail: String,
-                          dateSigned: Date,
-                          dateStarts: Date,
-                          dateExpires: Option[Date]
-                         ): Box[StandingOrder] = Box.tryo {
-    StandingOrder.create
-      .BankId(bankId)
-      .AccountId(accountId)
-      .CustomerId(customerId)
-      .UserId(userId)
-      .CouterpartyId(couterpartyId)
-      .AmountValue(convertToSmallestCurrencyUnits(amountValue, amountCurrency))
-      .AmountCurrency(amountCurrency)
-      .WhenFrequency(whenFrequency)
-      .DateSigned(dateSigned)
-      .DateStarts(dateStarts)
-      .DateExpires(if (dateExpires.isDefined) dateExpires.get else null)
-      .Active(true)
-      .saveMe()
-  }
-  def getStandingOrdersByBankAccount(bankId: String, accountId: String): List[StandingOrder] = {
-    StandingOrder.findAll(
-      By(StandingOrder.BankId, bankId),
-      By(StandingOrder.AccountId, accountId),
-      OrderBy(StandingOrder.updatedAt, Descending))
-  }
-  def getStandingOrdersByCustomer(customerId: String): List[StandingOrder] = {
-    StandingOrder.findAll(
-      By(StandingOrder.CustomerId, customerId),
-      OrderBy(StandingOrder.updatedAt, Descending))
-  }
-  def getStandingOrdersByUser(userId: String): List[StandingOrder] = {
-    StandingOrder.findAll(
-      By(StandingOrder.UserId, userId),
-      OrderBy(StandingOrder.updatedAt, Descending))
-  }
-}
 
-class StandingOrder extends StandingOrderTrait with LongKeyedMapper[StandingOrder] with IdPK with CreatedUpdated {
-
-  def getSingleton: StandingOrder.type = StandingOrder
-
-  object StandingOrderId extends UUIDString(this) {
-    override def defaultValue = APIUtil.generateUUID()
+  def createStandingOrder(bankId: String, accountId: String, customerId: String, userId: String,
+                          couterpartyId: String, amountValue: BigDecimal, amountCurrency: String,
+                          whenFrequency: String, whenDetail: String, dateSigned: Date,
+                          dateStarts: Date, dateExpires: Option[Date]): Box[StandingOrder] = Box.tryo {
+    // whenDetail is accepted and then dropped — Mapper never wrote it either. Preserved verbatim
+    // so a caller relying on the current (absent) behaviour is not silently changed.
+    StandingOrder.insert(bankId, accountId, customerId, userId, couterpartyId, amountValue,
+      amountCurrency, whenFrequency, dateSigned, dateStarts, dateExpires)
   }
-  object BankId extends UUIDString(this)
-  object AccountId extends UUIDString(this)
-  object CustomerId extends UUIDString(this)
-  object UserId extends UUIDString(this)
-  object CouterpartyId extends UUIDString(this)
-  object AmountValue extends MappedLong(this)
-  object AmountCurrency extends MappedString(this, 3)
-  object WhenFrequency extends MappedString(this, 50)
-  object WhenDetail extends MappedString(this, 50)
-  object DateSigned extends MappedDateTime(this)
-  object DateCancelled extends MappedDateTime(this)
-  object DateStarts extends MappedDateTime(this)
-  object DateExpires extends MappedDateTime(this)
-  object Active extends MappedBoolean(this)
-  
-  override def standingOrderId: String = StandingOrderId.get
-  override def bankId: String = BankId.get
-  override def accountId: String = AccountId.get
-  override def customerId: String = CustomerId.get
-  override def userId: String = UserId.get
-  override def counterpartyId: String = CouterpartyId.get
-  override def amountValue: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(AmountValue.get, AmountCurrency.get)
-  override def amountCurrency: String = AmountCurrency.get
-  override def whenFrequency: String = WhenFrequency.get
-  override def whenDetail: String = WhenDetail.get
-  override def dateSigned: Date = DateSigned.get
-  override def dateCancelled: Date = DateCancelled.get
-  override def dateExpires: Date = DateExpires.get
-  override def dateStarts: Date = DateStarts.get
-  override def active: Boolean = Active.get
-}
 
-object StandingOrder extends StandingOrder with LongKeyedMetaMapper[StandingOrder] {
-  override def dbIndexes: List[BaseIndex[StandingOrder]] = super.dbIndexes
+  def getStandingOrdersByBankAccount(bankId: String, accountId: String): List[StandingOrder] =
+    StandingOrder.findAllByBankAccount(bankId, accountId)
+
+  def getStandingOrdersByCustomer(customerId: String): List[StandingOrder] =
+    StandingOrder.findAllByCustomerId(customerId)
+
+  def getStandingOrdersByUser(userId: String): List[StandingOrder] =
+    StandingOrder.findAllByUserId(userId)
 }

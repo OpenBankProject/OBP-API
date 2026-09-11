@@ -7,9 +7,11 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil.HTTPParam
 import org.http4s.{Method, Request, Uri}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
 import org.web3j.crypto.{Keys, Sign}
 import org.web3j.utils.Numeric
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pure unit tests for the SIWE (Sign-In With Ethereum, EIP-4361) auth method.
@@ -19,7 +21,7 @@ import org.web3j.utils.Numeric
  * produced in-test with a freshly generated web3j keypair, then recovered, so the
  * crypto path is verified end-to-end without any external dependency (Phase 1: EOA only).
  */
-class SIWETest extends FeatureSpec with Matchers with GivenWhenThen {
+class SIWETest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   // Sign an EIP-4361 message exactly the way a wallet would (EIP-191 personal_sign),
   // returning the 0x-prefixed 65-byte signature hex.
@@ -28,9 +30,9 @@ class SIWETest extends FeatureSpec with Matchers with GivenWhenThen {
     Numeric.toHexString(sig.getR ++ sig.getS ++ sig.getV)
   }
 
-  feature("EIP-4361 message build + parse") {
+  Feature("EIP-4361 message build + parse") {
 
-    scenario("a built message round-trips through parseMessage") {
+    Scenario("a built message round-trips through parseMessage") {
       Given("a message built by SIWE.buildMessage")
       val address = Keys.toChecksumAddress("0x" + "a" * 40)
       val issuedAt = Instant.parse("2026-06-24T10:00:00Z")
@@ -58,15 +60,15 @@ class SIWETest extends FeatureSpec with Matchers with GivenWhenThen {
       parsed.expirationTime should equal(Some(expiresAt.toString))
     }
 
-    scenario("a message with no address line fails to parse") {
+    Scenario("a message with no address line fails to parse") {
       val garbage = "this is not a SIWE message"
       SIWE.parseMessage(garbage).isDefined should equal(false)
     }
   }
 
-  feature("EOA signature recovery (ecrecover)") {
+  Feature("EOA signature recovery (ecrecover)") {
 
-    scenario("recovers the exact signer of a built message") {
+    Scenario("recovers the exact signer of a built message") {
       Given("a fresh keypair and a message signed by it")
       val keyPair = Keys.createEcKeyPair()
       val address = Keys.toChecksumAddress(Keys.getAddress(keyPair))
@@ -84,7 +86,7 @@ class SIWETest extends FeatureSpec with Matchers with GivenWhenThen {
       recovered.equalsIgnoreCase(address) should equal(true)
     }
 
-    scenario("a signature over a different message does not recover the claimed address") {
+    Scenario("a signature over a different message does not recover the claimed address") {
       val keyPair = Keys.createEcKeyPair()
       val address = Keys.toChecksumAddress(Keys.getAddress(keyPair))
       val signed = SIWE.buildMessage("example.com", address, 1L, "n1", "https://example.com", "a",
@@ -96,49 +98,49 @@ class SIWETest extends FeatureSpec with Matchers with GivenWhenThen {
       recovered.equalsIgnoreCase(address) should equal(false)
     }
 
-    scenario("a malformed signature yields a Failure, not an exception") {
+    Scenario("a malformed signature yields a Failure, not an exception") {
       SIWE.recoverEoaAddress("any message", "0xdeadbeef").isDefined should equal(false)
     }
   }
 
-  feature("address + expiry helpers") {
+  Feature("address + expiry helpers") {
 
-    scenario("isValidEthAddress") {
+    Scenario("isValidEthAddress") {
       SIWE.isValidEthAddress("0x" + "A" * 40) should equal(true)
       SIWE.isValidEthAddress("0x" + "A" * 39) should equal(false)
       SIWE.isValidEthAddress("nope") should equal(false)
     }
 
-    scenario("isExpired is false for None and future, true for past") {
+    Scenario("isExpired is false for None and future, true for past") {
       SIWE.isExpired(None) should equal(false)
       SIWE.isExpired(Some(Instant.now().plusSeconds(60).toString)) should equal(false)
       SIWE.isExpired(Some(Instant.now().minusSeconds(60).toString)) should equal(true)
     }
   }
 
-  feature("SIWE header parsing (subsequent requests)") {
+  Feature("SIWE header parsing (subsequent requests)") {
 
-    scenario("hasSiweHeader + getSiweToken extract token=...") {
+    Scenario("hasSiweHeader + getSiweToken extract token=...") {
       val headers = List(HTTPParam("SIWE", List("token=abc.def.ghi")))
       SIWE.hasSiweHeader(headers) should equal(true)
       SIWE.getSiweToken(headers) should equal(Some("abc.def.ghi"))
     }
 
-    scenario("quoted token value is unquoted") {
+    Scenario("quoted token value is unquoted") {
       val headers = List(HTTPParam("SIWE", List("""token="abc.def.ghi"""")))
       SIWE.getSiweToken(headers) should equal(Some("abc.def.ghi"))
     }
 
-    scenario("no SIWE header → None") {
+    Scenario("no SIWE header → None") {
       val headers = List(HTTPParam("DirectLogin", List("token=xyz")))
       SIWE.hasSiweHeader(headers) should equal(false)
       SIWE.getSiweToken(headers) should equal(None)
     }
   }
 
-  feature("feature is OFF by default") {
+  Feature("feature is OFF by default") {
 
-    scenario("with allow_siwe unset, the routes do not match (HttpRoutes.empty)") {
+    Scenario("with allow_siwe unset, the routes do not match (HttpRoutes.empty)") {
       Given("the default test environment has no allow_siwe prop")
       SIWE.isEnabled should equal(false)
 

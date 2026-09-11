@@ -10,7 +10,7 @@ object TransactionRequestAttributeX extends SimpleInjector {
 
   val transactionRequestAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: TransactionRequestAttributeProvider = MappedTransactionRequestAttributeProvider
+  def buildOne: TransactionRequestAttributeProvider = DoobieTransactionRequestAttributeProvider
 
   // Helper to get the count out of an option
   def countOfTransactionRequestAttribute(listOpt: Option[List[TransactionRequestAttributeTrait]]): Int = {

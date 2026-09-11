@@ -100,9 +100,9 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
 
   // ─── Commit on successful write ───────────────────────────────────────────
 
-  feature("v7 transaction — commit on successful write") {
+  Feature("v7 transaction — commit on successful write") {
 
-    scenario("POST addEntitlement → 201: created row is durable in the DB", Http4s700TransactionTag) {
+    Scenario("POST addEntitlement → 201: created row is durable in the DB", Http4s700TransactionTag) {
       Given("canCreateEntitlementAtAnyBank granted to resourceUser1")
       addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
 
@@ -127,7 +127,7 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("POST addEntitlement: a second request after the first can read committed data", Http4s700TransactionTag) {
+    Scenario("POST addEntitlement: a second request after the first can read committed data", Http4s700TransactionTag) {
       Given("canCreateEntitlementAtAnyBank and canDeleteEntitlementAtAnyBank granted")
       addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
       addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
@@ -151,9 +151,9 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
 
   // ─── Commit on successful delete ─────────────────────────────────────────
 
-  feature("v7 transaction — commit on successful delete") {
+  Feature("v7 transaction — commit on successful delete") {
 
-    scenario("DELETE deleteEntitlement → 204: row is gone from the DB", Http4s700TransactionTag) {
+    Scenario("DELETE deleteEntitlement → 204: row is gone from the DB", Http4s700TransactionTag) {
       Given("canDeleteEntitlementAtAnyBank granted to resourceUser1")
       addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
 
@@ -177,9 +177,9 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
 
   // ─── Connection pool health ───────────────────────────────────────────────
 
-  feature("v7 transaction — connection pool health across multiple requests") {
+  Feature("v7 transaction — connection pool health across multiple requests") {
 
-    scenario("Ten sequential requests all succeed — connections are returned to the pool", Http4s700TransactionTag) {
+    Scenario("Ten sequential requests all succeed — connections are returned to the pool", Http4s700TransactionTag) {
       Given("canCreateEntitlementAtAnyBank granted to resourceUser1")
       addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
       addEntitlement("", resourceUser1.userId, canDeleteEntitlementAtAnyBank.toString)
@@ -211,7 +211,7 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
       deleteStatuses.forall(_ == 204) shouldBe true
     }
 
-    scenario("A 4xx error response does not exhaust the connection pool", Http4s700TransactionTag) {
+    Scenario("A 4xx error response does not exhaust the connection pool", Http4s700TransactionTag) {
       Given("An unauthenticated POST request that will return 401")
       val body = s"""{"bank_id":"","role_name":"CanGetAnyUser"}"""
       val (unauthStatus, _, _) = makeHttpRequestWithBody(
@@ -228,9 +228,9 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
 
   // ── Rollback on uncaught exception ───────────────────────────────────────
 
-  feature("v7 transaction — rollback on uncaught exception") {
+  Feature("v7 transaction — rollback on uncaught exception") {
 
-    scenario("Uncaught IO exception triggers rollback — write is not committed", Http4s700TransactionTag) {
+    Scenario("Uncaught IO exception triggers rollback — write is not committed", Http4s700TransactionTag) {
       Given("No TestRollbackSentinel entitlement exists for resourceUser1 before the request")
       val before = Entitlement.entitlement.vend.getEntitlementsByUserId(resourceUser1.userId)
         .map(_.filter(_.roleName == "TestRollbackSentinel"))

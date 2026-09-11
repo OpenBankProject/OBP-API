@@ -7,15 +7,16 @@ import code.api.CertificateConstants
 import code.api.util.CertificateUtil
 import code.api.util.SelfSignedCertificateUtil.generateSelfSignedCert
 import org.http4s.{Header, Method, Request, Uri}
-import org.scalatest.{FlatSpec, Matchers}
 import org.typelevel.ci.CIString
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * The point of ingress normalisation: the same certificate arrives in whichever encoding the
  * deployment's TLS terminator happens to produce, and everything downstream compares certificates
  * as strings. These tests pin every encoding we know of to one canonical form.
  */
-class Psd2CertIngressTest extends FlatSpec with Matchers {
+class Psd2CertIngressTest extends AnyFlatSpec with Matchers {
 
   private val psd2CertHeader = CIString("PSD2-CERT")
   private val NotACertificate = "not a certificate"

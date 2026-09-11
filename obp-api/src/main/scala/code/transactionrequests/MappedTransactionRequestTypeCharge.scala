@@ -1,28 +1,70 @@
 package code.transactionrequests
 
-import code.util.UUIDString
+import code.api.util.DoobieUtil
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
-import net.liftweb.mapper._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 
-class MappedTransactionRequestTypeCharge extends TransactionRequestTypeCharge with LongKeyedMapper[MappedTransactionRequestTypeCharge] with IdPK with CreatedUpdated{
-  def getSingleton = MappedTransactionRequestTypeCharge
+/**
+ * The charge a bank levies for one transaction-request type.
+ *
+ * The table has no index beyond its primary key, though the only read filters on
+ * (mbankid, mtransactionrequesttypeid) and expects at most one row. Nothing enforces that;
+ * pre-existing, and the lookup pins id ASC so which row wins is deterministic.
+ */
+case class MappedTransactionRequestTypeCharge(
+  transactionRequestTypeId: String,
+  bankId: String,
+  chargeCurrency: String,
+  chargeAmount: String,
+  chargeSummary: String
+) extends TransactionRequestTypeCharge
 
-  object mTransactionRequestTypeId extends UUIDString(this) // Add class for this
-  object mBankId extends UUIDString(this)
-  object mChargeCurrency extends MappedString(this, 3)
-  object mChargeAmount extends MappedString(this, 32)
-  object mChargeSummary extends MappedString(this, 255)
+object MappedTransactionRequestTypeCharge {
 
-  override def transactionRequestTypeId: String = mTransactionRequestTypeId.get
-  override def bankId: String = mBankId.get
-  override def chargeCurrency: String = mChargeCurrency.get
-  override def chargeAmount: String = mChargeAmount.get
-  override def chargeSummary: String = mChargeSummary.get
-  
-}
+  private val selectColumns =
+    fr"""SELECT mtransactionrequesttypeid, mbankid, mchargecurrency, mchargeamount, mchargesummary
+         FROM mappedtransactionrequesttypecharge"""
 
-object MappedTransactionRequestTypeCharge extends MappedTransactionRequestTypeCharge with LongKeyedMetaMapper[MappedTransactionRequestTypeCharge] {
-  
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String])
+
+  private def fromRow(row: Row): MappedTransactionRequestTypeCharge = row match {
+    case (transactionRequestTypeId, bankId, chargeCurrency, chargeAmount, chargeSummary) =>
+      MappedTransactionRequestTypeCharge(transactionRequestTypeId.orNull, bankId.orNull,
+        chargeCurrency.orNull, chargeAmount.orNull, chargeSummary.orNull)
+  }
+
+  private def query(condition: Fragment): List[MappedTransactionRequestTypeCharge] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def find(bankId: String, transactionRequestTypeId: String): Box[MappedTransactionRequestTypeCharge] =
+    query(fr"""WHERE mbankid = $bankId AND mtransactionrequesttypeid = $transactionRequestTypeId
+               ORDER BY id ASC LIMIT 1""").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def insert(bankId: String, transactionRequestTypeId: String, chargeCurrency: String,
+             chargeAmount: String, chargeSummary: String): MappedTransactionRequestTypeCharge = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO mappedtransactionrequesttypecharge
+            (mbankid, mtransactionrequesttypeid, mchargecurrency, mchargeamount, mchargesummary,
+             createdat, updatedat)
+            VALUES ($bankId, $transactionRequestTypeId, $chargeCurrency, $chargeAmount,
+             $chargeSummary, $now, $now)"""
+        .update.run)
+    MappedTransactionRequestTypeCharge(transactionRequestTypeId, bankId, chargeCurrency,
+      chargeAmount, chargeSummary)
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionrequesttypecharge".update.run)
+    ()
+  }
 }
 
 /**
@@ -46,5 +88,3 @@ case class TransactionRequestTypeChargeMock(
 
   override def chargeSummary: String = mChargeSummary
 }
-
-

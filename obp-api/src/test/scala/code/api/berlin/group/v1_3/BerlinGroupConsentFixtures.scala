@@ -1,6 +1,7 @@
 package code.api.berlin.group.v1_3
 
 import code.accountholders.AccountHolders
+import org.json4s.jvalue2extractable
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessAccountsJson, ConsentAccessJson, PostConsentJson}
 import code.api.util.APIUtil.OAuth._
@@ -8,13 +9,13 @@ import code.api.util.{Consent, ConsentJWT, ConsentView, CustomJsonFormats, JwtUt
 import code.consent.{ConsentTrait, Consents}
 import code.model.TokenType.Access
 import code.model.UserX
-import code.model.dataAccess.{BankAccountRouting, ResourceUser}
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.ResourceUser
 import code.setup.DefaultUsers
 import code.token.Tokens
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.JsonAliases
-import net.liftweb.mapper.By
 import org.json4s.Formats
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan
@@ -41,8 +42,8 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
 
   /** One account, addressed by the first IBAN routing in the test data. */
   def bgConsentPostBody(): PostConsentJson = {
-    val acountRoutingIban = BankAccountRouting
-      .findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).head
+    val acountRoutingIban = DoobieBankAccountRoutingQueries
+      .findAllByScheme(AccountRoutingScheme.IBAN.toString).head
     PostConsentJson(
       access = ConsentAccessJson(
         accounts = Option(List(ConsentAccessAccountsJson(
@@ -92,10 +93,8 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   def ibanAddressableAccountsHeldBy(user: User): Set[(String, String)] =
     AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
       .filter { held =>
-        BankAccountRouting.find(
-          By(BankAccountRouting.BankId, held.bankId.value),
-          By(BankAccountRouting.AccountId, held.accountId.value),
-          By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)
+        DoobieBankAccountRoutingQueries.findByBankAccountScheme(
+          held.bankId, held.accountId, AccountRoutingScheme.IBAN.toString
         ).isDefined
       }
       .map(held => (held.bankId.value, held.accountId.value))
@@ -125,7 +124,7 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
         postJsonBody,
         createdConsent.secret,
         createdConsent.consentId,
-        Some(testConsumer.consumerId.get),
+        Some(testConsumer.consumerId),
         Some(validUntilDate),
         None
       ),
@@ -144,14 +143,14 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   // it issued under testConsumer. Signing with this pair gives the endpoint exactly what a
   // client_credentials TPP gives it — cc.user.idGivenByProvider == cc.consumer.key.
   lazy val pseudoUserOfTestConsumer: ResourceUser =
-    UserX.findByProviderId(provider = defaultProvider, idGivenByProvider = testConsumer.key.get)
+    UserX.findByProviderId(provider = defaultProvider, idGivenByProvider = testConsumer.key)
       .map(_.asInstanceOf[ResourceUser])
       .getOrElse {
         UserX.createResourceUser(
           provider = defaultProvider,
-          providerId = Some(testConsumer.key.get),
+          providerId = Some(testConsumer.key),
           createdByConsentId = None,
-          name = Some(testConsumer.key.get),
+          name = Some(testConsumer.key),
           email = Some("pseudo.user.of.test.consumer@example.com"),
           userId = None,
           company = Some("Tesobe GmbH")
@@ -160,8 +159,8 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
 
   lazy val pseudoUserToken = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id.get),
-    Some(pseudoUserOfTestConsumer.id.get),
+    Some(testConsumer.id),
+    Some(pseudoUserOfTestConsumer.id),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
@@ -171,5 +170,5 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   ).openOrThrowException("test pseudo user token creation failed")
 
   // Same consumer as user1, different token: cc.consumer is testConsumer, cc.user is the pseudo-user.
-  lazy val clientCredentialsSession = Some(consumer, Token(pseudoUserToken.key.get, pseudoUserToken.secret.get))
+  lazy val clientCredentialsSession = Some(consumer, Token(pseudoUserToken.key, pseudoUserToken.secret))
 }

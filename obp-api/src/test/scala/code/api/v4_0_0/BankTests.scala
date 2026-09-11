@@ -39,9 +39,9 @@ class BankTests extends V400ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createBank))
 
-  feature("Assuring that endpoint createBank works as expected - v4.0.0") {
+  Feature("Assuring that endpoint createBank works as expected - v4.0.0") {
 
-    scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST
       val responseGet = makePostRequest(requestGet, write(bankJson400))
@@ -51,7 +51,7 @@ class BankTests extends V400ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
       val responseGet = makePostRequest(requestGet, write(bankJson400))
@@ -61,7 +61,7 @@ class BankTests extends V400ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateBank)
     }
 
-    scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
       And("We make the request")

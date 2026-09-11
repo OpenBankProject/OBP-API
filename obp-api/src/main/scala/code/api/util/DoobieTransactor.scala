@@ -100,9 +100,32 @@ object DoobieUtil extends MdcLoggable {
    *  the fallback transactor commits at transact end, releasing any lock immediately. */
   def hasRequestScopeConnection: Boolean = currentRequestConnection.isDefined
 
+  /**
+   * A proxy is stale once the request that created it has committed and closed the real
+   * connection underneath. It can still be sitting in the thread-local: a task submitted late in
+   * that request runs afterwards, on a thread that still carries the proxy.
+   *
+   * Using a stale proxy throws "Connection is closed" from HikariCP's closed-connection stub,
+   * which surfaces as a 500 on a request that is otherwise fine. It only happens when one
+   * request's async tail overlaps the next, so it looks like flakiness in whichever suite was
+   * running at the time.
+   *
+   * RequestAwareConnectionManager.newConnection applies the same check on the Lift side; this is
+   * the Doobie half of it. A proxy that throws from isClosed() counts as closed - there is no
+   * reading of that where the connection is safe to use.
+   */
+  private def isUsable(conn: java.sql.Connection): Boolean =
+    try !conn.isClosed
+    catch {
+      case e: Exception =>
+        logger.warn(s"DoobieUtil: isClosed() threw on the request proxy, treating it as closed: " +
+          s"${e.getClass.getName}: ${e.getMessage}")
+        false
+    }
+
   private def currentRequestConnection: Option[java.sql.Connection] = {
     // 1. Primary: the http4s RequestScopeConnection proxy from Alibaba TTL
-    Option(code.api.util.http4s.RequestScopeConnection.currentProxy.get()).orElse {
+    Option(code.api.util.http4s.RequestScopeConnection.currentProxy.get()).filter(isUsable).orElse {
       // 2. Fallback: Lift Mapper's DB.currentConnection (only Full inside an open DB.use scope)
       DB.currentConnection match {
         case Full(superConn) =>

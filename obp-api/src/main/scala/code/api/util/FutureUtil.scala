@@ -24,8 +24,8 @@ object FutureUtil {
   case class EndpointContext(context: Option[CallContext])
   
   implicit val defaultTimeout: EndpointTimeout = EndpointTimeout(Constant.longEndpointTimeoutInMillis)
-  implicit val callContext = EndpointContext(context = None)
-  implicit val formats = CustomJsonFormats.formats
+  implicit val callContext: code.api.util.FutureUtil.EndpointContext = EndpointContext(context = None)
+  implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
 
   /**
    * Returns the result of the provided future within the given time or a timeout exception, whichever is first
@@ -38,7 +38,7 @@ object FutureUtil {
   def futureWithTimeout[T](future : Future[T])(implicit timeout : EndpointTimeout, cc: EndpointContext, ec: ExecutionContext): Future[T] = {
 
     // Promise will be fulfilled with either the callers Future or the timer task if it times out
-    var p = Promise[T]
+    var p = Promise[T]()
 
     // and a Timer task to handle timing out
 

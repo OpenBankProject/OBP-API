@@ -35,8 +35,8 @@ class UserAttributesTest extends V510ServerSetup {
   lazy val postUserAttributeJsonV510 = SwaggerDefinitionsJSON.userAttributeJsonV510.copy(name = batteryLevel)
   lazy val putUserAttributeJsonV510 = SwaggerDefinitionsJSON.userAttributeJsonV510.copy(name = "ROLE_2")
 
-  feature(s"test $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario(s"We will call the end $ApiEndpoint1  without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario(s"We will call the end $ApiEndpoint1  without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "users" /"testUserId"/ "non-personal" / "attributes").POST
       val response510 = makePostRequest(request510, write(postUserAttributeJsonV510))
@@ -45,7 +45,7 @@ class UserAttributesTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
-    scenario(s"We will call the  $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the  $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "users" /"testUserId" / "non-personal" /"attributes"/"testUserAttributeId").DELETE
       val response510 = makeDeleteRequest(request510)
@@ -54,7 +54,7 @@ class UserAttributesTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
-    scenario(s"We will call the  $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the  $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.1.0")
       val request510 = (v5_1_0_Request / "users" /"testUserId" / "non-personal" /"attributes").GET
       val response510 = makeGetRequest(request510)
@@ -64,8 +64,8 @@ class UserAttributesTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 version $VersionOfApi - authorized access") {
-    scenario(s"We will call the $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 with user credentials", ApiEndpoint1, 
+  Feature(s"test $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 version $VersionOfApi - authorized access") {
+    Scenario(s"We will call the $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 with user credentials", ApiEndpoint1, 
       ApiEndpoint2, ApiEndpoint3,VersionOfApi) {
       When("We make a request v5.1.0, we need to prepare the roles and users")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
@@ -120,7 +120,7 @@ class UserAttributesTest extends V510ServerSetup {
       
     }
     
-    scenario(s"We will call the $ApiEndpoint1 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint1 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0, we need to prepare the roles and users")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
 
@@ -137,7 +137,7 @@ class UserAttributesTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message contains (ApiRole.CanCreateNonPersonalUserAttribute.toString()) shouldBe (true)
     }
     
-    scenario(s"We will call the $ApiEndpoint2 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint2 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0, we need to prepare the roles and users")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
 
@@ -154,7 +154,7 @@ class UserAttributesTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message contains (ApiRole.CanDeleteNonPersonalUserAttribute.toString()) shouldBe (true)
     }
   
-    scenario(s"We will call the $ApiEndpoint3 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint3 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0, we need to prepare the roles and users")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
 

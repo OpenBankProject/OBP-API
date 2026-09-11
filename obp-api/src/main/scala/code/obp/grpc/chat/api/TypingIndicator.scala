@@ -5,55 +5,90 @@
 
 package code.obp.grpc.chat.api
 
+/** Fields match TypingUserJsonV600
+  */
 @SerialVersionUID(0L)
 final case class TypingIndicator(
     chatRoomId: _root_.scala.Predef.String = "",
     userId: _root_.scala.Predef.String = "",
     username: _root_.scala.Predef.String = "",
     provider: _root_.scala.Predef.String = "",
-    isTyping: _root_.scala.Boolean = false
-    ) extends scalapb.GeneratedMessage with scalapb.Message[TypingIndicator] with scalapb.lenses.Updatable[TypingIndicator] {
+    isTyping: _root_.scala.Boolean = false,
+    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[TypingIndicator] {
     @transient
-    private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-    private[this] def __computeSerializedValue(): _root_.scala.Int = {
+    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+    private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
-      if (chatRoomId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, chatRoomId) }
-      if (userId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, userId) }
-      if (username != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, username) }
-      if (provider != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, provider) }
-      if (isTyping != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(5, isTyping) }
+      
+      {
+        val __value = chatRoomId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+        }
+      };
+      
+      {
+        val __value = userId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+        }
+      };
+      
+      {
+        val __value = username
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
+        }
+      };
+      
+      {
+        val __value = provider
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
+        }
+      };
+      
+      {
+        val __value = isTyping
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(5, __value)
+        }
+      };
+      __size += unknownFields.serializedSize
       __size
     }
-    final override def serializedSize: _root_.scala.Int = {
-      var read = __serializedSizeCachedValue
-      if (read == 0) {
-        read = __computeSerializedValue()
-        __serializedSizeCachedValue = read
+    override def serializedSize: _root_.scala.Int = {
+      var __size = __serializedSizeMemoized
+      if (__size == 0) {
+        __size = __computeSerializedSize() + 1
+        __serializedSizeMemoized = __size
       }
-      read
+      __size - 1
+      
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
         val __v = chatRoomId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
       };
       {
         val __v = userId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(2, __v)
         }
       };
       {
         val __v = username
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(3, __v)
         }
       };
       {
         val __v = provider
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(4, __v)
         }
       };
@@ -63,45 +98,16 @@ final case class TypingIndicator(
           _output__.writeBool(5, __v)
         }
       };
-    }
-    def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.TypingIndicator = {
-      var __chatRoomId = this.chatRoomId
-      var __userId = this.userId
-      var __username = this.username
-      var __provider = this.provider
-      var __isTyping = this.isTyping
-      var _done__ = false
-      while (!_done__) {
-        val _tag__ = _input__.readTag()
-        _tag__ match {
-          case 0 => _done__ = true
-          case 10 =>
-            __chatRoomId = _input__.readString()
-          case 18 =>
-            __userId = _input__.readString()
-          case 26 =>
-            __username = _input__.readString()
-          case 34 =>
-            __provider = _input__.readString()
-          case 40 =>
-            __isTyping = _input__.readBool()
-          case tag => _input__.skipField(tag)
-        }
-      }
-      code.obp.grpc.chat.api.TypingIndicator(
-          chatRoomId = __chatRoomId,
-          userId = __userId,
-          username = __username,
-          provider = __provider,
-          isTyping = __isTyping
-      )
+      unknownFields.writeTo(_output__)
     }
     def withChatRoomId(__v: _root_.scala.Predef.String): TypingIndicator = copy(chatRoomId = __v)
     def withUserId(__v: _root_.scala.Predef.String): TypingIndicator = copy(userId = __v)
     def withUsername(__v: _root_.scala.Predef.String): TypingIndicator = copy(username = __v)
     def withProvider(__v: _root_.scala.Predef.String): TypingIndicator = copy(provider = __v)
     def withIsTyping(__v: _root_.scala.Boolean): TypingIndicator = copy(isTyping = __v)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
           val __t = chatRoomId
@@ -126,7 +132,7 @@ final case class TypingIndicator(
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      require(__field.containingMessage eq companion.scalaDescriptor)
+      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(chatRoomId)
         case 2 => _root_.scalapb.descriptors.PString(userId)
@@ -136,40 +142,73 @@ final case class TypingIndicator(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.TypingIndicator
+    def companion: code.obp.grpc.chat.api.TypingIndicator.type = code.obp.grpc.chat.api.TypingIndicator
+    // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.chat.g1.TypingIndicator])
 }
 
 object TypingIndicator extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.TypingIndicator] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.TypingIndicator] = this
-  def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.chat.api.TypingIndicator = {
-    require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-    val __fields = javaDescriptor.getFields
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.TypingIndicator = {
+    var __chatRoomId: _root_.scala.Predef.String = ""
+    var __userId: _root_.scala.Predef.String = ""
+    var __username: _root_.scala.Predef.String = ""
+    var __provider: _root_.scala.Predef.String = ""
+    var __isTyping: _root_.scala.Boolean = false
+    var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+    var _done__ = false
+    while (!_done__) {
+      val _tag__ = _input__.readTag()
+      _tag__ match {
+        case 0 => _done__ = true
+        case 10 =>
+          __chatRoomId = _input__.readStringRequireUtf8()
+        case 18 =>
+          __userId = _input__.readStringRequireUtf8()
+        case 26 =>
+          __username = _input__.readStringRequireUtf8()
+        case 34 =>
+          __provider = _input__.readStringRequireUtf8()
+        case 40 =>
+          __isTyping = _input__.readBool()
+        case tag =>
+          if (_unknownFields__ == null) {
+            _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+          }
+          _unknownFields__.parseField(tag, _input__)
+      }
+    }
     code.obp.grpc.chat.api.TypingIndicator(
-      __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(2), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(3), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(4), false).asInstanceOf[_root_.scala.Boolean]
+        chatRoomId = __chatRoomId,
+        userId = __userId,
+        username = __username,
+        provider = __provider,
+        isTyping = __isTyping,
+        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.chat.api.TypingIndicator] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       code.obp.grpc.chat.api.TypingIndicator(
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
+        chatRoomId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        userId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        username = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        provider = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        isTyping = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes.get(3)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = throw new UnsupportedOperationException("scalaDescriptor not available")
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes().get(3)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ChatProto.scalaDescriptor.messages(3)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.chat.api.TypingIndicator(
+    chatRoomId = "",
+    userId = "",
+    username = "",
+    provider = "",
+    isTyping = false
   )
   implicit class TypingIndicatorLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.chat.api.TypingIndicator]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.chat.api.TypingIndicator](_l) {
     def chatRoomId: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.chatRoomId)((c_, f_) => c_.copy(chatRoomId = f_))
@@ -178,9 +217,23 @@ object TypingIndicator extends scalapb.GeneratedMessageCompanion[code.obp.grpc.c
     def provider: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.provider)((c_, f_) => c_.copy(provider = f_))
     def isTyping: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.isTyping)((c_, f_) => c_.copy(isTyping = f_))
   }
-  final val CHATROOMID_FIELD_NUMBER = 1
-  final val USERID_FIELD_NUMBER = 2
+  final val CHAT_ROOM_ID_FIELD_NUMBER = 1
+  final val USER_ID_FIELD_NUMBER = 2
   final val USERNAME_FIELD_NUMBER = 3
   final val PROVIDER_FIELD_NUMBER = 4
-  final val ISTYPING_FIELD_NUMBER = 5
+  final val IS_TYPING_FIELD_NUMBER = 5
+  def of(
+    chatRoomId: _root_.scala.Predef.String,
+    userId: _root_.scala.Predef.String,
+    username: _root_.scala.Predef.String,
+    provider: _root_.scala.Predef.String,
+    isTyping: _root_.scala.Boolean
+  ): _root_.code.obp.grpc.chat.api.TypingIndicator = _root_.code.obp.grpc.chat.api.TypingIndicator(
+    chatRoomId,
+    userId,
+    username,
+    provider,
+    isTyping
+  )
+  // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.chat.g1.TypingIndicator])
 }

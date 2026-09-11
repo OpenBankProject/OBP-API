@@ -1,6 +1,8 @@
 package code.api.dynamic.entity.helper
 
-import org.scalatest.{FlatSpec, Matchers}
+// ScalaTest 3.2 split these: FlatSpec/Matchers moved to the flatspec/matchers packages.
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pure unit tests for [[DynamicEntityHelper.isSchemaCompatibleChange]]: the rule that decides whether a
@@ -9,7 +11,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * metadataJson is stored as the whole definition request, `{"FooBar": {...}}`; the bare inner object is
  * accepted too.
  */
-class SchemaCompatibleChangeSpec extends FlatSpec with Matchers {
+class SchemaCompatibleChangeSpec extends AnyFlatSpec with Matchers {
 
   private def wrap(inner: String, name: String = "FooBar") = s"""{"$name":$inner}"""
 

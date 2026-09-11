@@ -5,8 +5,8 @@ import code.api.util.ApiVersionUtils.versions
 import code.api.v4_0_0.V400ServerSetup
 
 class ApiVersionUtilsTest extends V400ServerSetup {
-  feature("test ApiVersionUtils.valueOf ") {
-    scenario("support both fullyQualifiedVersion and apiShortVersion") {
+  Feature("test ApiVersionUtils.valueOf ") {
+    Scenario("support both fullyQualifiedVersion and apiShortVersion") {
     ApiVersionUtils.valueOf("v4.0.0")
     ApiVersionUtils.valueOf("OBPv4.0.0")
 

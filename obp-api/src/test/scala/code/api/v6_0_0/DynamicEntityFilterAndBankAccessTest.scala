@@ -105,9 +105,9 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
 
   // ==================== G1: GET-all query-parameter filtering ====================
 
-  feature("G1 - GET-all query parameter filtering (filterDynamicObjects)") {
+  Feature("G1 - GET-all query parameter filtering (filterDynamicObjects)") {
 
-    scenario("Generic /my/ GET-all filters by field value, supports multi-field AND, and excludes locale", VersionOfApi) {
+    Scenario("Generic /my/ GET-all filters by field value, supports multi-field AND, and excludes locale", VersionOfApi) {
       val (code, body) = createSystemEntity(systemEntityJson("test_filter_my"))
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -160,7 +160,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
       }
     }
 
-    scenario("Public /public/ GET-all filters by field value", VersionOfApi) {
+    Scenario("Public /public/ GET-all filters by field value", VersionOfApi) {
       val (code, body) = createSystemEntity(systemEntityJson("test_filter_public", ("has_public_access" -> true)))
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -188,7 +188,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
       }
     }
 
-    scenario("Community /community/ GET-all filters by field value", VersionOfApi) {
+    Scenario("Community /community/ GET-all filters by field value", VersionOfApi) {
       val (code, body) = createSystemEntity(systemEntityJson("test_filter_community", ("has_community_access" -> true)))
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -220,9 +220,9 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
 
   // ==================== G2: bank-level public / community access ====================
 
-  feature("G2 - bank-level public and community access") {
+  Feature("G2 - bank-level public and community access") {
 
-    scenario("Bank-level /banks/BANK_ID/public/ GET works without authentication", VersionOfApi) {
+    Scenario("Bank-level /banks/BANK_ID/public/ GET works without authentication", VersionOfApi) {
       val bankId = testBankId1.value
       val (code, body) = createBankEntity(bankId, bankEntityJson("test_bank_public", ("has_public_access" -> true)))
       code should equal(201)
@@ -249,7 +249,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
       }
     }
 
-    scenario("Bank-level /banks/BANK_ID/community/ GET requires auth then CanGet role", VersionOfApi) {
+    Scenario("Bank-level /banks/BANK_ID/community/ GET requires auth then CanGet role", VersionOfApi) {
       val bankId = testBankId1.value
       val (code, body) = createBankEntity(bankId, bankEntityJson("test_bank_community", ("has_community_access" -> true)))
       code should equal(201)

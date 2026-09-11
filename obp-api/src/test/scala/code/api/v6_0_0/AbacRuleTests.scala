@@ -59,9 +59,9 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
 
   // ==================== executeAbacRule Tests ====================
 
-  feature(s"Assuring that endpoint executeAbacRule works as expected - $VersionOfApi") {
+  Feature(s"Assuring that endpoint executeAbacRule works as expected - $VersionOfApi") {
 
-    scenario("Anonymous access should be rejected", ApiEndpoint1, VersionOfApi) {
+    Scenario("Anonymous access should be rejected", ApiEndpoint1, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "management" / "abac-rules" / "some-rule-id" / "execute").POST
       val execJson = ExecuteAbacRuleJsonV600(None, None, None, None, None, None, None, None, None)
@@ -71,7 +71,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("Authenticated user without CanExecuteAbacRule role should be rejected", ApiEndpoint1, VersionOfApi) {
+    Scenario("Authenticated user without CanExecuteAbacRule role should be rejected", ApiEndpoint1, VersionOfApi) {
       When("We make the request without the required role")
       val request = (v6_0_0_Request / "management" / "abac-rules" / "some-rule-id" / "execute").POST <@ (user1)
       val execJson = ExecuteAbacRuleJsonV600(None, None, None, None, None, None, None, None, None)
@@ -81,7 +81,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + canExecuteAbacRule)
     }
 
-    scenario("Execute a non-existent rule should return error", ApiEndpoint1, VersionOfApi) {
+    Scenario("Execute a non-existent rule should return error", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
       When("We execute a rule that does not exist")
       val request = (v6_0_0_Request / "management" / "abac-rules" / "non-existent-id" / "execute").POST <@ (user1)
@@ -91,7 +91,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.code should equal(404)
     }
 
-    scenario("Execute an allow-all rule should return true", ApiEndpoint1, VersionOfApi) {
+    Scenario("Execute an allow-all rule should return true", ApiEndpoint1, VersionOfApi) {
       val ruleId = createAbacRuleViaApi("allow-all-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
@@ -106,7 +106,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       result.result should equal(true)
     }
 
-    scenario("Execute a deny-all rule should return false", ApiEndpoint1, VersionOfApi) {
+    Scenario("Execute a deny-all rule should return false", ApiEndpoint1, VersionOfApi) {
       val ruleId = createAbacRuleViaApi("deny-all-test", "false")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
@@ -121,7 +121,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       result.result should equal(false)
     }
 
-    scenario("Execute rule with explicit authenticated_user_id", ApiEndpoint1, VersionOfApi) {
+    Scenario("Execute rule with explicit authenticated_user_id", ApiEndpoint1, VersionOfApi) {
       val ruleId = createAbacRuleViaApi("auth-user-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
@@ -146,7 +146,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       result.result should equal(true)
     }
 
-    scenario("Execute an inactive rule should return error", ApiEndpoint1, VersionOfApi) {
+    Scenario("Execute an inactive rule should return error", ApiEndpoint1, VersionOfApi) {
       val ruleId = createAbacRuleViaApi("inactive-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""", isActive = false)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
@@ -164,9 +164,9 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
 
   // ==================== executeAbacPolicy Tests ====================
 
-  feature(s"Assuring that endpoint executeAbacPolicy works as expected - $VersionOfApi") {
+  Feature(s"Assuring that endpoint executeAbacPolicy works as expected - $VersionOfApi") {
 
-    scenario("Anonymous access should be rejected", ApiEndpoint2, VersionOfApi) {
+    Scenario("Anonymous access should be rejected", ApiEndpoint2, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "management" / "abac-policies" / "account-access" / "execute").POST
       val execJson = ExecuteAbacRuleJsonV600(None, None, None, None, None, None, None, None, None)
@@ -176,7 +176,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("Authenticated user without CanExecuteAbacRule role should be rejected", ApiEndpoint2, VersionOfApi) {
+    Scenario("Authenticated user without CanExecuteAbacRule role should be rejected", ApiEndpoint2, VersionOfApi) {
       When("We make the request without the required role")
       val request = (v6_0_0_Request / "management" / "abac-policies" / "account-access" / "execute").POST <@ (user1)
       val execJson = ExecuteAbacRuleJsonV600(None, None, None, None, None, None, None, None, None)
@@ -186,7 +186,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + canExecuteAbacRule)
     }
 
-    scenario("Execute policy with invalid policy name should return error", ApiEndpoint2, VersionOfApi) {
+    Scenario("Execute policy with invalid policy name should return error", ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
       When("We execute a non-existent policy")
       val request = (v6_0_0_Request / "management" / "abac-policies" / "non-existent-policy" / "execute").POST <@ (user1)
@@ -196,7 +196,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.code should equal(404)
     }
 
-    scenario("Execute policy with no rules should default to deny (false)", ApiEndpoint2, VersionOfApi) {
+    Scenario("Execute policy with no rules should default to deny (false)", ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
       When("We execute the account-access policy with no rules configured")
@@ -210,7 +210,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       result.result should equal(false)
     }
 
-    scenario("Execute policy with one allow-all rule should return true", ApiEndpoint2, VersionOfApi) {
+    Scenario("Execute policy with one allow-all rule should return true", ApiEndpoint2, VersionOfApi) {
       createAbacRuleViaApi("policy-allow-test", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""", policy = "account-access")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
@@ -225,7 +225,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       result.result should equal(true)
     }
 
-    scenario("Execute policy with only deny-all rules should return false", ApiEndpoint2, VersionOfApi) {
+    Scenario("Execute policy with only deny-all rules should return false", ApiEndpoint2, VersionOfApi) {
       createAbacRuleViaApi("policy-deny-test", "false", policy = "account-access")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canExecuteAbacRule.toString)
 
@@ -240,7 +240,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       result.result should equal(false)
     }
 
-    scenario("Execute policy with mixed rules - OR logic means at least one must pass", ApiEndpoint2, VersionOfApi) {
+    Scenario("Execute policy with mixed rules - OR logic means at least one must pass", ApiEndpoint2, VersionOfApi) {
       // Create one allow rule and one deny rule for the same policy
       createAbacRuleViaApi("policy-mixed-allow", s"""authenticatedUser.emailAddress == "${resourceUser1.emailAddress}"""", policy = "account-access")
       createAbacRuleViaApi("policy-mixed-deny", "false", policy = "account-access")
@@ -260,9 +260,9 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
 
   // ==================== Tautology Detection Tests ====================
 
-  feature(s"Assuring that tautological ABAC rules are rejected - $VersionOfApi") {
+  Feature(s"Assuring that tautological ABAC rules are rejected - $VersionOfApi") {
 
-    scenario("Creating a rule with bare 'true' should be rejected", ApiEndpoint3, VersionOfApi) {
+    Scenario("Creating a rule with bare 'true' should be rejected", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
       val createJson = CreateAbacRuleJsonV600(
         rule_name = "tautology-true",
@@ -277,7 +277,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.code should equal(400)
     }
 
-    scenario("Creating a rule with '1==1' should be rejected", ApiEndpoint3, VersionOfApi) {
+    Scenario("Creating a rule with '1==1' should be rejected", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
       val createJson = CreateAbacRuleJsonV600(
         rule_name = "tautology-numeric",
@@ -292,7 +292,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.code should equal(400)
     }
 
-    scenario("Creating a rule with 'false' should be allowed (deny-all is fine)", ApiEndpoint3, VersionOfApi) {
+    Scenario("Creating a rule with 'false' should be allowed (deny-all is fine)", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
       val createJson = CreateAbacRuleJsonV600(
         rule_name = "deny-all-ok",
@@ -307,7 +307,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.code should equal(201)
     }
 
-    scenario("Validating a rule with 'true' should return PermissivenessError", ApiEndpoint3, VersionOfApi) {
+    Scenario("Validating a rule with 'true' should return PermissivenessError", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
       val validateJson = ValidateAbacRuleJsonV600(rule_code = "true")
       val request = (v6_0_0_Request / "management" / "abac-rules" / "validate").POST <@ (user1)
@@ -321,9 +321,9 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
 
   // ==================== Statistical Permissiveness Detection Tests ====================
 
-  feature(s"Assuring that statistically too permissive ABAC rules are rejected - $VersionOfApi") {
+  Feature(s"Assuring that statistically too permissive ABAC rules are rejected - $VersionOfApi") {
 
-    scenario("Creating a rule with 'emailAddress.length >= 0' should be rejected as statistically too permissive", ApiEndpoint3, VersionOfApi) {
+    Scenario("Creating a rule with 'emailAddress.length >= 0' should be rejected as statistically too permissive", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
       val createJson = CreateAbacRuleJsonV600(
         rule_name = "statistical-tautology",
@@ -338,7 +338,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       response.code should equal(400)
     }
 
-    scenario("Validating a statistically too permissive rule should return PermissivenessError", ApiEndpoint3, VersionOfApi) {
+    Scenario("Validating a statistically too permissive rule should return PermissivenessError", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
       val validateJson = ValidateAbacRuleJsonV600(rule_code = "authenticatedUser.emailAddress.length >= 0")
       val request = (v6_0_0_Request / "management" / "abac-rules" / "validate").POST <@ (user1)
@@ -349,7 +349,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       (response.body \ "details" \ "error_type").extract[String] should equal("PermissivenessError")
     }
 
-    scenario("Creating a selective attribute-checking rule should succeed", ApiEndpoint3, VersionOfApi) {
+    Scenario("Creating a selective attribute-checking rule should succeed", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
       val createJson = CreateAbacRuleJsonV600(
         rule_name = "selective-rule",

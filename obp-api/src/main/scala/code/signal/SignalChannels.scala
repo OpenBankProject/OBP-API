@@ -5,6 +5,8 @@ import code.api.util.CustomJsonFormats
 import code.api.v6_0_0.{PostSignalMessageJsonV600, SignalChannelInfoJsonV600, SignalMessageJsonV600, SignalMessagePublishedJsonV600, SignalMessagesJsonV600}
 import com.openbankproject.commons.util.JsonAliases
 import org.json4s.Extraction
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 
 import java.util.UUID.randomUUID
 import scala.util.Try
@@ -18,7 +20,8 @@ import scala.util.Try
  */
 object SignalChannels {
 
-  private implicit val formats = CustomJsonFormats.formats
+  // Scala 3 requires an explicit type on an implicit definition.
+  private implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
 
   private def utcTimestampNow(): String = {
     val sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")

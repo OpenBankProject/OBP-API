@@ -8,7 +8,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.saveLog
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 
 import scala.util.Try
 
@@ -30,7 +29,7 @@ object MigrationOfSettlementAccounts {
 
       // Insert the default settlement accounts if they doesn't exist
 
-      val insertedIncomingSettlementAccount = MappedBankAccount.find(By(MappedBankAccount.bank, bank.bankId.value), By(MappedBankAccount.theAccountId, INCOMING_SETTLEMENT_ACCOUNT_ID)) match {
+      val insertedIncomingSettlementAccount = MappedBankAccount.find(bank.bankId.value, INCOMING_SETTLEMENT_ACCOUNT_ID) match {
         case Full(_) =>
           Try {
             Console.println(s"Settlement BankAccount(${bank.bankId.value}, $INCOMING_SETTLEMENT_ACCOUNT_ID) found.")
@@ -38,22 +37,21 @@ object MigrationOfSettlementAccounts {
           }
         case _ =>
           Try {
-            MappedBankAccount.create
-              .bank(bank.bankId.value)
-              .theAccountId(INCOMING_SETTLEMENT_ACCOUNT_ID)
-              .accountCurrency("EUR")
-              .accountBalance(0)
-              .kind("SETTLEMENT")
-              .holder(bank.fullName)
-              .accountName("Default incoming settlement account")
-              .accountLabel("Settlement account: Do not delete!")
-              .saveMe()
+            MappedBankAccount.insert(
+              bankId = bank.bankId.value,
+              accountId = INCOMING_SETTLEMENT_ACCOUNT_ID,
+              accountCurrency = "EUR",
+              accountBalance = 0,
+              kind = "SETTLEMENT",
+              holder = bank.fullName,
+              accountName = "Default incoming settlement account",
+              accountLabel = "Settlement account: Do not delete!")
             Console.println(s"Creating settlement BankAccount(${bank.bankId.value}, $INCOMING_SETTLEMENT_ACCOUNT_ID).")
             1
           }
       }
 
-      val insertedOutgoingSettlementAccount = MappedBankAccount.find(By(MappedBankAccount.bank, bank.bankId.value), By(MappedBankAccount.theAccountId, OUTGOING_SETTLEMENT_ACCOUNT_ID)) match {
+      val insertedOutgoingSettlementAccount = MappedBankAccount.find(bank.bankId.value, OUTGOING_SETTLEMENT_ACCOUNT_ID) match {
         case Full(_) =>
           Try {
             Console.println(s"Settlement BankAccount(${bank.bankId.value}, $OUTGOING_SETTLEMENT_ACCOUNT_ID) found.")
@@ -61,16 +59,15 @@ object MigrationOfSettlementAccounts {
           }
         case _ =>
           Try {
-            MappedBankAccount.create
-              .bank(bank.bankId.value)
-              .theAccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID)
-              .accountCurrency("EUR")
-              .accountBalance(0)
-              .kind("SETTLEMENT")
-              .holder(bank.fullName)
-              .accountName("Default outgoing settlement account")
-              .accountLabel("Settlement account: Do not delete!")
-              .saveMe()
+            MappedBankAccount.insert(
+              bankId = bank.bankId.value,
+              accountId = OUTGOING_SETTLEMENT_ACCOUNT_ID,
+              accountCurrency = "EUR",
+              accountBalance = 0,
+              kind = "SETTLEMENT",
+              holder = bank.fullName,
+              accountName = "Default outgoing settlement account",
+              accountLabel = "Settlement account: Do not delete!")
             Console.println(s"Creating settlement BankAccount(${bank.bankId.value}, $OUTGOING_SETTLEMENT_ACCOUNT_ID).")
             1
           }

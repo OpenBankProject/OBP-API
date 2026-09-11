@@ -2,9 +2,6 @@ package code.api.cache
 
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.{CacheBuilder, Cache => GuavaUnderlying}
-import scalacache.{Cache, Entry}
-import scalacache.guava.GuavaCache
-import scalacache.memoization.{cacheKeyExclude, memoizeF, memoizeSync}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
@@ -13,30 +10,56 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object InMemory extends MdcLoggable {
 
-  // scalacache 0.28 types its Cache by the value type, while these wrappers are generic in A and
-  // a single Guava instance has to serve every one of them. The underlying store is declared at
-  // Entry[Any] and narrowed per call: the cast is erased at run time, and a given key always holds
-  // the type its own call site wrote, which is the same assumption the untyped ScalaCache made.
-  val underlyingGuavaCache: GuavaUnderlying[String, Entry[Any]] =
-    CacheBuilder.newBuilder().maximumSize(100000L).build[String, Entry[Any]]()
-
-  // Built once, for the same reason as Redis's: the wrapper holds no per-type state and the cast is
-  // erased, so one instance serves every A instead of one allocation per cache read.
-  private val sharedCache: Cache[Any] = GuavaCache(underlyingGuavaCache)
-  private def cacheFor[A]: Cache[A] = sharedCache.asInstanceOf[Cache[A]]
-
-  def memoizeSyncWithInMemory[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => A): A = {
-    logger.trace(s"InMemory.memoizeSyncWithInMemory.underlyingGuavaCache size ${underlyingGuavaCache.size()}, current cache key is $cacheKey")
-    import scalacache.modes.sync._
-    implicit val cache: Cache[A] = cacheFor[A]
-    memoizeSync(Some(ttl))(f)
+  /** What scalacache's GuavaCache stored per key: the value plus its own expiry stamp.
+    * Guava only bounds the size; the TTL check happens at read time, exactly as before. */
+  private[cache] final case class Entry(value: Any, expiresAtMillis: Option[Long]) {
+    def isExpired: Boolean = expiresAtMillis.exists(_ <= System.currentTimeMillis())
   }
 
-  def memoizeWithInMemory[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => Future[A])(implicit @cacheKeyExclude m: Manifest[A]): Future[A] = {
+  // Same single shared instance as the scalacache era: the store is untyped (Entry holds Any)
+  // and narrowed per call site - the cast is erased, and a given key always holds the type its
+  // own call site wrote. JSONFactory6.0.0 reads .size() off this directly.
+  val underlyingGuavaCache: GuavaUnderlying[String, Entry] =
+    CacheBuilder.newBuilder().maximumSize(100000L).build[String, Entry]()
+
+  // scalacache's memoization macro derived the stored key from the enclosing wrapper method:
+  // full name, the one non-excluded parameter list rendered with its argument, then one "()"
+  // per excluded list. Byte-compatible so countKeys("*<cacheKey>*") patterns (pinned by
+  // InMemoryCachingTest) and any operator tooling keep matching. CacheKeyFormatTest pins it.
+  private[cache] def inMemoryMemoKey(wrapperMethod: String, cacheKey: Option[String], excludedParamLists: Int): String =
+    s"code.api.cache.InMemory.$wrapperMethod($cacheKey)" + ("()" * excludedParamLists)
+
+  private def entryFor(value: Any, ttl: Duration): Entry =
+    Entry(value, if (ttl.isFinite) Some(System.currentTimeMillis() + ttl.toMillis) else None)
+
+  private def lookup[A](key: String): Option[A] =
+    Option(underlyingGuavaCache.getIfPresent(key)) match {
+      case Some(e) if e.isExpired =>
+        underlyingGuavaCache.invalidate(key)
+        None
+      case Some(e) => Some(e.value.asInstanceOf[A])
+      case None    => None
+    }
+
+  def memoizeSyncWithInMemory[A](cacheKey: Option[String])(ttl: Duration)(f: => A): A = {
+    logger.trace(s"InMemory.memoizeSyncWithInMemory.underlyingGuavaCache size ${underlyingGuavaCache.size()}, current cache key is $cacheKey")
+    val key = inMemoryMemoKey("memoizeSyncWithInMemory", cacheKey, 2)
+    lookup[A](key) match {
+      case Some(v) => v
+      case None =>
+        val v = f
+        underlyingGuavaCache.put(key, entryFor(v, ttl))
+        v
+    }
+  }
+
+  def memoizeWithInMemory[A](cacheKey: Option[String])(ttl: Duration)(f: => Future[A])(implicit m: Manifest[A]): Future[A] = {
     logger.trace(s"InMemory.memoizeWithInMemory.underlyingGuavaCache size ${underlyingGuavaCache.size()}, current cache key is $cacheKey")
-    import scalacache.modes.scalaFuture._
-    implicit val cache: Cache[A] = cacheFor[A]
-    memoizeF(Some(ttl))(f)
+    val key = inMemoryMemoKey("memoizeWithInMemory", cacheKey, 3)
+    lookup[A](key) match {
+      case Some(v) => Future.successful(v)
+      case None    => f.map { v => underlyingGuavaCache.put(key, entryFor(v, ttl)); v }
+    }
   }
 
   /**

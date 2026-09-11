@@ -3,7 +3,7 @@ package code.apiproductsubscription
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ApiRole
 import code.api.util.RoleCombination
-import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+import code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
 import code.apiproduct.{ApiProductTrait, MappedApiProductsProvider}
 import code.ratelimiting.RateLimitingDI
 import code.scope.Scope
@@ -45,7 +45,7 @@ object ApiProductSubscriptionEnforcer extends MdcLoggable {
 
   private def rateLimiting = RateLimitingDI.rateLimiting.vend
   private def scopes = Scope.scope.vend
-  private def subscriptions = MappedApiProductSubscriptionsProvider
+  private def subscriptions = DoobieApiProductSubscriptionsProvider
   private def scopeRecords = MappedApiProductSubscriptionScopesProvider
 
   /** Apply the consequences of the subscription's current status and return the refreshed subscription. */
@@ -114,7 +114,7 @@ object ApiProductSubscriptionEnforcer extends MdcLoggable {
     Option(product.collectionId).filter(_.nonEmpty) match {
       case None => Nil
       case Some(collectionId) =>
-        val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(collectionId).map(_.operationId)
+        val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(collectionId).map(_.operationId)
         ResourceDoc.getResourceDocs(operationIds)
           .flatMap(_.roles.getOrElse(Nil))
           .flatMap { case RoleCombination(rs) => rs; case r => List(r) }

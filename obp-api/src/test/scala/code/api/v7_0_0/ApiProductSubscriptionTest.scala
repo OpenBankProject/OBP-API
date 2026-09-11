@@ -4,8 +4,8 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.{ActiveRateLimitsJsonV600, ApiProductAttributeJsonV600, PostPutApiProductJsonV600}
-import code.apicollection.MappedApiCollectionsProvider
-import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+import code.apicollection.DoobieApiCollectionsProvider
+import code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
 import code.scope.Scope
 import code.api.v7_0_0.JSONFactory700.{ApiProductSubscriptionAttributeJsonV700, ApiProductSubscriptionAttributeResponseJsonV700, ApiProductSubscriptionJsonV700, ApiProductSubscriptionsJsonV700, PostApiProductSubscriptionJsonV700, PutApiProductSubscriptionStatusJsonV700}
 import code.api.v7_0_0.Http4s700.Implementations7_0_0
@@ -67,7 +67,7 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
     redirectURL = None,
     createdByUserId = Some(ownerUserId),
     None, None, None
-  ).map(_.consumerId.get).openOrThrowException("could not create test consumer")
+  ).map(_.consumerId).openOrThrowException("could not create test consumer")
   lazy val consumerId1: String = createOwnedConsumer(resourceUser1.userId, "user1")
   lazy val consumerId2: String = createOwnedConsumer(resourceUser2.userId, "user2")
 
@@ -115,8 +115,8 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
 
   def errorOf(response: code.setup.APIResponse): String = response.body.extract[ErrorMessage].message
 
-  feature("Create subscription: developer self-service, /my endpoints, cancel") {
-    scenario("Own consumer, open product: active at once, then list, get, cancel, re-subscribe", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Create subscription: developer self-service, /my endpoints, cancel") {
+    Scenario("Own consumer, open product: active at once, then list, get, cancel, re-subscribe", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       val code = newProductCode()
       createProduct(code)
 
@@ -165,7 +165,7 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
       again.api_product_subscription_id should not equal created.api_product_subscription_id
     }
 
-    scenario("consumer_id is required and must exist; anonymous is 401", ApiEndpoint1, VersionOfApi) {
+    Scenario("consumer_id is required and must exist; anonymous is 401", ApiEndpoint1, VersionOfApi) {
       val code = newProductCode()
       createProduct(code)
       subscribe(code, "", user1).code should equal(400)
@@ -179,7 +179,7 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
       errorOf(noProduct) should startWith(ApiProductNotFound)
     }
 
-    scenario("Someone else's consumer needs the create role; the bank enrols a partner's consumer", ApiEndpoint1, VersionOfApi) {
+    Scenario("Someone else's consumer needs the create role; the bank enrols a partner's consumer", ApiEndpoint1, VersionOfApi) {
       val code = newProductCode()
       createProduct(code)
       When("user1 tries to subscribe consumer2, which user2 created, without the role")
@@ -195,7 +195,7 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
       enrolled.created_by_user_id should equal(resourceUser1.userId)
     }
 
-    scenario("SELF_SUBSCRIBE=false closes a product to self-service; the role at the product's bank reopens it", ApiEndpoint1, VersionOfApi) {
+    Scenario("SELF_SUBSCRIBE=false closes a product to self-service; the role at the product's bank reopens it", ApiEndpoint1, VersionOfApi) {
       val code = newProductCode()
       createProduct(code)
       setProductAttribute(code, "SELF_SUBSCRIBE", "false")
@@ -211,8 +211,8 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Status machine via /management, BILLING_SYSTEM=manual") {
-    scenario("requested until a bank admin activates; every transition; invalid ones refused", ApiEndpoint8, VersionOfApi) {
+  Feature("Status machine via /management, BILLING_SYSTEM=manual") {
+    Scenario("requested until a bank admin activates; every transition; invalid ones refused", ApiEndpoint8, VersionOfApi) {
       val code = newProductCode()
       createProduct(code)
       setProductAttribute(code, "BILLING_SYSTEM", "manual")
@@ -260,8 +260,8 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Management reads") {
-    scenario("by product, by id, and by consumer filtered to the banks where the role is held", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+  Feature("Management reads") {
+    Scenario("by product, by id, and by consumer filtered to the banks where the role is held", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
       val code = newProductCode()
       createProduct(code)
       val created = subscribed(code, consumerId1, user1)
@@ -305,8 +305,8 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Attributes and delete") {
-    scenario("create, list, update, delete attributes; the owner sees them; delete the subscription", ApiEndpoint9, ApiEndpoint10, ApiEndpoint11, ApiEndpoint12, ApiEndpoint13, VersionOfApi) {
+  Feature("Attributes and delete") {
+    Scenario("create, list, update, delete attributes; the owner sees them; delete the subscription", ApiEndpoint9, ApiEndpoint10, ApiEndpoint11, ApiEndpoint12, ApiEndpoint13, VersionOfApi) {
       val code = newProductCode()
       createProduct(code)
       val created = subscribed(code, consumerId1, user1)
@@ -368,9 +368,9 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
 
   /** An API Collection holding one endpoint that requires CanCreateApiProduct (a bank-scoped role). */
   def createCollectionRequiring(operationId: String): String = {
-    val collection = MappedApiCollectionsProvider.createApiCollection(resourceUser1.userId, "sub-test-" + UUID.randomUUID().toString.take(8), true, "ApiProductSubscriptionTest")
+    val collection = DoobieApiCollectionsProvider.createApiCollection(resourceUser1.userId, "sub-test-" + UUID.randomUUID().toString.take(8), true, "ApiProductSubscriptionTest")
       .openOrThrowException("could not create test collection")
-    MappedApiCollectionEndpointsProvider.createApiCollectionEndpoint(collection.apiCollectionId, operationId).openOrThrowException("could not add endpoint")
+    DoobieApiCollectionEndpointsProvider.createApiCollectionEndpoint(collection.apiCollectionId, operationId).openOrThrowException("could not add endpoint")
     collection.apiCollectionId
   }
 
@@ -386,13 +386,13 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
 
   def callAsUser3() = makeGetRequest((v6 / "users" / "current").GET <@ (user3))
 
-  feature("Enforcement: active applies limits and scopes, suspended blocks, cancelled releases") {
-    scenario("Full life cycle on a partner consumer enrolled by the bank", ApiEndpoint1, ApiEndpoint8, VersionOfApi) {
+  Feature("Enforcement: active applies limits and scopes, suspended blocks, cancelled releases") {
+    Scenario("Full life cycle on a partner consumer enrolled by the bank", ApiEndpoint1, ApiEndpoint8, VersionOfApi) {
       Given("A product with limits 10/100 and a collection whose endpoint requires CanCreateApiProduct, BILLING_SYSTEM=manual")
       val code = newProductCode()
       createProduct(code, Some(createCollectionRequiring("OBPv6.0.0-createApiProduct")))
       setProductAttribute(code, "BILLING_SYSTEM", "manual")
-      val consumerId3 = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId.get).getOrElse("")
+      val consumerId3 = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId).getOrElse("")
       And("a scope granted by hand to that consumer beforehand")
       Scope.scope.vend.addScope("", consumerId3, CanGetAnyUser.toString)
       And("user2 is the bank admin")
@@ -463,7 +463,7 @@ class ApiProductSubscriptionTest extends ServerSetupWithTestData {
       callAsUser3().code should equal(200)
     }
 
-    scenario("Self-service activation applies limits at once; a product without limits or collection grants nothing; manual limits are summed and survive cancel", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+    Scenario("Self-service activation applies limits at once; a product without limits or collection grants nothing; manual limits are summed and survive cancel", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       Given("A consumer of user1 that already has a manual rate limit row of 5 per second")
       grant(resourceUser2.userId, "", CanCreateRateLimits.toString)
       val manual = makePostRequest((v6 / "management" / "consumers" / consumerId1 / "consumer" / "rate-limits").POST <@ (user2),

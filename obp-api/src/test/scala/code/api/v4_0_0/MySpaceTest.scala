@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import com.openbankproject.commons.util.ApiVersion
@@ -23,8 +24,8 @@ class MySpaceTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getMySpaces))
 
   
-  feature(s"test $ApiEndpoint1 version $VersionOfApi") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "spaces").GET
       val response400 = makeGetRequest(request400)
@@ -32,7 +33,7 @@ class MySpaceTest extends V400ServerSetup {
       response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario("We will call the endpoint return empty List", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint return empty List", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "spaces").GET <@ (user1)
       val response400 = makeGetRequest(request400)
@@ -40,7 +41,7 @@ class MySpaceTest extends V400ServerSetup {
       response400.code should equal(200)
       response400.body.extract[MySpaces].bank_ids.length should be (0)
     }
-    scenario("We will call the endpoint return proper List", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint return proper List", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanReadDynamicResourceDocsAtOneBank.toString)
       val request400 = (v4_0_0_Request / "my" / "spaces").GET <@ (user1)

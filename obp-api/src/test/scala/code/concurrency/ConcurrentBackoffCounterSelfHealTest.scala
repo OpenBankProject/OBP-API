@@ -1,12 +1,15 @@
 package code.concurrency
 
 import code.api.util.{APIUtil, FutureUtil}
-import org.scalatest.{FlatSpec, Matchers}
 
 import java.util.UUID
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import org.scalatest.concurrent.Eventually
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Span}
 
 /**
  * A: futureWithLimits must self-heal the open-futures counter.
@@ -26,9 +29,22 @@ import scala.util.{Failure, Success, Try}
  * not extend ConcurrentRaceSetup/ServerSetupWithTestData (avoids an unnecessary full Lift
  * server boot). Tagged ConcurrencyRace for consistency with the rest of the suite.
  */
-class ConcurrentBackoffCounterSelfHealTest extends FlatSpec with Matchers {
+class ConcurrentBackoffCounterSelfHealTest extends AnyFlatSpec with Matchers with Eventually {
 
   private implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+
+  /**
+   * The decrement is asynchronous relative to the Future the caller awaits.
+   *
+   * futureWithLimits returns the ORIGINAL future, not one derived from its own onComplete
+   * callback — so `Await.result` can return while that callback is still queued on the
+   * ExecutionContext, i.e. before decrementOnce has run. Asserting the counter immediately
+   * after the await therefore reads a value that is correct-but-not-yet-settled and fails
+   * intermittently, only under load (this suite failed exactly that way twice in full-suite
+   * runs while passing every time in isolation). Poll instead of asserting on the first read.
+   */
+  implicit override val patienceConfig: PatienceConfig =
+    PatienceConfig(timeout = Span(2000, Millis), interval = Span(20, Millis))
 
   private def openFuturesCount(serviceName: String): Int =
     APIUtil.serviceNameCountersMap.getOrDefault(serviceName, (0, 0))._2
@@ -54,7 +70,10 @@ class ConcurrentBackoffCounterSelfHealTest extends FlatSpec with Matchers {
     Thread.sleep(400)
     promise.success("late value")
     Await.result(wrapped, 5.seconds)
-    // give the onComplete callback a moment to run after the promise resolved
+    // Deliberately a sleep, not `eventually`: here the counter is ALREADY 0 (the reaper fired
+    // at 200ms) and what we are guarding against is the completion callback wrongly taking it
+    // to -1. `eventually` would pass on its first poll, potentially before that callback has
+    // run at all, so it would not exercise the hazard. Wait for the callback, then assert.
     Thread.sleep(200)
 
     withClue(s"openFuturesCount=${openFuturesCount(serviceName)}: reaper and completion both firing must not double-decrement: ") {
@@ -75,11 +94,15 @@ class ConcurrentBackoffCounterSelfHealTest extends FlatSpec with Matchers {
       case Success(_) => fail("expected the failed Future to propagate its failure")
     }
 
-    withClue(s"openFuturesCount(ok)=${openFuturesCount(serviceNameOk)}: ") {
-      openFuturesCount(serviceNameOk) shouldBe 0
+    eventually {
+      withClue(s"openFuturesCount(ok)=${openFuturesCount(serviceNameOk)}: ") {
+        openFuturesCount(serviceNameOk) shouldBe 0
+      }
     }
-    withClue(s"openFuturesCount(fail)=${openFuturesCount(serviceNameFail)}: ") {
-      openFuturesCount(serviceNameFail) shouldBe 0
+    eventually {
+      withClue(s"openFuturesCount(fail)=${openFuturesCount(serviceNameFail)}: ") {
+        openFuturesCount(serviceNameFail) shouldBe 0
+      }
     }
   }
 }

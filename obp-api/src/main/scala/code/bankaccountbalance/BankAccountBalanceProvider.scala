@@ -1,11 +1,11 @@
 package code.bankaccountbalance
 
-import code.model.dataAccess.MappedBankAccount
+import code.api.util.{APIUtil, DoobieUtil}
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BalanceId, BankId}
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
 
@@ -15,7 +15,7 @@ object BankAccountBalanceX extends SimpleInjector {
 
   val bankAccountBalanceProvider = new Inject(() => buildOne) {}
 
-  def buildOne: BankAccountBalanceProviderTrait = MappedBankAccountBalanceProvider
+  def buildOne: BankAccountBalanceProviderTrait = DoobieBankAccountBalanceProvider
 
   // Helper to get the count out of an option
   def countOfBankAccountBalance(listOpt: Option[List[BankAccountBalance]]): Int = {
@@ -30,7 +30,7 @@ object BankAccountBalanceX extends SimpleInjector {
 trait BankAccountBalanceProviderTrait {
 
   def getBankAccountBalances(accountId: AccountId): Future[Box[List[BankAccountBalance]]]
-  
+
   def getBankAccountsBalances(accountIds: List[AccountId]): Future[Box[List[BankAccountBalance]]]
 
   def getBankAccountBalanceById(balanceId: BalanceId): Future[Box[BankAccountBalance]]
@@ -46,29 +46,26 @@ trait BankAccountBalanceProviderTrait {
 
 }
 
-object MappedBankAccountBalanceProvider extends BankAccountBalanceProviderTrait {
+object DoobieBankAccountBalanceProvider extends BankAccountBalanceProviderTrait {
 
   override def getBankAccountBalances(accountId: AccountId): Future[Box[List[BankAccountBalance]]] = Future {
-    tryo{
-      BankAccountBalance.findAll(
-        By(BankAccountBalance.AccountId_,accountId.value)
-    )}
+    tryo(BankAccountBalance.findAllByAccountId(accountId.value))
   }
+
   override def getBankAccountsBalances(accountIds: List[AccountId]): Future[Box[List[BankAccountBalance]]] = Future {
-    tryo {
-      BankAccountBalance.findAll(
-        ByList(BankAccountBalance.AccountId_, accountIds.map(_.value))
-      )
-    }
+    tryo(BankAccountBalance.findAllByAccountIds(accountIds.map(_.value)))
   }
 
   override def getBankAccountBalanceById(balanceId: BalanceId): Future[Box[BankAccountBalance]] = Future {
-    // Find a balance by its ID
-    BankAccountBalance.find(
-      By(BankAccountBalance.BalanceId_, balanceId.value)
-    )
+    BankAccountBalance.findByBalanceId(balanceId.value)
   }
 
+  /**
+   * Both branches require the account to exist and return Empty when it does not - the account is
+   * what supplies the currency the amount is converted into for storage. On the update branch an
+   * unknown balanceId is likewise Empty rather than an insert: this is create-or-update on a
+   * supplied id, not upsert-by-id.
+   */
   override def createOrUpdateBankAccountBalance(
     bankId: BankId,
     accountId: AccountId,
@@ -76,38 +73,27 @@ object MappedBankAccountBalanceProvider extends BankAccountBalanceProviderTrait 
     balanceType: String,
     balanceAmount: BigDecimal
   ): Future[Box[BankAccountBalance]] = Future {
-    // Get the MappedBankAccount for the given account ID
-    val mappedBankAccount = code.model.dataAccess.MappedBankAccount
-    .find(
-        By(MappedBankAccount.theAccountId, accountId.value)
-      )
-
-    mappedBankAccount match {
-      case Full(account) =>
+    DoobieUtil.runQuery(
+      sql"SELECT accountcurrency FROM mappedbankaccount WHERE theaccountid = ${accountId.value} LIMIT 1"
+        .query[String].option
+    ) match {
+      case Some(currency) =>
+        val amountSmallestUnit = Helper.convertToSmallestCurrencyUnits(balanceAmount, currency)
         balanceId match {
           case Some(id) =>
-            BankAccountBalance.find(
-              By(BankAccountBalance.BalanceId_, id.value)
-            ) match {
-              case Full(balance) =>
+            BankAccountBalance.findByBalanceId(id.value) match {
+              case Full(_) =>
                 tryo {
-                  balance
-                    .BankId_(bankId.value)
-                    .AccountId_(accountId.value)
-                    .BalanceType(balanceType)
-                    .BalanceAmount(Helper.convertToSmallestCurrencyUnits(balanceAmount, account.currency))
-                    .saveMe()
+                  BankAccountBalance.update(id.value, bankId.value, accountId.value, balanceType, amountSmallestUnit)
+                  BankAccountBalance.findByBalanceId(id.value)
+                    .openOrThrowException("the row just updated must still be readable")
                 }
               case _ => Empty
             }
           case _ =>
             tryo {
-              BankAccountBalance.create
-                .BankId_(bankId.value)
-                .AccountId_(accountId.value)
-                .BalanceType(balanceType)
-                .BalanceAmount(Helper.convertToSmallestCurrencyUnits(balanceAmount, account.currency))
-                .saveMe()
+              BankAccountBalance.insert(
+                APIUtil.generateUUID(), bankId.value, accountId.value, balanceType, amountSmallestUnit)
             }
         }
       case _ => Empty
@@ -115,10 +101,8 @@ object MappedBankAccountBalanceProvider extends BankAccountBalanceProviderTrait 
   }
 
   override def deleteBankAccountBalance(balanceId: BalanceId): Future[Box[Boolean]] = Future {
-    // Delete a balance by its ID
-    BankAccountBalance.find(
-      By(BankAccountBalance.BalanceId_, balanceId.value)
-    ).map(_.delete_!)
+    BankAccountBalance.findByBalanceId(balanceId.value)
+      .map(_ => BankAccountBalance.deleteByBalanceId(balanceId.value))
   }
 
 }

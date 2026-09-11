@@ -81,7 +81,7 @@ object Http4sBGv13AIS extends MdcLoggable {
         // consent's owner (it would permanently block the real PSU's authorise-time
         // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
         val createdByUser: Option[User] = cc.user.toOption
-          .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
+          .filterNot(u => cc.consumer.map(_.key).contains(u.idGivenByProvider))
         for {
           _ <- passesPsd2Aisp(callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
@@ -138,7 +138,7 @@ object Http4sBGv13AIS extends MdcLoggable {
             consentJson,
             createdConsent.secret,
             createdConsent.consentId,
-            callContext.flatMap(_.consumer).map(_.consumerId.get),
+            callContext.flatMap(_.consumer).map(_.consumerId),
             Some(validUntil),
             callContext
           ) map {
@@ -542,8 +542,8 @@ object Http4sBGv13AIS extends MdcLoggable {
             // caller could raise a challenge on any consent id and then answer their own.
             _ <- Consent.checkBerlinGroupConsentAccess(
               consent.userId, consent.consumerId,
-              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get),
-              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))) match {
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId),
+              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId))) match {
               case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
               case None => Future.successful(true)
             }
@@ -626,8 +626,8 @@ object Http4sBGv13AIS extends MdcLoggable {
             // decides who a consent ends up belonging to. See Consent.checkBerlinGroupConsentAccess.
             _ <- Consent.checkBerlinGroupConsentAccess(
               storedConsent.userId, storedConsent.consumerId,
-              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get),
-              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))) match {
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId),
+              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId))) match {
               case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
               case None => Future.successful(true)
             }

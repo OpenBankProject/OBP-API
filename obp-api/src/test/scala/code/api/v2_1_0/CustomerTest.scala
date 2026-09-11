@@ -33,9 +33,9 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
     )
   }
 
-  feature("Assuring that create customer, v2.1.0, feedback and get customer, v1.4.0, feedback are the same") {
+  Feature("Assuring that create customer, v2.1.0, feedback and get customer, v1.4.0, feedback are the same") {
 
-    scenario("There is a user, and the bank in questions has customer info for that user - v2.1.0") {
+    Scenario("There is a user, and the bank in questions has customer info for that user - v2.1.0") {
       Given("The bank in question has customer info")
 
       val customerPostJSON = createCustomerJson(mockCustomerNumber1)

@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages._
@@ -20,21 +21,21 @@ class RateLimitersTest extends ServerSetupWithTestData {
   private def v7 = baseRequest / "obp" / "v7.0.0"
   private def str(json: org.json4s.JValue, field: String): String = (json \ field).values.toString
 
-  feature("Get Rate Limiters") {
-    scenario("unauthenticated is 401", ApiEndpoint1, VersionOfApi) {
+  Feature("Get Rate Limiters") {
+    Scenario("unauthenticated is 401", ApiEndpoint1, VersionOfApi) {
       val response = makeGetRequest(v7 / "management" / "rate-limiter-config")
       response.code should equal(401)
       response.body.toString should include(AuthenticatedUserIsRequired.split(":").head)
     }
 
-    scenario("without CanGetConfig is 403", ApiEndpoint1, VersionOfApi) {
+    Scenario("without CanGetConfig is 403", ApiEndpoint1, VersionOfApi) {
       val response = makeGetRequest((v7 / "management" / "rate-limiter-config").GET <@ (user1))
       response.code should equal(403)
       response.body.toString should include(UserHasMissingRoles)
       response.body.toString should include(ApiRole.canGetConfig.toString)
     }
 
-    scenario("with CanGetConfig the three limiters come back in check order with distinct 429 codes", ApiEndpoint1, VersionOfApi) {
+    Scenario("with CanGetConfig the three limiters come back in check order with distinct 429 codes", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetConfig.toString)
       val response = makeGetRequest((v7 / "management" / "rate-limiter-config").GET <@ (user1))
       response.code should equal(200)

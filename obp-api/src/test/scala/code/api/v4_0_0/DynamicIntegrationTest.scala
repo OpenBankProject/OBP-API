@@ -35,8 +35,8 @@ class DynamicIntegrationTest extends V400ServerSetup {
   val dynamicEntity = dynamicEntityRequestBodyExample.copy(bankId = None)
   val dynamicEndpoint = dynamicEndpointRequestBodyExample
   
-  feature(s"test Dynamic Entity/Endpoint and endpoint mappings together $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3") {
-    scenario("test Dynamic Entity/Endpoint and endpoint mappings together ", DynamicIntegration, VersionOfApi) {
+  Feature(s"test Dynamic Entity/Endpoint and endpoint mappings together $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3") {
+    Scenario("test Dynamic Entity/Endpoint and endpoint mappings together ", DynamicIntegration, VersionOfApi) {
       //First, we need to prepare the dynamic entity, it should have two fields: name, balance.
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
       val requestEntity = (v4_0_0_Request / "management" / "banks" / testBankId1.value  / "dynamic-entities").POST <@(user1)

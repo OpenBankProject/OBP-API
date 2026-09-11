@@ -33,7 +33,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
   def removeMakerCheckerPermissionFromOwnerView(): Unit = {
     val viewId = ViewId(SYSTEM_OWNER_VIEW_ID)
     ViewPermission.findSystemViewPermission(viewId, CAN_BYPASS_MAKER_CHECKER_SEPARATION)
-      .foreach(_.delete_!)
+      .foreach(ViewPermission.deleteRow)
   }
 
   /**
@@ -89,12 +89,12 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
     (bankId, fromAccount, transactionRequestType, transRequestId, challengeId)
   }
 
-  feature("Maker-Checker enforcement on answerTransactionRequestChallenge") {
+  Feature("Maker-Checker enforcement on answerTransactionRequestChallenge") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Same maker and checker WITH can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {}
     } else {
-      scenario("Same maker and checker WITH can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {
+      Scenario("Same maker and checker WITH can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {
         // Default: owner view has the permission, so same user can make and check
         addMakerCheckerPermissionToOwnerView()
 
@@ -117,7 +117,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Same maker and checker WITHOUT can_have_same_maker_checker permission should FAIL", ApiEndpoint1) {}
     } else {
-      scenario("Same maker and checker WITHOUT can_have_same_maker_checker permission should FAIL", ApiEndpoint1) {
+      Scenario("Same maker and checker WITHOUT can_have_same_maker_checker permission should FAIL", ApiEndpoint1) {
         val (bankId, fromAccount, transactionRequestType, transRequestId, challengeId) =
           createTransactionRequestWithChallenge(user1)
 
@@ -148,7 +148,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Different maker and checker WITHOUT can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {}
     } else {
-      scenario("Different maker and checker WITHOUT can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {
+      Scenario("Different maker and checker WITHOUT can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {
         val (bankId, fromAccount, transactionRequestType, transRequestId, challengeId) =
           createTransactionRequestWithChallenge(user1)
 
@@ -185,7 +185,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Multiple challenges with maker-checker: different users answer their own challenges", ApiEndpoint1) {}
     } else {
-      scenario("Multiple challenges with maker-checker: different users answer their own challenges", ApiEndpoint1) {
+      Scenario("Multiple challenges with maker-checker: different users answer their own challenges", ApiEndpoint1) {
         val transactionRequestType = COUNTERPARTY.toString
         val testBank = createBank("__mc-test-bank-multi")
         val bankId = testBank.bankId
@@ -279,7 +279,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
       // connection and sees 0 uncommitted rows → a challenge goes missing. Firing the create
       // many times in one warm JVM maximises ForkJoinPool scheduling pressure on that
       // write→read surface, so a regression in the connection-propagation logic shows up here.
-      scenario("Stress: repeated multi-challenge creates must always read back both challenges (RequestScopeConnection regression guard)", ApiEndpoint1) {
+      Scenario("Stress: repeated multi-challenge creates must always read back both challenges (RequestScopeConnection regression guard)", ApiEndpoint1) {
         val iterations = 20
         val transactionRequestType = COUNTERPARTY.toString
         val testBank = createBank("__mc-stress-bank")

@@ -11,6 +11,7 @@ import code.util.Helper
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
+import com.openbankproject.commons.util.ConnectorEndpointsTypes
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
 import org.json4s.JValue
@@ -55,14 +56,14 @@ object ConnectorEndpoints {
     val typeArg = tp.typeArgs.headOption
 
     tp match {
-      case _ if(tp =:= ru.typeOf[String]) => str
+      case _ if(tp =:= ConnectorEndpointsTypes.tString) => str
       case _ if(StringUtils.isBlank(str)) => null
-      case _ if(tp =:= ru.typeOf[Int]) => str.toInt
-      case _ if(tp =:= ru.typeOf[BigDecimal]) => BigDecimal(str)
-      case _ if(tp =:= ru.typeOf[Boolean]) => "true" equalsIgnoreCase str
-      case _ if(tp <:< ru.typeOf[List[_]]) => str.split(";").map(convertValue(_, typeArg.get)).toList
-      case _ if(tp <:< ru.typeOf[Set[_]]) => str.split(";").map(convertValue(_, typeArg.get)).toSet
-      case _ if(tp <:< ru.typeOf[Array[_]]) => str.split(";").map(convertValue(_, typeArg.get))
+      case _ if(tp =:= ConnectorEndpointsTypes.tInt) => str.toInt
+      case _ if(tp =:= ConnectorEndpointsTypes.tBigDecimal) => BigDecimal(str)
+      case _ if(tp =:= ConnectorEndpointsTypes.tBoolean) => "true" equalsIgnoreCase str
+      case _ if(tp <:< ConnectorEndpointsTypes.tListWildcard) => str.split(";").map(convertValue(_, typeArg.get)).toList
+      case _ if(tp <:< ConnectorEndpointsTypes.tSetWildcard) => str.split(";").map(convertValue(_, typeArg.get)).toSet
+      case _ if(tp <:< ConnectorEndpointsTypes.tArrayWildcard) => str.split(";").map(convertValue(_, typeArg.get))
         // have single param constructor case class
       case _ if(tp.typeSymbol.asClass.isCaseClass) => {
         val paramList: Seq[ru.Symbol] = tp.decl(ru.termNames.CONSTRUCTOR).asMethod.paramLists.headOption.getOrElse(Nil)
@@ -99,14 +100,23 @@ object ConnectorEndpoints {
   private val mirrorObj: ru.InstanceMirror = mirror.reflect(connector)
 
   // it is impossible to get the type of OBPQueryParam*, ru.typeOf[OBPQueryParam*] not work, it is Seq type indeed
-  private val paramsType = ru.typeOf[Seq[OBPQueryParam]]
+  // Seq[OBPQueryParam]/Option[CallContext] are obp-api's own types, so they can't be precomputed in
+  // obp-commons (SwaggerTypes-style) - build them at runtime from class names instead, same as ConnectorUtils.
+  private val paramsType =
+    ru.appliedType(
+      ReflectUtils.forType("scala.collection.immutable.Seq").typeConstructor,
+      ReflectUtils.forType("code.api.util.OBPQueryParam"))
+  private val callContextType =
+    ru.appliedType(
+      ReflectUtils.forType("scala.Option").typeConstructor,
+      ReflectUtils.forType("code.api.util.CallContext"))
 
   // (methodName, paramNames, method, allParamNames, fn: paramName => isOption)
   lazy val allMethods: List[(String, List[String], ru.MethodSymbol, List[String], String => Boolean)] = {
      val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader)
 
      val isCallContextOrQueryParams = (tp: ru.Type) => {
-       tp <:< ru.typeOf[Option[CallContext]] || tp <:< paramsType
+       tp <:< callContextType || tp <:< paramsType
      }
     mirrorObj.symbol.toType.members
        .filter(_.isMethod)
@@ -117,7 +127,7 @@ object ConnectorEndpoints {
          val names = allParams
            .filterNot(symbol => isCallContextOrQueryParams(symbol.info))
            .map(_.name.toString.trim)
-         val paramNameToIsOption: Map[String, Boolean] = allParams.map(it => (it.name.toString.trim, it.info <:< ru.typeOf[Option[_]])).toMap
+         val paramNameToIsOption: Map[String, Boolean] = allParams.map(it => (it.name.toString.trim, it.info <:< ConnectorEndpointsTypes.tOptionWildcard)).toMap
          val isParamOption: String => Boolean = name => paramNameToIsOption.get(name).filter(true ==).isDefined
          (it.name.toString, names, it.asMethod, allNames, isParamOption)
        })

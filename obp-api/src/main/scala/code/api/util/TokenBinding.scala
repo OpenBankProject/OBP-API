@@ -21,8 +21,20 @@ import net.liftweb.util.Helpers.tryo
  *
  * The caller certificate is whatever [[PeerTrust]] resolved for this request (the direct TLS
  * peer, or one forwarded by a trusted proxy) — delivered via the PSD2-CERT request header, the
- * same channel the PSD2 certificate checks use. The check therefore inherits the mtls.* trust
- * configuration and never trusts an unverified forwarded header.
+ * same channel the PSD2 certificate checks use.
+ *
+ * This check specifically requires cryptographic proof of possession — that is the entire point
+ * of RFC 8705 sender-constraining — so it does NOT simply trust whatever PeerTrust resolved as
+ * "the caller" for authorization purposes elsewhere. PeerTrust's own default
+ * (`mtls.trust_forwarded_header_without_tls=true` with no `mtls.enabled`/trusted proxies
+ * configured) treats an unauthenticated PSD2-CERT header as identifying the caller, which is
+ * sufficient for endpoints that only need SOME certificate to attribute a request to, but is
+ * exactly the "publicly-known QWAC replayed alongside a stolen bearer token" attack RFC 8705
+ * exists to prevent — a PEM is public information; only a live TLS handshake (direct, or
+ * forwarded by a proxy whose OWN certificate matched an `mtls.trusted_proxy` entry) proves the
+ * presenter actually holds the private key. `certificateTrustDetail ==
+ * PeerTrust.UnauthenticatedHopDetail` is precisely PeerTrust's own name for "no such proof", so
+ * `callerCertificateForBinding` below treats it the same as no certificate at all.
  *
  * Gated by the oauth2.token_binding.mode Props value:
  *  - NONE (default): no checking — existing deployments are untouched.
@@ -110,6 +122,22 @@ object TokenBinding extends MdcLoggable {
   }
 
   /**
+   * The certificate to bind against, or None when what PeerTrust resolved for this request is
+   * not cryptographic proof of possession (see the class doc). Reads `cc.certificateTrust` /
+   * `certificateTrustDetail`, which is exactly PeerTrust's own resolution for this request
+   * (populated by CallerCertificate from `PeerTrust.Resolution`) — not re-derived from the raw
+   * PSD2-CERT header, so this can never disagree with what PeerTrust decided.
+   */
+  private[util] def callerCertificateForBinding(cc: CallContext): Option[X509Certificate] = {
+    val isUnauthenticatedForward =
+      cc.certificateTrust.contains("forwarded") &&
+        cc.certificateTrustDetail.contains(PeerTrust.UnauthenticatedHopDetail)
+    if (isUnauthenticatedForward) None
+    else `getPSD2-CERT`(cc.requestHeaders)
+      .flatMap(pem => tryo(BerlinGroupSigning.parseCertificate(pem)).toOption)
+  }
+
+  /**
    * Props-driven entry point for the OAuth2 login path. Call after the token's signature has
    * been validated.
    */
@@ -117,12 +145,10 @@ object TokenBinding extends MdcLoggable {
     val mode = configuredMode
     if (mode == Mode.NONE) Full(())
     else {
-      val callerCertificate: Option[X509Certificate] = `getPSD2-CERT`(cc.requestHeaders)
-        .flatMap(pem => tryo(BerlinGroupSigning.parseCertificate(pem)).toOption)
       verify(
         mode,
         cnfX5tS256(jwtToken),
-        callerCertificate,
+        callerCertificateForBinding(cc),
         s"url=${cc.url} correlationId=${cc.correlationId}"
       )
     }

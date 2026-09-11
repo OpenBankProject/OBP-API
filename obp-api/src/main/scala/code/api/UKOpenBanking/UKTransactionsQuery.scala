@@ -112,7 +112,7 @@ object UKTransactionsQuery extends MdcLoggable {
       logger.warn(
         s"UK transactions: the direction restriction was applied after the page limit -- " +
         s"${fetched.size - kept.size} of $limit rows removed from a full page for consent " +
-        s"${cc.consumer.map(_.consumerId.get).getOrElse("unknown")}. The connector in use did not " +
+        s"${cc.consumer.map(_.consumerId).getOrElse("unknown")}. The connector in use did not " +
         s"honour OBPTransactionDirection, so this page is short and the TPP cannot tell. " +
         s"Implement the param in that connector to fix the pagination.")
     }

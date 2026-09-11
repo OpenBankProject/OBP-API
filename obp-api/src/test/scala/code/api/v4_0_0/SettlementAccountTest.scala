@@ -43,8 +43,8 @@ class SettlementAccountTest extends V400ServerSetup {
       account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
   
 
-  feature(s"test $CreateSettlementAccountEndpoint - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", CreateSettlementAccountEndpoint, VersionOfApi) {
+  Feature(s"test $CreateSettlementAccountEndpoint - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", CreateSettlementAccountEndpoint, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId.value / "settlement-accounts").POST
       val response400 = makePostRequest(request400, write(createSettlementAccountJson))
@@ -54,8 +54,8 @@ class SettlementAccountTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $CreateSettlementAccountEndpoint - Authorized access") {
-    scenario("We will call the endpoint with user credentials", CreateSettlementAccountEndpoint, VersionOfApi) {
+  Feature(s"test $CreateSettlementAccountEndpoint - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", CreateSettlementAccountEndpoint, VersionOfApi) {
       When("We make a request v4.0.0")
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateSettlementAccountAtOneBank.toString)
       val response400 = try {
@@ -103,8 +103,8 @@ class SettlementAccountTest extends V400ServerSetup {
   }
 
 
-  feature(s"test $GetSettlementAccountsEndpoint - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", VersionOfApi, GetSettlementAccountsEndpoint) {
+  Feature(s"test $GetSettlementAccountsEndpoint - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", VersionOfApi, GetSettlementAccountsEndpoint) {
       Given("The two previously created settlement accounts")
 
       When("We send the request")
@@ -118,8 +118,8 @@ class SettlementAccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $GetSettlementAccountsEndpoint - Authorized access") {
-    scenario("We will call the endpoint with user credentials", VersionOfApi, GetSettlementAccountsEndpoint) {
+  Feature(s"test $GetSettlementAccountsEndpoint - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, GetSettlementAccountsEndpoint) {
       Given("We create two settlement accounts at the testBank")
 
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateSettlementAccountAtOneBank.toString)

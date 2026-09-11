@@ -13,12 +13,12 @@ import code.apiproductsubscription.ApiProductSubscriptionTrait
 import code.apiproductsubscriptionattribute.ApiProductSubscriptionAttributeTrait
 import code.bankconnectors.Connector
 import code.customer.CustomerX
-import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
+import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsArchiveRunTrait, MetricsProps}
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.api.v3_1_0.{AccountAttributeResponseJson, JSONFactory310}
 import code.dynamicResourceDoc.{DynamicResourceDoc, JsonDynamicResourceDoc}
-import code.connectormethod.{ConnectorMethod, JsonConnectorMethod}
+import code.connectormethod.{ConnectorMethodWithProvenance, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDoc, JsonDynamicMessageDoc}
 import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankAccount, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
@@ -27,7 +27,6 @@ import java.util.Date
 import org.json4s.{Extraction, JValue}
 import org.json4s.JsonAST.{JNothing, JString}
 import net.liftweb.common.Full
-import net.liftweb.mapper.{Ascending, By, By_<=, Descending, MaxRows, OrderBy}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -62,27 +61,36 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     DynamicResourceDocProvenanceJsonV700(
       DynamicResourceDoc.getJsonDynamicResourceDoc(entity),
       ProvenanceJsonV700(
-        blankToNone(entity.CreatedByUserId.get), blankToNone(entity.UpdatedByUserId.get),
-        blankToNone(entity.MethodBodyHash.get), formatDateOpt(entity.createdAt.get), formatDateOpt(entity.updatedAt.get),
-        blankToNone(entity.ApprovedHash.get), Some(entity.IsActive.get))
+        entity.createdByUserId.filter(StringUtils.isNotBlank),
+        entity.updatedByUserId.filter(StringUtils.isNotBlank),
+        entity.methodBodyHash.filter(StringUtils.isNotBlank),
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate),
+        // maker/checker, added upstream: the approved hash and the active flag
+        entity.approvedHash.filter(StringUtils.isNotBlank), Some(entity.isActive))
     )
 
-  def createConnectorMethodProvenanceJsonV700(entity: ConnectorMethod): ConnectorMethodProvenanceJsonV700 =
+  def createConnectorMethodProvenanceJsonV700(entity: ConnectorMethodWithProvenance): ConnectorMethodProvenanceJsonV700 =
     ConnectorMethodProvenanceJsonV700(
-      ConnectorMethod.getJsonConnectorMethod(entity),
+      entity.connectorMethod,
       ProvenanceJsonV700(
-        blankToNone(entity.CreatedByUserId.get), blankToNone(entity.UpdatedByUserId.get),
-        blankToNone(entity.MethodBodyHash.get), formatDateOpt(entity.createdAt.get), formatDateOpt(entity.updatedAt.get),
-        blankToNone(entity.ApprovedHash.get), Some(entity.IsActive.get))
+        entity.createdByUserId.filter(StringUtils.isNotBlank),
+        entity.updatedByUserId.filter(StringUtils.isNotBlank),
+        entity.methodBodyHash.filter(StringUtils.isNotBlank),
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate),
+        // maker/checker, added upstream: the approved hash and the active flag
+        entity.approvedHash.filter(StringUtils.isNotBlank), Some(entity.isActive))
     )
 
   def createDynamicMessageDocProvenanceJsonV700(entity: DynamicMessageDoc): DynamicMessageDocProvenanceJsonV700 =
     DynamicMessageDocProvenanceJsonV700(
       DynamicMessageDoc.getJsonDynamicMessageDoc(entity),
       ProvenanceJsonV700(
-        blankToNone(entity.CreatedByUserId.get), blankToNone(entity.UpdatedByUserId.get),
-        blankToNone(entity.MethodBodyHash.get), formatDateOpt(entity.createdAt.get), formatDateOpt(entity.updatedAt.get),
-        blankToNone(entity.ApprovedHash.get), Some(entity.IsActive.get))
+        entity.createdByUserId.filter(StringUtils.isNotBlank),
+        entity.updatedByUserId.filter(StringUtils.isNotBlank),
+        entity.methodBodyHash.filter(StringUtils.isNotBlank),
+        entity.createdAt.map(APIUtil.formatDate), entity.updatedAt.map(APIUtil.formatDate),
+        // maker/checker, added upstream: the approved hash and the active flag
+        entity.approvedHash.filter(StringUtils.isNotBlank), Some(entity.isActive))
     )
 
   // ─── Maker/checker: dynamic change requests (design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
@@ -160,6 +168,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       expires_at = r.expiresAt.map(APIUtil.formatDate).getOrElse("")
     )
 
+
   case class ErrorMessageEntryJsonV700(code: String, name: String, message: String)
 
   // ─── API tags (GET /api/tags) ─────────────────────────────────────────────────────────────
@@ -227,7 +236,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   val rateLimitersJsonV700Example: RateLimitersJsonV700 = RateLimitersJsonV700(List(
     RateLimiterJsonV700("self_service", 1, "OBP-10060", enabled = true, "shadow", "client IP address",
       "before routing and before authentication, on the self-service endpoints", "self_service.rate_limit",
-      List(RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500)))),
+      // Every window is named here even though the self-service limiter only configures four of
+      // them: swagger takes a List's published element type from its FIRST element, and an
+      // Option[Long] left None there has no type to recover, so the field publishes as a dangling
+      // $ref to Object (SwaggerFactoryUnitTest's "no dangling $ref" scenario catches it). -1 is
+      // the codebase's "not limited" value and reads correctly as one.
+      List(RateLimiterLimitJsonV700("signup", per_second = Some(-1), per_minute = Some(3), per_hour = Some(5),
+        per_day = Some(10), per_week = Some(-1), per_month = Some(-1), global_per_hour = Some(500)))),
     RateLimiterJsonV700("authentication", 2, "OBP-10061", enabled = false, "shadow", "client IP address and account",
       "inside the credential check of Direct Login, DAuth, Gateway Login and SIWE", "auth.rate_limit",
       List(RateLimiterLimitJsonV700("ip", per_minute = Some(10), per_hour = Some(100)), RateLimiterLimitJsonV700("account", per_minute = Some(6)))),
@@ -561,6 +576,21 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     user_id: String,              // Audit field
     consent_id: Option[String],   // Audit field
     created_at: String            // ISO 8601
+  )
+
+  // Declared here rather than inside Http4s700.Implementations7_0_0, where it used to live.
+  // SwaggerJSONFactory reflects on every example body, and reflecting a class nested in that object
+  // has to resolve its owner chain - which references IO, whose companion walks into cats-effect's
+  // `Par` trait and its abstract type member `ParallelF`, a Scala 3 shape scala-reflect's classfile
+  // fallback cannot load: `AssertionError: no symbol could be loaded from class
+  // cats.effect.kernel.Par$ParallelF$`. Whether that surfaced depended on symbol-table caching, so
+  // it broke the v7.0.0 swagger document only on some initialisation orders. The definition's
+  // published name is the class's own simple name, so moving it changes nothing in the document.
+  case class TestEmailResponseJsonV700(
+    to: String,
+    from: String,
+    subject: String,
+    message_id: String
   )
 
   case class WithdrawalJson(
@@ -1577,7 +1607,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     row: code.messageoutbox.MessageOutbox
   ): MessageOutboxRowJsonV700 =
     MessageOutboxRowJsonV700(
-      outbox_id = row.id.get,
+      outbox_id = row.id,
       outbox_type = row.outboxType,
       subject_id = row.subjectId,
       subject_id_type = row.subjectIdType,
@@ -1585,9 +1615,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       target_id = row.targetId,
       status = row.status,
       attempts = row.attempts,
-      last_error = row.LastError.get,
-      created_at = APIUtil.DateWithMsFormat.format(row.CreatedAt.get),
-      updated_at = APIUtil.DateWithMsFormat.format(row.UpdatedAt.get)
+      last_error = row.lastError,
+      created_at = APIUtil.DateWithMsFormat.format(row.createdAt),
+      updated_at = APIUtil.DateWithMsFormat.format(row.updatedAt)
     )
 
   // ─── OPEN_CORRIDOR settlements ─────────────────────────────────────────────
@@ -1828,8 +1858,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       per_day_call_limit = r.perDayCallLimit.toString,
       per_week_call_limit = r.perWeekCallLimit.toString,
       per_month_call_limit = r.perMonthCallLimit.toString,
-      created_at = r.createdAt.get,
-      updated_at = r.updatedAt.get
+      created_at = r.createdAt,
+      updated_at = r.updatedAt
     )
 
   lazy val consumerRateLimitsJsonV700Example = ConsumerRateLimitsJsonV700(List(ConsumerRateLimitJsonV700(
@@ -2122,8 +2152,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   def createCurrentConsumerIdentityJsonV700(consumer: code.model.Consumer): CurrentConsumerIdentityJsonV700 =
     CurrentConsumerIdentityJsonV700(
-      consumer_id = consumer.consumerId.get,
-      consumer_name = Option(consumer.name.get).getOrElse("")
+      consumer_id = consumer.consumerId,
+      consumer_name = Option(consumer.name).getOrElse("")
     )
 
   lazy val currentConsumerIdentityJsonV700Example = CurrentConsumerIdentityJsonV700(
@@ -2263,17 +2293,17 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     everything_as_expected: Boolean
   )
 
-  private def metricsArchiveRunToJson(r: MetricsArchiveRun): MetricsArchiveRunJsonV700 =
+  private def metricsArchiveRunToJson(r: MetricsArchiveRunTrait): MetricsArchiveRunJsonV700 =
     MetricsArchiveRunJsonV700(
-      run_id                    = r.RunId.get,
-      api_instance_id           = r.ApiInstanceId.get,
-      started_at                = r.StartedAt.get,
-      ended_at                  = r.EndedAt.get,
-      duration_ms               = r.DurationMs.get,
-      rows_moved_to_archive     = r.RowsMovedToArchive.get,
-      rows_deleted_from_archive = r.RowsDeletedFromArchive.get,
-      success                   = r.Success.get,
-      remark                    = r.Remark.get
+      run_id                    = r.runId,
+      api_instance_id           = r.apiInstanceId,
+      started_at                = r.startedAt,
+      ended_at                  = r.endedAt,
+      duration_ms               = r.durationMs,
+      rows_moved_to_archive     = r.rowsMovedToArchive,
+      rows_deleted_from_archive = r.rowsDeletedFromArchive,
+      success                   = r.success,
+      remark                    = r.remark
     )
 
   // The in-progress archive job whose lock blocked a new run. Surfaced so an
@@ -2339,10 +2369,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     outcome match {
       case code.scheduler.RunCompleted(r) =>
         val msg =
-          if (r.Success.get)
-            s"Archive run completed: moved ${r.RowsMovedToArchive.get} rows to the archive, deleted ${r.RowsDeletedFromArchive.get} outdated archive rows."
+          if (r.success)
+            s"Archive run completed: moved ${r.rowsMovedToArchive} rows to the archive, deleted ${r.rowsDeletedFromArchive} outdated archive rows."
           else
-            s"Archive run completed with errors: ${r.Remark.get}"
+            s"Archive run completed with errors: ${r.remark}"
         TriggerMetricsArchiveRunResponseJsonV700("completed", msg, Some(metricsArchiveRunToJson(r)))
       case code.scheduler.RunSkippedAlreadyInProgress(jobId, apiInstanceId, startedAt) =>
         val ageSeconds = (System.currentTimeMillis - startedAt.getTime) / 1000L
@@ -2391,11 +2421,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   def createSchedulerJobsJsonV700(rows: List[code.scheduler.JobScheduler]): SchedulerJobsJsonV700 = {
     val now = System.currentTimeMillis
     val jobs = rows.map { r =>
-      val startedAt = r.createdAt.get
+      val startedAt = r.createdAt
       SchedulerJobJsonV700(
-        job_id          = r.JobId.get,
-        name            = r.Name.get,
-        api_instance_id = r.ApiInstanceId.get,
+        job_id          = r.jobId,
+        name            = r.name,
+        api_instance_id = r.apiInstanceId,
         started_at      = startedAt,
         age_seconds     = (now - startedAt.getTime) / 1000L
       )
@@ -2457,13 +2487,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         newest_record_age_days = newest.map(metricsAgeInDays(_, now))
       )
 
-    val metricOldest = MappedMetric.findAll(OrderBy(MappedMetric.date, Ascending), MaxRows(1)).headOption.map(_.getDate())
-    val metricNewest = MappedMetric.findAll(OrderBy(MappedMetric.date, Descending), MaxRows(1)).headOption.map(_.getDate())
-    val metricStats  = statsFor("metric", MappedMetric.count, metricOldest, metricNewest)
+    val metricOldest = MappedMetric.oldestDate()
+    val metricNewest = MappedMetric.newestDate()
+    val metricStats  = statsFor("metric", MappedMetric.count(), metricOldest, metricNewest)
 
-    val archiveOldest = MetricArchive.findAll(OrderBy(MetricArchive.date, Ascending), MaxRows(1)).headOption.map(_.getDate())
-    val archiveNewest = MetricArchive.findAll(OrderBy(MetricArchive.date, Descending), MaxRows(1)).headOption.map(_.getDate())
-    val archiveStats  = statsFor("metricarchive", MetricArchive.count, archiveOldest, archiveNewest)
+    val archiveOldest = MetricArchive.oldestDate()
+    val archiveNewest = MetricArchive.newestDate()
+    val archiveStats  = statsFor("metricarchive", MetricArchive.count(), archiveOldest, archiveNewest)
 
     val graceDays = 7L
     val checks = scala.collection.mutable.ListBuffer[MetricsIntegrityCheckJsonV700]()
@@ -2539,17 +2569,17 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     val lastRun = MetricsArchiveRun.lastRun
     val lastSuccessfulRun = MetricsArchiveRun.lastSuccessfulRun
     lastRun match {
-      case Some(r) if r.Success.get =>
-        val ageDays = metricsAgeInDays(r.StartedAt.get, now)
+      case Some(r) if r.success =>
+        val ageDays = metricsAgeInDays(r.startedAt, now)
         checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "OK",
-          s"Last archive run succeeded $ageDays days ago (moved ${r.RowsMovedToArchive.get} rows, deleted ${r.RowsDeletedFromArchive.get} outdated archive rows).")
+          s"Last archive run succeeded $ageDays days ago (moved ${r.rowsMovedToArchive} rows, deleted ${r.rowsDeletedFromArchive} outdated archive rows).")
       case Some(r) =>
-        val ageDays = metricsAgeInDays(r.StartedAt.get, now)
+        val ageDays = metricsAgeInDays(r.startedAt, now)
         val lastOkNote = lastSuccessfulRun
-          .map(s => s" Last successful run was ${metricsAgeInDays(s.StartedAt.get, now)} days ago.")
+          .map(s => s" Last successful run was ${metricsAgeInDays(s.startedAt, now)} days ago.")
           .getOrElse(" No successful run has ever been recorded.")
         checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "ERROR",
-          s"The most recent archive run ($ageDays days ago) failed: ${r.Remark.get}.$lastOkNote")
+          s"The most recent archive run ($ageDays days ago) failed: ${r.remark}.$lastOkNote")
       case None if schedulerEnabled =>
         checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "WARNING",
           "No archive run has been recorded yet. The scheduler is enabled but may not have completed its first run since this table was introduced.")

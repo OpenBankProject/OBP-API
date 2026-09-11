@@ -61,7 +61,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
       ("everything" -> false) ~
       ("views" -> JArray(Nil)) ~
       ("entitlements" -> roleNames.map(role => ("bank_id" -> "") ~ ("role_name" -> role))) ~
-      ("consumer_id" -> testConsumer.consumerId.get) ~
+      ("consumer_id" -> testConsumer.consumerId) ~
       ("time_to_live" -> 3600)
     myResources.map(mr => base ~ ("my_resources" -> mr)).getOrElse(base)
   }
@@ -90,9 +90,9 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
   private def idsOf(listResponse: JValue, name: String): List[String] =
     (listResponse \ s"${name}_list").extract[List[JObject]].map(o => (o \ s"${name}_id").extract[String])
 
-  feature("Personal dynamic entity endpoints and consent users (my_resources)") {
+  Feature("Personal dynamic entity endpoints and consent users (my_resources)") {
 
-    scenario("a User acting alone needs no role and no consent when personal_requires_role is false", VersionOfApi, ConsentUserTag) {
+    Scenario("a User acting alone needs no role and no consent when personal_requires_role is false", VersionOfApi, ConsentUserTag) {
       val dynamicEntityId = createSystemEntity(entityName)
       try {
         val response = makePostRequest((dynamicEntity_Request / "my" / entityName).POST <@ (user1), write(record))
@@ -100,7 +100,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("a consent that does not list the entity is refused on /my, roles or not", VersionOfApi, ConsentUserTag) {
+    Scenario("a consent that does not list the entity is refused on /my, roles or not", VersionOfApi, ConsentUserTag) {
       val dynamicEntityId = createSystemEntity(entityName)
       try {
         val headers = consentHeaders(List(s"CanCreateDynamicEntity_System$entityName", s"CanGetDynamicEntity_System$entityName"), None)
@@ -114,7 +114,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("a consent listing the entity with read and write acts on the granting User's rows, with no role", VersionOfApi, ConsentUserTag) {
+    Scenario("a consent listing the entity with read and write acts on the granting User's rows, with no role", VersionOfApi, ConsentUserTag) {
       val dynamicEntityId = createSystemEntity(entityName)
       try {
         val headers = consentHeaders(Nil, Some(("personal_dynamic_entities" -> List(personalEntity(entityName, List("read", "write"))))))
@@ -143,7 +143,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("a consent listing the entity read-only may read but not write", VersionOfApi, ConsentUserTag) {
+    Scenario("a consent listing the entity read-only may read but not write", VersionOfApi, ConsentUserTag) {
       val dynamicEntityId = createSystemEntity(entityName)
       try {
         val headers = consentHeaders(Nil, Some(("personal_dynamic_entities" -> List(personalEntity(entityName, List("read"))))))
@@ -155,7 +155,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("when personal_requires_role is true the consent must list the entity AND carry the role", VersionOfApi, ConsentUserTag) {
+    Scenario("when personal_requires_role is true the consent must list the entity AND carry the role", VersionOfApi, ConsentUserTag) {
       val dynamicEntityId = createSystemEntity(roleEntityName, personalRequiresRole = true)
       try {
         val listed = Some(("personal_dynamic_entities" -> List(personalEntity(roleEntityName, List("read", "write")))): JValue)
@@ -169,7 +169,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("creating a consent with an invalid my_resources entry is refused", VersionOfApi, ConsentUserTag) {
+    Scenario("creating a consent with an invalid my_resources entry is refused", VersionOfApi, ConsentUserTag) {
       val dynamicEntityId = createSystemEntity(entityName)
       try {
         val unknownEntity = postConsent(Nil, Some(("personal_dynamic_entities" -> List(personalEntity("no_such_entity", List("read"))))))

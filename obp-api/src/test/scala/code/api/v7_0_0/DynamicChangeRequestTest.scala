@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
@@ -11,7 +12,6 @@ import code.entitlement.Entitlement
 import code.setup.ServerSetupWithTestData
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiShortVersions, ApiVersion}
-import net.liftweb.mapper.By
 import org.json4s.JsonAST.{JArray, JObject}
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
@@ -74,7 +74,7 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
   )
 
   private def storedDoc(url: String): Option[DynamicResourceDoc] =
-    DynamicResourceDoc.find(By(DynamicResourceDoc.RequestUrl, url), By(DynamicResourceDoc.RequestVerb, "POST")).toOption
+    DynamicResourceDoc.findByVerbAndUrl(None, "POST", url).toOption
 
   private def callDynamicEndpoint(suffix: String) = {
     val req = (dynamicEndpoint / "dynamic-resource-doc" / s"mc_native_user_$suffix" / "user-xyz").POST <@ (user1)
@@ -83,22 +83,22 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
 
   private def str(json: org.json4s.JValue, field: String): String = (json \ field).values.toString
 
-  feature("Maker/checker disabled: today's behaviour is unchanged") {
-    scenario("a v4 create is applied directly, the row is active with no approved hash, and the endpoint runs", VersionOfApi) {
+  Feature("Maker/checker disabled: today's behaviour is unchanged") {
+    Scenario("a v4 create is applied directly, the row is active with no approved hash, and the endpoint runs", VersionOfApi) {
       dynamicCodeOn(); makerRoles()
       val doc = newDoc("off")
       val resp = makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(doc))
       resp.codeIs(201)
       val row = storedDoc(doc.requestUrl).getOrElse(fail("doc not stored"))
-      row.IsActive.get should be(true)
-      Option(row.ApprovedHash.get).getOrElse("") should be("")
+      row.isActive should be(true)
+      row.approvedHash.getOrElse("") should be("")
       callDynamicEndpoint("off").codeIs(200)
     }
   }
 
-  feature("Maker/checker enabled: v4 writes are queued and applied only after a second user approves") {
+  Feature("Maker/checker enabled: v4 writes are queued and applied only after a second user approves") {
 
-    scenario("create is intercepted (202), nothing is stored, and the same user cannot approve", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("create is intercepted (202), nothing is stored, and the same user cannot approve", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       enableMakerChecker(); makerRoles(); checkerRoles()
       grant(resourceUser1.userId, ApiRole.canApproveDynamicChangeRequest, ApiRole.canGetDynamicChangeRequests)
       val doc = newDoc("same")
@@ -133,7 +133,7 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       storedDoc(doc.requestUrl) should be(None)
     }
 
-    scenario("a second user approves by hash: wrong hash fails, right hash applies, the endpoint runs, a second approval fails", ApiEndpoint4, VersionOfApi) {
+    Scenario("a second user approves by hash: wrong hash fails, right hash applies, the endpoint runs, a second approval fails", ApiEndpoint4, VersionOfApi) {
       enableMakerChecker(); makerRoles(); checkerRoles()
       val doc = newDoc("ok")
       val resp = makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(doc))
@@ -158,11 +158,11 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       str(ok.body, "checker_comment") should equal("reviewed")
       (ok.body \ "target_id").values.toString.nonEmpty should be(true)
       val row = storedDoc(doc.requestUrl).getOrElse(fail("doc not applied"))
-      row.CreatedByUserId.get should be(resourceUser1.userId)
-      row.MethodBodyHash.get should be(APIUtil.sha256Hex(URLDecoder.decode(doc.methodBody, "UTF-8")))
-      row.ApprovedHash.get should be(row.MethodBodyHash.get)
-      row.IsActive.get should be(true)
-      MakerChecker.isExecutableDynamicResourceDoc(row.DynamicResourceDocId.get) should be(true)
+      row.createdByUserId.getOrElse("") should be(resourceUser1.userId)
+      row.methodBodyHash.getOrElse("") should be(APIUtil.sha256Hex(URLDecoder.decode(doc.methodBody, "UTF-8")))
+      row.approvedHash.getOrElse("") should be(row.methodBodyHash.getOrElse(""))
+      row.isActive should be(true)
+      MakerChecker.isExecutableDynamicResourceDoc(row.dynamicResourceDocId) should be(true)
 
       Then("the compiled endpoint is served")
       val call = callDynamicEndpoint("ok")
@@ -177,13 +177,13 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
 
       Then("the v7 provenance view shows the approval")
       grant(resourceUser2.userId, ApiRole.canGetDynamicResourceDoc)
-      val prov = makeGetRequest((v7 / "management" / "dynamic-resource-docs" / row.DynamicResourceDocId.get).GET <@ (user2))
+      val prov = makeGetRequest((v7 / "management" / "dynamic-resource-docs" / row.dynamicResourceDocId).GET <@ (user2))
       prov.codeIs(200)
-      str(prov.body \ "provenance", "approved_hash") should equal(row.ApprovedHash.get)
+      str(prov.body \ "provenance", "approved_hash") should equal(row.approvedHash.getOrElse(""))
       (prov.body \ "provenance" \ "is_active").values should equal(true)
     }
 
-    scenario("the execution guard holds against direct database edits and deactivation is a single-approver action", ApiEndpoint8, VersionOfApi) {
+    Scenario("the execution guard holds against direct database edits and deactivation is a single-approver action", ApiEndpoint8, VersionOfApi) {
       enableMakerChecker(); makerRoles(); checkerRoles()
       val doc = newDoc("guard")
       val resp = makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(doc))
@@ -194,42 +194,43 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       val row = storedDoc(doc.requestUrl).getOrElse(fail("doc not applied"))
 
       When("the body hash is changed behind the API's back")
-      row.MethodBodyHash("tampered").save
+      DynamicResourceDoc.setMethodBodyHash(row.dynamicResourceDocId, "tampered")
       Then("the endpoint is no longer served")
-      MakerChecker.isExecutableDynamicResourceDoc(row.DynamicResourceDocId.get) should be(false)
+      MakerChecker.isExecutableDynamicResourceDoc(row.dynamicResourceDocId) should be(false)
       callDynamicEndpoint("guard").codeIs(404)
-      row.MethodBodyHash(row.ApprovedHash.get).save
+      DynamicResourceDoc.setMethodBodyHash(row.dynamicResourceDocId, row.approvedHash.getOrElse(""))
       callDynamicEndpoint("guard").codeIs(200)
 
       When("a maker without the approver role tries to deactivate")
-      val forbidden = makePostRequest((v7 / "management" / "dynamic-resource-docs" / row.DynamicResourceDocId.get / "deactivation").POST <@ (user1), """{"comment":"x"}""")
+      val forbidden = makePostRequest((v7 / "management" / "dynamic-resource-docs" / row.dynamicResourceDocId / "deactivation").POST <@ (user1), """{"comment":"x"}""")
       forbidden.codeIs(403)
 
       When("the approver deactivates directly")
-      val off = makePostRequest((v7 / "management" / "dynamic-resource-docs" / row.DynamicResourceDocId.get / "deactivation").POST <@ (user2), """{"comment":"suspected leak"}""")
+      val off = makePostRequest((v7 / "management" / "dynamic-resource-docs" / row.dynamicResourceDocId / "deactivation").POST <@ (user2), """{"comment":"suspected leak"}""")
       Then("it is audited as an APPROVED DEACTIVATE row and the endpoint stops")
       off.codeIs(200)
       str(off.body, "operation") should equal("DEACTIVATE")
       str(off.body, "status") should equal("APPROVED")
       str(off.body, "requestor_user_id") should equal(resourceUser2.userId)
-      storedDoc(doc.requestUrl).get.IsActive.get should be(false)
+      storedDoc(doc.requestUrl).get.isActive should be(false)
       callDynamicEndpoint("guard").codeIs(404)
 
       When("the maker asks to re-activate via an explicit change request and the approver approves it")
       val activate = makePostRequest((v7 / "management" / "dynamic-change-requests").POST <@ (user1),
-        s"""{"target_type":"DYNAMIC_RESOURCE_DOC","operation":"ACTIVATE","target_id":"${row.DynamicResourceDocId.get}","proposed_payload":{},"business_justification":"reviewed, false alarm"}""")
+        s"""{"target_type":"DYNAMIC_RESOURCE_DOC","operation":"ACTIVATE","target_id":"${row.dynamicResourceDocId}","proposed_payload":{},"business_justification":"reviewed, false alarm"}""")
       activate.codeIs(201)
       makePostRequest((v7 / "management" / "dynamic-change-requests" / str(activate.body, "dynamic_change_request_id") / "approval").POST <@ (user2),
         s"""{"payload_hash":"${str(activate.body, "payload_hash")}"}""").codeIs(200)
-      storedDoc(doc.requestUrl).get.IsActive.get should be(true)
+      storedDoc(doc.requestUrl).get.isActive should be(true)
       callDynamicEndpoint("guard").codeIs(200)
     }
 
-    scenario("seeding the approved hash of pre-existing rows runs once per database, not at every boot", VersionOfApi) {
+    Scenario("seeding the approved hash of pre-existing rows runs once per database, not at every boot", VersionOfApi) {
       makerRoles(); checkerRoles()
       val logProvider = code.migration.MigrationScriptLogProvider.migrationScriptLogProvider.vend
-      code.migration.MigrationScriptLog.findAll(By(code.migration.MigrationScriptLog.Name, MakerChecker.seedMigrationName)).foreach(_.delete_!)
-      def approvedHashOf(url: String): String = Option(storedDoc(url).getOrElse(fail("doc not created")).ApprovedHash.get).getOrElse("")
+      code.migration.DoobieMigrationScriptLogProvider.deleteByName(MakerChecker.seedMigrationName)
+      def approvedHashOf(url: String): String =
+        storedDoc(url).getOrElse(fail("doc not created")).approvedHash.getOrElse("")
 
       Given("a row created before approval was required, so it has no approved hash")
       dynamicCodeOn(); setPropsValues("dynamic_code_requires_approval" -> "false")
@@ -254,18 +255,18 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       MakerChecker.seedApprovedHashesIfEnabled()
       Then("a later boot does not bless it: it stays unexecutable until a checker approves it")
       approvedHashOf(late.requestUrl) should equal("")
-      MakerChecker.isExecutableDynamicResourceDoc(storedDoc(late.requestUrl).get.DynamicResourceDocId.get) should be(false)
+      MakerChecker.isExecutableDynamicResourceDoc(storedDoc(late.requestUrl).get.dynamicResourceDocId) should be(false)
       callDynamicEndpoint("late").codeIs(404)
     }
 
-    scenario("an update is queued with the live hash; rejection needs a comment and leaves the target untouched", ApiEndpoint5, VersionOfApi) {
+    Scenario("an update is queued with the live hash; rejection needs a comment and leaves the target untouched", ApiEndpoint5, VersionOfApi) {
       enableMakerChecker(); makerRoles(); checkerRoles()
       val doc = newDoc("upd")
       val created = makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(doc))
       makePostRequest((v7 / "management" / "dynamic-change-requests" / str(created.body, "dynamic_change_request_id") / "approval").POST <@ (user2),
         s"""{"payload_hash":"${str(created.body, "payload_hash")}"}""").codeIs(200)
       val row = storedDoc(doc.requestUrl).getOrElse(fail("doc not applied"))
-      val docId = row.DynamicResourceDocId.get
+      val docId = row.dynamicResourceDocId
 
       When("the maker PUTs a changed body")
       val changed = doc.copy(dynamicResourceDocId = Some(docId), summary = "changed summary")
@@ -273,10 +274,10 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       put.codeIs(202)
       str(put.body, "operation") should equal("UPDATE")
       str(put.body, "target_id") should equal(docId)
-      str(put.body, "current_payload_hash") should equal(row.MethodBodyHash.get)
+      str(put.body, "current_payload_hash") should equal(row.methodBodyHash.getOrElse(""))
       (put.body \ "current_payload" \ "summary").values.toString should equal(doc.summary)
       (put.body \ "proposed_payload" \ "summary").values.toString should equal("changed summary")
-      storedDoc(doc.requestUrl).get.Summary.get should equal(doc.summary)
+      storedDoc(doc.requestUrl).get.summary should equal(doc.summary)
       val id = str(put.body, "dynamic_change_request_id")
 
       When("the checker rejects without a comment")
@@ -286,7 +287,7 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       rej.codeIs(200)
       str(rej.body, "status") should equal("REJECTED")
       str(rej.body, "checker_comment") should equal("not now")
-      storedDoc(doc.requestUrl).get.Summary.get should equal(doc.summary)
+      storedDoc(doc.requestUrl).get.summary should equal(doc.summary)
 
       When("a delete is requested and approved")
       val del = makeDeleteRequest((v4 / "management" / "dynamic-resource-docs" / docId).DELETE <@ (user1))
@@ -297,7 +298,7 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       storedDoc(doc.requestUrl) should be(None)
     }
 
-    scenario("only the requestor can withdraw; listings and /my work; roles and auth are enforced", ApiEndpoint1, ApiEndpoint2, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+    Scenario("only the requestor can withdraw; listings and /my work; roles and auth are enforced", ApiEndpoint1, ApiEndpoint2, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
       enableMakerChecker(); makerRoles(); checkerRoles()
       val doc = newDoc("wd")
       val resp = makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(doc))

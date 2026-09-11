@@ -30,10 +30,12 @@ import org.json4s._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
-import com.openbankproject.commons.util.{ReflectUtils, optional}
+import com.openbankproject.commons.util.{ReflectUtils, json, optional}
 import org.json4s.JsonAST.{JObject, JValue}
 import org.json4s.JsonDSL._
 import org.json4s.{Formats, JInt, JString}
+
+import net.liftweb.common.Box
 
 import java.lang
 import java.util.Date
@@ -41,20 +43,29 @@ import scala.reflect.runtime.universe._
 
 
 // `D <% T` was view-bound syntax; it desugars to exactly the implicit constructor parameter
-// written out here, so subclasses need the same implicit D => T they already needed.
-abstract class Converter[T, D: TypeTag](implicit ev: D => T){
-  //this method declared as common method to avoid conflict with Predf#$confirms
-  implicit def toCommons(t: T): D = ReflectUtils.toSibling[T, D].apply(t)
+// written out here, so subclasses need the same implicit D => T they already needed. Everything
+// else Converter needs - toCommons and the four implicit collection-shaped conversions built on
+// it - is identical to ConverterWithType once dType is fixed to typeTag[D].tpe, so it inherits
+// them rather than redeclaring them (same pattern as OBPEnumeration/OBPEnumerationBase below).
+abstract class Converter[T, D: TypeTag](implicit ev: D => T) extends ConverterWithType[T, D](typeTag[D].tpe)
 
-  implicit val toCommonsList = ReflectUtils.toSiblings[T, D]
+// Same as Converter, but for the handful of subclasses declared in obp-api rather than here: D's
+// Type is a constructor parameter instead of a TypeTag context bound, because typeTag[D] needs the
+// Scala 2 compiler's TypeTag synthesis at the `extends` clause itself, and obp-api compiles under
+// Scala 3. Subclasses pass ReflectUtils.forType("fully.qualified.D") instead - a pure string-based
+// class lookup needing no compiler synthesis.
+abstract class ConverterWithType[T, D](dType: Type)(implicit ev: D => T){
+  implicit def toCommons(t: T): D = ReflectUtils.toOther[D](t, dType)
 
-  implicit val toCommonsBox = ReflectUtils.toSiblingBox[T, D]
+  implicit val toCommonsList: List[T] => List[D] = (items: List[T]) => items.map(toCommons)
 
-  implicit val toCommonsBoxList = ReflectUtils.toSiblingsBox[T, D]
+  implicit val toCommonsBox: Box[T] => Box[D] = (box: Box[T]) => box.map(toCommons)
 
-  implicit val toCommonsOption = ReflectUtils.toSiblingOption[T, D]
+  implicit val toCommonsBoxList: Box[List[T]] => Box[List[D]] = (boxItems: Box[List[T]]) => boxItems.map(toCommonsList)
 
-  implicit val toCommonsOptionList = ReflectUtils.toSiblingsOption[T, D]
+  implicit val toCommonsOption: Option[T] => Option[D] = (option: Option[T]) => option.map(toCommons)
+
+  implicit val toCommonsOptionList: Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toCommonsList)
 }
 
 case class ProductAttributeCommons(
@@ -649,7 +660,10 @@ case class CounterpartyLimitTraitCommons(
   maxTotalAmount: BigDecimal,
   maxNumberOfTransactions: Int,
 ) extends CounterpartyLimitTrait {
-  override def toJValue(implicit format: Formats): JValue = {
+  // Signature uses the json.* aliases, not org.json4s directly - see ApiVersion.scala's toJValue
+  // override for why (a ScalaSig-pickled signature naming org.json4s.JsonAST.JValue directly
+  // becomes unreadable once json4s-native_2.13 is off obp-api's classpath).
+  override def toJValue(implicit format: json.Formats): json.JValue = {
     ("counterparty_limit_id", counterpartyLimitId) ~
       ("bank_id", bankId) ~
       ("account_id",accountId) ~
@@ -1390,9 +1404,19 @@ object ErrorMessage {
  * @param results convert json single field value
  * @tparam T List type
  */
-case class ListResult[+T <: List[_] : TypeTag](name: String, results: T) {
+case class ListResult[+T <: List[_]](name: String, results: T) {
 
-  def itemType: Type = implicitly[TypeTag[T]].tpe
+  // T's TypeTag can no longer be synthesised at each of this class's ~50 obp-api call sites once
+  // they compile under Scala 3 - TypeTag synthesis is a Scala 2 compiler feature, and it would be
+  // needed at every construction site, not just here. itemType's only caller
+  // (SwaggerJSONFactory.translateEntity) uses it purely to render a Swagger example's item schema,
+  // and every value it is called on there is a curated, non-empty ResourceDoc example - so
+  // reflecting the concrete list type off the runtime data (an ordinary value-level operation,
+  // not TypeTag synthesis) recovers the same information for that case without touching any
+  // call site's construction.
+  def itemType: Type = results.headOption
+    .map(head => appliedType(typeOf[List[_]].typeConstructor, ReflectUtils.getType(head)))
+    .getOrElse(typeOf[List[Any]])
 
 }
 

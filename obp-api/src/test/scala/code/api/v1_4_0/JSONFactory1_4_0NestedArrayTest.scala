@@ -4,7 +4,9 @@ import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Bug Condition Exploration Test for Nested Array Schema Generation
@@ -21,7 +23,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FeatureSpec, GivenW
  * Expected Behavior: Nested arrays should generate {"type": "array", "items": {"type": "array", ...}}
  * without object wrappers.
  */
-class JSONFactory1_4_0NestedArrayTest extends FeatureSpec 
+class JSONFactory1_4_0NestedArrayTest extends AnyFeatureSpec 
   with BeforeAndAfterEach 
   with GivenWhenThen
   with BeforeAndAfterAll
@@ -29,9 +31,9 @@ class JSONFactory1_4_0NestedArrayTest extends FeatureSpec
   with MdcLoggable 
   with CustomJsonFormats {
   
-  feature("Bug Condition: Nested Array Schema Generation") {
+  Feature("Bug Condition: Nested Array Schema Generation") {
     
-    scenario("2-level nested array should generate correct nested array schema") {
+    Scenario("2-level nested array should generate correct nested array schema") {
       Given("A 2-level nested JArray: JArray(List(JArray(List(JInt(42)))))")
       val nestedArray = JArray(List(JArray(List(JInt(42)))))
       val testObject = JObject(List(JField("coordinates", nestedArray)))
@@ -67,7 +69,7 @@ class JSONFactory1_4_0NestedArrayTest extends FeatureSpec
       (itemsLevel2 \ "type").extract[String] shouldBe "integer"
     }
     
-    scenario("3-level nested array should generate correct nested array schema") {
+    Scenario("3-level nested array should generate correct nested array schema") {
       Given("A 3-level nested JArray: JArray(List(JArray(List(JArray(List(JString('value')))))))")
       val nestedArray = JArray(List(JArray(List(JArray(List(JString("value")))))))
       val testObject = JObject(List(JField("data", nestedArray)))
@@ -98,7 +100,7 @@ class JSONFactory1_4_0NestedArrayTest extends FeatureSpec
       (itemsLevel3 \ "type").extract[String] shouldBe "string"
     }
     
-    scenario("4-level GeoJSON MultiPolygon coordinates should generate correct nested array schema") {
+    Scenario("4-level GeoJSON MultiPolygon coordinates should generate correct nested array schema") {
       Given("A 4-level nested JArray representing GeoJSON MultiPolygon coordinates")
       val coordinates = JArray(List(
         JArray(List(
@@ -154,7 +156,7 @@ class JSONFactory1_4_0NestedArrayTest extends FeatureSpec
       (itemsLevel3 \ "maxItems").extractOpt[Int] shouldBe Some(2)
     }
     
-    scenario("Empty nested array should be handled gracefully") {
+    Scenario("Empty nested array should be handled gracefully") {
       Given("An empty nested JArray: JArray(List(JArray(List())))")
       val emptyNestedArray = JArray(List(JArray(List())))
       val testObject = JObject(List(JField("empty", emptyNestedArray)))

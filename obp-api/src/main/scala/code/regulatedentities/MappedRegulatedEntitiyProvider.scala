@@ -1,22 +1,140 @@
 package code.regulatedentities
 
-import code.regulatedentities.attribute.RegulatedEntityAttribute
-import code.util.MappedUUID
+import code.api.util.{APIUtil, DoobieUtil}
+import code.regulatedentities.attribute.DoobieRegulatedEntityAttributeProvider
 import com.openbankproject.commons.model.{RegulatedEntityAttributeSimple, RegulatedEntityTrait}
-import net.liftweb.common.Box
+import doobie._
+import doobie.implicits._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.common.Box.tryo
-import net.liftweb.mapper._
 
-import scala.concurrent.Future
+/**
+ * A regulated entity (a PSD2 certificate holder).
+ *
+ * Every column is optional at the API but not nullable in practice: createRegulatedEntity only set
+ * the fields it was given and left the rest at MappedString's "" default, so absent values are
+ * stored as empty strings rather than NULL. That is preserved — the trait types them all as bare
+ * Strings, and a caller reading back an omitted field has always seen "".
+ */
+case class MappedRegulatedEntity(
+  entityId: String,
+  certificateAuthorityCaOwnerId: String,
+  entityName: String,
+  entityCode: String,
+  entityCertificatePublicKey: String,
+  entityType: String,
+  entityAddress: String,
+  entityTownCity: String,
+  entityPostCode: String,
+  entityCountry: String,
+  entityWebSite: String,
+  services: String
+) extends RegulatedEntityTrait {
+  override def attributes: Option[List[RegulatedEntityAttributeSimple]] =
+    Some(
+      DoobieRegulatedEntityAttributeProvider.getRegulatedEntityAttributesSync(entityId)
+        .map(i => RegulatedEntityAttributeSimple(i.attributeType.toString, i.name, i.value))
+    )
+}
+
+object MappedRegulatedEntity {
+
+  private val selectColumns =
+    fr"""SELECT entityid, certificateauthoritycaownerid, entityname, entitycode,
+                entitycertificatepublickey, entitytype, entityaddress, entitytowncity,
+                entitypostcode, entitycountry, entitywebsite, services
+         FROM regulatedentity"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String])
+
+  private def fromRow(row: Row): MappedRegulatedEntity = row match {
+    case (entityId, certificateAuthorityCaOwnerId, entityName, entityCode,
+          entityCertificatePublicKey, entityType, entityAddress, entityTownCity, entityPostCode,
+          entityCountry, entityWebSite, services) =>
+      MappedRegulatedEntity(entityId.orNull, certificateAuthorityCaOwnerId.orNull,
+        entityName.orNull, entityCode.orNull, entityCertificatePublicKey.orNull, entityType.orNull,
+        entityAddress.orNull, entityTownCity.orNull, entityPostCode.orNull, entityCountry.orNull,
+        entityWebSite.orNull, services.orNull)
+  }
+
+  private def query(condition: Fragment): List[MappedRegulatedEntity] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def findAll(): List[MappedRegulatedEntity] = query(fr"ORDER BY id ASC")
+
+  def findByEntityId(entityId: String): Box[MappedRegulatedEntity] =
+    query(fr"WHERE entityid = $entityId ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  /**
+   * Absent fields are stored as "" rather than NULL, matching what Mapper's untouched
+   * MappedString defaults wrote.
+   *
+   * Mapper also ran `entity.validate` before saving and threw the collected messages when it was
+   * non-empty. No validator was ever declared on this entity, so that check always passed; the
+   * column widths are what actually reject an over-long value, and the caller's tryo turns that
+   * into a Failure exactly as it did the thrown Error.
+   */
+  def insert(certificateAuthorityCaOwnerId: Option[String],
+             entityCertificatePublicKey: Option[String],
+             entityName: Option[String],
+             entityCode: Option[String],
+             entityType: Option[String],
+             entityAddress: Option[String],
+             entityTownCity: Option[String],
+             entityPostCode: Option[String],
+             entityCountry: Option[String],
+             entityWebSite: Option[String],
+             services: Option[String]): MappedRegulatedEntity = {
+    val entityId = APIUtil.generateUUID()
+    val row = MappedRegulatedEntity(
+      entityId,
+      certificateAuthorityCaOwnerId.getOrElse(""),
+      entityName.getOrElse(""),
+      entityCode.getOrElse(""),
+      entityCertificatePublicKey.getOrElse(""),
+      entityType.getOrElse(""),
+      entityAddress.getOrElse(""),
+      entityTownCity.getOrElse(""),
+      entityPostCode.getOrElse(""),
+      entityCountry.getOrElse(""),
+      entityWebSite.getOrElse(""),
+      services.getOrElse("")
+    )
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO regulatedentity
+            (entityid, certificateauthoritycaownerid, entityname, entitycode,
+             entitycertificatepublickey, entitytype, entityaddress, entitytowncity, entitypostcode,
+             entitycountry, entitywebsite, services)
+            VALUES (${row.entityId}, ${row.certificateAuthorityCaOwnerId}, ${row.entityName},
+             ${row.entityCode}, ${row.entityCertificatePublicKey}, ${row.entityType},
+             ${row.entityAddress}, ${row.entityTownCity}, ${row.entityPostCode},
+             ${row.entityCountry}, ${row.entityWebSite}, ${row.services})"""
+        .update.run)
+    row
+  }
+
+  def deleteByEntityId(entityId: String): Boolean = {
+    DoobieUtil.runUpdate(sql"DELETE FROM regulatedentity WHERE entityid = $entityId".update.run)
+    true
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM regulatedentity".update.run)
+    ()
+  }
+}
 
 object MappedRegulatedEntityProvider extends RegulatedEntityProvider {
-  def getRegulatedEntities(): List[RegulatedEntityTrait] = {
-    MappedRegulatedEntity.findAll()
-  }
 
-  override def getRegulatedEntityByEntityId(entityId: String): Box[RegulatedEntityTrait] = {
-    MappedRegulatedEntity.find(By(MappedRegulatedEntity.EntityId, entityId))
-  }
+  def getRegulatedEntities(): List[RegulatedEntityTrait] = MappedRegulatedEntity.findAll()
+
+  override def getRegulatedEntityByEntityId(entityId: String): Box[RegulatedEntityTrait] =
+    MappedRegulatedEntity.findByEntityId(entityId)
 
   override def createRegulatedEntity(certificateAuthorityCaOwnerId: Option[String],
                                      entityCertificatePublicKey: Option[String],
@@ -29,110 +147,13 @@ object MappedRegulatedEntityProvider extends RegulatedEntityProvider {
                                      entityCountry: Option[String],
                                      entityWebSite: Option[String],
                                      services: Option[String]
-                                    ): Box[RegulatedEntityTrait] = {
+                                    ): Box[RegulatedEntityTrait] =
     tryo {
-      val entity = MappedRegulatedEntity.create
-      certificateAuthorityCaOwnerId match {
-        case Some(v) => entity.CertificateAuthorityCaOwnerId(v)
-        case None =>
-      }
-      entityCertificatePublicKey match {
-        case Some(v) => entity.EntityCertificatePublicKey(v)
-        case None =>
-      }
-      entityName match {
-        case Some(v) => entity.EntityName(v)
-        case None =>
-      }
-      entityCode match {
-        case Some(v) => entity.EntityCode(v)
-        case None =>
-      }
-      entityType match {
-        case Some(v) => entity.EntityType(v)
-        case None =>
-      }
-      entityAddress match {
-        case Some(v) => entity.EntityAddress(v)
-        case None =>
-      }
-      entityTownCity match {
-        case Some(v) => entity.EntityTownCity(v)
-        case None =>
-      }
-      entityPostCode match {
-        case Some(v) => entity.EntityPostCode(v)
-        case None =>
-      }
-      entityCountry match {
-        case Some(v) => entity.EntityCountry(v)
-        case None =>
-      }
-      entityWebSite match {
-        case Some(v) => entity.EntityWebSite(v)
-        case None =>
-      }
-      services match {
-        case Some(v) => entity.Services(v)
-        case None =>
-      }
-
-      if (entity.validate.isEmpty) {
-        entity.saveMe()
-      } else {
-        throw new Error(entity.validate.map(_.msg.toString()).mkString(";"))
-      }
+      MappedRegulatedEntity.insert(certificateAuthorityCaOwnerId, entityCertificatePublicKey,
+        entityName, entityCode, entityType, entityAddress, entityTownCity, entityPostCode,
+        entityCountry, entityWebSite, services)
     }
-  }
 
-  override def deleteRegulatedEntity(id: String): Box[Boolean] = {
-    tryo(
-      MappedRegulatedEntity.bulkDelete_!!(By(MappedRegulatedEntity.EntityId, id))
-    )
-  }
-
+  override def deleteRegulatedEntity(id: String): Box[Boolean] =
+    tryo(MappedRegulatedEntity.deleteByEntityId(id))
 }
-
-class MappedRegulatedEntity extends RegulatedEntityTrait with LongKeyedMapper[MappedRegulatedEntity] with IdPK {
-  override def getSingleton = MappedRegulatedEntity
-  object EntityId extends MappedUUID(this)
-  object CertificateAuthorityCaOwnerId extends MappedString(this, 256)
-  object EntityName extends MappedString(this, 256)
-  object EntityCode extends MappedString(this, 50)
-  object EntityCertificatePublicKey extends MappedText(this)
-  object EntityType extends MappedString(this, 50)
-  object EntityAddress extends MappedString(this, 256)
-  object EntityTownCity extends MappedString(this, 50)
-  object EntityPostCode extends MappedString(this, 50)
-  object EntityCountry extends MappedString(this, 50)
-  object EntityWebSite extends MappedString(this, 256)
-  object Services extends MappedText(this)
-
-
-  override def entityId: String = EntityId.get
-  override def certificateAuthorityCaOwnerId: String = CertificateAuthorityCaOwnerId.get
-  override def entityName: String = EntityName.get
-  override def entityCode: String = EntityCode.get
-  override def entityCertificatePublicKey: String = EntityCertificatePublicKey.get
-  override def entityType: String = EntityType.get
-  override def entityAddress: String = EntityAddress.get
-  override def entityTownCity: String = EntityTownCity.get
-  override def entityPostCode: String = EntityPostCode.get
-  override def entityCountry: String = EntityCountry.get
-  override def entityWebSite: String = EntityWebSite.get
-  override def services: String = Services.get
-  override def attributes: Option[List[RegulatedEntityAttributeSimple]] = {
-    Some(
-      RegulatedEntityAttribute.findAll(
-        By(RegulatedEntityAttribute.RegulatedEntityId_, EntityId.get)
-      ).map(i => RegulatedEntityAttributeSimple(i.attributeType.toString, i.name, i.value))
-    )
-  }
-
-}
-
-object MappedRegulatedEntity extends MappedRegulatedEntity with LongKeyedMetaMapper[MappedRegulatedEntity]  {
-  override def dbTableName = "RegulatedEntity" // define the DB table name
-  override def dbIndexes = Index(CertificateAuthorityCaOwnerId) :: super.dbIndexes
-}
-

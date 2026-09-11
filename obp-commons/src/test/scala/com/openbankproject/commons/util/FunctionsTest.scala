@@ -4,9 +4,11 @@ import java.util.Date
 
 import com.openbankproject.commons.util.Functions.deepFlatten
 import com.openbankproject.commons.util.Functions.Implicits._
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class FunctionsTest extends FlatSpec with Matchers {
+class FunctionsTest extends AnyFlatSpec with Matchers {
   object FunctionsTag extends Tag("Functions")
 
   "deepFlatten" should "flatten all deep elements for Array" taggedAs FunctionsTag in {

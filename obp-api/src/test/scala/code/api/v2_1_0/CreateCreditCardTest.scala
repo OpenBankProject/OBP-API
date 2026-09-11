@@ -12,8 +12,8 @@ import code.api.util.ErrorMessages._
 
 class CreateCreditCardTest extends V210ServerSetup with DefaultUsers {
 
-  feature("Assuring that endpoint 'Create Credit Card' works as expected - v2.1.0") {
-    scenario("Create Credit Card successfully ") {
+  Feature("Assuring that endpoint 'Create Credit Card' works as expected - v2.1.0") {
+    Scenario("Create Credit Card successfully ") {
       Given("The Bank_ID")
       val bankId = testBankId1
       val accountId = testAccountId1

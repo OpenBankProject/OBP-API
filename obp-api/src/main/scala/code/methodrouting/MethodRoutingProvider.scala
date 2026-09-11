@@ -3,8 +3,8 @@ package code.methodrouting
 /* For Connector method routing, star connector use this provider to find proxy connector name */
 
 import org.json4s._
-import com.openbankproject.commons.model.{Converter, JsonFieldReName}
-import com.openbankproject.commons.util.JsonAble
+import com.openbankproject.commons.model.{Converter, ConverterWithType, JsonFieldReName}
+import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
 import net.liftweb.common.Box
 import com.openbankproject.commons.util.json
 import org.json4s.JsonDSL._
@@ -64,7 +64,7 @@ case class MethodRoutingCommons(methodName: String,
   }
 }
 
-object MethodRoutingCommons extends Converter[MethodRoutingT, MethodRoutingCommons]
+object MethodRoutingCommons extends ConverterWithType[MethodRoutingT, MethodRoutingCommons](ReflectUtils.forType("code.methodrouting.MethodRoutingCommons"))
 
 case class MethodRoutingParam(key: String, value: String) extends JsonAble {
   def this(jObject: JObject) = this(MethodRoutingParam.extractKey(jObject),MethodRoutingParam.extractValue(jObject))

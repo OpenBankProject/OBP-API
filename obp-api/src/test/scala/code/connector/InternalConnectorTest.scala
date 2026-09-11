@@ -4,12 +4,13 @@ import code.api.util.{CallContext, DynamicUtil}
 import code.bankconnectors.InternalConnector
 import com.openbankproject.commons.model.{Bank, BankId}
 import net.liftweb.common.{Box,Full}
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.concurrent.duration._
 import scala.concurrent.Future
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class InternalConnectorTest extends FlatSpec with Matchers {
+class InternalConnectorTest extends AnyFlatSpec with Matchers {
 
 
   "createFunction" should "should work well" in {

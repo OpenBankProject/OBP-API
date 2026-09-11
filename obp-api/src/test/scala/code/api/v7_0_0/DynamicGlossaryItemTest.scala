@@ -77,9 +77,9 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       .map(_.description.markdown)
   }
 
-  feature("Create Dynamic Glossary Item") {
+  Feature("Create Dynamic Glossary Item") {
 
-    scenario("Authentication and the role are both required", ApiEndpoint1, VersionOfApi) {
+    Scenario("Authentication and the role are both required", ApiEndpoint1, VersionOfApi) {
       When("no user is given")
       val anonymous = makePostRequest((v7 / "glossary-items").POST,
         write(PostGlossaryItemJsonV700(title = newTitle(), description = "x", overrides_static_item = None)))
@@ -93,7 +93,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       errorOf(forbidden) should include(CanCreateGlossaryItem.toString)
     }
 
-    scenario("Create, then read it back", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario("Create, then read it back", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       val title = newTitle()
 
@@ -126,7 +126,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       errorOf(missing) should startWith(GlossaryItemNotFound)
     }
 
-    scenario("Titles are unique case insensitively, and must be non empty", ApiEndpoint1, VersionOfApi) {
+    Scenario("Titles are unique case insensitively, and must be non empty", ApiEndpoint1, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       val title = newTitle()
       created(title, "first", user1)
@@ -147,9 +147,9 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Update and delete Dynamic Glossary Items") {
+  Feature("Update and delete Dynamic Glossary Items") {
 
-    scenario("Update replaces the description, and needs its own role", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+    Scenario("Update replaces the description, and needs its own role", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       val title = newTitle()
       val item = created(title, "before", user1)
@@ -175,7 +175,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       errorOf(missing) should startWith(GlossaryItemNotFound)
     }
 
-    scenario("Delete removes the item, and needs its own role", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
+    Scenario("Delete removes the item, and needs its own role", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       val title = newTitle()
       created(title, "doomed", user1)
@@ -199,9 +199,9 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("GET /api/glossary returns the union of static and Dynamic Glossary Items") {
+  Feature("GET /api/glossary returns the union of static and Dynamic Glossary Items") {
 
-    scenario("A new Dynamic Glossary Item appears in the Glossary", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
+    Scenario("A new Dynamic Glossary Item appears in the Glossary", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
       val title = newTitle()
@@ -220,7 +220,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       glossaryTitled(title) should equal(Nil)
     }
 
-    scenario("A Dynamic Glossary Item replaces the static one of the same title", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
+    Scenario("A Dynamic Glossary Item replaces the static one of the same title", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
 
@@ -253,9 +253,9 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Overriding a static Glossary Item has to be declared") {
+  Feature("Overriding a static Glossary Item has to be declared") {
 
-    scenario("A collision with a static title is refused unless the override is declared", ApiEndpoint1, VersionOfApi) {
+    Scenario("A collision with a static title is refused unless the override is declared", ApiEndpoint1, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
 
@@ -276,14 +276,14 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       delete(staticTitle, user1).code should equal(204)
     }
 
-    scenario("A title with no static counterpart needs no declaration", ApiEndpoint1, VersionOfApi) {
+    Scenario("A title with no static counterpart needs no declaration", ApiEndpoint1, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       val item = created(newTitle(), "text", user1)
       item.overrides_static_item should equal(false)
       item.shadows_static_glossary_item should equal(false)
     }
 
-    scenario("The Glossary marks Dynamic Items and the ones displacing static text", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
+    Scenario("The Glossary marks Dynamic Items and the ones displacing static text", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
 
@@ -317,11 +317,11 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("No Glossary placeholder ever reaches a client") {
+  Feature("No Glossary placeholder ever reaches a client") {
 
     // Glossary Items cross-reference each other, so their own descriptions carry placeholders too.
     // Missing that is exactly how 60 raw tokens once reached GET /api/glossary.
-    scenario("The Glossary itself carries expanded links, not placeholders", VersionOfApi) {
+    Scenario("The Glossary itself carries expanded links, not placeholders", VersionOfApi) {
       for ((label, url) <- List("v3.0.0" -> (v3 / "api" / "glossary"), "v7.0.0" -> (v7 / "api" / "glossary"))) {
         val response = makeGetRequest(url.GET)
         response.code should equal(200)
@@ -335,9 +335,9 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Every Glossary title appears once") {
+  Feature("Every Glossary title appears once") {
 
-    scenario("The Glossary has no duplicate titles", VersionOfApi) {
+    Scenario("The Glossary has no duplicate titles", VersionOfApi) {
       // A duplicate title breaks any client that keys a list by it, and only one of the two can own
       // the /glossary#Title anchor. Five pairs once shipped this way.
       val response = makeGetRequest((v3 / "api" / "glossary").GET)
@@ -350,9 +350,9 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("The STABLE v3.0.0 Glossary keeps its shape") {
+  Feature("The STABLE v3.0.0 Glossary keeps its shape") {
 
-    scenario("v3.0.0 serves the same merged Glossary, without the v7 provenance fields", VersionOfApi) {
+    Scenario("v3.0.0 serves the same merged Glossary, without the v7 provenance fields", VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
       val title = newTitle()
@@ -375,7 +375,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Glossary text embedded in endpoint descriptions honours Dynamic Glossary Items") {
+  Feature("Glossary text embedded in endpoint descriptions honours Dynamic Glossary Items") {
 
     // createMyApiCollectionEndpoint embeds the "API Collections" Glossary Item in its description
     // with Glossary.getGlossaryItem, which is the placeholder that gets expanded when docs are served.
@@ -395,7 +395,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       descriptions.mkString("\n")
     }
 
-    scenario("Every title embedded in a description resolves to a Glossary Item", VersionOfApi) {
+    Scenario("Every title embedded in a description resolves to a Glossary Item", VersionOfApi) {
       // A typo in a title is silent otherwise: the description just renders the literal text
       // "glossary-item-not-found". That is how "API Collections" (the item is "API Collection")
       // went unnoticed across six endpoint descriptions.
@@ -413,7 +413,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Placeholders never leak into a served description", VersionOfApi) {
+    Scenario("Placeholders never leak into a served description", VersionOfApi) {
       val description = descriptionOfEmbeddingEndpoint()
       Then("the description carries the Glossary text, not the unexpanded placeholder")
       description should not include "OBP-GLOSSARY"
@@ -424,7 +424,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       description should not include "(/glossary#)"
     }
 
-    scenario("A Dynamic Glossary Item replaces the embedded text", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
+    Scenario("A Dynamic Glossary Item replaces the embedded text", ApiEndpoint1, ApiEndpoint5, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
 

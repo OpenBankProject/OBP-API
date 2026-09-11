@@ -8,7 +8,6 @@ import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
@@ -46,14 +45,14 @@ class CreateUserTest extends V600ServerSetup {
 
   override def afterAll(): Unit = {
     // Clean up test users
-    AuthUser.find(By(AuthUser.username, randomUsername)).map(_.delete_!)
+    AuthUser.findByUsername(randomUsername).map(_.delete_!)
     setPropsValues("authUser.skipEmailValidation" -> "false")
     super.afterAll()
   }
 
-  feature(s"Create User - POST /obp/v6.0.0/users - $ApiVersion.v6_0_0") {
+  Feature(s"Create User - POST /obp/v6.0.0/users - $ApiVersion.v6_0_0") {
 
-    scenario("Successfully create a new user with all valid fields", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Successfully create a new user with all valid fields", ApiEndpointCreateUser, VersionOfApi) {
       val uniqueUsername = randomString(15).toLowerCase + "@example.com"
       val uniqueEmail = randomString(15).toLowerCase + "@example.com"
       
@@ -80,10 +79,10 @@ class CreateUserTest extends V600ServerSetup {
       (json \ "provider").extract[String] should not be empty
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
-    scenario("Successfully create user with long password (>16 chars)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Successfully create user with long password (>16 chars)", ApiEndpointCreateUser, VersionOfApi) {
       val uniqueUsername = randomString(15).toLowerCase + "@example.com"
       val uniqueEmail = randomString(15).toLowerCase + "@example.com"
       
@@ -103,10 +102,10 @@ class CreateUserTest extends V600ServerSetup {
       response.code should equal(201)
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
-    scenario("Fail to create user - duplicate username returns OBP-20258", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - duplicate username returns OBP-20258", ApiEndpointCreateUser, VersionOfApi) {
       val uniqueUsername = randomString(15).toLowerCase + "@example.com"
       val uniqueEmail = randomString(15).toLowerCase + "@example.com"
       
@@ -144,10 +143,10 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should not include("Incorrect json format")
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
-    scenario("Fail to create user - invalid JSON format", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - invalid JSON format", ApiEndpointCreateUser, VersionOfApi) {
       When("We send invalid JSON")
       val request = (v6_0_0_Request / "users").POST
       val response = makePostRequest(request, "{ invalid json }")
@@ -161,7 +160,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("Incorrect json format")
     }
 
-    scenario("Fail to create user - missing required field (email)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - missing required field (email)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user without email field")
       val createUserJson = Map(
         ("username", randomString(15).toLowerCase + "@example.com"),
@@ -182,7 +181,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("OBP-10001")
     }
 
-    scenario("Fail to create user - missing required field (username)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - missing required field (username)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user without username field")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -203,7 +202,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("OBP-10001")
     }
 
-    scenario("Fail to create user - missing required field (password)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - missing required field (password)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user without password field")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -224,7 +223,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("OBP-10001")
     }
 
-    scenario("Fail to create user - missing required field (first_name)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - missing required field (first_name)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user without first_name field")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -245,7 +244,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("OBP-10001")
     }
 
-    scenario("Fail to create user - missing required field (last_name)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - missing required field (last_name)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user without last_name field")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -266,7 +265,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("OBP-10001")
     }
 
-    scenario("Fail to create user - weak password (too short)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - weak password (too short)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with a weak password")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -288,7 +287,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should not include("OBP-10001")
     }
 
-    scenario("Fail to create user - password missing uppercase letter (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - password missing uppercase letter (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with password missing uppercase")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -309,7 +308,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include(InvalidStrongPasswordFormat)
     }
 
-    scenario("Fail to create user - password missing special character (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - password missing special character (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with password missing special character")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -330,7 +329,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include(InvalidStrongPasswordFormat)
     }
 
-    scenario("Fail to create user - password missing digit (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - password missing digit (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with password missing digit")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -351,7 +350,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include(InvalidStrongPasswordFormat)
     }
 
-    scenario("Fail to create user - password missing lowercase letter (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - password missing lowercase letter (10-16 chars)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with password missing lowercase")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -372,7 +371,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include(InvalidStrongPasswordFormat)
     }
 
-    scenario("Fail to create user - empty username", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - empty username", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with empty username")
       val createUserJson = Map(
         ("email", randomString(15).toLowerCase + "@example.com"),
@@ -393,7 +392,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("OBP-")
     }
 
-    scenario("Fail to create user - empty email", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - empty email", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with empty email")
       val createUserJson = Map(
         ("email", ""),
@@ -414,7 +413,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include("OBP-")
     }
 
-    scenario("Fail to create user - password exceeds max length (>512 chars)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Fail to create user - password exceeds max length (>512 chars)", ApiEndpointCreateUser, VersionOfApi) {
       When("We create a user with password exceeding 512 characters")
       val tooLongPassword = randomString(520)
       val createUserJson = Map(
@@ -436,7 +435,7 @@ class CreateUserTest extends V600ServerSetup {
       errorMessage should include(InvalidStrongPasswordFormat)
     }
 
-    scenario("Successfully create user - password exactly 17 chars (no special requirements)", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Successfully create user - password exactly 17 chars (no special requirements)", ApiEndpointCreateUser, VersionOfApi) {
       val uniqueUsername = randomString(15).toLowerCase + "@example.com"
       val uniqueEmail = randomString(15).toLowerCase + "@example.com"
       val password17Chars = "a" * 17 // Simple password, 17 chars
@@ -460,10 +459,10 @@ class CreateUserTest extends V600ServerSetup {
       (response.body \ "username").extract[String] should equal(uniqueUsername)
       
       // Clean up
-      AuthUser.find(By(AuthUser.username, uniqueUsername)).map(_.delete_!)
+      AuthUser.findByUsername(uniqueUsername).map(_.delete_!)
     }
 
-    scenario("Create multiple users with different usernames", ApiEndpointCreateUser, VersionOfApi) {
+    Scenario("Create multiple users with different usernames", ApiEndpointCreateUser, VersionOfApi) {
       val users = List(
         (randomString(15).toLowerCase + "@example.com", "User1"),
         (randomString(15).toLowerCase + "@example.com", "User2"),
@@ -487,7 +486,7 @@ class CreateUserTest extends V600ServerSetup {
         response.code should equal(201)
         
         // Clean up
-        AuthUser.find(By(AuthUser.username, username)).map(_.delete_!)
+        AuthUser.findByUsername(username).map(_.delete_!)
       }
     }
   }

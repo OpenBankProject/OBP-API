@@ -7,7 +7,7 @@
 # docs/MTLS.md). Sourced by the --mtls flag of the build_and_run
 # scripts; can also be sourced by hand for a jar that is already built:
 #
-#   . scripts/mtls_env.sh && java -jar obp-api/target/obp-api.jar
+#   . scripts/mtls_env.sh && java -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 #
 # Every OBP prop is overridable from the environment as OBP_<NAME> with dots
 # replaced by underscores (APIUtil.getPropsValue reads the environment ahead of

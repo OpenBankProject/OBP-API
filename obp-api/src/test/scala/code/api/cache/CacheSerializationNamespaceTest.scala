@@ -1,8 +1,8 @@
 package code.api.cache
 
 import code.setup.RedisTestTarget
-import org.scalatest.{FlatSpec, Matchers}
-import scalacache.{CacheConfig, DefaultCacheKeyBuilder}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Two OBP-API versions must not read each other's cached bytes.
@@ -36,18 +36,18 @@ import scalacache.{CacheConfig, DefaultCacheKeyBuilder}
  * OBP_TEST_REDIS_REQUIRED=true turns that cancel into a failure so CI cannot lose the check
  * silently.
  */
-class CacheSerializationNamespaceTest extends FlatSpec with Matchers {
+class CacheSerializationNamespaceTest extends AnyFlatSpec with Matchers {
 
   /** A stand-in caller key; its value is arbitrary, only its stability across calls matters. */
   private val SampleCallerKey = "code.example.Provider.getAll(Some(bank))"
 
-  /** This build's namespace, spelled out rather than derived, so a test asserting against it
-   *  fails loudly if the derivation and the literal ever disagree. */
-  private val CurrentNamespace = "obpser1-scala2.13"
+  /** This build's own namespace, taken from the code under test rather than spelled out: the
+   *  literal it used to carry was a 2.13 string, which this branch (Scala 3) would have made
+   *  permanently stale. The derivation itself is asserted separately, below. */
+  private val CurrentNamespace = Redis.serializationNamespace
 
   private def keyFor(namespace: String, callerKey: String): String =
-    CacheConfig(cacheKeyBuilder = DefaultCacheKeyBuilder(keyPrefix = Some(namespace)))
-      .cacheKeyBuilder.toCacheKey(Seq(callerKey))
+    Redis.composeMemoKey(namespace, callerKey)
 
   "the derived cache key" should "differ between two serialization namespaces" in {
     val a = keyFor("obpser1-scala2.12", SampleCallerKey)
@@ -58,25 +58,64 @@ class CacheSerializationNamespaceTest extends FlatSpec with Matchers {
       a should not equal b
     }
     a should include("2.12")
-    b should include("2.13")
+    b should include(CurrentNamespace)
   }
 
   it should "also differ when only the manual counter is bumped" in {
     // The Scala version does not move for a dependency upgrade that changes the encoding --
     // chill 0.9.3 to 0.9.5 on its own would not have. The counter is the escape hatch for that,
     // and it is only an escape hatch if it actually changes the key.
-    keyFor(CurrentNamespace, SampleCallerKey) should not equal keyFor("obpser2-scala2.13", SampleCallerKey)
+    val bumped = CurrentNamespace.replaceFirst("^obpser1", "obpser2")
+    withClue(s"the counter bump produced the same namespace <$bumped>, so it is not an escape hatch ") {
+      bumped should not equal CurrentNamespace
+    }
+    keyFor(CurrentNamespace, SampleCallerKey) should not equal keyFor(bumped, SampleCallerKey)
   }
 
   it should "stay stable for one namespace, or nothing would ever be a cache hit" in {
     keyFor(CurrentNamespace, SampleCallerKey) shouldBe keyFor(CurrentNamespace, SampleCallerKey)
   }
 
-  "the namespace this build uses" should "name the Scala binary version it was compiled against" in {
+  "the namespace this build uses" should "separate a Scala 3 build from a Scala 2.13 one" in {
+    // The regression: `scala.util.Properties.versionNumberString` reads the STANDARD LIBRARY,
+    // and Scala 3 compiles against the 2.13 one - so it answers "2.13" on a Scala 3 build and
+    // this branch produced byte-identical keys to develop. Deploying it against a Redis warmed
+    // by the 2.13 build is exactly the collision the namespace exists to prevent, and it was
+    // the one case it could not see.
+    //
+    // The probe here is `scala.runtime.LazyVals$`, NOT the `scala.runtime.Scala3RunTime` the
+    // implementation uses: a test that repeated the production probe would agree with it however
+    // wrong both were. Both classes ship only in scala3-library.
+    val runningOnScala3 =
+      try { Class.forName("scala.runtime.LazyVals$"); true } catch { case _: Throwable => false }
+
+    val libraryBinary = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
+    val whatAScala213BuildProduces = s"obpser1-scala$libraryBinary"
+
+    if (runningOnScala3) {
+      withClue(s"this is a Scala 3 build, but its namespace <$CurrentNamespace> is the one a " +
+               s"Scala 2.13 build produces - the two would read each other's Kryo entries ") {
+        CurrentNamespace should not equal whatAScala213BuildProduces
+      }
+      // Not `include("3")`: "obpser1-scala2.13" contains a '3' too, so that assertion could
+      // never have failed. The compiler generation has to be named as such.
+      CurrentNamespace should include("scala3")
+      keyFor(CurrentNamespace, SampleCallerKey) should not equal
+        keyFor(whatAScala213BuildProduces, SampleCallerKey)
+    } else {
+      // On a 2.13 build the spelling must stay exactly what develop writes, or moving between
+      // develop and this branch would cold-start the cache for no reason.
+      CurrentNamespace shouldBe whatAScala213BuildProduces
+    }
+  }
+
+  it should "name the Scala library version it was compiled against" in {
     // Derived, not asserted verbatim: the point is that it tracks the axis that actually moved.
+    // The library version is present on either build - on its own for a 2.13 one, and after the
+    // compiler generation for a Scala 3 one ("3-lib2.13"), since the encoding depends on both.
     val expected = scala.util.Properties.versionNumberString.split('.').take(2).mkString(".")
-    val probe = keyFor(s"obpser1-scala$expected", "x")
-    probe should include(expected)
+    CurrentNamespace should include(expected)
+    keyFor(CurrentNamespace, "x") should include(expected)
   }
 
   "a real Redis" should "not return an entry written under a different namespace" in {

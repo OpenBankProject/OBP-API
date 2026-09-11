@@ -37,20 +37,20 @@ class SystemViewsPermissionsTests extends V510ServerSetup {
     response.code == 201
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Add Permission to a System View") {
-    scenario("Unauthorized access", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Add Permission to a System View") {
+    Scenario("Unauthorized access", ApiEndpoint1, VersionOfApi) {
       val response = postSystemViewPermission("some-id", CreateViewPermissionJson("can_grant_access_to_views", None), None)
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("Authorized without role", ApiEndpoint1, VersionOfApi) {
+    Scenario("Authorized without role", ApiEndpoint1, VersionOfApi) {
       val response = postSystemViewPermission("some-id", CreateViewPermissionJson("can_grant_access_to_views", None), user1)
       response.code should equal(403)
       response.body.extract[ErrorMessage].message contains(UserHasMissingRoles + "CanCreateSystemViewPermission") shouldBe (true)
     }
 
-    scenario("Authorized with proper Role", ApiEndpoint1, VersionOfApi) {
+    Scenario("Authorized with proper Role", ApiEndpoint1, VersionOfApi) {
       val viewId = APIUtil.generateUUID()
       createSystemView(viewId)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateSystemViewPermission")
@@ -61,20 +61,20 @@ class SystemViewsPermissionsTests extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Delete Permission from a System View") {
-    scenario("Unauthorized access", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Delete Permission from a System View") {
+    Scenario("Unauthorized access", ApiEndpoint2, VersionOfApi) {
       val response = deleteSystemViewPermission("some-id", "can_grant_access_to_views", None)
       response.code should equal(401)
       response.body.extract[ErrorMessage].message contains(AuthenticatedUserIsRequired)  shouldBe (true)
     }
 
-    scenario("Authorized without role", ApiEndpoint2, VersionOfApi) {
+    Scenario("Authorized without role", ApiEndpoint2, VersionOfApi) {
       val response = deleteSystemViewPermission("some-id", "can_grant_access_to_views", user1)
       response.code should equal(403)
       response.body.extract[ErrorMessage].message contains(UserHasMissingRoles + "CanDeleteSystemViewPermission")  shouldBe (true)
     }
 
-    scenario("Authorized with proper Role", ApiEndpoint2, VersionOfApi) {
+    Scenario("Authorized with proper Role", ApiEndpoint2, VersionOfApi) {
       val viewId = APIUtil.generateUUID()
       createSystemView(viewId)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateSystemViewPermission")
@@ -87,7 +87,7 @@ class SystemViewsPermissionsTests extends V510ServerSetup {
       val deleteResp = deleteSystemViewPermission(viewId, "can_grant_access_to_views", user1)
       deleteResp.code should equal(204)
     }
-    scenario("Authorized with proper Role with extra_data", ApiEndpoint2, VersionOfApi) {
+    Scenario("Authorized with proper Role with extra_data", ApiEndpoint2, VersionOfApi) {
       val viewId = APIUtil.generateUUID()
       createSystemView(viewId)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateSystemViewPermission")

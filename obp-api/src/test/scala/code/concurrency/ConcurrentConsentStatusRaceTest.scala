@@ -1,9 +1,11 @@
 package code.concurrency
 
+import code.api.util.DoobieUtil
 import code.consent.{ConsentStatus, MappedConsent, MappedConsentProvider}
-import code.context.{MappedUserAuthContextUpdate, MappedUserAuthContextUpdateProvider}
+import code.context.MappedUserAuthContextUpdateProvider
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.{Date, UUID}
@@ -36,40 +38,38 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
     val salt      = BCrypt.gensalt()
     val hashed    = BCrypt.hashpw(answer, salt).substring(0, 44)
     val consentId = UUID.randomUUID.toString
-    MappedConsent.create
-      .mConsentId(consentId)
-      .mStatus(ConsentStatus.INITIATED.toString)
-      .mChallenge(hashed)
-      .mSalt(salt)
-      .saveMe()
+    MappedConsent.insertWithConsentId(consentId,
+      status = ConsentStatus.INITIATED.toString,
+      challenge = hashed,
+      salt = salt)
     (consentId, answer)
   }
 
   private def mkUserAuthContextUpdate(answer: String): String = {
     val id = UUID.randomUUID.toString
-    MappedUserAuthContextUpdate.create
-      .mUserAuthContextUpdateId(id)
-      .mUserId(resourceUser1.userId)
-      .mConsumerId("__conc_consumer")
-      .mKey("__conc_key")
-      .mValue("__conc_value")
-      .mChallenge(answer)
-      .mStatus(com.openbankproject.commons.model.UserAuthContextUpdateStatus.INITIATED.toString)
-      .saveMe()
+    val now = new java.sql.Timestamp(System.currentTimeMillis)
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO mappeduserauthcontextupdate
+              (muserauthcontextupdateid, muserid, mconsumerid, mkey, mvalue, mchallenge, mstatus, createdat, updatedat)
+            VALUES ($id, ${resourceUser1.userId}, '__conc_consumer', '__conc_key', '__conc_value', $answer,
+                    ${com.openbankproject.commons.model.UserAuthContextUpdateStatus.INITIATED.toString}, $now, $now)"""
+        .update.run)
     id
   }
 
   private def consentStatus(consentId: String): String =
-    MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+    MappedConsent.findByConsentId(consentId)
       .map(_.status).getOrElse("missing")
 
   private def uacStatus(id: String): String =
-    MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, id))
-      .map(_.status).getOrElse("missing")
+    DoobieUtil.runQuery(
+      sql"SELECT mstatus FROM mappeduserauthcontextupdate WHERE muserauthcontextupdateid = $id"
+        .query[String].option
+    ).getOrElse("missing")
 
-  feature("Consent and UserAuthContextUpdate status transitions must be atomic") {
+  Feature("Consent and UserAuthContextUpdate status transitions must be atomic") {
 
-    scenario("H1: two concurrent correct answers to the same consent must not both succeed", ConcurrencyRace) {
+    Scenario("H1: two concurrent correct answers to the same consent must not both succeed", ConcurrencyRace) {
       Given("a consent in INITIATED state with a known challenge answer")
       val (consentId, answer) = mkConsent("test-answer-h1")
 
@@ -94,7 +94,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("H2: two concurrent correct answers to the same UserAuthContextUpdate must not both succeed", ConcurrencyRace) {
+    Scenario("H2: two concurrent correct answers to the same UserAuthContextUpdate must not both succeed", ConcurrencyRace) {
       Given("a UserAuthContextUpdate in INITIATED state with known plain-text challenge")
       // mChallenge is VARCHAR(10) — keep the answer within the column limit.
       val answer = "h2ans"
@@ -118,7 +118,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("H3: a concurrent revoke must not be overwritten by a racing checkAnswer", ConcurrencyRace) {
+    Scenario("H3: a concurrent revoke must not be overwritten by a racing checkAnswer", ConcurrencyRace) {
       Given("a consent in INITIATED state")
       val (consentId, answer) = mkConsent("test-answer-h3")
       val n = 2
@@ -143,7 +143,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M5: the skip-SCA accept-write must not overwrite a concurrent revoke (shouldSkipConsentSca)", ConcurrencyRace) {
+    Scenario("M5: the skip-SCA accept-write must not overwrite a concurrent revoke (shouldSkipConsentSca)", ConcurrencyRace) {
       Given("a consent in INITIATED state (just created, SCA about to be skipped)")
       val (consentId, _) = mkConsent("m5-unused-answer")
       val n = 2

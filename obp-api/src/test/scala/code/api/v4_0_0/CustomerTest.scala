@@ -74,8 +74,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   lazy val bankId = randomBankId
 
 
-  feature(s"Get Customers at Any Bank $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Get Customers at Any Bank $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers").GET
       val response = makeGetRequest(request)
@@ -85,8 +85,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature(s"Get Customers at Any Bank $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Get Customers at Any Bank $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers").GET<@(user1)
       val response = makeGetRequest(request)
@@ -98,7 +98,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canGetCustomersAtAllBanks.toString()) should be (true)
     }
-    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCustomersAtAllBanks.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers").GET <@(user1)
@@ -109,8 +109,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
     }
   }
 
-  feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers-minimal").GET
       val response = makeGetRequest(request)
@@ -120,8 +120,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers-minimal").GET<@(user1)
       val response = makeGetRequest(request)
@@ -133,7 +133,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canGetCustomersMinimalAtAllBanks.toString()) should be (true)
     }
-    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAllBanks.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "customers-minimal").GET <@(user1)
@@ -145,8 +145,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   }
   
 
-  feature(s"Create Customer $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"Create Customer $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST
       val response = makePostRequest(request, write(postCustomerJson))
@@ -157,8 +157,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
     }
   }
 
-  feature(s"Create Customer $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"Create Customer $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
       val response = makePostRequest(request, write(postCustomerJson))
@@ -170,7 +170,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
     }
-    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
@@ -193,8 +193,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   }
 
 
-  feature(s"$ApiEndpoint4 $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"$ApiEndpoint4 $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "banks" / bankId / "search" / "customers" / "mobile-phone-number").POST
       val response = makePostRequest(request, write(postCustomerPhoneNumberJsonV400))
@@ -204,8 +204,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"$ApiEndpoint4 $VersionOfApi - Authorized access without proper role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"$ApiEndpoint4 $VersionOfApi - Authorized access without proper role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v4_0_0_Request / "banks" / bankId / "search" /"customers" / "mobile-phone-number").POST <@ (user1)
       val response = makePostRequest(request, write(postCustomerPhoneNumberJsonV400))
@@ -215,8 +215,8 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetCustomersAtOneBank)
     }
   }
-  feature(s"$ApiEndpoint4 $VersionOfApi - Authorized access with proper role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"$ApiEndpoint4 $VersionOfApi - Authorized access with proper role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val request = (v4_0_0_Request / "banks" / bankId / "search" / "customers" / "mobile-phone-number").POST <@ (user1)

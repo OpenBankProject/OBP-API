@@ -11,11 +11,11 @@ class UKOpenBankingV401EventNotificationsTests extends UKOpenBankingV401ServerSe
   object UKOpenBankingV401EventNotifications extends Tag("UKOpenBankingV401EventNotifications")
   val emptyBody = "{}"
 
-  feature("UKOB v4.0.1 POST /event-notifications") {
-    scenario("authenticated -> 201", UKOpenBankingV401EventNotifications) {
+  Feature("UKOB v4.0.1 POST /event-notifications") {
+    Scenario("authenticated -> 201", UKOpenBankingV401EventNotifications) {
       postAuthed(emptyBody, "event-notifications").code should equal(201)
     }
-    scenario("unauthenticated -> 401", UKOpenBankingV401EventNotifications) {
+    Scenario("unauthenticated -> 401", UKOpenBankingV401EventNotifications) {
       postUnauthed(emptyBody, "event-notifications").code should equal(401)
     }
   }

@@ -36,11 +36,11 @@ class GroupEntitlementsTest extends V600ServerSetup with DefaultUsers {
   object ApiEndpoint1
       extends Tag(nameOf(Implementations6_0_0.getGroupEntitlements))
 
-  feature(
+  Feature(
     s"Assuring that endpoint getGroupEntitlements works as expected - $VersionOfApi"
   ) {
 
-    scenario(
+    Scenario(
       "We try to consume endpoint getGroupEntitlements - Anonymous access",
       ApiEndpoint1,
       VersionOfApi
@@ -57,7 +57,7 @@ class GroupEntitlementsTest extends V600ServerSetup with DefaultUsers {
       )
     }
 
-    scenario(
+    Scenario(
       "We try to consume endpoint getGroupEntitlements without proper role - Authorized access",
       ApiEndpoint1,
       VersionOfApi
@@ -76,7 +76,7 @@ class GroupEntitlementsTest extends V600ServerSetup with DefaultUsers {
       )
     }
 
-    scenario(
+    Scenario(
       "We try to consume endpoint getGroupEntitlements with proper role - Authorized access",
       ApiEndpoint1,
       VersionOfApi

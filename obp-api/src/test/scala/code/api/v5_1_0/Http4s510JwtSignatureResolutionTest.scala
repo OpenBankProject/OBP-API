@@ -25,16 +25,16 @@ class Http4s510JwtSignatureResolutionTest extends V510ServerSetup {
   private def resultOf[T](f: => T): Either[Throwable, T] =
     try Right(f) catch { case t: Throwable => Left(t) }
 
-  feature("createConsumerDynamicRegistration's JWT verification distinguishes a bad client " +
+  Feature("createConsumerDynamicRegistration's JWT verification distinguishes a bad client " +
           "JWT from a broken security provider") {
 
-    scenario("a verify() that returns false is a normal signature mismatch, not an error") {
+    Scenario("a verify() that returns false is a normal signature mismatch, not an error") {
       val outcome = Await.result(
         Http4s510.Implementations5_1_0.resolveJwtSignatureValid(() => false), 5.seconds)
       outcome shouldBe false
     }
 
-    scenario("a verify() that throws for a malformed client JWT fails with the 400 envelope") {
+    Scenario("a verify() that throws for a malformed client JWT fails with the 400 envelope") {
       val badJwt = new IllegalArgumentException("Invalid JWT serialization")
       val outcome = resultOf(Await.result(
         Http4s510.Implementations5_1_0.resolveJwtSignatureValid(() => throw badJwt), 5.seconds))
@@ -50,7 +50,7 @@ class Http4s510JwtSignatureResolutionTest extends V510ServerSetup {
       }
     }
 
-    scenario("a verify() that throws because the JVM lacks the signature algorithm propagates " +
+    Scenario("a verify() that throws because the JVM lacks the signature algorithm propagates " +
              "that exception, not a 400") {
       val providerFailure =
         new com.nimbusds.jose.JOSEException("no such algorithm",

@@ -2,7 +2,7 @@ package code.api.util
 
 import org.json4s._
 import code.api.util.APIUtil.MessageDoc
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{JsonSchemaGeneratorTypes, ReflectUtils}
 import org.json4s.JsonDSL._
 
 import scala.reflect.runtime.universe._
@@ -59,39 +59,39 @@ object JsonSchemaGenerator {
    */
   private def typeToJsonSchema(tpe: Type): JObject = {
     tpe match {
-      case t if t =:= typeOf[String] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tString =>
         ("type" -> "string")
         
-      case t if t =:= typeOf[Int] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tInt =>
         ("type" -> "integer") ~ ("format" -> "int32")
         
-      case t if t =:= typeOf[Long] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tLong =>
         ("type" -> "integer") ~ ("format" -> "int64")
         
-      case t if t =:= typeOf[Double] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tDouble =>
         ("type" -> "number") ~ ("format" -> "double")
         
-      case t if t =:= typeOf[Float] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tFloat =>
         ("type" -> "number") ~ ("format" -> "float")
         
-      case t if t =:= typeOf[BigDecimal] || t =:= typeOf[scala.math.BigDecimal] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tBigDecimal =>
         ("type" -> "number")
         
-      case t if t =:= typeOf[Boolean] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tBoolean =>
         ("type" -> "boolean")
         
-      case t if t =:= typeOf[java.util.Date] =>
+      case t if t =:= JsonSchemaGeneratorTypes.tJavaUtilDate =>
         ("type" -> "string") ~ ("format" -> "date-time")
         
-      case t if t <:< typeOf[Option[_]] =>
+      case t if t <:< JsonSchemaGeneratorTypes.tOptionWildcard =>
         val innerType = t.typeArgs.head
         typeToJsonSchema(innerType)
         
-      case t if t <:< typeOf[List[_]] || t <:< typeOf[Seq[_]] || t <:< typeOf[scala.collection.immutable.List[_]] =>
+      case t if t <:< JsonSchemaGeneratorTypes.tListWildcard || t <:< JsonSchemaGeneratorTypes.tSeqWildcard =>
         val itemType = t.typeArgs.head
         ("type" -> "array") ~ ("items" -> typeToJsonSchema(itemType))
         
-      case t if t <:< typeOf[Map[_, _]] =>
+      case t if t <:< JsonSchemaGeneratorTypes.tMapWildcardWildcard =>
         ("type" -> "object") ~ ("additionalProperties" -> typeToJsonSchema(t.typeArgs.last))
         
       case t if isEnumType(t) =>
@@ -139,16 +139,16 @@ object JsonSchemaGenerator {
         }
         
         // Handle List/Seq inner types
-        if (paramType <:< typeOf[List[_]] || paramType <:< typeOf[Seq[_]]) {
-          val innerType = paramType.typeArgs.headOption.getOrElse(typeOf[Any])
+        if (paramType <:< JsonSchemaGeneratorTypes.tListWildcard || paramType <:< JsonSchemaGeneratorTypes.tSeqWildcard) {
+          val innerType = paramType.typeArgs.headOption.getOrElse(JsonSchemaGeneratorTypes.tAny)
           if (isCaseClass(innerType) && !isPrimitiveOrKnown(innerType)) {
             collectDefinitions(innerType, definitions)
           }
         }
         
         // Handle Option inner types
-        if (paramType <:< typeOf[Option[_]]) {
-          val innerType = paramType.typeArgs.headOption.getOrElse(typeOf[Any])
+        if (paramType <:< JsonSchemaGeneratorTypes.tOptionWildcard) {
+          val innerType = paramType.typeArgs.headOption.getOrElse(JsonSchemaGeneratorTypes.tAny)
           if (isCaseClass(innerType) && !isPrimitiveOrKnown(innerType)) {
             collectDefinitions(innerType, definitions)
           }
@@ -169,7 +169,7 @@ object JsonSchemaGenerator {
       
       // Determine required fields (non-Option types)
       val requiredFields = params
-        .filterNot(p => p.typeSignature <:< typeOf[Option[_]])
+        .filterNot(p => p.typeSignature <:< JsonSchemaGeneratorTypes.tOptionWildcard)
         .map(_.name.toString)
       
       val baseSchema = ("type" -> "object") ~ ("properties" -> JObject(properties))
@@ -231,18 +231,18 @@ object JsonSchemaGenerator {
    * Check if type is primitive or commonly known type that shouldn't be expanded
    */
   private def isPrimitiveOrKnown(tpe: Type): Boolean = {
-    tpe =:= typeOf[String] ||
-    tpe =:= typeOf[Int] ||
-    tpe =:= typeOf[Long] ||
-    tpe =:= typeOf[Double] ||
-    tpe =:= typeOf[Float] ||
-    tpe =:= typeOf[Boolean] ||
-    tpe =:= typeOf[BigDecimal] ||
-    tpe =:= typeOf[java.util.Date] ||
-    tpe <:< typeOf[Option[_]] ||
-    tpe <:< typeOf[List[_]] ||
-    tpe <:< typeOf[Seq[_]] ||
-    tpe <:< typeOf[Map[_, _]]
+    tpe =:= JsonSchemaGeneratorTypes.tString ||
+    tpe =:= JsonSchemaGeneratorTypes.tInt ||
+    tpe =:= JsonSchemaGeneratorTypes.tLong ||
+    tpe =:= JsonSchemaGeneratorTypes.tDouble ||
+    tpe =:= JsonSchemaGeneratorTypes.tFloat ||
+    tpe =:= JsonSchemaGeneratorTypes.tBoolean ||
+    tpe =:= JsonSchemaGeneratorTypes.tBigDecimal ||
+    tpe =:= JsonSchemaGeneratorTypes.tJavaUtilDate ||
+    tpe <:< JsonSchemaGeneratorTypes.tOptionWildcard ||
+    tpe <:< JsonSchemaGeneratorTypes.tListWildcard ||
+    tpe <:< JsonSchemaGeneratorTypes.tSeqWildcard ||
+    tpe <:< JsonSchemaGeneratorTypes.tMapWildcardWildcard
   }
   
   /**
@@ -257,8 +257,7 @@ object JsonSchemaGenerator {
   /**
    * Generate a simplified single-message JSON Schema (for testing)
    */
-  def generateSchemaForType[T: TypeTag]: JObject = {
-    val tpe = typeOf[T]
+  def generateSchemaForType(tpe: Type): JObject = {
     val definitions = scala.collection.mutable.Map[String, JObject]()
     collectDefinitions(tpe, definitions)
     

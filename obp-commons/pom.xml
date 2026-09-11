@@ -42,7 +42,7 @@
             <artifactId>scalactic_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.json4s</groupId>
+            <groupId>io.github.json4s</groupId>
             <artifactId>json4s-native_${scala.version}</artifactId>
         </dependency>
         <!-- InheritableThreadLocal enhancement-->

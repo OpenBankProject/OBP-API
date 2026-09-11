@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadMetrics
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
@@ -28,8 +29,8 @@ class TopUsersTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v7_0_0.toString)
   object ApiEndpoint1 extends Tag("getTopUsers")
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v7.0.0")
       val request = (v7_0_0_Request / "management" / "metrics" / "top-users").GET
       val response = makeGetRequest(request)
@@ -39,8 +40,8 @@ class TopUsersTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v7.0.0")
       val request = (v7_0_0_Request / "management" / "metrics" / "top-users").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -50,8 +51,8 @@ class TopUsersTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Top users by call count") {
-    scenario("Two users make traffic and appear ranked with their counts", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Top users by call count") {
+    Scenario("Two users make traffic and appear ranked with their counts", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadMetrics.toString)
 

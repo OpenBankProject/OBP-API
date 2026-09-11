@@ -2,8 +2,10 @@ package code.metrics
 
 import java.util.Date
 
-import code.util.MappedUUID
-import net.liftweb.mapper._
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 
 /**
  * Append-only audit log of `MetricsArchiveScheduler` runs.
@@ -18,32 +20,51 @@ import net.liftweb.mapper._
  *
  * The log is self-capped: only the most recent [[MetricsArchiveRun.maxRowsToKeep]]
  * rows are retained. Each write prunes anything older, so the table stays small.
- *
- * Naming: this is a DB entity, so the class must not start with `Mapped` and the
- * column objects must not start with `m` + uppercase (see `MappedClassNameTest`).
  */
-class MetricsArchiveRun extends LongKeyedMapper[MetricsArchiveRun] with IdPK {
-
-  def getSingleton = MetricsArchiveRun
-
-  object RunId extends MappedUUID(this)
-  object ApiInstanceId extends MappedString(this, 100)
-  object StartedAt extends MappedDateTime(this)
-  object EndedAt extends MappedDateTime(this)
-  object DurationMs extends MappedLong(this)
-  object RowsMovedToArchive extends MappedInt(this)
-  object RowsDeletedFromArchive extends MappedInt(this)
-  object Success extends MappedBoolean(this)
-  object Remark extends MappedText(this)
+trait MetricsArchiveRunTrait {
+  def runId: String
+  def apiInstanceId: String
+  def startedAt: Date
+  def endedAt: Date
+  def durationMs: Long
+  def rowsMovedToArchive: Int
+  def rowsDeletedFromArchive: Int
+  def success: Boolean
+  def remark: String
 }
 
-object MetricsArchiveRun extends MetricsArchiveRun with LongKeyedMetaMapper[MetricsArchiveRun] {
+case class MetricsArchiveRunRow(
+  runId: String,
+  apiInstanceId: String,
+  startedAt: Date,
+  endedAt: Date,
+  durationMs: Long,
+  rowsMovedToArchive: Int,
+  rowsDeletedFromArchive: Int,
+  success: Boolean,
+  remark: String
+) extends MetricsArchiveRunTrait
 
-  override def dbIndexes: List[BaseIndex[MetricsArchiveRun]] =
-    UniqueIndex(RunId) :: Index(StartedAt) :: super.dbIndexes
+object MetricsArchiveRun {
 
   /** Keep only the most recent N runs; older rows are pruned on every write. */
   val maxRowsToKeep: Int = 1000
+
+  private def fromRow(row: (Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])): MetricsArchiveRunTrait =
+    row match {
+      case (runIdOpt, apiInstanceIdOpt, startedAtOpt, endedAtOpt, durationMsOpt, rowsMovedToArchiveOpt, rowsDeletedFromArchiveOpt, successOpt, remarkOpt) =>
+        // Nullable columns, collapsed the way Mapper's reader did.
+        val runId = runIdOpt.orNull
+        val apiInstanceId = apiInstanceIdOpt.orNull
+        val startedAt = startedAtOpt.orNull
+        val endedAt = endedAtOpt.orNull
+        val durationMs = durationMsOpt.getOrElse(0L)
+        val rowsMovedToArchive = rowsMovedToArchiveOpt.getOrElse(0)
+        val rowsDeletedFromArchive = rowsDeletedFromArchiveOpt.getOrElse(0)
+        val success = successOpt.getOrElse(false)
+        val remark = remarkOpt.orNull
+        MetricsArchiveRunRow(runId, apiInstanceId, startedAt, endedAt, durationMs, rowsMovedToArchive, rowsDeletedFromArchive, success, remark)
+    }
 
   /**
    * Persist one completed run, then prune the log back to the most recent
@@ -57,37 +78,65 @@ object MetricsArchiveRun extends MetricsArchiveRun with LongKeyedMetaMapper[Metr
                 rowsMovedToArchive: Int,
                 rowsDeletedFromArchive: Int,
                 success: Boolean,
-                remark: Option[String]): MetricsArchiveRun = {
-    val saved = MetricsArchiveRun.create
-      .RunId(runId)
-      .ApiInstanceId(apiInstanceId)
-      .StartedAt(startedAt)
-      .EndedAt(endedAt)
-      .DurationMs(endedAt.getTime - startedAt.getTime)
-      .RowsMovedToArchive(rowsMovedToArchive)
-      .RowsDeletedFromArchive(rowsDeletedFromArchive)
-      .Success(success)
-      .Remark(remark.getOrElse(""))
-      .saveMe()
+                remark: Option[String]): MetricsArchiveRunTrait = {
+    val startedAtTs = new java.sql.Timestamp(startedAt.getTime)
+    val endedAtTs = new java.sql.Timestamp(endedAt.getTime)
+    val durationMs = endedAt.getTime - startedAt.getTime
+    val remarkValue = remark.getOrElse("")
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO metricsarchiverun
+            (runid, apiinstanceid, startedat, endedat, durationms, rowsmovedtoarchive, rowsdeletedfromarchive, success, remark)
+            VALUES
+            ($runId, $apiInstanceId, $startedAtTs, $endedAtTs, $durationMs, $rowsMovedToArchive, $rowsDeletedFromArchive, $success, $remarkValue)"""
+        .update.run)
     pruneToMostRecent(maxRowsToKeep)
-    saved
+    MetricsArchiveRunRow(runId, apiInstanceId, startedAt, endedAt, durationMs, rowsMovedToArchive, rowsDeletedFromArchive, success, remarkValue)
   }
 
   /**
    * Delete all but the most recent `keep` rows (by primary key, which is
    * monotonic). No-op when the table holds `keep` or fewer rows.
    */
-  def pruneToMostRecent(keep: Int): Unit =
-    MetricsArchiveRun
-      .findAll(OrderBy(id, Descending), MaxRows(keep))
-      .lastOption
-      .foreach(oldestToKeep => MetricsArchiveRun.bulkDelete_!!(By_<(id, oldestToKeep.id.get)))
+  def pruneToMostRecent(keep: Int): Unit = {
+    DoobieUtil.runUpdate(
+      // `AS recent` is not decoration: PostgreSQL required an alias on a FROM sub-select until
+      // version 16, so without it this statement is a syntax error on every PG 15 or older
+      // deployment. CI runs postgres:16-alpine and H2 never required it, so nothing here goes
+      // red - and the scheduler calls recordRun again from inside its own catch, so the second
+      // throw escapes runOnce and the table stops being pruned at all.
+      sql"""DELETE FROM metricsarchiverun WHERE id < (
+              SELECT MIN(id) FROM (
+                SELECT id FROM metricsarchiverun ORDER BY id DESC LIMIT $keep
+              ) AS recent
+            )"""
+        .update.run)
+    ()
+  }
+
+  private val selectColumns =
+    fr"SELECT runid, apiinstanceid, startedat, endedat, durationms, rowsmovedtoarchive, rowsdeletedfromarchive, success, remark FROM metricsarchiverun"
 
   /** Most recent run by start time, if any. */
-  def lastRun: Option[MetricsArchiveRun] =
-    MetricsArchiveRun.findAll(OrderBy(StartedAt, Descending), MaxRows(1)).headOption
+  def lastRun: Option[MetricsArchiveRunTrait] =
+    DoobieUtil.runQuery(
+      (selectColumns ++ fr"ORDER BY startedat DESC LIMIT 1")
+        .query[(Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])]
+        .option
+    ).map(fromRow)
 
   /** Most recent successful run by start time, if any. */
-  def lastSuccessfulRun: Option[MetricsArchiveRun] =
-    MetricsArchiveRun.findAll(By(Success, true), OrderBy(StartedAt, Descending), MaxRows(1)).headOption
+  def lastSuccessfulRun: Option[MetricsArchiveRunTrait] =
+    DoobieUtil.runQuery(
+      (selectColumns ++ fr"WHERE success = true ORDER BY startedat DESC LIMIT 1")
+        .query[(Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])]
+        .option
+    ).map(fromRow)
+
+  def count(): Long =
+    DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM metricsarchiverun".query[Long].unique)
+
+  def bulkDelete_!!(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM metricsarchiverun".update.run)
+    ()
+  }
 }

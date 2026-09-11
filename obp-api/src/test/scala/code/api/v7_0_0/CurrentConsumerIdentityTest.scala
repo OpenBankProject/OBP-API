@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.ApplicationNotIdentified
 import code.api.v6_0_0.V600ServerSetup
@@ -14,29 +15,29 @@ class CurrentConsumerIdentityTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v7_0_0.toString)
   object ApiEndpoint1 extends Tag("getCurrentConsumerIdentity")
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi") {
-    scenario("Without any credentials the application cannot be identified", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi") {
+    Scenario("Without any credentials the application cannot be identified", ApiEndpoint1, VersionOfApi) {
       val response = makeGetRequest((v7_0_0_Request / "consumers" / "current" / "identity").GET)
       Then("We should get a 401")
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
     }
 
-    scenario("A logged-in user gets the identity of the Consumer they called with, and nothing else", ApiEndpoint1, VersionOfApi) {
+    Scenario("A logged-in user gets the identity of the Consumer they called with, and nothing else", ApiEndpoint1, VersionOfApi) {
       val response = makeGetRequest((v7_0_0_Request / "consumers" / "current" / "identity").GET <@ (user1))
       Then("We should get a 200")
       response.code should equal(200)
       val identity = response.body.extract[CurrentConsumerIdentityJsonV700]
-      identity.consumer_id should equal(testConsumer.consumerId.get)
-      identity.consumer_name should equal(testConsumer.name.get)
+      identity.consumer_id should equal(testConsumer.consumerId)
+      identity.consumer_name should equal(testConsumer.name)
       And("the body carries only the two identity fields")
       response.body.asInstanceOf[org.json4s.JObject].obj.map(_._1).toSet should equal(Set("consumer_id", "consumer_name"))
     }
 
-    scenario("A different user sees their own Consumer", ApiEndpoint1, VersionOfApi) {
+    Scenario("A different user sees their own Consumer", ApiEndpoint1, VersionOfApi) {
       val response = makeGetRequest((v7_0_0_Request / "consumers" / "current" / "identity").GET <@ (user2))
       response.code should equal(200)
-      response.body.extract[CurrentConsumerIdentityJsonV700].consumer_id should equal(testConsumer2.consumerId.get)
+      response.body.extract[CurrentConsumerIdentityJsonV700].consumer_id should equal(testConsumer2.consumerId)
     }
   }
 }

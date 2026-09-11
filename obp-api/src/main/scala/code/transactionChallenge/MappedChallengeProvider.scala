@@ -8,7 +8,6 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import org.mindrot.jbcrypt.BCrypt
 import net.liftweb.util.Helpers.tryo
@@ -34,29 +33,31 @@ object MappedChallengeProvider extends ChallengeProvider {
     challengeContextHash: Option[String] = None,
     challengeContextStructure: Option[String] = None
   ): Box[ChallengeTrait] =
+    // authenticationMethodId is deliberately written from expectedUserId, not from the
+    // authenticationMethodId argument: Mapper did the same, and the argument has never reached the
+    // column. Preserved rather than corrected here.
     tryo (
-      MappedExpectedChallengeAnswer
-        .create
-        .ChallengeId(challengeId)
-        .ChallengeType(challengeType)
-        .TransactionRequestId(transactionRequestId)
-        .Salt(salt)
-        .ExpectedAnswer(expectedAnswer)
-        .ExpectedUserId(expectedUserId)
-        .ScaMethod(scaMethod.map(_.toString).getOrElse(""))
-        .ScaStatus(scaStatus.map(_.toString).getOrElse(""))
-        .ConsentId(consentId.getOrElse(""))
-        .BasketId(basketId.getOrElse(""))
-        .AuthenticationMethodId(expectedUserId)
+      MappedExpectedChallengeAnswer.insert(
+        challengeId = challengeId,
+        challengeType = challengeType,
+        transactionRequestId = transactionRequestId,
+        salt = salt,
+        expectedAnswer = expectedAnswer,
+        expectedUserId = expectedUserId,
+        scaMethod = scaMethod.map(_.toString).getOrElse(""),
+        scaStatus = scaStatus.map(_.toString).getOrElse(""),
+        consentId = consentId.getOrElse(""),
+        basketId = basketId.getOrElse(""),
+        authenticationMethodId = expectedUserId,
         // PSD2 Dynamic Linking
-        .ChallengePurpose(challengePurpose.getOrElse(""))
-        .ChallengeContextHash(challengeContextHash.getOrElse(""))
-        .ChallengeContextStructure(challengeContextStructure.getOrElse(""))
-        .saveMe()
+        challengePurpose = challengePurpose.getOrElse(""),
+        challengeContextHash = challengeContextHash.getOrElse(""),
+        challengeContextStructure = challengeContextStructure.getOrElse("")
+      )
     )
   
   override def getChallenge(challengeId: String): Box[MappedExpectedChallengeAnswer] =
-      MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.ChallengeId,challengeId))
+      MappedExpectedChallengeAnswer.findByChallengeId(challengeId)
 
   /** Compare-and-set the success flag: only the first correct answer flips
    *  successful=false -> true. A second concurrent correct answer gets 0 rows and a
@@ -69,12 +70,12 @@ object MappedChallengeProvider extends ChallengeProvider {
   }
 
   override def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]] =
-    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.TransactionRequestId,transactionRequestId)))
+    Full(MappedExpectedChallengeAnswer.findAllByTransactionRequestId(transactionRequestId))
   
   override def getChallengesByConsentId(consentId: String): Box[List[ChallengeTrait]] =
-    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.ConsentId,consentId)))
+    Full(MappedExpectedChallengeAnswer.findAllByConsentId(consentId))
   override def getChallengesByBasketId(basketId: String): Box[List[ChallengeTrait]] =
-    Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.BasketId,basketId)))
+    Full(MappedExpectedChallengeAnswer.findAllByBasketId(basketId))
   
   override def validateChallenge(
     challengeId: String,
@@ -84,7 +85,7 @@ object MappedChallengeProvider extends ChallengeProvider {
     for{
        challenge <-  getChallenge(challengeId) ?~! s"${ErrorMessages.InvalidTransactionRequestChallengeId}"
        newAttemptCounterValue <- tryo(code.bankconnectors.DoobieChallengeQueries.incrementAndGetChallengeCounter(challengeId)) ?~! "Failed to update challenge attempt counter"
-       createDateTime = challenge.createdAt.get
+       createDateTime = challenge.createdAt
        challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
 
        expiredDateTime: Long = createDateTime.getTime+challengeTTL

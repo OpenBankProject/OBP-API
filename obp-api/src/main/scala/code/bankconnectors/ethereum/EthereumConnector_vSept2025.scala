@@ -28,7 +28,7 @@ import scala.collection.mutable.ArrayBuffer
   */
 trait EthereumConnector_vSept2025 extends Connector with MdcLoggable {
 
-  implicit override val nameOfConnector = EthereumConnector_vSept2025.toString
+  implicit override val nameOfConnector: String = EthereumConnector_vSept2025.toString
 
   override val messageDocs = ArrayBuffer[MessageDoc]()
 
@@ -88,7 +88,7 @@ trait EthereumConnector_vSept2025 extends Connector with MdcLoggable {
     }
 
     for {
-      request <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to build HTTP request", 500, callContext) {prepareHttpRequest(rpcUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocol("HTTP/1.1"), payload)
+      request <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to build HTTP request", 500, callContext) {prepareHttpRequest(rpcUrl, _root_.org.apache.pekko.http.scaladsl.model.HttpMethods.POST, _root_.org.apache.pekko.http.scaladsl.model.HttpProtocols.`HTTP/1.1`, payload)
       }
 
       response <- NewStyle.function.tryons(ErrorMessages.UnknownError + " Failed to call Ethereum RPC", 500, callContext) {

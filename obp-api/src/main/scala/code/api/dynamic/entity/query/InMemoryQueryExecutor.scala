@@ -2,6 +2,7 @@ package code.api.dynamic.entity.query
 
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import org.json4s.JsonAST._
+import org.json4s.jvalue2monadic
 
 import scala.util.Try
 

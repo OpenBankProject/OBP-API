@@ -1,8 +1,9 @@
 package code.api.util.http4s
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-import org.scalatest.{FlatSpec, Matchers}
 
-class Http4sConfigUtilTest extends FlatSpec with Matchers {
+class Http4sConfigUtilTest extends AnyFlatSpec with Matchers {
   
   "parseHostname" should "extract hostname from plain IP address" in {
     Http4sConfigUtil.parseHostname("127.0.0.1") shouldBe "127.0.0.1"

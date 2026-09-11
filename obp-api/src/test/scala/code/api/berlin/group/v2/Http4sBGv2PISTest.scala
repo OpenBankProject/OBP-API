@@ -6,14 +6,16 @@ import code.api.berlin.group.ConstantsBG
 import code.util.Helper.MdcLoggable
 import org.http4s._
 import org.http4s.implicits._
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for Berlin Group v2 PIS endpoints.
  * Tests each of the 13 PIS endpoints returns correct HTTP status and JSON structure.
  * Validates: Requirements 3.1-3.3, 4.1-4.4, 5.1-5.5
  */
-class Http4sBGv2PISTest extends FlatSpec with Matchers with MdcLoggable {
+class Http4sBGv2PISTest extends AnyFlatSpec with Matchers with MdcLoggable {
 
   object PISTag extends Tag("BerlinGroupV2_PIS")
 

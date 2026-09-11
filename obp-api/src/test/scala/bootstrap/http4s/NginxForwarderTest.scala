@@ -14,11 +14,13 @@ import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.tls.{TLSContext, TLSParameters}
 import org.http4s.{Header, HttpApp, Response, Status}
 import org.http4s.ember.server.EmberServerBuilder
-import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import org.typelevel.ci.CIString
 
 import scala.sys.process._
 import scala.util.Try
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * dev-behind-nginx (docs/MTLS_TOPOLOGIES.md §11.4 / §6.1): a REAL nginx in front of the REAL
@@ -39,7 +41,7 @@ import scala.util.Try
  * Requires Docker (the nginx image). Skipped, not failed, where Docker is unavailable, so a
  * checkout without it still builds.
  */
-class NginxForwarderTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+class NginxForwarderTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   private val NginxImage = "nginx:1.27-alpine"
   // An OS-assigned free port rather than a fixed one, so two runs on one host (e.g. parallel CI

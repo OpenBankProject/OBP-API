@@ -13,10 +13,9 @@
   <properties>
     <scala.version>2.13</scala.version>
     <scala.compiler>2.13.18</scala.compiler>
+    <liquibase.version>4.29.1</liquibase.version>
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
-    <avro4s.version>4.1.2</avro4s.version>
-    <apache.avro.version>1.11.4</apache.avro.version>
     <!-- v1.0.5 is the first tag published for both Scala versions. Up to v1.0.4 JitPack ran its
          default `sbt clean publishM2`, which publishes only the default Scala version, so
          lift-persistence_2.13 did not exist however the tag was numbered. -->
@@ -109,6 +108,18 @@
     and jitpack.io serves the pinned lift-persistence build.
   -->
   <repositories>
+    <!-- Central declared explicitly so it is searched BEFORE the repos below.
+         Maven otherwise appends the super-POM's central entry after pom-declared
+         repositories, which lets jitpack shadow every legitimate com.github.*
+         groupId on Central: jitpack maps the coordinate to a GitHub repo, builds
+         it, and answers with an sbt aggregate pom whose submodules then 401 -
+         observed with com.github.dwickern:scala-nameof_2.13:4.1.0. With central
+         first, jitpack is only consulted for what Central does not have
+         (lift-persistence, OpenBankProject scala-macros). -->
+    <repository>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
     <repository>
       <id>git-OpenBankProject</id>
       <name>OpenBankProject Git based repo</name>
@@ -183,9 +194,18 @@
         <version>${lift.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.json4s</groupId>
+        <groupId>io.github.json4s</groupId>
         <artifactId>json4s-native_${scala.version}</artifactId>
-        <version>3.6.12</version>
+        <!-- org.json4s:json4s-native_3:4.1.0-M8 (the version this comment used to pin) still
+             throws "Can't find ScalaSig for class ..." extracting a Scala-3-compiled case class,
+             scala3-staging on the classpath or not - measured directly against obp-api's own
+             CallContextLight. The project moved to the io.github.json4s groupId after M8
+             (org.json4s's last publish there is 2024-11-07); 4.1.1 under the new groupId is the
+             first stable (non-milestone) release downstream of that move and is what actually
+             round-trips a Scala-3-compiled case class - measured the same way. Bumped ahead of
+             the flip so the 3632 extract call sites are validated by the full suite on 2.13 at
+             the same version the flip will use; the flip itself only swaps the suffix to _3. -->
+        <version>4.1.1</version>
       </dependency>
       <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
       <dependency>
@@ -208,13 +228,21 @@
       <dependency>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest_${scala.version}</artifactId>
-        <version>3.0.8</version>
+        <!-- 3.2.20, not 3.0.8: 3.0.8 has no Scala 3 build, so the flip cannot carry it. The
+             upgrade is done here on 2.13, ahead of the flip, because on 2.13 the suite still
+             runs - bundling a test-framework migration into the flip would leave both
+             unverifiable until every Scala 3 compile error was also fixed.
+             3.2.x moved the style traits into per-style packages and removed the old names:
+             org.scalatest.FlatSpec -> flatspec.AnyFlatSpec, FeatureSpec ->
+             featurespec.AnyFeatureSpec, Matchers -> matchers.should.Matchers, and
+             AnyFeatureSpec capitalises its DSL (feature/scenario -> Feature/Scenario). -->
+        <version>3.2.20</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.scalactic</groupId>
         <artifactId>scalactic_${scala.version}</artifactId>
-        <version>3.0.8</version>
+        <version>3.2.20</version>
         <scope>test</scope>
       </dependency>
 

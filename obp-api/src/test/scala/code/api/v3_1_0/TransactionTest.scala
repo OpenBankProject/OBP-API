@@ -75,9 +75,8 @@ class TransactionTest extends V310ServerSetup {
     value = AmountOfMoneyJsonV121("EUR","1000")
   )
   
-  feature("Get Transaction by Id - v3.1.0")
-  {
-    scenario("We will Get Transaction by Id - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
+  Feature("Get Transaction by Id - v3.1.0") {
+    Scenario("We will Get Transaction by Id - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -90,7 +89,7 @@ class TransactionTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will Get Transaction by Id - user is logged in", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will Get Transaction by Id - user is logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -104,9 +103,8 @@ class TransactionTest extends V310ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint2")
-  {
-    scenario("We will test saveHistoricalTransaction --user is not Login", ApiEndpoint2, ApiEndpoint4, VersionOfApi) {
+  Feature(s"$ApiEndpoint2") {
+    Scenario("We will test saveHistoricalTransaction --user is not Login", ApiEndpoint2, ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions").POST
       val response310 = makePostRequest(request310, write(postJsonAccount))
@@ -116,7 +114,7 @@ class TransactionTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
-    scenario("We will test saveHistoricalTransaction --user is not Login, but no Role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will test saveHistoricalTransaction --user is not Login, but no Role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
       val response310 = makePostRequest(request310, write(postJsonAccount))
@@ -125,7 +123,7 @@ class TransactionTest extends V310ServerSetup {
       response310.body.toString contains (ApiRole.canCreateHistoricalTransaction.toString()) should be (true)
     }
 
-    scenario("We will test saveHistoricalTransaction --user is not Login, with Role and with Proper values", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will test saveHistoricalTransaction --user is not Login, with Role and with Proper values", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
             
@@ -140,7 +138,7 @@ class TransactionTest extends V310ServerSetup {
       responseJson.transaction_id.length > 0 should be (true)
     }
 
-    scenario("We will test saveHistoricalTransaction --user is not Login, with Role and with Proper values, and check the account balance", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will test saveHistoricalTransaction --user is not Login, with Role and with Proper values, and check the account balance", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       
       //Before call saveHistoricalTransaction, we need store the balance for both account:
@@ -193,7 +191,7 @@ class TransactionTest extends V310ServerSetup {
       
     }
 
-    scenario("We will test saveHistoricalTransaction -- account --> counterparty", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will test saveHistoricalTransaction -- account --> counterparty", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
@@ -265,7 +263,7 @@ class TransactionTest extends V310ServerSetup {
       getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.description should be(postJsonAccount.description)
     }
 
-    scenario("We will test saveHistoricalTransaction -- counterparty  --> account", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will test saveHistoricalTransaction -- counterparty  --> account", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
@@ -337,7 +335,7 @@ class TransactionTest extends V310ServerSetup {
       getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.description should be(postJsonAccount.description)
     }
 
-    scenario("We will test saveHistoricalTransaction -- counterparty  --> counterparty", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will test saveHistoricalTransaction -- counterparty  --> counterparty", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
@@ -421,7 +419,7 @@ class TransactionTest extends V310ServerSetup {
       getTransactionbyIdResponse.body.extract[TransactionJsonV300].details.description should be(postJsonAccount.description)
     }
     
-    scenario(s"We will test saveHistoricalTransaction --counterparty- test error: $InvalidJsonFormat", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will test saveHistoricalTransaction --counterparty- test error: $InvalidJsonFormat", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
 
 

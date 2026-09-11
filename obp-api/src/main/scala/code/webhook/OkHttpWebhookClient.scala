@@ -21,7 +21,7 @@ object OkHttpWebhookClient {
         val responseBody = response.body
         try {
           if (!response.isSuccessful) throw new IOException("Unexpected code " + response)
-          org.scalameta.logger.elem(responseBody.string)
+          println(s"responseBody.string = ${responseBody.string}")
           WebhookAction.webhookResponse(response.code().toString, webhookRequest)
         } finally if (responseBody != null) responseBody.close()
       }

@@ -8,7 +8,6 @@ import com.nimbusds.jose.crypto.MACSigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import net.liftweb.common.Empty
-import net.liftweb.mapper.By
 
 import java.net.URI
 
@@ -48,58 +47,58 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
     oidcProvider.getOrCreateConsumer(token, Empty, Some(description))
       .openOrThrowException("getOrCreateConsumer must return a consumer")
 
-  feature("consumer resolution is per (azp, iss) — one Consumer per OAuth client per issuer") {
+  Feature("consumer resolution is per (azp, iss) — one Consumer per OAuth client per issuer") {
 
-    scenario("two different users of the same client resolve to the same consumer") {
+    Scenario("two different users of the same client resolve to the same consumer") {
       val clientId = freshClientId()
       When("two users with different sub claims log in with the same client and issuer")
       val first = resolve(idToken(clientId, googleIssuer, sub = "user-one", name = Some(s"Alice ${APIUtil.generateUUID()}")))
       val second = resolve(idToken(clientId, googleIssuer, sub = "user-two", name = Some(s"Bob ${APIUtil.generateUUID()}")))
       Then("both resolve to the same consumer and no duplicate is created")
-      second.consumerId.get should equal(first.consumerId.get)
-      Consumer.findAll(By(Consumer.azp, clientId)).size should equal(1)
+      second.consumerId should equal(first.consumerId)
+      Consumer.findAllByAzp(clientId).size should equal(1)
       And("the sub claim is stored from the first login but does not key the lookup")
-      second.sub.get should equal("user-one")
+      second.sub should equal("user-one")
     }
 
-    scenario("the same client ID under a different issuer resolves to a different consumer") {
+    Scenario("the same client ID under a different issuer resolves to a different consumer") {
       val clientId = freshClientId()
       When("the same client ID is presented by two different issuers")
       val googleConsumer = resolve(idToken(clientId, googleIssuer, sub = "user-one"))
       val otherConsumer = resolve(idToken(clientId, "https://keycloak.example.com/realms/obp", sub = "user-two"))
       Then("each issuer gets its own consumer for that client ID")
-      otherConsumer.consumerId.get should not equal googleConsumer.consumerId.get
-      Consumer.findAll(By(Consumer.azp, clientId)).size should equal(2)
+      otherConsumer.consumerId should not equal googleConsumer.consumerId
+      Consumer.findAllByAzp(clientId).size should equal(2)
     }
   }
 
-  feature("auto-created consumer metadata") {
+  Feature("auto-created consumer metadata") {
 
-    scenario("the consumer is named from the token's name claim, falling back to the description") {
+    Scenario("the consumer is named from the token's name claim, falling back to the description") {
       val namedUser = s"Alice ${APIUtil.generateUUID()}"
       When("the token carries a name claim")
       val named = resolve(idToken(freshClientId(), googleIssuer, sub = "user-one", name = Some(namedUser)))
       Then("the consumer is named after the first user who logged in with that client")
-      named.name.get should equal(namedUser)
+      named.name should equal(namedUser)
       When("the token carries no name claim")
       val unnamed = resolve(idToken(freshClientId(), googleIssuer, sub = "user-one"))
       Then("the consumer name falls back to the description")
-      unnamed.name.get should startWith("OpenID Connect")
+      unnamed.name should startWith("OpenID Connect")
     }
 
-    scenario("the consumerId is derived from the client ID") {
+    Scenario("the consumerId is derived from the client ID") {
       Given("a google-style (non-UUID) client ID")
       val clientId = freshClientId()
-      resolve(idToken(clientId, googleIssuer, sub = "user-one")).consumerId.get should startWith(s"${clientId}_")
+      resolve(idToken(clientId, googleIssuer, sub = "user-one")).consumerId should startWith(s"${clientId}_")
       Given("a UUID client ID")
       val uuidClientId = APIUtil.generateUUID()
-      resolve(idToken(uuidClientId, googleIssuer, sub = "user-one")).consumerId.get should equal(uuidClientId)
+      resolve(idToken(uuidClientId, googleIssuer, sub = "user-one")).consumerId should equal(uuidClientId)
     }
   }
 
-  feature("a pre-registered consumer whose key is the OAuth2 client ID takes priority") {
+  Feature("a pre-registered consumer whose key is the OAuth2 client ID takes priority") {
 
-    scenario("the token resolves to the pre-registered consumer instead of auto-creating one") {
+    Scenario("the token resolves to the pre-registered consumer instead of auto-creating one") {
       val clientId = freshClientId()
       Given("an operator pre-registered a consumer with key = the Google client ID")
       val registered = Consumers.consumers.vend.createConsumer(
@@ -111,13 +110,13 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
       When("a token minted for that client ID arrives")
       val resolved = resolve(idToken(clientId, googleIssuer, sub = "user-one"))
       Then("the pre-registered consumer is used and its azp/iss are populated")
-      resolved.consumerId.get should equal(registered.consumerId.get)
-      resolved.azp.get should equal(clientId)
-      resolved.iss.get should equal(googleIssuer)
-      Consumer.findAll(By(Consumer.azp, clientId)).size should equal(1)
+      resolved.consumerId should equal(registered.consumerId)
+      resolved.azp should equal(clientId)
+      resolved.iss should equal(googleIssuer)
+      Consumer.findAllByAzp(clientId).size should equal(1)
     }
 
-    scenario("a stale auto-created consumer is displaced by the pre-registered one") {
+    Scenario("a stale auto-created consumer is displaced by the pre-registered one") {
       val clientId = freshClientId()
       Given("a consumer was auto-created before the operator registered the client ID")
       val stale = resolve(idToken(clientId, googleIssuer, sub = "user-one"))
@@ -130,12 +129,12 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
       When("the next token for that client ID arrives")
       val resolved = resolve(idToken(clientId, googleIssuer, sub = "user-two"))
       Then("it resolves to the pre-registered consumer, not the stale auto-created one")
-      resolved.consumerId.get should equal(registered.consumerId.get)
+      resolved.consumerId should equal(registered.consumerId)
       And("the stale consumer no longer holds the (azp, iss) pair")
-      val staleReloaded = Consumer.find(By(Consumer.consumerId, stale.consumerId.get))
+      val staleReloaded = Consumer.findByConsumerId(stale.consumerId)
         .openOrThrowException("stale consumer must still exist")
-      staleReloaded.azp.get should not equal clientId
-      Consumer.findAll(By(Consumer.azp, clientId)).size should equal(1)
+      staleReloaded.azp should not equal clientId
+      Consumer.findAllByAzp(clientId).size should equal(1)
     }
   }
 }

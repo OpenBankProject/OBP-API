@@ -5,7 +5,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.MappedMetric
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 
 object MigrationOfUserIdIndexes {
 
@@ -14,14 +13,14 @@ object MigrationOfUserIdIndexes {
    * This ensures that user_id is actually unique at the database level
    */
   def addUniqueIndexOnResourceUserUserId(name: String): Boolean = {
-    DbFunction.tableExists(ResourceUser) match {
+    DbFunction.tableExistsByName("resourceuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -69,7 +68,7 @@ object MigrationOfUserIdIndexes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${ResourceUser._dbTableNameLC} table does not exist. Skipping unique index creation.""".stripMargin
+          s"""${"resourceuser"} table does not exist. Skipping unique index creation.""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
@@ -81,14 +80,14 @@ object MigrationOfUserIdIndexes {
    * Note: The table name is "Metric" (capital M), not "mappedmetric"
    */
   def addIndexOnMappedMetricUserId(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric) match {
+    DbFunction.tableExistsByName("metric") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -137,7 +136,7 @@ object MigrationOfUserIdIndexes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedMetric._dbTableNameLC} table does not exist. Skipping index creation.""".stripMargin
+          s"""metric table does not exist. Skipping index creation.""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

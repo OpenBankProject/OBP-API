@@ -75,9 +75,9 @@ class CounterpartyLimitTest extends V510ServerSetup {
     max_number_of_transactions = 2//if I transfer 1, then transfer 2, then transfer 3 --> we can trigger this guard. 
   )
 
-  feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, $ApiEndpoint4,   Authorized access") {
+  Feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, $ApiEndpoint4,   Authorized access") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint2,ApiEndpoint3,ApiEndpoint4,VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint2,ApiEndpoint3,ApiEndpoint4,VersionOfApi) {
       val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString); 
       
       When("We make a request v5.1.0")
@@ -114,7 +114,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
       }
     }
     
-    scenario("We will call the endpoint success case", ApiEndpoint1, ApiEndpoint2,ApiEndpoint3,ApiEndpoint4,VersionOfApi) {
+    Scenario("We will call the endpoint success case", ApiEndpoint1, ApiEndpoint2,ApiEndpoint3,ApiEndpoint4,VersionOfApi) {
       val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString);   
       
       When("We make a request v5.1.0")
@@ -178,7 +178,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
       }
     }
     
-    scenario("We will call the endpoint wrong bankId case", ApiEndpoint1, ApiEndpoint2,ApiEndpoint3,ApiEndpoint4,VersionOfApi) {
+    Scenario("We will call the endpoint wrong bankId case", ApiEndpoint1, ApiEndpoint2,ApiEndpoint3,ApiEndpoint4,VersionOfApi) {
       val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString);   
       
       When("We make a request v5.1.0")
@@ -223,7 +223,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
       }
     }
 
-    scenario("We will create consent properly, and test the counterparty limit - monthly guard", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will create consent properly, and test the counterparty limit - monthly guard", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString);
 
@@ -285,7 +285,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
 
     }
 
-    scenario("We will create consent properly, and test the counterparty limit - yearly guard", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will create consent properly, and test the counterparty limit - yearly guard", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString);
 
@@ -339,7 +339,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
 
     }
 
-    scenario("We will create consent properly, and test the counterparty limit - total guard", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will create consent properly, and test the counterparty limit - total guard", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString);
 

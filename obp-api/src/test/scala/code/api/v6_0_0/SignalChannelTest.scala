@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s.jvalue2monadic
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanDeleteSignalChannel
 import code.api.util.ErrorMessages
@@ -7,6 +8,7 @@ import code.api.util.ErrorMessages.{SignalMessageContainsDangerousCharacters, Si
 import code.signal.SignalContentPolicy
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import org.json4s.jvalue2extractable
 import org.json4s.JsonAST.JValue
 import org.scalatest.Tag
 
@@ -33,15 +35,15 @@ class SignalChannelTest extends V600ServerSetup {
   private def publishRequest = (v6_0_0_Request / "signal-channels" / "test-channel" / "messages").POST
   private def deleteRequest = (v6_0_0_Request / "signal-channels" / "test-channel").DELETE
 
-  feature(s"Publish Signal Message - POST /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages - $VersionOfApi") {
+  Feature(s"Publish Signal Message - POST /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages - $VersionOfApi") {
 
-    scenario("Anonymous access should fail with 401", ApiEndpointPublish, VersionOfApi) {
+    Scenario("Anonymous access should fail with 401", ApiEndpointPublish, VersionOfApi) {
       val response = makePostRequest(publishRequest, """{"payload":{"hello":"world"}}""")
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("Body over the size cap should fail with 400 OBP-39019", ApiEndpointPublish, VersionOfApi) {
+    Scenario("Body over the size cap should fail with 400 OBP-39019", ApiEndpointPublish, VersionOfApi) {
       val oversized = "x" * (SignalContentPolicy.maxPayloadLength + 1)
       val body = s"""{"payload":{"data":"$oversized"}}"""
       val response = makePostRequest(publishRequest <@ (user1), body)
@@ -49,7 +51,7 @@ class SignalChannelTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(SignalMessageTooLong)
     }
 
-    scenario("Payload containing a bidi override character should fail with 400 OBP-39020", ApiEndpointPublish, VersionOfApi) {
+    Scenario("Payload containing a bidi override character should fail with 400 OBP-39020", ApiEndpointPublish, VersionOfApi) {
       // ASCII backslash-u escape on the wire; parses to the RLO code point.
       val body = "{\"payload\":{\"note\":\"click\\u202ehere\"}}"
       val response = makePostRequest(publishRequest <@ (user1), body)
@@ -57,21 +59,21 @@ class SignalChannelTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(SignalMessageContainsDangerousCharacters)
     }
 
-    scenario("Payload containing a control character should fail with 400 OBP-39020", ApiEndpointPublish, VersionOfApi) {
+    Scenario("Payload containing a control character should fail with 400 OBP-39020", ApiEndpointPublish, VersionOfApi) {
       val body = "{\"payload\":{\"note\":\"abc\\u0000def\"}}"
       val response = makePostRequest(publishRequest <@ (user1), body)
       response.code should equal(400)
       response.body.extract[ErrorMessage].message should equal(SignalMessageContainsDangerousCharacters)
     }
 
-    scenario("message_type containing a dangerous character should fail with 400 OBP-39020", ApiEndpointPublish, VersionOfApi) {
+    Scenario("message_type containing a dangerous character should fail with 400 OBP-39020", ApiEndpointPublish, VersionOfApi) {
       val body = "{\"payload\":{\"note\":\"fine\"},\"message_type\":\"te\\u202ext\"}"
       val response = makePostRequest(publishRequest <@ (user1), body)
       response.code should equal(400)
       response.body.extract[ErrorMessage].message should equal(SignalMessageContainsDangerousCharacters)
     }
 
-    scenario("Clean unicode passes the character check (fails later on channel name, not OBP-39020)", ApiEndpointPublish, VersionOfApi) {
+    Scenario("Clean unicode passes the character check (fails later on channel name, not OBP-39020)", ApiEndpointPublish, VersionOfApi) {
       // A channel name over 128 characters is invalid, so the request fails
       // AFTER the size and character checks without reaching Redis — proving
       // legitimate international text is not rejected as dangerous.
@@ -84,16 +86,16 @@ class SignalChannelTest extends V600ServerSetup {
     }
   }
 
-  feature(s"Get Signal Messages - GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages - $VersionOfApi") {
+  Feature(s"Get Signal Messages - GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages - $VersionOfApi") {
 
-    scenario("a non-numeric after_sequence should fail with 400 OBP-10002", ApiEndpointGetMessages, VersionOfApi) {
+    Scenario("a non-numeric after_sequence should fail with 400 OBP-10002", ApiEndpointGetMessages, VersionOfApi) {
       val request = (v6_0_0_Request / "signal-channels" / "test-channel" / "messages").GET <@ (user1) <<? List(("after_sequence", "later"))
       val response = makeGetRequest(request)
       response.code should equal(400)
       response.body.extract[ErrorMessage].message should startWith(ErrorMessages.InvalidNumber)
     }
 
-    scenario("after_sequence returns only newer messages and next_after_sequence continues the cursor", ApiEndpointGetMessages, VersionOfApi) {
+    Scenario("after_sequence returns only newer messages and next_after_sequence continues the cursor", ApiEndpointGetMessages, VersionOfApi) {
       if (!redisReachable) cancel("Redis is not reachable from this test JVM")
       val channelName = s"rest-cursor-${java.util.UUID.randomUUID().toString.take(8)}"
       val publish = (v6_0_0_Request / "signal-channels" / channelName / "messages").POST <@ (user1)
@@ -126,15 +128,15 @@ class SignalChannelTest extends V600ServerSetup {
     }
   }
 
-  feature(s"Delete Signal Channel - DELETE /obp/v6.0.0/signal-channels/CHANNEL_NAME - $VersionOfApi") {
+  Feature(s"Delete Signal Channel - DELETE /obp/v6.0.0/signal-channels/CHANNEL_NAME - $VersionOfApi") {
 
-    scenario("Anonymous access should fail with 401", ApiEndpointDelete, VersionOfApi) {
+    Scenario("Anonymous access should fail with 401", ApiEndpointDelete, VersionOfApi) {
       val response = makeDeleteRequest(deleteRequest)
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("Authenticated user without CanDeleteSignalChannel role should fail with 403", ApiEndpointDelete, VersionOfApi) {
+    Scenario("Authenticated user without CanDeleteSignalChannel role should fail with 403", ApiEndpointDelete, VersionOfApi) {
       val response = makeDeleteRequest(deleteRequest <@ (user1))
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteSignalChannel)

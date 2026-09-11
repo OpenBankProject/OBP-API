@@ -53,13 +53,13 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     ResourceDocRegistry.unionVersions.toList
       .map(version => (label(version), ResourceDocRegistry.docsFor(version).map(_.operationId)))
 
-  feature("getAllResourceDocs contains every per-standard resource-doc surface the union covers") {
-    scenario("the registry itself is non-empty", RegistryParityTag) {
+  Feature("getAllResourceDocs contains every per-standard resource-doc surface the union covers") {
+    Scenario("the registry itself is non-empty", RegistryParityTag) {
       surfaces should not be empty
     }
 
     surfaces.foreach { case (label, operationIds) =>
-      scenario(s"$label operation ids are all resolvable globally", RegistryParityTag) {
+      Scenario(s"$label operation ids are all resolvable globally", RegistryParityTag) {
         // Non-empty matters as much as membership: an empty surface is trivially a subset of the
         // union, so without this a standard whose docs silently stop being registered (the very
         // failure mode this test exists for) would pass unnoticed.
@@ -76,7 +76,7 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     // Guards the one hand-maintained knob left in the registry: if a v8.0.0 aggregation is added
     // without moving obpUnionVersion, the union would keep serving the v7 surface and every
     // v8-only operation id would silently be unresolvable -- the exact bug this PR started from.
-    scenario("obpUnionVersion is the newest OBP-standard version in the registry", RegistryParityTag) {
+    Scenario("obpUnionVersion is the newest OBP-standard version in the registry", RegistryParityTag) {
       val obpVersions = ResourceDocRegistry.registry.keys.toList.collect {
         case sv: ScannedApiVersion
           if sv.apiStandard == ApiStandards.obp.toString &&
@@ -110,7 +110,7 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     // preceded this registry listed UK before BG, giving Berlin Group the three names; sorting the
     // scanned standards alphabetically silently handed them to UK Open Banking instead. This pins
     // the resolved values so the precedence cannot drift again unnoticed.
-    scenario("Berlin Group keeps the partialFunctionNames it shares with UK Open Banking", RegistryParityTag) {
+    Scenario("Berlin Group keeps the partialFunctionNames it shares with UK Open Banking", RegistryParityTag) {
       val resolved = APIUtil.getAllResourceDocs
         .map(doc => doc.partialFunctionName -> doc.operationId).toMap
       resolved.get("getBalances") shouldBe Some("BGv1.3-getBalances")
@@ -124,7 +124,7 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     // standard already uses ("BG/v9"); ranking by that string alone put the alias alongside Berlin
     // Group and, sorting after "v2", ahead of it. Ranking is by identity instead, and the synthetic
     // alias below exercises the colliding configuration without needing a JVM under that prop.
-    scenario("a derived alias never outranks the standard it re-publishes", RegistryParityTag) {
+    Scenario("a derived alias never outranks the standard it re-publishes", RegistryParityTag) {
       val syntheticAlias = ScannedApiVersion("BG", "BG", "v9")
       val rankOf = ResourceDocRegistry.sortKey(syntheticAlias) _
       withClue("the alias must sort before Berlin Group, i.e. lose the `.toMap` last-wins race ") {
@@ -143,7 +143,7 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     // fullyQualifiedVersion is "" as well. While ScannedApis kept it, ApiVersionUtils.valueOf("")
     // resolved successfully and GET /obp/v7.0.0/resource-docs//obp answered 200 with an empty
     // document list instead of the 400 every other unknown version string gets.
-    scenario("an unaddressable empty version is not a registered API version", RegistryParityTag) {
+    Scenario("an unaddressable empty version is not a registered API version", RegistryParityTag) {
       ScannedApis.versionMapScannedApis.keys.foreach { version =>
         withClue(s"$version was registered despite addressing nothing ") {
           (version.urlPrefix.trim + version.apiStandard.trim + version.apiShortVersion.trim) should not be empty
@@ -158,7 +158,7 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     // membership half holds by construction and cannot fail. What the loop still catches is a
     // surface going empty; what these pins still catch is a specific operation id disappearing.
 
-    scenario("the operation id from the sandbox bug report resolves", RegistryParityTag) {
+    Scenario("the operation id from the sandbox bug report resolves", RegistryParityTag) {
       allOperationIds should contain("BGv2-getAccountDetails")
     }
 
@@ -166,7 +166,7 @@ class ResourceDocRegistryParityTest extends ServerSetup {
     // yields BGv1-...), so the expected id is read back from the alias's own docs rather than
     // hard-coded -- a deployment that configures a different path would otherwise fail here for no
     // real reason.
-    scenario("the operation id from the Berlin Group v1.3 alias resolves", RegistryParityTag) {
+    Scenario("the operation id from the Berlin Group v1.3 alias resolves", RegistryParityTag) {
       if (!aliasIsConfigured) cancel(aliasNotConfigured)
       val aliasOperationId = Http4sBGv13Alias.resourceDocs
         .find(_.partialFunctionName == "getPaymentInitiationStatus").map(_.operationId)
@@ -178,7 +178,7 @@ class ResourceDocRegistryParityTest extends ServerSetup {
 
     // The union used to be built from the v6.0.0 aggregation, so v7-only operation ids were
     // absent from it. getMyMetrics exists only in v7.0.0, so it pins the v7 base specifically.
-    scenario("a v7-only operation id resolves", RegistryParityTag) {
+    Scenario("a v7-only operation id resolves", RegistryParityTag) {
       allOperationIds should contain("OBPv7.0.0-getMyMetrics")
     }
   }

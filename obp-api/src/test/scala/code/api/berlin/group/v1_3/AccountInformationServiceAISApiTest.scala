@@ -15,14 +15,14 @@ import code.api.v4_0_0.PostViewJsonV400
 import code.consent.{ConsentStatus, ConsentTrait, Consents}
 import code.model.TokenType.Access
 import code.model.UserX
-import code.model.dataAccess.{BankAccountRouting, ResourceUser}
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.ResourceUser
 import code.setup.{APIResponse, DefaultUsers}
 import code.token.Tokens
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan
 import org.scalatest.Tag
@@ -69,8 +69,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   object updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod extends Tag("updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod")
   object updateConsentsPsuDataUpdateAuthorisationConfirmation extends Tag("updateConsentsPsuDataUpdateAuthorisationConfirmation")
 
-  feature(s"BG v1.3 - $getAccountList") {
-    scenario("Not Authentication User, test failed ", BerlinGroupV1_3, getAccountList) {
+  Feature(s"BG v1.3 - $getAccountList") {
+    Scenario("Not Authentication User, test failed ", BerlinGroupV1_3, getAccountList) {
       val requestGet = (V1_3_BG / "accounts").GET
       val response = makeGetRequest(requestGet)
 
@@ -79,7 +79,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(AuthenticatedUserIsRequired)
     }
 
-    scenario("Authentication User, test failed", BerlinGroupV1_3, getAccountList) {
+    Scenario("Authentication User, test failed", BerlinGroupV1_3, getAccountList) {
       val requestGet = (V1_3_BG / "accounts").GET <@ (user1)
       val response = makeGetRequest(requestGet)
 
@@ -89,8 +89,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $getAccountDetails") {
-    scenario("Not Authentication User, test failed ", BerlinGroupV1_3, getAccountDetails) {
+  Feature(s"BG v1.3 - $getAccountDetails") {
+    Scenario("Not Authentication User, test failed ", BerlinGroupV1_3, getAccountDetails) {
       val requestGet = (V1_3_BG / "accounts" / "accountId").GET
       val response = makeGetRequest(requestGet)
 
@@ -99,7 +99,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(AuthenticatedUserIsRequired)
     }
 
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, getAccountDetails) {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, getAccountDetails) {
       val bankId = APIUtil.defaultBankId
       val accountId = testAccountId0.value
       
@@ -148,8 +148,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $getBalances") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, getBalances) {
+  Feature(s"BG v1.3 - $getBalances") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, getBalances) {
       val bankId = APIUtil.defaultBankId
       
       Then("We should get a 403 ")
@@ -176,8 +176,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }  
 
-  feature(s"BG v1.3 - $getTransactionList") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionList) {
+  Feature(s"BG v1.3 - $getTransactionList") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
 
       val requestGetFailed = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
@@ -221,8 +221,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $getTransactionList - Parameter Validation") {
-    scenario("Authentication User, test failed with invalid bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+  Feature(s"BG v1.3 - $getTransactionList - Parameter Validation") {
+    Scenario("Authentication User, test failed with invalid bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
       val bankId = APIUtil.defaultBankId
       grantUserAccessToViewViaEndpoint(
@@ -241,7 +241,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       responseInvalid.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
     }
 
-    scenario("Authentication User, test failed with empty bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+    Scenario("Authentication User, test failed with empty bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
       val bankId = APIUtil.defaultBankId
       grantUserAccessToViewViaEndpoint(
@@ -260,7 +260,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       responseEmpty.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
     }
 
-    scenario("Authentication User, test failed with case sensitive bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+    Scenario("Authentication User, test failed with case sensitive bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
       val bankId = APIUtil.defaultBankId
       grantUserAccessToViewViaEndpoint(
@@ -286,7 +286,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       responseMixedCase.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
     }
 
-    scenario("Authentication User, test failed with special characters in bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+    Scenario("Authentication User, test failed with special characters in bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
       val bankId = APIUtil.defaultBankId
       grantUserAccessToViewViaEndpoint(
@@ -309,7 +309,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("Authentication User, test missing bookingStatus parameter handling", BerlinGroupV1_3, getTransactionList) {
+    Scenario("Authentication User, test missing bookingStatus parameter handling", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
       val bankId = APIUtil.defaultBankId
       grantUserAccessToViewViaEndpoint(
@@ -329,7 +329,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       responseWithoutParam.body.extract[ErrorMessagesBG].tppMessages.head.text should include("bookingStatus parameter must take two one of those values : booked, pending or both!")
     }
 
-    scenario("Authentication User, test multiple invalid bookingStatus parameters", BerlinGroupV1_3, getTransactionList) {
+    Scenario("Authentication User, test multiple invalid bookingStatus parameters", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
       val bankId = APIUtil.defaultBankId
       grantUserAccessToViewViaEndpoint(
@@ -348,7 +348,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       responseMultipleParams.body.extract[ErrorMessage].message should include(DuplicateQueryParameters)
     }
 
-    scenario("Authentication User, test URL encoding in bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
+    Scenario("Authentication User, test URL encoding in bookingStatus parameter", BerlinGroupV1_3, getTransactionList) {
       val testAccountId = testAccountId1
       val bankId = APIUtil.defaultBankId
       grantUserAccessToViewViaEndpoint(
@@ -373,8 +373,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $getTransactionDetails") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionDetails, getTransactionList) {
+  Feature(s"BG v1.3 - $getTransactionDetails") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionDetails, getTransactionList) {
       val testAccountId = testAccountId1
 
       val requestGetFailed = (V1_3_BG / "accounts" / testAccountId.value / "transactions" / "whatever").GET <@ (user1)
@@ -407,8 +407,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $getCardAccountTransactionList") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, getCardAccountTransactionList) {
+  Feature(s"BG v1.3 - $getCardAccountTransactionList") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, getCardAccountTransactionList) {
       val testAccountId = testAccountId1
       val requestGetFailed = (V1_3_BG / "card-accounts" / testAccountId.value / "transactions").GET <@ (user1)
       val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
@@ -434,7 +434,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $createConsent - postJsonBodyAvailableAccounts") {
+  Feature(s"BG v1.3 - $createConsent - postJsonBodyAvailableAccounts") {
     lazy val postJsonBody = PostConsentJson(
       access = ConsentAccessJson(
         accounts = None,
@@ -460,7 +460,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       recurringIndicator = true
     )
 
-    scenario("Authentication User, test failed due to availableAccounts wrong value", BerlinGroupV1_3, createConsent) {
+    Scenario("Authentication User, test failed due to availableAccounts wrong value", BerlinGroupV1_3, createConsent) {
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBodyWrong1))
 
@@ -468,7 +468,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       response.code should equal(400)
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BerlinGroupConsentAccessAvailableAccounts)
     }
-    scenario("Authentication User, test failed due to frequency per day", BerlinGroupV1_3, createConsent) {
+    Scenario("Authentication User, test failed due to frequency per day", BerlinGroupV1_3, createConsent) {
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBodyWrong2))
 
@@ -476,7 +476,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       response.code should equal(400)
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BerlinGroupConsentAccessFrequencyPerDay)
     }
-    scenario("Authentication User, test failed due to recurringIndicator = true", BerlinGroupV1_3, createConsent) {
+    Scenario("Authentication User, test failed due to recurringIndicator = true", BerlinGroupV1_3, createConsent) {
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBodyWrong3))
 
@@ -484,7 +484,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       response.code should equal(400)
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BerlinGroupConsentAccessRecurringIndicator)
     }
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -495,7 +495,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       jsonResponse.consentStatus should be (ConsentStatus.received.toString)
     }
 
-    scenario("An availableAccounts consent gains the PSU's own accounts when it is authorised", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
+    Scenario("An availableAccounts consent gains the PSU's own accounts when it is authorised", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
 
       Given("An availableAccounts consent, which names no IBAN")
@@ -528,7 +528,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       ibanAddressableAccountsHeldBy(resourceUser1) should not be (empty)
     }
 
-    scenario("Authorising a consent that names one IBAN does not widen it to the PSU's other accounts", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
+    Scenario("Authorising a consent that names one IBAN does not widen it to the PSU's other accounts", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
 
       Given("A consent narrowed to a single IBAN, and a PSU who holds more than that one account")
@@ -557,10 +557,10 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $createConsent") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
+  Feature(s"BG v1.3 - $createConsent") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIban = accountsRoutingIban.head
       val postJsonBody = PostConsentJson(
         access = ConsentAccessJson(
@@ -594,10 +594,10 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   }
 
 
-  feature(s"BG v1.3 - $createConsent and $deleteConsent") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
+  Feature(s"BG v1.3 - $createConsent and $deleteConsent") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIban = accountsRoutingIban.head
       val postJsonBody = PostConsentJson(
         access = ConsentAccessJson(
@@ -645,10 +645,10 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }  
 
-  feature(s"BG v1.3 - $createConsent and $getConsentInformation and $getConsentStatus") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
+  Feature(s"BG v1.3 - $createConsent and $getConsentInformation and $getConsentStatus") {
+    Scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIban = accountsRoutingIban.head
       val postJsonBody = PostConsentJson(
         access = ConsentAccessJson(
@@ -694,9 +694,9 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-    feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} ") {
-      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
-        val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    Feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} ") {
+      Scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
+        val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
         val acountRoutingIban = accountsRoutingIban.head
         val postJsonBody = PostConsentJson(
           access = ConsentAccessJson(
@@ -735,16 +735,16 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       }
     }
   
-    feature(s"BG v1.3 - ${startConsentAuthorisationUpdatePsuAuthentication.name} ") {
-      scenario("Authentication User, only mocked data, so only test successful case", BerlinGroupV1_3, startConsentAuthorisationUpdatePsuAuthentication) {
+    Feature(s"BG v1.3 - ${startConsentAuthorisationUpdatePsuAuthentication.name} ") {
+      Scenario("Authentication User, only mocked data, so only test successful case", BerlinGroupV1_3, startConsentAuthorisationUpdatePsuAuthentication) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{ "psuData": { "password": "start12"}}""")
         responseStartConsentAuthorisation.code should be (201)
       }
     }
   
-    feature(s"BG v1.3 - ${startConsentAuthorisationSelectPsuAuthenticationMethod.name} ") {
-      scenario("Authentication User, only mocked data, so only test successful case", BerlinGroupV1_3, startConsentAuthorisationSelectPsuAuthenticationMethod) {
+    Feature(s"BG v1.3 - ${startConsentAuthorisationSelectPsuAuthenticationMethod.name} ") {
+      Scenario("Authentication User, only mocked data, so only test successful case", BerlinGroupV1_3, startConsentAuthorisationSelectPsuAuthenticationMethod) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"authenticationMethodId":"authenticationMethodId"}""")
         responseStartConsentAuthorisation.code should be (201)
@@ -752,9 +752,9 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
 
 
-    feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} and ${getConsentAuthorisation.name} and ${getConsentScaStatus.name} and ${updateConsentsPsuDataTransactionAuthorisation.name}") {
-      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
-        val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    Feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} and ${getConsentAuthorisation.name} and ${getConsentScaStatus.name} and ${updateConsentsPsuDataTransactionAuthorisation.name}") {
+      Scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
+        val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
         val acountRoutingIban = accountsRoutingIban.head
         val postJsonBody = PostConsentJson(
           access = ConsentAccessJson(
@@ -806,33 +806,33 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       }
     }  
 
-    feature(s"BG v1.3 - updateConsentsPsuData") {
-      scenario("Authentication User, only mocked data, just test succeed", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
+    Feature(s"BG v1.3 - updateConsentsPsuData") {
+      Scenario("Authentication User, only mocked data, just test succeed", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations"/ "AUTHORISATIONID" ).PUT <@ (user1)
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
         responseStartConsentAuthorisation.code should be (403)
       }
       
       
-      scenario("Authentication User, only mocked data, just test succeed -updateConsentsPsuDataUpdatePsuAuthentication", BerlinGroupV1_3, updateConsentsPsuDataUpdatePsuAuthentication) {
+      Scenario("Authentication User, only mocked data, just test succeed -updateConsentsPsuDataUpdatePsuAuthentication", BerlinGroupV1_3, updateConsentsPsuDataUpdatePsuAuthentication) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations"/ "AUTHORISATIONID" ).PUT <@ (user1)
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{  "psuData":{"password":"start12"  }}""")
         responseStartConsentAuthorisation.code should be (200)
       }
-      scenario("Authentication User, only mocked data, just test succeed-updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod", BerlinGroupV1_3, updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod) {
+      Scenario("Authentication User, only mocked data, just test succeed-updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod", BerlinGroupV1_3, updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations"/ "AUTHORISATIONID" ).PUT <@ (user1)
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{ "authenticationMethodId":""}""")
         responseStartConsentAuthorisation.code should be (200)
       }
-      scenario("Authentication User, only mocked data, just test succeed-updateConsentsPsuDataUpdateAuthorisationConfirmation", BerlinGroupV1_3, updateConsentsPsuDataUpdateAuthorisationConfirmation) {
+      Scenario("Authentication User, only mocked data, just test succeed-updateConsentsPsuDataUpdateAuthorisationConfirmation", BerlinGroupV1_3, updateConsentsPsuDataUpdateAuthorisationConfirmation) {
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/"consentId" /"authorisations"/ "AUTHORISATIONID" ).PUT <@ (user1)
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{"confirmationCode":"confirmationCode"}""")
         responseStartConsentAuthorisation.code should be (200)
       }
     }
 
-  feature(s"BG v1.3 - unclaimed consent SCA (regression: GET /obp/v5.1.0/user/current/consents/CONSENT_ID 404 before SCA, wrong authorisationId from ${startConsentAuthorisationTransactionAuthorisation.name})") {
-    scenario("Unclaimed consent: viewable pre-SCA by any user, authorisable, and claimed by the answering PSU on correct OTP", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation, updateConsentsPsuDataTransactionAuthorisation) {
+  Feature(s"BG v1.3 - unclaimed consent SCA (regression: GET /obp/v5.1.0/user/current/consents/CONSENT_ID 404 before SCA, wrong authorisationId from ${startConsentAuthorisationTransactionAuthorisation.name})") {
+    Scenario("Unclaimed consent: viewable pre-SCA by any user, authorisable, and claimed by the answering PSU on correct OTP", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation, updateConsentsPsuDataTransactionAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
 
       val createdConsent = createUnclaimedBerlinGroupConsent()
@@ -866,7 +866,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       updatedConsent.status should be (ConsentStatus.valid.toString)
     }
 
-    scenario("Unclaimed consent: an incorrect OTP is rejected with 400 and the consent stays unclaimed (documents that updateConsentUser in updateConsentsPsuDataAll is never reached on a failed challenge answer, unrelated to this fix)", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
+    Scenario("Unclaimed consent: an incorrect OTP is rejected with 400 and the consent stays unclaimed (documents that updateConsentUser in updateConsentsPsuDataAll is never reached on a failed challenge answer, unrelated to this fix)", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
 
       val createdConsent = createUnclaimedBerlinGroupConsent()
@@ -890,8 +890,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"BG v1.3 - $createConsent consent ownership") {
-    scenario("A consent lodged on a client-credentials session is left unowned, not bound to the consumer's own pseudo-user", BerlinGroupV1_3, createConsent) {
+  Feature(s"BG v1.3 - $createConsent consent ownership") {
+    Scenario("A consent lodged on a client-credentials session is left unowned, not bound to the consumer's own pseudo-user", BerlinGroupV1_3, createConsent) {
       val requestPost = (V1_3_BG / "consents").POST <@ (clientCredentialsSession)
       val response: APIResponse = makePostRequest(requestPost, write(bgConsentPostBody()))
 
@@ -907,7 +907,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       createdConsent.status should be (ConsentStatus.received.toString)
     }
 
-    scenario("A consent lodged on a genuine PSU session is still owned by that PSU", BerlinGroupV1_3, createConsent) {
+    Scenario("A consent lodged on a genuine PSU session is still owned by that PSU", BerlinGroupV1_3, createConsent) {
       val requestPost = (V1_3_BG / "consents").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(bgConsentPostBody()))
 
@@ -931,9 +931,9 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
   // that stops. The consent endpoints in the same file have been UserOrApplication all along, so
   // this is also a consistency guard within the family.
-  feature("BG v1.3 - consent authorisation sub-resources accept a client-credentials caller") {
+  Feature("BG v1.3 - consent authorisation sub-resources accept a client-credentials caller") {
     for (name <- List(nameOf(Http4sBGv13AIS.getConsentAuthorisation), nameOf(Http4sBGv13AIS.getConsentScaStatus))) {
-      scenario(s"$name declares UserOrApplication", BerlinGroupV1_3) {
+      Scenario(s"$name declares UserOrApplication", BerlinGroupV1_3) {
         val docs = APIUtil.ResourceDoc.getResourceDocs(
           List(APIUtil.buildOperationId(ConstantsBG.berlinGroupVersion1, name)))
         docs should not be empty

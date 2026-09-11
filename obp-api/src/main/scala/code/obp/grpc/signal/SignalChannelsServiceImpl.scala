@@ -95,7 +95,7 @@ object SignalChannelsServiceImpl extends SignalChannelsServiceGrpc.SignalChannel
       payload = payload,
       message_type = Option(request.messageType).filter(_.nonEmpty),
       to_user_id = Option(request.toUserId).filter(_.nonEmpty))
-    val consumerId = callContext.flatMap(_.consumer match { case Full(c) => Some(c.consumerId.get); case _ => None }).getOrElse("")
+    val consumerId = callContext.flatMap(_.consumer match { case Full(c) => Some(c.consumerId); case _ => None }).getOrElse("")
     // Channel creation cap (scope signal_channel_create), keyed by the client IP address exactly
     // as SelfServiceRateLimitMiddleware keys it for REST, so one caller shares one counter on
     // both transports. AuthInterceptor captures the peer address into CallContext.ipAddress;

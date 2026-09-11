@@ -16,7 +16,6 @@ import code.token.Tokens
 import code.users.Users
 import com.comcast.ip4s._
 import net.liftweb.common.{Empty, Failure, Full, Logger}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.http4s.ember.server.EmberServerBuilder
@@ -151,16 +150,15 @@ object SandboxServer {
 
   private def setupSandboxUser(): String = {
     // 1. Create AuthUser (needed for DirectLogin password auth)
-    if (AuthUser.find(By(AuthUser.username, sandboxUsername)).isEmpty) {
-      val authUser = AuthUser.create
-        .email(sandboxEmail)
-        .firstName("Sandbox")
-        .lastName("User")
-        .username(sandboxUsername)
-        .password(sandboxPassword)
-        .validated(true)
-        .passwordShouldBeChanged(false)
-      authUser.save()
+    if (AuthUser.findByUsername(sandboxUsername).isEmpty) {
+      val authUser = AuthUser(
+        email = sandboxEmail,
+        firstName = "Sandbox",
+        lastName = "User",
+        username = sandboxUsername,
+        validated = true,
+        passwordShouldBeChanged = false).withPassword(sandboxPassword)
+      authUser.save
     }
 
     // 2. Get or create the ResourceUser created by AuthUser.save()
@@ -193,8 +191,8 @@ object SandboxServer {
     val token = orThrow(
       Tokens.tokens.vend.createToken(
         Access,
-        Some(consumer.id.get),
-        Some(resourceUser.id.get),
+        Some(consumer.id),
+        Some(resourceUser.id),
         Some(randomString(40).toLowerCase),
         Some(randomString(40).toLowerCase),
         Some(expiration),
@@ -228,7 +226,7 @@ object SandboxServer {
     }
 
     logger.info(s"[SandboxServer] Sandbox user ready: userId=${resourceUser.userId}")
-    token.key.get
+    token.key
   }
 
   // Tables we explicitly populate in setupSandboxUser, in display order.

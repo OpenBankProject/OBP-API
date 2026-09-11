@@ -31,12 +31,12 @@ object CustomJsonFormats {
 
   val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) ++ JsonSerializers.serializers
 
-  implicit val nullTolerateFormats = JsonSerializers.nullTolerateFormats
+  implicit val nullTolerateFormats: org.json4s.Formats = JsonSerializers.nullTolerateFormats
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
     val dateFormat = org.json4s.DefaultFormats.dateFormat
 
-    override val typeHints = ShortTypeHints(rolesMappedToClasses)
+    override val typeHints: org.json4s.ShortTypeHints = ShortTypeHints(rolesMappedToClasses)
   } ++ JsonSerializers.serializers
 }
 
@@ -52,8 +52,11 @@ object OptionalFieldSerializer extends ObpSerializer[AnyRef] {
     APIUtil.getPropsValue("inbound.optional.fields", "")
       .split("""\s*,\s*""").filterNot(StringUtils.isBlank).toList
 
-  private val outboundType = typeOf[TopicTrait]
-  private val inboundType = typeOf[InBoundTrait[_]]
+  // typeOf[TopicTrait]/typeOf[InBoundTrait[_]] need the Scala 2 compiler to synthesise a
+  // TypeTag; Scala 3 cannot, so the constants live in obp-commons (permanently 2.13) instead -
+  // see CustomJsonFormatsTypes' docstring.
+  private val outboundType = CustomJsonFormatsTypes.tTopicTrait
+  private val inboundType = CustomJsonFormatsTypes.tInBoundTraitWildcard
 
   // keep current process InBound or OutBound instance, avoid dead loop.
   private val threadLocal = new java.lang.ThreadLocal[Any]
@@ -107,14 +110,14 @@ object OptionalFieldSerializer extends ObpSerializer[AnyRef] {
     }
     memo.memoize(tp){
       val fields: List[universe.Symbol] = tp.decls.filter(decl => decl.isTerm && (decl.asTerm.isVal || decl.asTerm.isVar)).toList
-      val (optionalFields, notIgnoreFields) = fields.partition(_.annotations.exists(_.tree.tpe <:< typeOf[optional]))
+      val (optionalFields, notIgnoreFields) = fields.partition(_.annotations.exists(_.tree.tpe <:< CustomJsonFormatsTypes.tOptionalAnnotation))
       val annotedFieldNames = optionalFields.map(_.name.decodedName.toString.trim)
       val subAnnotedFieldNames = notIgnoreFields.flatMap(it => {
         val fieldName = it.name.decodedName.toString.trim
         val fieldType: universe.Type = it.info match {
-          case x if x <:< typeOf[Iterable[_]] &&  !(x <:< typeOf[Map[_,_]]) =>
+          case x if x <:< CustomJsonFormatsTypes.tIterableWildcard &&  !(x <:< CustomJsonFormatsTypes.tMapWildcardWildcard) =>
             x.typeArgs.head
-          case x if x <:< typeOf[Array[_]] =>
+          case x if x <:< CustomJsonFormatsTypes.tArrayWildcard =>
             x.typeArgs.head
           case x => x
         }

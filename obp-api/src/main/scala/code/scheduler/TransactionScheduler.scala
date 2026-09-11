@@ -5,7 +5,6 @@ import code.api.util.APIUtil
 import code.transactionrequests.MappedTransactionRequest
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, By_<}
 
 import scala.util.{Failure, Success, Try}
 
@@ -31,19 +30,17 @@ object TransactionScheduler extends MdcLoggable {
     Try {
       logger.debug("|---> Checking for OUTDATED Berlin Group TRANSACTIONS...")
 
-      val outdatedTransactions = MappedTransactionRequest.findAll(
-        By(MappedTransactionRequest.mStatus, TransactionStatus.RCVD.toString),
-        By_<(MappedTransactionRequest.updatedAt, SchedulerUtil.someSecondsAgo(seconds))
-      )
+      val outdatedTransactions = MappedTransactionRequest.findAllByStatusUpdatedBefore(
+        TransactionStatus.RCVD.toString, SchedulerUtil.someSecondsAgo(seconds))
 
       logger.debug(s"|---> Found ${outdatedTransactions.size} outdated transactions")
 
       outdatedTransactions.foreach { transaction =>
         Try {
-          transaction.mStatus(TransactionStatus.RJCT.toString).save
-          logger.warn(s"|---> Changed status to ${TransactionStatus.RJCT.toString} for transaction ID: ${transaction.id}")
+          MappedTransactionRequest.setStatus(transaction.transactionRequestId, TransactionStatus.RJCT.toString)
+          logger.warn(s"|---> Changed status to ${TransactionStatus.RJCT.toString} for transaction ID: ${transaction.transactionRequestId}")
         } match {
-          case Failure(ex) => logger.error(s"Failed to update transaction ID: ${transaction.id}", ex)
+          case Failure(ex) => logger.error(s"Failed to update transaction ID: ${transaction.transactionRequestId}", ex)
           case Success(_) => // Already logged
         }
       }

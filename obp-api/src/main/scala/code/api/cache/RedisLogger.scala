@@ -269,7 +269,7 @@ object RedisLogger {
     }
   }
 
-  private implicit val streamFormats = json.DefaultFormats
+  private implicit val streamFormats: org.json4s.DefaultFormats.type = json.DefaultFormats
 
   /**
    * Write a log entry to the REST-facing Redis lists (level queue + ALL queue)

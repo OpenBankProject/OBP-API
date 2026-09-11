@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 object SchedulerUtil {
 
   private lazy val actorSystem = ObpActorSystem.localActorSystem
-  implicit lazy val executor = actorSystem.dispatcher
+  implicit lazy val executor: scala.concurrent.ExecutionContextExecutor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
 
   // Generic method to schedule a task

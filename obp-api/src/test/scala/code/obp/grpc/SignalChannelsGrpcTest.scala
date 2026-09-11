@@ -67,56 +67,56 @@ class SignalChannelsGrpcTest extends ServerSetupWithTestData {
 
   private val cleanPayload = """{"message":"Please report what time it is where you are"}"""
 
-  feature("SignalChannelsService validation matches the REST endpoints") {
+  Feature("SignalChannelsService validation matches the REST endpoints") {
 
-    scenario("a call with no credentials is rejected", GrpcSignal) {
+    Scenario("a call with no credentials is rejected", GrpcSignal) {
       val status = statusOf(SignalChannelsServiceGrpc.blockingStub(channel).publish(PublishRequest("test-channel", "", "", cleanPayload)))
       status.getCode should equal(Status.Code.UNAUTHENTICATED)
     }
 
-    scenario("an invalid channel name is INVALID_ARGUMENT with the REST error message", GrpcSignal) {
+    Scenario("an invalid channel name is INVALID_ARGUMENT with the REST error message", GrpcSignal) {
       val status = statusOf(blockingStub(tokenOf(user1)).publish(PublishRequest("bad channel name!", "", "", cleanPayload)))
       status.getCode should equal(Status.Code.INVALID_ARGUMENT)
       status.getDescription should startWith(InvalidSignalChannelName)
     }
 
-    scenario("a payload that is not JSON is INVALID_ARGUMENT", GrpcSignal) {
+    Scenario("a payload that is not JSON is INVALID_ARGUMENT", GrpcSignal) {
       val status = statusOf(blockingStub(tokenOf(user1)).publish(PublishRequest("test-channel", "", "", "not json")))
       status.getCode should equal(Status.Code.INVALID_ARGUMENT)
       status.getDescription should startWith(InvalidJsonFormat)
     }
 
-    scenario("a payload over the size cap is INVALID_ARGUMENT OBP-39019", GrpcSignal) {
+    Scenario("a payload over the size cap is INVALID_ARGUMENT OBP-39019", GrpcSignal) {
       val oversized = "x" * (SignalContentPolicy.maxPayloadLength + 1)
       val status = statusOf(blockingStub(tokenOf(user1)).publish(PublishRequest("test-channel", "", "", s"""{"data":"$oversized"}""")))
       status.getCode should equal(Status.Code.INVALID_ARGUMENT)
       status.getDescription should startWith(SignalMessageTooLong)
     }
 
-    scenario("a payload containing a bidi override character is INVALID_ARGUMENT OBP-39020", GrpcSignal) {
+    Scenario("a payload containing a bidi override character is INVALID_ARGUMENT OBP-39020", GrpcSignal) {
       // Backslash-u escape on the wire; parses to the RLO code point, as in SignalChannelTest.
       val status = statusOf(blockingStub(tokenOf(user1)).publish(PublishRequest("test-channel", "", "", "{\"note\":\"click\\u202ehere\"}")))
       status.getCode should equal(Status.Code.INVALID_ARGUMENT)
       status.getDescription should equal(SignalMessageContainsDangerousCharacters)
     }
 
-    scenario("a message_type containing a control character is INVALID_ARGUMENT OBP-39020", GrpcSignal) {
+    Scenario("a message_type containing a control character is INVALID_ARGUMENT OBP-39020", GrpcSignal) {
       val withNul = "te" + 0.toChar + "xt"
       val status = statusOf(blockingStub(tokenOf(user1)).publish(PublishRequest("test-channel", "", withNul, cleanPayload)))
       status.getCode should equal(Status.Code.INVALID_ARGUMENT)
       status.getDescription should equal(SignalMessageContainsDangerousCharacters)
     }
 
-    scenario("Fetch and Subscribe reject an invalid channel name before touching Redis", GrpcSignal) {
+    Scenario("Fetch and Subscribe reject an invalid channel name before touching Redis", GrpcSignal) {
       statusOf(blockingStub(tokenOf(user1)).fetch(FetchRequest("a" * 129, 0, 10))).getCode should equal(Status.Code.INVALID_ARGUMENT)
       // The blocking iterator only fails when it is first read.
       statusOf(blockingStub(tokenOf(user1)).subscribe(SubscribeRequest("a" * 129)).hasNext).getCode should equal(Status.Code.INVALID_ARGUMENT)
     }
   }
 
-  feature("SignalChannelsService reads and writes the same Redis storage as REST") {
+  Feature("SignalChannelsService reads and writes the same Redis storage as REST") {
 
-    scenario("Publish, Fetch and ListChannels round-trip a broadcast, and a private message stays private", GrpcSignal) {
+    Scenario("Publish, Fetch and ListChannels round-trip a broadcast, and a private message stays private", GrpcSignal) {
       if (!redisReachable) cancel("Redis is not reachable from this test JVM")
       val channelName = s"grpc-test-${java.util.UUID.randomUUID().toString.take(8)}"
       val publisher = blockingStub(tokenOf(user1))
@@ -177,7 +177,7 @@ class SignalChannelsGrpcTest extends ServerSetupWithTestData {
       code.api.cache.RedisMessaging.deleteChannel(channelName)
     }
 
-    scenario("a cursor read survives the channel being trimmed, where an offset read skips messages", GrpcSignal) {
+    Scenario("a cursor read survives the channel being trimmed, where an offset read skips messages", GrpcSignal) {
       if (!redisReachable) cancel("Redis is not reachable from this test JVM")
       val channelName = s"grpc-trim-${java.util.UUID.randomUUID().toString.take(8)}"
       val reader = blockingStub(tokenOf(user1))
@@ -203,7 +203,7 @@ class SignalChannelsGrpcTest extends ServerSetupWithTestData {
       code.api.cache.RedisMessaging.deleteChannel(channelName)
     }
 
-    scenario("Subscribe streams a message published after the stream opened", GrpcSignal) {
+    Scenario("Subscribe streams a message published after the stream opened", GrpcSignal) {
       if (!redisReachable) cancel("Redis is not reachable from this test JVM")
       SignalEventBus.isRunning should equal(true)
       val channelName = s"grpc-sub-${java.util.UUID.randomUUID().toString.take(8)}"

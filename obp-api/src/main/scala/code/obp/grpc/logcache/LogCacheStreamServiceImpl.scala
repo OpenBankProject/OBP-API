@@ -23,7 +23,7 @@ import org.json4s.JsonAST.JValue
  */
 object LogCacheStreamServiceImpl extends LogCacheStreamServiceGrpc.LogCacheStreamService with MdcLoggable {
 
-  private implicit val formats = json.DefaultFormats
+  private implicit val formats: org.json4s.DefaultFormats.type = json.DefaultFormats
 
   override def streamLogCacheEntries(
     request: StreamLogCacheRequest,
@@ -35,7 +35,7 @@ object LogCacheStreamServiceImpl extends LogCacheStreamServiceGrpc.LogCacheStrea
       return
     }
 
-    val internalLevel = LogLevel.toRedis(request.level) match {
+    val internalLevel = levelToRedis(request.level) match {
       case Some(l) => l
       case None =>
         responseObserver.onError(Status.INVALID_ARGUMENT
@@ -80,11 +80,33 @@ object LogCacheStreamServiceImpl extends LogCacheStreamServiceGrpc.LogCacheStrea
     }
   }
 
+  // The Redis mapping used to live on a hand-written Int-constant LogLevel object;
+  // LogLevel is scalapb-generated from log_cache.proto now (same wire numbers), so
+  // the mapping lives here. LOG_LEVEL_UNSPECIFIED and Unrecognized map to None.
+  private def levelToRedis(level: LogLevel): Option[RedisLogger.LogLevel.LogLevel] = level match {
+    case LogLevel.TRACE   => Some(RedisLogger.LogLevel.TRACE)
+    case LogLevel.DEBUG   => Some(RedisLogger.LogLevel.DEBUG)
+    case LogLevel.INFO    => Some(RedisLogger.LogLevel.INFO)
+    case LogLevel.WARNING => Some(RedisLogger.LogLevel.WARNING)
+    case LogLevel.ERROR   => Some(RedisLogger.LogLevel.ERROR)
+    case LogLevel.ALL     => Some(RedisLogger.LogLevel.ALL)
+    case _                => None
+  }
+
+  private def levelFromRedis(level: RedisLogger.LogLevel.LogLevel): LogLevel = level match {
+    case RedisLogger.LogLevel.TRACE   => LogLevel.TRACE
+    case RedisLogger.LogLevel.DEBUG   => LogLevel.DEBUG
+    case RedisLogger.LogLevel.INFO    => LogLevel.INFO
+    case RedisLogger.LogLevel.WARNING => LogLevel.WARNING
+    case RedisLogger.LogLevel.ERROR   => LogLevel.ERROR
+    case RedisLogger.LogLevel.ALL     => LogLevel.ALL
+  }
+
   private def jsonToLogCacheEntry(jv: JValue): LogCacheEntry = {
     val levelStr = (jv \ "level").extractOrElse[String]("")
     val levelInt = try {
-      LogLevel.fromRedis(RedisLogger.LogLevel.valueOf(levelStr))
-    } catch { case _: Throwable => LogLevel.UNSPECIFIED }
+      levelFromRedis(RedisLogger.LogLevel.valueOf(levelStr))
+    } catch { case _: Throwable => LogLevel.LOG_LEVEL_UNSPECIFIED }
     val ts = (jv \ "ts").extractOrElse[Long](0L)
     val timestamp =
       if (ts > 0) Some(Timestamp(seconds = ts / 1000L, nanos = ((ts % 1000L) * 1000000L).toInt))

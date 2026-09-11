@@ -127,7 +127,7 @@ object CertificateUtil extends MdcLoggable {
     val (privateKey: PrivateKey, certificate: Certificate) =
       Props.mode match {
         case Props.RunModes.Development | Props.RunModes.Test => generateSelfSignedCert("test.tesobe.com")
-        case _ => getKeyStoreCertificate
+        case _ => getKeyStoreCertificate()
       }
     val publicKey: RSAPublicKey = certificate.getPublicKey.asInstanceOf[RSAPublicKey]
     import com.nimbusds.jose.jwk._
@@ -362,7 +362,7 @@ object CertificateUtil extends MdcLoggable {
 
     parseJwtWithHmacProtection(hmacJwt)
     
-    println(convertRSAPublicKeyToAnRSAJWK)
+    println(convertRSAPublicKeyToAnRSAJWK())
 
   }
 

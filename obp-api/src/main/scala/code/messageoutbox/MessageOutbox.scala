@@ -1,6 +1,12 @@
 package code.messageoutbox
 
-import net.liftweb.mapper._
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
+
+import java.util.Date
 
 /**
  * Generic transactional outbox for asynchronous messages OBP-API must deliver.
@@ -23,87 +29,30 @@ import net.liftweb.mapper._
  *   STICKY    — the receiver replied with an error that retrying cannot fix.
  *               Needs operator reconciliation: visible via
  *               GET /management/message-outbox, re-queued via its /retry.
+ *
+ * `updatedAt` is load-bearing rather than decoration: the relay computes its
+ * exponential backoff from it, so every mutation stamps it. That is why the
+ * update helpers below all write updated_at rather than leaving it to a
+ * database default.
  */
-class MessageOutbox extends LongKeyedMapper[MessageOutbox] with IdPK {
-  def getSingleton = MessageOutbox
+case class MessageOutbox(
+  id: Long,
+  outboxType: String,
+  subjectId: String,
+  subjectIdType: String,
+  operationName: String,
+  targetId: String,
+  payloadJson: String,
+  status: String,
+  attempts: Int,
+  lastError: String,
+  lastReplyJson: String,
+  metadataJson: String,
+  createdAt: Date,
+  updatedAt: Date
+)
 
-  /** Message family; decides how the relay publishes the row. */
-  object OutboxType extends MappedString(this, 32) {
-    override def dbColumnName = "outbox_type"
-  }
-  /** The id of the business object this message is about. NOT the
-    * per-REST-call Correlation-Id, and not the AMQP reply correlationId. */
-  object SubjectId extends MappedString(this, 64) {
-    override def dbColumnName = "subject_id"
-  }
-  /** The OBP id-field name whose value space subject_id belongs to, e.g.
-    * transaction_request_id / settlement_id — makes rows self-describing
-    * instead of relying on per-operation conventions. */
-  object SubjectIdType extends MappedString(this, 32) {
-    override def dbColumnName = "subject_id_type"
-  }
-  /** The operation this message performs, e.g. obp_credit_notification /
-    * obp_settlement_advice. On the OPEN_CORRIDOR wire this becomes the AMQP
-    * messageId property (locked contract). Named operation_name here to avoid
-    * colliding with message_id-as-instance-id elsewhere in OBP (e.g. signal
-    * channel messages). */
-  object OperationName extends MappedString(this, 64) {
-    override def dbColumnName = "operation_name"
-  }
-  /** Delivery target, per outbox_type (OPEN_CORRIDOR: the bank id whose
-    * vhost the message is published to). */
-  object TargetId extends MappedString(this, 255) {
-    override def dbColumnName = "target_id"
-  }
-  /** The wire body, serialized at enqueue time. */
-  object PayloadJson extends MappedText(this) {
-    override def dbColumnName = "payload_json"
-  }
-  object Status extends MappedString(this, 16) {
-    override def dbColumnName = "status"
-    override def defaultValue = MessageOutbox.STATUS_PENDING
-  }
-  object Attempts extends MappedInt(this) {
-    override def dbColumnName = "attempts"
-    override def defaultValue = 0
-  }
-  object LastError extends MappedString(this, 2000) {
-    override def dbColumnName = "last_error"
-  }
-  /** The receiver's last reply, verbatim, for audit/reconciliation. */
-  object LastReplyJson extends MappedText(this) {
-    override def dbColumnName = "last_reply_json"
-  }
-  /** Per-type optional extras; empty for OPEN_CORRIDOR. */
-  object MetadataJson extends MappedText(this) {
-    override def dbColumnName = "metadata_json"
-  }
-  object CreatedAt extends MappedDateTime(this) {
-    override def dbColumnName = "created_at"
-    override def defaultValue = new java.util.Date()
-  }
-  object UpdatedAt extends MappedDateTime(this) {
-    override def dbColumnName = "updated_at"
-    override def defaultValue = new java.util.Date()
-  }
-
-  def outboxType: String = OutboxType.get
-  def subjectId: String = SubjectId.get
-  def subjectIdType: String = SubjectIdType.get
-  def operationName: String = OperationName.get
-  def targetId: String = TargetId.get
-  def payloadJson: String = PayloadJson.get
-  def status: String = Status.get
-  def attempts: Int = Attempts.get
-
-  // updated_at drives the relay's backoff; stamp it on every save.
-  override def save: Boolean = {
-    UpdatedAt(new java.util.Date())
-    super.save
-  }
-}
-
-object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbox] {
+object MessageOutbox {
   val STATUS_PENDING = "PENDING"
   val STATUS_DELIVERED = "DELIVERED"
   val STATUS_STICKY = "STICKY"
@@ -116,10 +65,29 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
   val SUBJECT_TYPE_SETTLEMENT_ID = "settlement_id"
   val SUBJECT_TYPE_TRANSACTION_REQUEST_ID = "transaction_request_id"
 
-  override def dbTableName = "message_outbox"
+  private val selectColumns =
+    fr"""SELECT id, outbox_type, subject_id, subject_id_type, operation_name, target_id,
+                payload_json, status, attempts, last_error, last_reply_json, metadata_json,
+                created_at, updated_at
+         FROM message_outbox"""
 
-  override def dbIndexes: List[BaseIndex[MessageOutbox]] =
-    Index(Status) :: Index(SubjectId) :: Index(OutboxType) :: super.dbIndexes
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Int], Option[String], Option[String],
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  private def fromRow(row: Row): MessageOutbox = row match {
+    case (id, outboxType, subjectId, subjectIdType, operationName, targetId, payloadJson,
+          status, attempts, lastError, lastReplyJson, metadataJson, createdAt, updatedAt) =>
+      MessageOutbox(id, outboxType.orNull, subjectId.orNull, subjectIdType.orNull,
+        operationName.orNull, targetId.orNull, payloadJson.orNull, status.orNull,
+        attempts.getOrElse(0), lastError.orNull, lastReplyJson.orNull, metadataJson.orNull,
+        createdAt.orNull, updatedAt.orNull)
+  }
+
+  private def query(condition: Fragment): List[MessageOutbox] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def now(): java.sql.Timestamp = new java.sql.Timestamp(System.currentTimeMillis())
 
   def enqueue(
     outboxType: String,
@@ -128,20 +96,96 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
     operationName: String,
     targetId: String,
     payloadJson: String
-  ): MessageOutbox =
-    MessageOutbox.create
-      .OutboxType(outboxType)
-      .SubjectId(subjectId)
-      .SubjectIdType(subjectIdType)
-      .OperationName(operationName)
-      .TargetId(targetId)
-      .PayloadJson(payloadJson)
-      .Status(STATUS_PENDING)
-      .saveMe()
+  ): MessageOutbox = {
+    val ts = now()
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO message_outbox
+            (outbox_type, subject_id, subject_id_type, operation_name, target_id, payload_json,
+             status, attempts, last_error, last_reply_json, metadata_json, created_at, updated_at)
+            VALUES
+            ($outboxType, $subjectId, $subjectIdType, $operationName, $targetId, $payloadJson,
+             $STATUS_PENDING, 0, '', '', '', $ts, $ts)"""
+        .update.run)
+    val id = DoobieUtil.runQuery(
+      sql"SELECT MAX(id) FROM message_outbox WHERE subject_id = $subjectId AND operation_name = $operationName"
+        .query[Long].unique)
+    MessageOutbox(id, outboxType, subjectId, subjectIdType, operationName, targetId, payloadJson,
+      STATUS_PENDING, 0, "", "", "", ts, ts)
+  }
 
-  def pending(): List[MessageOutbox] =
-    MessageOutbox.findAll(By(MessageOutbox.Status, STATUS_PENDING))
+  def pending(): List[MessageOutbox] = query(fr"WHERE status = $STATUS_PENDING")
 
-  def bySubjectId(subjectId: String): List[MessageOutbox] =
-    MessageOutbox.findAll(By(MessageOutbox.SubjectId, subjectId))
+  def bySubjectId(subjectId: String): List[MessageOutbox] = query(fr"WHERE subject_id = $subjectId")
+
+  def findById(id: Long): Box[MessageOutbox] =
+    query(fr"WHERE id = $id LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  /** Operator listing: newest first, optionally narrowed by status and/or type. */
+  def findAllFiltered(status: Option[String], outboxType: Option[String], limit: Int): List[MessageOutbox] = {
+    val conditions = List(
+      status.map(s => fr"status = $s"),
+      outboxType.map(t => fr"outbox_type = $t")
+    ).flatten
+    val where = if (conditions.isEmpty) Fragment.empty else fr"WHERE " ++ conditions.reduce((a, b) => a ++ fr"AND" ++ b)
+    query(where ++ fr"ORDER BY id DESC LIMIT $limit")
+  }
+
+  /** Record an attempt that did not settle the row: bumps attempts, keeps it PENDING. */
+  def recordAttempt(id: Long, attempts: Int, lastError: String, lastReplyJson: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = $lastError,
+              last_reply_json = $lastReplyJson, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  /** Record an attempt with no reply body to store (transport failure). */
+  def recordAttempt(id: Long, attempts: Int, lastError: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = $lastError,
+              updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  def markDelivered(id: Long, lastReplyJson: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_DELIVERED, last_error = '',
+              last_reply_json = $lastReplyJson, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  def markSticky(id: Long, attempts: Int, lastError: String, lastReplyJson: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_STICKY, attempts = $attempts,
+              last_error = $lastError, last_reply_json = $lastReplyJson, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  def markSticky(id: Long, attempts: Int, lastError: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_STICKY, attempts = $attempts,
+              last_error = $lastError, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  /** Operator retry: back to PENDING with the attempt counter and error cleared. */
+  def resetForRetry(id: Long): Box[MessageOutbox] = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_PENDING, attempts = 0, last_error = '',
+              updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    findById(id)
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM message_outbox".update.run)
+    ()
+  }
 }

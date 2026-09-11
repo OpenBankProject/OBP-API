@@ -1,9 +1,10 @@
 package code.api.cache
 
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Covers the Guava-backed half of the cache.
@@ -20,7 +21,7 @@ import scala.concurrent.duration._
  * caches, the invalidation just stops finding anything. Pinning the shape here makes such a change
  * show up as a test failure rather than as a stale entry in production.
  */
-class InMemoryCachingTest extends FlatSpec with Matchers {
+class InMemoryCachingTest extends AnyFlatSpec with Matchers {
 
   private val ttl = 10.seconds
 

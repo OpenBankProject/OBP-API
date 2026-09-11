@@ -1,47 +1,150 @@
 package code.apiproductsubscription
 
-import code.util.{MappedUUID, UUIDString}
-import net.liftweb.mapper._
-
 import java.util.Date
+
+import code.api.util.{APIUtil, DoobieUtil}
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 
 /**
  * One Consumer holding one API Product for a period, with a status.
  * See API_PRODUCT_SUBSCRIPTION_PLAN.md and the Glossary item "API Product Subscription".
+ *
+ * Upstream declares this as a Lift Mapper entity; this branch has no Lift Mapper and no
+ * Schemifier, so it is a case class over a Doobie store with its table in
+ * db.changelog-develop-merge-2.yaml.
  */
-class ApiProductSubscription extends ApiProductSubscriptionTrait with LongKeyedMapper[ApiProductSubscription] with IdPK with CreatedUpdated {
-  def getSingleton = ApiProductSubscription
+case class ApiProductSubscription(
+  apiProductSubscriptionId: String,
+  bankId: String,
+  apiProductCode: String,
+  consumerId: String,
+  status: String,
+  startDate: Date,
+  /** None = open-ended. */
+  endDate: Option[Date],
+  createdByUserId: String,
+  /** The RateLimiting row created for this subscription; None when there is none. */
+  rateLimitingId: Option[String],
+  createdAtDate: Date,
+  updatedAtDate: Date
+) extends ApiProductSubscriptionTrait
 
-  object ApiProductSubscriptionId extends MappedUUID(this)
-  object BankId extends UUIDString(this)
-  object ApiProductCode extends MappedString(this, 50)
-  // Consumer.consumerId is a MappedString(250); mirror that rather than UUIDString so any existing id fits.
-  object ConsumerId extends MappedString(this, 250)
-  object Status extends MappedString(this, 20)
-  object StartDate extends MappedDateTime(this)
-  // null = open-ended
-  object EndDate extends MappedDateTime(this)
-  object CreatedByUserId extends UUIDString(this)
-  // The RateLimiting row Phase 3 creates for this subscription; empty when none.
-  object RateLimitingId extends MappedString(this, 50)
+object ApiProductSubscription {
 
-  override def apiProductSubscriptionId: String = ApiProductSubscriptionId.get
-  override def bankId: String = BankId.get
-  override def apiProductCode: String = ApiProductCode.get
-  override def consumerId: String = ConsumerId.get
-  override def status: String = Status.get
-  override def startDate: Date = StartDate.get
-  override def endDate: Option[Date] = Option(EndDate.get)
-  override def createdByUserId: String = CreatedByUserId.get
-  override def rateLimitingId: Option[String] = Option(RateLimitingId.get).filter(_.nonEmpty)
-  override def createdAtDate: Date = createdAt.get
-  override def updatedAtDate: Date = updatedAt.get
-}
+  private val selectColumns =
+    fr"""SELECT apiproductsubscriptionid, bankid, apiproductcode, consumerid, status, startdate,
+                enddate, createdbyuserid, ratelimitingid, createdat, updatedat
+         FROM apiproductsubscription"""
 
-object ApiProductSubscription extends ApiProductSubscription with LongKeyedMetaMapper[ApiProductSubscription] {
-  // No unique constraint on (ConsumerId, BankId, ApiProductCode): cancelled rows are history.
-  // The provider enforces at most one non-cancelled subscription per (consumerId, bankId, apiProductCode).
-  override def dbIndexes = UniqueIndex(ApiProductSubscriptionId) :: Index(ConsumerId) :: Index(BankId, ApiProductCode) :: super.dbIndexes
+  // Nullable columns read through Option: a bare String/Date Get throws NonNullableColumnRead on
+  // a SQL NULL and fails the whole query rather than the one row.
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[String],
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  /** java.sql.Timestamp is a java.util.Date subclass, but json4s renders it as {} - convert. */
+  private def readDate(value: Option[java.sql.Timestamp]): Option[Date] =
+    value.map(t => new Date(t.getTime))
+
+  private def fromRow(row: Row): ApiProductSubscription = row match {
+    case (apiProductSubscriptionId, bankId, apiProductCode, consumerId, status, startDate,
+          endDate, createdByUserId, rateLimitingId, createdAt, updatedAt) =>
+      ApiProductSubscription(
+        apiProductSubscriptionId.orNull, bankId.orNull, apiProductCode.orNull, consumerId.orNull,
+        status.orNull, readDate(startDate).orNull, readDate(endDate), createdByUserId.orNull,
+        // The Mapper getter was Option(RateLimitingId.get).filter(_.nonEmpty): "" means "none".
+        rateLimitingId.filter(_.nonEmpty),
+        readDate(createdAt).orNull, readDate(updatedAt).orNull)
+  }
+
+  private def query(condition: Fragment): List[ApiProductSubscription] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def one(condition: Fragment): Box[ApiProductSubscription] =
+    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def findById(apiProductSubscriptionId: String): Box[ApiProductSubscription] =
+    one(fr"WHERE apiproductsubscriptionid = $apiProductSubscriptionId")
+
+  def findByConsumerId(consumerId: String): List[ApiProductSubscription] =
+    query(fr"WHERE consumerid = $consumerId ORDER BY id ASC")
+
+  /** An empty id list means "match nothing", the semantics Mapper's ByList had. */
+  def findByConsumerIds(consumerIds: List[String]): List[ApiProductSubscription] =
+    if (consumerIds.isEmpty) Nil
+    else {
+      val ids = consumerIds.map(id => fr"$id").reduce((a, b) => a ++ fr"," ++ b)
+      query(fr"WHERE consumerid IN (" ++ ids ++ fr") ORDER BY id ASC")
+    }
+
+  def findByBankIdAndProductCode(bankId: String, apiProductCode: String): List[ApiProductSubscription] =
+    query(fr"WHERE bankid = $bankId AND apiproductcode = $apiProductCode ORDER BY id ASC")
+
+  def findNonCancelled(consumerId: String, bankId: String,
+                       apiProductCode: String): Box[ApiProductSubscription] =
+    one(fr"""WHERE consumerid = $consumerId AND bankid = $bankId
+             AND apiproductcode = $apiProductCode
+             AND status <> ${ApiProductSubscriptionStatus.Cancelled}""")
+
+  def insert(bankId: String, apiProductCode: String, consumerId: String, status: String,
+             startDate: Date, endDate: Option[Date],
+             createdByUserId: String): ApiProductSubscription = {
+    val apiProductSubscriptionId = APIUtil.generateUUID()
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    val start = Option(startDate).map(d => new java.sql.Timestamp(d.getTime))
+    val end = endDate.map(d => new java.sql.Timestamp(d.getTime))
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO apiproductsubscription
+            (apiproductsubscriptionid, bankid, apiproductcode, consumerid, status, startdate,
+             enddate, createdbyuserid, ratelimitingid, createdat, updatedat)
+            VALUES ($apiProductSubscriptionId, ${Option(bankId)}, ${Option(apiProductCode)},
+             ${Option(consumerId)}, ${Option(status)}, $start, $end, ${Option(createdByUserId)},
+             ${Option("")}, $now, $now)""".update.run)
+    findById(apiProductSubscriptionId)
+      .openOrThrowException("the subscription just inserted must be readable")
+  }
+
+  def updateStatus(apiProductSubscriptionId: String, newStatus: String,
+                   endDate: Option[Date]): Box[ApiProductSubscription] = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    // An absent endDate leaves the stored one alone, as the Mapper path did.
+    val endSet = endDate
+      .map(d => fr", enddate = ${new java.sql.Timestamp(d.getTime)}")
+      .getOrElse(Fragment.empty)
+    DoobieUtil.runUpdate(
+      (fr"UPDATE apiproductsubscription SET status = ${Option(newStatus)}, updatedat = $now" ++
+        endSet ++
+        fr"WHERE apiproductsubscriptionid = $apiProductSubscriptionId").update.run)
+    findById(apiProductSubscriptionId)
+  }
+
+  def setRateLimitingId(apiProductSubscriptionId: String,
+                        rateLimitingId: Option[String]): Box[ApiProductSubscription] = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE apiproductsubscription
+              SET ratelimitingid = ${Option(rateLimitingId.getOrElse(""))}, updatedat = $now
+            WHERE apiproductsubscriptionid = $apiProductSubscriptionId""".update.run)
+    findById(apiProductSubscriptionId)
+  }
+
+  def delete(apiProductSubscriptionId: String): Boolean = {
+    DoobieUtil.runUpdate(
+      sql"""DELETE FROM apiproductsubscription
+            WHERE apiproductsubscriptionid = $apiProductSubscriptionId""".update.run)
+    true
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM apiproductsubscription".update.run)
+    ()
+  }
 }
 
 trait ApiProductSubscriptionTrait {

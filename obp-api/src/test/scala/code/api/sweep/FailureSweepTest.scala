@@ -1,5 +1,6 @@
 package code.api.sweep
 
+import org.json4s._
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import code.api.util.APIUtil.ResourceDoc
@@ -146,10 +147,10 @@ class FailureSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
   private lazy val byVersion: Map[String, List[ResourceDoc]] =
     inScope.groupBy(_.implementedInApiVersion.toString)
 
-  feature("No endpoint answers a well-formed request with a server error") {
+  Feature("No endpoint answers a well-formed request with a server error") {
 
     byVersion.keys.toList.sorted.foreach { version =>
-      scenario(s"$version -- a fully-entitled caller asking for something absent gets 4xx, never 5xx",
+      Scenario(s"$version -- a fully-entitled caller asking for something absent gets 4xx, never 5xx",
                FailureSweep) {
         setPropsValues("api_disabled_endpoints" -> "[]", "api_enabled_endpoints" -> "[]")
         // Grant once per scenario, not once per class: beforeEach wipes the entitlement

@@ -77,6 +77,14 @@ object SignalChannelsServiceGrpc {
     implicit def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[SignalChannelsService] = this
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor =
       SignalProto.javaDescriptor.getServices().get(0)
+    // scalapb 0.11's ServiceCompanion also declares these two; the checked-in sources were
+    // generated against an older scalapb that did not. bindService delegates to the file-level
+    // one below rather than repeating the builder - one definition of the wiring.
+    def scalaDescriptor: _root_.scalapb.descriptors.ServiceDescriptor =
+      SignalProto.scalaDescriptor.services(0)
+    def bindService(serviceImpl: SignalChannelsService,
+                    executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition =
+      SignalChannelsServiceGrpc.bindService(serviceImpl, executionContext)
   }
 
   trait SignalChannelsServiceBlockingClient {

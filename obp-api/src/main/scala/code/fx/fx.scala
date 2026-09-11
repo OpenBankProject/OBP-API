@@ -1,12 +1,10 @@
 package code.fx
 
-import java.util.UUID.randomUUID
 import code.api.cache.Caching
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
 import code.bankconnectors.LocalMappedConnectorInternal
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
-import com.tesobe.CacheKeyFromArguments
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 
@@ -57,17 +55,9 @@ object fx extends MdcLoggable {
   
   
   def getFallbackExchangeRateCached(fromCurrency: String, toCurrency: String): Option[Double] = {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value field with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL.seconds) {
-        getFallbackExchangeRate(fromCurrency, toCurrency)
-      }
+    val cacheKey = ("code.fx.fx", "getFallbackExchangeRateCached", List(fromCurrency, toCurrency).mkString("_"))
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL.seconds) {
+      getFallbackExchangeRate(fromCurrency, toCurrency)
     }
   }
   def getFallbackExchangeRate(fromCurrency: String, toCurrency: String): Option[Double] = {
@@ -162,7 +152,7 @@ object fx extends MdcLoggable {
   
 
   def main (args: Array[String]): Unit = {
-    org.scalameta.logger.elem(exchangeRate("USD", "EUR", None, None))
+    logger.debug(s"exchangeRate(USD, EUR, None, None) = ${exchangeRate("USD", "EUR", None, None)}")
   }
 
 }

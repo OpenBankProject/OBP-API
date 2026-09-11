@@ -5,14 +5,13 @@ import code.api.util.Consent.logger
 import java.util.Date
 import code.api.util._
 import code.entitlement.{Entitlement, MappedEntitlement}
+import code.bankconnectors.DoobieBadLoginAttemptQueries
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
-import code.loginattempts.MappedBadLoginAttempt
-import code.model.dataAccess.{AuthUser, ResourceUser}
+import code.model.dataAccess.{AuthUser, ResourceUser, UserQuery}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers
 
 import scala.collection.immutable
@@ -43,12 +42,16 @@ object LiftUsers extends Users with MdcLoggable{
     if (!nonBlank(userId)) return Resolved(Full(userId), None, cacheable = false)
     val cached = if (onBehalfOfCacheTtlSeconds > 0) Option(onBehalfOfCache.getIfPresent(userId)) else None
     if (cached.isDefined) return cached.get
-    val resolved: Resolved = ResourceUser.find(By(ResourceUser.userId_, userId)) match {
+    // findByUserId, not Mapper's find(By(...)): ResourceUser is a Doobie store on this branch.
+    // createdByConsentId is an Option here rather than a MappedString, so the consent id comes
+    // out of the Option instead of off a field accessor -- isConsentUser is exactly
+    // `createdByConsentId.nonEmpty`, so the guard above already proves it is a Some.
+    val resolved: Resolved = ResourceUser.findByUserId(userId) match {
       case Full(ru) if ru.isConsentUser =>
-        val consentId = ru.CreatedByConsentId.get
+        val consentId = ru.createdByConsentId.getOrElse("")
         code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
           case Full(consent) if nonBlank(consent.userId) =>
-            ResourceUser.find(By(ResourceUser.userId_, consent.userId)) match {
+            ResourceUser.findByUserId(consent.userId) match {
               case Full(target) if target.isOriginalUser =>
                 Resolved(Full(consent.userId), Some(consentId), cacheable = true)
               case Full(_) =>
@@ -101,16 +104,16 @@ object LiftUsers extends Users with MdcLoggable{
 
   //UserId here is the resourceuser.id field
   def getUserByResourceUserId(id : Long) : Box[User] = {
-    ResourceUser.find(id) ?~ { s"user $id not found"}
+    ResourceUser.findByPrimaryKey(id) ?~ { s"user $id not found"}
   }
 
   //UserId here is the resourceuser.id field
   def getResourceUserByResourceUserId(id : Long) : Box[ResourceUser] = {
-    ResourceUser.find(id) ?~ { s"user $id not found"}
+    ResourceUser.findByPrimaryKey(id) ?~ { s"user $id not found"}
   }
 
   def getResourceUserByResourceUserIdF(id : Long) : Box[User] = {
-    ResourceUser.find(id) ?~ { s"user $id not found"}
+    ResourceUser.findByPrimaryKey(id) ?~ { s"user $id not found"}
   }
 
   def getResourceUserByResourceUserIdFuture(id : Long) : Future[Box[User]] = {
@@ -119,7 +122,7 @@ object LiftUsers extends Users with MdcLoggable{
 
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
     // Note: providerId is generally human readable like a username. it is not a uuid like user_id.
-    ResourceUser.find(By(ResourceUser.provider_, provider), By(ResourceUser.providerId, idGivenByProvider))
+    ResourceUser.findByProviderAndProviderId(provider, idGivenByProvider)
   }
   def getUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]] = {
     Future {
@@ -159,7 +162,7 @@ object LiftUsers extends Users with MdcLoggable{
   }
 
   def getUserByUserId(userId : String) : Box[User] = {
-    ResourceUser.find(By(ResourceUser.userId_, userId))
+    ResourceUser.findByUserId(userId)
   }
 
    def getUserByUserIdFuture(userId : String) : Future[Box[User]] = {
@@ -169,7 +172,7 @@ object LiftUsers extends Users with MdcLoggable{
   }
 
   def getUsersByUserIds(userIds : List[String]) : List[User] = {
-    ResourceUser.findAll(ByList(ResourceUser.userId_, userIds))
+    ResourceUser.findAllByUserIds(userIds)
   }
 
   def getUsersByUserIdsFuture(userIds : List[String]) : Future[List[User]] = {
@@ -177,10 +180,7 @@ object LiftUsers extends Users with MdcLoggable{
   }
 
   override def getUserByProviderAndUsername(provider : String, userName: String): Box[User] = {
-    ResourceUser.find(
-      By(ResourceUser.provider_, provider),
-      By(ResourceUser.name_, userName)
-    )
+    ResourceUser.findByProviderAndName(provider, userName)
   }
 
   override def getUserByProviderAndUsernameFuture(provider: String, username: String): Future[Box[User]] = {
@@ -190,15 +190,15 @@ object LiftUsers extends Users with MdcLoggable{
   }
 
   override def getUsersByUsername(userName: String): List[User] = {
-    ResourceUser.findAll(By(ResourceUser.name_, userName))
+    ResourceUser.findAllByName(userName)
   }
 
   override def getUserByEmail(email: String): Box[List[ResourceUser]] = {
-    Full(ResourceUser.findAll(By(ResourceUser.email, email)))
+    Full(ResourceUser.findAllByEmail(email))
   }
 
   def getUserByEmailF(email: String): List[(ResourceUser, Box[List[Entitlement]])] = {
-    val users = ResourceUser.findAll(By(ResourceUser.email, email))
+    val users = ResourceUser.findAllByEmail(email)
     for {
       user <- users
     } yield {
@@ -207,7 +207,7 @@ object LiftUsers extends Users with MdcLoggable{
   }
   
   override def getUsersByEmail(email: String): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]] = Future {
-    val users = ResourceUser.findAll(By(ResourceUser.email, email))
+    val users = ResourceUser.findAllByEmail(email)
     for {
       user <- users
     } yield {
@@ -247,51 +247,32 @@ object LiftUsers extends Users with MdcLoggable{
 
 
   private def getUsersCommon(queryParams: List[OBPQueryParam]) = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
-    val offset: Option[StartAt[ResourceUser]] = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
+    val limit = queryParams.collect { case OBPLimit(value) => value }.headOption
+    val offset: Option[Int] = queryParams.collect { case OBPOffset(value) => value }.headOption
     val locked: Option[String] = queryParams.collect { case OBPLockedStatus(value) => value }.headOption
-    val deleted = queryParams.collect {
-      case OBPIsDeleted(value) if value == true => // ?is_deleted=true
-        By(ResourceUser.IsDeleted, true)
-      case OBPIsDeleted(value) if value == false => // ?is_deleted=false
-        By(ResourceUser.IsDeleted, false)
-    }.headOption.orElse(
-      Some(By(ResourceUser.IsDeleted, false)) // There is no query parameter "is_deleted"
-    )
+    // No ?is_deleted means is_deleted = false rather than "no filter", as it always has.
+    val deleted: Option[Boolean] = queryParams.collect { case OBPIsDeleted(value) => value }.headOption
 
     // Users a consent minted for itself are not people and do not belong in a list of people: they
     // have no username and no email, there is one of them for every consent ever granted, and they
     // outnumber real users by orders of magnitude on any busy instance. They stay reachable by id
-    // and through the account-access data; they just do not pad out this list.
-    //
-    // Filtered in SQL rather than after the fact, so it composes with the limit/offset above: a
-    // filter applied to an already-paginated result returns short pages, which is exactly the
-    // defect the ?locked= path below has.
+    // and through the account-access data; they just do not pad out this list. That predicate lives
+    // in ResourceUser.findAll(UserQuery) now, applied in SQL rather than after the fact so it
+    // composes with the limit/offset above: a filter applied to an already-paginated result returns
+    // short pages, which is exactly the defect the ?locked= path below has.
     //
     // The v6.0.0 search path applies the same predicate -- see DoobieUserQueries.getUsers.
-    val notMintedByAConsent = BySql[ResourceUser](
-      "(createdbyconsentid IS NULL OR createdbyconsentid = '')",
-      IHaveValidatedThisSQL("hongwei", "2026-08-01"))
-
-    val optionalParams: Seq[QueryParam[ResourceUser]] =
-      Seq(limit.toSeq, offset.toSeq, deleted.toSeq, Seq(notMintedByAConsent)).flatten
-
-    def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*)
+    def getAllResourceUsers(): List[ResourceUser] =
+      ResourceUser.findAll(UserQuery(limit = limit, offset = offset, isDeleted = deleted))
 
     val showUsers: List[ResourceUser] = locked.map(_.toLowerCase()) match {
       case Some("active") =>
-        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] =
-          MappedBadLoginAttempt.findAll(
-            By_>(MappedBadLoginAttempt.mBadAttemptsSinceLastSuccessOrReset, maxBadLoginAttempts.toInt)
-          )
-        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsers.map(_.username)))
+        val lockedUsernames: List[String] = DoobieBadLoginAttemptQueries.usernamesOverThreshold(maxBadLoginAttempts.toInt)
+        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAllByNames(lockedUsernames)
         getAllResourceUsers() diff exclude
       case Some("locked") =>
-        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] =
-          MappedBadLoginAttempt.findAll(
-            By_>(MappedBadLoginAttempt.mBadAttemptsSinceLastSuccessOrReset, maxBadLoginAttempts.toInt)
-          )
-        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsers.map(_.username)))
+        val lockedUsernames: List[String] = DoobieBadLoginAttemptQueries.usernamesOverThreshold(maxBadLoginAttempts.toInt)
+        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAllByNames(lockedUsernames)
         getAllResourceUsers() intersect exclude.toList
       case _ =>
         getAllResourceUsers()
@@ -359,18 +340,18 @@ object LiftUsers extends Users with MdcLoggable{
 
       // Batch-fetch entitlements for all returned users (single IN query).
       val entitlementsByUserId: Map[String, List[Entitlement]] =
-        MappedEntitlement.findAll(ByList(MappedEntitlement.mUserId, userIds))
+        MappedEntitlement.findAllByUserIds(userIds)
           .groupBy(_.userId)
           .map { case (uid, ents) => uid -> ents.sortBy(_.roleName).toList }
 
       // Batch-fetch agreements, then reduce to most-recent per (userId, agreementType).
       val agreementsByUserId: Map[String, List[UserAgreement]] =
-        UserAgreement.findAll(ByList(UserAgreement.UserId, userIds))
+        UserAgreement.findAllByUserIds(userIds)
           .groupBy(_.userId)
           .map { case (uid, all) =>
             uid -> all.groupBy(_.agreementType)
               .values
-              .flatMap(_.sortBy(_.Date.get)(Ordering[Date].reverse).headOption)
+              .flatMap(_.sortBy(_.date)(Ordering[Date].reverse).headOption)
               .toList
           }
 
@@ -397,100 +378,78 @@ object LiftUsers extends Users with MdcLoggable{
                                   createdByUserInvitationId: Option[String],
                                   company: Option[String],
                                   lastMarketingAgreementSignedDate: Option[Date]): Box[ResourceUser] = {
-    val ru = ResourceUser.create
-    ru.provider_(provider)
-    providerId match {
-      case Some(v) => ru.providerId(v)
-      case None    =>
-    }
-    createdByConsentId match {
-      case Some(consentId) => ru.CreatedByConsentId(consentId)
-      case None    => ru.CreatedByConsentId(null)
-    }
-    createdByUserInvitationId match {
-      case Some(invitationId) => ru.CreatedByUserInvitationId(invitationId)
-      case None    => ru.CreatedByUserInvitationId(null)
-    }
-    name match {
-      case Some(v) => ru.name_(v)
-      case None    =>
-    }
-    email match {
-      case Some(v) => ru.email(v)
-      case None    =>
-    }
-    userId match {
-      case Some(v) => ru.userId_(v)
-      case None    =>
-    }
-    company match {
-      case Some(v) => ru.Company(v)
-      case None    =>
-    }
-    lastMarketingAgreementSignedDate match {
-      case Some(v) => ru.LastMarketingAgreementSignedDate(v)
-      case None    =>
-    }
-    Full(ru.saveMe())
+    Full(ResourceUser.insert(
+      buildResourceUser(provider, providerId, name, email, userId).copy(
+        createdByConsentId = createdByConsentId,
+        createdByUserInvitationId = createdByUserInvitationId,
+        company = company.getOrElse(""),
+        lastMarketingAgreementSignedDate = lastMarketingAgreementSignedDate)))
   }
 
   override def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
-    val ru = ResourceUser.create
-    ru.provider_(provider)
-    providerId match {
-      case Some(v) => ru.providerId(v)
-      case None    =>
-    }
-    name match {
-      case Some(v) => ru.name_(v)
-      case None    =>
-    }
-    email match {
-      case Some(v) => ru.email(v)
-      case None    =>
-    }
-    userId match {
-      case Some(v) => ru.userId_(v)
-      case None    =>
-    }
-    Full(ru)
+    Full(buildResourceUser(provider, providerId, name, email, userId))
+  }
+
+  /**
+   * The five fields both create paths share.
+   *
+   * providerId falls back to the name because the entity's default for that column was `name_.get`,
+   * evaluated lazily at save time - so a caller that supplied a name but no provider id got the
+   * name written into providerid. Anything the caller leaves out keeps the row's own default.
+   */
+  private def buildResourceUser(provider: String,
+                                providerId: Option[String],
+                                name: Option[String],
+                                email: Option[String],
+                                userId: Option[String]): ResourceUser = {
+    val defaults = ResourceUser.defaults
+    val theName = name.getOrElse(defaults.name)
+    defaults.copy(
+      provider = provider,
+      name = theName,
+      idGivenByProvider = providerId.getOrElse(theName),
+      // MappedEmail lowercased and trimmed on every set.
+      emailAddress = email.map(ResourceUser.normalizeEmail).getOrElse(defaults.emailAddress),
+      userId = userId.getOrElse(defaults.userId))
   }
 
   override def saveResourceUser(ru: ResourceUser): Box[ResourceUser] = {
-    val r = Full(ru.saveMe())
-    r
+    // saveMe() inserted a transient row and updated a persisted one; id == 0 is what tells them
+    // apart, exactly as Mapper's saved_? did.
+    Full(if (ru.id == 0L) ResourceUser.insert(ru) else ResourceUser.update(ru))
   }
 
   override def bulkDeleteAllResourceUsers(): Box[Boolean] = {
-    Full( ResourceUser.bulkDelete_!!() )
+    ResourceUser.deleteAll()
+    Full(true)
   }
 
   override def deleteResourceUser(userId: Long): Box[Boolean] = {
     for {
-      u <- ResourceUser.find(By(ResourceUser.id, userId))
+      u <- ResourceUser.findByPrimaryKey(userId)
     } yield {
-      u.delete_!
+      ResourceUser.delete(u.id)
     }
   }
   override def scrambleDataOfResourceUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = {
     for {
-      u <- ResourceUser.find(By(ResourceUser.id, userPrimaryKey.value))
+      u <- ResourceUser.findByPrimaryKey(userPrimaryKey.value)
     } yield {
-      AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
+      // A user who never had an AuthUser has no login to keep working, so their username, email and
+      // provider id are scrambled too; one who does keeps them, and only the company is scrambled.
+      val scrambled = AuthUser.findByResourceUserPrimaryKey(userPrimaryKey.value) match {
         case Empty =>
-          u
-            .Company(Helpers.randomString(16))
-            .IsDeleted(true)
-            .name_("DELETED-" + Helpers.randomString(16))
-            .email(Helpers.randomString(10) + "@example.com")
-            .providerId(Helpers.randomString(16))
-            .save
+          u.copy(
+            company = Helpers.randomString(16),
+            isDeleted = Some(true),
+            name = "DELETED-" + Helpers.randomString(16),
+            emailAddress = ResourceUser.normalizeEmail(Helpers.randomString(10) + "@example.com"),
+            idGivenByProvider = Helpers.randomString(16))
         case _ =>
-          u
-            .Company(Helpers.randomString(16))
-            .IsDeleted(true)
-            .save
+          u.copy(company = Helpers.randomString(16), isDeleted = Some(true))
       }
+      ResourceUser.update(scrambled)
+      true
     }
   }
   

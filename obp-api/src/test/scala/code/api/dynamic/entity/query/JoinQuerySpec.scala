@@ -2,17 +2,18 @@ package code.api.dynamic.entity.query
 
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import org.json4s.JsonAST.JObject
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
- * Pure unit tests for the one-hop join feature (obp_exists / obp_not_exists) and the value-absence
+ * Pure unit tests for the one-hop join Feature(obp_exists / obp_not_exists) and the value-absence
  * operators (is_null / not_set): query-param parsing, definition-driven edge resolution in the planner,
  * and in-memory nullary-op evaluation. No server / DB — the EXISTS/NOT EXISTS SQL itself is exercised by
  * the Postgres-gated integration suite. See ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md.
  *
  * Domain: parent `Partner` (tier), child `Contract` (active, status, partner_id : reference:Partner).
  */
-class JoinQuerySpec extends FlatSpec with Matchers {
+class JoinQuerySpec extends AnyFlatSpec with Matchers {
 
   private def params(kvs: (String, String)*): Map[String, List[String]] =
     kvs.groupBy(_._1).map { case (k, vs) => k -> vs.map(_._2).toList }

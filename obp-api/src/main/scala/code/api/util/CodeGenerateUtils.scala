@@ -6,7 +6,7 @@ import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 import com.openbankproject.commons.model.{CardAction, CardReplacementReason, InboundAdapterCallContext, OutboundAdapterCallContext, PinResetReason, Status}
-import com.openbankproject.commons.util.{EnumValue, ReflectUtils}
+import com.openbankproject.commons.util.{CodeGenerateUtilsTypes, EnumValue, ReflectUtils}
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 
@@ -44,12 +44,12 @@ object CodeGenerateUtils {
   }
   // fixed example for given field or type
   private val fixedExamples: List[NameTypeExample] = List(
-    NameTypeExample(null, typeOf[OutboundAdapterCallContext], "MessageDocsSwaggerDefinitions.outboundAdapterCallContext"),
-    NameTypeExample(null, typeOf[InboundAdapterCallContext], "MessageDocsSwaggerDefinitions.inboundAdapterCallContext"),
-    NameTypeExample("status", typeOf[Status], "MessageDocsSwaggerDefinitions.inboundStatus"),
-    NameTypeExample("statusValue", typeOf[String], s""""${TransactionRequestStatus.COMPLETED}""""),
-//    NameTypeExample("hashOfSuppliedAnswer", typeOf[String], s"""HashUtil.Sha256Hash("123")"""),
-    NameTypeExample(null, typeOf[List[CustomerAndAttribute]],
+    NameTypeExample(null, CodeGenerateUtilsTypes.tOutboundAdapterCallContext, "MessageDocsSwaggerDefinitions.outboundAdapterCallContext"),
+    NameTypeExample(null, CodeGenerateUtilsTypes.tInboundAdapterCallContext, "MessageDocsSwaggerDefinitions.inboundAdapterCallContext"),
+    NameTypeExample("status", CodeGenerateUtilsTypes.tStatus, "MessageDocsSwaggerDefinitions.inboundStatus"),
+    NameTypeExample("statusValue", CodeGenerateUtilsTypes.tString, s""""${TransactionRequestStatus.COMPLETED}""""),
+//    NameTypeExample("hashOfSuppliedAnswer", CodeGenerateUtilsTypes.tString, s"""HashUtil.Sha256Hash("123")"""),
+    NameTypeExample(null, CodeGenerateUtilsTypes.tListCustomerAndAttribute,
       """ List(
         |         CustomerAndAttribute(
         |             MessageDocsSwaggerDefinitions.customerCommons,
@@ -77,15 +77,15 @@ object CodeGenerateUtils {
     val fixedExample = getFixedExample(fieldName.orNull, tp)
     if(fixedExample.isDefined) {
       return fixedExample.get
-    } else if(tp =:= typeOf[CardAction]) {
+    } else if(tp =:= CodeGenerateUtilsTypes.tCardAction) {
       return "com.openbankproject.commons.model.CardAction.DEBIT"
-    } else if(tp =:= typeOf[CardReplacementReason]) {
+    } else if(tp =:= CodeGenerateUtilsTypes.tCardReplacementReason) {
       return "com.openbankproject.commons.model.CardReplacementReason.FIRST"
-    } else if(tp =:= typeOf[PinResetReason]) {
+    } else if(tp =:= CodeGenerateUtilsTypes.tPinResetReason) {
       return "com.openbankproject.commons.model.PinResetReason.FORGOT"
-    } else if(tp =:= typeOf[StrongCustomerAuthentication.Value]) {
+    } else if(tp =:= CodeGenerateUtilsTypes.tStrongCustomerAuthenticationValue) {
       return "com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS"
-    } else if(tp <:< typeOf[EnumValue]) {
+    } else if(tp <:< CodeGenerateUtilsTypes.tEnumValue) {
       return s"${tp.typeSymbol.fullName}.example"
     }
 
@@ -134,11 +134,11 @@ object CodeGenerateUtils {
         val removedOtherFieldName = fieldName.map(_.substring("other".size)).map(StringUtils.uncapitalize).get
         result = getExampleValue(removedOtherFieldName)
       }
-      if(result.isEmpty && fieldName.isDefined && tp <:< typeOf[Date]) {
+      if(result.isEmpty && fieldName.isDefined && tp <:< CodeGenerateUtilsTypes.tDate) {
         val Some(field) = fieldName
         result = getExampleValue(s"${field}Date",s"date${field.capitalize}")
       }
-      if(result.isEmpty && (tp =:= typeOf[BigDecimal] || tp =:= typeOf[BigInt])) {
+      if(result.isEmpty && (tp =:= CodeGenerateUtilsTypes.tBigDecimal || tp =:= CodeGenerateUtilsTypes.tBigInt)) {
         val Some(field) = fieldName
         result = getExampleValue(s"${field}Amount")
       }
@@ -177,21 +177,21 @@ object CodeGenerateUtils {
       case _ => None
     }
 
-    if (tp =:= ru.typeOf[String]) {
+    if (tp =:= CodeGenerateUtilsTypes.tString) {
       example
         .getOrElse(""""string"""")
-    } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer]) {
+    } else if (tp =:= CodeGenerateUtilsTypes.tInt || tp =:= CodeGenerateUtilsTypes.tJavaInteger) {
       example.map(it => s"$it.toInt").getOrElse("123")
-    } else if (tp =:= ru.typeOf[Long] || tp =:= ru.typeOf[java.lang.Long]) {
+    } else if (tp =:= CodeGenerateUtilsTypes.tLong || tp =:= CodeGenerateUtilsTypes.tJavaLong) {
       example.map(it => s"$it.toLong").getOrElse("123")
-    } else if (tp =:= ru.typeOf[Float] || tp =:= ru.typeOf[java.lang.Float]) {
+    } else if (tp =:= CodeGenerateUtilsTypes.tFloat || tp =:= CodeGenerateUtilsTypes.tJavaFloat) {
       example.map(it => s"$it.toFloat").getOrElse("123.123")
-    } else if (tp =:= ru.typeOf[Double] || tp =:= ru.typeOf[java.lang.Double]) {
+    } else if (tp =:= CodeGenerateUtilsTypes.tDouble || tp =:= CodeGenerateUtilsTypes.tJavaDouble) {
       example.map(it => s"$it.toDouble").getOrElse("123.123")
-    } else if (tp =:= ru.typeOf[BigDecimal]) {
+    } else if (tp =:= CodeGenerateUtilsTypes.tBigDecimal) {
       val numberValue = example.getOrElse(""""123.321"""")
       s"""BigDecimal($numberValue)"""
-    } else if (tp =:= ru.typeOf[Date]) {
+    } else if (tp =:= CodeGenerateUtilsTypes.tDate) {
       example.orElse(Some("dateExample.value"))
         .map(date => {
             val exampleName = StringUtils.substringBeforeLast(date, ".value")
@@ -199,31 +199,31 @@ object CodeGenerateUtils {
           }
         )
         .get
-    } else if (tp =:= ru.typeOf[Boolean] || tp =:= ru.typeOf[java.lang.Boolean]) {
+    } else if (tp =:= CodeGenerateUtilsTypes.tBoolean || tp =:= CodeGenerateUtilsTypes.tJavaBoolean) {
       example.map(it => s"$it.toBoolean").getOrElse("true")
     } else if(concreteObpType.isDefined && isConstructorSingleParam) {
       example match {
-        case Some(v) if(getSingleConstructorType.get =:= typeOf[String]) => s"""${concreteObpType.get.typeSymbol.name}($v)"""
+        case Some(v) if(getSingleConstructorType.get =:= CodeGenerateUtilsTypes.tString) => s"""${concreteObpType.get.typeSymbol.name}($v)"""
         case _ => {
           val value = createDocExample(getSingleConstructorType.get, fieldName, parentFieldName, parentType)
           s"""${concreteObpType.get.typeSymbol.name}($value)"""
         }
       }
-    } else if(tp <:< typeOf[Option[_]]) {
+    } else if(tp <:< CodeGenerateUtilsTypes.tOptionWildcard) {
       val TypeRef(_, _, args: List[Type]) = tp
       val optionValue = createDocExample(args.head, fieldName, parentFieldName, parentType)
       s"""Some($optionValue)"""
-    } else if(tp <:< typeOf[Map[String, List[String]]]) {
+    } else if(tp <:< CodeGenerateUtilsTypes.tMapStringListString) {
       s"""Map("some_name" -> List("name1", "name2"))"""
     } else if(typeName.matches("""Array|List|Seq""")) {
       val TypeRef(_, _, args: List[Type]) = tp
       (example, typeName) match {
-        case (Some(v), "Array") if(args.head =:= typeOf[String]) => s"""$v.replace("[","").replace("]","").split(",")"""
-        case (Some(v), "List")  if(args.head =:= typeOf[String]) => s"""$v.replace("[","").replace("]","").split(",").toList"""
-        case (Some(v), "Seq")   if(args.head =:= typeOf[String]) => s"""$v.replace("[","").replace("]","").split(",").toSeq"""
-        case (Some(v), "Array") if(args.head =:= typeOf[Date]) => s"""$v.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq)"""
-        case (Some(v), "List")  if(args.head =:= typeOf[Date]) => s"""$v.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList"""
-        case (Some(v), "Seq")   if(args.head =:= typeOf[Date]) => s"""$v.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toSeq"""
+        case (Some(v), "Array") if(args.head =:= CodeGenerateUtilsTypes.tString) => s"""$v.replace("[","").replace("]","").split(",")"""
+        case (Some(v), "List")  if(args.head =:= CodeGenerateUtilsTypes.tString) => s"""$v.replace("[","").replace("]","").split(",").toList"""
+        case (Some(v), "Seq")   if(args.head =:= CodeGenerateUtilsTypes.tString) => s"""$v.replace("[","").replace("]","").split(",").toSeq"""
+        case (Some(v), "Array") if(args.head =:= CodeGenerateUtilsTypes.tDate) => s"""$v.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq)"""
+        case (Some(v), "List")  if(args.head =:= CodeGenerateUtilsTypes.tDate) => s"""$v.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toList"""
+        case (Some(v), "Seq")   if(args.head =:= CodeGenerateUtilsTypes.tDate) => s"""$v.replace("[","").replace("]","").split(",").map(parseDate).flatMap(_.toSeq).toSeq"""
         case (_, collName) if ReflectUtils.isObpType(args.head) =>
           val itemExpression = createDocExample(args.head, fieldName, parentFieldName, parentType)
           s"$collName($itemExpression)"
@@ -239,7 +239,7 @@ object CodeGenerateUtils {
       val fields = concreteObpType.orNull.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
         val valName = symbol.name.toString
         val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
-        val value = if (pre <:< ru.typeOf[EnumValue]) {
+        val value = if (pre <:< CodeGenerateUtilsTypes.tEnumValue) {
           s"${pre.typeSymbol.fullName}.example"
         } else {
             createDocExample(symbol.info, Some(valName), fieldName, Some(tp))

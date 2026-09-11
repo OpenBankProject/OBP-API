@@ -12,7 +12,7 @@ object Tags  extends SimpleInjector {
 
   val tags = new Inject(() => buildOne) {}
 
-  def buildOne: Tags = MappedTags
+  def buildOne: Tags = DoobieTags
   
 }
 

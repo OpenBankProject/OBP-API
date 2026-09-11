@@ -52,7 +52,7 @@ import code.loginattempts.LoginAttempt
 import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
-import code.userlocks.UserLocks
+import code.userlocks.UserLocksTrait
 import code.users.{UserAgreement, UserAttribute, UserInvitation}
 import code.views.system.AccountAccess
 import code.webhook.{BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
@@ -1419,9 +1419,9 @@ object JSONFactory400 {
 
   def createAccountMinimalJson400(accountAccess: AccountAccess): AccountMinimalJson400 = {
     AccountMinimalJson400(
-      bank_id = accountAccess.bank_id.get,
-      account_id = accountAccess.account_id.get,
-      view_id = accountAccess.view_id.get
+      bank_id = accountAccess.bankId,
+      account_id = accountAccess.accountId,
+      view_id = accountAccess.viewId
     )
   }
   def createAccountsMinimalJson400(accountAccesses: List[AccountAccess]): AccountsMinimalJson400 = {
@@ -1565,19 +1565,22 @@ object JSONFactory400 {
       case _ => null
     }
 
-    ConsumerJson(consumer_id=c.consumerId.get,
-      key=c.key.get,
-      secret=c.secret.get,
-      app_name=c.name.get,
-      app_type=c.appType.toString(),
-      description=c.description.get,
-      developer_email=c.developerEmail.get,
-      redirect_url=c.redirectURL.get,
-      created_by_user_id =c.createdByUserId.get,
+    ConsumerJson(consumer_id=c.consumerId,
+      key=c.key,
+      secret=c.secret,
+      app_name=c.name,
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type=Option(c.appType).getOrElse(""),
+      description=c.description,
+      developer_email=c.developerEmail,
+      redirect_url=c.redirectURL,
+      created_by_user_id =c.createdByUserId,
       created_by_user =resourceUserJSON,
-      enabled=c.isActive.get,
-      created=c.createdAt.get,
-      client_certificate=c.clientCertificate.get
+      enabled=c.isActive,
+      created=c.createdAt,
+      client_certificate=c.clientCertificate
     )
   }
 
@@ -1600,7 +1603,7 @@ object JSONFactory400 {
     AttributeDefinitionsResponseJsonV400(attributeDefinitions.map(createAttributeDefinitionJson))
   }
 
-  def createUserLockStatusJson(userLock: UserLocks) : UserLockStatusJson = {
+  def createUserLockStatusJson(userLock: UserLocksTrait) : UserLockStatusJson = {
     UserLockStatusJson(
       userLock.userId,
       userLock.typeOfLock,

@@ -61,8 +61,8 @@ class DynamicResourceDocTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getAllDynamicResourceDocs))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.deleteDynamicResourceDoc))
 
-  feature("Test the DynamicResourceDoc endpoints") {
-    scenario("We create my DynamicResourceDoc and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Test the DynamicResourceDoc endpoints") {
+    Scenario("We create my DynamicResourceDoc and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
@@ -177,8 +177,8 @@ class DynamicResourceDocTest extends V400ServerSetup {
     }
   }
 
-  feature("Test the DynamicResourceDoc endpoints error cases") {
-    scenario("We create my DynamicResourceDoc -- duplicated DynamicResourceDoc Name", ApiEndpoint1, VersionOfApi) {
+  Feature("Test the DynamicResourceDoc endpoints error cases") {
+    Scenario("We create my DynamicResourceDoc -- duplicated DynamicResourceDoc Name", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
@@ -201,7 +201,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
 
     }
 
-    scenario("We create/get/getAll/update my DynamicResourceDoc without our proper roles", ApiEndpoint1, VersionOfApi) {
+    Scenario("We create/get/getAll/update my DynamicResourceDoc without our proper roles", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
 
       val request = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
@@ -251,9 +251,9 @@ class DynamicResourceDocTest extends V400ServerSetup {
   // Http4sDynamicEndpoint.pieceC -> DynamicEndpoints.findEndpoint -> ResourceDoc.authCheckIO ->
   // the compiled OBPEndpointIO handler -> Sandbox.runInSandboxIO -> OBPReturnType => IO[Response] implicit.
   // The metadata-CRUD scenarios above only prove the doc/template compiles; these prove it RUNS.
-  feature("Native execution of runtime-compiled dynamic endpoints (Piece C)") {
+  Feature("Native execution of runtime-compiled dynamic endpoints (Piece C)") {
 
-    scenario("Call the always-available practise endpoint (anonymous) end-to-end", VersionOfApi) {
+    Scenario("Call the always-available practise endpoint (anonymous) end-to-end", VersionOfApi) {
       When("We POST a valid body to /obp/dynamic-endpoint/test-dynamic-resource-doc/my_user/MY_USER_ID")
       val request = (dynamicEndpoint_Request / "test-dynamic-resource-doc" / "my_user" / "123").POST
       val response = makePostRequest(request, """{"name":"Jhon","age":12,"hobby":["coding"]}""")
@@ -263,7 +263,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
       json.compactRender(response.body) should include("banks")
     }
 
-    scenario("Create a runtime-compiled dynamic resource doc (no roles) and call it end-to-end", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create a runtime-compiled dynamic resource doc (no roles) and call it end-to-end", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
       When("We create a dynamic resource doc with no roles (anonymous) and a unique URL")
@@ -297,7 +297,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
     // Exercises ResourceDoc.authCheckIO's role-gated path (the native mirror of wrappedWithAuthCheck):
     // a runtime-compiled dynamic-resource-doc declaring a role must enforce 401 (no auth) / 403 (no role)
     // / 200 (role granted). The existing scenario above only covers the no-role (anonymous-ish) path.
-    scenario("Create a role-gated runtime-compiled dynamic resource doc and verify 401 / 403 / 200", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create a role-gated runtime-compiled dynamic resource doc and verify 401 / 403 / 200", ApiEndpoint1, VersionOfApi) {
       val dynamicRole = "CanCallNativePieceCRoleTest" // becomes a system-level dynamic role (requiresBankId = false)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
@@ -338,7 +338,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
     // workflow — copy the generated process body into a dynamic resource doc's method_body —
     // yields code that compiles and serves. The template previously emitted the retired Lift
     // contract (Box[JsonResponse], request.json, errorJsonResponse), which no longer compiles.
-    scenario("The generated endpoint-code template compiles and serves as a dynamic resource doc method body", ApiEndpoint1, VersionOfApi) {
+    Scenario("The generated endpoint-code template compiles and serves as a dynamic resource doc method body", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
       When("We generate the endpoint code template for a POST endpoint with example bodies")
@@ -388,9 +388,9 @@ class DynamicResourceDocTest extends V400ServerSetup {
   // Provenance is captured server-side into the DB columns but intentionally NOT surfaced in the
   // v4.0.0 (STABLE) response JSON — the v4 shape is frozen, so we assert against the stored entity,
   // not the response. (Exposure of these fields is planned for a new, v7, endpoint version.)
-  feature("Provenance is captured on runtime-compiled dynamic resource docs") {
+  Feature("Provenance is captured on runtime-compiled dynamic resource docs") {
 
-    scenario("Create stores created_by_user_id + method_body hash; update records the updater and refreshes the hash", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario("Create stores created_by_user_id + method_body hash; update records the updater and refreshes the hash", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canUpdateDynamicResourceDoc.toString)
 
@@ -408,10 +408,10 @@ class DynamicResourceDocTest extends V400ServerSetup {
 
       Then("the stored row records the authenticated caller and the server-computed SHA-256 of the decoded body")
       def storedRow = code.dynamicResourceDoc.DynamicResourceDoc
-        .find(net.liftweb.mapper.By(code.dynamicResourceDoc.DynamicResourceDoc.DynamicResourceDocId, docId))
+        .findById(None, docId)
         .openOrThrowException("stored dynamic resource doc not found")
-      storedRow.CreatedByUserId.get should be(resourceUser1.userId)
-      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(posted.decodedMethodBody))
+      storedRow.createdByUserId should be(Some(resourceUser1.userId))
+      storedRow.methodBodyHash should be(Some(code.api.util.APIUtil.sha256Hex(posted.decodedMethodBody)))
 
       When("We update the doc with a changed method body")
       val changedMethodBody = URLEncoder.encode(
@@ -422,9 +422,9 @@ class DynamicResourceDocTest extends V400ServerSetup {
       updateResp.code should equal(200)
 
       Then("created_by_user_id is preserved, updated_by_user_id is recorded, and the hash reflects the new body")
-      storedRow.CreatedByUserId.get should be(resourceUser1.userId)
-      storedRow.UpdatedByUserId.get should be(resourceUser1.userId)
-      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(URLDecoder.decode(changedMethodBody, "UTF-8")))
+      storedRow.createdByUserId should be(Some(resourceUser1.userId))
+      storedRow.updatedByUserId should be(Some(resourceUser1.userId))
+      storedRow.methodBodyHash should be(Some(code.api.util.APIUtil.sha256Hex(URLDecoder.decode(changedMethodBody, "UTF-8"))))
     }
   }
 

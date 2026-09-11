@@ -3,7 +3,6 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.consent.MappedConsent
-import net.liftweb.mapper.Schemifier
 
 /**
  * Migration: switch consent_reference_id from a stringified row PK (Long) to a UUID.
@@ -43,7 +42,7 @@ object MigrationOfConsentReferenceIdUuid {
       saveLog(name, commitId, true, startDate, endDate, "H2 detected — fresh schema already has the new column shape; nothing to migrate.")
       return true
     }
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -63,11 +62,11 @@ object MigrationOfConsentReferenceIdUuid {
           } else {
             "CREATE TABLE backup_2026_05_consent_item AS SELECT * FROM consent_item;"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backupMappedConsent)).append("\n")
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backupConsentItem)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => backupMappedConsent)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => backupConsentItem)).append("\n")
 
           // 2. Drop the existing v_consent view; its consent_reference_id column type is changing.
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => "DROP VIEW IF EXISTS v_consent;")).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => "DROP VIEW IF EXISTS v_consent;")).append("\n")
 
           // 3. Add the new UUID column on mappedconsent, nullable for the backfill.
           val addColumn = if (isMssql) {
@@ -75,7 +74,7 @@ object MigrationOfConsentReferenceIdUuid {
           } else {
             "ALTER TABLE mappedconsent ADD COLUMN IF NOT EXISTS consent_reference_id VARCHAR(36);"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => addColumn)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => addColumn)).append("\n")
 
           // 4. Backfill every existing consent row with a fresh UUID.
           val backfillConsents = if (isMssql) {
@@ -84,7 +83,7 @@ object MigrationOfConsentReferenceIdUuid {
             // gen_random_uuid() requires pgcrypto on older Postgres; built-in on PG13+.
             "UPDATE mappedconsent SET consent_reference_id = gen_random_uuid()::text WHERE consent_reference_id IS NULL;"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backfillConsents)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => backfillConsents)).append("\n")
 
           // 5. Enforce NOT NULL + UNIQUE.
           val setNotNull = if (isMssql) {
@@ -92,8 +91,8 @@ object MigrationOfConsentReferenceIdUuid {
           } else {
             "ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id SET NOT NULL;"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => setNotNull)).append("\n")
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() =>
+          sqlLog.append(DbFunction.maybeWrite(true)(() => setNotNull)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() =>
             "ALTER TABLE mappedconsent ADD CONSTRAINT uq_mappedconsent_consent_reference_id UNIQUE (consent_reference_id);"
           )).append("\n")
 
@@ -103,7 +102,7 @@ object MigrationOfConsentReferenceIdUuid {
           } else {
             "ALTER TABLE consent_item ALTER COLUMN consent_reference_id TYPE VARCHAR(36) USING consent_reference_id::text;"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => alterConsentItem)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => alterConsentItem)).append("\n")
 
           // 7. Rewrite each consent_item row to point at its parent consent's new UUID.
           //    Old value is the parent's row PK (id) stringified; join on that, write the UUID.
@@ -117,7 +116,7 @@ object MigrationOfConsentReferenceIdUuid {
               |FROM mappedconsent c
               |WHERE ci.consent_reference_id = c.id::text;""".stripMargin
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backfillConsentItem)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => backfillConsentItem)).append("\n")
 
           // 8. Recreate v_consent with the new column projection.
           MigrationOfConsentView.addConsentView(name + "_view_rebuild")
@@ -142,7 +141,7 @@ object MigrationOfConsentReferenceIdUuid {
         val commitId: String = APIUtil.gitCommit
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
-        val comment: String = s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+        val comment: String = s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

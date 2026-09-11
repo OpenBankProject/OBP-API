@@ -56,8 +56,8 @@ class ApiCollectionTest extends V400ServerSetup {
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getSharableApiCollectionById))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getApiCollectionsForUser))
 
-  feature("Test the apiCollection endpoints") {
-    scenario("We create my apiCollection and get,delete", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint7,  VersionOfApi) {
+  Feature("Test the apiCollection endpoints") {
+    Scenario("We create my apiCollection and get,delete", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint7,  VersionOfApi) {
       When("We make a request v4.0.0")
 
       {
@@ -173,7 +173,7 @@ class ApiCollectionTest extends V400ServerSetup {
       apiCollectionsJsonGetAfterDelete.api_collections.length should be (0)
     }
     
-    scenario("We create the apiCollection and get sharable api collection",  ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+    Scenario("We create the apiCollection and get sharable api collection",  ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When("We make a request v4.0.0")
       
       val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)

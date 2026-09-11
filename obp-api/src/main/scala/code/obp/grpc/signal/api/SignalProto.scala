@@ -120,6 +120,21 @@ object SignalProto {
     )
   }
 
+  /**
+   * The same file descriptor in scalapb's own representation.
+   *
+   * scalapb 0.11's ServiceCompanion requires a scalaDescriptor; this file is hand-written rather
+   * than generated, so it is derived from the java descriptor above by round-tripping its bytes -
+   * that way the two can never drift, which two independent hand-maintained descriptions would.
+   */
+  lazy val scalaDescriptor: _root_.scalapb.descriptors.FileDescriptor = {
+    val scalaProto =
+      com.google.protobuf.descriptor.FileDescriptorProto.parseFrom(javaDescriptor.toProto.toByteArray)
+    _root_.scalapb.descriptors.FileDescriptor.buildFrom(
+      scalaProto,
+      Seq(com.google.protobuf.timestamp.TimestampProto.scalaDescriptor))
+  }
+
   private def stringField(name: String, number: Int): FieldDescriptorProto.Builder =
     FieldDescriptorProto.newBuilder()
       .setName(name).setNumber(number)

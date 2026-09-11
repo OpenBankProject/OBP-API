@@ -11,7 +11,7 @@ import code.api.util.DynamicUtil.Validation
 import code.api.util.{CallContext, ErrorMessages}
 import code.api.v6_0_0.{CreateAbacRuleJsonV600, UpdateAbacRuleJsonV600}
 import code.bankconnectors.{DynamicConnector, InternalConnector}
-import code.connectormethod.{ConnectorMethod, ConnectorMethodProvider, JsonConnectorMethod, JsonConnectorMethodMethodBody}
+import code.connectormethod.{ConnectorMethodProvider, DoobieConnectorMethodProvider, JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.dynamicMessageDoc.{DynamicMessageDoc, DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDoc, DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.util.Helper.MdcLoggable
@@ -22,7 +22,7 @@ import com.openbankproject.commons.model.enums.{DynamicChangeRequestOperation, D
 import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import org.json4s.Formats
-import net.liftweb.mapper.By
+import org.json4s.jvalue2extractable
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 import org.json4s.JsonAST.{JArray, JNothing, JObject, JValue}
@@ -90,10 +90,10 @@ object MakerChecker extends MdcLoggable {
 
   /** The live target's body hash, Empty when the target does not exist. */
   def currentBodyHash(targetType: DynamicChangeRequestTargetType, targetId: String): Box[String] = targetType match {
-    case DYNAMIC_RESOURCE_DOC => DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, targetId)).map(r => bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get))
-    case DYNAMIC_MESSAGE_DOC  => DynamicMessageDoc.find(By(DynamicMessageDoc.DynamicMessageDocId, targetId)).map(r => bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get))
-    case CONNECTOR_METHOD     => ConnectorMethod.find(By(ConnectorMethod.ConnectorMethodId, targetId)).map(r => bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get))
-    case ABAC_RULE            => AbacRule.find(By(AbacRule.AbacRuleId, targetId)).map(r => sha256Hex(Option(r.RuleCode.get).getOrElse("")))
+    case DYNAMIC_RESOURCE_DOC => DynamicResourceDoc.findById(None, targetId).map(r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody))
+    case DYNAMIC_MESSAGE_DOC  => DynamicMessageDoc.findById(None, targetId).map(r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody))
+    case CONNECTOR_METHOD     => DoobieConnectorMethodProvider.getByIdWithProvenance(targetId).map(r => bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody))
+    case ABAC_RULE            => AbacRule.findById(targetId).map(r => sha256Hex(Option(r.ruleCode).getOrElse("")))
     case _                    => Empty
   }
 
@@ -110,27 +110,27 @@ object MakerChecker extends MdcLoggable {
     code.api.cache.Caching.memoizeSyncWithImMemory(Some(("maker_checker_guard_" + key).intern()))(scala.concurrent.duration.Duration(guardTtl, "seconds"))(check)
 
   def isExecutableDynamicResourceDoc(dynamicResourceDocId: String): Boolean =
-    DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, dynamicResourceDocId))
-      .map(r => executable(r.IsActive.get, bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get), r.ApprovedHash.get, DYNAMIC_RESOURCE_DOC))
+    DynamicResourceDoc.findById(None, dynamicResourceDocId)
+      .map(r => executable(r.isActive, bodyHashOf(r.methodBodyHash.orNull, r.methodBody), r.approvedHash.orNull, DYNAMIC_RESOURCE_DOC))
       .getOrElse(false)
 
   def isExecutableDynamicMessageDoc(dynamicMessageDocId: String): Boolean = memoGuard("dmd_" + dynamicMessageDocId) {
-    DynamicMessageDoc.find(By(DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId))
-      .map(r => executable(r.IsActive.get, bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get), r.ApprovedHash.get, DYNAMIC_MESSAGE_DOC))
+    DynamicMessageDoc.findById(None, dynamicMessageDocId)
+      .map(r => executable(r.isActive, bodyHashOf(r.methodBodyHash.orNull, r.methodBody), r.approvedHash.orNull, DYNAMIC_MESSAGE_DOC))
       .getOrElse(false)
   }
 
   def isExecutableConnectorMethod(connectorMethodId: String): Boolean = memoGuard("cm_" + connectorMethodId) {
-    ConnectorMethod.find(By(ConnectorMethod.ConnectorMethodId, connectorMethodId))
-      .map(r => executable(r.IsActive.get, bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get), r.ApprovedHash.get, CONNECTOR_METHOD))
+    DoobieConnectorMethodProvider.getByIdWithProvenance(connectorMethodId)
+      .map(r => executable(r.isActive, bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody), r.approvedHash.orNull, CONNECTOR_METHOD))
       .getOrElse(false)
   }
 
   /** AbacRuleEngine already checks IsActive; this adds the approved-hash check for managed instances. */
   def isApprovedAbacRule(abacRuleId: String): Boolean =
     if (!isManaged(ABAC_RULE)) true
-    else AbacRule.find(By(AbacRule.AbacRuleId, abacRuleId))
-      .map(r => !blank(r.ApprovedHash.get) && sha256Hex(Option(r.RuleCode.get).getOrElse("")) == r.ApprovedHash.get)
+    else AbacRule.findById(abacRuleId)
+      .map(r => !blank(r.approvedHash.orNull) && sha256Hex(Option(r.ruleCode).getOrElse("")) == r.approvedHash.orNull)
       .getOrElse(false)
 
   // ─── submission ────────────────────────────────────────────────────────────
@@ -264,14 +264,11 @@ object MakerChecker extends MdcLoggable {
     } yield done
 
   private def setTargetId(request: DynamicChangeRequestTrait, targetId: String): Unit =
-    DynamicChangeRequest.find(By(DynamicChangeRequest.DynamicChangeRequestId, request.dynamicChangeRequestId)).foreach { row =>
-      row.TargetId(targetId).save
-    }
+    DynamicChangeRequest.setTargetId(request.dynamicChangeRequestId, targetId)
 
   private def markFailed(request: DynamicChangeRequestTrait, comment: String): Unit =
-    DynamicChangeRequest.find(By(DynamicChangeRequest.DynamicChangeRequestId, request.dynamicChangeRequestId)).foreach { row =>
-      row.Status(DynamicChangeRequestStatus.FAILED.toString).CheckerComment(comment.take(4000)).save
-    }
+    DynamicChangeRequest.markFailed(request.dynamicChangeRequestId,
+      DynamicChangeRequestStatus.FAILED.toString, comment.take(4000))
 
   private def boolBox(condition: Boolean, failMsg: => String): Box[Unit] = if (condition) Full(()) else Failure(failMsg)
 
@@ -437,23 +434,21 @@ object MakerChecker extends MdcLoggable {
   private def markApproved(targetType: DynamicChangeRequestTargetType, targetId: String): Box[Unit] = tryo {
     targetType match {
       case DYNAMIC_RESOURCE_DOC =>
-        DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, targetId)).map { r =>
-          val h = bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get)
-          r.MethodBodyHash(h).ApprovedHash(h).IsActive(true).save; ()
+        DynamicResourceDoc.findById(None, targetId).map { r =>
+          DynamicResourceDoc.setApproved(targetId, bodyHashOf(r.methodBodyHash.orNull, r.methodBody)); ()
         }
       case DYNAMIC_MESSAGE_DOC =>
-        DynamicMessageDoc.find(By(DynamicMessageDoc.DynamicMessageDocId, targetId)).map { r =>
-          val h = bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get)
-          r.MethodBodyHash(h).ApprovedHash(h).IsActive(true).save; ()
+        DynamicMessageDoc.findById(None, targetId).map { r =>
+          DynamicMessageDoc.setApproved(targetId, bodyHashOf(r.methodBodyHash.orNull, r.methodBody)); ()
         }
       case CONNECTOR_METHOD =>
-        ConnectorMethod.find(By(ConnectorMethod.ConnectorMethodId, targetId)).map { r =>
-          val h = bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get)
-          r.MethodBodyHash(h).ApprovedHash(h).IsActive(true).save; ()
+        DoobieConnectorMethodProvider.getByIdWithProvenance(targetId).map { r =>
+          DoobieConnectorMethodProvider.setApproved(
+            targetId, bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody)); ()
         }
       case ABAC_RULE =>
-        AbacRule.find(By(AbacRule.AbacRuleId, targetId)).map { r =>
-          r.ApprovedHash(sha256Hex(Option(r.RuleCode.get).getOrElse(""))).IsActive(true).save; ()
+        AbacRule.findById(targetId).map { r =>
+          AbacRule.setApproved(targetId, sha256Hex(Option(r.ruleCode).getOrElse(""))); ()
         }
       case _ => Empty
     }
@@ -461,10 +456,10 @@ object MakerChecker extends MdcLoggable {
 
   private def setActive(targetType: DynamicChangeRequestTargetType, targetId: String, active: Boolean): Box[Unit] = {
     val done: Box[Unit] = targetType match {
-      case DYNAMIC_RESOURCE_DOC => DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, targetId)).map(r => { r.IsActive(active).save; () })
-      case DYNAMIC_MESSAGE_DOC  => DynamicMessageDoc.find(By(DynamicMessageDoc.DynamicMessageDocId, targetId)).map(r => { r.IsActive(active).save; () })
-      case CONNECTOR_METHOD     => ConnectorMethod.find(By(ConnectorMethod.ConnectorMethodId, targetId)).map(r => { r.IsActive(active).save; () })
-      case ABAC_RULE            => AbacRule.find(By(AbacRule.AbacRuleId, targetId)).map(r => { r.IsActive(active).save; () })
+      case DYNAMIC_RESOURCE_DOC => DynamicResourceDoc.findById(None, targetId).map(_ => { DynamicResourceDoc.setActive(targetId, active); () })
+      case DYNAMIC_MESSAGE_DOC  => DynamicMessageDoc.findById(None, targetId).map(_ => { DynamicMessageDoc.setActive(targetId, active); () })
+      case CONNECTOR_METHOD     => DoobieConnectorMethodProvider.getByIdWithProvenance(targetId).map(_ => { DoobieConnectorMethodProvider.setActive(targetId, active); () })
+      case ABAC_RULE            => AbacRule.findById(targetId).map(_ => { AbacRule.setActive(targetId, active); () })
       case _                    => Empty
     }
     done.foreach(_ => invalidateCaches(targetType, targetId))
@@ -497,14 +492,18 @@ object MakerChecker extends MdcLoggable {
       }
       tryo {
         List(
-          seed("DynamicResourceDoc", DynamicResourceDoc.findAll().filter(r => blank(r.ApprovedHash.get)))(
-            r => bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get), (r, h) => { r.MethodBodyHash(h).ApprovedHash(h).save; () }),
-          seed("DynamicMessageDoc", DynamicMessageDoc.findAll().filter(r => blank(r.ApprovedHash.get)))(
-            r => bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get), (r, h) => { r.MethodBodyHash(h).ApprovedHash(h).save; () }),
-          seed("ConnectorMethod", ConnectorMethod.findAll().filter(r => blank(r.ApprovedHash.get)))(
-            r => bodyHashOf(r.MethodBodyHash.get, r.MethodBody.get), (r, h) => { r.MethodBodyHash(h).ApprovedHash(h).save; () }),
-          seed("AbacRule", AbacRule.findAll().filter(r => blank(r.ApprovedHash.get)))(
-            r => sha256Hex(Option(r.RuleCode.get).getOrElse("")), (r, h) => { r.ApprovedHash(h).save; () })
+          seed("DynamicResourceDoc", DynamicResourceDoc.findAllWithoutApprovedHash())(
+            r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody),
+            (r, h) => { DynamicResourceDoc.setApproved(r.dynamicResourceDocId, h); () }),
+          seed("DynamicMessageDoc", DynamicMessageDoc.findAllWithoutApprovedHash())(
+            r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody),
+            (r, h) => { DynamicMessageDoc.setApproved(r.dynamicMessageDocId, h); () }),
+          seed("ConnectorMethod", DoobieConnectorMethodProvider.findAllWithoutApprovedHash())(
+            r => bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody),
+            (r, h) => { DoobieConnectorMethodProvider.setApproved(r.connectorMethod.connectorMethodId.getOrElse(""), h); () }),
+          seed("AbacRule", AbacRule.findAllWithoutApprovedHash())(
+            r => sha256Hex(Option(r.ruleCode).getOrElse("")),
+            (r, h) => { AbacRule.setApproved(r.abacRuleId, h); () })
         ).mkString(", ")
       } match {
         case Full(summary) =>

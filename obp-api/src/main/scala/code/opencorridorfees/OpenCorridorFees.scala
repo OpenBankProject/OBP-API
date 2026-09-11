@@ -46,7 +46,7 @@ case class OpenCorridorFeeSweepResultJsonV700(
  */
 object OpenCorridorFees extends MdcLoggable {
 
-  private implicit val formats = Serialization.formats(NoTypeHints)
+  private implicit val formats: org.json4s.Formats = Serialization.formats(NoTypeHints)
 
   def sweep(
     debtorBankId: String,
@@ -97,7 +97,7 @@ object OpenCorridorFees extends MdcLoggable {
             MessageOutbox.TYPE_OPEN_CORRIDOR, feeSettlementId,
             MessageOutbox.SUBJECT_TYPE_SETTLEMENT_ID,
             "obp_settlement_instruction", debtorBankId, Serialization.write(instruction))
-          accruals.foreach(_.FeeSettlementId(feeSettlementId).saveMe())
+          accruals.foreach(a => OpenCorridorFeeAccrual.markSwept(a.transactionRequestId, feeSettlementId))
           logger.info(s"Open Corridor fee sweep: $debtorBankId owes $total $currency " +
             s"(${accruals.size} accruals) -> platform $platformBankId, fee settlement $feeSettlementId")
           OpenCorridorFeeSweepResultJsonV700(

@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 object TransactionRequestStatusScheduler extends MdcLoggable {
 
   private lazy val actorSystem = ObpActorSystem.localActorSystem
-  implicit lazy val executor = actorSystem.dispatcher
+  implicit lazy val executor: scala.concurrent.ExecutionContextExecutor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
 
   def start(interval: Long): Unit = {

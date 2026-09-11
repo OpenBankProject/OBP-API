@@ -2,7 +2,7 @@ package code.regulatedentities.attribute
 
 /* For ProductAttribute */
 
-import com.openbankproject.commons.model.{RegulatedEntityId, BankId}
+import com.openbankproject.commons.model.{RegulatedEntityAttributeTrait, RegulatedEntityId, BankId}
 import com.openbankproject.commons.model.enums.RegulatedEntityAttributeType
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
@@ -13,10 +13,10 @@ object RegulatedEntityAttributeX extends SimpleInjector {
 
   val regulatedEntityAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: RegulatedEntityAttributeProviderTrait = RegulatedEntityAttributeProvider
+  def buildOne: RegulatedEntityAttributeProviderTrait = DoobieRegulatedEntityAttributeProvider
 
   // Helper to get the count out of an option
-  def countOfRegulatedEntityAttribute(listOpt: Option[List[RegulatedEntityAttribute]]): Int = {
+  def countOfRegulatedEntityAttribute(listOpt: Option[List[RegulatedEntityAttributeTrait]]): Int = {
     val count = listOpt match {
       case Some(list) => list.size
       case None => 0
@@ -29,9 +29,9 @@ object RegulatedEntityAttributeX extends SimpleInjector {
 
 trait RegulatedEntityAttributeProviderTrait {
 
-  def getRegulatedEntityAttributes(regulatedEntityId: RegulatedEntityId): Future[Box[List[RegulatedEntityAttribute]]]
+  def getRegulatedEntityAttributes(regulatedEntityId: RegulatedEntityId): Future[Box[List[RegulatedEntityAttributeTrait]]]
 
-  def getRegulatedEntityAttributeById(regulatedEntityAttributeId: String): Future[Box[RegulatedEntityAttribute]]
+  def getRegulatedEntityAttributeById(regulatedEntityAttributeId: String): Future[Box[RegulatedEntityAttributeTrait]]
 
   def createOrUpdateRegulatedEntityAttribute(
     regulatedEntityId: RegulatedEntityId,
@@ -39,9 +39,9 @@ trait RegulatedEntityAttributeProviderTrait {
     name: String,
     attributeType: RegulatedEntityAttributeType.Value,
     value: String,
-    isActive: Option[Boolean]): Future[Box[RegulatedEntityAttribute]]
-  
+    isActive: Option[Boolean]): Future[Box[RegulatedEntityAttributeTrait]]
+
   def deleteRegulatedEntityAttribute(regulatedEntityAttributeId: String): Future[Box[Boolean]]
-  
+
   def deleteRegulatedEntityAttributesByRegulatedEntityId(regulatedEntityId: RegulatedEntityId): Future[Box[Boolean]]
 }

@@ -27,7 +27,7 @@ import scala.jdk.CollectionConverters._
  */
 object ChatEventBus extends MdcLoggable {
 
-  implicit val formats = json.DefaultFormats
+  implicit val formats: org.json4s.DefaultFormats.type = json.DefaultFormats
 
   private val CHANNEL_PREFIX = "obp_chat:"
 

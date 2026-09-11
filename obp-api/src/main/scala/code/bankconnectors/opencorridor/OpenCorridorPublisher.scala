@@ -10,6 +10,7 @@ import com.rabbitmq.client.AMQP.BasicProperties
 import com.rabbitmq.client.{CancelCallback, Connection, ConnectionFactory}
 import net.liftweb.common.{Box, Failure, Full}
 import org.json4s.native.Serialization.write
+import org.json4s.jvalue2extractable
 
 import java.util
 import java.util.UUID
@@ -32,7 +33,7 @@ import scala.concurrent.Future
  */
 object OpenCorridorPublisher extends MdcLoggable {
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   val RPC_QUEUE_NAME = "obp_rpc_queue"
   val REPLY_QUEUE_NAME_PREFIX = "obp_reply_queue"

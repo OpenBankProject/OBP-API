@@ -7,7 +7,7 @@ object MigrationScriptLogProvider extends SimpleInjector {
 
   val migrationScriptLogProvider = new Inject(() => buildOne) {}
 
-  def buildOne: MigrationScriptLogProvider = MappedMigrationScriptLogProvider
+  def buildOne: MigrationScriptLogProvider = DoobieMigrationScriptLogProvider
 }
 
 trait MigrationScriptLogProvider {

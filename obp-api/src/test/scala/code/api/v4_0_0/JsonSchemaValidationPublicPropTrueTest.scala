@@ -1,5 +1,7 @@
 package code.api.v4_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
 import code.api.util.ApiRole
@@ -79,8 +81,8 @@ class JsonSchemaValidationPublicPropTrueTest extends V400ServerSetup {
     response
   }
 
-  feature(s"test GET /endpoints/json-schema-validations version $VersionOfApi - read_json_schema_validation_requires_role=true") {
-    scenario("Anonymous access is rejected when the prop requires authentication", PropGatedPublicEndpoint, VersionOfApi) {
+  Feature(s"test GET /endpoints/json-schema-validations version $VersionOfApi - read_json_schema_validation_requires_role=true") {
+    Scenario("Anonymous access is rejected when the prop requires authentication", PropGatedPublicEndpoint, VersionOfApi) {
       When("We make an anonymous request to the public endpoint")
       val request = (v4_0_0_Request / "endpoints" / "json-schema-validations").GET
       val response = makeGetRequest(request)
@@ -91,7 +93,7 @@ class JsonSchemaValidationPublicPropTrueTest extends V400ServerSetup {
 
     // user2 deliberately: the setup below grants roles to user1, so asserting the 403 as user1
     // could not tell "the role is required" apart from "some role user1 already holds suffices".
-    scenario("Authenticated access without the role is rejected when the prop requires the role", PropGatedPublicEndpoint, VersionOfApi) {
+    Scenario("Authenticated access without the role is rejected when the prop requires the role", PropGatedPublicEndpoint, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
 
       When("We make an authenticated request as a user holding no entitlement")
@@ -103,7 +105,7 @@ class JsonSchemaValidationPublicPropTrueTest extends V400ServerSetup {
         ApiRole.canGetJsonSchemaValidation.toString)
     }
 
-    scenario("Authenticated access with the role succeeds when the prop requires the role", PropGatedPublicEndpoint, VersionOfApi) {
+    Scenario("Authenticated access with the role succeeds when the prop requires the role", PropGatedPublicEndpoint, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
       addEntitlement(ApiRole.canGetJsonSchemaValidation)
 

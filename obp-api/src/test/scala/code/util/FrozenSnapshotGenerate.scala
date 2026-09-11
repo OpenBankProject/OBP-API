@@ -17,8 +17,8 @@ class FrozenSnapshotGenerate extends ServerSetup {
 
   object FrozenSnapshotTag extends Tag("Frozen_Snapshot")
 
-  feature("Regenerate the frozen API snapshot") {
-    scenario("write frozen_type_meta_data and its text rendering (only when FROZEN_REGENERATE=true)", FrozenSnapshotTag) {
+  Feature("Regenerate the frozen API snapshot") {
+    Scenario("write frozen_type_meta_data and its text rendering (only when FROZEN_REGENERATE=true)", FrozenSnapshotTag) {
       assume(sys.env.get("FROZEN_REGENERATE").exists(_.equalsIgnoreCase("true")),
         "set FROZEN_REGENERATE=true to regenerate the frozen snapshot; otherwise this suite does nothing")
       val blob = FrozenClassUtil.writeSnapshot()

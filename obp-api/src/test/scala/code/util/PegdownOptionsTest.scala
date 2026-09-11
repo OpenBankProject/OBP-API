@@ -2,11 +2,13 @@ package code.util
 
 import code.api.util.PegdownOptions
 import code.api.util.PegdownOptions.convertPegdownToHtmlTweaked
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
 
 import scala.xml.NodeSeq
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class PegdownOptionsTest extends FlatSpec with Matchers {
+class PegdownOptionsTest extends AnyFlatSpec with Matchers {
   /**
    * this is the method from api_explorer to show the description filed to browser.
    * @param html

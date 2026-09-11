@@ -55,8 +55,8 @@ class ApiCollectionTest extends V510ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.updateMyApiCollection))
   object ApiEndpoint8 extends Tag(nameOf(Implementations5_1_0.getAllApiCollections))
 
-  feature("Test the apiCollection endpoints") {
-    scenario("We create the apiCollection get All API collections back", ApiEndpoint8,  VersionOfApi) {
+  Feature("Test the apiCollection endpoints") {
+    Scenario("We create the apiCollection get All API collections back", ApiEndpoint8,  VersionOfApi) {
       When("We make a request v4.0.0")
 
       val request = (v5_1_0_Request / "my" / "api-collections").POST <@ (user1)
@@ -101,8 +101,8 @@ class ApiCollectionTest extends V510ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val request510 = (v5_1_0_Request / "my" / "api-collections").POST
       val response510 = makePostRequest(request510, write(SwaggerDefinitionsJSON.postApiCollectionJson400))
@@ -111,8 +111,8 @@ class ApiCollectionTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       
       // Create an API Collection
       When(s"We make a request $ApiEndpoint1")

@@ -1,9 +1,11 @@
 package code.endpointTag
 
+import com.openbankproject.commons.util.ReflectUtils
+
 /* For Connector endpoint routing, star connector use this provider to find proxy connector name */
 
 import org.json4s._
-import com.openbankproject.commons.model.{Converter, JsonFieldReName, EndpointTagT}
+import com.openbankproject.commons.model.{Converter, ConverterWithType, JsonFieldReName, EndpointTagT}
 import net.liftweb.common.Box
 import org.json4s.Formats
 import org.json4s.JsonAST.{JField, JNull, JObject, JString}
@@ -36,7 +38,7 @@ case class EndpointTagCommons(
   }
 }
 
-object EndpointTagCommons extends Converter[EndpointTagT, EndpointTagCommons]
+object EndpointTagCommons extends ConverterWithType[EndpointTagT, EndpointTagCommons](ReflectUtils.forType("code.endpointTag.EndpointTagCommons"))
 
 trait EndpointTagProvider {
   def getById(endpointTagId: String): Box[EndpointTagT]

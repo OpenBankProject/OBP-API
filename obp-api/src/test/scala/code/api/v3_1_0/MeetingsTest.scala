@@ -51,9 +51,8 @@ class MeetingsTest extends V310ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getMeeting))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getMeetings))
 
-  feature("Test Create Meetings, get Meetings - v3.1.0")
-  {
-    scenario("We will Create Meetings  - NOT logged in", ApiEndpoint1, VersionOfApi) {
+  Feature("Test Create Meetings, get Meetings - v3.1.0") {
+    Scenario("We will Create Meetings  - NOT logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / randomBankId / "meetings" ).POST
       val createMeetingJson = SwaggerDefinitionsJSON.createMeetingJsonV310
@@ -64,7 +63,7 @@ class MeetingsTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
-    scenario("We will Create Meetings  - Wrong Json format", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will Create Meetings  - Wrong Json format", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / randomBankId / "meetings" ).POST<@(user1)
       //Following is totally wrong json
@@ -76,7 +75,7 @@ class MeetingsTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should startWith (s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson ")
     }
     
-    scenario("We will Create Meetings and Get meetings back", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will Create Meetings and Get meetings back", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       
       val bankId = randomBankId

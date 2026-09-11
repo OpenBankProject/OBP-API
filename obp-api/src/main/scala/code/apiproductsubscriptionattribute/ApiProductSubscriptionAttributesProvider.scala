@@ -2,7 +2,6 @@ package code.apiproductsubscriptionattribute
 
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
 trait ApiProductSubscriptionAttributesProvider {
@@ -24,13 +23,14 @@ trait ApiProductSubscriptionAttributesProvider {
   def deleteApiProductSubscriptionAttributes(apiProductSubscriptionId: String): Box[Boolean]
 }
 
-object MappedApiProductSubscriptionAttributesProvider extends MdcLoggable with ApiProductSubscriptionAttributesProvider {
+object DoobieApiProductSubscriptionAttributesProvider extends MdcLoggable with ApiProductSubscriptionAttributesProvider {
 
   override def getApiProductSubscriptionAttributes(apiProductSubscriptionId: String): Box[List[ApiProductSubscriptionAttributeTrait]] =
-    tryo(ApiProductSubscriptionAttribute.findAll(By(ApiProductSubscriptionAttribute.ApiProductSubscriptionId, apiProductSubscriptionId)))
+    tryo(ApiProductSubscriptionAttribute.findBySubscriptionId(apiProductSubscriptionId)
+      .map(r => r: ApiProductSubscriptionAttributeTrait))
 
   override def getApiProductSubscriptionAttributeById(apiProductSubscriptionAttributeId: String): Box[ApiProductSubscriptionAttributeTrait] =
-    ApiProductSubscriptionAttribute.find(By(ApiProductSubscriptionAttribute.ApiProductSubscriptionAttributeId, apiProductSubscriptionAttributeId))
+    ApiProductSubscriptionAttribute.findById(apiProductSubscriptionAttributeId)
 
   override def createOrUpdateApiProductSubscriptionAttribute(
     apiProductSubscriptionId: String,
@@ -41,40 +41,21 @@ object MappedApiProductSubscriptionAttributesProvider extends MdcLoggable with A
     isActive: Option[Boolean]
   ): Box[ApiProductSubscriptionAttributeTrait] = {
     val existing = apiProductSubscriptionAttributeId.flatMap(id =>
-      ApiProductSubscriptionAttribute.find(By(ApiProductSubscriptionAttribute.ApiProductSubscriptionAttributeId, id)))
+      ApiProductSubscriptionAttribute.findById(id).toOption)
     existing match {
       case Some(row) =>
-        tryo(
-          row
-            .ApiProductSubscriptionId(apiProductSubscriptionId)
-            .Name(name)
-            .Type(attributeType)
-            .Value(value)
-            .IsActive(isActive.getOrElse(true))
-            .saveMe()
-        )
+        ApiProductSubscriptionAttribute.update(row.apiProductSubscriptionAttributeId,
+          apiProductSubscriptionId, name, attributeType, value, isActive.getOrElse(true))
       case None =>
-        tryo(
-          ApiProductSubscriptionAttribute.create
-            .ApiProductSubscriptionId(apiProductSubscriptionId)
-            .Name(name)
-            .Type(attributeType)
-            .Value(value)
-            .IsActive(isActive.getOrElse(true))
-            .saveMe()
-        )
+        tryo(ApiProductSubscriptionAttribute.insert(apiProductSubscriptionId, name, attributeType,
+          value, isActive.getOrElse(true)))
     }
   }
 
   override def deleteApiProductSubscriptionAttribute(apiProductSubscriptionAttributeId: String): Box[Boolean] =
-    ApiProductSubscriptionAttribute
-      .find(By(ApiProductSubscriptionAttribute.ApiProductSubscriptionAttributeId, apiProductSubscriptionAttributeId))
-      .map(_.delete_!)
+    ApiProductSubscriptionAttribute.findById(apiProductSubscriptionAttributeId)
+      .map(_ => ApiProductSubscriptionAttribute.delete(apiProductSubscriptionAttributeId))
 
-  override def deleteApiProductSubscriptionAttributes(apiProductSubscriptionId: String): Box[Boolean] = tryo {
-    ApiProductSubscriptionAttribute
-      .findAll(By(ApiProductSubscriptionAttribute.ApiProductSubscriptionId, apiProductSubscriptionId))
-      .foreach(_.delete_!)
-    true
-  }
+  override def deleteApiProductSubscriptionAttributes(apiProductSubscriptionId: String): Box[Boolean] =
+    tryo(ApiProductSubscriptionAttribute.deleteBySubscriptionId(apiProductSubscriptionId))
 }

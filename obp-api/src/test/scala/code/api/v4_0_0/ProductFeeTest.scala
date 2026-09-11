@@ -81,8 +81,8 @@ class ProductFeeTest extends V400ServerSetup {
     product
   }
   
-  feature("Create Product Fee v4.0.0") {
-    scenario("We will call the Add endpoint with user credentials and role", 
+  Feature("Create Product Fee v4.0.0") {
+    Scenario("We will call the Add endpoint with user credentials and role", 
       ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5) {
 
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
@@ -176,7 +176,7 @@ class ProductFeeTest extends V400ServerSetup {
       responseGetProductFeeAfterDeleted.body.toString contains(ProductFeeNotFoundById) should be (true)
     }
 
-    scenario("We will test the error cases",
+    Scenario("We will test the error cases",
       ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5) {
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
       // Create an grandparent

@@ -43,7 +43,6 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
-import net.liftweb.mapper.{By, By_>, Descending, OrderBy}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
@@ -234,11 +233,8 @@ object DirectLogin extends MdcLoggable {
         case Full(token) => token.isValid match {
           case true =>
             // Only last issued token is considered as a valid one
-            val isNotLastIssuedToken = Token.findAll(
-              By(Token.userForeignKey, token.userForeignKey.get),
-              By(Token.consumerId, token.consumerId.get),
-              By_>(Token.expirationDate, token.expirationDate.get)
-            ).size > 0
+            val isNotLastIssuedToken = Token.findLaterExpiringForUserAndConsumer(
+              token.userForeignKey, token.consumerId, token.expirationDate).size > 0
             if(isNotLastIssuedToken) false else true
           case false => false
         }
@@ -295,11 +291,8 @@ object DirectLogin extends MdcLoggable {
         case Full(token) => token.isValid /*match {
           case true => 
             // Only last issued token is considered as a valid one
-            val isNotLastIssuedToken = Token.findAll(
-              By(Token.userForeignKey, token.userForeignKey.get), 
-              By(Token.consumerId, token.consumerId.get),
-              By_>(Token.expirationDate, token.expirationDate.get)
-            ).size > 0
+            val isNotLastIssuedToken = Token.findLaterExpiringForUserAndConsumer(
+              token.userForeignKey, token.consumerId, token.expirationDate).size > 0
             if(isNotLastIssuedToken) false else true
           case false => false
         }*/
@@ -453,7 +446,7 @@ object DirectLogin extends MdcLoggable {
   {
     import code.model.TokenType
     val consumerId = consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
-      case Full(consumer) => Some(consumer.id.get)
+      case Full(consumer) => Some(consumer.id)
       case _ => None
     }
     val currentTime = Platform.currentTime
@@ -592,7 +585,7 @@ object DirectLogin extends MdcLoggable {
    */
   def getConsumerFromDirectLoginToken(token: String): Future[Box[Consumer]] = {
     Tokens.tokens.vend.getTokenByKeyFuture(token) map {
-      case Full(t) => t.consumerId.foreign
+      case Full(t) => t.consumer
       case _ => Empty
     } recoverWith {
       case e: Throwable =>

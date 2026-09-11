@@ -20,7 +20,7 @@ import org.http4s.{Request, Response}
  * directly — the response status is taken from `CallContext.httpCode` (set by `HttpCode.xxx`).
  */
 trait DynamicCompileEndpoint {
-  implicit val formats = CustomJsonFormats.formats
+  implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
 
   // * is any bankId
   val boundBankId: String

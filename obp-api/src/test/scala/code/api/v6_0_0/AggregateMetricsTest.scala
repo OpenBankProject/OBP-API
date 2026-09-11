@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadAggregateMetrics
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
@@ -24,8 +25,8 @@ class AggregateMetricsTest extends V600ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag("getAggregateMetrics")
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0")
       val request = (v6_0_0_Request / "management" / "aggregate-metrics").GET
       val response = makeGetRequest(request)
@@ -35,8 +36,8 @@ class AggregateMetricsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0")
       val request = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -46,8 +47,8 @@ class AggregateMetricsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Aggregate counts including v6.0.0 distinct fields") {
-    scenario("We make traffic as two users and check count and the distinct/consent fields", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Aggregate counts including v6.0.0 distinct fields") {
+    Scenario("We make traffic as two users and check count and the distinct/consent fields", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadAggregateMetrics.toString)
 
@@ -68,7 +69,7 @@ class AggregateMetricsTest extends V600ServerSetup {
 
       When("We query aggregate-metrics filtered to user1's consumer and the traffic url")
       val request = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
-        ("include_app_names", testConsumer.name.get),
+        ("include_app_names", testConsumer.name),
         ("url", trafficUrl))
       val response = makeGetRequest(request)
       Then("We get a successful response with the v6.0.0 fields")
@@ -84,7 +85,7 @@ class AggregateMetricsTest extends V600ServerSetup {
 
       When("We query aggregate-metrics across both consumers for the traffic url")
       val request2 = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
-        ("include_app_names", s"${testConsumer.name.get},${testConsumer2.name.get}"),
+        ("include_app_names", s"${testConsumer.name},${testConsumer2.name}"),
         ("url", trafficUrl))
       val response2 = makeGetRequest(request2)
       Then("We get a successful response covering both users")

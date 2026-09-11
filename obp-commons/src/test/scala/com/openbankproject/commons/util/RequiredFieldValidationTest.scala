@@ -1,7 +1,7 @@
 package com.openbankproject.commons.util
 
 import com.openbankproject.commons.util.ApiVersion._
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
 import org.scalatest.PartialFunctionValues._
 
 import scala.reflect.runtime.universe._
@@ -9,8 +9,10 @@ import Functions.Implicits.RichCollection
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import RequiredFieldValidation.getRequiredInfo
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class RequiredFieldValidationTest extends FlatSpec with Matchers {
+class RequiredFieldValidationTest extends AnyFlatSpec with Matchers {
   object tag extends Tag("RequiredFieldValidation")
 
   "when annotated at constructor param and overriding val" should "all the annotations be extract by call RequiredFieldValidation.getAnnotations" taggedAs tag in {

@@ -1,6 +1,7 @@
 package code.util
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 import scala.io.Source
@@ -25,7 +26,7 @@ import scala.io.Source
  * source and asserts the number in the `-lt` comparison matches the number quoted in the message
  * -- the same drift-guard shape SweepCoverageDriftCheckTest uses for a Scala file.
  */
-class RunTestsParallelScriptTest extends FlatSpec with Matchers {
+class RunTestsParallelScriptTest extends AnyFlatSpec with Matchers {
 
   private def scriptSource: String = {
     val candidates = List(

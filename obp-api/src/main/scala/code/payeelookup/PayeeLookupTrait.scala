@@ -6,7 +6,7 @@ import net.liftweb.util.SimpleInjector
 object PayeeLookups extends SimpleInjector {
   val payeeLookup = new Inject(() => buildOne) {}
 
-  def buildOne: PayeeLookupProvider = MappedPayeeLookupProvider
+  def buildOne: PayeeLookupProvider = DoobiePayeeLookupProvider
 }
 
 trait PayeeLookupProvider {

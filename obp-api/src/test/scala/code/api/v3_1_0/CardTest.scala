@@ -29,8 +29,8 @@ class CardTest extends V310ServerSetup with DefaultUsers {
   object ApiEndpointDeleteCardForBank extends Tag(nameOf(Implementations3_1_0.deleteCardForBank))
   
   
-  feature("test Card APIs") {
-    scenario("We will create Card with many error cases", 
+  Feature("test Card APIs") {
+    Scenario("We will create Card with many error cases", 
       ApiEndpointAddCardForBank, 
       ApiEndpointUpdatedCardForBank,
       ApiEndpointGetCardForBank,

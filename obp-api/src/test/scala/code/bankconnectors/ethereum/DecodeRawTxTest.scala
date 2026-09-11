@@ -1,11 +1,13 @@
 package code.bankconnectors.ethereum
 
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
-class DecodeRawTxTest extends FeatureSpec with Matchers with GivenWhenThen {
+class DecodeRawTxTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
-  feature("Decode raw Ethereum transaction to case class") {
-    scenario("Decode a legacy signed raw transaction successfully") {
+  Feature("Decode raw Ethereum transaction to case class") {
+    Scenario("Decode a legacy signed raw transaction successfully") {
       Given("a sample legacy signed raw transaction hex string")
 
 //      {

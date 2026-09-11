@@ -1,6 +1,8 @@
 package code.DynamicEndpoint
 
-import com.openbankproject.commons.model.{Converter, JsonFieldReName}
+import com.openbankproject.commons.util.ReflectUtils
+
+import com.openbankproject.commons.model.{Converter, ConverterWithType, JsonFieldReName}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -28,7 +30,7 @@ case class DynamicEndpointCommons(
                                 bankId: Option[String]
                                ) extends DynamicEndpointT with JsonFieldReName
 
-object DynamicEndpointCommons extends Converter[DynamicEndpointT, DynamicEndpointCommons]
+object DynamicEndpointCommons extends ConverterWithType[DynamicEndpointT, DynamicEndpointCommons](ReflectUtils.forType("code.DynamicEndpoint.DynamicEndpointCommons"))
 
 case class DynamicEndpointSwagger(swaggerString: String, dynamicEndpointId: Option[String] = None)
 

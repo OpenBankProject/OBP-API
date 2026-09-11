@@ -2596,7 +2596,7 @@ object Http4s121 {
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
         root(req)
           .orElse(getBanks(req))
           // bankById is intentionally absent — it runs outside middleware (see allRoutesWithMiddleware)

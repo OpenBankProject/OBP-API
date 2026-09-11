@@ -9,7 +9,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.Consumer
 import code.ratelimiting.RateLimiting
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, DB}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object TableRateLmiting {
@@ -19,35 +18,38 @@ object TableRateLmiting {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def populate(name: String): Boolean = {
-    DbFunction.tableExists(RateLimiting) match {
+    DbFunction.tableExistsByName("ratelimiting") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         val consumers = Consumer.findAll()
 
         // Make back up
-        DbFunction.makeBackUpOfTable(RateLimiting)
+        DbFunction.makeBackUpOfTableByName("ratelimiting")
     
         // Insert rows into table "ratelimiting" based on data in the table consumer
         val insertedRows: List[Boolean] =
           for {
             consumer <- consumers
           } yield {
-            RateLimiting.find(By(RateLimiting.ConsumerId, consumer.consumerId.get)) match {
-              case Full(_) => // Already exist
+            RateLimiting.findAllByConsumerId(consumer.consumerId).headOption match {
+              case Some(_) => // Already exist
                 true
               case _ =>
-                RateLimiting.create
-                  .ConsumerId(consumer.consumerId.get)
-                  .PerSecondCallLimit(consumer.perSecondCallLimit.get)
-                  .PerMinuteCallLimit(consumer.perMinuteCallLimit.get)
-                  .PerHourCallLimit(consumer.perHourCallLimit.get)
-                  .PerDayCallLimit(consumer.perDayCallLimit.get)
-                  .PerWeekCallLimit(consumer.perWeekCallLimit.get)
-                  .PerMonthCallLimit(consumer.perMonthCallLimit.get)
-                  .FromDate(Date.from(oneDayAgo.toInstant()))
-                  .ToDate(Date.from(oneYearInFuture.toInstant()))
-                .save
+                RateLimiting.insertWithLimits(
+                  consumerId = consumer.consumerId,
+                  fromDate = Date.from(oneDayAgo.toInstant()),
+                  toDate = Date.from(oneYearInFuture.toInstant()),
+                  apiVersion = None,
+                  apiName = None,
+                  bankId = None,
+                  perSecond = consumer.perSecondCallLimit,
+                  perMinute = consumer.perMinuteCallLimit,
+                  perHour = consumer.perHourCallLimit,
+                  perDay = consumer.perDayCallLimit,
+                  perWeek = consumer.perWeekCallLimit,
+                  perMonth = consumer.perMonthCallLimit)
+                true
             }
           }
         val isSuccessful = insertedRows.forall(_ == true)

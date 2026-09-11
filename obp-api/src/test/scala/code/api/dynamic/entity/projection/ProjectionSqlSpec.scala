@@ -2,9 +2,10 @@ package code.api.dynamic.entity.projection
 
 import code.api.dynamic.entity.query._
 import doobie.implicits._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ProjectionSqlSpec extends FlatSpec with Matchers {
+class ProjectionSqlSpec extends AnyFlatSpec with Matchers {
 
   private val cols  = Map("price" -> "c_price_x", "status" -> "c_status_y")
   private val types = Map("price" -> "numeric", "status" -> "text")

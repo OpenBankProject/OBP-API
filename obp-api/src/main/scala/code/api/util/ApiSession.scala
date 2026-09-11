@@ -15,7 +15,7 @@ import code.util.Helper.MdcLoggable
 import code.util.SecureLogging
 import code.views.Views
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
+import com.openbankproject.commons.util.{EnumValue, OBPEnumerationWithType, ReflectUtils}
 import net.liftweb.common.{Box, Empty}
 import org.json4s.JsonAST.JValue
 import net.liftweb.util.Helpers
@@ -135,7 +135,7 @@ case class CallContext(
       psu <- this.onBehalfOfUser
       username <- tryo(Some(psu.name))
       currentResourceUserId <- tryo(Some(psu.userId))
-      consumerId = this.consumer.map(_.consumerId.get).openOr("") // if none, just return ""
+      consumerId = this.consumer.map(_.consumerId).openOr("") // if none, just return ""
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(psu.userId))
@@ -194,9 +194,9 @@ case class CallContext(
       // (consentReferenceId below -> consent.userId), see CallContext.onBehalfOfUserId.
       userId = this.user.map(_.userId).toOption,
       userName = this.user.map(_.name).toOption,
-      consumerId = this.consumer.map(_.consumerId.get).toOption,
-      appName = this.consumer.map(_.name.get).toOption,
-      developerEmail = this.consumer.map(_.developerEmail.get).toOption,
+      consumerId = this.consumer.map(_.consumerId).toOption,
+      appName = this.consumer.map(_.name).toOption,
+      developerEmail = this.consumer.map(_.developerEmail).toOption,
       spelling = this.spelling,
       startTime = this.startTime,
       endTime = this.endTime,
@@ -280,7 +280,7 @@ case class CallContext(
 }
 
 sealed trait AuthenticationType extends EnumValue
-object AuthenticationType extends OBPEnumeration[AuthenticationType]{
+object AuthenticationType extends OBPEnumerationWithType[AuthenticationType](ReflectUtils.forType("code.api.util.AuthenticationType")){
   object DirectLogin extends AuthenticationType
   object GatewayLogin extends AuthenticationType
   object DAuth extends AuthenticationType

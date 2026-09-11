@@ -36,7 +36,13 @@ object OBPDataImport extends SimpleInjector {
 }
 
 trait Saveable[T] {
-  val value : T
+  // lazy: Scala 3 does not allow a lazy val to override an abstract strict val (even directly,
+  // not just through trait linearization), and SaveableBranch/SaveableProduct/SaveableBank/
+  // SaveableTransaction/SaveableBankAccount all implement this member with `lazy val value = ...`.
+  // A strict val (case-class constructor params, as the now-removed MappedSaveable and as
+  // SaveableAtm/SaveableCrmEvent still do) still satisfies an abstract lazy val, so this widens
+  // the contract without breaking them.
+  lazy val value : T
   def save() : Unit
 }
 
@@ -327,6 +333,15 @@ trait OBPDataImport extends MdcLoggable {
       Connector.connector.vend.getBankAccountLegacy(BankId(acc.bank), AccountId(acc.id), None).map(_._1)
     })
 
+    // Deliberately NOT scoped by bank, unlike duplicateNumbers above. An IBAN identifies a bank
+    // globally - the institution is encoded in the string (ISO 13616) - so two banks cannot hold
+    // one. More concretely, this instance depends on it: the payment path resolves a target
+    // account by routing with no bank context, and LocalMappedConnector.getBankAccountByRouting
+    // fails a lookup that matches more than one row ("Routing MUST be unique", 849-852). Callers
+    // that pass bankId = None include BulkPaymentHandler:135, three Http4s700 transaction-request
+    // endpoints, getBankAccountByIban, and the to-account resolution in the connector itself.
+    // Admitting a duplicate here therefore does not produce a usable account; it produces one
+    // that fails every global-routing payment, with the error arriving far from the cause.
     val ibans = data.accounts.map(_.IBAN)
     val duplicateIbans = ibans diff ibans.distinct
     val existingIbans = data.accounts.flatMap(acc => {
@@ -542,22 +557,22 @@ trait OBPDataImport extends MdcLoggable {
       crmEvents <- createCrmEvents(data)
     } yield {
       logger.info(s"importData is saving ${banks.size} banks..")
-      banks.foreach(_.save)
+      banks.foreach(_.save())
 
       logger.info(s"importData is saving ${users.size} users..")
-      users.foreach(_.save)
+      users.foreach(_.save())
 
       logger.info(s"importData is saving ${branches.size} branches..")
-      branches.foreach(_.save)
+      branches.foreach(_.save())
 
       logger.info(s"importData is saving ${atms.size} ATMs..")
-      atms.foreach(_.save)
+      atms.foreach(_.save())
 
       logger.info(s"importData is saving ${products.size} products..")
-      products.foreach(_.save)
+      products.foreach(_.save())
 
       logger.info(s"importData is saving ${crmEvents.size} crmEvents..")
-      crmEvents.foreach(_.save)
+      crmEvents.foreach(_.save())
 
 
 
@@ -568,7 +583,7 @@ trait OBPDataImport extends MdcLoggable {
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
         case (account, systemViews, accOwnerUsernames) =>
-          account.save
+          account.save()
 
           systemViews.filterNot(_.isPublic).foreach(v => {
             //grant the owner access to Private systemViews
@@ -581,7 +596,7 @@ trait OBPDataImport extends MdcLoggable {
       }
       logger.info(s"importData is saving ${transactions.size} transactions (and loading them again)")
       transactions.foreach { t =>
-        t.save
+        t.save()
         //load it to force creation of metadata (If we are using Mapped connector, MappedCounterpartyMetadata.create will be called)
         val lt = Connector.connector.vend.getTransactionLegacy(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
       }

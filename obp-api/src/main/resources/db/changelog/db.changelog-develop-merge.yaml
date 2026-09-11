@@ -1,0 +1,148 @@
+databaseChangeLog:
+  # Columns develop added to Mapper entities. Schemifier creates them there; this branch has
+  # ToSchemify.models = Nil, so without these changesets the code compiles and then fails at
+  # runtime against columns nothing ever made - the shape of the CREATEDAT failure in ddef1ca51.
+  #
+  # Each changeset guards itself with columnExists so a database that already has the column
+  # records it as run instead of aborting the boot. tableExists cannot express that: the table
+  # is present either way.
+
+  - changeSet:
+      id: add-mobile-phone-columns-resourceuser
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: resourceuser
+                columnName: mobilephonenumber
+      comment: >-
+        develop added mobile phone number, its validation flag and validation date to
+        ResourceUser (commits c885ec9f2, fe96326ee), exposed on the v7 user endpoints.
+      changes:
+        - addColumn:
+            tableName: resourceuser
+            columns:
+              - column: {name: mobilephonenumber, type: VARCHAR(50)}
+              - column: {name: mobilephonenumberisvalidated, type: BOOLEAN}
+              - column: {name: mobilephonenumbervalidateddate, type: TIMESTAMP}
+
+  - changeSet:
+      id: add-auth-type-metric
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: metric
+                columnName: auth_type
+      comment: >-
+        develop's auth_type metrics column (commit 0318885ab), recorded per request and read
+        back by the activity dashboards.
+      changes:
+        - addColumn:
+            tableName: metric
+            columns:
+              - column: {name: auth_type, type: VARCHAR(32)}
+
+  - changeSet:
+      id: add-auth-type-metricarchive
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: metricarchive
+                columnName: auth_type
+      comment: >-
+        The archive mirrors metric column for column - MetricArchive.upsertByMetricId copies
+        every field across, so a column missing here loses that data on archival.
+      changes:
+        - addColumn:
+            tableName: metricarchive
+            columns:
+              - column: {name: auth_type, type: VARCHAR(32)}
+
+  - changeSet:
+      id: add-activity-dashboard-index-metric
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: metric_userid_date_idx
+      comment: >-
+        develop adds this through MigrationOfActivityDashboardIndexes, which reads Mapper
+        metadata (MappedMetric._dbTableNameLC) that no longer exists here, and declares it on
+        MappedMetric.dbIndexes for Schemifier to create on fresh deploys - neither route runs on
+        this branch. The index itself is wanted: it backs the self-service metrics reads behind
+        the Activity dashboards.
+      changes:
+        - createIndex:
+            tableName: metric
+            indexName: metric_userid_date_idx
+            columns:
+              - column: {name: userid}
+              - column: {name: date_c}
+
+  - changeSet:
+      id: add-activity-dashboard-index-resourceuser
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: resourceuser_createdbyconsentid_idx
+      comment: >-
+        Same story: declared on ResourceUser.dbIndexes upstream, created by the same migration.
+        Consent-user resolution looks users up by this column on the entitlement path.
+      changes:
+        - createIndex:
+            tableName: resourceuser
+            indexName: resourceuser_createdbyconsentid_idx
+            columns:
+              - column: {name: createdbyconsentid}
+
+  - changeSet:
+      id: widen-dynamicresourcedoc-body-columns
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - sqlCheck:
+                expectedResult: 0
+                sql: >-
+                  SELECT COUNT(*) FROM information_schema.columns
+                  WHERE LOWER(table_name) = 'dynamicresourcedoc'
+                  AND LOWER(column_name) IN
+                    ('examplerequestbody', 'successresponsebody', 'errorresponsebodies')
+                  AND character_maximum_length = 255
+      comment: >-
+        develop widens these three with MigrationOfDynamicResourceDocBodyFieldsLength, whose own
+        comment says a response example "routinely exceeds varchar(255)". That migration reads
+        Mapper metadata (MappedDynamicResourceDoc) which no longer exists here and was deleted in
+        this merge; the two other migrations deleted with it got changesets above, this one did
+        not, so the columns stayed at the baseline's VARCHAR(255) and any body over 255 characters
+        failed the INSERT outright. ${text.type} is the same per-vendor spelling the baseline
+        already uses for methodbody, so the three end up as the migration intended: text on
+        Postgres, a varchar wide enough not to be a limit on H2.
+
+        The precondition counts the columns still at 255 rather than asking whether a column
+        exists: they exist either way, and the question is their width. It counts only columns
+        still at exactly 255, rather than testing for the widened type, because what that type
+        reports differs per vendor - NULL on Postgres and MySQL, 1000000000 on H2, -1 on SQL
+        Server. So a database already widened, by the upstream migration or by a previous run of
+        this changeset, counts zero and marks this run instead of re-applying it.
+      changes:
+        - modifyDataType:
+            tableName: dynamicresourcedoc
+            columnName: examplerequestbody
+            newDataType: ${text.type}
+        - modifyDataType:
+            tableName: dynamicresourcedoc
+            columnName: successresponsebody
+            newDataType: ${text.type}
+        - modifyDataType:
+            tableName: dynamicresourcedoc
+            columnName: errorresponsebodies
+            newDataType: ${text.type}

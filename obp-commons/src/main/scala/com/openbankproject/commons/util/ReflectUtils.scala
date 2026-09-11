@@ -72,16 +72,64 @@ object ReflectUtils {
   def getFieldValues(obj: AnyRef)(predicate: TermSymbol => Boolean = _=>true): Map[String, Any] = {
     val instanceMirror = mirror.reflect(obj)
     val tp: ru.Type = instanceMirror.symbol.info
+    // Scala 3's LazyVals compiles `lazy val x` to a backing field named `x$lzy1` (verified via
+    // javap), not `x` - so a plain isVal/isVar/isLazy-style name match against getDeclaredFields
+    // would miss every lazy val. Accept either spelling.
+    //
+    // runtimeClass(tp) can itself fail - e.g. for a path-dependent inner class, `tp` resolves to
+    // a refinement type mirror.runtimeClass has no single java.lang.Class for, and throws
+    // NoClassDefFoundError (a LinkageError - NOT caught by NonFatal, which treats LinkageError as
+    // fatal) rather than returning one. That is a shape this function never used to touch (the
+    // pre-fix code never called runtimeClass at all), so falling through uncaught would make
+    // getFieldValues newly crash on inputs it used to handle. Fall back to the old permissive
+    // behaviour - treat the candidate as field-backed - rather than letting a disambiguation aid
+    // break the thing it is meant to refine.
+    // runtimeClass(tp) itself, not instanceMirror.symbol.toType: `tp` is `.info`, the class
+    // symbol's own ClassInfoType (a template - parents + decls), and mirror.runtimeClass can't
+    // resolve that back to a java.lang.Class the way it resolves an ordinary TypeRef; `.toType`
+    // (as getType(obj) elsewhere in this file uses) is the reference form runtimeClass expects.
+    lazy val declaredFieldNames: Option[Set[String]] =
+      try Some(runtimeClass(instanceMirror.symbol.toType).getDeclaredFields.map(_.getName).toSet) catch { case _: Throwable => None }
+    def isFieldBacked(name: String): Boolean = declaredFieldNames match {
+      case Some(names) => names.contains(name) || names.exists(_.startsWith(s"$name$$lzy"))
+      case None => true
+    }
     (tp.members ++ tp.decls).toSet
       .withFilter(_.isTerm)
       .map(_.asTerm)
       .withFilter(!_.isImplicit)
-      .withFilter(it => it.isLazy || it.isVal || it.isVar)
+      // isLazy/isVal/isVar answer from Scala's own declaration metadata (ScalaSig for Scala 2,
+      // TASTy for Scala 3). scala.reflect.runtime.universe - the Scala 2.13 reflection library
+      // obp-commons is pinned to - has no TASTy reader, so all three come back false for every
+      // member of a Scala-3-compiled class; only the bytecode-level shape (a zero-arg method with
+      // a return type) survives. The extra clause recovers that shape.
+      //
+      // Restricted to it.owner == tp.typeSymbol (declared directly on the target's own class,
+      // not inherited) rather than trying to exclude bad owners by name one at a time: a zero-arg
+      // method can be inherited from java.lang.Object (notify/wait - reflectMethod on those
+      // outside a synchronized block throws IllegalMonitorStateException), from scala.Any
+      // (asInstanceOf/isInstanceOf - compiler-magic, reflectMethod refuses to invoke them at
+      // all), or even from a JDK-internal interface an unrelated object's runtime class happens
+      // to implement (hit via JSONFactory1_4_0's unfiltered fallback branch on values it doesn't
+      // otherwise know how to schema - a java.lang.reflect.InaccessibleObjectException on some
+      // jdk.internal.constant.* method). None of that is ever something a genuine val/lazy val/
+      // case-class field owns; requiring same-class ownership excludes all of it at once, and
+      // every actual caller's target (ExampleValue/ApiRole/ApiTag's own lazy vals, a case class's
+      // own constructor-derived accessors) declares its members directly, never by inheritance.
+      //
+      // Same-class ownership alone still can't tell a val-accessor from an ordinary zero-arg def
+      // declared directly on the class (both compile to that identical shape); isFieldBacked
+      // closes that gap with the one signal that does survive - whether a matching backing field
+      // actually exists - so a genuine helper method (e.g. a custom toString) isn't reported as
+      // a schema field just because it happens to take no arguments.
+      .withFilter(it => it.isLazy || it.isVal || it.isVar ||
+        (it.isMethod && !it.asMethod.isConstructor && it.asMethod.paramLists.forall(_.isEmpty) &&
+          it.owner == tp.typeSymbol && isFieldBacked(it.name.decodedName.toString.trim)))
       .withFilter(predicate)
       .map(it => {
         val fieldName = it.name.decodedName.toString.trim
-        if(it.isLazy) {
-          // get lazy value
+        if(it.isLazy || (it.isMethod && !it.isVal && !it.isVar)) {
+          // get lazy value, or invoke the zero-arg-method-shaped accessor recovered above
           fieldName -> instanceMirror.reflectMethod(it.asMethod)()
         } else {
           fieldName -> instanceMirror.reflectField(it).get
@@ -96,8 +144,10 @@ object ReflectUtils {
    * @tparam T field type
    * @return
    */
-  def getFieldsNameToValue[T: TypeTag](obj: AnyRef): Map[String, T] = {
-    val tpe = typeTag[T].tpe
+  // Callers pass T's Type explicitly rather than via a TypeTag context bound: T is frequently an
+  // obp-api type (e.g. ApiRole, ResourceDocTag), and typeTag[T] needs the Scala 2 compiler's
+  // TypeTag synthesis at the call site, which Scala 3 does not implement.
+  def getFieldsNameToValue[T](obj: AnyRef, tpe: ru.Type): Map[String, T] = {
     getFieldValues(obj){it =>
     if(it.isMethod) {
         it.asMethod.returnType <:< tpe
@@ -262,16 +312,66 @@ object ReflectUtils {
     * @param includeVar whether include var values
     * @return map of val or var name to value
     */
+  /**
+   * Every val/var of `obj`, by name.
+   *
+   * `isVal`/`isVar` alone are not enough. They answer from Scala's own declaration metadata -
+   * ScalaSig for Scala 2, TASTy for Scala 3 - and scala.reflect.runtime.universe, the Scala 2.13
+   * reflection library this module is pinned to, has no TASTy reader: for a Scala-3-compiled class
+   * both come back false for every member. This function then returned an empty map, and the
+   * `allFields` collectors built on it (SwaggerDefinitionsJSON, MessageDocsSwaggerDefinitions,
+   * JSONFactoryCustom300, SandboxData in OBPDataImport) each collected nothing - silently, since
+   * an empty list is a legal result and nothing asserted otherwise. SwaggerDefinitionsJSON declares
+   * 777 lazy vals and produced 0.
+   *
+   * The recovery is the same one getFieldValues already uses, shared here rather than copied: what
+   * does survive into bytecode is the shape - a zero-arg method declared on this very class, with a
+   * backing field of the same name (or `name$lzy…`, which is how Scala 3 spells a lazy val's
+   * field). `isFieldBacked` is what separates such an accessor from an ordinary zero-arg def.
+   *
+   * `includeVar = false` cannot filter Scala 3 vars for the same reason `isVar` fails there; on
+   * Scala 2 it behaves as before. Documented rather than silently approximated.
+   */
   def getNameToValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true): Map[String, Any] = {
     obj match {
       case null => Map.empty[String, Any]
-      case _ => getType(obj).decls
-        .filter(_.isTerm)
-        .map(_.asTerm)
-        .filterNot(it => excludes.contains(it.name.toString))
-        .filter(it => it.isVal || (includeVar && it.isVar))
-        .map(it => (it.name.toString.trim, invokeMethod(obj, it.getter.asMethod)))
-        .toMap
+      case _ =>
+        val tp = getType(obj)
+        val isFieldBacked = fieldBackedPredicate(obj, tp)
+        tp.decls
+          .filter(_.isTerm)
+          .map(_.asTerm)
+          .filterNot(it => excludes.contains(it.name.decodedName.toString.trim))
+          .filter(it => it.isVal || (includeVar && it.isVar) ||
+            (it.isMethod && !it.asMethod.isConstructor && it.asMethod.paramLists.forall(_.isEmpty) &&
+              it.owner == tp.typeSymbol && isFieldBacked(it.name.decodedName.toString.trim)))
+          .map(it => {
+            val name = it.name.decodedName.toString.trim
+            // getter is NoSymbol for the zero-arg-method shape recovered above - it IS the getter.
+            val accessor = if (it.isMethod) it.asMethod else it.getter.asMethod
+            (name, invokeMethod(obj, accessor))
+          })
+          .toMap
+    }
+  }
+
+  /**
+   * Whether a name has a real backing field on `obj`'s runtime class - the one signal that a
+   * val/lazy val leaves in bytecode and an ordinary def does not.
+   *
+   * Scala 3's LazyVals compiles `lazy val x` to a field named `x$lzy1`, so both spellings count.
+   * When the runtime class cannot be resolved at all (a path-dependent inner class resolves to a
+   * refinement type, and mirror.runtimeClass throws NoClassDefFoundError - a LinkageError, which
+   * NonFatal does not catch), fall back to admitting the candidate: this predicate exists to
+   * refine a selection, and must not make its callers fail on inputs they used to handle.
+   */
+  private def fieldBackedPredicate(obj: AnyRef, tp: ru.Type): String => Boolean = {
+    lazy val declaredFieldNames: Option[Set[String]] =
+      try Some(runtimeClass(mirror.reflect(obj).symbol.toType).getDeclaredFields.map(_.getName).toSet)
+      catch { case _: Throwable => None }
+    name => declaredFieldNames match {
+      case Some(names) => names.contains(name) || names.exists(_.startsWith(s"$name$$lzy"))
+      case None => true
     }
   }
   /**
@@ -400,19 +500,28 @@ object ReflectUtils {
     val tp = objMirror.symbol.toType
     methodNames
       .map(methodName => tp.member(ru.TermName(methodName)))
-      .map { methodSymbol=>
-          assume(methodSymbol.isMethod, s"${methodSymbol.name} is not method in Object ${obj}")
-          val method = methodSymbol.asMethod
+      .map { symbol =>
+        // The docstring always promised "call by name methods OR val values", but the code only
+        // ever handled the method shape - the Lift Mapper entities this was written for exposed
+        // every column as a call-by-name accessor def. Post-Mapper-to-Doobie migration, an entity
+        // like MappedBankAccount is a plain case class, so its fields (e.g. accountPrimaryKey)
+        // are ordinary constructor vals: isMethod is correctly false for them (confirmed via an
+        // isolated diagnostic, not a Scala-3-reflection gap like the isVal/isVar/isLazy ones
+        // elsewhere in this file), and the old method-only assumption threw on every one of them.
+        if (symbol.isMethod) {
+          val method = symbol.asMethod
           val callByNameMethod = method.alternatives.find(it => it.asMethod.paramLists == Nil).map(_.asMethod)
-          assume(callByNameMethod.isDefined, s"there is no call by name method or val of name ${methodSymbol.name} in Object ${obj}")
-
-          callByNameMethod.get
+          assume(callByNameMethod.isDefined, s"there is no call by name method or val of name ${symbol.name} in Object ${obj}")
+          val resolved = callByNameMethod.get
+          resolved.name.toString -> objMirror.reflectMethod(resolved).apply()
+        } else if (symbol.isTerm && (symbol.asTerm.isVal || symbol.asTerm.isVar)) {
+          symbol.name.toString.trim -> objMirror.reflectField(symbol.asTerm).get
+        } else {
+          assume(false, s"${symbol.name} is not a call by name method or val in Object ${obj}")
+          throw new IllegalStateException("unreachable: assume(false, ...) always throws")
         }
-      .map {method =>
-        val paramName = method.name.toString
-        val paramValue =objMirror.reflectMethod(method).apply()
-        (paramName, paramValue)
-      } .toMap
+      }
+      .toMap
   }
 
   /**
@@ -456,7 +565,13 @@ object ReflectUtils {
 
   def invokeConstructor(tp: ru.Type)(fn: (Seq[ru.Type]) => Seq[Any]): Any = {
     val classMirror = mirror.reflectClass(tp.typeSymbol.asClass)
-    val constructor = tp.decl(ru.termNames.CONSTRUCTOR).asMethod
+    // tp.decl(CONSTRUCTOR).asMethod throws ScalaReflectionException when the class declares more
+    // than one constructor (e.g. a case class with an auxiliary `def this(...)` for backward
+    // compatibility, such as BankCommons) - decl returns an overloaded symbol in that case, which
+    // .asMethod refuses to treat as a single method. getPrimaryConstructor already does the right
+    // thing (picks .alternatives.head, the primary constructor) - reuse it instead of re-deriving
+    // the constructor symbol here.
+    val constructor = getPrimaryConstructor(tp)
     val paramTypes: Seq[ru.Type] = constructor.paramLists.headOption.getOrElse(Nil).map(_.info.typeSymbol.asType.toType)
     val params: Seq[Any] = fn.apply(paramTypes)
     classMirror.reflectConstructor(constructor).apply(params :_*)
@@ -503,6 +618,14 @@ object ReflectUtils {
 
 
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
+
+  /**
+   * get the java.lang.Class that backs a scala-reflect Type, e.g. the class for `Option[Boolean]`'s
+   * type argument `Boolean` is `scala.Boolean` (JVM primitive `boolean`). Used to build a json4s
+   * `TypeInfo` from a scala-reflect-derived type when the JVM's own generic signature can't be
+   * trusted (see ObpCommonsProductDeserializer in JsonSerializers.scala).
+   */
+  def runtimeClass(tp: ru.Type): Class[_] = mirror.runtimeClass(tp)
 
   def forType(className: String): ru.Type = mirror.staticClass(className).toType
 
@@ -576,7 +699,68 @@ object ReflectUtils {
     }
   }
 
-  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
+  // .alternatives lists every overloaded constructor (primary and auxiliary, e.g. a class with a
+  // convenience `def this(...)` alongside its case-class-generated one) in no order the language
+  // spec guarantees - .head silently picked whichever came first, and for a Scala 3-compiled class
+  // that order is not reliably source-declaration order (the reflect universe reading Scala 3
+  // decls doesn't preserve it - see OBPEnumerationBase.modules elsewhere in this codebase for the
+  // same observation). That let getPrimaryConstructor pick an auxiliary constructor over the real
+  // primary one non-deterministically across JVM runs - reproduced for
+  // code.methodrouting.MethodRoutingParam(key: String, value: String), which also declares
+  // `def this(jObject: JObject)`: some runs read its primary constructor as (jObject: JObject)
+  // instead, corrupting anything built from getConstructorParamInfo/invokeConstructor for it.
+  //
+  // isPrimaryConstructor looked like the fix - a real flag scala-reflect exposes for exactly this
+  // - but it did not change CI's answer at all: like isVal/isVar/isImplicit elsewhere in this
+  // migration, isPrimaryConstructor is itself source-level information scala.reflect.runtime.
+  // universe cannot recover from a Scala 3-compiled class's TASTy-less classfile, so it was
+  // silently false for both alternatives and the .getOrElse(.head) fallback fired every time -
+  // functionally unchanged from the plain positional pick it was meant to replace.
+  //
+  // What actually distinguishes them is JVM-visible and needs no TASTy: a case class's primary
+  // constructor parameters are exactly its declared instance fields (that's what `case class`
+  // compiles to), while an auxiliary constructor's parameters generally are not - `jObject` above
+  // is consumed to compute the real fields, not stored as one itself. Field names are ordinary
+  // classfile metadata, so this reads identically regardless of which compiler or environment
+  // produced the class.
+  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = {
+    val alternatives = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.map(_.asMethod)
+    if (alternatives.size <= 1) alternatives.head
+    else {
+      val declaredFieldNames = runtimeClass(tp).getDeclaredFields.map(_.getName).toSet
+      def paramNames(ctor: MethodSymbol): Set[String] =
+        ctor.paramLists.headOption.getOrElse(Nil).map(_.name.decodedName.toString.trim).toSet
+      val candidates = alternatives.filter(ctor => paramNames(ctor).nonEmpty && paramNames(ctor).subsetOf(declaredFieldNames))
+      // More than one candidate is possible when an auxiliary constructor's parameters are a
+      // strict subset of another candidate's - e.g. BankCommons has a 9-field primary
+      // constructor and a 7-field auxiliary one whose names are all real fields too, so both
+      // pass the filter above. `.find` (first match) then depended on `alternatives`' order,
+      // which this whole fix exists because that order is not guaranteed.
+      //
+      // The primary constructor's parameters are exactly the case class's declared fields - not
+      // merely the most of them among the candidates. Selecting by exact set equality rather
+      // than by size means a class with no fields beyond its primary constructor's own (the
+      // common case, true for BankCommons) has AT MOST ONE candidate that can ever match this -
+      // two same-size auxiliary constructors, an ordering-dependent tie a size-only comparison
+      // would have to break arbitrarily, can never satisfy it, since neither individually spans
+      // every declared field. Only when the class has fields beyond any constructor's own (an
+      // extra body-declared val) can no candidate match exactly; size is the closest fallback
+      // signal for that narrower case, so it stays as a fallback rather than being replaced by it.
+      //
+      // Known residual gap: this compares parameter NAMES only, not types or order. Two
+      // constructors whose parameter names are both exactly declaredFieldNames but differ in
+      // type or position (a legal overload - e.g. `def this(a: String, b: Int) = this(b, a)`
+      // alongside a primary `(a: Int, b: String)`) would both satisfy `==` here, so `.find`
+      // would again depend on `alternatives`' order for that specific shape. No class in this
+      // codebase does this (it is an unusual way to write an auxiliary constructor), and closing
+      // it would mean comparing parameter types too - itself cross-compiler reflection this
+      // migration keeps finding gaps in - so it is left as a known limitation rather than an
+      // unverified fix, not silently assumed away.
+      candidates.find(ctor => paramNames(ctor) == declaredFieldNames)
+        .orElse(candidates.maxByOption(ctor => paramNames(ctor).size))
+        .getOrElse(alternatives.head)
+    }
+  }
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
 
@@ -679,27 +863,35 @@ object ReflectUtils {
     if(expectType.typeSymbol.isAbstract) {
       throw new IllegalArgumentException(s"expected type is abstract: $expectType")
     }
-    val constructor: ru.MethodSymbol = expectType.decl(ru.termNames.CONSTRUCTOR).alternatives(0).asMethod
+    // getPrimaryConstructor, not a raw alternatives(0) pick - see its own doc for why: a type
+    // with more than one constructor (e.g. BankCommons, whose 7-param auxiliary constructor's
+    // names are all real fields too) has no guaranteed order to `alternatives`, so picking by
+    // position silently returns the wrong constructor depending on the JVM/environment.
+    val constructor: ru.MethodSymbol = getPrimaryConstructor(expectType)
     val mirrorClass: ru.ClassMirror = mirror.reflectClass(expectType.typeSymbol.asClass)
 
     val paramNames = constructor.paramLists(0).map(_.name.toString)
     val mirrorObj = mirror.reflect(t)
     val info = mirrorObj.symbol.info
-    val methodSymbols = paramNames.map(name => {
+    // A same-named source member that isn't a call-by-name method is usually a plain val/var
+    // (case class constructor params reflect that way), not the mismatched "attributes" field
+    // the previous code always fell back to for any non-method symbol - that fallback threw
+    // ScalaReflectionException: <none> is not a method as soon as a source field it was pointed
+    // at was a val rather than a def. Kept as the last resort, for whatever original case (some
+    // dynamic/attribute-bag source shape) actually needed it.
+    val seq = paramNames.map(name => {
       val nameSymbol = info.decl(ru.TermName(name))
-      if(nameSymbol.isMethod) {
-        nameSymbol.asMethod
+      if (nameSymbol.isMethod) {
+        mirrorObj.reflectMethod(nameSymbol.asMethod)()
+      } else if (nameSymbol.isTerm && (nameSymbol.asTerm.isVal || nameSymbol.asTerm.isVar)) {
+        mirrorObj.reflectField(nameSymbol.asTerm).get
       } else {
-        info.member(ru.TermName("attributes")).asMethod
+        mirrorObj.reflectMethod(info.member(ru.TermName("attributes")).asMethod)()
       }
     })
-    val methodMirrors: Seq[ru.MethodMirror] = methodSymbols.map(mirrorObj.reflectMethod(_))
-    val seq = methodMirrors.map(_())
 
     mirrorClass.reflectConstructor(constructor).apply(seq :_*).asInstanceOf[T]
   }
-
-  def toOther[T: TypeTag](t: Any): T = toOther[T](t, typeTag[T].tpe)
 
   def toOther[T](t: Any, typeName: String): T = {
     val tp: ru.Type = mirror.staticClass(typeName).toType
@@ -759,30 +951,6 @@ object ReflectUtils {
     }
   }
 
-
-  /**
-    * convert a group of object to it's siblings
-    * @param items will do convert
-    * @tparam T expected type
-    * @return expected values
-    */
-  def toOthers[T: TypeTag](items: List[_]): List[T] = items.map(toOther[T](_))
-
-  // the follow four currying function is for implicit usage, to convert trait type to commons case class
-  // `D <% T` was view-bound syntax; it desugars to exactly the implicit parameter written out here.
-  def toSibling[T, D: TypeTag](implicit ev: D => T): T => D = (t: T) => toOther[D](t)
-
-
-  def toSiblings[T, D: TypeTag](implicit ev: D => T): List[T] => List[D] = (items: List[T]) => toOthers[D](items)
-
-
-  def toSiblingBox[T, D: TypeTag](implicit ev: D => T): Box[T] => Box[D] = (box: Box[T]) => box.map(toOther[D](_))
-
-  def toSiblingsBox[T, D: TypeTag](implicit ev: D => T): Box[List[T]] => Box[List[D]] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
-
-  def toSiblingOption[T, D: TypeTag](implicit ev: D => T): Option[T] => Option[D] = (option: Option[T]) => option.map(toOther[D](_))
-
-  def toSiblingsOption[T, D: TypeTag](implicit ev: D => T): Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
 
   /**
    * get the value by the field name, see the usage :

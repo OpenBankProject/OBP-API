@@ -57,7 +57,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       case null => JNull // not need do serialize
     }
   }
-  override implicit val formats = CustomJsonFormats.formats + ProductSerializer + ApiRoleSerializer
+  override implicit val formats: org.json4s.Formats = CustomJsonFormats.formats + ProductSerializer + ApiRoleSerializer
 
   /**
    * API_Explorer side use this method, so it need to be right. 
@@ -70,8 +70,8 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
   }
   
   
-  feature(s"test ${ApiEndpoint1.name} ") {
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v5.0.0/v5.1.0 ", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test ${ApiEndpoint1.name} ") {
+    Scenario(s"We will test ${ApiEndpoint1.name} Api - v5.0.0/v5.1.0 ", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "swagger").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
@@ -83,7 +83,19 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       errors.isEmpty should be (true)
     }
     
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v4.0.0", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will test ${ApiEndpoint1.name} Api - v7.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV5_1Request / "resource-docs" / "v7.0.0" / "swagger").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      responseGetObp.code should equal(200)
+      val swaggerJsonString = json.compactRender(responseGetObp.body)
+      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
+      val errors = validatedSwaggerResult._1
+      if (!errors.isEmpty) logger.info(s"Here is the wrong swagger json:    $swaggerJsonString")
+      errors.isEmpty should be (true)
+    }
+
+    Scenario(s"We will test ${ApiEndpoint1.name} Api - v4.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "swagger").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
@@ -95,7 +107,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       errors.isEmpty should be (true)
     }
 
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v1.2.1", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will test ${ApiEndpoint1.name} Api - v1.2.1", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.2.1" / "swagger").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
@@ -154,8 +166,8 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
 
   // Additional tests to verify that the Swagger/OpenAPI endpoints respect the resource_docs_requires_role prop.
   // These are minimal checks that mirror the behaviour validated elsewhere (Lift/http4s tests).
-  feature(s"Swagger & OpenAPI access control for resource_docs_requires_role") {
-    scenario("Swagger - public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Swagger & OpenAPI access control for resource_docs_requires_role") {
+    Scenario("Swagger - public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
       setPropsValues(
         "resource_docs_requires_role" -> "false",
       )
@@ -164,7 +176,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       responseGetSwagger.code should equal(200)
     }
 
-    scenario("Swagger - unauthenticated rejected when resource_docs_requires_role is true", ApiEndpoint1, VersionOfApi) {
+    Scenario("Swagger - unauthenticated rejected when resource_docs_requires_role is true", ApiEndpoint1, VersionOfApi) {
       setPropsValues(
         "resource_docs_requires_role" -> "true",
       )
@@ -175,7 +187,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       responseGetSwagger.body.toString should include(AuthenticatedUserIsRequired)
     }
 
-    scenario("Swagger - authenticated but missing role gets 403", ApiEndpoint1, VersionOfApi) {
+    Scenario("Swagger - authenticated but missing role gets 403", ApiEndpoint1, VersionOfApi) {
       setPropsValues(
         "resource_docs_requires_role" -> "true",
       )
@@ -186,7 +198,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       responseGetSwagger.body.toString should include(ApiRole.canReadResourceDoc.toString())
     }
 
-    scenario("Swagger - authenticated and entitled canReadResourceDoc returns 200", ApiEndpoint1, VersionOfApi) {
+    Scenario("Swagger - authenticated and entitled canReadResourceDoc returns 200", ApiEndpoint1, VersionOfApi) {
       setPropsValues(
         "resource_docs_requires_role" -> "true",
       )
@@ -198,7 +210,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
     }
 
     // OpenAPI JSON checks (v6.0.0 used elsewhere for OpenAPI tests)
-    scenario("OpenAPI JSON - public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
+    Scenario("OpenAPI JSON - public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
       setPropsValues(
         "resource_docs_requires_role" -> "false",
       )
@@ -207,7 +219,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       responseGetOpenAPI.code should equal(200)
     }
 
-    scenario("OpenAPI JSON - unauthenticated rejected when resource_docs_requires_role is true", ApiEndpoint1, VersionOfApi) {
+    Scenario("OpenAPI JSON - unauthenticated rejected when resource_docs_requires_role is true", ApiEndpoint1, VersionOfApi) {
       setPropsValues(
         "resource_docs_requires_role" -> "true",
       )
@@ -217,7 +229,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       responseGetOpenAPI.body.toString should include(AuthenticatedUserIsRequired)
     }
 
-    scenario("OpenAPI YAML - raw response: public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
+    Scenario("OpenAPI YAML - raw response: public access when resource_docs_requires_role is false", ApiEndpoint1, VersionOfApi) {
       setPropsValues(
         "resource_docs_requires_role" -> "false",
       )
@@ -233,14 +245,14 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
     // setup where only ResourceDocs600 registered them. The gate was removed
     // because the spec content only depends on the API-version path segment,
     // not on the URL prefix. Verify a non-v6 prefix is now served.
-    scenario("OpenAPI JSON - served for non-v6.0.0 URL prefix (v5.1.0)", ApiEndpoint1, VersionOfApi) {
+    Scenario("OpenAPI JSON - served for non-v6.0.0 URL prefix (v5.1.0)", ApiEndpoint1, VersionOfApi) {
       setPropsValues("resource_docs_requires_role" -> "false")
       val req = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "openapi").GET <<? List(("tags", "Consumer"))
       val resp = makeGetRequest(req)
       resp.code should equal(200)
     }
 
-    scenario("OpenAPI YAML - served for non-v6.0.0 URL prefix (v5.1.0)", ApiEndpoint1, VersionOfApi) {
+    Scenario("OpenAPI YAML - served for non-v6.0.0 URL prefix (v5.1.0)", ApiEndpoint1, VersionOfApi) {
       setPropsValues("resource_docs_requires_role" -> "false")
       val req = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "openapi.yaml").GET <<? List(("tags", "Consumer"))
       val resp = makeGetRequest(req)
@@ -254,7 +266,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
   //
   // The runtime side is pinned by ResourceDocMiddlewareEnableDisablePropsTest's
   // "cascade reachability survives api_disabled_versions on the middle version"
-  // feature (commit 9c9b5fee3 — the NMB fix where `Add Entitlement for User`
+  // Feature(commit 9c9b5fee3 — the NMB fix where `Add Entitlement for User`
   // disappeared because the operator skipped v2.0.0 in api_enabled_versions).
   // This feature pins the *documentation* side: a newer version's
   // /resource-docs/.../obp response must include the v2.0.0-origin endpoints
@@ -266,9 +278,9 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
   // versionIsAllowed(rd.implementedInApiVersion), or the OBPAPI{version}
   // cascade chain breaks, these scenarios will fail and force a re-think
   // before the change ships.
-  feature("ResourceDoc listing — v2.0.0-origin endpoints cascade into newer versions' docs") {
+  Feature("ResourceDoc listing — v2.0.0-origin endpoints cascade into newer versions' docs") {
 
-    scenario("GET /obp/v6.0.0/resource-docs/v6.0.0/obp lists the v2.0.0-origin addEntitlement endpoint", ApiEndpoint1, VersionOfApi) {
+    Scenario("GET /obp/v6.0.0/resource-docs/v6.0.0/obp lists the v2.0.0-origin addEntitlement endpoint", ApiEndpoint1, VersionOfApi) {
       Given("api_enabled_versions skips v2.0.0 (matching the NMB-reported config)")
       setPropsValues(
         "resource_docs_requires_role" -> "false",
@@ -286,7 +298,7 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       opIds.exists(_.contains("addEntitlement")) shouldBe true
     }
 
-    scenario("requested API version v6.0.0 surfaces a non-trivial number of v2.0.0-origin endpoints — proves the whole cascade, not one doc", ApiEndpoint1, VersionOfApi) {
+    Scenario("requested API version v6.0.0 surfaces a non-trivial number of v2.0.0-origin endpoints — proves the whole cascade, not one doc", ApiEndpoint1, VersionOfApi) {
       setPropsValues("resource_docs_requires_role" -> "false")
       val resp = makeGetRequest((ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "obp").GET)
       resp.code should equal(200)

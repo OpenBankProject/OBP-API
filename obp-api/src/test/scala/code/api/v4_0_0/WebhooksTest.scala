@@ -55,9 +55,8 @@ class WebhooksTest extends V400ServerSetup {
   val postJsonIncorrectHttpMethod = SwaggerDefinitionsJSON.accountNotificationWebhookPostJson.copy(http_method="GET")
   val postJsonIncorrectHttpProtocol = SwaggerDefinitionsJSON.accountNotificationWebhookPostJson.copy(http_protocol="HTTP/1.0")
 
-  feature("createBankAccountNotificationWebhook - Unauthorized access")
-  {
-    scenario(s"We will try to create the web hook without user credentials $ApiEndpoint1", ApiEndpoint1, VersionOfApi) {
+  Feature("createBankAccountNotificationWebhook - Unauthorized access") {
+    Scenario(s"We will try to create the web hook without user credentials $ApiEndpoint1", ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request  / "web-hooks" / "account" / "notifications" / "on-create-transaction").POST
@@ -68,7 +67,7 @@ class WebhooksTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
-    scenario(s"We will try to create the web hook without user credentials $ApiEndpoint2", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will try to create the web hook without user credentials $ApiEndpoint2", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "web-hooks" / "account" / "notifications" / "on-create-transaction").POST
@@ -81,9 +80,8 @@ class WebhooksTest extends V400ServerSetup {
     
   }
 
-  feature(s"createSystemAccountNotificationWebhook - Authorized access $ApiEndpoint1")
-  {
-    scenario("We will try to create the web hook without a proper Role " + canCreateSystemAccountNotificationWebhook, ApiEndpoint1, VersionOfApi) {
+  Feature(s"createSystemAccountNotificationWebhook - Authorized access $ApiEndpoint1") {
+    Scenario("We will try to create the web hook without a proper Role " + canCreateSystemAccountNotificationWebhook, ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v4.0.0 without a Role " + canCreateSystemAccountNotificationWebhook)
       val request400 = (v4_0_0_Request / "web-hooks" / "account" / "notifications" / "on-create-transaction").POST <@ (user1)
@@ -96,7 +94,7 @@ class WebhooksTest extends V400ServerSetup {
       errorMessage contains (CanCreateSystemAccountNotificationWebhook.toString()) should be (true)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateSystemAccountNotificationWebhook + " but without proper http method ", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateSystemAccountNotificationWebhook + " but without proper http method ", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemAccountNotificationWebhook.toString)
       When("We make a request v4.0.0 with a Role " + canCreateSystemAccountNotificationWebhook)
@@ -109,7 +107,7 @@ class WebhooksTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should include (failMsg)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateSystemAccountNotificationWebhook + " but without proper http protocal ", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateSystemAccountNotificationWebhook + " but without proper http protocal ", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemAccountNotificationWebhook.toString)
       When("We make a request v4.0.0 with a Role " + canCreateSystemAccountNotificationWebhook)
@@ -122,7 +120,7 @@ class WebhooksTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should include (failMsg)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateSystemAccountNotificationWebhook, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateSystemAccountNotificationWebhook, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemAccountNotificationWebhook.toString)
       When("We make a request v4.0.0 with a Role " + canCreateSystemAccountNotificationWebhook)
@@ -135,9 +133,8 @@ class WebhooksTest extends V400ServerSetup {
 
   }
   
-  feature(s"createBankAccountNotificationWebhook - Authorized access $ApiEndpoint2")
-  {
-    scenario("We will try to create the web hook without a proper Role " + canCreateAccountNotificationWebhookAtOneBank, ApiEndpoint2, VersionOfApi) {
+  Feature(s"createBankAccountNotificationWebhook - Authorized access $ApiEndpoint2") {
+    Scenario("We will try to create the web hook without a proper Role " + canCreateAccountNotificationWebhookAtOneBank, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v4.0.0 without a Role " + canCreateAccountNotificationWebhookAtOneBank)
       val request400 = (v4_0_0_Request / "banks" / bankId / "web-hooks" / "account" / "notifications" / "on-create-transaction").POST <@ (user1)
@@ -150,7 +147,7 @@ class WebhooksTest extends V400ServerSetup {
       errorMessage contains (CanCreateAccountNotificationWebhookAtOneBank.toString()) should be (true)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateAccountNotificationWebhookAtOneBank + " but without proper http method ", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateAccountNotificationWebhookAtOneBank + " but without proper http method ", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateAccountNotificationWebhookAtOneBank.toString)
       When("We make a request v4.0.0 with a Role " + canCreateAccountNotificationWebhookAtOneBank)
@@ -163,7 +160,7 @@ class WebhooksTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should include (failMsg)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateAccountNotificationWebhookAtOneBank + " but without proper http protocal ", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateAccountNotificationWebhookAtOneBank + " but without proper http protocal ", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateAccountNotificationWebhookAtOneBank.toString)
       When("We make a request v4.0.0 with a Role " + canCreateAccountNotificationWebhookAtOneBank)
@@ -176,7 +173,7 @@ class WebhooksTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should include (failMsg)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateAccountNotificationWebhookAtOneBank, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateAccountNotificationWebhookAtOneBank, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateAccountNotificationWebhookAtOneBank.toString)
       When("We make a request v4.0.0 with a Role " + canCreateAccountNotificationWebhookAtOneBank)

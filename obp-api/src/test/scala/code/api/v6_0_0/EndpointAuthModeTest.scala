@@ -13,9 +13,9 @@ class EndpointAuthModeTest extends V600ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
 
-  feature("EndpointAuthMode sealed trait") {
+  Feature("EndpointAuthMode sealed trait") {
 
-    scenario("All four auth modes should be defined", VersionOfApi) {
+    Scenario("All four auth modes should be defined", VersionOfApi) {
       val userOnly: EndpointAuthMode = UserOnly
       val appOnly: EndpointAuthMode = ApplicationOnly
       val userOrApp: EndpointAuthMode = UserOrApplication
@@ -27,7 +27,7 @@ class EndpointAuthModeTest extends V600ServerSetup {
       userAndApp shouldBe a[EndpointAuthMode]
     }
 
-    scenario("verifyUserCredentials ResourceDoc should have UserOrApplication authMode", VersionOfApi) {
+    Scenario("verifyUserCredentials ResourceDoc should have UserOrApplication authMode", VersionOfApi) {
       val operationId = buildOperationId(ApiVersion.v6_0_0, "verifyUserCredentials")
       val docs = ResourceDoc.getResourceDocs(List(operationId))
 
@@ -38,7 +38,7 @@ class EndpointAuthModeTest extends V600ServerSetup {
       }
     }
 
-    scenario("Default authMode should be UserOnly for existing endpoints", VersionOfApi) {
+    Scenario("Default authMode should be UserOnly for existing endpoints", VersionOfApi) {
       val operationId = buildOperationId(ApiVersion.v6_0_0, "root")
       val docs = ResourceDoc.getResourceDocs(List(operationId))
 
@@ -48,7 +48,7 @@ class EndpointAuthModeTest extends V600ServerSetup {
       }
     }
 
-    scenario("handleAccessControlWithAuthMode should pass for empty roles", VersionOfApi) {
+    Scenario("handleAccessControlWithAuthMode should pass for empty roles", VersionOfApi) {
       val result = handleAccessControlWithAuthMode("", "", "", Nil, UserOnly)
       result should equal(true)
     }

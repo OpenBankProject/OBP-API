@@ -5,7 +5,6 @@ import code.api.util.{APIUtil, CommonsEmailWrapper}
 import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.Helper.MdcLoggable
-import net.liftweb.mapper.By
 
 import java.util.Date
 import java.util.concurrent.TimeUnit
@@ -100,8 +99,8 @@ object ChatEmailDigestScheduler extends MdcLoggable {
       // verified the email before ever issuing tokens for it.
       val isLocalUser = user.provider == code.api.Constant.localIdentityProvider
       val emailValidated = !isLocalUser || AuthUser
-        .find(By(AuthUser.user, user.userPrimaryKey.value))
-        .map(_.validated.get)
+        .findByResourceUserPrimaryKey(user.userPrimaryKey.value)
+        .map(_.validated)
         .getOrElse(false)
       if (!emailValidated) {
         logger.debug(s"chat digest skipped for user $userId: email not validated")

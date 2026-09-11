@@ -9,14 +9,15 @@ import com.nimbusds.jose.crypto.MACSigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import net.liftweb.common.{Failure, Full}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pure tests for the FAPI / RFC 8705 sender-constrained token decision: no server, no props,
  * no TLS handshake — the mode and both inputs are passed explicitly, exactly so that every
  * row of the decision table can be exercised here.
  */
-class TokenBindingTest extends FlatSpec with Matchers {
+class TokenBindingTest extends AnyFlatSpec with Matchers {
 
   private def certFor(cn: String): X509Certificate =
     generateSelfSignedCert(cn)._2.asInstanceOf[X509Certificate]

@@ -56,7 +56,7 @@ object RegulatedEntityNewStyle {
     callContext: Option[CallContext]
   ): OBPReturnType[List[RegulatedEntityTrait]] = {
     Connector.connector.vend.getRegulatedEntities(callContext: Option[CallContext]) map { i =>
-      (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponse ${nameOf(Connector.connector.vend.getRegulatedEntities _)} ", 400 ), i._2)
+      (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponse getRegulatedEntities ", 400 ), i._2)
     }
   }
   def getRegulatedEntityByEntityIdNewStyle(
@@ -64,7 +64,7 @@ object RegulatedEntityNewStyle {
     callContext: Option[CallContext]
   ): OBPReturnType[RegulatedEntityTrait] = {
     Connector.connector.vend.getRegulatedEntityByEntityId(id, callContext: Option[CallContext]) map { i =>
-      (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponse ${nameOf(Connector.connector.vend.getRegulatedEntityByEntityId _)} ", 400 ), i._2)
+      (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponse getRegulatedEntityByEntityId ", 400 ), i._2)
     }
   }
   def deleteRegulatedEntityNewStyle(id: String,

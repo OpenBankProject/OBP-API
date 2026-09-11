@@ -136,8 +136,15 @@ trait PropsReset extends BeforeAndAfterAll with BeforeAndAfterEach {
   }
 
   private def getLockedProviders: List[Map[String, String]] = {
-    FieldUtils.readDeclaredField(Props, "net$liftweb$util$Props$$lockedProviders", true)
-      .asInstanceOf[List[Map[String, String]]]
+    // Props initializes lazily, so this field is null until something has touched Props. A
+    // suite that mixes in this trait without otherwise using Props (a pure unit suite, say)
+    // would then NPE in beforeAll before running a single test - which is a confusing way to
+    // learn that the suite needed to touch Props first. Reading Props.mode forces the
+    // initializer; the null fallback covers the field simply not being populated yet.
+    Props.mode
+    Option(FieldUtils.readDeclaredField(Props, "net$liftweb$util$Props$$lockedProviders", true))
+      .map(_.asInstanceOf[List[Map[String, String]]])
+      .getOrElse(Nil)
   }
 
   private def writeLockedProviders(value: List[Map[String, String]]): Unit = {

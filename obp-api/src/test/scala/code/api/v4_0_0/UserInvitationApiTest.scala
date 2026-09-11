@@ -30,8 +30,8 @@ class UserInvitationApiTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getUserInvitations))
 
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitation").POST
       val postJson = SwaggerDefinitionsJSON.userInvitationPostJsonV400
@@ -41,8 +41,8 @@ class UserInvitationApiTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitation").POST <@(user1)
       val postJson = SwaggerDefinitionsJSON.userInvitationPostJsonV400
@@ -52,8 +52,8 @@ class UserInvitationApiTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanCreateUserInvitation)
     }
   }
-  feature(s"test $ApiEndpoint1 and $ApiEndpoint4 version $VersionOfApi - Successful response") {
-    scenario("We will call the endpoint with required entitlements", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 and $ApiEndpoint4 version $VersionOfApi - Successful response") {
+    Scenario("We will call the endpoint with required entitlements", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserInvitation.toString)
       Then("We make a request v4.0.0")
@@ -77,8 +77,8 @@ class UserInvitationApiTest extends V400ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitations").POST <@(user1)
       val postJson = PostUserInvitationAnonymousJsonV400(secret_key = 0L)
@@ -89,8 +89,8 @@ class UserInvitationApiTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitations" / "secret-link").GET
       val response400 = makeGetRequest(request400)
@@ -99,8 +99,8 @@ class UserInvitationApiTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitations" / "secret-link").GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -110,8 +110,8 @@ class UserInvitationApiTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitations").GET
       val response400 = makeGetRequest(request400)
@@ -120,8 +120,8 @@ class UserInvitationApiTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId1.value / "user-invitations").GET <@(user1)
       val response400 = makeGetRequest(request400)

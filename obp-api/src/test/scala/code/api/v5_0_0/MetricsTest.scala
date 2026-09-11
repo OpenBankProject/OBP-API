@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanGetMetricsAtOneBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_1_0.MetricsJson
@@ -67,8 +68,8 @@ class MetricsTest extends V500ServerSetup {
     makeGetRequest(request)
   }
 
-  feature(s"test $apiEndpointName version $versionName - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $apiEndpointName version $versionName - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response400 = getMetrics(None, bankId)
       Then("We should get a 401")
@@ -76,8 +77,8 @@ class MetricsTest extends V500ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $apiEndpointName version $versionName - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $apiEndpointName version $versionName - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val response400 = getMetrics(user1, bankId)
       Then("We should get a 403")
@@ -85,8 +86,8 @@ class MetricsTest extends V500ServerSetup {
       response400.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetricsAtOneBank) should be (true)
     }
   }
-  feature(s"test $apiEndpointName version $versionName - Authorized access with proper Role") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $apiEndpointName version $versionName - Authorized access with proper Role") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetMetricsAtOneBank.toString)
       val response400 = getMetrics(user1, bankId)

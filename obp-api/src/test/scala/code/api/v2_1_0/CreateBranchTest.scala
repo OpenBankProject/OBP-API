@@ -20,9 +20,9 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature("Assuring that endpoint 'Update Branch' works as expected - v2.1.0") {
+  Feature("Assuring that endpoint 'Update Branch' works as expected - v2.1.0") {
 
-    scenario("Update branch successfully ") {
+    Scenario("Update branch successfully ") {
 
       Given("The Bank_ID and Branch_ID")
       val testBank = createBank("testBankId")
@@ -56,7 +56,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       nameResponse should equal("OBP")
     }
 
-    scenario("Update the same data, the data will be updated") {
+    Scenario("Update the same data, the data will be updated") {
       Given("The user ower access and BankAccount")
       val testBank = createBank("testBankId")
       val bankId = testBank.bankId
@@ -96,11 +96,11 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Assuring that endpoint 'Create Branch' works as expected - v2.1.0") {
+  Feature("Assuring that endpoint 'Create Branch' works as expected - v2.1.0") {
 
  
 
-    scenario("Create branch successfully ") {
+    Scenario("Create branch successfully ") {
 
       Given("The user ower access and BankAccount")
       val testBank = createBank("testBankId")
@@ -137,7 +137,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
     }
 
-    scenario("Create the same data again, the data will be updated") {
+    Scenario("Create the same data again, the data will be updated") {
       Given("The user ower access and BankAccount")
       val testBank = createBank("testBankId")
       val bankId = testBank.bankId

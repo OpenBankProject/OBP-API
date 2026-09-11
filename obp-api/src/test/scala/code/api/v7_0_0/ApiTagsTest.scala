@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.v7_0_0.Http4s700.Implementations7_0_0
 import code.api.v7_0_0.JSONFactory700.ApiTagsJsonV700
 import code.setup.ServerSetupWithTestData
@@ -20,8 +21,8 @@ class ApiTagsTest extends ServerSetupWithTestData {
 
   def v7 = baseRequest / "obp" / "v7.0.0"
 
-  feature(s"test ${GetApiTags}") {
-    scenario("anonymous GET returns every tag with an endpoint count", GetApiTags, VersionOfApi) {
+  Feature(s"test ${GetApiTags}") {
+    Scenario("anonymous GET returns every tag with an endpoint count", GetApiTags, VersionOfApi) {
       When("we call the endpoint without authentication")
       val response = makeGetRequest(v7 / "api" / "tags")
 
@@ -53,7 +54,7 @@ class ApiTagsTest extends ServerSetupWithTestData {
       json.tags.sortBy(t => (-t.number_of_endpoints, t.tag)) should equal(json.tags)
     }
 
-    scenario("the v5.1.0 GET /tags name list is a subset of the v7.0.0 tags", GetApiTags, VersionOfApi) {
+    Scenario("the v5.1.0 GET /tags name list is a subset of the v7.0.0 tags", GetApiTags, VersionOfApi) {
       val v7Tags = makeGetRequest(v7 / "api" / "tags").body.extract[ApiTagsJsonV700].tags.map(_.tag).toSet
       val v51 = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "tags")
       v51.code should equal(200)

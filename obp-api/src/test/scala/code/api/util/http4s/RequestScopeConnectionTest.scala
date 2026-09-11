@@ -5,11 +5,13 @@ import cats.effect.unsafe.IORuntime
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.ConnectionManager
 import net.liftweb.util.{ConnectionIdentifier, DefaultConnectionIdentifier}
-import org.scalatest.{BeforeAndAfter, FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.{BeforeAndAfter, GivenWhenThen}
 
 import java.lang.reflect.{InvocationHandler, Method, Proxy => JProxy}
 import java.sql.Connection
 import scala.concurrent.{ExecutionContext, Future}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for the request-scoped transaction infrastructure:
@@ -21,7 +23,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * mocking framework is needed.  The `after` block resets the global TTL so
  * that tests do not bleed state into each other.
  */
-class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhenThen with BeforeAndAfter {
+class RequestScopeConnectionTest extends AnyFeatureSpec with Matchers with GivenWhenThen with BeforeAndAfter {
 
   // Use the OBP EC so TtlRunnable wraps every Future submission — required for
   // the TTL propagation scenarios.
@@ -75,9 +77,9 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
 
   // ─── makeProxy ───────────────────────────────────────────────────────────────
 
-  feature("RequestScopeConnection.makeProxy — lifecycle methods are no-ops") {
+  Feature("RequestScopeConnection.makeProxy — lifecycle methods are no-ops") {
 
-    scenario("commit on the proxy does not reach the real connection") {
+    Scenario("commit on the proxy does not reach the real connection") {
       Given("A tracked real connection wrapped in a proxy")
       val t     = new ConnectionTracker
       val proxy = RequestScopeConnection.makeProxy(trackingConn(t))
@@ -89,7 +91,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       t.commitCount shouldBe 0
     }
 
-    scenario("rollback on the proxy does not reach the real connection") {
+    Scenario("rollback on the proxy does not reach the real connection") {
       Given("A tracked real connection wrapped in a proxy")
       val t     = new ConnectionTracker
       val proxy = RequestScopeConnection.makeProxy(trackingConn(t))
@@ -101,7 +103,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       t.rollbackCount shouldBe 0
     }
 
-    scenario("close on the proxy does not reach the real connection") {
+    Scenario("close on the proxy does not reach the real connection") {
       Given("A tracked real connection wrapped in a proxy")
       val t     = new ConnectionTracker
       val proxy = RequestScopeConnection.makeProxy(trackingConn(t))
@@ -113,7 +115,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       t.closeCount shouldBe 0
     }
 
-    scenario("non-lifecycle methods are forwarded to the real connection") {
+    Scenario("non-lifecycle methods are forwarded to the real connection") {
       Given("A tracked real connection wrapped in a proxy")
       val t     = new ConnectionTracker
       val proxy = RequestScopeConnection.makeProxy(trackingConn(t))
@@ -128,9 +130,9 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
 
   // ─── RequestAwareConnectionManager.newConnection ─────────────────────────────
 
-  feature("RequestAwareConnectionManager.newConnection — proxy vs. delegate selection") {
+  Feature("RequestAwareConnectionManager.newConnection — proxy vs. delegate selection") {
 
-    scenario("Returns the request proxy when currentProxy TTL is populated") {
+    Scenario("Returns the request proxy when currentProxy TTL is populated") {
       Given("A proxy stored in the TTL")
       val proxy = RequestScopeConnection.makeProxy(trackingConn(new ConnectionTracker))
       RequestScopeConnection.currentProxy.set(proxy)
@@ -145,7 +147,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       result shouldBe Full(proxy)
     }
 
-    scenario("Falls through to the delegate when TTL holds null") {
+    Scenario("Falls through to the delegate when TTL holds null") {
       Given("No proxy in the TTL")
       RequestScopeConnection.currentProxy.set(null)
 
@@ -163,9 +165,9 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
 
   // ─── RequestAwareConnectionManager.releaseConnection ─────────────────────────
 
-  feature("RequestAwareConnectionManager.releaseConnection — proxy is never released") {
+  Feature("RequestAwareConnectionManager.releaseConnection — proxy is never released") {
 
-    scenario("Releasing the proxy is a no-op — the delegate is not called") {
+    Scenario("Releasing the proxy is a no-op — the delegate is not called") {
       Given("A proxy set in the TTL")
       val proxy = RequestScopeConnection.makeProxy(trackingConn(new ConnectionTracker))
       RequestScopeConnection.currentProxy.set(proxy)
@@ -184,7 +186,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       delegateReleased shouldBe false
     }
 
-    scenario("Releasing a non-proxy connection delegates normally") {
+    Scenario("Releasing a non-proxy connection delegates normally") {
       Given("No proxy in the TTL (null)")
       RequestScopeConnection.currentProxy.set(null)
 
@@ -206,9 +208,9 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
 
   // ─── RequestScopeConnection.fromFuture ───────────────────────────────────────
 
-  feature("RequestScopeConnection.fromFuture — TTL propagation to Future workers") {
+  Feature("RequestScopeConnection.fromFuture — TTL propagation to Future workers") {
 
-    scenario("Future observes the proxy via TTL when requestProxyLocal is populated") {
+    Scenario("Future observes the proxy via TTL when requestProxyLocal is populated") {
       Given("A proxy stored in requestProxyLocal")
       val proxy = RequestScopeConnection.makeProxy(trackingConn(new ConnectionTracker))
 
@@ -229,7 +231,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       seen should be theSameInstanceAs proxy
     }
 
-    scenario("Future observes null TTL when requestProxyLocal holds None") {
+    Scenario("Future observes null TTL when requestProxyLocal holds None") {
       Given("requestProxyLocal is None (no active request scope)")
       val program = for {
         _    <- RequestScopeConnection.requestProxyLocal.set(None)
@@ -245,7 +247,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       seen shouldBe null
     }
 
-    scenario("Future observes the proxy via TTL when acquired lazily through requestLazyAcquire") {
+    Scenario("Future observes the proxy via TTL when acquired lazily through requestLazyAcquire") {
       Given("requestProxyLocal is None but requestLazyAcquire holds an acquisition IO")
       val proxy = RequestScopeConnection.makeProxy(trackingConn(new ConnectionTracker))
       val acquireIO: IO[Connection] = IO.pure(proxy)
@@ -264,7 +266,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       seen should be theSameInstanceAs proxy
     }
 
-    scenario("Lazy acquisition is skipped when requestProxyLocal already holds a proxy") {
+    Scenario("Lazy acquisition is skipped when requestProxyLocal already holds a proxy") {
       Given("requestProxyLocal already holds a cached proxy")
       val cachedProxy  = RequestScopeConnection.makeProxy(trackingConn(new ConnectionTracker))
       var acquireCalled = false
@@ -286,7 +288,7 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
       acquireCalled shouldBe false
     }
 
-    scenario("fromFuture returns the value produced by the Future") {
+    Scenario("fromFuture returns the value produced by the Future") {
       Given("A simple Future that returns a known value")
       val program = for {
         _      <- RequestScopeConnection.requestProxyLocal.set(None)

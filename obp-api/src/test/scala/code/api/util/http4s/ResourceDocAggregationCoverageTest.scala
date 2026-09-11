@@ -37,19 +37,19 @@ class ResourceDocAggregationCoverageTest extends ServerSetup {
   private val listedVersions: List[String] =
     Http4sResourceDocAggregation.allVersions.map(c => "v" + c.version.dottedApiVersion.filter(_.isDigit))
 
-  feature("Http4sResourceDocAggregation.allVersions covers the catalogs it defines") {
+  Feature("Http4sResourceDocAggregation.allVersions covers the catalogs it defines") {
 
-    scenario("every per-version catalog declared on the object is listed in allVersions") {
+    Scenario("every per-version catalog declared on the object is listed in allVersions") {
       // Guards the reflection itself, so an empty result can never pass vacuously.
       declaredCatalogs should not be empty
       (declaredCatalogs -- listedVersions.toSet) shouldBe empty
     }
 
-    scenario("no version is listed twice") {
+    Scenario("no version is listed twice") {
       listedVersions.distinct.size should equal(listedVersions.size)
     }
 
-    scenario("versions are ordered oldest first, as the cumulative chain is") {
+    Scenario("versions are ordered oldest first, as the cumulative chain is") {
       val versions = Http4sResourceDocAggregation.allVersions.map(_.version.dottedApiVersion)
       versions should equal(versions.sortBy { v =>
         val p = v.split('.').map(_.toInt)

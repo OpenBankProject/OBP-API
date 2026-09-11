@@ -27,8 +27,8 @@ class AccountTest extends V510ServerSetup {
 
   lazy val bankId = randomBankId
 
-  feature(s"test ${GetCoreAccountByIdThroughView.name}") {
-    scenario(s"We will test ${GetCoreAccountByIdThroughView.name}", GetCoreAccountByIdThroughView, VersionOfApi) {
+  Feature(s"test ${GetCoreAccountByIdThroughView.name}") {
+    Scenario(s"We will test ${GetCoreAccountByIdThroughView.name}", GetCoreAccountByIdThroughView, VersionOfApi) {
 
       val requestGet = (v5_1_0_Request / "banks" / "BANK_ID" / "accounts" / "ACCOUNT_ID"/ "views" / "VIEW_ID").GET
 
@@ -40,15 +40,15 @@ class AccountTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test ${getAccountsHeldByUserAtBank.name}") {
-    scenario(s"We will test ${getAccountsHeldByUserAtBank.name}", getAccountsHeldByUserAtBank, VersionOfApi) {
+  Feature(s"test ${getAccountsHeldByUserAtBank.name}") {
+    Scenario(s"We will test ${getAccountsHeldByUserAtBank.name}", getAccountsHeldByUserAtBank, VersionOfApi) {
       val requestGet = (v5_1_0_Request / "users" / resourceUser2.userId / "banks" / bankId / "accounts-held").GET
       // Anonymous call fails
       val anonymousResponseGet = makeGetRequest(requestGet)
       anonymousResponseGet.code should equal(401)
       anonymousResponseGet.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario("We will call the endpoint with user credentials", getAccountsHeldByUserAtBank, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials", getAccountsHeldByUserAtBank, VersionOfApi) {
       When(s"We make a request $getAccountsHeldByUserAtBank")
       val requestGet = (v5_1_0_Request / "users" / resourceUser2.userId / "banks" / bankId / "accounts-held").GET <@(user1)
       val response = makeGetRequest(requestGet)
@@ -59,15 +59,15 @@ class AccountTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test ${GetAccountsHeldByUser.name}") {
-    scenario(s"We will test ${GetAccountsHeldByUser.name}", GetAccountsHeldByUser, VersionOfApi) {
+  Feature(s"test ${GetAccountsHeldByUser.name}") {
+    Scenario(s"We will test ${GetAccountsHeldByUser.name}", GetAccountsHeldByUser, VersionOfApi) {
       val requestGet = (v5_1_0_Request / "users" / resourceUser2.userId / "accounts-held").GET
       // Anonymous call fails
       val anonymousResponseGet = makeGetRequest(requestGet)
       anonymousResponseGet.code should equal(401)
       anonymousResponseGet.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario("We will call the endpoint with user credentials", GetAccountsHeldByUser, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials", GetAccountsHeldByUser, VersionOfApi) {
       When(s"We make a request $GetAccountsHeldByUser")
       val requestGet = (v5_1_0_Request / "users" / resourceUser2.userId / "accounts-held").GET <@(user1)
       val response = makeGetRequest(requestGet)
@@ -78,15 +78,15 @@ class AccountTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test ${SyncExternalUser.name}") {
-    scenario(s"We will test ${SyncExternalUser.name}", SyncExternalUser, VersionOfApi) {
+  Feature(s"test ${SyncExternalUser.name}") {
+    Scenario(s"We will test ${SyncExternalUser.name}", SyncExternalUser, VersionOfApi) {
       val request = (v5_1_0_Request / "users" / resourceUser2.provider / resourceUser2.idGivenByProvider / "sync").GET
       // Anonymous call fails
       val response = makePostRequest(request, write(""))
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario("We will call the endpoint with user credentials", SyncExternalUser, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials", SyncExternalUser, VersionOfApi) {
       When(s"We make a request $SyncExternalUser")
       val requestGet = (v5_1_0_Request / "users" / resourceUser2.provider / resourceUser2.idGivenByProvider / "sync").GET <@(user1)
       val response = makePostRequest(requestGet,  write(""))

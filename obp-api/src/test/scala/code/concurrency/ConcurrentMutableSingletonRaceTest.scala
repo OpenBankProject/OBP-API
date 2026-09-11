@@ -48,9 +48,9 @@ import java.util.UUID
  */
 class ConcurrentMutableSingletonRaceTest extends ConcurrentRaceSetup {
 
-  feature("Mutable singleton maps must be thread-safe") {
+  Feature("Mutable singleton maps must be thread-safe") {
 
-    scenario("H5: concurrent createSingletonObject calls must not lose writes or corrupt DynamicConnector.singletonObjectMap", ConcurrencyRace) {
+    Scenario("H5: concurrent createSingletonObject calls must not lose writes or corrupt DynamicConnector.singletonObjectMap", ConcurrencyRace) {
       Given("a set of unique keys to be registered concurrently in DynamicConnector.singletonObjectMap")
       val n    = 50
       val keys = (1 to n).map(i => s"__conc_h5_key_${i}_${UUID.randomUUID.toString.take(6)}")
@@ -71,7 +71,7 @@ class ConcurrentMutableSingletonRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("H7: concurrent maskWithCustomPattern calls must not corrupt SecureLogging.customPatternCache", ConcurrencyRace) {
+    Scenario("H7: concurrent maskWithCustomPattern calls must not corrupt SecureLogging.customPatternCache", ConcurrencyRace) {
       Given("a set of distinct regex patterns to be compiled and cached concurrently")
       val n        = 30
       val patterns = (1 to n).map(i => s"conc_h7_pattern_${i}_[a-z]+")
@@ -98,7 +98,7 @@ class ConcurrentMutableSingletonRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("H7b: the same pattern compiled concurrently must not corrupt the cache", ConcurrencyRace) {
+    Scenario("H7b: the same pattern compiled concurrently must not corrupt the cache", ConcurrencyRace) {
       Given("a single regex pattern that n threads will all compile into customPatternCache simultaneously")
       val n       = 30
       val pattern = s"conc_h7b_${UUID.randomUUID.toString.take(8)}_[0-9]+"
@@ -133,7 +133,7 @@ class ConcurrentMutableSingletonRaceTest extends ConcurrentRaceSetup {
       Modifier.isVolatile(f.getModifiers)
     }
 
-    scenario("M8: APIUtil.connectorToEndpoint must be a thread-safe concurrent map", ConcurrencyRace) {
+    Scenario("M8: APIUtil.connectorToEndpoint must be a thread-safe concurrent map", ConcurrencyRace) {
       Given("APIUtil.connectorToEndpoint, populated at startup and read on the resource-docs path")
       When("inspecting its concrete type")
       val isConcurrent = APIUtil.connectorToEndpoint.isInstanceOf[scala.collection.concurrent.Map[_, _]]
@@ -147,7 +147,7 @@ class ConcurrentMutableSingletonRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("H6: ObpLookupSystem.obpLookupSystem must be @volatile (visible across threads)", ConcurrencyRace) {
+    Scenario("H6: ObpLookupSystem.obpLookupSystem must be @volatile (visible across threads)", ConcurrencyRace) {
       Given("the lazily-initialised actor-system holder var")
       When("inspecting the field modifiers")
       val volatileField = fieldIsVolatile(ObpLookupSystem, "obpLookupSystem")
@@ -161,7 +161,7 @@ class ConcurrentMutableSingletonRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M9: ObpActorSystem.northSideAkkaConnectorActorSystem must be @volatile", ConcurrencyRace) {
+    Scenario("M9: ObpActorSystem.northSideAkkaConnectorActorSystem must be @volatile", ConcurrencyRace) {
       Given("the north-side Akka connector actor-system var")
       When("inspecting the field modifiers")
       val volatileField = fieldIsVolatile(ObpActorSystem, "northSideAkkaConnectorActorSystem")

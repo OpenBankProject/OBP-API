@@ -13,7 +13,6 @@ import net.liftweb.common.{Box, Empty}
 
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.mapper.By
 
 object BerlinGroupCheck extends MdcLoggable {
 
@@ -109,7 +108,7 @@ object BerlinGroupCheck extends MdcLoggable {
     val resultWithRequestIdUsedTwiceCheck: Option[(Box[User], Option[CallContext])] = {
       val alreadyUsed = maybeRequestId match {
         case Some(id) =>
-          MappedMetric.findAll(By(MappedMetric.correlationId, id), By(MappedMetric.verb, "POST"), By(MappedMetric.httpCode, 201)).nonEmpty
+          MappedMetric.existsCreatedWithCorrelationId(id)
         case None =>
           false
       }

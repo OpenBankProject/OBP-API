@@ -80,7 +80,7 @@ object Http4s140 {
           for {
             ucls <- Future { UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(user.userId) }
             matchingUcl <- Future {
-              ucls.find(x => CustomerX.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bank.bankId.value)
+              ucls.find(x => CustomerX.customerProvider.vend.getBankIdByCustomerId(x.customerId).exists(_ == bank.bankId.value))
                 .getOrElse(throw new RuntimeException(UserCustomerLinksNotFoundForUser))
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(matchingUcl.customerId, Some(cc))
@@ -328,7 +328,7 @@ object Http4s140 {
               s"$ViewDoesNotPermitAccess You need the `$CAN_SEE_TRANSACTION_REQUEST_TYPES` permission on the View(${view.viewId.value})",
               cc = Some(cc)
             ) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_SEE_TRANSACTION_REQUEST_TYPES)
+              ViewPermission.findViewPermissions(view).exists(_.permission == CAN_SEE_TRANSACTION_REQUEST_TYPES)
             }
             (transactionRequestTypes, cc2) <- Future {
               connectorEmptyResponse(

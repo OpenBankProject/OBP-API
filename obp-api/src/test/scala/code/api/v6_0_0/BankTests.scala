@@ -36,9 +36,9 @@ class BankTests extends V600ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.createBank))
 
-  feature(s"Assuring that endpoint createBank works as expected - $VersionOfApi") {
+  Feature(s"Assuring that endpoint createBank works as expected - $VersionOfApi") {
 
-    scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val request = (v6_0_0_Request / "banks").POST
       val response = makePostRequest(request, write(postBankJson600))
@@ -48,7 +48,7 @@ class BankTests extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val request = (v6_0_0_Request / "banks").POST <@ (user1)
       val response = makePostRequest(request, write(postBankJson600))
@@ -58,7 +58,7 @@ class BankTests extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateBank)
     }
 
-    scenario("Successfully create a bank with a 16-character bank_id (max length)", ApiEndpoint1, VersionOfApi) {
+    Scenario("Successfully create a bank with a 16-character bank_id (max length)", ApiEndpoint1, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateBank.toString)
 
@@ -91,7 +91,7 @@ class BankTests extends V600ServerSetup with DefaultUsers {
       (responseJson \ "bank_id").extract[String].length should equal(16)
     }
 
-    scenario("Fail to create a bank with bank_id exceeding 16 characters", ApiEndpoint1, VersionOfApi) {
+    Scenario("Fail to create a bank with bank_id exceeding 16 characters", ApiEndpoint1, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateBank.toString)
 
@@ -122,7 +122,7 @@ class BankTests extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("BANK_ID")
     }
 
-    scenario("Return 409 when creating a bank whose bank_id already exists", ApiEndpoint1, VersionOfApi) {
+    Scenario("Return 409 when creating a bank whose bank_id already exists", ApiEndpoint1, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateBank.toString)
 
       val bankId = "bank." + randomString(11).toLowerCase

@@ -72,8 +72,8 @@ class CustomerAddressTest extends V310ServerSetup {
   val postCustomerAddressJson = SwaggerDefinitionsJSON.postCustomerAddressJsonV310.copy(tags = List("mailing", "home"))
   lazy val bankId = randomBankId
 
-  feature("Add/Get/Delete Customer Address v3.1.0") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Add/Get/Delete Customer Address v3.1.0") {
+    Scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
@@ -82,7 +82,7 @@ class CustomerAddressTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST <@(user1)
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
@@ -94,7 +94,7 @@ class CustomerAddressTest extends V310ServerSetup {
       errorMessage contains (CanCreateCustomerAddress.toString()) should be (true)
     }
 
-    scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "addresses").GET
       val response310 = makeGetRequest(request310)
@@ -103,7 +103,7 @@ class CustomerAddressTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "addresses").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -115,7 +115,7 @@ class CustomerAddressTest extends V310ServerSetup {
       errorMessage contains (CanGetCustomerAddress.toString()) should be (true)
     }
 
-    scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "addresses" / "CUSTOMER_ADDRESS_ID").DELETE
       val response310 = makeDeleteRequest(request310)
@@ -124,7 +124,7 @@ class CustomerAddressTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Delete endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Delete endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "addresses" / "CUSTOMER_ADDRESS_ID").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
@@ -136,7 +136,7 @@ class CustomerAddressTest extends V310ServerSetup {
       errorMessage contains (CanDeleteCustomerAddress.toString()) should be (true)
     }
 
-    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomerAddress.toString)

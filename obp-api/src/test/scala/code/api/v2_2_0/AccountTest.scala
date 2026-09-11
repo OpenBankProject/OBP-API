@@ -20,9 +20,9 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
   val mockAccountId2 = "NEW_MOCKED_ACCOUNT_ID_02"
   
   
-  feature("Assuring that Get all accounts at all banks works as expected - v2.2.0") {
+  Feature("Assuring that Get all accounts at all banks works as expected - v2.2.0") {
 
-    scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
+    Scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
       val createAccountJSONV220 = CreateAccountJSONV220(
         user_id = resourceUser1.userId,
         label = "Label",
@@ -64,7 +64,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       isPublicAll.forall(_ == false) should equal(true)
     }
 
-    scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
+    Scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
       val createAccountJSONV220 = CreateAccountJSONV220(
         user_id = resourceUser1.userId,
         label = "Label",
@@ -127,7 +127,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       responseWithOtherUesrV310.code should equal(200)
     }
 
-    scenario("We create an account and check the accountViews") {
+    Scenario("We create an account and check the accountViews") {
       val createAccountJSONV220 = CreateAccountJSONV220(
         user_id = resourceUser1.userId,
         label = "Label",
@@ -160,7 +160,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       accountViews.views.map(_.id).toString() contains(Constant.SYSTEM_OWNER_VIEW_ID) should be (true)
     }
 
-    scenario("We create an account, but with wrong format of account_id ") {
+    Scenario("We create an account, but with wrong format of account_id ") {
       val createAccountJSONV220 = CreateAccountJSONV220(
         user_id = resourceUser1.userId,
         label = "Label",

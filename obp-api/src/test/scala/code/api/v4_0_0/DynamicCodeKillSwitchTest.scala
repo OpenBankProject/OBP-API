@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.DynamicCodeExecutionDisabled
 import code.api.util.{ApiRole, DynamicUtil}
@@ -66,9 +68,9 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
   // set. The "absent -> false" branch is what protects deployers who never set the prop at
   // all — it's covered by direct inspection of DynamicUtil.dynamicCodeExecutionEnabled's
   // match expression, not by an integration test.
-  feature("DynamicUtil.dynamicCodeExecutionEnabled predicate") {
+  Feature("DynamicUtil.dynamicCodeExecutionEnabled predicate") {
 
-    scenario("Explicit prop=true (this suite's baseline) enables compilation", VersionOfApi) {
+    Scenario("Explicit prop=true (this suite's baseline) enables compilation", VersionOfApi) {
       Then("the predicate should be true given the explicit test-props value")
       DynamicUtil.dynamicCodeExecutionEnabled should be(true)
 
@@ -81,7 +83,7 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
     // (mirroring CI's allow_user_generated_scala_code=true default), and that env var always
     // wins over setPropsValues (see APIUtil.getPropsValue). withEnvOverride forces the env var
     // out of the way for the scope of this scenario so the "false" prop actually takes effect.
-    scenario("Explicit prop=false disables compilation regardless of run mode", VersionOfApi) {
+    Scenario("Explicit prop=false disables compilation regardless of run mode", VersionOfApi) {
       withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
         setPropsValues("allow_user_generated_scala_code" -> "false")
 
@@ -94,7 +96,7 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
       }
     }
 
-    scenario("A later explicit prop=true re-enables after being forced off", VersionOfApi) {
+    Scenario("A later explicit prop=true re-enables after being forced off", VersionOfApi) {
       withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
         setPropsValues("allow_user_generated_scala_code" -> "false")
         DynamicUtil.dynamicCodeExecutionEnabled should be(false)
@@ -107,9 +109,9 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
     }
   }
 
-  feature("Connector Methods endpoint respects the kill-switch") {
+  Feature("Connector Methods endpoint respects the kill-switch") {
 
-    scenario("OFF: create connector method returns 400 with the kill-switch error, nothing persisted", VersionOfApi) {
+    Scenario("OFF: create connector method returns 400 with the kill-switch error, nothing persisted", VersionOfApi) {
       withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
         setPropsValues("allow_user_generated_scala_code" -> "false")
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
@@ -130,7 +132,7 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
       }
     }
 
-    scenario("ON: create connector method returns 201 and is persisted", VersionOfApi) {
+    Scenario("ON: create connector method returns 201 and is persisted", VersionOfApi) {
       setPropsValues("allow_user_generated_scala_code" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
 
@@ -151,9 +153,9 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
     }
   }
 
-  feature("Dynamic Resource Doc endpoint respects the kill-switch") {
+  Feature("Dynamic Resource Doc endpoint respects the kill-switch") {
 
-    scenario("OFF: create dynamic resource doc returns 400 with the kill-switch error", VersionOfApi) {
+    Scenario("OFF: create dynamic resource doc returns 400 with the kill-switch error", VersionOfApi) {
       withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
         setPropsValues("allow_user_generated_scala_code" -> "false")
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
@@ -169,7 +171,7 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
       }
     }
 
-    scenario("ON: create dynamic resource doc returns 201", VersionOfApi) {
+    Scenario("ON: create dynamic resource doc returns 201", VersionOfApi) {
       setPropsValues("allow_user_generated_scala_code" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
@@ -185,9 +187,9 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
     }
   }
 
-  feature("ABAC Rule endpoint respects the kill-switch") {
+  Feature("ABAC Rule endpoint respects the kill-switch") {
 
-    scenario("OFF: create ABAC rule returns 400 with the kill-switch error", VersionOfApi) {
+    Scenario("OFF: create ABAC rule returns 400 with the kill-switch error", VersionOfApi) {
       withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
         setPropsValues("allow_user_generated_scala_code" -> "false")
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
@@ -208,7 +210,7 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
       }
     }
 
-    scenario("ON: create ABAC rule returns 201", VersionOfApi) {
+    Scenario("ON: create ABAC rule returns 201", VersionOfApi) {
       setPropsValues("allow_user_generated_scala_code" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
 
@@ -231,9 +233,9 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
     }
   }
 
-  feature("Dynamic Entities are unaffected by the kill-switch (no over-reach)") {
+  Feature("Dynamic Entities are unaffected by the kill-switch (no over-reach)") {
 
-    scenario("OFF: create Dynamic Entity still succeeds because it never compiles user code", VersionOfApi) {
+    Scenario("OFF: create Dynamic Entity still succeeds because it never compiles user code", VersionOfApi) {
       setPropsValues("allow_user_generated_scala_code" -> "false")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
 

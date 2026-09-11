@@ -72,9 +72,9 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
   )
 
   
-  feature("Create Cardano Transaction Request - v6.0.0") {
+  Feature("Create Cardano Transaction Request - v6.0.0") {
    
-    scenario("We will create Cardano transaction request - user is NOT logged in", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will create Cardano transaction request - user is NOT logged in", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0")
       val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST
       val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -96,7 +96,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       response600.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-//    scenario("We will create Cardano transaction request - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will create Cardano transaction request - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
 //      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, ApiRole.canCreateAccount.toString())
 //      val request = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId ).PUT <@(user1)
 //      val response = makePutRequest(request, write(putCreateAccountJSONV310))
@@ -138,7 +138,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      transactionRequest.status should not be empty
 //    }
 //
-//    scenario("We will create Cardano transaction request with metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will create Cardano transaction request with metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
 //      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, ApiRole.canCreateAccount.toString())
 //      val request = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId ).PUT <@(user1)
 //      val response = makePutRequest(request, write(putCreateAccountJSONV310))
@@ -181,7 +181,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      transactionRequest.status should not be empty
 //    }
 //
-//    scenario("We will create Cardano transaction request with token - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will create Cardano transaction request with token - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
 //      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, ApiRole.canCreateAccount.toString())
 //      val request = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId ).PUT <@(user1)
 //      val response = makePutRequest(request, write(putCreateAccountJSONV310))
@@ -228,7 +228,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      transactionRequest.status should not be empty
 //    }
 //
-//    scenario("We will create Cardano transaction request with token and metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will create Cardano transaction request with token and metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with token and metadata")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -257,7 +257,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      transactionRequest.status should not be empty
 //    }
 //
-//    scenario("We will try to create Cardano transaction request for someone else account - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request for someone else account - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user2)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -279,7 +279,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      response600.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
 //    }
 //
-//    scenario("We will try to create Cardano transaction request with invalid address format", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request with invalid address format", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with invalid address")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -301,7 +301,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      response600.body.extract[ErrorMessage].message should include("Cardano address format is invalid")
 //    }
 //
-//    scenario("We will try to create Cardano transaction request with missing amount", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request with missing amount", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with missing amount")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val invalidJson = """
@@ -324,7 +324,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      response600.body.extract[ErrorMessage].message should include("InvalidJsonFormat")
 //    }
 //
-//    scenario("We will try to create Cardano transaction request with negative amount", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request with negative amount", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with negative amount")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -346,7 +346,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      response600.body.extract[ErrorMessage].message should include("Cardano amount quantity must be non-negative")
 //    }
 //
-//    scenario("We will try to create Cardano transaction request with invalid amount unit", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request with invalid amount unit", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with invalid amount unit")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -368,7 +368,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      response600.body.extract[ErrorMessage].message should include("Cardano amount unit must be 'lovelace'")
 //    }
 //
-//    scenario("We will try to create Cardano transaction request with zero amount but no assets", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request with zero amount but no assets", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with zero amount but no assets")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -390,7 +390,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      response600.body.extract[ErrorMessage].message should include("Cardano transfer with zero amount must include assets")
 //    }
 //
-//    scenario("We will try to create Cardano transaction request with invalid assets", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request with invalid assets", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with invalid assets")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(
@@ -417,7 +417,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 //      response600.body.extract[ErrorMessage].message should include("Cardano assets must have valid policy_id and asset_name")
 //    }
 //
-//    scenario("We will try to create Cardano transaction request with invalid metadata", CreateTransactionRequestCardano, VersionOfApi) {
+//    Scenario("We will try to create Cardano transaction request with invalid metadata", CreateTransactionRequestCardano, VersionOfApi) {
 //      When("We make a request v6.0.0 with invalid metadata")
 //      val request600 = (v6_0_0_Request / "banks" / testBankId / "accounts" / testAccountId / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "CARDANO" / "transaction-requests").POST <@(user1)
 //      val cardanoTransactionRequestBody = TransactionRequestBodyCardanoJsonV600(

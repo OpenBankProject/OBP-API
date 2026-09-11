@@ -269,7 +269,7 @@ object SIWE extends MdcLoggable {
     val tokenKey = CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
     val consumerId = consumerKey.flatMap { key =>
       Consumers.consumers.vend.getConsumerByConsumerKey(key) match {
-        case Full(consumer) => Some(consumer.id.get)
+        case Full(consumer) => Some(consumer.id)
         case _              => None
       }
     }

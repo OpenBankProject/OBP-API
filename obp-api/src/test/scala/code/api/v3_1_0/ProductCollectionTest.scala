@@ -81,8 +81,8 @@ class ProductCollectionTest extends V310ServerSetup {
     product
   }
 
-  feature("Create Product Collections v3.1.0") {
-    scenario("We will call the endpoint with a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create Product Collections v3.1.0") {
+    Scenario("We will call the endpoint with a user credentials", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
       createProduct(code = "A", json = parentPostPutProductJsonV310)
       createProduct(code = "B", json = parentPostPutProductJsonV310)

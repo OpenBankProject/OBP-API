@@ -53,7 +53,7 @@ import scala.collection.mutable.ArrayBuffer
 object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
   override val apiVersion: ScannedApiVersion = ConstantsBG.berlinGroupVersion1
-  val versionStatus: String = ApiVersionStatus.DRAFT.toString
+  lazy val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sBGv13.resourceDocs
 }

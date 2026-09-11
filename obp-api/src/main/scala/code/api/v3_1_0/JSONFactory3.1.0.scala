@@ -838,12 +838,12 @@ object JSONFactory310{
     }
 
     CallLimitJson(
-      consumer.perSecondCallLimit.get.toString,
-      consumer.perMinuteCallLimit.get.toString,
-      consumer.perHourCallLimit.get.toString,
-      consumer.perDayCallLimit.get.toString,
-      consumer.perWeekCallLimit.get.toString,
-      consumer.perMonthCallLimit.get.toString,
+      consumer.perSecondCallLimit.toString,
+      consumer.perMinuteCallLimit.toString,
+      consumer.perHourCallLimit.toString,
+      consumer.perDayCallLimit.toString,
+      consumer.perWeekCallLimit.toString,
+      consumer.perMonthCallLimit.toString,
       redisRateLimit
     )
 
@@ -878,15 +878,18 @@ object JSONFactory310{
       case _ => null
     }
 
-    code.api.v3_1_0.ConsumerJsonV310(consumer_id=c.consumerId.get,
-      app_name=c.name.get,
-      app_type=c.appType.toString(),
-      description=c.description.get,
-      developer_email=c.developerEmail.get,
-      redirect_url=c.redirectURL.get,
+    code.api.v3_1_0.ConsumerJsonV310(consumer_id=c.consumerId,
+      app_name=c.name,
+      // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
+      // No row in the reference data holds NULL there today, which is the only reason this is
+      // latent rather than live - the column allows it and MappedString would have given "".
+      app_type=Option(c.appType).getOrElse(""),
+      description=c.description,
+      developer_email=c.developerEmail,
+      redirect_url=c.redirectURL,
       created_by_user =resourceUserJSON,
-      enabled=c.isActive.get,
-      created=c.createdAt.get
+      enabled=c.isActive,
+      created=c.createdAt
     )
   }
 
@@ -897,7 +900,7 @@ object JSONFactory310{
 
   def createConsumersJson(consumers: List[Consumer], users: List[User]): ConsumersJsonV310 = {
     val cs = consumers.map(
-      c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId.get).headOption)
+      c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId).headOption)
     )
     ConsumersJsonV310(cs)
   }
@@ -1302,7 +1305,7 @@ object JSONFactory310{
   }
   
   def getOAuth2ServerJwksUrisJson(): OAuth2ServerJwksUrisJson = {
-    val url = APIUtil.getPropsValue("oauth2.jwk_set.url", "Not set").split(",").toList.map(OAuth2ServerJWKURIJson)
+    val url = APIUtil.getPropsValue("oauth2.jwk_set.url", "Not set").split(",").toList.map(OAuth2ServerJWKURIJson.apply)
     OAuth2ServerJwksUrisJson(url)
   }
   def createPhysicalCardJson(card: PhysicalCardTrait, user : User): PhysicalCardJsonV310 = {

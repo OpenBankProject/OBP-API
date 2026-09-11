@@ -15,7 +15,7 @@ object CardAttributeX extends SimpleInjector {
 
   val cardAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: CardAttributeProvider = MappedCardAttributeProvider
+  def buildOne: CardAttributeProvider = DoobieCardAttributeProvider
   // Helper to get the count out of an option
   def countOfCardAttribute(listOpt: Option[List[CardAttribute]]): Int = {
     val count = listOpt match {
