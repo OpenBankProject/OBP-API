@@ -279,10 +279,16 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       // sqlFriendly did: a value like `' OR '1'='1` closed the quote and turned `appname = '...'`
       // into an always-true disjunction over the whole table. See MetricsSqlInjectionTest.
       val filters = filtersFrom(queryParams, withCorrelationId = true)
-      val result = DoobieMetricsQueries.getAggregateMetrics(fromDate.get, toDate.get, filters, isNewVersion)
+      // The query runs INSIDE the tryo. It used to be a strict val on the line above, so tryo
+      // received an already-forced value and could catch nothing: a failing query threw straight
+      // past it, the caller's unboxFullOrFail(_, GetAggregateMetricsError) never ran, and the
+      // client got a generic failure instead of the OBP error code.
+      val box = tryo {
+        DoobieMetricsQueries.getAggregateMetrics(fromDate.get, toDate.get, filters, isNewVersion)
+      }
       val elapsedTime = System.currentTimeMillis() - startTime
       logger.info(s"getAllAggregateMetricsBox - Query completed in ${elapsedTime}ms")
-      tryo(result)
+      box
     }
   }
   
@@ -434,8 +440,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       // withCorrelationId = false: the SQL this replaced extracted a correlation id and never used
       // it, so filtering on it here would be a new behaviour, not a restored one.
       val filters = filtersFrom(queryParams, withCorrelationId = false)
-      val result = DoobieMetricsQueries.getTopConsumers(fromDate.get, toDate.get, limit, filters)
-      tryo(result)
+      // Inside the tryo, for the same reason as getAllAggregateMetricsBox above: a strict val
+      // evaluated before it leaves tryo with nothing to catch, so a failing query bypassed
+      // unboxFullOrFail(_, GetMetricsTopConsumersError).
+      tryo {
+        DoobieMetricsQueries.getTopConsumers(fromDate.get, toDate.get, limit, filters)
+      }
     }
   }
 

@@ -431,7 +431,11 @@ object DoobieMetricsQueries {
       """
     }
 
-    val conditions = buildFilterConditions(filters, isNewVersion = false)
+    // metric.consumerid, not the bare name: this query's FROM is `metric, consumer` and both
+    // tables carry that column, so the unqualified fragment is ambiguous. buildTopApisQuery
+    // selects FROM metric alone and needs no qualification.
+    val conditions =
+      buildFilterConditions(filters, isNewVersion = false, consumerIdExpr = fr"metric.consumerid")
 
     val groupAndOrder = fr"""
       GROUP BY appname, consumer.developeremail, consumer.id, consumer.consumerid
@@ -465,10 +469,16 @@ object DoobieMetricsQueries {
   private def buildFilterConditions(
     filters: MetricsQueryFilters,
     isNewVersion: Boolean,
-    resolvedUserIdExpr: Fragment = fr"userid"
+    resolvedUserIdExpr: Fragment = fr"userid",
+    // Qualified by the caller when the FROM is a join. `consumerid` exists on both `metric` and
+    // `consumer`, so the bare name is ambiguous the moment those two appear together - which is
+    // exactly what buildTopConsumersQuery does. getTopConsumersByConsumerId avoided the reuse
+    // entirely for this reason; passing the qualified expression is the same fix without the
+    // duplicated query.
+    consumerIdExpr: Fragment = fr"consumerid"
   ): Fragment = {
     val simpleConditions = List(
-      filters.consumerId.map(v => fr"AND consumerid = $v"),
+      filters.consumerId.map(v => consumerIdExpr ++ fr" = $v").map(fr"AND " ++ _),
       filters.userId.map(v => fr"AND " ++ resolvedUserIdExpr ++ fr" = $v"),
       filters.implementedByPartialFunction.map(v => fr"AND implementedbypartialfunction = $v"),
       filters.implementedInVersion.map(v => fr"AND implementedinversion = $v"),
