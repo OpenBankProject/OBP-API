@@ -127,22 +127,23 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
    * Deviations that are deliberate, with the reason each one is not a defect.
    *
    * A signed-off list rather than a hard zero, for the same reason KryoGoldenCompatTest keeps
-   * knownDrift: a permanently red suite is one people learn to ignore, and the two entries here
-   * are both behaviour somebody chose and wrote down. Anything NOT listed still fails, and
-   * adding a line costs a written justification.
+   * knownDrift: a permanently red suite is one people learn to ignore, and the entry here is
+   * behaviour somebody chose and wrote down. Anything NOT listed still fails, and adding a line
+   * costs a written justification.
+   *
+   * createTransactionRequestFreeForm used to be the second entry: it answered 400 rather than the
+   * 403 its doc declares, because the doc the middleware matched was v4's wildcard catch-all,
+   * which declares no roles at all - so no role check ran and the decision fell through to the
+   * connector. With the matcher preferring the most specific template the per-type doc wins, its
+   * canCreateAnyTransactionRequest is enforced, and the deviation is gone. This scenario is what
+   * caught that the exemption had outlived the behaviour it excused.
    */
   private val expectedAuthDeviation: Map[String, String] = Map(
     "OBPv4.0.0-verifyRequestSignResponse" ->
       ("Refuses with OBP-20311 'The Request is not signed' -- JWS request signing, a third " +
        "authentication mechanism alongside user and application. ResourceDoc has no way to " +
        "declare it: authMode covers user/application only, so neither the doc nor this sweep " +
-       "can express the requirement. The 401 is correct; only the message differs."),
-    "OBPv4.0.0-createTransactionRequestFreeForm" ->
-      ("Answers 400 InsufficientAuthorisationToCreateTransactionRequest rather than 403. The " +
-       "endpoint deliberately does no upfront view/role check and delegates the decision to " +
-       "checkAuthorisationToCreateTransactionRequest inside the connector -- its own comment " +
-       "says so, and an existing test depends on it. Whether an authorisation failure ought to " +
-       "be 400 at all is a product question, not something to change from inside a sweep.")
+       "can express the requirement. The 401 is correct; only the message differs.")
   )
 
   /** Which exemptions were actually needed this run -- see the stale-entry scenario below. */
