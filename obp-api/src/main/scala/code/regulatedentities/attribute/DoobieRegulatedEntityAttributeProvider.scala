@@ -84,7 +84,7 @@ object DoobieRegulatedEntityAttributeProvider extends RegulatedEntityAttributePr
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE regulatedentityattribute
-                      SET regulatedentityid = ${regulatedEntityId.value}, name = $name, type_c = ${attributeType.toString}, value = $value, isactive = $activeValue
+                      SET regulatedentityid = ${regulatedEntityId.value}, name = ${Option(name)}, type_c = ${attributeType.toString}, value = ${Option(value)}, isactive = $activeValue
                       WHERE regulatedentityattributeid = $id"""
                   .update.run)
               RegulatedEntityAttributeRow(regulatedEntityId, id, attributeType, name, value, Some(activeValue))
@@ -97,7 +97,7 @@ object DoobieRegulatedEntityAttributeProvider extends RegulatedEntityAttributePr
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO regulatedentityattribute (regulatedentityid, regulatedentityattributeid, name, type_c, value, isactive)
-                  VALUES (${regulatedEntityId.value}, $id, $name, ${attributeType.toString}, $value, $activeValue)"""
+                  VALUES (${regulatedEntityId.value}, $id, ${Option(name)}, ${attributeType.toString}, ${Option(value)}, $activeValue)"""
               .update.run)
           RegulatedEntityAttributeRow(regulatedEntityId, id, attributeType, name, value, Some(activeValue))
         }

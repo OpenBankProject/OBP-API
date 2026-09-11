@@ -89,7 +89,7 @@ object DoobieProductAttributeProvider extends ProductAttributeProvider {
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE mappedproductattribute
-                      SET mbankid = ${bankId.value}, mcode = ${productCode.value}, mname = $name, mtype = ${attributeType.toString}, mvalue = $value, isactive = $activeValue
+                      SET mbankid = ${bankId.value}, mcode = ${productCode.value}, mname = ${Option(name)}, mtype = ${attributeType.toString}, mvalue = ${Option(value)}, isactive = $activeValue
                       WHERE mproductattributeid = $id"""
                   .update.run)
               ProductAttributeRow(bankId, productCode, id, attributeType, name, value, Some(activeValue))
@@ -102,7 +102,7 @@ object DoobieProductAttributeProvider extends ProductAttributeProvider {
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO mappedproductattribute (mbankid, mcode, mproductattributeid, mname, mtype, mvalue, isactive)
-                  VALUES (${bankId.value}, ${productCode.value}, $id, $name, ${attributeType.toString}, $value, $activeValue)"""
+                  VALUES (${bankId.value}, ${productCode.value}, $id, ${Option(name)}, ${attributeType.toString}, ${Option(value)}, $activeValue)"""
               .update.run)
           ProductAttributeRow(bankId, productCode, id, attributeType, name, value, Some(activeValue))
         }
@@ -145,11 +145,11 @@ object DoobieProductAttributeProvider extends ProductAttributeProvider {
   def getProductCodesMatchingAnyAttribute(bankId: String, params: List[(String, List[String])]): List[String] = {
     val filterFrag: Fragment = params.map { case (name, values) =>
       if (values.size == 1) {
-        fr"(mname = $name AND mvalue = ${values.head})"
+        fr"(mname = ${Option(name)} AND mvalue = ${values.head})"
       } else {
         val valueFragments = values.map(v => fr"$v")
         val inClause = valueFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
-        fr"(mname = $name AND mvalue IN (" ++ inClause ++ fr"))"
+        fr"(mname = ${Option(name)} AND mvalue IN (" ++ inClause ++ fr"))"
       }
     }.reduceOption((a, b) => a ++ fr" OR " ++ b).getOrElse(fr"1=1")
 

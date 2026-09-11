@@ -84,7 +84,7 @@ object DoobieCounterpartyAttributeProvider extends CounterpartyAttributeProvider
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE counterpartyattribute
-                      SET counterpartyid = ${counterpartyId.value}, name = $name, type_c = ${attributeType.toString}, value = $value, isactive = $activeValue
+                      SET counterpartyid = ${counterpartyId.value}, name = ${Option(name)}, type_c = ${attributeType.toString}, value = ${Option(value)}, isactive = $activeValue
                       WHERE counterpartyattributeid = $id"""
                   .update.run)
               CounterpartyAttributeRow(counterpartyId, id, attributeType, name, value, Some(activeValue))
@@ -97,7 +97,7 @@ object DoobieCounterpartyAttributeProvider extends CounterpartyAttributeProvider
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO counterpartyattribute (counterpartyid, counterpartyattributeid, name, type_c, value, isactive)
-                  VALUES (${counterpartyId.value}, $id, $name, ${attributeType.toString}, $value, $activeValue)"""
+                  VALUES (${counterpartyId.value}, $id, ${Option(name)}, ${attributeType.toString}, ${Option(value)}, $activeValue)"""
               .update.run)
           CounterpartyAttributeRow(counterpartyId, id, attributeType, name, value, Some(activeValue))
         }

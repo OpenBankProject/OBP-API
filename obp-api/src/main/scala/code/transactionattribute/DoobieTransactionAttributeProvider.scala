@@ -137,11 +137,11 @@ object DoobieTransactionAttributeProvider extends TransactionAttributeProvider {
         val paramList = params.toList
         val filterFrag: Fragment = paramList.map { case (name, values) =>
           if (values.size == 1) {
-            fr"(mname = $name AND mvalue = ${values.head})"
+            fr"(mname = ${Option(name)} AND mvalue = ${values.head})"
           } else {
             val valueFragments = values.map(v => fr"$v")
             val inClause = valueFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
-            fr"(mname = $name AND mvalue IN (" ++ inClause ++ fr"))"
+            fr"(mname = ${Option(name)} AND mvalue IN (" ++ inClause ++ fr"))"
           }
         }.reduceOption((a, b) => a ++ fr" OR " ++ b).getOrElse(fr"1=1")
 
@@ -170,7 +170,7 @@ object DoobieTransactionAttributeProvider extends TransactionAttributeProvider {
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE mappedtransactionattribute
-                      SET mbankid = ${bankId.value}, mtransactionid = ${transactionId.value}, mname = $name, mtype = ${attributeType.toString}, mvalue = $value
+                      SET mbankid = ${bankId.value}, mtransactionid = ${transactionId.value}, mname = ${Option(name)}, mtype = ${attributeType.toString}, mvalue = ${Option(value)}
                       WHERE mtransactionattributeid = $id"""
                   .update.run)
               TransactionAttributeRow(bankId, transactionId, id, attributeType, name, value)
@@ -183,7 +183,7 @@ object DoobieTransactionAttributeProvider extends TransactionAttributeProvider {
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO mappedtransactionattribute (mbankid, mtransactionid, mtransactionattributeid, mname, mtype, mvalue)
-                  VALUES (${bankId.value}, ${transactionId.value}, $id, $name, ${attributeType.toString}, $value)"""
+                  VALUES (${bankId.value}, ${transactionId.value}, $id, ${Option(name)}, ${attributeType.toString}, $value)"""
               .update.run)
           TransactionAttributeRow(bankId, transactionId, id, attributeType, name, value)
         }

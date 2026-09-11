@@ -87,7 +87,7 @@ object DoobieCardAttributeProvider extends CardAttributeProvider {
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE mappedcardattribute
-                      SET mcardid = $cardId, mbankid = $bankIdValue, mname = $name, mtype = ${attributeType.toString}, mvalue = $value
+                      SET mcardid = $cardId, mbankid = $bankIdValue, mname = ${Option(name)}, mtype = ${attributeType.toString}, mvalue = ${Option(value)}
                       WHERE mcardattributeid = $id"""
                   .update.run)
               CardAttributeRow(Some(bankId.orNull), cardId, Some(id), name, attributeType, value)
@@ -100,7 +100,7 @@ object DoobieCardAttributeProvider extends CardAttributeProvider {
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO mappedcardattribute (mcardid, mbankid, mcardattributeid, mname, mtype, mvalue)
-                  VALUES ($cardId, $bankIdValue, $id, $name, ${attributeType.toString}, $value)"""
+                  VALUES ($cardId, $bankIdValue, $id, ${Option(name)}, ${attributeType.toString}, $value)"""
               .update.run)
           CardAttributeRow(Some(bankId.orNull), cardId, Some(id), name, attributeType, value)
         }

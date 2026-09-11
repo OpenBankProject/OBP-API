@@ -80,11 +80,11 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
           val paramList = params.toList
           val filterFrag: Fragment = paramList.map { case (name, values) =>
             if (values.size == 1) {
-              fr"(mname = $name AND mvalue = ${values.head})"
+              fr"(mname = ${Option(name)} AND mvalue = ${values.head})"
             } else {
               val valueFragments = values.map(v => fr"$v")
               val inClause = valueFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
-              fr"(mname = $name AND mvalue IN (" ++ inClause ++ fr"))"
+              fr"(mname = ${Option(name)} AND mvalue IN (" ++ inClause ++ fr"))"
             }
           }.reduceOption((a, b) => a ++ fr" OR " ++ b).getOrElse(fr"1=1")
 
@@ -134,7 +134,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE mappedcustomerattribute
-                      SET mbankidid = ${bankId.value}, mcustomerid = ${customerId.value}, mname = $name, mtype = ${attributeType.toString}, mvalue = $value
+                      SET mbankidid = ${bankId.value}, mcustomerid = ${customerId.value}, mname = ${Option(name)}, mtype = ${attributeType.toString}, mvalue = ${Option(value)}
                       WHERE mcustomerattributeid = $id"""
                   .update.run)
               CustomerAttributeRow(bankId, customerId, id, attributeType, name, value)
@@ -147,7 +147,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO mappedcustomerattribute (mbankidid, mcustomerid, mcustomerattributeid, mname, mtype, mvalue)
-                  VALUES (${bankId.value}, ${customerId.value}, $id, $name, ${attributeType.toString}, $value)"""
+                  VALUES (${bankId.value}, ${customerId.value}, $id, ${Option(name)}, ${attributeType.toString}, $value)"""
               .update.run)
           CustomerAttributeRow(bankId, customerId, id, attributeType, name, value)
         }

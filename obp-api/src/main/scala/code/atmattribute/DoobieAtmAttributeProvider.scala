@@ -87,7 +87,7 @@ object DoobieAtmAttributeProvider extends AtmAttributeProviderTrait {
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE atmattribute
-                      SET bankid = ${bankId.value}, atmid = ${atmId.value}, name = $name, type_c = ${attributeType.toString}, value = $value, isactive = $activeValue
+                      SET bankid = ${bankId.value}, atmid = ${atmId.value}, name = ${Option(name)}, type_c = ${attributeType.toString}, value = ${Option(value)}, isactive = $activeValue
                       WHERE atmattributeid = $id"""
                   .update.run)
               AtmAttributeRow(bankId, atmId, id, attributeType, name, value, Some(activeValue))
@@ -100,7 +100,7 @@ object DoobieAtmAttributeProvider extends AtmAttributeProviderTrait {
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO atmattribute (bankid, atmid, atmattributeid, name, type_c, value, isactive)
-                  VALUES (${bankId.value}, ${atmId.value}, $id, $name, ${attributeType.toString}, $value, $activeValue)"""
+                  VALUES (${bankId.value}, ${atmId.value}, $id, ${Option(name)}, ${attributeType.toString}, ${Option(value)}, $activeValue)"""
               .update.run)
           AtmAttributeRow(bankId, atmId, id, attributeType, name, value, Some(activeValue))
         }

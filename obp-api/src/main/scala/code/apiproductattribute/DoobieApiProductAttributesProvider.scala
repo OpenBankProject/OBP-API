@@ -77,8 +77,8 @@ object DoobieApiProductAttributesProvider extends MdcLoggable with ApiProductAtt
         tryo {
           DoobieUtil.runUpdate(
             sql"""UPDATE apiproductattribute
-                  SET bankid = $bankId, apiproductcode = $apiProductCode, name = $name,
-                      type_c = $attributeType, value = $value, isactive = $active
+                  SET bankid = $bankId, apiproductcode = $apiProductCode, name = ${Option(name)},
+                      type_c = $attributeType, value = ${Option(value)}, isactive = $active
                   WHERE apiproductattributeid = $id"""
               .update.run)
           ApiProductAttributeRow(bankId, apiProductCode, id, name, attributeType, value, Some(active))
@@ -102,7 +102,7 @@ object DoobieApiProductAttributesProvider extends MdcLoggable with ApiProductAtt
       DoobieUtil.runUpdate(
         sql"""INSERT INTO apiproductattribute
                 (apiproductattributeid, bankid, apiproductcode, name, type_c, value, isactive, createdat, updatedat)
-              VALUES ($id, $bankId, $apiProductCode, $name, $attributeType, $value, $isActive, $now, $now)"""
+              VALUES ($id, $bankId, $apiProductCode, ${Option(name)}, $attributeType, ${Option(value)}, $isActive, $now, $now)"""
           .update.run)
       ApiProductAttributeRow(bankId, apiProductCode, id, name, attributeType, value, Some(isActive))
     }

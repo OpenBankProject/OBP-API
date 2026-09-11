@@ -123,11 +123,11 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
           val paramList = params.toList
           val filterFrag: Fragment = paramList.map { case (name, values) =>
             if (values.size == 1) {
-              fr"(name = $name AND value = ${values.head})"
+              fr"(name = ${Option(name)} AND value = ${values.head})"
             } else {
               val valueFragments = values.map(v => fr"$v")
               val inClause = valueFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
-              fr"(name = $name AND value IN (" ++ inClause ++ fr"))"
+              fr"(name = ${Option(name)} AND value IN (" ++ inClause ++ fr"))"
             }
           }.reduceOption((a, b) => a ++ fr" OR " ++ b).getOrElse(fr"1=1")
 
@@ -157,7 +157,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE transactionrequestattribute
-                      SET bankid = ${bankId.value}, transactionrequestid = ${transactionRequestId.value}, name = $name, type_c = ${attributeType.toString}, value = $value
+                      SET bankid = ${bankId.value}, transactionrequestid = ${transactionRequestId.value}, name = ${Option(name)}, type_c = ${attributeType.toString}, value = ${Option(value)}
                       WHERE transactionrequestattributeid = $id"""
                   .update.run)
               // ispersonal is nullable; Mapper's MappedBoolean read a NULL as false.
@@ -171,7 +171,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO transactionrequestattribute (bankid, transactionrequestid, transactionrequestattributeid, name, type_c, value, ispersonal)
-                  VALUES (${bankId.value}, ${transactionRequestId.value}, $id, $name, ${attributeType.toString}, $value, ${false})"""
+                  VALUES (${bankId.value}, ${transactionRequestId.value}, $id, ${Option(name)}, ${attributeType.toString}, ${Option(value)}, ${false})"""
               .update.run)
           TransactionRequestAttributeRow(bankId, transactionRequestId, id, attributeType, name, value, isPersonal = false)
         }
@@ -209,12 +209,12 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
   /** Direct query used by OpenCorridorSettlement.hasPromiseEvidence. */
   def existsByNameAndTransactionRequestIdSync(name: String, transactionRequestId: String): Boolean =
     DoobieUtil.runQuery(
-      sql"SELECT COUNT(*) FROM transactionrequestattribute WHERE name = $name AND transactionrequestid = $transactionRequestId"
+      sql"SELECT COUNT(*) FROM transactionrequestattribute WHERE name = ${Option(name)} AND transactionrequestid = $transactionRequestId"
         .query[Long].unique) > 0
 
   /** Direct query used by OpenCorridorSettlement.getSettlementStatus (coveredTrIds). */
   def transactionRequestIdsByNameAndValueSync(name: String, value: String): List[String] =
     DoobieUtil.runQuery(
-      sql"SELECT DISTINCT transactionrequestid FROM transactionrequestattribute WHERE name = $name AND value = $value"
+      sql"SELECT DISTINCT transactionrequestid FROM transactionrequestattribute WHERE name = ${Option(name)} AND value = ${Option(value)}"
         .query[String].to[List])
 }

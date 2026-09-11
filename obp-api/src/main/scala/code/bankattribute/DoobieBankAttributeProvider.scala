@@ -85,7 +85,7 @@ object DoobieBankAttributeProvider extends BankAttributeProviderTrait {
             tryo {
               DoobieUtil.runUpdate(
                 sql"""UPDATE bankattribute
-                      SET bankid_ = ${bankId.value}, name = $name, type_c = ${attributType.toString}, value = $value, isactive = $activeValue
+                      SET bankid_ = ${bankId.value}, name = ${Option(name)}, type_c = ${attributType.toString}, value = ${Option(value)}, isactive = $activeValue
                       WHERE bankattributeid = $id"""
                   .update.run)
               BankAttributeRow(bankId, id, attributType, name, value, Some(activeValue))
@@ -98,7 +98,7 @@ object DoobieBankAttributeProvider extends BankAttributeProviderTrait {
         Full {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO bankattribute (bankid_, bankattributeid, name, type_c, value, isactive)
-                  VALUES (${bankId.value}, $id, $name, ${attributType.toString}, $value, $activeValue)"""
+                  VALUES (${bankId.value}, $id, ${Option(name)}, ${attributType.toString}, ${Option(value)}, $activeValue)"""
               .update.run)
           BankAttributeRow(bankId, id, attributType, name, value, Some(activeValue))
         }
