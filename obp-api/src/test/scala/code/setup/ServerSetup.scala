@@ -262,6 +262,16 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM mapperaccountholders".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicmessagedoc".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicresourcedoc".update.run)
+    // The five tables db.changelog-develop-merge-2.yaml added. They were missing from this list,
+    // which claims above to name every table - and nothing catches the omission, because
+    // check_test_isolation.py checks setPropsValues placement, not table coverage. Rows survived
+    // into later classes in the same JVM (forkMode=once, one h2:mem database for the whole run);
+    // it did not fail anything only because the suites that write them use UUID-suffixed ids.
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamicchangerequest".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamicglossaryitem".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM apiproductsubscriptionattribute".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM apiproductsubscriptionscope".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM apiproductsubscription".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicdataaccess".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicentity".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicdata".update.run)
