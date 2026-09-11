@@ -23,9 +23,16 @@ object DoobieGroupProvider extends GroupProvider {
   private val selectColumns =
     fr"SELECT groupid, bankid, groupname, groupdescription, listofroles, isenabled FROM groupofroles"
 
-  private def fromRow(row: (String, String, String, String, String, Boolean)): GroupTrait =
+  private def fromRow(row: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])): GroupTrait =
     row match {
-      case (groupId, bankId, groupName, groupDescription, listOfRoles, isEnabled) =>
+      case (groupIdOpt, bankIdCol, groupNameOpt, groupDescriptionOpt, listOfRolesOpt, isEnabledOpt) =>
+        // Nullable columns, collapsed the way Mapper's reader did.
+        val groupId = groupIdOpt.orNull
+        val bankId = bankIdCol.orNull
+        val groupName = groupNameOpt.orNull
+        val groupDescription = groupDescriptionOpt.orNull
+        val listOfRoles = listOfRolesOpt.orNull
+        val isEnabled = isEnabledOpt.getOrElse(false)
         val bankIdOpt = if (bankId == null || bankId.isEmpty) None else Some(bankId)
         val roles = if (listOfRoles == null || listOfRoles.isEmpty) List.empty
           else listOfRoles.split(",").map(_.trim).filter(_.nonEmpty).toList
@@ -57,7 +64,7 @@ object DoobieGroupProvider extends GroupProvider {
   override def getGroup(groupId: String): Box[GroupTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"WHERE groupid = $groupId")
-        .query[(String, String, String, String, String, Boolean)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(row) => Full(fromRow(row))
       case None => Empty
@@ -68,7 +75,7 @@ object DoobieGroupProvider extends GroupProvider {
     try {
       Full(DoobieUtil.runQuery(
         (selectColumns ++ fr"WHERE bankid = $bankIdValue")
-          .query[(String, String, String, String, String, Boolean)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(fromRow))
     } catch {
       case e: Exception => Failure(e.getMessage, Full(e), Empty)
@@ -78,7 +85,7 @@ object DoobieGroupProvider extends GroupProvider {
   override def getAllGroups(): Future[Box[List[GroupTrait]]] = Future {
     try {
       Full(DoobieUtil.runQuery(
-        selectColumns.query[(String, String, String, String, String, Boolean)].to[List]
+        selectColumns.query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(fromRow))
     } catch {
       case e: Exception => Failure(e.getMessage, Full(e), Empty)

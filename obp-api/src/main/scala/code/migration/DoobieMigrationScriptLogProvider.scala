@@ -36,8 +36,8 @@ case class MigrationScriptLogRow(
  */
 object DoobieMigrationScriptLogProvider extends MigrationScriptLogProvider with MdcLoggable {
 
-  private def rowOf(r: (Long, String, String, String, Boolean, Long, Long, String)): MigrationScriptLogRow =
-    MigrationScriptLogRow(r._1, r._2, r._3, r._4, r._5, r._6, r._7, r._8)
+  private def rowOf(r: (Long, Option[String], Option[String], Option[String], Option[Boolean], Option[Long], Option[Long], Option[String])): MigrationScriptLogRow =
+    MigrationScriptLogRow(r._1, r._2.orNull, r._3.orNull, r._4.orNull, r._5.getOrElse(false), r._6.getOrElse(0L), r._7.getOrElse(0L), r._8.orNull)
 
   private val selectCols: Fragment =
     fr"""SELECT id, migrationscriptlogid, name, commitid, issuccessful, startdate, enddate, remark
@@ -46,7 +46,7 @@ object DoobieMigrationScriptLogProvider extends MigrationScriptLogProvider with 
   private def findOne(name: String, isSuccessful: Boolean): Option[MigrationScriptLogRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE name = $name AND issuccessful = $isSuccessful LIMIT 1")
-        .query[(Long, String, String, String, Boolean, Long, Long, String)].option
+        .query[(Long, Option[String], Option[String], Option[String], Option[Boolean], Option[Long], Option[Long], Option[String])].option
     ).map(rowOf)
 
   override def saveLog(name: String, commitId: String, isSuccessful: Boolean, startDate: Long, endDate: Long, comment: String): Boolean = {
@@ -84,6 +84,6 @@ object DoobieMigrationScriptLogProvider extends MigrationScriptLogProvider with 
   override def getMigrationScriptLogs(): List[MigrationScriptLogTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"ORDER BY createdat DESC")
-        .query[(Long, String, String, String, Boolean, Long, Long, String)].to[List]
+        .query[(Long, Option[String], Option[String], Option[String], Option[Boolean], Option[Long], Option[Long], Option[String])].to[List]
     ).map(rowOf)
 }

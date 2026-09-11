@@ -37,14 +37,14 @@ case class ProductAttributeRow(
  */
 object DoobieProductAttributeProvider extends ProductAttributeProvider {
 
-  private def rowOf(r: (String, String, String, String, String, String, Option[Boolean])): ProductAttributeRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])): ProductAttributeRow =
     ProductAttributeRow(
-      bankId = BankId(r._1),
-      productCode = ProductCode(r._2),
-      productAttributeId = r._3,
-      attributeType = ProductAttributeType.withName(r._4),
-      name = r._5,
-      value = r._6,
+      bankId = BankId(r._1.orNull),
+      productCode = ProductCode(r._2.orNull),
+      productAttributeId = r._3.orNull,
+      attributeType = ProductAttributeType.withName(r._4.orNull),
+      name = r._5.orNull,
+      value = r._6.orNull,
       isActive = r._7
     )
 
@@ -55,14 +55,14 @@ object DoobieProductAttributeProvider extends ProductAttributeProvider {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE mbankid = ${bank.value} AND mcode = ${productCode.value}")
-          .query[(String, String, String, String, String, String, Option[Boolean])].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(rowOf)
     }
 
   override def getProductAttributeById(productAttributeId: String): Future[Box[ProductAttribute]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mproductattributeid = $productAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, String, Option[Boolean])].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -83,7 +83,7 @@ object DoobieProductAttributeProvider extends ProductAttributeProvider {
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE mproductattributeid = $id LIMIT 1")
-            .query[(String, String, String, String, String, String, Option[Boolean])].option
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some(_) =>
             tryo {
@@ -121,7 +121,7 @@ object DoobieProductAttributeProvider extends ProductAttributeProvider {
   def getProductAttributesSync(bankId: String, productCode: String): List[ProductAttributeRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mbankid = $bankId AND mcode = $productCode")
-        .query[(String, String, String, String, String, String, Option[Boolean])].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
     ).map(rowOf)
 
   /** Direct query used by deletion.DeleteProductCascade.deleteProductAttributes. */

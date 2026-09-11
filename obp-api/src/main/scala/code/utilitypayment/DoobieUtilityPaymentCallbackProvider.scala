@@ -33,15 +33,15 @@ object DoobieUtilityPaymentCallbackProvider extends UtilityPaymentCallbackProvid
                 creationdate, lastattemptdate
          FROM utilitypaymentcallback"""
 
-  private def fromRow(row: (String, String, String, String, String, String, String, String, String, Int, String, java.sql.Timestamp, Option[java.sql.Timestamp])): UtilityPaymentCallbackRow =
+  private def fromRow(row: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Int], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])): UtilityPaymentCallbackRow =
     row match {
       case (callbackId, transactionRequestId, callbackUrl, identifierType, identifier,
             fromBankId, fromAccountId, createdByUserId, status, attempts, responseCode,
             createdAt, lastAttemptAt) =>
         UtilityPaymentCallbackRow(
-          callbackId, transactionRequestId, callbackUrl, identifierType, identifier,
-          fromBankId, fromAccountId, createdByUserId, status, attempts, opt(responseCode),
-          createdAt, lastAttemptAt)
+          callbackId.orNull, transactionRequestId.orNull, callbackUrl.orNull, identifierType.orNull, identifier.orNull,
+          fromBankId.orNull, fromAccountId.orNull, createdByUserId.orNull, status.orNull, attempts.getOrElse(0), opt(responseCode.orNull),
+          createdAt.orNull, lastAttemptAt)
     }
 
   override def createCallback(
@@ -75,7 +75,7 @@ object DoobieUtilityPaymentCallbackProvider extends UtilityPaymentCallbackProvid
   override def getCallbackByTransactionRequestId(transactionRequestId: String): Box[UtilityPaymentCallbackTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"WHERE transactionrequestid = $transactionRequestId")
-        .query[(String, String, String, String, String, String, String, String, String, Int, String, java.sql.Timestamp, Option[java.sql.Timestamp])]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Int], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])]
         .option
     ) match {
       case Some(row) => Full(fromRow(row))
@@ -89,7 +89,7 @@ object DoobieUtilityPaymentCallbackProvider extends UtilityPaymentCallbackProvid
   ): Box[UtilityPaymentCallbackTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"WHERE callbackid = $callbackId")
-        .query[(String, String, String, String, String, String, String, String, String, Int, String, java.sql.Timestamp, Option[java.sql.Timestamp])]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Int], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])]
         .option
     ) match {
       case Some(row) =>

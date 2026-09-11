@@ -153,10 +153,10 @@ object BankSupportedRoutingScheme {
 
   private def query(condition: Fragment): List[BankSupportedRoutingScheme] =
     DoobieUtil.runQuery(
-      (selectColumns ++ condition).query[(String, String, Option[Boolean], String)].to[List])
+      (selectColumns ++ condition).query[(Option[String], Option[String], Option[Boolean], Option[String])].to[List])
       .map { case (bankId, scheme, enabled, bankNotes) =>
         // MappedBoolean read a NULL column as false, never as the declared defaultValue.
-        BankSupportedRoutingScheme(bankId, scheme, enabled.getOrElse(false), bankNotes) }
+        BankSupportedRoutingScheme(bankId.orNull, scheme.orNull, enabled.getOrElse(false), bankNotes.orNull) }
 
   def findAllByBankId(bankId: String): List[BankSupportedRoutingScheme] =
     query(fr"WHERE bankid = $bankId ORDER BY id ASC")

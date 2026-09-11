@@ -35,13 +35,13 @@ case class BankAttributeRow(
  */
 object DoobieBankAttributeProvider extends BankAttributeProviderTrait {
 
-  private def rowOf(r: (String, String, String, String, String, Option[Boolean])): BankAttributeRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])): BankAttributeRow =
     BankAttributeRow(
-      bankId = BankId(r._1),
-      bankAttributeId = r._2,
-      attributeType = BankAttributeType.withName(r._3),
-      name = r._4,
-      value = r._5,
+      bankId = BankId(r._1.orNull),
+      bankAttributeId = r._2.orNull,
+      attributeType = BankAttributeType.withName(r._3.orNull),
+      name = r._4.orNull,
+      value = r._5.orNull,
       isActive = r._6
     )
 
@@ -52,14 +52,14 @@ object DoobieBankAttributeProvider extends BankAttributeProviderTrait {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE bankid_ = ${bankId.value}")
-          .query[(String, String, String, String, String, Option[Boolean])].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(rowOf)
     }
 
   override def getBankAttributeById(bankAttributeId: String): Future[Box[BankAttributeTrait]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankattributeid = $bankAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, Option[Boolean])].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -79,7 +79,7 @@ object DoobieBankAttributeProvider extends BankAttributeProviderTrait {
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE bankattributeid = $id LIMIT 1")
-            .query[(String, String, String, String, String, Option[Boolean])].option
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some(_) =>
             tryo {

@@ -35,14 +35,14 @@ case class AtmAttributeRow(
  */
 object DoobieAtmAttributeProvider extends AtmAttributeProviderTrait {
 
-  private def rowOf(r: (String, String, String, String, String, String, Option[Boolean])): AtmAttributeRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])): AtmAttributeRow =
     AtmAttributeRow(
-      bankId = BankId(r._1),
-      atmId = AtmId(r._2),
-      atmAttributeId = r._3,
-      attributeType = AtmAttributeType.withName(r._4),
-      name = r._5,
-      value = r._6,
+      bankId = BankId(r._1.orNull),
+      atmId = AtmId(r._2.orNull),
+      atmAttributeId = r._3.orNull,
+      attributeType = AtmAttributeType.withName(r._4.orNull),
+      name = r._5.orNull,
+      value = r._6.orNull,
       isActive = r._7
     )
 
@@ -53,14 +53,14 @@ object DoobieAtmAttributeProvider extends AtmAttributeProviderTrait {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE bankid = ${bankId.value} AND atmid = ${atmId.value}")
-          .query[(String, String, String, String, String, String, Option[Boolean])].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(rowOf)
     }
 
   override def getAtmAttributeById(atmAttributeId: String): Future[Box[AtmAttributeTrait]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE atmattributeid = $atmAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, String, Option[Boolean])].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -81,7 +81,7 @@ object DoobieAtmAttributeProvider extends AtmAttributeProviderTrait {
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE atmattributeid = $id LIMIT 1")
-            .query[(String, String, String, String, String, String, Option[Boolean])].option
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some(_) =>
             tryo {

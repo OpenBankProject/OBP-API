@@ -33,13 +33,13 @@ case class UserCustomerLinkRow(
  */
 object DoobieUserCustomerLinkProvider extends UserCustomerLinkProvider {
 
-  private def rowOf(r: (String, String, String, java.sql.Timestamp, Boolean)): UserCustomerLinkRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])): UserCustomerLinkRow =
     UserCustomerLinkRow(
-      userCustomerLinkId = r._1,
-      userId = r._2,
-      customerId = r._3,
-      dateInserted = new Date(r._4.getTime),
-      isActive = r._5
+      userCustomerLinkId = r._1.orNull,
+      userId = r._2.orNull,
+      customerId = r._3.orNull,
+      dateInserted = r._4.map(t => new Date(t.getTime)).orNull,
+      isActive = r._5.getOrElse(false)
     )
 
   private val selectCols: Fragment =
@@ -72,7 +72,7 @@ object DoobieUserCustomerLinkProvider extends UserCustomerLinkProvider {
   override def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mcustomerid = $customerId LIMIT 1")
-        .query[(String, String, String, java.sql.Timestamp, Boolean)].option
+        .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -81,26 +81,26 @@ object DoobieUserCustomerLinkProvider extends UserCustomerLinkProvider {
   override def getUserCustomerLinksByCustomerId(customerId: String): List[UserCustomerLink] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mcustomerid = $customerId")
-        .query[(String, String, String, java.sql.Timestamp, Boolean)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].to[List]
     ).map(rowOf)
 
   override def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE muserid = $userId ORDER BY id")
-        .query[(String, String, String, java.sql.Timestamp, Boolean)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].to[List]
     ).map(rowOf)
 
   override def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE muserid = $userId AND mcustomerid = $customerId LIMIT 1")
-        .query[(String, String, String, java.sql.Timestamp, Boolean)].option
+        .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
     }
 
   override def getUserCustomerLinks: Box[List[UserCustomerLink]] =
-    Full(DoobieUtil.runQuery(selectCols.query[(String, String, String, java.sql.Timestamp, Boolean)].to[List]).map(rowOf))
+    Full(DoobieUtil.runQuery(selectCols.query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].to[List]).map(rowOf))
 
   override def bulkDeleteUserCustomerLinks(): Boolean = {
     DoobieUtil.runUpdate(sql"DELETE FROM mappedusercustomerlink".update.run)

@@ -53,8 +53,8 @@ case class UserAuthContextRow(
  */
 object DoobieUserAuthContextProvider extends UserAuthContextProvider with MdcLoggable {
 
-  private def rowOf(r: (String, String, String, String, String, Timestamp)): UserAuthContextRow =
-    UserAuthContextRow(r._1, r._2, r._3, r._4, r._5, new Date(r._6.getTime))
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)): UserAuthContextRow =
+    UserAuthContextRow(r._1.orNull, r._2.orNull, r._3.orNull, r._4.orNull, r._5.orNull, new Date(r._6.getTime))
 
   private val selectCols =
     fr"SELECT muserauthcontextid, muserid, mkey, mvalue, mconsumerid, createdat FROM mappeduserauthcontext"
@@ -84,14 +84,14 @@ object DoobieUserAuthContextProvider extends UserAuthContextProvider with MdcLog
     tryo {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE muserid = $userId")
-          .query[(String, String, String, String, String, Timestamp)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].to[List]
       ).map(rowOf)
     }
 
   private def findOne(userId: String, key: String): Option[UserAuthContextRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE muserid = $userId AND mkey = $key LIMIT 1")
-        .query[(String, String, String, String, String, Timestamp)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf)
 
   override def createOrUpdateUserAuthContexts(
@@ -135,7 +135,7 @@ object DoobieUserAuthContextProvider extends UserAuthContextProvider with MdcLog
     Future {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE muserauthcontextid = $userAuthContextId LIMIT 1")
-          .query[(String, String, String, String, String, Timestamp)].option
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
       ) match {
         case Some(_) =>
           tryo {

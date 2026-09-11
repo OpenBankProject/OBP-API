@@ -33,8 +33,8 @@ case class FXRateRow(
  */
 object DoobieFXRateQueries {
 
-  private def rowOf(r: (String, String, String, Double, Double, Timestamp)): FXRateRow =
-    FXRateRow(BankId(r._1), r._2, r._3, r._4, r._5, new Date(r._6.getTime))
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[Double], Option[Double], Timestamp)): FXRateRow =
+    FXRateRow(BankId(r._1.orNull), r._2.orNull, r._3.orNull, r._4.getOrElse(0.0), r._5.getOrElse(0.0), new Date(r._6.getTime))
 
   private val selectCols: Fragment =
     fr"""SELECT mbankid, mfromcurrencycode, mtocurrencycode, mconversionvalue, minverseconversionvalue, meffectivedate
@@ -43,12 +43,12 @@ object DoobieFXRateQueries {
   private def findExact(bankId: String, from: String, to: String): Option[FXRateRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mbankid = $bankId AND mfromcurrencycode = $from AND mtocurrencycode = $to LIMIT 1")
-        .query[(String, String, String, Double, Double, Timestamp)].option
+        .query[(Option[String], Option[String], Option[String], Option[Double], Option[Double], Timestamp)].option
     ).map(rowOf)
 
   def findAllForBank(bankId: String): List[FXRateRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mbankid = $bankId").query[(String, String, String, Double, Double, Timestamp)].to[List]
+      (selectCols ++ fr"WHERE mbankid = $bankId").query[(Option[String], Option[String], Option[String], Option[Double], Option[Double], Timestamp)].to[List]
     ).map(rowOf)
 
   /**

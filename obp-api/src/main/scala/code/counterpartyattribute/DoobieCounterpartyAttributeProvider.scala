@@ -34,13 +34,13 @@ case class CounterpartyAttributeRow(
  */
 object DoobieCounterpartyAttributeProvider extends CounterpartyAttributeProviderTrait {
 
-  private def rowOf(r: (String, String, String, String, String, Option[Boolean])): CounterpartyAttributeRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])): CounterpartyAttributeRow =
     CounterpartyAttributeRow(
-      counterpartyId = CounterpartyId(r._1),
-      counterpartyAttributeId = r._2,
-      attributeType = CounterpartyAttributeType.withName(r._3),
-      name = r._4,
-      value = r._5,
+      counterpartyId = CounterpartyId(r._1.orNull),
+      counterpartyAttributeId = r._2.orNull,
+      attributeType = CounterpartyAttributeType.withName(r._3.orNull),
+      name = r._4.orNull,
+      value = r._5.orNull,
       isActive = r._6
     )
 
@@ -51,14 +51,14 @@ object DoobieCounterpartyAttributeProvider extends CounterpartyAttributeProvider
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE counterpartyid = ${counterpartyId.value}")
-          .query[(String, String, String, String, String, Option[Boolean])].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(rowOf)
     }
 
   override def getCounterpartyAttributeById(counterpartyAttributeId: String): Future[Box[CounterpartyAttributeTrait]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE counterpartyattributeid = $counterpartyAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, Option[Boolean])].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -78,7 +78,7 @@ object DoobieCounterpartyAttributeProvider extends CounterpartyAttributeProvider
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE counterpartyattributeid = $id LIMIT 1")
-            .query[(String, String, String, String, String, Option[Boolean])].option
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some(_) =>
             tryo {

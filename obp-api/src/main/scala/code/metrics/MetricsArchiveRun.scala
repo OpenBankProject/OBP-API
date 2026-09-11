@@ -50,9 +50,19 @@ object MetricsArchiveRun {
   /** Keep only the most recent N runs; older rows are pruned on every write. */
   val maxRowsToKeep: Int = 1000
 
-  private def fromRow(row: (String, String, java.sql.Timestamp, java.sql.Timestamp, Long, Int, Int, Boolean, String)): MetricsArchiveRunTrait =
+  private def fromRow(row: (Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])): MetricsArchiveRunTrait =
     row match {
-      case (runId, apiInstanceId, startedAt, endedAt, durationMs, rowsMovedToArchive, rowsDeletedFromArchive, success, remark) =>
+      case (runIdOpt, apiInstanceIdOpt, startedAtOpt, endedAtOpt, durationMsOpt, rowsMovedToArchiveOpt, rowsDeletedFromArchiveOpt, successOpt, remarkOpt) =>
+        // Nullable columns, collapsed the way Mapper's reader did.
+        val runId = runIdOpt.orNull
+        val apiInstanceId = apiInstanceIdOpt.orNull
+        val startedAt = startedAtOpt.orNull
+        val endedAt = endedAtOpt.orNull
+        val durationMs = durationMsOpt.getOrElse(0L)
+        val rowsMovedToArchive = rowsMovedToArchiveOpt.getOrElse(0)
+        val rowsDeletedFromArchive = rowsDeletedFromArchiveOpt.getOrElse(0)
+        val success = successOpt.getOrElse(false)
+        val remark = remarkOpt.orNull
         MetricsArchiveRunRow(runId, apiInstanceId, startedAt, endedAt, durationMs, rowsMovedToArchive, rowsDeletedFromArchive, success, remark)
     }
 
@@ -110,7 +120,7 @@ object MetricsArchiveRun {
   def lastRun: Option[MetricsArchiveRunTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"ORDER BY startedat DESC LIMIT 1")
-        .query[(String, String, java.sql.Timestamp, java.sql.Timestamp, Long, Int, Int, Boolean, String)]
+        .query[(Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])]
         .option
     ).map(fromRow)
 
@@ -118,7 +128,7 @@ object MetricsArchiveRun {
   def lastSuccessfulRun: Option[MetricsArchiveRunTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"WHERE success = true ORDER BY startedat DESC LIMIT 1")
-        .query[(String, String, java.sql.Timestamp, java.sql.Timestamp, Long, Int, Int, Boolean, String)]
+        .query[(Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])]
         .option
     ).map(fromRow)
 

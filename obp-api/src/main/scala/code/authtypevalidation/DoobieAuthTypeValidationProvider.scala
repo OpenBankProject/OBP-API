@@ -35,11 +35,14 @@ object DoobieAuthTypeValidationProvider extends AuthenticationTypeValidationProv
     else APIUtil.getPropsValue(s"authTypeValidation.cache.ttl.seconds", "36").toInt
   }
 
+  // Both columns are nullable, so they are read through Option and collapsed here - Mapper's
+  // MappedString handed back null rather than failing the read.
   private def findRow(operationId: String): Option[(String, String)] =
     DoobieUtil.runQuery(
       sql"""SELECT operationid, allowedauthtypes FROM authenticationtypevalidation
             WHERE operationid = $operationId LIMIT 1"""
-        .query[(String, String)].option)
+        .query[(Option[String], Option[String])].option)
+      .map { case (op, types) => (op.orNull, types.orNull) }
 
   override def getByOperationId(operationId: String): Box[JsonAuthTypeValidation] = {
     val cacheKey = ("code.authtypevalidation.DoobieAuthTypeValidationProvider", "getByOperationId", List(operationId).mkString("_"))
@@ -54,8 +57,8 @@ object DoobieAuthTypeValidationProvider extends AuthenticationTypeValidationProv
   override def getAll(): List[JsonAuthTypeValidation] =
     DoobieUtil.runQuery(
       sql"SELECT operationid, allowedauthtypes FROM authenticationtypevalidation"
-        .query[(String, String)].to[List]
-    ).map { case (op, types) => JsonAuthTypeValidation(op, types) }
+        .query[(Option[String], Option[String])].to[List]
+    ).map { case (op, types) => JsonAuthTypeValidation(op.orNull, types.orNull) }
 
   override def create(jsonValidation: JsonAuthTypeValidation): Box[JsonAuthTypeValidation] = {
     val types = jsonValidation.authTypes.mkString(",")

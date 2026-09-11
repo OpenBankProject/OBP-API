@@ -15,19 +15,19 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
   // default webUiProps value cached seconds
   private val webUiPropsTTL = APIUtil.getPropsAsIntValue("webui.props.cache.ttl.seconds", 0)
 
-  private def fromRow(row: (String, String, String)): WebUiPropsT =
+  private def fromRow(row: (Option[String], Option[String], Option[String])): WebUiPropsT =
     row match {
-      case (webUiPropsId, name, value) => WebUiPropsCommons(name, value, Some(webUiPropsId), Some("database"))
+      case (webUiPropsId, name, value) => WebUiPropsCommons(name.orNull, value.orNull, Some(webUiPropsId.orNull), Some("database"))
     }
 
   override def getAll(): List[WebUiPropsT] =
     DoobieUtil.runQuery(
-      sql"SELECT webuipropsid, name, value FROM webuiprops".query[(String, String, String)].to[List]
+      sql"SELECT webuipropsid, name, value FROM webuiprops".query[(Option[String], Option[String], Option[String])].to[List]
     ).map(fromRow)
 
   override def getByName(name: String): Box[WebUiPropsT] =
     DoobieUtil.runQuery(
-      sql"SELECT webuipropsid, name, value FROM webuiprops WHERE name = $name".query[(String, String, String)].option
+      sql"SELECT webuipropsid, name, value FROM webuiprops WHERE name = $name".query[(Option[String], Option[String], Option[String])].option
     ) match {
       case Some(row) => Full(fromRow(row))
       case None => Empty

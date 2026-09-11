@@ -51,8 +51,8 @@ case class UserAuthContextUpdateRow(
  */
 object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider with MdcLoggable {
 
-  private def rowOf(r: (Long, String, String, String, String, String, String, String, Timestamp)): UserAuthContextUpdateRow =
-    UserAuthContextUpdateRow(r._1, r._2, r._3, r._4, r._5, r._6, r._7, r._8, new Date(r._9.getTime))
+  private def rowOf(r: (Long, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)): UserAuthContextUpdateRow =
+    UserAuthContextUpdateRow(r._1, r._2.orNull, r._3.orNull, r._4.orNull, r._5.orNull, r._6.orNull, r._7.orNull, r._8.orNull, new Date(r._9.getTime))
 
   private val selectCols: Fragment =
     fr"""SELECT id, muserauthcontextupdateid, muserid, mconsumerid, mkey, mvalue, mchallenge, mstatus, createdat
@@ -78,7 +78,7 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
   private def findByUpdateId(userAuthContextUpdateId: String): Option[UserAuthContextUpdateRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE muserauthcontextupdateid = $userAuthContextUpdateId LIMIT 1")
-        .query[(Long, String, String, String, String, String, String, String, Timestamp)].option
+        .query[(Long, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf)
 
   override def getUserAuthContextUpdates(userId: String): Future[Box[List[UserAuthContextUpdate]]] =
@@ -87,7 +87,7 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
   override def getUserAuthContextUpdatesBox(userId: String): Box[List[UserAuthContextUpdate]] =
     tryo {
       DoobieUtil.runQuery(
-        (selectCols ++ fr"WHERE muserid = $userId").query[(Long, String, String, String, String, String, String, String, Timestamp)].to[List]
+        (selectCols ++ fr"WHERE muserid = $userId").query[(Long, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].to[List]
       ).map(rowOf)
     }
 

@@ -36,8 +36,8 @@ object DoobieJsonSchemaValidationProvider extends JsonSchemaValidationProvider {
     DoobieUtil.runQuery(
       sql"""SELECT operationid, jsonschema FROM jsonschemavalidation
             WHERE operationid = $operationId LIMIT 1"""
-        .query[(String, String)].option
-    ).map { case (op, schema) => JsonValidation(op, schema) }
+        .query[(Option[String], Option[String])].option
+    ).map { case (op, schema) => JsonValidation(op.orNull, schema.orNull) }
 
   override def getByOperationId(operationId: String): Box[JsonValidation] = {
     val cacheKey = ("code.validation.DoobieJsonSchemaValidationProvider", "getByOperationId", List(operationId).mkString("_"))
@@ -51,8 +51,8 @@ object DoobieJsonSchemaValidationProvider extends JsonSchemaValidationProvider {
 
   override def getAll(): List[JsonValidation] =
     DoobieUtil.runQuery(
-      sql"SELECT operationid, jsonschema FROM jsonschemavalidation".query[(String, String)].to[List]
-    ).map { case (op, schema) => JsonValidation(op, schema) }
+      sql"SELECT operationid, jsonschema FROM jsonschemavalidation".query[(Option[String], Option[String])].to[List]
+    ).map { case (op, schema) => JsonValidation(op.orNull, schema.orNull) }
 
   override def create(jsonValidation: JsonValidation): Box[JsonValidation] = tryo {
     DoobieUtil.runUpdate(

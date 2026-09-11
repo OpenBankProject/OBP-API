@@ -27,19 +27,32 @@ object DoobieConnectorTrace {
 
   case class ConnectorTraceRow(
     id: Long,
-    correlationId: String,
-    connectorName: String,
-    functionName: String,
-    bankId: String,
-    outboundMessage: String,
-    inboundMessage: String,
+    correlationIdRaw: Option[String],
+    connectorNameRaw: Option[String],
+    functionNameRaw: Option[String],
+    bankIdRaw: Option[String],
+    outboundMessageRaw: Option[String],
+    inboundMessageRaw: Option[String],
     date: Option[Timestamp],
-    duration: Long,
-    isSuccessful: Boolean,
-    userId: String,
-    httpVerb: String,
-    url: String
-  )
+    durationRaw: Option[Long],
+    isSuccessfulRaw: Option[Boolean],
+    userIdRaw: Option[String],
+    httpVerbRaw: Option[String],
+    urlRaw: Option[String]
+  ) {
+    // Nullable columns: read through Option, exposed with Mapper's reader defaults.
+    def correlationId: String = correlationIdRaw.orNull
+    def connectorName: String = connectorNameRaw.orNull
+    def functionName: String = functionNameRaw.orNull
+    def bankId: String = bankIdRaw.orNull
+    def outboundMessage: String = outboundMessageRaw.orNull
+    def inboundMessage: String = inboundMessageRaw.orNull
+    def duration: Long = durationRaw.getOrElse(0L)
+    def isSuccessful: Boolean = isSuccessfulRaw.getOrElse(false)
+    def userId: String = userIdRaw.orNull
+    def httpVerb: String = httpVerbRaw.orNull
+    def url: String = urlRaw.orNull
+  }
 
   private val selectCols: Fragment =
     fr"""SELECT id, correlationid, connectorname, functionname, bankid, outboundmessage,

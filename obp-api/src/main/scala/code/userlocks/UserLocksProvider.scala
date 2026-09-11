@@ -42,8 +42,8 @@ object UserLocksProvider extends MdcLoggable {
     DoobieUtil.runQuery(
       sql"""SELECT userid, typeoflock, lastlockdate FROM userlocks
             WHERE userid = $userId LIMIT 1"""
-        .query[(String, String, Timestamp)].option
-    ).map { case (u, t, d) => UserLockRow(u, t, new Date(d.getTime)) }
+        .query[(Option[String], Option[String], Timestamp)].option
+    ).map { case (u, t, d) => UserLockRow(u.orNull, t.orNull, new Date(d.getTime)) }
 
   def isLocked(provider: String, username: String): Boolean =
     Users.users.vend.getUserByProviderAndUsername(provider, username) match {

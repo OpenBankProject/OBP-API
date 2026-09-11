@@ -34,8 +34,8 @@ object ETagStore {
     DoobieUtil.runQuery(
       sql"""SELECT etagresource, etagvalue, lastupdatedmssinceepoch FROM etag
             WHERE etagresource = $eTagResource LIMIT 1"""
-        .query[(String, String, Long)].option
-    ).map { case (r, v, t) => ETagRow(r, v, t) }
+        .query[(Option[String], Option[String], Option[Long])].option
+    ).map { case (r, v, t) => ETagRow(r.orNull, v.orNull, t.getOrElse(0L)) }
 
   def updateValue(eTagResource: String, eTagValue: String, nowMs: Long): Boolean =
     DoobieUtil.runUpdate(

@@ -47,8 +47,8 @@ case class ConsentAuthContextRow(
  */
 object DoobieConsentAuthContextProvider extends ConsentAuthContextProvider with MdcLoggable {
 
-  private def rowOf(r: (String, String, String, String, Timestamp)): ConsentAuthContextRow =
-    ConsentAuthContextRow(r._1, r._2, r._3, r._4, new Date(r._5.getTime))
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Timestamp)): ConsentAuthContextRow =
+    ConsentAuthContextRow(r._1.orNull, r._2.orNull, r._3.orNull, r._4.orNull, new Date(r._5.getTime))
 
   private val selectCols =
     fr"SELECT consentauthcontextid, consentid, key_c, value, createdat FROM consentauthcontext"
@@ -76,14 +76,14 @@ object DoobieConsentAuthContextProvider extends ConsentAuthContextProvider with 
     tryo {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE consentid = $consentId")
-          .query[(String, String, String, String, Timestamp)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Timestamp)].to[List]
       ).map(rowOf)
     }
 
   private def findOne(consentId: String, key: String): Option[ConsentAuthContextRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE consentid = $consentId AND key_c = $key LIMIT 1")
-        .query[(String, String, String, String, Timestamp)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf)
 
   override def createOrUpdateConsentAuthContexts(
@@ -116,7 +116,7 @@ object DoobieConsentAuthContextProvider extends ConsentAuthContextProvider with 
     Future {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE consentauthcontextid = $consentAuthContextId LIMIT 1")
-          .query[(String, String, String, String, Timestamp)].option
+          .query[(Option[String], Option[String], Option[String], Option[String], Timestamp)].option
       ) match {
         case Some(_) =>
           tryo {

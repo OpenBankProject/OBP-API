@@ -46,15 +46,15 @@ case class TransactionRequestAttributeRow(
  */
 object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttributeProvider {
 
-  private def rowOf(r: (String, String, String, String, String, String, Boolean)): TransactionRequestAttributeRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])): TransactionRequestAttributeRow =
     TransactionRequestAttributeRow(
-      bankId = BankId(r._1),
-      transactionRequestId = TransactionRequestId(r._2),
-      transactionRequestAttributeId = r._3,
-      attributeType = TransactionRequestAttributeType.withName(r._4),
-      name = r._5,
-      value = r._6,
-      isPersonal = r._7
+      bankId = BankId(r._1.orNull),
+      transactionRequestId = TransactionRequestId(r._2.orNull),
+      transactionRequestAttributeId = r._3.orNull,
+      attributeType = TransactionRequestAttributeType.withName(r._4.orNull),
+      name = r._5.orNull,
+      value = r._6.orNull,
+      isPersonal = r._7.getOrElse(false)
     )
 
   private val selectCols: Fragment =
@@ -65,7 +65,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE transactionrequestid = ${transactionRequestId.value}")
-          .query[(String, String, String, String, String, String, Boolean)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(rowOf)
     }
 
@@ -73,7 +73,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE bankid = ${bankId.value} AND transactionrequestid = ${transactionRequestId.value}")
-          .query[(String, String, String, String, String, String, Boolean)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
       ).map(rowOf)
     }
 
@@ -87,7 +87,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
       .filter(_.canBeSeenOnViews.exists(_ == viewId.value))
     val transactionRequestAttributes = DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = ${bankId.value} AND transactionrequestid = ${transactionRequestId.value}")
-        .query[(String, String, String, String, String, String, Boolean)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
     ).map(rowOf)
     val filteredTransactionRequestAttributes = for {
       definition <- attributeDefinitions
@@ -100,7 +100,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
   override def getTransactionRequestAttributeById(transactionRequestAttributeId: String): Future[Box[TransactionRequestAttributeTrait]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE transactionrequestattributeid = $transactionRequestAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, String, Boolean)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -117,7 +117,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
         if (params.isEmpty) {
           DoobieUtil.runQuery(
             (selectCols ++ fr"WHERE bankid = ${bankId.value} AND ispersonal = true")
-              .query[(String, String, String, String, String, String, Boolean)].to[List]
+              .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
           ).map(rowOf)
         } else {
           val paramList = params.toList
@@ -133,7 +133,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
 
           DoobieUtil.runQuery(
             (selectCols ++ fr"WHERE bankid = ${bankId.value} AND ispersonal = true AND (" ++ filterFrag ++ fr")")
-              .query[(String, String, String, String, String, String, Boolean)].to[List]
+              .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
           ).map(rowOf)
         }
       }
@@ -151,7 +151,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE transactionrequestattributeid = $id LIMIT 1")
-            .query[(String, String, String, String, String, String, Boolean)].option
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some((_, _, _, _, _, _, existingIsPersonal)) =>
             tryo {
@@ -160,7 +160,8 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
                       SET bankid = ${bankId.value}, transactionrequestid = ${transactionRequestId.value}, name = $name, type_c = ${attributeType.toString}, value = $value
                       WHERE transactionrequestattributeid = $id"""
                   .update.run)
-              TransactionRequestAttributeRow(bankId, transactionRequestId, id, attributeType, name, value, existingIsPersonal)
+              // ispersonal is nullable; Mapper's MappedBoolean read a NULL as false.
+              TransactionRequestAttributeRow(bankId, transactionRequestId, id, attributeType, name, value, existingIsPersonal.getOrElse(false))
             }
           case None => Empty
         }

@@ -25,9 +25,9 @@ object MappedProductCollectionItem {
     fr"SELECT mcollectioncode, mmemberproductcode FROM mappedproductcollectionitem"
 
   private def query(condition: Fragment): List[MappedProductCollectionItem] =
-    DoobieUtil.runQuery((selectColumns ++ condition).query[(String, String)].to[List])
+    DoobieUtil.runQuery((selectColumns ++ condition).query[(Option[String], Option[String])].to[List])
       .map { case (collectionCode, memberProductCode) =>
-        MappedProductCollectionItem(collectionCode, memberProductCode) }
+        MappedProductCollectionItem(collectionCode.orNull, memberProductCode.orNull) }
 
   def findAllByCollectionCode(collectionCode: String): List[MappedProductCollectionItem] =
     query(fr"WHERE mcollectioncode = $collectionCode")

@@ -84,8 +84,11 @@ object DoobieInvestigationQueries extends MdcLoggable {
             FROM mappedcustomer
             WHERE mcustomerid = $customerId
               AND mbank = $bankId"""
-        .query[CustomerRow]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[Boolean])]
         .option
+        .map(_.map { case (id, legalName, email, mobile, kyc) =>
+          CustomerRow(id.orNull, legalName.orNull, email.orNull, mobile.orNull, kyc.getOrElse(false))
+        })
 
     DoobieUtil.runQuery(query)
   }
@@ -135,8 +138,16 @@ object DoobieInvestigationQueries extends MdcLoggable {
               AND tstartdate <= $toDate
             ORDER BY tstartdate DESC
             LIMIT $limit""")
-        .query[TransactionRow]
+        .query[(Option[String], Option[String], Option[String], Option[Long], Option[String],
+                Option[String], Option[String], Timestamp, Timestamp,
+                Option[String], Option[String], Option[String])]
         .to[List]
+        .map(_.map { case (txId, bank, account, amount, currency, txType, description,
+                           startDate, finishDate, cpHolder, cpRouting, cpBank) =>
+          TransactionRow(txId.orNull, bank.orNull, account.orNull, amount.getOrElse(0L),
+            currency.orNull, txType.orNull, description.orNull, startDate, finishDate,
+            cpHolder.orNull, cpRouting.orNull, cpBank.orNull)
+        })
 
     DoobieUtil.runQuery(query)
   }
@@ -170,8 +181,11 @@ object DoobieInvestigationQueries extends MdcLoggable {
       sql"""SELECT customerid, accountid, bankid, relationshiptype
             FROM customeraccountlink
             WHERE customerid = $customerId"""
-        .query[AccountLinkRow]
+        .query[(Option[String], Option[String], Option[String], Option[String])]
         .to[List]
+        .map(_.map { case (customer, account, bank, relationship) =>
+          AccountLinkRow(customer.orNull, account.orNull, bank.orNull, relationship.orNull)
+        })
 
     DoobieUtil.runQuery(query)
   }

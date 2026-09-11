@@ -38,8 +38,8 @@ object MigrationOfUserAuthContext {
     val duplicateGroups = DoobieUtil.runQuery(
       sql"""select muserid, mkey from mappeduserauthcontext
             group by muserid, mkey having count(mkey) > 1"""
-        .query[(String, String)].to[List]
-    ).map { case (userId, key) => DuplicateGroup(userId, key) }
+        .query[(Option[String], Option[String])].to[List]
+    ).map { case (userId, key) => DuplicateGroup(userId.orNull, key.orNull) }
 
     // Keep the most recently updated row per (userId, key) group, delete the rest.
     val deleted: List[Boolean] = duplicateGroups.map { group =>

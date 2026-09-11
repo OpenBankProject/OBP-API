@@ -446,9 +446,9 @@ object DoobieMetricsQueries {
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
-    fullQuery.query[(Long, Long, String, String, String)].to[List].map { rows =>
+    fullQuery.query[(Long, Long, Option[String], String, Option[String])].to[List].map { rows =>
       rows.map { case (count, _, appName, email, consumerId) =>
-        TopConsumer(count.toInt, consumerId, appName, email)
+        TopConsumer(count.toInt, consumerId.orNull, appName.orNull, email)
       }
     }
   }

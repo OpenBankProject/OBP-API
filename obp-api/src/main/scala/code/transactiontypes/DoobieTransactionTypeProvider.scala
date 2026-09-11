@@ -27,14 +27,14 @@ import net.liftweb.util.Helpers.tryo
  */
 object DoobieTransactionTypeProvider extends TransactionTypeProvider {
 
-  private def rowToTransactionType(r: (String, String, String, String, String, String, Long)): TransactionType =
+  private def rowToTransactionType(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Long])): TransactionType =
     TransactionType(
-      id = TransactionTypeId(r._1),
-      bankId = BankId(r._2),
-      shortCode = r._3,
-      summary = r._4,
-      description = r._5,
-      charge = AmountOfMoney(currency = r._6, amount = r._7.toString))
+      id = TransactionTypeId(r._1.orNull),
+      bankId = BankId(r._2.orNull),
+      shortCode = r._3.orNull,
+      summary = r._4.orNull,
+      description = r._5.orNull,
+      charge = AmountOfMoney(currency = r._6.orNull, amount = r._7.getOrElse(0L).toString))
 
   private val selectCols: Fragment =
     fr"""SELECT mtransactiontypeid, mbankid, mshortcode, msummary, mdescription,
@@ -44,14 +44,14 @@ object DoobieTransactionTypeProvider extends TransactionTypeProvider {
   override protected def getTransactionTypeFromProvider(transactionTypeId: TransactionTypeId): Option[TransactionType] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mtransactiontypeid = ${transactionTypeId.value} LIMIT 1")
-        .query[(String, String, String, String, String, String, Long)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Long])].option
     ).map(rowToTransactionType)
 
   override protected def getTransactionTypesForBankFromProvider(bankId: BankId): Some[List[TransactionType]] =
     Some(
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE mbankid = ${bankId.value}")
-          .query[(String, String, String, String, String, String, Long)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Long])].to[List]
       ).map(rowToTransactionType))
 
   override protected def createOrUpdateTransactionTypeAtProvider(t: TransactionTypeJsonV200): Box[TransactionType] = {

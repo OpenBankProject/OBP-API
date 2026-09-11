@@ -77,8 +77,11 @@ object DoobieProductTags {
     val inList = productCodes.map(c => fr"$c").reduceLeft((a, b) => a ++ fr"," ++ b)
     val rows = DoobieUtil.runQuery(
       (fr"SELECT productcode, tag FROM producttag WHERE bankid = ${bankId.value} AND productcode IN (" ++
-        inList ++ fr")").query[(String, String)].to[List]
+        inList ++ fr")").query[(Option[String], Option[String])].to[List]
     )
-    rows.groupBy(_._1).map { case (code, ts) => code -> ts.map(_._2).sorted }
+    // Both columns are nullable; collapse each row before grouping so the map's key and values
+    // have the shape the caller expects.
+    rows.map { case (code, tag) => (code.orNull, tag.orNull) }
+      .groupBy(_._1).map { case (code, ts) => code -> ts.map(_._2).sorted }
   }
 }

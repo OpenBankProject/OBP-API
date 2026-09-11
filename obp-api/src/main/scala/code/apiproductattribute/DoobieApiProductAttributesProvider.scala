@@ -35,8 +35,8 @@ case class ApiProductAttributeRow(
  */
 object DoobieApiProductAttributesProvider extends MdcLoggable with ApiProductAttributesProvider {
 
-  private def rowOf(r: (String, String, String, String, String, String, Boolean)): ApiProductAttributeRow =
-    ApiProductAttributeRow(r._1, r._2, r._3, r._4, r._5, r._6, Some(r._7))
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])): ApiProductAttributeRow =
+    ApiProductAttributeRow(r._1.orNull, r._2.orNull, r._3.orNull, r._4.orNull, r._5.orNull, r._6.orNull, Some(r._7.getOrElse(false)))
 
   private val selectCols: Fragment =
     fr"""SELECT bankid, apiproductcode, apiproductattributeid, name, type_c, value, isactive
@@ -48,14 +48,14 @@ object DoobieApiProductAttributesProvider extends MdcLoggable with ApiProductAtt
   ): Box[List[ApiProductAttributeTrait]] = tryo {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = $bankId AND apiproductcode = $apiProductCode")
-        .query[(String, String, String, String, String, String, Boolean)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
     ).map(rowOf)
   }
 
   override def getApiProductAttributeById(apiProductAttributeId: String): Box[ApiProductAttributeTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE apiproductattributeid = $apiProductAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, String, Boolean)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty

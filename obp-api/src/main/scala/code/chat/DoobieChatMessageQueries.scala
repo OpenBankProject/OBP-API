@@ -39,12 +39,18 @@ object DoobieChatMessageQueries extends MdcLoggable {
   )
 
   case class ReactionRow(
-    reactionId: String,
-    chatMessageId: String,
-    userId: String,
-    emoji: String,
+    reactionIdRaw: Option[String],
+    chatMessageIdRaw: Option[String],
+    userIdRaw: Option[String],
+    emojiRaw: Option[String],
     createdAt: Timestamp
-  )
+  ) {
+    // Nullable columns: read through Option, exposed with Mapper's reader defaults.
+    def reactionId: String = reactionIdRaw.orNull
+    def chatMessageId: String = chatMessageIdRaw.orNull
+    def userId: String = userIdRaw.orNull
+    def emoji: String = emojiRaw.orNull
+  }
 
   def getMessagesWithReactions(
     chatRoomId: String,

@@ -73,13 +73,13 @@ object DoobiePayeeLookupProvider extends PayeeLookupProvider {
                    accountcategory, accounttype, identitytype, identityvalue,
                    frombankid, fromaccountid, createdbyuserid, creationdate, expiresat
             FROM payeelookup WHERE lookupid = $lookupId"""
-        .query[(String, String, String, String, String, String, String, String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])]
         .option) match {
       case Some((lId, idType, id, fsp, netProv, fullName, accCat, accType, idnType, idnValue, fromBank, fromAccount, createdBy, createdAt, expiresAt)) =>
         val row = PayeeLookupRow(
-          lId, idType, id, opt(fsp), opt(netProv), fullName,
-          opt(accCat), opt(accType), opt(idnType), opt(idnValue),
-          fromBank, fromAccount, createdBy, createdAt, expiresAt)
+          lId.orNull, idType.orNull, id.orNull, opt(fsp.orNull), opt(netProv.orNull), fullName.orNull,
+          opt(accCat.orNull), opt(accType.orNull), opt(idnType.orNull), opt(idnValue.orNull),
+          fromBank.orNull, fromAccount.orNull, createdBy.orNull, createdAt.orNull, expiresAt.orNull)
         if (row.isExpired) Empty else Full(row)
       case None => Empty
     }

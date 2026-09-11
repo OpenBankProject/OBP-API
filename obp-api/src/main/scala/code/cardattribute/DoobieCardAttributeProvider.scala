@@ -37,14 +37,14 @@ case class CardAttributeRow(
  */
 object DoobieCardAttributeProvider extends CardAttributeProvider {
 
-  private def rowOf(r: (Option[String], Option[String], String, String, String, String)): CardAttributeRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])): CardAttributeRow =
     CardAttributeRow(
       bankId = Some(BankId(r._1.orNull)),
       cardId = Some(r._2.orNull),
-      cardAttributeId = Some(r._3),
-      name = r._4,
-      attributeType = CardAttributeType.withName(r._5),
-      value = r._6
+      cardAttributeId = Some(r._3.orNull),
+      name = r._4.orNull,
+      attributeType = CardAttributeType.withName(r._5.orNull),
+      value = r._6.orNull
     )
 
   private val selectCols: Fragment =
@@ -54,14 +54,14 @@ object DoobieCardAttributeProvider extends CardAttributeProvider {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE mcardid = $cardId")
-          .query[(Option[String], Option[String], String, String, String, String)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].to[List]
       ).map(rowOf)
     }
 
   override def getCardAttributeById(cardAttributeId: String): Future[Box[CardAttribute]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mcardattributeid = $cardAttributeId LIMIT 1")
-        .query[(Option[String], Option[String], String, String, String, String)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -81,7 +81,7 @@ object DoobieCardAttributeProvider extends CardAttributeProvider {
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE mcardattributeid = $id LIMIT 1")
-            .query[(Option[String], Option[String], String, String, String, String)].option
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
         ) match {
           case Some(_) =>
             tryo {

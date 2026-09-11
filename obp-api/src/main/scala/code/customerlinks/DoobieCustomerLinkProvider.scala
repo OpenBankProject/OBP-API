@@ -32,16 +32,23 @@ case class CustomerLinkRow(
  */
 object DoobieCustomerLinkProvider extends CustomerLinkProvider {
 
-  private def rowOf(r: (String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)): CustomerLinkRow =
+  // Every column of customerlink except the primary key is nullable, so each is read through
+  // Option and collapsed the way Mapper's reader did: MappedString handed back null,
+  // MappedDateTime handed back null. Read bare, doobie's Get throws NonNullableColumnRead on the
+  // first legacy row holding a NULL and fails the whole query rather than the row, turning a
+  // listing into a 500.
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String],
+                        Option[String], Option[String],
+                        Option[java.sql.Timestamp], Option[java.sql.Timestamp])): CustomerLinkRow =
     CustomerLinkRow(
-      customerLinkId = r._1,
-      bankId = r._2,
-      customerId = r._3,
-      otherBankId = r._4,
-      otherCustomerId = r._5,
-      relationshipTo = r._6,
-      dateInserted = new Date(r._7.getTime),
-      dateUpdated = new Date(r._8.getTime)
+      customerLinkId = r._1.orNull,
+      bankId = r._2.orNull,
+      customerId = r._3.orNull,
+      otherBankId = r._4.orNull,
+      otherCustomerId = r._5.orNull,
+      relationshipTo = r._6.orNull,
+      dateInserted = r._7.map(t => new Date(t.getTime)).orNull,
+      dateUpdated = r._8.map(t => new Date(t.getTime)).orNull
     )
 
   private val selectCols: Fragment =
@@ -57,14 +64,14 @@ object DoobieCustomerLinkProvider extends CustomerLinkProvider {
           .update.run)
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE customerlinkid = $id LIMIT 1")
-          .query[(String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].unique
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].unique
       )
     }.map(rowOf)
 
   override def getCustomerLinkById(customerLinkId: String): Box[CustomerLinkTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE customerlinkid = $customerLinkId LIMIT 1")
-        .query[(String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -74,7 +81,7 @@ object DoobieCustomerLinkProvider extends CustomerLinkProvider {
     tryo {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE bankid = $bankId")
-          .query[(String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].to[List]
       ).map(rowOf)
     }
 
@@ -82,14 +89,14 @@ object DoobieCustomerLinkProvider extends CustomerLinkProvider {
     tryo {
       DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE customerid = $customerId")
-          .query[(String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].to[List]
       ).map(rowOf)
     }
 
   override def updateCustomerLinkById(customerLinkId: String, relationshipTo: String): Box[CustomerLinkTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE customerlinkid = $customerLinkId LIMIT 1")
-        .query[(String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].option
     ) match {
       case Some(_) =>
         tryo {
@@ -98,7 +105,7 @@ object DoobieCustomerLinkProvider extends CustomerLinkProvider {
               .update.run)
           DoobieUtil.runQuery(
             (selectCols ++ fr"WHERE customerlinkid = $customerLinkId LIMIT 1")
-              .query[(String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].unique
+              .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].unique
           )
         }.map(rowOf)
       case None => Empty ?~! ErrorMessages.CustomerLinkNotFound

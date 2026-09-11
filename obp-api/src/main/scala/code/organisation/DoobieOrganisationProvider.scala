@@ -30,9 +30,19 @@ object DoobieOrganisationProvider extends OrganisationProvider {
     fr"""SELECT organisationid, name, website, logourl, status, visibility, createdbyuserid, creationdate, lastupdate
          FROM organisation"""
 
-  private def fromRow(row: (String, String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)): OrganisationRow =
+  private def fromRow(row: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])): OrganisationRow =
     row match {
-      case (organisationId, name, website, logoUrl, status, visibility, createdByUserId, createdAt, updatedAt) =>
+      case (organisationIdOpt, nameOpt, websiteOpt, logoUrlOpt, statusOpt, visibilityOpt, createdByUserIdOpt, createdAtOpt, updatedAtOpt) =>
+        // Nullable columns, collapsed the way Mapper's reader did.
+        val organisationId = organisationIdOpt.orNull
+        val name = nameOpt.orNull
+        val website = websiteOpt.orNull
+        val logoUrl = logoUrlOpt.orNull
+        val status = statusOpt.orNull
+        val visibility = visibilityOpt.orNull
+        val createdByUserId = createdByUserIdOpt.orNull
+        val createdAt = createdAtOpt.orNull
+        val updatedAt = updatedAtOpt.orNull
         OrganisationRow(organisationId, name, opt(website), opt(logoUrl), status, visibility, createdByUserId, createdAt, updatedAt)
     }
 
@@ -62,7 +72,7 @@ object DoobieOrganisationProvider extends OrganisationProvider {
   override def getOrganisation(organisationId: String): Box[OrganisationTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"WHERE organisationid = $organisationId")
-        .query[(String, String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].option
     ) match {
       case Some(row) => Full(fromRow(row))
       case None => Empty
@@ -71,7 +81,7 @@ object DoobieOrganisationProvider extends OrganisationProvider {
   override def getAllOrganisations(): Future[Box[List[OrganisationTrait]]] = Future {
     try {
       Full(DoobieUtil.runQuery(
-        selectColumns.query[(String, String, String, String, String, String, String, java.sql.Timestamp, java.sql.Timestamp)].to[List]
+        selectColumns.query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].to[List]
       ).map(fromRow))
     } catch {
       case e: Exception => Failure(e.getMessage, Full(e), Empty)

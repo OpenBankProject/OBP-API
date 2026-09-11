@@ -26,8 +26,8 @@ case class BankAccountRoutingRow(
  */
 object DoobieBankAccountRoutingQueries {
 
-  private def rowOf(r: (String, String, String, String)): BankAccountRoutingRow =
-    BankAccountRoutingRow(BankId(r._1), AccountId(r._2), AccountRouting(r._3, r._4))
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String])): BankAccountRoutingRow =
+    BankAccountRoutingRow(BankId(r._1.orNull), AccountId(r._2.orNull), AccountRouting(r._3.orNull, r._4.orNull))
 
   private val selectCols: Fragment =
     fr"SELECT bankid, accountid, accountroutingscheme, accountroutingaddress FROM bankaccountrouting"
@@ -35,48 +35,48 @@ object DoobieBankAccountRoutingQueries {
   def findByBankAccountScheme(bankId: BankId, accountId: AccountId, scheme: String): Option[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = ${bankId.value} AND accountid = ${accountId.value} AND accountroutingscheme = $scheme LIMIT 1")
-        .query[(String, String, String, String)].option
+        .query[(Option[String], Option[String], Option[String], Option[String])].option
     ).map(rowOf)
 
   def findByBankSchemeAddress(bankId: BankId, scheme: String, address: String): Option[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = ${bankId.value} AND accountroutingscheme = $scheme AND accountroutingaddress = $address LIMIT 1")
-        .query[(String, String, String, String)].option
+        .query[(Option[String], Option[String], Option[String], Option[String])].option
     ).map(rowOf)
 
   def findBySchemeAddress(scheme: String, address: String): Option[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE accountroutingscheme = $scheme AND accountroutingaddress = $address LIMIT 1")
-        .query[(String, String, String, String)].option
+        .query[(Option[String], Option[String], Option[String], Option[String])].option
     ).map(rowOf)
 
   def findAllByBankSchemeAddress(bankId: BankId, scheme: String, address: String): List[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = ${bankId.value} AND accountroutingscheme = $scheme AND accountroutingaddress = $address")
-        .query[(String, String, String, String)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String])].to[List]
     ).map(rowOf)
 
   def findAllBySchemeAddress(scheme: String, address: String): List[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE accountroutingscheme = $scheme AND accountroutingaddress = $address")
-        .query[(String, String, String, String)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String])].to[List]
     ).map(rowOf)
 
   def findAllByBankScheme(bankId: BankId, scheme: String): List[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = ${bankId.value} AND accountroutingscheme = $scheme")
-        .query[(String, String, String, String)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String])].to[List]
     ).map(rowOf)
 
   def findAllByScheme(scheme: String): List[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE accountroutingscheme = $scheme").query[(String, String, String, String)].to[List]
+      (selectCols ++ fr"WHERE accountroutingscheme = $scheme").query[(Option[String], Option[String], Option[String], Option[String])].to[List]
     ).map(rowOf)
 
   def findAllByBankAccount(bankId: BankId, accountId: AccountId): List[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = ${bankId.value} AND accountid = ${accountId.value}")
-        .query[(String, String, String, String)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String])].to[List]
     ).map(rowOf)
 
   def create(bankId: BankId, accountId: AccountId, scheme: String, address: String): BankAccountRoutingRow = {

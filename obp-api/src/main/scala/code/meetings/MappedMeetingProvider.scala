@@ -117,9 +117,9 @@ object MappedMeetingInvitee {
     DoobieUtil.runQuery(
       sql"""SELECT mname, mphone, memail, mstatus FROM mappedmeetinginvitee
             WHERE mmappedmeeting = $meetingKey ORDER BY id ASC"""
-        .query[(String, String, String, String)].to[List])
+        .query[(Option[String], Option[String], Option[String], Option[String])].to[List])
       .map { case (name, phone, email, status) =>
-        Invitee(ContactDetails(name, phone, email), status) }
+        Invitee(ContactDetails(name.orNull, phone.orNull, email.orNull), status.orNull) }
 
   def insert(meetingKey: Long, invitee: Invitee): Unit = {
     DoobieUtil.runUpdate(

@@ -252,8 +252,8 @@ object PinReset {
     DoobieUtil.runQuery(
       sql"""SELECT mreplacementdate, mreplacementreason FROM pinreset
             WHERE card = $cardKey ORDER BY id ASC"""
-        .query[(java.sql.Timestamp, String)].to[List])
-      .map { case (date, reason) => PinResetInfo(date, PinResetReason.valueOf(reason)) }
+        .query[(Option[java.sql.Timestamp], Option[String])].to[List])
+      .map { case (date, reason) => PinResetInfo(date.orNull, PinResetReason.valueOf(reason.orNull)) }
 
   /**
    * Mapper looked an existing reset up by mReplacementDate ALONE, ignoring which card it belonged

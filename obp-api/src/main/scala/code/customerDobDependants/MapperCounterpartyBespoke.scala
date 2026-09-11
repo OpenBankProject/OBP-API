@@ -27,8 +27,8 @@ object MappedCustomerDependant {
   private val selectColumns = fr"SELECT mcustomer, mdateofbirth FROM mappedcustomerdependant"
 
   private def query(condition: Fragment): List[MappedCustomerDependant] =
-    DoobieUtil.runQuery((selectColumns ++ condition).query[(Long, java.sql.Timestamp)].to[List])
-      .map { case (customerKey, dateOfBirth) => MappedCustomerDependant(customerKey, dateOfBirth) }
+    DoobieUtil.runQuery((selectColumns ++ condition).query[(Option[Long], Option[java.sql.Timestamp])].to[List])
+      .map { case (customerKey, dateOfBirth) => MappedCustomerDependant(customerKey.getOrElse(0L), dateOfBirth.orNull) }
 
   def insert(customerKey: Long, dateOfBirth: Date): MappedCustomerDependant = {
     DoobieUtil.runUpdate(

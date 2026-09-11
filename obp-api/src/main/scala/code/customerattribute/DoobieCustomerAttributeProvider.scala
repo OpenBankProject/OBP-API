@@ -41,14 +41,14 @@ case class CustomerAttributeRow(
  */
 object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
 
-  private def rowOf(r: (String, String, String, String, String, String)): CustomerAttributeRow =
+  private def rowOf(r: (Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])): CustomerAttributeRow =
     CustomerAttributeRow(
-      bankId = BankId(r._1),
-      customerId = CustomerId(r._2),
-      customerAttributeId = r._3,
-      attributeType = CustomerAttributeType.withName(r._4),
-      name = r._5,
-      value = r._6
+      bankId = BankId(r._1.orNull),
+      customerId = CustomerId(r._2.orNull),
+      customerAttributeId = r._3.orNull,
+      attributeType = CustomerAttributeType.withName(r._4.orNull),
+      name = r._5.orNull,
+      value = r._6.orNull
     )
 
   private val selectCols: Fragment =
@@ -58,7 +58,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE mcustomerid = ${customerId.value}")
-          .query[(String, String, String, String, String, String)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].to[List]
       ).map(rowOf)
     }
 
@@ -66,7 +66,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
     Future {
       Box !! DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE mbankidid = ${bankId.value} AND mcustomerid = ${customerId.value}")
-          .query[(String, String, String, String, String, String)].to[List]
+          .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].to[List]
       ).map(rowOf)
     }
 
@@ -100,7 +100,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
       Box !! customers.map { customer =>
         val attrs = DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE mbankidid = ${customer.bankId} AND mcustomerid = ${customer.customerId}")
-            .query[(String, String, String, String, String, String)].to[List]
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].to[List]
         ).map(rowOf)
         CustomerAndAttribute(customer, attrs)
       }
@@ -109,7 +109,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
   override def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]] = Future {
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mcustomerattributeid = $customerAttributeId LIMIT 1")
-        .query[(String, String, String, String, String, String)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -128,7 +128,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
       case Some(id) => Future {
         DoobieUtil.runQuery(
           (selectCols ++ fr"WHERE mcustomerattributeid = $id LIMIT 1")
-            .query[(String, String, String, String, String, String)].option
+            .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
         ) match {
           case Some(_) =>
             tryo {

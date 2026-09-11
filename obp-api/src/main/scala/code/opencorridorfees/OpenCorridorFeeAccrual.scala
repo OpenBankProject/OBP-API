@@ -45,9 +45,15 @@ object OpenCorridorFeeAccrual {
   private val selectColumns =
     fr"SELECT debtor_bank_id, transaction_request_id, currency, amount, fee_settlement_id FROM open_corridor_fee_accrual"
 
-  private def fromRow(row: (String, String, String, String, String)): OpenCorridorFeeAccrualTrait =
+  private def fromRow(row: (Option[String], Option[String], Option[String], Option[String], Option[String])): OpenCorridorFeeAccrualTrait =
     row match {
-      case (debtorBankId, transactionRequestId, currency, amount, feeSettlementId) =>
+      case (debtorBankIdOpt, transactionRequestIdOpt, currencyOpt, amountOpt, feeSettlementIdOpt) =>
+        // Nullable columns, collapsed the way Mapper's reader did.
+        val debtorBankId = debtorBankIdOpt.orNull
+        val transactionRequestId = transactionRequestIdOpt.orNull
+        val currency = currencyOpt.orNull
+        val amount = amountOpt.orNull
+        val feeSettlementId = feeSettlementIdOpt.orNull
         OpenCorridorFeeAccrualRow(debtorBankId, transactionRequestId, currency, amount, feeSettlementId)
     }
 
@@ -80,13 +86,13 @@ object OpenCorridorFeeAccrual {
   def unswept(debtorBankId: String, currency: String): List[OpenCorridorFeeAccrualTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"WHERE debtor_bank_id = $debtorBankId AND currency = $currency AND fee_settlement_id = '' ORDER BY accrued_at ASC")
-        .query[(String, String, String, String, String)].to[List]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String])].to[List]
     ).map(fromRow)
 
   def find(transactionRequestId: String): Box[OpenCorridorFeeAccrualTrait] =
     DoobieUtil.runQuery(
       (selectColumns ++ fr"WHERE transaction_request_id = $transactionRequestId")
-        .query[(String, String, String, String, String)].option
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[String])].option
     ) match {
       case Some(row) => Full(fromRow(row))
       case None => Empty

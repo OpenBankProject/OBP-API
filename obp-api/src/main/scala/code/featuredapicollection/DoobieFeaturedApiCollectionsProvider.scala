@@ -38,8 +38,8 @@ case class FeaturedApiCollectionRow(
  */
 object DoobieFeaturedApiCollectionsProvider extends MdcLoggable with FeaturedApiCollectionsProvider {
 
-  private def rowOf(r: (String, String, Int)): FeaturedApiCollectionRow =
-    FeaturedApiCollectionRow(r._1, r._2, r._3)
+  private def rowOf(r: (Option[String], Option[String], Option[Int])): FeaturedApiCollectionRow =
+    FeaturedApiCollectionRow(r._1.orNull, r._2.orNull, r._3.getOrElse(0))
 
   private val selectCols =
     fr"SELECT featuredapicollectionid, apicollectionid, sortorder FROM featuredapicollection"
@@ -63,7 +63,7 @@ object DoobieFeaturedApiCollectionsProvider extends MdcLoggable with FeaturedApi
   override def getFeaturedApiCollectionById(featuredApiCollectionId: String): Box[FeaturedApiCollectionTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE featuredapicollectionid = $featuredApiCollectionId LIMIT 1")
-        .query[(String, String, Int)].option
+        .query[(Option[String], Option[String], Option[Int])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -72,7 +72,7 @@ object DoobieFeaturedApiCollectionsProvider extends MdcLoggable with FeaturedApi
   override def getFeaturedApiCollectionByApiCollectionId(apiCollectionId: String): Box[FeaturedApiCollectionTrait] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE apicollectionid = $apiCollectionId LIMIT 1")
-        .query[(String, String, Int)].option
+        .query[(Option[String], Option[String], Option[Int])].option
     ) match {
       case Some(r) => Full(rowOf(r))
       case None    => Empty
@@ -95,7 +95,7 @@ object DoobieFeaturedApiCollectionsProvider extends MdcLoggable with FeaturedApi
 
   override def getAllFeaturedApiCollections(): List[FeaturedApiCollectionTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"ORDER BY sortorder ASC").query[(String, String, Int)].to[List]
+      (selectCols ++ fr"ORDER BY sortorder ASC").query[(Option[String], Option[String], Option[Int])].to[List]
     ).map(rowOf)
 
   override def deleteFeaturedApiCollectionById(featuredApiCollectionId: String): Box[Boolean] =

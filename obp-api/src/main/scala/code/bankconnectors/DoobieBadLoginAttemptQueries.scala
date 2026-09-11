@@ -19,8 +19,8 @@ case class BadLoginAttemptRow(
 
 object DoobieBadLoginAttemptQueries {
 
-  private def rowOf(r: (String, String, Int, Timestamp)): BadLoginAttemptRow =
-    BadLoginAttemptRow(r._1, r._2, r._3, new Date(r._4.getTime))
+  private def rowOf(r: (String, Option[String], Option[Int], Timestamp)): BadLoginAttemptRow =
+    BadLoginAttemptRow(r._1, r._2.orNull, r._3.getOrElse(0), new Date(r._4.getTime))
 
   private val selectCols =
     fr"""SELECT musername, provider, mbadattemptssincelastsuccessorreset, mlastfailuredate
@@ -29,7 +29,7 @@ object DoobieBadLoginAttemptQueries {
   def find(provider: String, username: String): Option[BadLoginAttemptRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE provider = $provider AND musername = $username LIMIT 1")
-        .query[(String, String, Int, Timestamp)].option
+        .query[(String, Option[String], Option[Int], Timestamp)].option
     ).map(rowOf)
 
   /** Every (provider, username) whose bad-attempt counter exceeds maxBadLoginAttempts. */

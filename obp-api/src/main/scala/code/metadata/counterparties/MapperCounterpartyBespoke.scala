@@ -28,9 +28,9 @@ object MappedCounterpartyBespoke {
   private val selectColumns = fr"SELECT mcounterparty, mkey, mvaule FROM mappedcounterpartybespoke"
 
   private def query(condition: Fragment): List[MappedCounterpartyBespoke] =
-    DoobieUtil.runQuery((selectColumns ++ condition).query[(Long, String, String)].to[List])
+    DoobieUtil.runQuery((selectColumns ++ condition).query[(Option[Long], Option[String], Option[String])].to[List])
       .map { case (counterpartyKey, key, value) =>
-        MappedCounterpartyBespoke(counterpartyKey, key, value) }
+        MappedCounterpartyBespoke(counterpartyKey.getOrElse(0L), key.orNull, value.orNull) }
 
   def insert(counterpartyKey: Long, key: String, value: String): MappedCounterpartyBespoke = {
     DoobieUtil.runUpdate(

@@ -38,12 +38,12 @@ object DoobieTaxResidenceProvider extends TaxResidenceProvider {
   private def resolveCustomerId(longId: Long): String =
     MappedCustomer.findByPrimaryKey(longId).map(_.customerId).getOrElse(longId.toString)
 
-  private def rowOf(r: (Long, String, String, String)): TaxResidenceRow =
+  private def rowOf(r: (Option[Long], Option[String], Option[String], Option[String])): TaxResidenceRow =
     TaxResidenceRow(
-      customerId = resolveCustomerId(r._1),
-      taxResidenceId = r._2,
-      domain = r._3,
-      taxNumber = r._4
+      customerId = resolveCustomerId(r._1.getOrElse(0L)),
+      taxResidenceId = r._2.orNull,
+      domain = r._3.orNull,
+      taxNumber = r._4.orNull
     )
 
   private val selectCols: Fragment =
@@ -55,7 +55,7 @@ object DoobieTaxResidenceProvider extends TaxResidenceProvider {
         Full(
           DoobieUtil.runQuery(
             (selectCols ++ fr"WHERE mcustomerid = ${customer.customerPrimaryKey}")
-              .query[(Long, String, String, String)].to[List]
+              .query[(Option[Long], Option[String], Option[String], Option[String])].to[List]
           ).map(rowOf)
         )
       case Empty => Empty

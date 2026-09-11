@@ -55,9 +55,9 @@ object DoobieApiCollectionEndpointsProvider extends MdcLoggable with ApiCollecti
     DoobieUtil.runQuery(
       sql"""SELECT apicollectionendpointid, apicollectionid, operationid FROM apicollectionendpoint
             WHERE apicollectionid = $apiCollectionId AND operationid = $operationId LIMIT 1"""
-        .query[(String, String, String)].option
+        .query[(Option[String], Option[String], Option[String])].option
     ) match {
-      case Some((eid, cid, op)) => Full(ApiCollectionEndpointRow(eid, cid, op))
+      case Some((eid, cid, op)) => Full(ApiCollectionEndpointRow(eid.orNull, cid.orNull, op.orNull))
       case None                 => Empty
     }
 
@@ -65,16 +65,16 @@ object DoobieApiCollectionEndpointsProvider extends MdcLoggable with ApiCollecti
     DoobieUtil.runQuery(
       sql"""SELECT apicollectionendpointid, apicollectionid, operationid FROM apicollectionendpoint
             WHERE apicollectionid = $apiCollectionId"""
-        .query[(String, String, String)].to[List]
-    ).map { case (eid, cid, op) => ApiCollectionEndpointRow(eid, cid, op) }
+        .query[(Option[String], Option[String], Option[String])].to[List]
+    ).map { case (eid, cid, op) => ApiCollectionEndpointRow(eid.orNull, cid.orNull, op.orNull) }
 
   override def getApiCollectionEndpointById(apiCollectionEndpointId: String): Box[ApiCollectionEndpointTrait] =
     DoobieUtil.runQuery(
       sql"""SELECT apicollectionendpointid, apicollectionid, operationid FROM apicollectionendpoint
             WHERE apicollectionendpointid = $apiCollectionEndpointId LIMIT 1"""
-        .query[(String, String, String)].option
+        .query[(Option[String], Option[String], Option[String])].option
     ) match {
-      case Some((eid, cid, op)) => Full(ApiCollectionEndpointRow(eid, cid, op))
+      case Some((eid, cid, op)) => Full(ApiCollectionEndpointRow(eid.orNull, cid.orNull, op.orNull))
       case None                 => Empty
     }
 
