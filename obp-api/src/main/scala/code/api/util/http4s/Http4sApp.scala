@@ -75,6 +75,19 @@ object Http4sApp extends MdcLoggable {
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
   // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
   // are migrated to http4s.
+  // Berlin Group goes through gate() like every other standard. It used to be spliced into the
+  // chain raw, so api_disabled_versions could retire every version except this one: neither BG
+  // wrapper re-checks versionIsAllowed, and ResourceDocMiddleware deliberately does not re-check
+  // version-level props per request (it says so at its isEndpointEnabled). The result was an
+  // operator setting api_disabled_versions=BGv1.3 seeing /obp/v7.0.0/api/versions report it
+  // inactive while the v1.3 tree kept serving consent-scoped account data.
+  private val bgV2Routes: HttpRoutes[IO] =
+    gate(code.api.berlin.group.ConstantsBG.berlinGroupVersion2, code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes)
+  private val bgV13Routes: HttpRoutes[IO] =
+    gate(code.api.berlin.group.ConstantsBG.berlinGroupVersion1, code.api.berlin.group.v1_3.Http4sBGv13.wrappedRoutes)
+  private val bgV13AliasRoutes: HttpRoutes[IO] =
+    gate(code.api.berlin.group.ConstantsBG.berlinGroupVersion1, code.api.berlin.group.v1_3.Http4sBGv13Alias.wrappedRoutes)
+
   private val ukV20Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV20, code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.wrappedRoutes)
   private val ukV31Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV31, code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.wrappedRoutes)
   private val ukV401Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV401, code.api.UKOpenBanking.v4_0_1.Http4sUKOBv401.wrappedRoutes)
@@ -136,12 +149,12 @@ object Http4sApp extends MdcLoggable {
         .orElse(v600Routes.run(req))
         .orElse(v510Routes.run(req))
         .orElse(v500Routes.run(req))
-        .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
+        .orElse(bgV2Routes.run(req))
         .orElse(ukV20Routes.run(req))
         .orElse(ukV31Routes.run(req))
         .orElse(ukV401Routes.run(req))
-        .orElse(code.api.berlin.group.v1_3.Http4sBGv13.wrappedRoutes.run(req))
-        .orElse(code.api.berlin.group.v1_3.Http4sBGv13Alias.wrappedRoutes.run(req))
+        .orElse(bgV13Routes.run(req))
+        .orElse(bgV13AliasRoutes.run(req))
         .orElse(v400Routes.run(req))
         .orElse(v310Routes.run(req))
         .orElse(v300Routes.run(req))
