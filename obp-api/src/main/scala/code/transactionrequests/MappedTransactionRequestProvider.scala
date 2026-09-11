@@ -119,6 +119,24 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       case _ => None
     }
 
+    // Record both: userId = the authenticated user, onBehalfOfUserId = who the payment is for.
+    // One attribution call (UserReference.TransactionRequest) gives both, and it is the only thing
+    // that consults the consent chain: CallContext.onBehalfOfUser is a plain field fallback
+    // (consentCreator or consenter or user), so for a consent user whose context carries only
+    // `user` it answers the agent itself. Users.attributionOf resolves that agent to the human via
+    // ResourceUser.createdByConsentId -> the consent's user, and logs the redirect. The request
+    // layer's consentCreator / consenter still take precedence when a middleware populated them,
+    // as in CallContext.onBehalfOfUserId.
+    val transactionRequestAttribution: Option[code.users.Attribution] = for {
+      cc   <- callContext
+      user <- cc.user.toOption
+      a    <- code.users.Users.users.vend
+                .attributionOf(user.userId, code.users.UserReference.TransactionRequest).toOption
+    } yield cc.consentCreator.or(cc.consenter).map(_.userId).filter(_.nonEmpty) match {
+      case Full(delegated) => a.copy(onBehalfOfUserId = delegated)
+      case _               => a
+    }
+
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.insert(MappedTransactionRequest.empty.copy(
 
@@ -169,8 +187,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       consentReferenceId = consentReferenceIdOption.getOrElse(null),
       apiVersion = apiVersion.getOrElse(null),
       apiStandard = apiStandard.getOrElse(null),
-      userId = callContext.flatMap(_.user.map(_.userId)).getOrElse(null),
-      onBehalfOfUserId = callContext.flatMap(cc => cc.onBehalfOfUser.or(cc.consenter).map(_.userId)).getOrElse(null),
+      userId = transactionRequestAttribution.map(_.userId).getOrElse(null),
+      onBehalfOfUserId = transactionRequestAttribution.map(_.onBehalfOfUserId).getOrElse(null),
       consumerId = callContext.flatMap(_.consumer.map(_.consumerId)).getOrElse(null),
 
       // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR_PROMISE type only — null otherwise).
