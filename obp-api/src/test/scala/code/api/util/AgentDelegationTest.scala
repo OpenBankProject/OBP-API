@@ -1,14 +1,20 @@
 package code.api.util
 
+import java.util.Date
+
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil.generateUUID
 import code.api.util.{Consent, ConsentLinkedCustomers, ConsentMyResources}
+import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v2_1_0.TransactionRequestBodySandBoxTanJSON
 import code.consent.MappedConsent
 import code.model.dataAccess.ResourceUser
 import code.setup.ServerSetup
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
 import code.users.{AttributionPolicy, UserReference, Users}
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, AmountOfMoney, AmountOfMoneyJsonV121, BankAccount, BankAccountCommons, BankId, BankIdAccountId, TransactionRequestCharge, TransactionRequestId, TransactionRequestType}
 import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.mapper.By
 import org.json4s.JObject
 import org.json4s.JsonDSL._
 import org.scalatest.Tag
@@ -44,6 +50,54 @@ class AgentDelegationTest extends ServerSetup {
     ).openOrThrowException("Expected resource user to be created")
 
   private def storedField(value: String): String = Option(value).getOrElse("")
+
+  /** A BankAccount value the transaction-request provider can read without a database row behind
+    * it: of an account it only reads the ids, routings, name and attributes. */
+  private def testAccount(): BankAccount = BankAccountCommons(
+    accountId = AccountId(generateUUID()),
+    accountType = "CURRENT",
+    balance = BigDecimal("0"),
+    currency = "EUR",
+    name = "agent delegation test account",
+    label = "agent delegation test account",
+    number = "1",
+    bankId = BankId("agent-delegation-bank"),
+    lastUpdate = new Date(),
+    branchId = "",
+    accountRoutings = Nil,
+    accountRules = Nil,
+    accountHolder = ""
+  )
+
+  /** Writes one transaction request through the provider as `user` and returns the stored row.
+    * The Box result is ignored on purpose: the row is saved before it is converted back, and it
+    * is the two stored columns these scenarios are about. */
+  private def storedTransactionRequestFor(user: ResourceUser): MappedTransactionRequest = {
+    val transactionRequestId = TransactionRequestId(generateUUID())
+    val toAccount = testAccount()
+    MappedTransactionRequestProvider.createTransactionRequestImpl210(
+      transactionRequestId = transactionRequestId,
+      transactionRequestType = TransactionRequestType("SANDBOX_TAN"),
+      fromAccount = testAccount(),
+      toAccount = toAccount,
+      transactionRequestCommonBody = TransactionRequestBodySandBoxTanJSON(
+        to = TransactionRequestAccountJsonV140(toAccount.bankId.value, toAccount.accountId.value),
+        value = AmountOfMoneyJsonV121("EUR", "10.00"),
+        description = "agent delegation test"),
+      details = "{}",
+      status = "INITIATED",
+      charge = TransactionRequestCharge("agent delegation test charge", AmountOfMoney("EUR", "0.00")),
+      chargePolicy = "SHARED",
+      paymentService = None,
+      berlinGroupPayments = None,
+      apiStandard = None,
+      apiVersion = None,
+      callContext = Some(CallContext(user = Full(user)))
+    )
+    MappedTransactionRequest
+      .find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+      .openOrThrowException("expected the transaction request row to have been written")
+  }
 
   feature("createResourceUser stores CreatedByConsentId and CreatedByUserInvitationId independently") {
 
@@ -440,6 +494,48 @@ class AgentDelegationTest extends ServerSetup {
         PostConsentLinkedCustomersJson("bank-a", Nil))))) should include("actions must name at least one of")
       rejectionMessage(PostConsentMyResourcesJson(None, Some(List(
         PostConsentLinkedCustomersJson("bank-a", List("delete")))))) should include("unknown actions delete")
+    }
+  }
+
+  feature("Transaction requests record both ids (UserReference.TransactionRequest)") {
+
+    scenario("a request made by an original user names that user in both columns", AgentDelegationTag) {
+      val human = createUser()
+      val row = storedTransactionRequestFor(human)
+      storedField(row.mUserId.get) shouldBe human.userId
+      storedField(row.mOnBehalfOfUserId.get) shouldBe human.userId
+    }
+
+    scenario("a request made by a consent user names the caller and its on-behalf-of user", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val row = storedTransactionRequestFor(agent)
+      storedField(row.mUserId.get) shouldBe agent.userId
+      storedField(row.mOnBehalfOfUserId.get) shouldBe human.userId
+    }
+
+    // Regression: the attribution used to supply BOTH columns, so a resolver Failure -- which is
+    // what a broken consent chain gets -- wrote null over mUserId too, and the payment row no
+    // longer said who made it. mUserId is read from the call context, never from the attribution.
+    scenario("a broken consent chain still names the caller, and leaves no on-behalf-of user", AgentDelegationTag) {
+      val human = createUser()
+      val consent1 = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent1 = createUser(createdByConsentId = Some(consent1.consentId))
+      val consent2 = MappedConsent.create.mUserId(agent1.userId).saveMe()   // names a consent user: data bug
+      val agent2 = createUser(createdByConsentId = Some(consent2.consentId))
+      Users.users.vend.onBehalfOfUserIdOf(agent2.userId) shouldBe a[Failure]   // the precondition this pins
+      val row = storedTransactionRequestFor(agent2)
+      storedField(row.mUserId.get) shouldBe agent2.userId
+      storedField(row.mOnBehalfOfUserId.get) shouldBe ""
+    }
+
+    scenario("a consent user whose consent has no human yet acts for itself (fails closed)", AgentDelegationTag) {
+      val consent = MappedConsent.create.mUserId("").saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val row = storedTransactionRequestFor(agent)
+      storedField(row.mUserId.get) shouldBe agent.userId
+      storedField(row.mOnBehalfOfUserId.get) shouldBe agent.userId
     }
   }
 }

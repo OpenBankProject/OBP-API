@@ -114,18 +114,23 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       case _ => None
     }
 
-    // Note: We don't save transaction_ids, status and challenge here.
+     // Note: We don't save transaction_ids, status and challenge here.
     // Record both: mUserId = the authenticated user, mOnBehalfOfUserId = who the payment is for.
-    // One attribution call (UserReference.TransactionRequest) gives both; the request layer's
-    // consentCreator / consenter take precedence over the DB chain, as in CallContext.onBehalfOfUserId.
-    val transactionRequestAttribution: Option[code.users.Attribution] = for {
-      cc   <- callContext
-      user <- cc.user.toOption
-      a    <- code.users.Users.users.vend.attributionOf(user.userId, code.users.UserReference.TransactionRequest).toOption
-    } yield cc.consentCreator.or(cc.consenter).map(_.userId).filter(_.nonEmpty) match {
-      case Full(delegated) => a.copy(onBehalfOfUserId = delegated)
-      case _               => a
-    }
+    // The attribution call (UserReference.TransactionRequest) answers the second; the request
+    // layer's consentCreator / consenter take precedence over its DB chain, as in
+    // CallContext.onBehalfOfUserId. The call is made even when they already name the
+    // on-behalf-of user, because it is the one place a delegated write is logged.
+    //
+    // mUserId is read straight from the call context and never from the attribution: when the
+    // resolver refuses (a consent naming a consent user -- a broken chain it will not resolve),
+    // this audit row must still say who made the payment.
+    val authenticatedUserId: Option[String] =
+      callContext.flatMap(_.user.toOption).map(_.userId).filter(_.nonEmpty)
+    val transactionRequestAttribution: Option[code.users.Attribution] = authenticatedUserId.flatMap(userId =>
+      code.users.Users.users.vend.attributionOf(userId, code.users.UserReference.TransactionRequest).toOption)
+    val onBehalfOfUserIdOption: Option[String] =
+      callContext.flatMap(cc => cc.consentCreator.or(cc.consenter).toOption).map(_.userId).filter(_.nonEmpty)
+        .orElse(transactionRequestAttribution.map(_.onBehalfOfUserId))
     val mappedTransactionRequest = MappedTransactionRequest.create
 
       //transaction request fields:
@@ -179,8 +184,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       .mConsentReferenceId(consentReferenceIdOption.getOrElse(null))
       .mApiVersion(apiVersion.getOrElse(null))
       .mApiStandard(apiStandard.getOrElse(null))
-      .mUserId(transactionRequestAttribution.map(_.userId).getOrElse(null))
-      .mOnBehalfOfUserId(transactionRequestAttribution.map(_.onBehalfOfUserId).getOrElse(null))
+      .mUserId(authenticatedUserId.getOrElse(null))
+      .mOnBehalfOfUserId(onBehalfOfUserIdOption.getOrElse(null))
       .mConsumerId(callContext.flatMap(_.consumer.map(_.consumerId.get)).getOrElse(null))
 
       // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR_PROMISE type only — null otherwise).
