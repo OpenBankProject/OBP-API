@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.v2_1_0
 
 import org.json4s._
@@ -1058,6 +1085,14 @@ object Http4s210 {
             }
             userId = if (body.user_id.nonEmpty) body.user_id else user.userId
             (customerUser, _) <- NewStyle.function.findByUserId(userId, Some(cc))
+            // An explicit user_id must name an original user: a Customer is linked to a human,
+            // and a link on an agent identity dies with its Consent. An omitted user_id means
+            // the caller, which the provider redirects. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 3.
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Customers are linked to humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc)) {
+              body.user_id.isEmpty || !customerUser.isConsentUser
+            }
             customer <- Future {
               CustomerX.customerProvider.vend.addCustomer(
                 bank.bankId, body.customer_number, body.legal_name, body.mobile_phone_number, body.email,
@@ -1095,7 +1130,7 @@ object Http4s210 {
       |""",
       postCustomerJsonV210, customerJsonV210,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, CustomerNumberAlreadyExists,
-        UserNotFoundById, CustomerAlreadyExistsForUser, CreateConsumerError, UnknownError),
+        UserNotFoundById, InvalidUserId, CustomerAlreadyExistsForUser, CreateConsumerError, UnknownError),
       List(apiTagCustomer, apiTagPerson, apiTagOldStyle),
       None,
       http4sPartialFunction = Some(createCustomer))

@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.v7_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -19,7 +46,7 @@ import org.scalatest.Tag
 import java.net.URLDecoder
 
 /**
- * Maker/checker for dynamic code (MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md), phase 1, exercised
+ * Maker/checker for dynamic code (docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md), phase 1, exercised
  * end-to-end over HTTP: a v4.0.0 write is intercepted into a DynamicChangeRequest (202), a second
  * user approves it by hash, the artefact then exists and executes; plus rejection, withdrawal,
  * deactivation, the execution guard against direct DB tampering, and the role/auth surface.

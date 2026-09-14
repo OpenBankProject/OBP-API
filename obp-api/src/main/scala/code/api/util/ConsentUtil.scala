@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.util
 
 import org.json4s._
@@ -101,10 +128,29 @@ case class ConsentPersonalDynamicEntity(bank_id: String, entity_name: String, ac
   def covers(bankId: Option[String], entityName: String, action: String): Boolean =
     entity_name == entityName && bankIdOpt == bankId && actions.contains(action)
 }
-/** JWT claim `my_resources`: the User's own resources the Consent may act on. ideas/CONSENT_MY_RESOURCES.md */
-case class ConsentMyResources(personal_dynamic_entities: List[ConsentPersonalDynamicEntity]) {
+/** JWT claim: the granting User's linked Customers at one Bank the consent user may act on. */
+case class ConsentLinkedCustomers(bank_id: String, actions: List[String]) {
+  def covers(bankId: String, action: String): Boolean = bank_id == bankId && actions.contains(action)
+}
+/** JWT claim `my_resources`: the User's own resources the Consent may act on. ideas/CONSENT_MY_RESOURCES.md
+ *
+ *  Visibility is granted by resource *type* and is all-or-nothing within the scope named here -- never by
+ *  provenance ("the rows this agent created"). A consent user that may read the granting User's linked
+ *  Customers at a Bank reads all of them, exactly as the User does; one that may not reads none and is told
+ *  which entry is missing. Provenance filtering would hand the agent a partial view it cannot explain to
+ *  itself, and would need a per-table consent column the delegation model rejects.
+ *  ON_BEHALF_OF_USER_ID_PLAN.md, Decision 11. */
+case class ConsentMyResources(
+  personal_dynamic_entities: List[ConsentPersonalDynamicEntity],
+  linked_customers: List[ConsentLinkedCustomers] = Nil
+) {
   def coversPersonalDynamicEntity(bankId: Option[String], entityName: String, action: String): Boolean =
     personal_dynamic_entities.exists(_.covers(bankId, entityName, action))
+  def coversLinkedCustomers(bankId: String, action: String): Boolean =
+    linked_customers.exists(_.covers(bankId, action))
+  /** The Banks whose linked Customers this consent may act on, for the unscoped "my customers" read. */
+  def linkedCustomerBankIds(action: String): List[String] =
+    linked_customers.filter(_.actions.contains(action)).map(_.bank_id).distinct
 }
 object ConsentMyResources {
   val actionRead = "read"
@@ -113,11 +159,15 @@ object ConsentMyResources {
   def fromJson(json: code.api.v6_0_0.PostConsentMyResourcesJson): ConsentMyResources =
     ConsentMyResources(
       json.personal_dynamic_entities.getOrElse(Nil).map(e =>
-        ConsentPersonalDynamicEntity(Option(e.bank_id).getOrElse(""), e.entity_name, e.actions)))
+        ConsentPersonalDynamicEntity(Option(e.bank_id).getOrElse(""), e.entity_name, e.actions)),
+      json.linked_customers.getOrElse(Nil).map(e =>
+        ConsentLinkedCustomers(Option(e.bank_id).getOrElse(""), e.actions)))
   def toJson(claim: ConsentMyResources): code.api.v6_0_0.PostConsentMyResourcesJson =
     code.api.v6_0_0.PostConsentMyResourcesJson(
       Some(claim.personal_dynamic_entities.map(e =>
-        code.api.v6_0_0.PostConsentPersonalDynamicEntityJson(e.bank_id, e.entity_name, e.actions))))
+        code.api.v6_0_0.PostConsentPersonalDynamicEntityJson(e.bank_id, e.entity_name, e.actions))),
+      Some(claim.linked_customers.map(e =>
+        code.api.v6_0_0.PostConsentLinkedCustomersJson(e.bank_id, e.actions))))
 }
 case class ConsentView(bank_id: String, 
                        account_id: String,
@@ -1413,20 +1463,29 @@ object Consent extends MdcLoggable {
    * instance exists with personal endpoints. ideas/CONSENT_MY_RESOURCES.md
    */
   def validateMyResources(myResources: Option[code.api.v6_0_0.PostConsentMyResourcesJson], callContext: Option[CallContext]): Future[Box[Unit]] = {
-    val problems: List[String] = myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
+    def badActions(where: String, actions: List[String]): List[Option[String]] = List(
+      if (actions == null || actions.isEmpty) Some(s"$where: actions must name at least one of ${ConsentMyResources.actions.mkString(", ")}") else None,
+      Option(actions).getOrElse(Nil).filterNot(ConsentMyResources.actions.contains) match {
+        case Nil => None
+        case unknown => Some(s"$where: unknown actions ${unknown.mkString(", ")}")
+      }
+    )
+    // linked_customers: shape only. The Bank is not looked up here -- an entry naming a Bank that does
+    // not exist simply covers nothing, and the consent user is told which entry is missing when it reads.
+    val customerProblems: List[String] = myResources.toList.flatMap(_.linked_customers.getOrElse(Nil)).flatMap { entry =>
+      val where = s"linked_customers entry (bank_id '${Option(entry.bank_id).getOrElse("")}')"
+      (if (entry.bank_id == null || entry.bank_id.isEmpty) Some(s"$where: bank_id is required") else None) ::
+        badActions(where, entry.actions)
+    }.flatten
+    val problems: List[String] = customerProblems ++ myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
       val bankId = Option(entry.bank_id).filter(_.nonEmpty)
       val where = s"personal_dynamic_entities entry (bank_id '${Option(entry.bank_id).getOrElse("")}', entity_name '${entry.entity_name}')"
       val definition = code.api.dynamic.entity.helper.DynamicEntityHelper.definitionsMap.get((bankId, entry.entity_name))
       List(
         if (entry.entity_name == null || entry.entity_name.isEmpty) Some(s"$where: entity_name is required") else None,
-        if (entry.actions == null || entry.actions.isEmpty) Some(s"$where: actions must name at least one of ${ConsentMyResources.actions.mkString(", ")}") else None,
-        Option(entry.actions).getOrElse(Nil).filterNot(ConsentMyResources.actions.contains) match {
-          case Nil => None
-          case unknown => Some(s"$where: unknown actions ${unknown.mkString(", ")}")
-        },
         if (definition.isEmpty) Some(s"$where: no such dynamic entity") else None,
         if (definition.exists(!_.hasPersonalEntity)) Some(s"$where: the entity has no personal (my) endpoints") else None
-      ).flatten
+      ).++(badActions(where, entry.actions)).flatten
     }
     Helper.booleanToFuture(s"$ConsentMyResourcesInvalid ${problems.mkString("; ")}", cc = callContext) { problems.isEmpty }
   }

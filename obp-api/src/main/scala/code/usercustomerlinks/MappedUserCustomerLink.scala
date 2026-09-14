@@ -1,8 +1,36 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.usercustomerlinks
 
 import java.util.Date
 
 import code.api.util.ErrorMessages
+import code.users.{UserReference, Users}
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
@@ -11,10 +39,34 @@ import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
+
+  /**
+   * On-behalf-of guard (attribution policy UserReference.UserCustomerLinkUser): a User-Customer
+   * link is owned by the on-behalf-of user. When the caller is a consent user the row is written
+   * for the user the consent names, so the link does not strand when the consent dies. For an
+   * original user this is a no-op. The resolver logs every redirect.
+   *
+   * The three methods keyed by a single user id -- create, get-or-create and the two-argument
+   * lookup -- all resolve, and they have to move together: the lookup is used as the
+   * "already linked?" pre-check immediately before a create, and MappedUserCustomerLink carries
+   * UniqueIndex(mUserId, mCustomerId). A redirected create paired with an unredirected pre-check
+   * would let the check pass on the consent user, then break the index on the human.
+   *
+   * getUserCustomerLinksByUserId is deliberately NOT resolved: it also serves the admin lookup at
+   * GET /banks/BANK_ID/user_customer_links/users/USER_ID, where the id is an explicit target and
+   * rewriting it would silently answer a different question. Endpoints that mean "my links" pass
+   * the resolved id themselves.
+   *
+   * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2 row 2.
+   */
+  private def linkOwnerUserId(userId: String): String =
+    Users.users.vend.attributedUserId(userId, UserReference.UserCustomerLinkUser).openOr(userId)
+
   def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
+    val ownerUserId = linkOwnerUserId(userId)
 
     val createUserCustomerLink = MappedUserCustomerLink.create
-      .mUserId(userId)
+      .mUserId(ownerUserId)
       .mCustomerId(customerId)
       .mDateInserted(new Date())
       .mIsActive(isActive)
@@ -23,11 +75,12 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
     Some(createUserCustomerLink)
   }
   def getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
-    getUserCustomerLink(userId, customerId) match {
+    val ownerUserId = linkOwnerUserId(userId)
+    getUserCustomerLinkRow(ownerUserId, customerId) match {
       case Empty =>
         scala.util.Try {
           MappedUserCustomerLink.create
-            .mUserId(userId)
+            .mUserId(ownerUserId)
             .mCustomerId(customerId)
             .mDateInserted(new Date())
             .mIsActive(isActive)
@@ -35,7 +88,7 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
         } match {
           case scala.util.Success(link) => Full(link)
           case scala.util.Failure(_) =>
-            getUserCustomerLink(userId, customerId)
+            getUserCustomerLinkRow(ownerUserId, customerId)
         }
       case everythingElse => everythingElse
     }
@@ -56,7 +109,13 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
     userCustomerLinks
   }
 
-  def getUserCustomerLink(userId : String, customerId: String): Box[UserCustomerLink] = {
+  /** Resolves the caller: see linkOwnerUserId. Callers use this as the pre-check for a create,
+    * so it must ask about the same row the create would write. */
+  def getUserCustomerLink(userId : String, customerId: String): Box[UserCustomerLink] =
+    getUserCustomerLinkRow(linkOwnerUserId(userId), customerId)
+
+  /** The raw lookup, on an id that has already been resolved. */
+  private def getUserCustomerLinkRow(userId : String, customerId: String): Box[UserCustomerLink] = {
     MappedUserCustomerLink.find(
       By(MappedUserCustomerLink.mUserId, userId),
       By(MappedUserCustomerLink.mCustomerId, customerId))

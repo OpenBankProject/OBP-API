@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
 TESOBE GmbH
-Osloerstrasse 16/17
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
 This product includes software developed at
@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api.v4_0_0
 
+import code.api.util.ApiVersionUtils
 import code.api.util.APIUtil
 import code.api.util.ApiRole._
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
@@ -62,7 +63,11 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
 
       val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
       val responseApiVersions = listResult.results
-      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+      // The same source the endpoint uses: the OBP versions plus the live ScannedApis scan.
+      // Building this from ApiVersion.allScannedApiVersion would assert against the registry of
+      // every ScannedApiVersion ever constructed, which is how six retired standards stayed on
+      // the wire after their code was deleted.
+      val scannedApiVersions = ApiVersionUtils.versions.filter { version =>
         version.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(version)
       }
 
@@ -89,7 +94,11 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
 
       val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
       val responseApiVersions = listResult.results
-      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+      // The same source the endpoint uses: the OBP versions plus the live ScannedApis scan.
+      // Building this from ApiVersion.allScannedApiVersion would assert against the registry of
+      // every ScannedApiVersion ever constructed, which is how six retired standards stayed on
+      // the wire after their code was deleted.
+      val scannedApiVersions = ApiVersionUtils.versions.filter { version =>
         version.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(version)
       }
 
@@ -116,7 +125,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
 
       val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
       val responseApiVersions = listResult.results
-      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+      val scannedApiVersions = ApiVersionUtils.versions.filter { version =>
         version.urlPrefix.trim.nonEmpty
       }
 

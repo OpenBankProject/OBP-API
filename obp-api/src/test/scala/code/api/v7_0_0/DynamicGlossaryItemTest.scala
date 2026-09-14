@@ -1,10 +1,38 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.v7_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
+import code.api.util.Glossary
 import code.api.v3_0_0.GlossaryItemsJsonV300
-import code.api.v7_0_0.JSONFactory700.{ApiGlossaryJsonV700, GlossaryItemJsonV700, GlossaryItemsJsonV700, PostGlossaryItemJsonV700, PutGlossaryItemJsonV700}
+import code.api.v7_0_0.JSONFactory700.{GlossaryJsonV700, GlossaryItemJsonV700, PostGlossaryItemJsonV700, PutGlossaryItemJsonV700}
 import code.api.v7_0_0.Http4s700.Implementations7_0_0
 import code.entitlement.Entitlement
 import code.setup.ServerSetupWithTestData
@@ -28,11 +56,11 @@ import java.util.UUID
 class DynamicGlossaryItemTest extends ServerSetupWithTestData {
 
   object VersionOfApi extends Tag(ApiVersion.v7_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations7_0_0.createDynamicGlossaryItem))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations7_0_0.getDynamicGlossaryItems))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations7_0_0.getDynamicGlossaryItem))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations7_0_0.updateDynamicGlossaryItem))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations7_0_0.deleteDynamicGlossaryItem))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations7_0_0.createGlossaryItem))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations7_0_0.getGlossaryItem))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations7_0_0.updateGlossaryItem))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations7_0_0.deleteGlossaryItem))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations7_0_0.getGlossary))
 
   def v3 = baseRequest / "obp" / "v3.0.0"
   def v4 = baseRequest / "obp" / "v4.0.0"
@@ -52,15 +80,15 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
   def errorOf(response: code.setup.APIResponse): String = response.body.extract[ErrorMessage].message
 
   def post(title: String, description: String, as: Option[(Consumer, Token)], overrides: Option[Boolean] = None) =
-    makePostRequest((v7 / "glossary-items").POST <@ (as),
+    makePostRequest((v7 / "api" / "glossary").POST <@ (as),
       write(PostGlossaryItemJsonV700(title = title, description = description, overrides_static_item = overrides)))
 
   def put(title: String, description: String, as: Option[(Consumer, Token)], overrides: Option[Boolean] = None) =
-    makePutRequest((v7 / "glossary-items" / title).PUT <@ (as),
+    makePutRequest((v7 / "api" / "glossary" / title).PUT <@ (as),
       write(PutGlossaryItemJsonV700(description = description, overrides_static_item = overrides)))
 
   def delete(title: String, as: Option[(Consumer, Token)]) =
-    makeDeleteRequest((v7 / "glossary-items" / title).DELETE <@ (as))
+    makeDeleteRequest((v7 / "api" / "glossary" / title).DELETE <@ (as))
 
   def created(title: String, description: String, as: Option[(Consumer, Token)],
               overrides: Option[Boolean] = None): GlossaryItemJsonV700 = {
@@ -81,7 +109,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
 
     scenario("Authentication and the role are both required", ApiEndpoint1, VersionOfApi) {
       When("no user is given")
-      val anonymous = makePostRequest((v7 / "glossary-items").POST,
+      val anonymous = makePostRequest((v7 / "api" / "glossary").POST,
         write(PostGlossaryItemJsonV700(title = newTitle(), description = "x", overrides_static_item = None)))
       Then("the call is unauthorised")
       anonymous.code should equal(401)
@@ -93,7 +121,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       errorOf(forbidden) should include(CanCreateGlossaryItem.toString)
     }
 
-    scenario("Create, then read it back", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    scenario("Create, then read it back", ApiEndpoint1, ApiEndpoint3, ApiEndpoint6, VersionOfApi) {
       grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
       val title = newTitle()
 
@@ -105,23 +133,24 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       item.description.html should include("<strong>bold</strong>")
       item.overrides_static_item should equal(false)
       item.shadows_static_glossary_item should equal(false)
-      item.created_by_user_id should equal(resourceUser1.userId)
+      item.is_dynamic should equal(true)
+      item.created_by_user_id should equal(Some(resourceUser1.userId))
       item.glossary_item_id should not be empty
 
       And("it is listed, and readable by title")
-      val listed = makeGetRequest((v7 / "glossary-items").GET <@ (user1))
+      val listed = makeGetRequest((v7 / "api" / "glossary").GET <@ (user1) <<? List(("source", "dynamic")))
       listed.code should equal(200)
-      listed.body.extract[GlossaryItemsJsonV700].glossary_items.map(_.title) should contain(title)
+      listed.body.extract[GlossaryJsonV700].glossary_items.map(_.title) should contain(title)
 
-      val single = makeGetRequest((v7 / "glossary-items" / title).GET <@ (user1))
+      val single = makeGetRequest((v7 / "api" / "glossary" / title).GET <@ (user1))
       single.code should equal(200)
       single.body.extract[GlossaryItemJsonV700].glossary_item_id should equal(item.glossary_item_id)
 
       And("the title is matched case insensitively")
-      makeGetRequest((v7 / "glossary-items" / title.toUpperCase).GET <@ (user1)).code should equal(200)
+      makeGetRequest((v7 / "api" / "glossary" / title.toUpperCase).GET <@ (user1)).code should equal(200)
 
       And("an unknown title is 404")
-      val missing = makeGetRequest((v7 / "glossary-items" / newTitle()).GET <@ (user1))
+      val missing = makeGetRequest((v7 / "api" / "glossary" / newTitle()).GET <@ (user1))
       missing.code should equal(404)
       errorOf(missing) should startWith(GlossaryItemNotFound)
     }
@@ -190,7 +219,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
       Then("the item is deleted and gone")
       delete(title, user1).code should equal(204)
-      makeGetRequest((v7 / "glossary-items" / title).GET <@ (user1)).code should equal(404)
+      makeGetRequest((v7 / "api" / "glossary" / title).GET <@ (user1)).code should equal(404)
 
       And("deleting it again is 404")
       val again = delete(title, user1)
@@ -291,7 +320,7 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       def itemInGlossary(title: String) = {
         val response = makeGetRequest((v7 / "api" / "glossary").GET)
         response.code should equal(200)
-        response.body.extract[ApiGlossaryJsonV700].glossary_items.find(_.title.equalsIgnoreCase(title))
+        response.body.extract[GlossaryJsonV700].glossary_items.find(_.title.equalsIgnoreCase(title))
       }
 
       Given("a static Glossary Item is reported as neither dynamic nor overriding")
@@ -347,6 +376,158 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       val titles = response.body.extract[GlossaryItemsJsonV300].glossary_items.map(_.title)
       val duplicated = titles.groupBy(identity).collect { case (t, ts) if ts.size > 1 => t }.toList.sorted
       withClue("titles defined more than once: ") { duplicated should equal(Nil) }
+    }
+  }
+
+  feature("A Glossary Item can be looked up by title whether it is static or Dynamic") {
+
+    scenario("A static title returns the shipped text rather than 404", ApiEndpoint3, VersionOfApi) {
+      // Reading the static text is the step before deciding to override it, so 404 here was a dead
+      // end: the only endpoint that takes a title could not show the text being replaced.
+      val response = makeGetRequest((v7 / "api" / "glossary" / staticTitle).GET <@ (user1))
+      response.code should equal(200)
+      val item = response.body.extract[GlossaryItemJsonV700]
+      item.title should equal(staticTitle)
+      item.is_dynamic should equal(false)
+
+      And("a static Item has nothing to manage, so those fields are absent")
+      item.glossary_item_id should equal(None)
+      item.created_by_user_id should equal(None)
+      item.created_at should equal(None)
+      item.updated_at should equal(None)
+    }
+
+    scenario("A Dynamic Item of the same title wins, as it does in the served Glossary", ApiEndpoint1, ApiEndpoint3, ApiEndpoint5, VersionOfApi) {
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
+      created(staticTitle, "The database text.", user1, overrides = Some(true))
+
+      val overridden = makeGetRequest((v7 / "api" / "glossary" / staticTitle).GET <@ (user1))
+      overridden.code should equal(200)
+      val item = overridden.body.extract[GlossaryItemJsonV700]
+      item.is_dynamic should equal(true)
+      item.description.markdown should equal("The database text.")
+      item.shadows_static_glossary_item should equal(true)
+
+      When("the Dynamic Item is deleted")
+      delete(staticTitle, user1).code should equal(204)
+      Then("the static text is served again")
+      val restored = makeGetRequest((v7 / "api" / "glossary" / staticTitle).GET <@ (user1))
+      restored.code should equal(200)
+      restored.body.extract[GlossaryItemJsonV700].is_dynamic should equal(false)
+    }
+  }
+
+  feature("Reading one Item, and filtering the Glossary") {
+
+    // An agent that wants one Item should not have to download the ~1MB Glossary to find it.
+    scenario("An Item is read at its own path, without a login", ApiEndpoint1, ApiEndpoint5, ApiEndpoint3, VersionOfApi) {
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
+      val title = newTitle()
+      created(title, "The only one wanted.", user1)
+
+      When("the Item is asked for by title, anonymously")
+      val response = makeGetRequest((v7 / "api" / "glossary" / title).GET)
+      Then("it comes back on its own, as the Glossary itself does without a login")
+      response.code should equal(200)
+      response.body.extract[GlossaryItemJsonV700].title should equal(title)
+
+      And("created_by_user_id is not part of an anonymous answer")
+      response.body.extract[GlossaryItemJsonV700].created_by_user_id should equal(None)
+      makeGetRequest((v7 / "api" / "glossary" / title).GET <@ (user1))
+        .body.extract[GlossaryItemJsonV700].created_by_user_id should equal(Some(resourceUser1.userId))
+
+      delete(title, user1).code should equal(204)
+    }
+
+    scenario("The hyphenated anchor form of a title finds the Item", ApiEndpoint3, VersionOfApi) {
+      // Descriptions link to Items as /glossary#Signal-Channels, so that is the form a reader meets
+      // first. It should not have to guess where the spaces were, or the case.
+      val response = makeGetRequest((v7 / "api" / "glossary" / "signal-channels").GET)
+      response.code should equal(200)
+      response.body.extract[GlossaryItemJsonV700].title should equal("Signal Channels")
+    }
+
+    scenario("A title no Item has is 404", ApiEndpoint3, VersionOfApi) {
+      val response = makeGetRequest((v7 / "api" / "glossary" / newTitle()).GET)
+      response.code should equal(404)
+      errorOf(response) should startWith("OBP-30571")
+    }
+
+    scenario("source and search narrow the Glossary, and neither is required", ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
+      val title = newTitle()
+      created(title, "Only in the database.", user1)
+
+      When("no parameter is given")
+      val all = makeGetRequest((v7 / "api" / "glossary").GET)
+      all.code should equal(200)
+      Then("the whole Glossary is served, as it has been for years")
+      val everything = all.body.extract[GlossaryJsonV700]
+      everything.glossary_items.size should be > 1
+      everything.total_count should equal(everything.glossary_items.size)
+
+      When("source is dynamic")
+      val dynamic = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("source", "dynamic")))
+      dynamic.code should equal(200)
+      Then("only Items from the database come back")
+      val dynamicItems = dynamic.body.extract[GlossaryJsonV700].glossary_items
+      dynamicItems.map(_.title) should contain(title)
+      dynamicItems.forall(_.is_dynamic) should equal(true)
+
+      And("source static excludes them")
+      makeGetRequest((v7 / "api" / "glossary").GET <<? List(("source", "static")))
+        .body.extract[GlossaryJsonV700].glossary_items.map(_.title) should not contain title
+
+      And("an unknown source is refused rather than ignored")
+      val bad = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("source", "database")))
+      bad.code should equal(400)
+      errorOf(bad) should startWith("OBP-30578")
+
+      And("search matches on title, case insensitively")
+      makeGetRequest((v7 / "api" / "glossary").GET <<? List(("search", title.toUpperCase)))
+        .body.extract[GlossaryJsonV700].glossary_items.map(_.title) should equal(List(title))
+
+      delete(title, user1).code should equal(204)
+    }
+
+    scenario("limit and offset page the result, and total_count counts what matched", ApiEndpoint6, VersionOfApi) {
+      val firstTwo = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("limit", "2")))
+      firstTwo.code should equal(200)
+      val page = firstTwo.body.extract[GlossaryJsonV700]
+      page.glossary_items.size should equal(2)
+      withClue("total_count is the size of the match, not of the page: ") {
+        page.total_count should be > 2
+      }
+
+      And("offset moves the window")
+      val second = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("limit", "1"), ("offset", "1")))
+      second.body.extract[GlossaryJsonV700].glossary_items.map(_.title) should equal(
+        page.glossary_items.drop(1).map(_.title))
+    }
+
+    scenario("expanded=false returns the text as authored, which is what PUT takes", ApiEndpoint1, ApiEndpoint5, ApiEndpoint3, VersionOfApi) {
+      // Items quote each other through placeholders. Expanding them is right for a reader and
+      // wrong for an editor, which would otherwise save the expansion over the original.
+      grantSystemRole(resourceUser1.userId, CanCreateGlossaryItem.toString)
+      grantSystemRole(resourceUser1.userId, CanDeleteGlossaryItem.toString)
+      val title = newTitle()
+      val authored = "See " + Glossary.getGlossaryItemLink("Consent") + " for the rules."
+      created(title, authored, user1)
+
+      val asAuthored = makeGetRequest((v7 / "api" / "glossary" / title).GET <<? List(("expanded", "false")))
+      asAuthored.code should equal(200)
+      asAuthored.body.extract[GlossaryItemJsonV700].description.markdown should equal(authored)
+
+      val asRead = makeGetRequest((v7 / "api" / "glossary" / title).GET)
+      asRead.code should equal(200)
+      val rendered = asRead.body.extract[GlossaryItemJsonV700].description.markdown
+      rendered should not equal authored
+      rendered should not include "OBP-GLOSSARY"
+
+      delete(title, user1).code should equal(204)
     }
   }
 

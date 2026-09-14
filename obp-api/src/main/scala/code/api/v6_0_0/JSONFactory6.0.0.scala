@@ -8,7 +8,7 @@
   * General Public License for more details. * You should have received a copy
   * of the GNU Affero General Public License along with this program. If not,
   * see <http://www.gnu.org/licenses/>. * Email: contact@tesobe.com TESOBE GmbH
-  * Osloerstrasse 16/17 Berlin 13359, Germany * This product includes software
+  * Osloer Strasse 16/17 Berlin 13359, Germany * This product includes software
   * developed at TESOBE (http://www.tesobe.com/)
   */
 package code.api.v6_0_0
@@ -3379,8 +3379,15 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 /** One personal dynamic entity the Consent may act on for the granting User: bank_id "" for a
  *  system-level entity; actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
 case class PostConsentPersonalDynamicEntityJson(bank_id: String, entity_name: String, actions: List[String])
+/** The granting User's linked Customers at one Bank that the Consent may act on. bank_id is required:
+ *  a Customer belongs to a Bank, and naming it keeps the grant as narrow as the User meant it.
+ *  actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
+case class PostConsentLinkedCustomersJson(bank_id: String, actions: List[String])
 /** The User's own resources a Consent may act on (owned, not granted): one typed list per kind. */
-case class PostConsentMyResourcesJson(personal_dynamic_entities: Option[List[PostConsentPersonalDynamicEntityJson]])
+case class PostConsentMyResourcesJson(
+  personal_dynamic_entities: Option[List[PostConsentPersonalDynamicEntityJson]],
+  linked_customers: Option[List[PostConsentLinkedCustomersJson]] = None
+)
 /**
  * v6.0.0 create-consent body: the v3.1.0 body plus `my_resources`. Older versions are STABLE or
  * next in line to be frozen, so the field lives here. Appended at the end of the file on purpose:

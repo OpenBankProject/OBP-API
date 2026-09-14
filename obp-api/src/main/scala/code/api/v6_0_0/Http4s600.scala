@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.v6_0_0
 
 import code.api.util.{Consent, SecureRandomUtil}
@@ -161,8 +188,12 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "api" / "versions" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future {
+            // ApiVersionUtils.versions, not ApiVersion.allScannedApiVersion: the latter is every
+            // ScannedApiVersion value ever *constructed* (they self-register in their constructor),
+            // so a leftover constant advertises a standard whose code is gone. This list is the OBP
+            // versions plus the live class scan for other standards — what this API actually serves.
             val versions: List[ScannedApiVersionJsonV600] =
-              ApiVersion.allScannedApiVersion.asScala.toList
+              ApiVersionUtils.versions
                 .filter(v => v.urlPrefix.trim.nonEmpty)
                 .map { v =>
                   ScannedApiVersionJsonV600(
@@ -7217,6 +7248,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences",
         |    "required": ["theme"],
@@ -7242,15 +7274,17 @@ object Http4s600 {
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         CreateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          use_row_level_access = Some(false),
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7261,7 +7295,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -7287,6 +7321,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences",
         |    "required": ["theme"],
@@ -7312,15 +7347,17 @@ object Http4s600 {
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         CreateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          use_row_level_access = Some(false),
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7331,7 +7368,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $BankNotFound,
@@ -7363,6 +7400,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
@@ -7384,12 +7422,14 @@ object Http4s600 {
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7424,6 +7464,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
@@ -7445,12 +7486,14 @@ object Http4s600 {
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -7491,6 +7534,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
@@ -7512,12 +7556,14 @@ object Http4s600 {
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
+          use_row_level_access = Some(false),
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
@@ -9705,7 +9751,7 @@ object Http4s600 {
         |Use case: Portals and apps can show users what personal data types are available
         |without needing admin access to view all dynamic entity definitions.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         EmptyBody,
         MyDynamicEntitiesJsonV600(
           dynamic_entities = List(
@@ -10438,8 +10484,10 @@ object Http4s600 {
         |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
         |and client_secret for an access token with grant_type=client_credentials, and send it as
         |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
-        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
-        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is the glossary item
+        |"Signal Channels", which an agent can fetch on its own with
+        |`GET /obp/v7.0.0/api/glossary/Signal%20Channels`. (POST /obp/v6.0.0/dynamic-registration/consumers
+        |is the PSD2 certificate path, not this.)
         |
         |Authentication is Required.
         |
@@ -10531,8 +10579,10 @@ object Http4s600 {
         |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
         |and client_secret for an access token with grant_type=client_credentials, and send it as
         |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
-        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
-        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is the glossary item
+        |"Signal Channels", which an agent can fetch on its own with
+        |`GET /obp/v7.0.0/api/glossary/Signal%20Channels`. (POST /obp/v6.0.0/dynamic-registration/consumers
+        |is the PSD2 certificate path, not this.)
         |
         |Authentication is Required.
         |

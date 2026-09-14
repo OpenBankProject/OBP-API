@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.v7_0_0
 
 import code.api.Constant
@@ -85,7 +112,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         blankToNone(entity.ApprovedHash.get), Some(entity.IsActive.get))
     )
 
-  // ─── Maker/checker: dynamic change requests (design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
+  // ─── Maker/checker: dynamic change requests (design: docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
   case class PostDynamicChangeRequestJsonV700(
     target_type: String,
     operation: String,
@@ -943,85 +970,80 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class GlossaryItemDescriptionJsonV700(markdown: String, html: String)
 
   case class GlossaryItemJsonV700(
-      glossary_item_id: String,
+      // A static Glossary Item is compiled into the API rather than stored, so it has no id, no
+      // author and no timestamps. These are present for a Dynamic Item and absent for a static one.
+      glossary_item_id: Option[String],
       title: String,
       description: GlossaryItemDescriptionJsonV700,
+      // False when this is a static Glossary Item shipped with the API.
+      is_dynamic: Boolean,
       // What the operator declared when creating or updating the item.
       overrides_static_item: Boolean,
       // What is actually true right now: a static Glossary Item of this title exists. The two
       // differ when a static Item was added after this one, which is worth someone's attention.
       shadows_static_glossary_item: Boolean,
-      created_by_user_id: String,
-      created_at: java.util.Date,
-      updated_at: java.util.Date
-  )
-
-  case class GlossaryItemPaginationJsonV700(total: Int, limit: Int, offset: Int)
-
-  case class GlossaryItemsJsonV700(
-      glossary_items: List[GlossaryItemJsonV700],
-      pagination: GlossaryItemPaginationJsonV700
+      created_by_user_id: Option[String],
+      created_at: Option[java.util.Date],
+      updated_at: Option[java.util.Date]
   )
 
   def createGlossaryItemJsonV700(r: code.glossaryitem.DynamicGlossaryItemTrait): GlossaryItemJsonV700 =
     GlossaryItemJsonV700(
-      glossary_item_id = r.glossaryItemId,
+      glossary_item_id = Some(r.glossaryItemId),
       title = r.title,
       description = GlossaryItemDescriptionJsonV700(
         markdown = r.description,
         html = PegdownOptions.convertPegdownToHtmlTweaked(r.description)
       ),
+      is_dynamic = true,
       overrides_static_item = r.overridesStaticItem,
       // Flagged so a caller can see at a glance that this item is shadowing shipped text.
       shadows_static_glossary_item = Glossary.staticGlossaryItemExists(r.title),
-      created_by_user_id = r.createdByUserId,
-      created_at = r.createdAt,
-      updated_at = r.updatedAt
+      created_by_user_id = Some(r.createdByUserId),
+      created_at = Some(r.createdAt),
+      updated_at = Some(r.updatedAt)
     )
 
   // ── The Glossary as served: static and Dynamic Items merged ─────────────────
-  // Distinct from GlossaryItemJsonV700 above, which is the management view of one Dynamic Item.
-  // v3.0.0 serves the same Glossary without these provenance fields; that version is STABLE and
-  // its JSON must not change, so the flags are offered here instead.
+  // One Item shape for the whole resource. A static Item is compiled into the API, so the
+  // management fields are absent for it; a Dynamic Item carries them. v3.0.0 serves the same
+  // Glossary with its own two-field shape, which is STABLE and must not change.
 
-  case class ApiGlossaryItemJsonV700(
-      title: String,
-      description: GlossaryItemDescriptionJsonV700,
-      // True when this entry comes from the DynamicGlossaryItem table rather than the API source.
-      is_dynamic: Boolean,
-      // True when this Dynamic Item is displacing a static Glossary Item of the same title.
-      overrides_static_item: Boolean
-  )
+  case class GlossaryJsonV700(glossary_items: List[GlossaryItemJsonV700], total_count: Int)
 
-  case class ApiGlossaryJsonV700(glossary_items: List[ApiGlossaryItemJsonV700])
-
-  def createApiGlossaryItemJsonV700(item: Glossary.GlossaryItem): ApiGlossaryItemJsonV700 = {
-    // Glossary Items cross-reference each other, so expand their placeholders as well.
-    val description = Glossary.expandGlossaryPlaceholders(item.description())
-    ApiGlossaryItemJsonV700(
+  /**
+   * One Item as the Glossary serves it.
+   *
+   * `expanded` controls the Glossary placeholders that Items use to quote each other: true gives
+   * the text a reader wants, false the text as authored, which is what an editor must PUT back.
+   * `includeAuthor` keeps created_by_user_id out of anonymous responses.
+   */
+  def createServedGlossaryItemJsonV700(
+      item: Glossary.GlossaryItem,
+      meta: Option[code.glossaryitem.DynamicGlossaryItemTrait],
+      expanded: Boolean,
+      includeAuthor: Boolean
+  ): GlossaryItemJsonV700 = {
+    val raw = item.description()
+    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+    GlossaryItemJsonV700(
+      glossary_item_id = meta.map(_.glossaryItemId),
       title = item.title,
       description = GlossaryItemDescriptionJsonV700(
-        markdown = description.stripMargin,
-        html = PegdownOptions.convertPegdownToHtmlTweaked(description)
+        markdown = markdown,
+        html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
       ),
       is_dynamic = item.isDynamic,
-      overrides_static_item = item.shadowsStaticItem
+      overrides_static_item = item.overridesStaticItem,
+      shadows_static_glossary_item = item.shadowsStaticItem,
+      created_by_user_id = if (includeAuthor) meta.map(_.createdByUserId) else None,
+      created_at = meta.map(_.createdAt),
+      updated_at = meta.map(_.updatedAt)
     )
   }
 
-  def createApiGlossaryJsonV700(items: List[Glossary.GlossaryItem]): ApiGlossaryJsonV700 =
-    ApiGlossaryJsonV700(glossary_items = items.map(createApiGlossaryItemJsonV700))
-
-  def createGlossaryItemsJsonV700(
-      rows: List[code.glossaryitem.DynamicGlossaryItemTrait],
-      total: Int,
-      limit: Int,
-      offset: Int
-  ): GlossaryItemsJsonV700 =
-    GlossaryItemsJsonV700(
-      glossary_items = rows.map(createGlossaryItemJsonV700),
-      pagination = GlossaryItemPaginationJsonV700(total = total, limit = limit, offset = offset)
-    )
+  def createGlossaryJsonV700(items: List[GlossaryItemJsonV700], totalCount: Int): GlossaryJsonV700 =
+    GlossaryJsonV700(glossary_items = items, total_count = totalCount)
 
   // ── Qualified Identifier ────────────────────────────────────────────────────
   // A (scheme, value) triple where the scheme qualifies the value's namespace.
@@ -2635,7 +2657,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     everything_as_expected = true
   )
 
-  // ─── API Product Subscription (v7.0.0). See API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
+  // ─── API Product Subscription (v7.0.0). See docs/API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
 
   case class PostApiProductSubscriptionJsonV700(
     consumer_id: String,

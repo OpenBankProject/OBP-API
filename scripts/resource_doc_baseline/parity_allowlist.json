@@ -153,7 +153,7 @@
       "field": "exampleRequestBody",
       "reason": "http4s example JSON schema shows more field-level ACL properties (indexed/write_role_required/write_role/read_role_required/read_role) documenting features added after the Lift example was written",
       "lift_digest": "12358da4874cc249de326eda073e5abaf943936049ea3304889c8997cefb004d",
-      "http4s_digest": "b02d422e514e88338bcbb469bea59e068515d19f888a8b43bba9daba215a4319"
+      "http4s_digest": "996fe2d661da2fde469b4a8f18c9e411ca8d2da607d3e5cf1eed82da561776a3"
     },
     {
       "version": "v6_0_0",
@@ -161,7 +161,7 @@
       "field": "successResponseBody",
       "reason": "Same schema-example enrichment as its exampleRequestBody sibling",
       "lift_digest": "dba0b1e9992bbd7a883412d8d71f671b457b26e95d8e713d5945b6f74fcb1446",
-      "http4s_digest": "61b2aca2a9079a7707d10c856d02f2ffd99cd8557b76eaa7b177d00455f2a45c"
+      "http4s_digest": "42c54b492fa3864754bc61ad7640620bceda46068738309c176140e22d196dd6"
     },
     {
       "version": "v6_0_0",
@@ -169,7 +169,7 @@
       "field": "exampleRequestBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "12358da4874cc249de326eda073e5abaf943936049ea3304889c8997cefb004d",
-      "http4s_digest": "b02d422e514e88338bcbb469bea59e068515d19f888a8b43bba9daba215a4319"
+      "http4s_digest": "996fe2d661da2fde469b4a8f18c9e411ca8d2da607d3e5cf1eed82da561776a3"
     },
     {
       "version": "v6_0_0",
@@ -177,7 +177,7 @@
       "field": "successResponseBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "4fce8fffae95f1b3dca1d79feea13c84f40b85907aca358a03b2985435aa665c",
-      "http4s_digest": "75788e83e165d9b5abd1f9add45afb5f65cbfb17f9e732eda4d3353df388b845"
+      "http4s_digest": "7c29fb88de459d09ae9592bca9cc1ec4f1c9e930876ffb91ee76271d2e2dc8ea"
     },
     {
       "version": "v6_0_0",
@@ -185,7 +185,7 @@
       "field": "exampleRequestBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "fa95539cf3af3d8a9e502c790505c4437120e4b96461f942c880f0f25960d770"
+      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
     },
     {
       "version": "v6_0_0",
@@ -201,7 +201,7 @@
       "field": "exampleRequestBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "fa95539cf3af3d8a9e502c790505c4437120e4b96461f942c880f0f25960d770"
+      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
     },
     {
       "version": "v6_0_0",
@@ -217,7 +217,7 @@
       "field": "exampleRequestBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "fa95539cf3af3d8a9e502c790505c4437120e4b96461f942c880f0f25960d770"
+      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
     },
     {
       "version": "v6_0_0",
@@ -1113,7 +1113,7 @@
       "field": "description",
       "reason": "Documents real new validation (maxPayloadLength, dangerous-character rejection) verified in SignalContentPolicy.scala/ErrorMessages.scala.",
       "lift_digest": "5ee1e8d3e9a6d9addd3df03feda6a334c1ec4ce29bb23d60b9bbb476e476668c",
-      "http4s_digest": "53f2730fe6b58ed7efc2bffaf0f4add0f877277efbb891167f3f7c9c8d1629e3"
+      "http4s_digest": "e336524c8c1b2ac6a58ff9d4c650a8ff0ca369093af83cd048333c7aba4d93f1"
     },
     {
       "version": "v6_0_0",
@@ -1185,7 +1185,7 @@
       "field": "description",
       "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
       "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "0e74005a596c6d3fe6cf4a0372b7c26a8df71a64ed261dae9952acf38dad9681"
+      "http4s_digest": "a520ce22176587451f8d8d6bf6886bff796789885d37954bcf3229e1d8eb3f07"
     },
     {
       "version": "v6_0_0",
@@ -1193,7 +1193,7 @@
       "field": "description",
       "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
       "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "a04f57e1840396c8b740ed334710ae8f40a7386daf194bdd2e6e2276de80c6ff"
+      "http4s_digest": "da38d765f6c3d2d20e3ee1926b694379992f3516bbd216eb577ea87a31f05ff1"
     },
     {
       "version": "v6_0_0",
@@ -1201,7 +1201,7 @@
       "field": "description",
       "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
       "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "2d9a3632bcd0ef2d6211e26bdcbed1671a2c1919b5e57a4dfbcbfe276d2c960f"
+      "http4s_digest": "deb202032cdb70e656bba7d2b1ccce8e684040028cfa9a8dca5af32899d15919"
     },
     {
       "version": "v6_0_0",
@@ -1209,7 +1209,7 @@
       "field": "description",
       "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
       "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "f3afa0db1a4fa3d9cb51755653a847fd316ebdbd6629599a01758b2adb2a0ed0"
+      "http4s_digest": "c416426234c796ac9b38889b4672ba90e20f956e3fc0bf198353d423cc9ece23"
     },
     {
       "version": "v6_0_0",
@@ -1217,7 +1217,7 @@
       "field": "description",
       "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
       "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "e7578c9f3348cc71091e23a11f3837f421ff8139891b71f53f7a5a0d243a3d4f"
+      "http4s_digest": "5412357d39eff3acd773dcccb1d2675253d1261424c3d9aa37bf28fd99a37a10"
     },
     {
       "version": "v3_0_0",
@@ -1263,7 +1263,7 @@
       "version": "v6_0_0",
       "endpoint": "createApiProduct",
       "field": "description",
-      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) — real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
+      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) \u2014 real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
       "lift_digest": "a0a19cc5100424e4e1824f1d1c70dc4329971051689338c8559c988e334ddab7",
       "http4s_digest": "585ffe0ecaab1b7ee5d333fffc55aca0016497dba502ad9ebc446dd3a4c92ade"
     },
@@ -1314,6 +1314,254 @@
       "reason": "Same rate-limiting doc expansion as the other call-limit endpoints.",
       "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
       "http4s_digest": "229b587b60d0eec166b7f962703514c81e5d176ee65dd70de0c131efc221bd8c"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "addCustomer",
+      "field": "errorResponseBodies",
+      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
+      "lift_digest": "72059bd5869c989ac1938f0fea5f0786be4b62838f2e655d63143b9db5c93128",
+      "http4s_digest": "9aee037dd06754a8d6c32b3adae1e6ea1e6f931c3dce43c4cfddada2871b8670"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createCustomer",
+      "field": "errorResponseBodies",
+      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
+      "lift_digest": "33c5b895d707447b256bd25741116c561dd656130715153950cb5ca81a80d667",
+      "http4s_digest": "31e6e04059b80406f66eac9f597fc94d78f6ce526309eb5e661824aa471e6e18"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createUserCustomerLinks",
+      "field": "errorResponseBodies",
+      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
+      "lift_digest": "ed173d824d2b639bd21d940e7c846183ce6ee629e842fd5e0580e9a9ca2836ef",
+      "http4s_digest": "c223322e602a5021ec8bf87ca939fc313f6349f7b9e56938da812580bb4175f2"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createCustomer",
+      "field": "errorResponseBodies",
+      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
+      "lift_digest": "07b620b7cc671aa6e30bd44d00a53e33cce60f103d9df4eaa97a627adf2c67a3",
+      "http4s_digest": "79776bfa4a20aacc5bc855837260797e17aa7b468b4f4ced2487ba83b6ac2bb8"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createUserCustomerLinks",
+      "field": "errorResponseBodies",
+      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
+      "lift_digest": "a7430ecc6a099fbc3fcce88309042b333cda459753ad645191e62414be7091de",
+      "http4s_digest": "1636809d333bb3c72cf56c005f212f15dbd5d3491ed89584e70ba9c00e888b0f"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getApiGlossary",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "3f3b02ea140eed114936b8ac5a39b0b8448531821fd6cb251f1d5d5c16ceeddf",
+      "http4s_digest": "52dfae7616bcf6b68e0160433f8f89ee2e2bd4f1c0215f0727e8147731ec256f"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createMyApiCollectionEndpoint",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "0514ab1ccb35677f3e3848e7d11e73e35be5e98277d48aba4b4f964534a932c0",
+      "http4s_digest": "0313e63b23107b75bbfa44448229f90f54f5f0864603bb72504a0b44a754233b"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createMyApiCollectionEndpointById",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "f9dd12dddc733891adb4cdb66e8b35a3793f5d399699f695deb858f51d0d4c76",
+      "http4s_digest": "b326f57bd423fd3c9ba3d10bdb27d38dd34137f9d9aaa2d9acdfd110b97618be"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollection",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "c24f323c0f8e68bd427ec596f58aab854a1c04517182f180a13e49b797668edc",
+      "http4s_digest": "6f0e987c9ade5eea2eca1e1e19b73ea5a71b33899cfbaaf66d80758fe435398b"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollectionEndpoint",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "6b4dd0b6b904838f009d947caa6b73f1255195a8f0a400c42caf71af16268909",
+      "http4s_digest": "6497e26954a2df7c1eb3461a2aefb846ba9bc20ff4193bc7a92662ed61ade754"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollectionEndpointById",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "c422fa6095124dd591b837d813b3474b02dffc461046a79c5d968d84eb45872d",
+      "http4s_digest": "e647d92e3431b8aaa874557a0d9e9e74cb426ccd7277593f1df03cde67cda5be"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollectionEndpointByOperationId",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "6b4dd0b6b904838f009d947caa6b73f1255195a8f0a400c42caf71af16268909",
+      "http4s_digest": "6497e26954a2df7c1eb3461a2aefb846ba9bc20ff4193bc7a92662ed61ade754"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createConsumerDynamicRegistration",
+      "field": "description",
+      "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
+      "lift_digest": "d9e5dcdf9bfc2bf70065662e57829a8e300cd1cc43ec40d0426a8f8de1792a85",
+      "http4s_digest": "7455859ab4a7fdf997030d33f990b79300b653a15d5b4279a63a10e7d796b20f"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getApiTags",
+      "field": "description",
+      "reason": "Description rewritten alongside the successResponseBody bug fix (bf89e8ed8): the old text was the duplicated stub 'Get API TagsGet API Tags'.",
+      "lift_digest": "a91f81257404808036dc8e0065c175eedf2ed81bb3a20e70180838468f6045b3",
+      "http4s_digest": "386e930e6b51ff7eb9d186ba371e0efe1f2f44c896f7de758ecc10e6fd385498"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getApiTags",
+      "field": "successResponseBody",
+      "reason": "Lift's doc declared accountsMinimalJson400 for an endpoint that returns API tags - a copy-paste bug in the documentation, never in the handler. Corrected to APITags (bf89e8ed8), which is what GET /tags has always returned. The wire response is unchanged.",
+      "lift_digest": "63988216b5755d2886ae41ae9f86d10dacba771ce33e92a834d48f31ddba302a",
+      "http4s_digest": "11e2389daf62829f264180738ec578b2f64f853c71bbaf96656333d69434bc7d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteSignalChannel",
+      "field": "requestUrl",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place. The path moved from /signal/channels/... to /signal-channels/....",
+      "lift_digest": "f2f24a471b57ff0b832d111f9154c0fb45c7a2ad3715299ee97dfe3d8c3dfc9c",
+      "http4s_digest": "4616101d4eb2a37a31e29144d328a7cc7ed223ac3b944ce8e6be01206f00e527"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteSignalChannel",
+      "field": "tags",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "7d8858342e5f9497e909447578abfd58659f985405da1000fe47afa4edd4dbc6",
+      "http4s_digest": "17875d69ff6997b57b16dddad46600084d17af889b0597859ea11cf516434fbb"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAvailablePersonalDynamicEntities",
+      "field": "description",
+      "reason": "v6.0.0 is DRAFT and dynamic entities are under active development; the doc text and example bodies were revised in place after the baseline was captured.",
+      "lift_digest": "585ba9eadfd97593a9c5cec71fffb2bc7ed0bfb77a9d786a7f1e4d1a0b428f5e",
+      "http4s_digest": "e0b2e9c79406677504cd6fdcd82ae2aa3b1062a30b09f9ba9c75002e0bc4c8b0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalChannelInfo",
+      "field": "requestUrl",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place. The path moved from /signal/channels/... to /signal-channels/....",
+      "lift_digest": "33be79faa7a3727fe9c121fe0148b0a990e96fa8b40cdab91c1bc8c9e13d09c3",
+      "http4s_digest": "ae8de95e8039b4f587ab20c6fe9eb299b9aae6b08fcac9984dae3c11e61909ab"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalChannelInfo",
+      "field": "tags",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "7d8858342e5f9497e909447578abfd58659f985405da1000fe47afa4edd4dbc6",
+      "http4s_digest": "17875d69ff6997b57b16dddad46600084d17af889b0597859ea11cf516434fbb"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalChannels",
+      "field": "description",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "bb98cd3900cf5068d68b86a12bb70c06b67402db9206d082d44cbeee64b584f8",
+      "http4s_digest": "98a442997618837300250447595a975d996304f733c3f6f3a5f83950704089d0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalChannels",
+      "field": "requestUrl",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place. The path moved from /signal/channels/... to /signal-channels/....",
+      "lift_digest": "8e4426a495908793ccc268cd204dff5f6d1ac4d7e718d4df3d34c8fe3f2fe9b6",
+      "http4s_digest": "cbb7d286f163c09fa535f4eeef8216623680138a708764325936313c0b91261d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalChannels",
+      "field": "tags",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "7d8858342e5f9497e909447578abfd58659f985405da1000fe47afa4edd4dbc6",
+      "http4s_digest": "17875d69ff6997b57b16dddad46600084d17af889b0597859ea11cf516434fbb"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalMessages",
+      "field": "description",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "4f41044a9e8d941ed2b1ad557bef310a20b223fa2e475f8d49dfbd8084dd904f",
+      "http4s_digest": "9a6d0418e66756ddc7be4b128e5e9a68f9d22ffd5f8d5911ec5d5dc12ee6dcdd"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalMessages",
+      "field": "errorResponseBodies",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "a83dad7a55122752ac89cc9f7e9b5fbcbba8692801ad864d6e1aebcfd2dfa9f4",
+      "http4s_digest": "113568b0efd7ec1bcc8ec936aa85af0c4cfc4c9ac0fa8e90abb5755ead620485"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalMessages",
+      "field": "requestUrl",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place. The path moved from /signal/channels/... to /signal-channels/....",
+      "lift_digest": "06794a03eb6f6271cb8524704d8ca865cb6e86d7b493878be04f271aff62537d",
+      "http4s_digest": "69473f0f0db9200a0306b184289e761a7228192d974ec1f56980fd99d0bc7afd"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalMessages",
+      "field": "tags",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "7d8858342e5f9497e909447578abfd58659f985405da1000fe47afa4edd4dbc6",
+      "http4s_digest": "17875d69ff6997b57b16dddad46600084d17af889b0597859ea11cf516434fbb"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalStats",
+      "field": "requestUrl",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place. The path moved from /signal/channels/... to /signal-channels/....",
+      "lift_digest": "87ee01e77254f683afaa23b23092b098bb29efae50c25871a24acb3a99705f59",
+      "http4s_digest": "5f772b88b8c8654b8a88449a3b4ef03f774078a55bc55e434cf1702e4666b17c"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getSignalStats",
+      "field": "tags",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "7d8858342e5f9497e909447578abfd58659f985405da1000fe47afa4edd4dbc6",
+      "http4s_digest": "17875d69ff6997b57b16dddad46600084d17af889b0597859ea11cf516434fbb"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "publishSignalMessage",
+      "field": "requestUrl",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place. The path moved from /signal/channels/... to /signal-channels/....",
+      "lift_digest": "06794a03eb6f6271cb8524704d8ca865cb6e86d7b493878be04f271aff62537d",
+      "http4s_digest": "69473f0f0db9200a0306b184289e761a7228192d974ec1f56980fd99d0bc7afd"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "publishSignalMessage",
+      "field": "tags",
+      "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
+      "lift_digest": "7d8858342e5f9497e909447578abfd58659f985405da1000fe47afa4edd4dbc6",
+      "http4s_digest": "17875d69ff6997b57b16dddad46600084d17af889b0597859ea11cf516434fbb"
     }
   ]
 }

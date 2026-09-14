@@ -46,6 +46,32 @@ jobs:
       - name: Lint — test-isolation (no setPropsValues at class/feature body)
         run: python3 .github/scripts/check_test_isolation.py
 
+      - name: Lint — resource-doc parity (Lift baseline vs live http4s ResourceDocs)
+        run: |
+          # Compares every ResourceDoc field (url, verb, summary, description, example
+          # bodies, errors, tags) against the frozen Lift-era JSON baseline in
+          # scripts/resource_doc_baseline/. Reviewed differences are recorded in
+          # parity_allowlist.json, digest-bound to the text they were reviewed against, so a
+          # later edit to an allowlisted field resurfaces instead of staying exempt.
+          #
+          # The script exits non-zero for an unreviewed difference. A STALE entry -- one that
+          # matched nothing this run -- it only prints, so that is failed here as well: an
+          # exemption that exempts nothing hides the very difference it was written for, and
+          # it is the failure mode a hand-maintained allowlist develops first.
+          set +e
+          report=$(python3 scripts/check_lift_http4s_resource_doc_parity.py --report-stale-allowlist-entries)
+          rc=$?
+          set -e
+          echo "$report"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Resource-doc parity audit found unreviewed differences between the Lift baseline and the live http4s ResourceDocs. Either fix the doc to match the baseline, or record the difference with scripts/resource_doc_baseline/allowlist_helper.py (do not hand-compute digests, and do not edit the JSON baseline). See scripts/resource_doc_baseline/README.md."
+            exit 1
+          fi
+          if ! printf '%s\n' "$report" | awk '/^=== STALE ALLOWLIST ENTRIES/{found=1} found' | grep -qx '  (none)'; then
+            echo "::error::parity_allowlist.json contains entries that matched nothing this run. Remove them -- an exemption that exempts nothing gives no cover while looking as though it does."
+            exit 1
+          fi
+
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them

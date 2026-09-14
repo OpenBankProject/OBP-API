@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.util
 
 import org.json4s._
@@ -518,6 +545,7 @@ object ErrorMessages {
   val UpdateGlossaryItemError = "OBP-30575: Could not update Glossary Item."
   val DeleteGlossaryItemError = "OBP-30576: Could not delete Glossary Item."
   val GlossaryItemShadowsStaticItem = "OBP-30577: A static Glossary Item with this title already exists. Creating this item would override it in the Glossary. Set overrides_static_item to true if that is intended, or choose a different title."
+  val InvalidGlossarySource = "OBP-30578: Invalid source. Please specify all, static or dynamic."
 
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."

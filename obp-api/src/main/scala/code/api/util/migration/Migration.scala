@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.util.migration
 
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
@@ -41,7 +68,7 @@ import scala.collection.mutable.HashMap
  * To REPAIR an already-drifted DB forward-only, do NOT edit/duplicate the original migration — `runOnce`
  * skips it once logged (`isExecuted`). Add a NEW migration (new name) doing DROP+ALTER+CREATE; it runs
  * once to fix existing DBs and is a no-op (CREATE OR REPLACE / IF EXISTS) on fresh ones. The full
- * drop-everything reset in running_tests_on_postgres.md is the local recovery path.
+ * drop-everything reset in docs/testing/running_tests_on_postgres.md is the local recovery path.
  */
 object Migration extends MdcLoggable {
   private val migrationScriptsEnabled = ApiPropsWithAlias.migrationScriptsEnabled

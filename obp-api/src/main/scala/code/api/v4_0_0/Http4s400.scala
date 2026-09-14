@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.v4_0_0
 
 import org.json4s._
@@ -9,6 +36,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.v3_1_0.ConsentChallengeJsonV310
 import code.consent.ConsentStatus
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, UserInvitationPurpose}
+import code.api.util.ApiVersionUtils
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -1440,8 +1468,15 @@ object Http4s400 {
             _ <- NewStyle.function.tryons(InvalidBankIdFormat, 400, Some(cc)) {
               assert(isValidID(bank.bankId.value))
             }
-            _ <- Users.users.vend.getUserByUserIdFuture(postedData.user_id) map { x =>
+            targetUser <- Users.users.vend.getUserByUserIdFuture(postedData.user_id) map { x =>
               unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404)
+            }
+            // The link target is explicit here, so it must name an original user: a link on an
+            // agent identity dies with its Consent. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 3.
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Customers are linked to humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc)) {
+              !targetUser.isConsentUser
             }
             _ <- code.util.Helper.booleanToFuture(
               "Field customer_id is not defined in the posted json!",
@@ -1479,6 +1514,7 @@ object Http4s400 {
         InvalidBankIdFormat,
         $BankNotFound,
         InvalidJsonFormat,
+        InvalidUserId,
         CustomerNotFoundByCustomerId,
         UserHasMissingRoles,
         CustomerAlreadyExistsForUser,
@@ -3748,8 +3784,10 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "api" / "versions" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future {
+            // See the v6.0.0 endpoint: the constructor registry advertises retired standards, the
+            // live scan does not.
             val versions: List[ScannedApiVersion] =
-              ApiVersion.allScannedApiVersion.asScala.toList.filter { v =>
+              ApiVersionUtils.versions.filter { v =>
                 v.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(v)
               }
             com.openbankproject.commons.model.ListResult("scanned_api_versions", versions)
@@ -9545,7 +9583,7 @@ object Http4s400 {
     }
 
     /**
-     * Maker/checker interception (MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md): after the body has been
+     * Maker/checker interception (docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md): after the body has been
      * validated and compiled exactly as before, a managed target type is queued as a
      * DynamicChangeRequest and answered with 202 instead of being applied.
      */

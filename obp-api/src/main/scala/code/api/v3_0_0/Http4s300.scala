@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.v3_0_0
 
 import org.json4s._
@@ -1911,7 +1938,7 @@ object Http4s300 {
       |Returns the glossary of the API: the union of
       |
       |* **Static Glossary Items**, compiled into the API and only changing when the API is redeployed, and
-      |* **Dynamic Glossary Items**, held in the database and maintained at runtime over the Glossary Item endpoints (POST / PUT / DELETE /obp/v7.0.0/glossary-items).
+      |* **Dynamic Glossary Items**, held in the database and maintained at runtime over the Glossary endpoints (POST /obp/v7.0.0/api/glossary, PUT and DELETE /obp/v7.0.0/api/glossary/TITLE).
       |
       |A Dynamic Glossary Item whose title matches a static one (compared case insensitively) replaces it, so an operator can correct or localise shipped text without a redeploy.
       |
