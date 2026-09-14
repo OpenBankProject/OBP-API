@@ -359,8 +359,8 @@ This is the scary one. Possibly never worth doing — the lookup-table indirecti
 
 ## Out of scope for this work
 
-- **The bank_id `<friendly>-<UUID>` convention** discussed separately — settlement accounts live within a bank, so they ride on whatever bank_id shape the deployment has chosen. Tracked in `todo_account_id_uuid_enforcement.md`.
-- **Validating UUID account_ids at the API boundary** — separate workstream tracked in `todo_account_id_uuid_enforcement.md`.
+- **The bank_id `<friendly>-<UUID>` convention** discussed separately — settlement accounts live within a bank, so they ride on whatever bank_id shape the deployment has chosen. Tracked in `todo/todo_account_id_uuid_enforcement.md`.
+- **Validating UUID account_ids at the API boundary** — separate workstream tracked in `todo/todo_account_id_uuid_enforcement.md`.
 - **Settlement account creation via the public API** — currently settlement accounts are only created by Boot/migration/connector init. If/when the API surface admits user-driven settlement-account creation, the lookup table needs an API too.
 
 ## File-by-file checklist (for whoever picks this up)
