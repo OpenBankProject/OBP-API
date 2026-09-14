@@ -34,9 +34,11 @@ import code.api.util.APIUtil.generateUUID
 import code.api.util.{Consent, ConsentLinkedCustomers, ConsentMyResources}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.TransactionRequestBodySandBoxTanJSON
+import code.bankconnectors.LocalMappedConnector
 import code.consent.MappedConsent
 import code.model.dataAccess.ResourceUser
 import code.setup.ServerSetup
+import code.model.dataAccess.MappedBank
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
 import code.users.{AttributionPolicy, UserReference, Users}
 import com.openbankproject.commons.model.{AccountId, AmountOfMoney, AmountOfMoneyJsonV121, BankAccount, BankAccountCommons, BankId, BankIdAccountId, TransactionRequestCharge, TransactionRequestId, TransactionRequestType}
@@ -563,6 +565,57 @@ class AgentDelegationTest extends ServerSetup {
       val row = storedTransactionRequestFor(agent)
       storedField(row.mUserId.get) shouldBe agent.userId
       storedField(row.mOnBehalfOfUserId.get) shouldBe agent.userId
+    }
+  }
+
+  feature("Banks record the human who created them (UserReference.BankCreator)") {
+
+    /** Create a bank through the connector as `callerUserId`, and return the stored row. */
+    def createBankAs(callContext: Option[CallContext]): MappedBank = {
+      val bankId = s"agent-delegation-bank-${generateUUID().take(8)}"
+      LocalMappedConnector.createOrUpdateBank(
+        bankId = bankId, fullBankName = "Agent Delegation Test Bank", shortBankName = "ADTB",
+        logoURL = "", websiteURL = "", swiftBIC = "", national_identifier = "",
+        bankRoutingScheme = "", bankRoutingAddress = "", callContext = callContext
+      ).openOrThrowException("expected the bank to be created")
+      MappedBank.find(By(MappedBank.permalink, bankId))
+        .openOrThrowException("expected the bank row to have been written")
+    }
+
+    scenario("a bank created by an original user is created by that user", AgentDelegationTag) {
+      val human = createUser()
+      storedField(createBankAs(Some(CallContext(user = Full(human)))).CreatedByUserId.get) shouldBe human.userId
+    }
+
+    // The defect this closes, seen in the wild 2026-09-03: a bank created through Opey under a
+    // temporary consent had createdbyuserid = the consent user, so it would drop out of every
+    // "banks created by me" read once that consent was revoked.
+    scenario("a bank created by a consent user is created by its on-behalf-of user", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val row = createBankAs(Some(CallContext(user = Full(agent))))
+      storedField(row.CreatedByUserId.get) shouldBe human.userId
+      storedField(row.CreatedByUserId.get) should not be agent.userId
+    }
+
+    scenario("a consent user whose consent has no human yet creates for itself (fails closed)", AgentDelegationTag) {
+      val consent = MappedConsent.create.mUserId("").saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      storedField(createBankAs(Some(CallContext(user = Full(agent)))).CreatedByUserId.get) shouldBe agent.userId
+    }
+
+    // Berlin Group / UK consents carry their consenter on the request rather than in the stored
+    // chain, so the request layer has to win -- the same order CallContext.onBehalfOfUserId uses.
+    scenario("the request layer's consenter takes precedence over the stored chain", AgentDelegationTag) {
+      val consenter = createUser()
+      val caller = createUser()
+      val row = createBankAs(Some(CallContext(user = Full(caller), consenter = Full(consenter))))
+      storedField(row.CreatedByUserId.get) shouldBe consenter.userId
+    }
+
+    scenario("no authenticated user leaves the creator empty", AgentDelegationTag) {
+      storedField(createBankAs(None).CreatedByUserId.get) shouldBe ""
     }
   }
 }

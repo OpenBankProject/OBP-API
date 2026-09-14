@@ -1276,19 +1276,19 @@ object Http4s500 {
                          e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
                    }
                  } yield ()
-            calculatedConsumerId = consentRequestJson.consumer_id.orElse(Some(createdConsentRequest.consumerId))
-            (consumerIdOpt, applicationText) <- calculatedConsumerId match {
-              case Some(id) =>
-                NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map { c =>
-                  (Some(c.consumerId.get), c.description)
-                }
-              case None => Future.successful((None, "Any application"))
-            }
+            // Every Consent names the Consumer it is for: the body's consumer_id, else the Consumer that
+            // lodged the consent request, else the caller. NewStyle.function.resolveConsentConsumer says
+            // why a Consent may not be created without one. One resolution feeds both the JWT's aud and
+            // the stored row, so the two can no longer disagree about who the Consent is for.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(
+              consentRequestJson.consumer_id.orElse(Option(createdConsentRequest.consumerId)), callContextOpt)
+            consumerIdOpt = Some(consentConsumer.consumerId.get)
+            applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _                   => SecureRandomUtil.numeric()
             }
-            consumer = Consumers.consumers.vend.getConsumerByConsumerId(calculatedConsumerId.getOrElse("None"))
+            consumer = Some(consentConsumer)
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(
               user, challengeAnswer, Some(consentRequestId), consumer))
               .map(i => connectorEmptyResponse(i, callContextOpt))
@@ -1325,7 +1325,7 @@ object Http4s500 {
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
             grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
-            granteeConsumerId = postConsentBodyCommonJson.consumer_id.getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId.get
             shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             mappedConsent <- if (shouldSkipConsentScaForConsumerIdPair) {
@@ -1376,7 +1376,7 @@ object Http4s500 {
     private val createConsentByConsentRequestIdCommonErrors = List(
       AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
       ConsentAllowedScaMethods, RolesAllowedInConsent, ViewsAllowedInConsent,
-      ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+      ConsumerNotFoundByConsumerId, ConsumerIsDisabled, ConsentConsumerIsRequired,
       InvalidConnectorResponse, UnknownError
     )
 

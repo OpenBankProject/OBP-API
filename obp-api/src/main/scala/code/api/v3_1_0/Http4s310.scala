@@ -121,61 +121,6 @@ object Http4s310 {
   private val supportedConnectorNames =
     NewStyle.function.getSupportedConnectorNames().mkString("[", " | ", "]")
 
-  private val generalObpConsentText: String =
-    s"""
-       |
-       |An OBP Consent allows the holder of the Consent to call one or more endpoints.
-       |
-       |Consents must be created and authorisied using SCA (Strong Customer Authentication).
-       |
-       |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
-       |
-       |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
-       |
-       |Each Consent is bound to a consumer i.e. you need to identify yourself over request header value Consumer-Key.
-       |For example:
-       |GET /obp/v4.0.0/users/current HTTP/1.1
-       |Host: 127.0.0.1:8080
-       |Consent-JWT: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn
-       |1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNj
-       |EtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsIml
-       |zcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTY
-       |tNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
-       |
-       |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
-       |cache-control: no-cache
-       |
-       |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 7776000 seconds (90 days).
-       |
-       |Example of POST JSON:
-       |{
-       |  "everything": false,
-       |  "views": [
-       |    {
-       |      "bank_id": "GENODEM1GLS",
-       |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-       |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
-       |    }
-       |  ],
-       |  "entitlements": [
-       |    {
-       |      "bank_id": "GENODEM1GLS",
-       |      "role_name": "CanGetCustomersAtOneBank"
-       |    }
-       |  ],
-       |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       |  "email": "eveline@example.com",
-       |  "valid_from": "2020-02-07T08:43:34Z",
-       |  "time_to_live": 3600
-       |}
-       |Please note that only optional fields are: consumer_id, valid_from and time_to_live.
-       |In case you omit they the default values are used:
-       |consumer_id = consumer of current user
-       |valid_from = current time
-       |time_to_live = consents.max_time_to_live
-       |
-    """.stripMargin
-
   object Implementations3_1_0 {
     val prefixPath: Path = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -199,6 +144,11 @@ object Http4s310 {
          |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
          |
          |Each Consent has one of the following states: ${code.consent.ConsentStatus.values.toList.sorted.mkString(", ")}.
+         |
+         |Each Consent is pinned to one Consumer, and only that Consumer can present the resulting Consent JWT -- any
+         |other gets ConsentNotFound. Set consumer_id in the body when the Consent is for a different application than
+         |the caller, for example a portal creating a Consent for an agent to use. Omit it when the Consent is for the
+         |caller. A Consent that names no Consumer is refused.
          |""".stripMargin
 
     private val supportedConnectorNames = NewStyle.function.getSupportedConnectorNames().mkString("[", " | ", "]")
@@ -4464,13 +4414,12 @@ object Http4s310 {
               consentJson.views.forall(rv => assignedViews.exists(e =>
                 e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
             }
-            consumerTuple <- consentJson.consumer_id match {
-              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, Some(cc)) map {
-                c => (Some(c.consumerId.get), c.description, Some(c))
-              }
-              case None => Future((None, "Any application", None))
-            }
-            (consumerId, applicationText, consumer) = consumerTuple
+            // Every Consent names the Consumer it is for -- the body's consumer_id, else the caller.
+            // NewStyle.function.resolveConsentConsumer says why a Consent may not be created without one.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(consentJson.consumer_id, Some(cc))
+            consumerId = Some(consentConsumer.consumerId.get)
+            applicationText = consentConsumer.description
+            consumer = Some(consentConsumer)
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _ => SecureRandomUtil.numeric()
@@ -4489,7 +4438,7 @@ object Http4s310 {
               i => connectorEmptyResponse(i, Some(cc))
             }
             grantorConsumerId = cc.consumer.toOption.map(_.consumerId.get).getOrElse("Unknown")
-            granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId.get
             shouldSkipConsentSca = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             _ <- if (shouldSkipConsentSca) {
@@ -4628,6 +4577,7 @@ object Http4s310 {
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -4709,6 +4659,7 @@ object Http4s310 {
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         MissingPropsValueAtThisInstance,
         SmsServerNotResponding,
         InvalidConnectorResponse,
@@ -4789,6 +4740,7 @@ object Http4s310 {
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         MissingPropsValueAtThisInstance,
         SmsServerNotResponding,
         InvalidConnectorResponse,

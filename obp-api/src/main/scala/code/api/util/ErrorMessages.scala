@@ -860,6 +860,7 @@ object ErrorMessages {
   val ConsentMyResourcesInvalid = "OBP-35042: The Consent's my_resources block is invalid. "
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "
+  val ConsentConsumerIsRequired = "OBP-35044: A Consent must name a Consumer. Send consumer_id in the request body naming the Consumer the Consent is for, or make the call as that Consumer. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

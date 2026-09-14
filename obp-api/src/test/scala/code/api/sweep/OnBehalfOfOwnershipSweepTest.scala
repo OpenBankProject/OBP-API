@@ -159,10 +159,6 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
     "TagUser"                                 -> mechanicalBatch,
     "WhereTagUser"                            -> mechanicalBatch,
     "TransactionImageUser"                    -> mechanicalBatch,
-    "BankCreator" ->
-      ("seen in the wild 2026-09-03: a bank created through a Consent has createdbyuserid = the " +
-       "consent user. Nothing breaks today because createMyBank's self-service limit counts via " +
-       "humanAndAgentUserIds, but 'banks created by me' reads will miss it."),
     "AccountAccessRequestTarget" ->
       ("explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
        "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),

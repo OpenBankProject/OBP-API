@@ -3420,6 +3420,35 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (getCounterpartiesLegacy(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
   }
 
+  /**
+   * Who a newly created Bank is recorded as having been created by.
+   *
+   * The HUMAN, not the caller. Under a Consent the caller is the per-consent agent identity, which
+   * dies with the Consent — a bank stamped with it would drop out of every "banks created by me"
+   * read the moment the consent was revoked. Seen in the wild 2026-09-03: a bank created through
+   * Opey under a temporary consent had `createdbyuserid` set to the consent user.
+   *
+   * Two sources, in the order CallContext.onBehalfOfUserId uses:
+   *  - the request layer (`consentCreator` / `consenter`) knows things the stored chain cannot,
+   *    because a Berlin Group / UK consent carries its consenter on the request;
+   *  - otherwise the attribution, which walks the stored consent chain, applies the
+   *    `BankCreator` policy and is the one place a delegated write is logged.
+   *
+   * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+   */
+  private def bankCreatorUserId(callContext: Option[CallContext]): String =
+    callContext.flatMap(_.user.toOption).map(_.userId).filter(_.nonEmpty) match {
+      case None => ""
+      case Some(callerUserId) =>
+        val fromStoredChain = Users.users.vend
+          .attributedUserId(callerUserId, code.users.UserReference.BankCreator)
+          .openOr(callerUserId)
+        callContext
+          .flatMap(cc => cc.consentCreator.or(cc.consenter).toOption)
+          .map(_.userId).filter(_.nonEmpty)
+          .getOrElse(fromStoredChain)
+    }
+
   override def createOrUpdateBank(
                                    bankId: String,
                                    fullBankName: String,
@@ -3460,7 +3489,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .national_identifier(national_identifier)
             .mBankRoutingScheme(bankRoutingScheme)
             .mBankRoutingAddress(bankRoutingAddress)
-            .CreatedByUserId(callContext.map(_.user).flatMap(_.toOption).map(_.userId).getOrElse(""))
+            .CreatedByUserId(bankCreatorUserId(callContext))
             .saveMe()
         } ?~! ErrorMessages.UpdateBankError
     }

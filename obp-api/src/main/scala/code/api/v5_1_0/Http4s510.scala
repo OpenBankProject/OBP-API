@@ -4956,9 +4956,11 @@ object Http4s510 {
          |}
          |Please note that only optional fields are: consumer_id, valid_from and time_to_live.
          |In case you omit they the default values are used:
-         |consumer_id = consumer of current user
+         |consumer_id = the Consumer making this call
          |valid_from = current time
          |time_to_live = consents.max_time_to_live
+         |
+         |Every Consent is pinned to one Consumer, and only that Consumer can present the resulting Consent JWT -- any other gets ConsentNotFound. Set consumer_id when the Consent is for a different application than the caller, for example a portal creating a Consent for an agent to use. Omit it when the Consent is for the caller. A Consent that names no Consumer is refused.
          |
       """.stripMargin
 
@@ -5050,11 +5052,11 @@ object Http4s510 {
                 assignedViews.exists(e =>
                   e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
             }
-            consumerFromBodyTuple <- consentJson.consumer_id match {
-              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))
-              case None     => Future.successful((None: Option[Consumer], "Any application"))
-            }
-            (consumerFromRequestBody, applicationText) = consumerFromBodyTuple
+            // Every Consent names the Consumer it is for -- the body's consumer_id, else the caller.
+            // NewStyle.function.resolveConsentConsumer says why a Consent may not be created without one.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(consentJson.consumer_id, callContextOpt)
+            consumerFromRequestBody = Some(consentConsumer)
+            applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _                   => SecureRandomUtil.numeric()
@@ -5074,7 +5076,7 @@ object Http4s510 {
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
             grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
-            granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId.get
             shouldSkip = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             mappedConsent <- if (shouldSkip) {
@@ -5155,7 +5157,10 @@ object Http4s510 {
       |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
       |}
       |
-      |Please note that consumer_id is optional field
+      |Please note that consumer_id is an optional field. It names the Consumer the Consent is for --
+      |set it when the Consent is for a different application than the caller (for example a portal
+      |creating a Consent for an agent to use), omit it when the Consent is for the caller. Either way
+      |the resulting Consent is pinned to exactly one Consumer, and only that Consumer can present it.
       |Example 2:
       |{
       |  "everything": true,
@@ -5187,6 +5192,7 @@ object Http4s510 {
       postConsentImplicitJsonV310, consentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
         RolesAllowedInConsent, RolesForbiddenInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
