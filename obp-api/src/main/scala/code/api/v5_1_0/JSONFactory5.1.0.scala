@@ -17,7 +17,7 @@
   * *
   * Email: contact@tesobe.com
   * TESOBE GmbH
-  * Osloerstrasse 16/17
+  * Osloer Strasse 16/17
   * Berlin 13359, Germany
   * *
   * This product includes software developed at
@@ -189,7 +189,7 @@ case class AllConsentJsonV510(consent_reference_id: String,
                               status: String,
                               last_action_date: String,
                               last_usage_date: String,
-                              jwt_payload: Box[ConsentJWT],
+                              jwt_payload: Box[ConsentJWTV510],
                               frequency_per_day: Option[Int] = None,
                               remaining_requests: Option[Int] = None,
                               api_standard: String,
@@ -197,6 +197,68 @@ case class AllConsentJsonV510(consent_reference_id: String,
                               note: String,
                              )
 case class ConsentsJsonV510(number_of_rows: Long, consents: List[AllConsentJsonV510])
+
+/* ── The v5.1.0 rendering of a consent JWT payload ───────────────────────────────────────────
+ *
+ * AllConsentJsonV510.jwt_payload used to be typed as code.api.util.ConsentJWT -- the live,
+ * internal claim set the API reads on every consent-authenticated request. That coupled a frozen
+ * response to a model that is still being developed: every claim added to ConsentJWT silently
+ * changed a STABLE v5.1.0 response, and FrozenClassTest fired each time. It fired for
+ * my_resources.linked_customers (2026-09-11), and it would fire for the next claim too, with the
+ * cheap fix always being "regenerate the snapshot" -- which is how a frozen-contract guard stops
+ * meaning anything.
+ *
+ * So the payload is rendered through types that belong to v5.1.0 and are allowed to stand still.
+ * These carry EXACTLY the fields the v5.1.0 contract was frozen with, so the JSON on the wire is
+ * unchanged; only the Scala type behind it is v5.1.0's own. ConsentJWT is now free to grow.
+ *
+ * Adding a field here is a deliberate change to a STABLE response and needs the same scrutiny as
+ * any other. New consent claims belong on ConsentJWT and surface in a later version's payload
+ * type, not here. ON_BEHALF_OF_USER_ID_PLAN.md, and README "Steps to freeze an API".
+ */
+case class ConsentPersonalDynamicEntityV510(bank_id: String, entity_name: String, actions: List[String])
+
+case class ConsentMyResourcesV510(personal_dynamic_entities: List[ConsentPersonalDynamicEntityV510])
+
+case class ConsentJWTV510(createdByUserId: String,
+                          sub: String,
+                          iss: String,
+                          aud: String,
+                          jti: String,
+                          iat: Long,
+                          nbf: Long,
+                          exp: Long,
+                          request_headers: List[APIUtil.HTTPParam],
+                          name: Option[String],
+                          email: Option[String],
+                          entitlements: List[Role],
+                          views: List[ConsentView],
+                          access: Option[ConsentAccessJson],
+                          my_resources: Option[ConsentMyResourcesV510]
+                         )
+
+object ConsentJWTV510 {
+  /** Narrow the live claim set to what v5.1.0 publishes. Claims v5.1.0 does not know are dropped. */
+  def fromConsentJWT(jwt: ConsentJWT): ConsentJWTV510 = ConsentJWTV510(
+    createdByUserId = jwt.createdByUserId,
+    sub             = jwt.sub,
+    iss             = jwt.iss,
+    aud             = jwt.aud,
+    jti             = jwt.jti,
+    iat             = jwt.iat,
+    nbf             = jwt.nbf,
+    exp             = jwt.exp,
+    request_headers = jwt.request_headers,
+    name            = jwt.name,
+    email           = jwt.email,
+    entitlements    = jwt.entitlements,
+    views           = jwt.views,
+    access          = jwt.access,
+    my_resources    = jwt.my_resources.map(r => ConsentMyResourcesV510(
+      r.personal_dynamic_entities.map(e =>
+        ConsentPersonalDynamicEntityV510(e.bank_id, e.entity_name, e.actions))))
+  )
+}
 
 
 case class CurrencyJsonV510(alphanumeric_code: String)
@@ -1058,7 +1120,9 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
           status = c.status,
           last_action_date = if (c.lastActionDate != null) new SimpleDateFormat(DateWithDay).format(c.lastActionDate) else null,
           last_usage_date = if (c.usesSoFarTodayCounterUpdatedAt != null) new SimpleDateFormat(DateWithSeconds).format(c.usesSoFarTodayCounterUpdatedAt) else null,
-          jwt_payload = jwtPayload,
+          // null is what the MappingException branch above yields for an unparseable JWT;
+          // keep it rather than collapsing it to Empty, so the rendered field does not change.
+          jwt_payload = jwtPayload.map(j => if (j == null) null else ConsentJWTV510.fromConsentJWT(j)),
           frequency_per_day = if(c.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard) Some(c.frequencyPerDay) else None,
           remaining_requests = if(c.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard) Some(c.frequencyPerDay - c.usesSoFarTodayCounter) else None,
           api_standard = c.apiStandard,
