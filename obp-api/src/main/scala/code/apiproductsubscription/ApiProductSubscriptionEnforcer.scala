@@ -42,7 +42,7 @@ import java.util.{Calendar, Date, TimeZone}
 import scala.concurrent.Future
 
 /**
- * Phase 3 of API_PRODUCT_SUBSCRIPTION_PLAN.md: makes a subscription's status enforceable.
+ * Phase 3 of docs/API_PRODUCT_SUBSCRIPTION_PLAN.md: makes a subscription's status enforceable.
  *
  * Called after every status change (NewStyle.updateApiProductSubscriptionStatus, which the POST
  * auto-activation and the DELETE route also go through). Only three statuses touch anything:

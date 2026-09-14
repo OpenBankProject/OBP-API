@@ -1783,7 +1783,7 @@ dynamic_code_compile_validate_dependencies=[\
       PractiseEndpoint.getClass.getTypeName + "*" -> "*"\
 ]
 
-# --- Dynamic code requires approval (maker/checker, see MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ---
+# --- Dynamic code requires approval (maker/checker, see docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ---
 # dynamic_code_requires_approval=true enforces two things for the target types listed below:
 #  1. Writes are queued, not applied. Create/update/delete via the v4.0.0/v6.0.0 endpoints still check the
 #     caller's role, validate and compile the body, then store a DynamicChangeRequest and answer 202 Accepted.

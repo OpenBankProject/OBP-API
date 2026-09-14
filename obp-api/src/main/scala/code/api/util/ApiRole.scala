@@ -805,7 +805,7 @@ object ApiRole extends MdcLoggable{
 
   // API Product Subscription roles, held at the product's bank (a billing adapter serving several
   // banks is granted the role at each of them). Developers need none of these for their own
-  // consumers: ownership is enforced in the handler. See API_PRODUCT_SUBSCRIPTION_PLAN.md.
+  // consumers: ownership is enforced in the handler. See docs/API_PRODUCT_SUBSCRIPTION_PLAN.md.
   case class CanCreateApiProductSubscriptionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateApiProductSubscriptionAtOneBank = CanCreateApiProductSubscriptionAtOneBank()
   case class CanGetApiProductSubscriptionAtOneBank(requiresBankId: Boolean = true) extends ApiRole

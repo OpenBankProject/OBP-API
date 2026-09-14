@@ -9583,7 +9583,7 @@ object Http4s400 {
     }
 
     /**
-     * Maker/checker interception (MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md): after the body has been
+     * Maker/checker interception (docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md): after the body has been
      * validated and compiled exactly as before, a managed target type is queued as a
      * DynamicChangeRequest and answered with 202 instead of being applied.
      */

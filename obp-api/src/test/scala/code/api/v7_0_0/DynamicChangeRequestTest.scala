@@ -46,7 +46,7 @@ import org.scalatest.Tag
 import java.net.URLDecoder
 
 /**
- * Maker/checker for dynamic code (MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md), phase 1, exercised
+ * Maker/checker for dynamic code (docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md), phase 1, exercised
  * end-to-end over HTTP: a v4.0.0 write is intercepted into a DynamicChangeRequest (202), a second
  * user approves it by hash, the artefact then exists and executes; plus rejection, withdrawal,
  * deactivation, the execution guard against direct DB tampering, and the role/auth surface.

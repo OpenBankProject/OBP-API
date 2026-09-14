@@ -4177,7 +4177,7 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    // ─── API Product Subscriptions (see API_PRODUCT_SUBSCRIPTION_PLAN.md) ───
+    // ─── API Product Subscriptions (see docs/API_PRODUCT_SUBSCRIPTION_PLAN.md) ───
 
     def createApiProductSubscription(
       bankId: String,

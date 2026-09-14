@@ -68,7 +68,7 @@ import scala.collection.mutable.HashMap
  * To REPAIR an already-drifted DB forward-only, do NOT edit/duplicate the original migration — `runOnce`
  * skips it once logged (`isExecuted`). Add a NEW migration (new name) doing DROP+ALTER+CREATE; it runs
  * once to fix existing DBs and is a no-op (CREATE OR REPLACE / IF EXISTS) on fresh ones. The full
- * drop-everything reset in running_tests_on_postgres.md is the local recovery path.
+ * drop-everything reset in docs/testing/running_tests_on_postgres.md is the local recovery path.
  */
 object Migration extends MdcLoggable {
   private val migrationScriptsEnabled = ApiPropsWithAlias.migrationScriptsEnabled

@@ -112,7 +112,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         blankToNone(entity.ApprovedHash.get), Some(entity.IsActive.get))
     )
 
-  // ─── Maker/checker: dynamic change requests (design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
+  // ─── Maker/checker: dynamic change requests (design: docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
   case class PostDynamicChangeRequestJsonV700(
     target_type: String,
     operation: String,
@@ -2657,7 +2657,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     everything_as_expected = true
   )
 
-  // ─── API Product Subscription (v7.0.0). See API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
+  // ─── API Product Subscription (v7.0.0). See docs/API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
 
   case class PostApiProductSubscriptionJsonV700(
     consumer_id: String,

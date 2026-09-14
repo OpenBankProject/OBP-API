@@ -34,7 +34,7 @@ import java.util.Date
 
 /**
  * One Consumer holding one API Product for a period, with a status.
- * See API_PRODUCT_SUBSCRIPTION_PLAN.md and the Glossary item "API Product Subscription".
+ * See docs/API_PRODUCT_SUBSCRIPTION_PLAN.md and the Glossary item "API Product Subscription".
  */
 class ApiProductSubscription extends ApiProductSubscriptionTrait with LongKeyedMapper[ApiProductSubscription] with IdPK with CreatedUpdated {
   def getSingleton = ApiProductSubscription

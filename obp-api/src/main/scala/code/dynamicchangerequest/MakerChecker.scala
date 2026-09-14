@@ -55,7 +55,7 @@ import org.apache.commons.lang3.StringUtils
 import org.json4s.JsonAST.{JArray, JNothing, JObject, JValue}
 
 /**
- * Maker/checker for runtime-supplied code and configuration. Design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md.
+ * Maker/checker for runtime-supplied code and configuration. Design: docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md.
  *
  * Three responsibilities:
  *  - configuration + hashing (what is managed, what "the same content" means);

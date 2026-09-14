@@ -5848,7 +5848,7 @@ object Http4s700 {
     )
 
 
-    // ─── API Product Subscriptions (see API_PRODUCT_SUBSCRIPTION_PLAN.md) ──────────────────
+    // ─── API Product Subscriptions (see docs/API_PRODUCT_SUBSCRIPTION_PLAN.md) ──────────────────
     // Rule zero: a developer never needs a role for their own consumers; ownership
     // (Consumer.createdByUserId == caller) is checked here. Roles are checked at the PRODUCT's
     // bank (…AtOneBank); a billing adapter serving several banks is granted the role at each.
@@ -6402,7 +6402,7 @@ object Http4s700 {
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Maker/checker for dynamic code: Dynamic Change Requests
-    // Design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md. Approval is system level (no bank endpoints).
+    // Design: docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md. Approval is system level (no bank endpoints).
     // ═══════════════════════════════════════════════════════════════════════════
 
     import code.dynamicchangerequest.{DynamicChangeRequestTrait, MakerChecker}

@@ -49,7 +49,7 @@ import org.scalatest.Tag
 import java.util.UUID
 
 /**
- * API Product Subscription (Phase 2 of API_PRODUCT_SUBSCRIPTION_PLAN.md).
+ * API Product Subscription (Phase 2 of docs/API_PRODUCT_SUBSCRIPTION_PLAN.md).
  *
  * The API Product itself is a v6.0.0 resource, so products and their attributes are created through
  * v6.0.0; every subscription endpoint under test is v7.0.0.
