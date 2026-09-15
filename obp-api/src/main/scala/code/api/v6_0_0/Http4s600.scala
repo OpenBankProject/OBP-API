@@ -1343,11 +1343,11 @@ object Http4s600 {
                   e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
             }
             _ <- Consent.validateMyResources(consentJson.my_resources, callContextOpt)
-            consumerFromBodyTuple <- consentJson.consumer_id match {
-              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))
-              case None     => Future.successful((None: Option[Consumer], "Any application"))
-            }
-            (consumerFromRequestBody, applicationText) = consumerFromBodyTuple
+            // Every Consent names the Consumer it is for -- the body's consumer_id, else the caller.
+            // NewStyle.function.resolveConsentConsumer says why a Consent may not be created without one.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(consentJson.consumer_id, callContextOpt)
+            consumerFromRequestBody = Some(consentConsumer)
+            applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _                   => SecureRandomUtil.numeric()
@@ -1368,7 +1368,7 @@ object Http4s600 {
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => APIUtil.connectorEmptyResponse(i, callContextOpt))
             grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
-            granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId.get
             shouldSkip = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             mappedConsent <- if (shouldSkip) {
@@ -1449,7 +1449,10 @@ object Http4s600 {
       |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
       |}
       |
-      |Please note that consumer_id is optional field
+      |Please note that consumer_id is an optional field. It names the Consumer the Consent is for --
+      |set it when the Consent is for a different application than the caller (for example a portal
+      |creating a Consent for an agent to use), omit it when the Consent is for the caller. Either way
+      |the resulting Consent is pinned to exactly one Consumer, and only that Consumer can present it.
       |Example 2:
       |{
       |  "everything": true,
@@ -1481,6 +1484,7 @@ object Http4s600 {
       postConsentBodyJsonV600, consentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
         RolesAllowedInConsent, RolesForbiddenInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,

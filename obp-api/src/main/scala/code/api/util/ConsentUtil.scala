@@ -1370,7 +1370,6 @@ object Consent extends MdcLoggable {
                        myResources: Option[code.api.v6_0_0.PostConsentMyResourcesJson] = None // v5.1.0+ bodies only; STABLE bodies have no such field
   ): String = {
 
-    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val timeInSeconds = validFrom match {
       case Some(date) => date.getTime() / 1000
@@ -1436,7 +1435,13 @@ object Consent extends MdcLoggable {
       createdByUserId=user.userId,
       sub=APIUtil.generateUUID(),
       iss=Constant.HostName,
-      aud=consumerId.getOrElse(currentConsumerId),
+      // No fallback: aud is the Consumer this Consent is for, and there is no second source for that.
+      // It used to fall back to the granting User's first-registered Consumer, which put an arbitrary
+      // Consumer in the claim checkConsumerIsActiveAndMatched validates against -- while the stored row
+      // recorded no Consumer at all, so the two checks in checkConsent disagreed about the same Consent.
+      // Callers now resolve the Consumer once (NewStyle.function.resolveConsentConsumer) and cannot
+      // create a Consent without one, so Some is the only case reached in practice.
+      aud=consumerId.getOrElse(""),
       jti=consentId,
       iat=currentTimeInSeconds,
       nbf=timeInSeconds,
@@ -2367,7 +2372,6 @@ object Consent extends MdcLoggable {
   ): String = {
 
     val createdByUserId = user.map(_.userId).getOrElse("None")
-    val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, createdByUserId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     // No ExpirationDateTime means the consent never expires (UK spec: 0..1, open-ended if absent).
     // Use Long.MaxValue rather than e.g. "now" (the convention createBerlinGroupConsentJWT falls
@@ -2411,7 +2415,7 @@ object Consent extends MdcLoggable {
       createdByUserId = createdByUserId,
       sub = APIUtil.generateUUID(),
       iss = Constant.HostName,
-      aud = consumerId.getOrElse(currentConsumerId),
+      aud = consumerId.getOrElse(""),
       jti = consentId,
       iat = currentTimeInSeconds,
       nbf = currentTimeInSeconds,

@@ -666,6 +666,51 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    /**
+     * The Consumer a new Consent is pinned to: the one named in the request body, else the one
+     * making the call. A Consent that names neither cannot be created.
+     *
+     * A Consent is a bearer credential carrying the granting User's views and Roles, and the pin is
+     * what stops a leaked JWT being usable by whoever holds it: Consent.checkConsent refuses any
+     * call whose Consumer is not the Consent's own. So a Consent naming no Consumer is not a
+     * permissive Consent, it is a broken one -- unusable by every caller OBP can identify, and a
+     * pure bearer token on an instance that identifies none. Neither is worth creating, hence the
+     * 400 rather than a null column.
+     *
+     * The body value names the grantee, which is how the Portal creates a Consent for another
+     * application (Opey, OBP-MCP) to use: the caller is the grantor, consumer_id is the grantee, and
+     * skip_consent_sca_for_consumer_id_pairs keys off that pair. Omitting it therefore means "for
+     * myself", which is also what the consent-request flow has always done with the Consumer that
+     * lodged the request.
+     *
+     * ==Why the "Any application" consent is gone==
+     *
+     * Omitting consumer_id used to mean a Consent any application could present, and that was
+     * deliberate -- 898879f12 (2020-01-30, "Create consent - POC All application case") added a
+     * fallback putting the granting User's first-registered Consumer in the JWT's aud purely so the
+     * active-Consumer check had something to look up, while the stored row recorded no Consumer. It
+     * worked because checkConsent then compared nothing to the caller.
+     *
+     * b68e26fa6 / bd57de4a4 (2025-07, TPP access control) added tppIsConsentHolder, which compares
+     * the stored row to the calling Consumer. That made pinned Consents genuinely pinned -- the point
+     * of the change -- and in the same stroke made an "Any application" Consent usable by no
+     * identified application at all, since a null column never equals a real consumer id. So the
+     * capability had already been dead for over a year; what remained was a path that created
+     * Consents which silently did not work, and on an instance that identifies no Consumer at all
+     * (consumer_validation_method_for_consent=NONE with no certificates) a pure bearer token.
+     *
+     * If "Any application" is ever wanted back, do not restore the null column: store
+     * Constant.ALL_CONSUMERS and give tppIsConsentHolder an explicit branch for that literal, so the
+     * intent is visible in the row and in the API rather than inferred from an absence.
+     */
+    def resolveConsentConsumer(consumerIdFromBody: Option[String], callContext: Option[CallContext]): Future[Consumer] = {
+      val callerConsumerId = callContext.flatMap(_.consumer.toOption).map(_.consumerId.get)
+      consumerIdFromBody.filter(_.nonEmpty).orElse(callerConsumerId.filter(_.nonEmpty)) match {
+        case Some(consumerId) => checkConsumerByConsumerId(consumerId, callContext)
+        case None => Future(unboxFullOrFail(Empty, callContext, ConsentConsumerIsRequired, 400))
+      }
+    }
+
     def getAccountWebhooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebhook]] = {
       AccountWebhook.accountWebhook.vend.getAccountWebhooksFuture(queryParams) map {
         unboxFullOrFail(_, callContext, GetWebhooksError)

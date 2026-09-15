@@ -1231,39 +1231,39 @@
       "version": "v3_1_0",
       "endpoint": "createConsentEmail",
       "field": "errorResponseBodies",
-      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it. ConsentConsumerIsRequired added: a Consent must name the Consumer it is for (body consumer_id, else the caller), so the endpoint now returns 400 instead of storing a null consumer_id and creating a Consent no identified caller could use.",
       "lift_digest": "73f681411b6caa8d703781d5e2ffa8d4adc252fe915861d9620d52ba70157489",
-      "http4s_digest": "f8b17b4d7af9672c5a18db6530fb69dc9cf1e0ee381bb9704c21d9275b7c8740"
+      "http4s_digest": "2a59145ecca58aa91e2429d47183bc6080d0d6ff23148364e6b5d00738998bbd"
     },
     {
       "version": "v3_1_0",
       "endpoint": "createConsentImplicit",
       "field": "errorResponseBodies",
-      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it. ConsentConsumerIsRequired added: a Consent must name the Consumer it is for (body consumer_id, else the caller), so the endpoint now returns 400 instead of storing a null consumer_id and creating a Consent no identified caller could use.",
       "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
-      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+      "http4s_digest": "063b469668f1746d996408f19caa0a1b5c05f3ff9c6e01a4057327584918d88e"
     },
     {
       "version": "v3_1_0",
       "endpoint": "createConsentSms",
       "field": "errorResponseBodies",
-      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it.",
+      "reason": "RolesForbiddenInConsent added: the handler now rejects a requested canCreateEntitlementAtAnyBank entitlement in the consent body (real check, verified in source) instead of silently dropping it. ConsentConsumerIsRequired added: a Consent must name the Consumer it is for (body consumer_id, else the caller), so the endpoint now returns 400 instead of storing a null consumer_id and creating a Consent no identified caller could use.",
       "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
-      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+      "http4s_digest": "063b469668f1746d996408f19caa0a1b5c05f3ff9c6e01a4057327584918d88e"
     },
     {
       "version": "v5_1_0",
       "endpoint": "createConsent",
       "field": "errorResponseBodies",
-      "reason": "Same RolesForbiddenInConsent addition as the v3.1.0 consent-creation endpoints (real check, verified in source). Digest computed against the rename-paired Lift name createConsentImplicit.",
+      "reason": "Same RolesForbiddenInConsent addition as the v3.1.0 consent-creation endpoints (real check, verified in source). Digest computed against the rename-paired Lift name createConsentImplicit. ConsentConsumerIsRequired added: a Consent must name the Consumer it is for (body consumer_id, else the caller), so the endpoint now returns 400 instead of storing a null consumer_id and creating a Consent no identified caller could use. Digest computed against the rename-paired Lift name createConsentImplicit.",
       "lift_digest": "12f4455621efe01d60de9117bf41688146dd5d1e432d86d2c732f3bbe02dfbdd",
-      "http4s_digest": "e37f7a4dc30ad082a361fb63766cf3548e83dd5fb6c5e1d5c1b7b54e76d74a9f"
+      "http4s_digest": "063b469668f1746d996408f19caa0a1b5c05f3ff9c6e01a4057327584918d88e"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createApiProduct",
       "field": "description",
-      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) \u2014 real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
+      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) — real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
       "lift_digest": "a0a19cc5100424e4e1824f1d1c70dc4329971051689338c8559c988e334ddab7",
       "http4s_digest": "585ffe0ecaab1b7ee5d333fffc55aca0016497dba502ad9ebc446dd3a4c92ade"
     },
@@ -1562,6 +1562,46 @@
       "reason": "Signal channels were experimental when the Lift -> http4s baseline was captured; the surface was settled afterwards and v6.0.0 is DRAFT, so it changed in place.",
       "lift_digest": "7d8858342e5f9497e909447578abfd58659f985405da1000fe47afa4edd4dbc6",
       "http4s_digest": "17875d69ff6997b57b16dddad46600084d17af889b0597859ea11cf516434fbb"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createConsent",
+      "field": "description",
+      "reason": "Documents the consumer pin: consumer_id names the Consumer the Consent is for (a portal creating a Consent for an agent sets it; omitting it means the caller), and a Consent naming no Consumer is refused. Text-only. Digest computed against the rename-paired Lift name createConsentImplicit.",
+      "lift_digest": "799b5131b45ad5eba0efc5fe3ad22a4cb056098a91ba01bf44357ec7d71e6556",
+      "http4s_digest": "adbc0f96aea981e39519b958e42bc7e7d4aeb92dc57e2387dbf6b4853852e876"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createConsentRequest",
+      "field": "description",
+      "reason": "Documents the consumer pin as implemented: consumer_id names the consumer the resulting Consent is for (a portal creating a Consent for an agent sets it; omitting it means the consumer that created this request), and an omitted consumer_id is not a wildcard. Replaces a note promising that v6.0.0 would pin to the creator unconditionally, which was never done and would remove the grantor/grantee split the portal-creates-a-Consent-for-an-agent flow depends on. Text-only.",
+      "lift_digest": "60299a38b1f1da2f0079cd73c6f7e6bdb6475a42619d68e66de9abbeb70b1112",
+      "http4s_digest": "cca8983a65729900751baf5b7948343424e9073e78e9aba732037a6066ee989c"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createConsentByConsentRequestIdEmail",
+      "field": "description",
+      "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only.",
+      "lift_digest": "d32f4c0ef999ec22dd0932ceb5201de3de29ecc3ad6dea1dedfa643884fc7959",
+      "http4s_digest": "afbf4bd23402c3b784da8f54abc29614fedced4f15eb5703466c725a784faef4"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createConsentByConsentRequestIdImplicit",
+      "field": "description",
+      "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only.",
+      "lift_digest": "b262a1d68717cdbcc51a7c035741e5da4cf5124123683e3dd015c85ed8baa231",
+      "http4s_digest": "95623d7eda5322dbacd11e947887da53859b646ea16edaa5dd0b34782021f46e"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createConsentByConsentRequestIdSms",
+      "field": "description",
+      "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only.",
+      "lift_digest": "7397560b818a5d9f4eb31a701499aea10c0ecd8d89d15496c0904d90984b84a6",
+      "http4s_digest": "881b4fe9e74e92efbe1177f1548d7ad4aa85be90f0ec44789ecf779267335f6b"
     }
   ]
 }

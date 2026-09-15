@@ -912,7 +912,7 @@ object Http4s500 {
       |
       |Optional body fields of note:
       |
-      |- `consumer_id`: if set, the resulting Consent (created when the User answers this request) will be pinned to this consumer instead of the creator. Use only when the consent is intended for a different application than the one creating the request. Most TPPs should omit this field — when omitted, the resulting Consent is pinned to the creator. Note: this override is being deprecated; v6.0.0 will pin the resulting Consent to the creator unconditionally.
+      |- `consumer_id`: names the consumer the resulting Consent (created when the User answers this request) is for. Set it when the Consent is intended for a different application than the one creating the request — for example a portal creating a Consent for an agent to use later. Most TPPs should omit it; when omitted, the resulting Consent is pinned to the consumer that created this request. Either way the resulting Consent names exactly one consumer and only that consumer can present it, so an omitted `consumer_id` is not a wildcard.
       |- `email` / `phone_number`: surface in the SCA challenge if the User chooses EMAIL or SMS at answer time.
       |- `valid_from` / `time_to_live`: control the lifetime of the resulting Consent.
       |
@@ -1276,19 +1276,19 @@ object Http4s500 {
                          e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
                    }
                  } yield ()
-            calculatedConsumerId = consentRequestJson.consumer_id.orElse(Some(createdConsentRequest.consumerId))
-            (consumerIdOpt, applicationText) <- calculatedConsumerId match {
-              case Some(id) =>
-                NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map { c =>
-                  (Some(c.consumerId.get), c.description)
-                }
-              case None => Future.successful((None, "Any application"))
-            }
+            // Every Consent names the Consumer it is for: the body's consumer_id, else the Consumer that
+            // lodged the consent request, else the caller. NewStyle.function.resolveConsentConsumer says
+            // why a Consent may not be created without one. One resolution feeds both the JWT's aud and
+            // the stored row, so the two can no longer disagree about who the Consent is for.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(
+              consentRequestJson.consumer_id.orElse(Option(createdConsentRequest.consumerId)), callContextOpt)
+            consumerIdOpt = Some(consentConsumer.consumerId.get)
+            applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _                   => SecureRandomUtil.numeric()
             }
-            consumer = Consumers.consumers.vend.getConsumerByConsumerId(calculatedConsumerId.getOrElse("None"))
+            consumer = Some(consentConsumer)
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(
               user, challengeAnswer, Some(consentRequestId), consumer))
               .map(i => connectorEmptyResponse(i, callContextOpt))
@@ -1325,7 +1325,7 @@ object Http4s500 {
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
             grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
-            granteeConsumerId = postConsentBodyCommonJson.consumer_id.getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId.get
             shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             mappedConsent <- if (shouldSkipConsentScaForConsumerIdPair) {
@@ -1376,7 +1376,7 @@ object Http4s500 {
     private val createConsentByConsentRequestIdCommonErrors = List(
       AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
       ConsentAllowedScaMethods, RolesAllowedInConsent, ViewsAllowedInConsent,
-      ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+      ConsumerNotFoundByConsumerId, ConsumerIsDisabled, ConsentConsumerIsRequired,
       InvalidConnectorResponse, UnknownError
     )
 
@@ -1391,7 +1391,7 @@ object Http4s500 {
       |
       |An SCA challenge code is sent to the email address that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
       |
-      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
       |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
       |
@@ -1418,7 +1418,7 @@ object Http4s500 {
       |
       |An SCA challenge code is sent to the phone number that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
       |
-      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
       |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
       |
@@ -1445,7 +1445,7 @@ object Http4s500 {
       |
       |IMPLICIT means no SCA challenge is sent. The Consent is immediately ACCEPTED. Use only in flows where the User has already been strongly authenticated by upstream means; for production use behind a public TPP, prefer EMAIL or SMS.
       |
-      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
       |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
       |
