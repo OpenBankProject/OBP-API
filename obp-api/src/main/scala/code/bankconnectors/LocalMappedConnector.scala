@@ -3432,7 +3432,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    *  - the request layer (`consentCreator` / `consenter`) knows things the stored chain cannot,
    *    because a Berlin Group / UK consent carries its consenter on the request;
    *  - otherwise the attribution, which walks the stored consent chain, applies the
-   *    `BankCreator` policy and is the one place a delegated write is logged.
+   *    `BankCreatedByUserId` policy and is the one place a delegated write is logged.
    *
    * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
    */

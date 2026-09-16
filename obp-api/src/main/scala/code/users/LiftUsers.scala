@@ -142,8 +142,8 @@ object LiftUsers extends Users with MdcLoggable{
    * It has to be a parameter rather than something derived from the caller, because the right id
    * depends on the column and not just on who is calling. MappedEntitlement.mUserId is the case
    * that proves it: the same consent user writing that one column gets a different answer
-   * depending on which process is writing. EntitlementUser (UseOnBehalfOfUserId) is a role being
-   * granted to somebody, so it lands on the human; ConsentEntitlementUser (UseAuthenticatedUserId) is the
+   * depending on which process is writing. EntitlementUserId (UseOnBehalfOfUserId) is a role being
+   * granted to somebody, so it lands on the human; EntitlementUserIdConsentScope (UseAuthenticatedUserId) is the
    * consent engine copying the Consent's own scope onto the agent, so it must stay on the agent.
    * Same column, opposite policies.
    *
@@ -157,9 +157,9 @@ object LiftUsers extends Users with MdcLoggable{
    *
    *      caller                                         reference passed
    *      ---------------------------------------------  --------------------
-   *      MappedUserCustomerLink.linkOwnerUserId         UserCustomerLinkUser
-   *      MapperAccountHolders.getOrCreateAccountHolder  AccountHolderUser
-   *      LocalMappedConnector.bankCreatorUserId         BankCreator
+   *      MappedUserCustomerLink.linkOwnerUserId         UserCustomerLinkUserId
+   *      MapperAccountHolders.getOrCreateAccountHolder  AccountHoldersUser
+   *      LocalMappedConnector.bankCreatorUserId         BankCreatedByUserId
    *
    * B. Record-both tables. Call attributionOf directly, because they need both ids out of the
    *    one Attribution rather than just the single value to store.
@@ -172,9 +172,9 @@ object LiftUsers extends Users with MdcLoggable{
    *
    *      caller                             reference               chosen when
    *      ---------------------------------  ----------------------  ----------------------------
-   *      MappedEntitlements.addEntitlement  ConsentEntitlementUser  createdByProcess ==
+   *      MappedEntitlements.addEntitlement  EntitlementUserIdConsentScope  createdByProcess ==
    *                                                                 Constant.consent_user
-   *      MappedEntitlements.addEntitlement  EntitlementUser         otherwise
+   *      MappedEntitlements.addEntitlement  EntitlementUserId       otherwise
    *
    * D. Reads. These resolve too, and must, or an agent cannot see back what it just wrote:
    *    personal rows are keyed by the same column on both sides, so the redirect has to be
@@ -183,10 +183,10 @@ object LiftUsers extends Users with MdcLoggable{
    *
    *      caller                                reference             covers
    *      ------------------------------------  --------------------  ----------------------
-   *      MapppedDynamicDataProvider            DynamicDataUser       save/update/get/delete
-   *      MapppedDynamicEntityProvider          DynamicEntityUser     definition creator
-   *      Http4sDynamicEntity.personalRowOwner  DynamicDataUser       projection read path
-   *      Http4s700.linkedCustomerOwnerId       UserCustomerLinkUser  v7 "my customers"
+   *      MapppedDynamicDataProvider            DynamicDataUserId     save/update/get/delete
+   *      MapppedDynamicEntityProvider          DynamicEntityUserId   definition creator
+   *      Http4sDynamicEntity.personalRowOwner  DynamicDataUserId     projection read path
+   *      Http4s700.linkedCustomerOwnerId       UserCustomerLinkUserId v7 "my customers"
    *
    * This is also the audit point. A delegated write logs here and nowhere else, which is why
    * providers should call it even when they already know the on-behalf-of user from the request

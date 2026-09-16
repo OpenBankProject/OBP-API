@@ -129,8 +129,8 @@ class UserReferenceAttributionPolicyTest extends ServerSetup {
       }
     }
 
-    // MappedEntitlement.mUserId is the deliberate case: EntitlementUser (UseOnBehalfOfUserId) and
-    // ConsentEntitlementUser (UseAuthenticatedUserId) name the same column, chosen per createdByProcess.
+    // MappedEntitlement.mUserId is the deliberate case: EntitlementUserId (UseOnBehalfOfUserId) and
+    // EntitlementUserIdConsentScope (UseAuthenticatedUserId) name the same column, chosen per createdByProcess.
     scenario("a column named by more than one UserReference has references that differ by policy", UserReferenceTag) {
       val ambiguous = declaredColumns.toList
         .filter { case (_, refs) => refs.size > 1 && refs.map(_.policy).distinct.size == 1 }

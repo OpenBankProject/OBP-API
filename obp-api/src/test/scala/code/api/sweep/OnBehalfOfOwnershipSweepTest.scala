@@ -63,8 +63,10 @@ import scala.io.Source
  * The plan says: "call every UseOnBehalfOfUserId create endpoint with the consent JWT; assert no
  * row in any such table references the consent user's id". Taken literally that suite is red on the
  * day it is written and stays red for months: of the 53 UseOnBehalfOfUserId references,
- * FIVE are wired today (TransactionRequest, EntitlementUser, AccountHolderUser,
- * UserCustomerLinkUser, DynamicEntityUser/DynamicDataUser -- Phase 2 rows 1 to 3). A permanently
+ * EIGHT are wired today (TransactionRequestUserIdOnBehalfOfUserId, EntitlementUserId,
+ * AccountHoldersUser, UserCustomerLinkUserId, DynamicEntityUserId/DynamicDataUserId,
+ * BankCreatedByUserId, CounterpartyCreatedByUserIdCreatedByOnBehalfOfUserId -- Phase 2 rows 1 to 5).
+ * A permanently
  * red suite is one people learn to ignore, which is the same reasoning AuthSweepTest's
  * expectedAuthDeviation records for its own two entries.
  *
@@ -81,7 +83,7 @@ import scala.io.Source
  *     reference the consent user -- except in the tables the inventory says are not wired yet.
  *
  *  3. THE SCAN ITSELF WORKS (runtime, negative control). The same consent user creates an API
- *     collection, whose reference (ApiCollectionUser) is NOT wired. The scan must find that row.
+ *     collection, whose reference (ApiCollectionUserId) is NOT wired. The scan must find that row.
  *     Without this, scenario 2 passes just as happily if the scan is silently looking at nothing --
  *     which is the failure mode a table-driven assertion has and a hand-written one does not.
  */
@@ -193,7 +195,7 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
    * Comments are stripped first, and that is load-bearing rather than tidiness. Documenting a
    * reference is not wiring it: on 2026-09-15 a doc comment on LiftUsers.attributionOf explaining
    * WHY a consent user cannot create a Consent named `UserReference.ConsentUserId` in prose, and
-   * the ratchet promptly reported the (entirely correct) ConsentCreator exemption as stale. A guard
+   * the ratchet promptly reported the (entirely correct) ConsentUserId exemption as stale. A guard
    * that fires when someone writes a comment teaches people to write fewer comments, and worse,
    * lets a reference be marked wired without a single call site.
    */
@@ -232,8 +234,8 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
   /**
    * How to tell two references apart when they name the SAME column with different policies.
    *
-   * MappedEntitlement.mUserId is the one case in the policy file: EntitlementUser
-   * (UseOnBehalfOfUserId, the role holder) and ConsentEntitlementUser (UseAuthenticatedUserId, the consent
+   * MappedEntitlement.mUserId is the one case in the policy file: EntitlementUserId
+   * (UseOnBehalfOfUserId, the role holder) and EntitlementUserIdConsentScope (UseAuthenticatedUserId, the consent
    * engine copying the Consent's own scope onto the consent user). MappedEntitlements.addEntitlement
    * picks between them on createdByProcess, so a scan of that column that does not apply the same
    * discriminator reports every consent's own materialised scope as a leak -- which it is not; those
@@ -433,7 +435,7 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
       val agentId  = currentUserIdOf(headers)
       val agentKey = primaryKeyOf(agentId)
 
-      withClue("ApiCollectionUser must still be unwired for this control to mean anything; " +
+      withClue("ApiCollectionUserId must still be unwired for this control to mean anything; " +
                "once it is wired, replace it here with another unwired reference: ") {
         usedInMain should not contain "ApiCollectionUserId"
       }

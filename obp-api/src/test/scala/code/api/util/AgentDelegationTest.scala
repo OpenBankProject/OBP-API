@@ -323,7 +323,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("getOrCreateAccountHolder goes through the attribution policy (AccountHolderUser)") {
+  feature("getOrCreateAccountHolder goes through the attribution policy (AccountHoldersUser)") {
 
     scenario("an account created by a consent user is held by its on-behalf-of user", AgentDelegationTag) {
       val human = createUser()
@@ -354,7 +354,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("DynamicData rows go through the attribution policy (DynamicDataUser), reads and writes alike") {
+  feature("DynamicData rows go through the attribution policy (DynamicDataUserId), reads and writes alike") {
 
     val entityName = "agent_delegation_note"
     def noteJson(id: String): JObject = (s"${entityName}_id" -> id) ~ ("name" -> "written by an agent")
@@ -385,7 +385,7 @@ class AgentDelegationTest extends ServerSetup {
       dynamicData.delete(None, entityName, id, Some(human.userId), isPersonalEntity = true) shouldBe Full(true)
     }
 
-    scenario("a dynamic entity definition created by a consent user is owned by its on-behalf-of user (DynamicEntityUser)", AgentDelegationTag) {
+    scenario("a dynamic entity definition created by a consent user is owned by its on-behalf-of user (DynamicEntityUserId)", AgentDelegationTag) {
       val human = createUser()
       val consent = MappedConsent.create.mUserId(human.userId).saveMe()
       val agent = createUser(createdByConsentId = Some(consent.consentId))
@@ -402,7 +402,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("User-Customer links go through the attribution policy (UserCustomerLinkUser)") {
+  feature("User-Customer links go through the attribution policy (UserCustomerLinkUserId)") {
 
     def links = code.usercustomerlinks.UserCustomerLink.userCustomerLink.vend
 
