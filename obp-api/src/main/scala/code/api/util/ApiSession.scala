@@ -276,9 +276,9 @@ case class CallContext(
     val delegatedUserId = consentCreator.or(consenter).map(_.userId).filter(_.nonEmpty)
     delegatedUserId.openOr {
       val authenticatedUserId = user.map(_.userId).openOr("")
-      // The resolver (Users.onBehalfOfUserIdOf) owns the consent chain; a Failure there (invariant
+      // The resolver (Users.resolveOnBehalfOfUserId) owns the consent chain; a Failure there (invariant
       // broken) is already logged and, at this String-typed level, can only fall back to the caller.
-      code.users.Users.users.vend.onBehalfOfUserIdOf(authenticatedUserId).openOr(authenticatedUserId)
+      code.users.Users.users.vend.resolveOnBehalfOfUserId(authenticatedUserId).openOr(authenticatedUserId)
     }
   }
   def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(AuthenticatedUserIsRequired)

@@ -250,7 +250,7 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   /**
    * Personal ("my") endpoints and consent users. A consent user's rows resolve to the User its
-   * consent names (UserReference.DynamicDataUserId in the provider), so without a scope check any
+   * consent names (UserReference.DynamicData_UserId in the provider), so without a scope check any
    * consent, however narrow, would reach that User's personal rows. The scope is the consent's
    * `my_resources` claim: the consent user passes only if the claim lists this entity with the
    * needed action. The entity role is then required exactly as for anyone else (only when the
@@ -267,7 +267,7 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   /** The user personal rows are read for: the caller, or the user its consent names. Same rule as the provider. */
   private def personalRowOwner(userIdOpt: Option[String], isPersonalEntity: Boolean): Option[String] =
-    if (isPersonalEntity) userIdOpt.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicDataUserId).openOr(id))
+    if (isPersonalEntity) userIdOpt.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicData_UserId).openOr(id))
     else userIdOpt
 
   /** The entity's role, checked per the entity's auth mode (entitlements, scopes, either or both). */

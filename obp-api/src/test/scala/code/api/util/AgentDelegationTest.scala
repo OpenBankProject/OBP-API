@@ -200,11 +200,11 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("Users.onBehalfOfUserIdOf — the resolver") {
+  feature("Users.resolveOnBehalfOfUserId — the resolver") {
 
     scenario("an original user resolves to itself", AgentDelegationTag) {
       val human = createUser()
-      Users.users.vend.onBehalfOfUserIdOf(human.userId) shouldBe Full(human.userId)
+      Users.users.vend.resolveOnBehalfOfUserId(human.userId) shouldBe Full(human.userId)
       Users.users.vend.actsForSelf(human.userId) shouldBe true
     }
 
@@ -212,27 +212,27 @@ class AgentDelegationTest extends ServerSetup {
       val human = createUser()
       val consent = MappedConsent.create.mUserId(human.userId).saveMe()
       val agent = createUser(createdByConsentId = Some(consent.consentId))
-      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(human.userId)
+      Users.users.vend.resolveOnBehalfOfUserId(agent.userId) shouldBe Full(human.userId)
       Users.users.vend.actsForSelf(agent.userId) shouldBe false
     }
 
     scenario("a dangling consent id keeps the caller (fails closed)", AgentDelegationTag) {
       val agent = createUser(createdByConsentId = Some(generateUUID()))
-      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(agent.userId)
+      Users.users.vend.resolveOnBehalfOfUserId(agent.userId) shouldBe Full(agent.userId)
     }
 
     scenario("an unknown user id keeps itself (fails closed)", AgentDelegationTag) {
       val id = generateUUID()
-      Users.users.vend.onBehalfOfUserIdOf(id) shouldBe Full(id)
+      Users.users.vend.resolveOnBehalfOfUserId(id) shouldBe Full(id)
     }
 
     scenario("BG-style: consent with no human yet keeps the caller, and is NOT pinned in the cache", AgentDelegationTag) {
       val consent = MappedConsent.create.saveMe()   // mUserId empty until authorisation
       val agent = createUser(createdByConsentId = Some(consent.consentId))
-      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(agent.userId)
+      Users.users.vend.resolveOnBehalfOfUserId(agent.userId) shouldBe Full(agent.userId)
       val human = createUser()
       consent.mUserId(human.userId).saveMe()          // authorisation binds the human
-      Users.users.vend.onBehalfOfUserIdOf(agent.userId) shouldBe Full(human.userId)
+      Users.users.vend.resolveOnBehalfOfUserId(agent.userId) shouldBe Full(human.userId)
     }
 
     scenario("invariant: a consent whose user is itself a consent user is refused, not resolved", AgentDelegationTag) {
@@ -241,7 +241,7 @@ class AgentDelegationTest extends ServerSetup {
       val agent1 = createUser(createdByConsentId = Some(consent1.consentId))
       val consent2 = MappedConsent.create.mUserId(agent1.userId).saveMe()   // names a consent user: data bug
       val agent2 = createUser(createdByConsentId = Some(consent2.consentId))
-      Users.users.vend.onBehalfOfUserIdOf(agent2.userId) shouldBe a[Failure]
+      Users.users.vend.resolveOnBehalfOfUserId(agent2.userId) shouldBe a[Failure]
       // and CallContext falls back to the caller rather than throwing
       CallContext(user = Full(agent2)).onBehalfOfUserId shouldBe agent2.userId
     }
@@ -253,7 +253,7 @@ class AgentDelegationTest extends ServerSetup {
       val human = createUser()
       val consent = MappedConsent.create.mUserId(human.userId).saveMe()
       val agent = createUser(createdByConsentId = Some(consent.consentId))
-      val a = Users.users.vend.attributionOf(agent.userId, UserReference.EntitlementUserIdConsentScope).openOrThrowException("expected Full")
+      val a = Users.users.vend.attributionOf(agent.userId, UserReference.Entitlement_UserId_ConsentScope).openOrThrowException("expected Full")
       a.userIdToStore shouldBe agent.userId
       a.onBehalfOfUserId shouldBe agent.userId
       a.isDelegated shouldBe false
@@ -264,18 +264,18 @@ class AgentDelegationTest extends ServerSetup {
       val human = createUser()
       val consent = MappedConsent.create.mUserId(human.userId).saveMe()
       val agent = createUser(createdByConsentId = Some(consent.consentId))
-      val a = Users.users.vend.attributionOf(agent.userId, UserReference.EntitlementUserId).openOrThrowException("expected Full")
+      val a = Users.users.vend.attributionOf(agent.userId, UserReference.Entitlement_UserId).openOrThrowException("expected Full")
       a.userId shouldBe agent.userId
       a.onBehalfOfUserId shouldBe human.userId
       a.userIdToStore shouldBe human.userId
       a.isDelegated shouldBe true
       a.consentId shouldBe Some(consent.consentId)
-      Users.users.vend.attributedUserId(agent.userId, UserReference.EntitlementUserId) shouldBe Full(human.userId)
+      Users.users.vend.attributedUserId(agent.userId, UserReference.Entitlement_UserId) shouldBe Full(human.userId)
     }
 
     scenario("UseOnBehalfOfUserId for an original user is a no-op with no consent", AgentDelegationTag) {
       val human = createUser()
-      val a = Users.users.vend.attributionOf(human.userId, UserReference.AccountHoldersUser).openOrThrowException("expected Full")
+      val a = Users.users.vend.attributionOf(human.userId, UserReference.AccountHolders_User).openOrThrowException("expected Full")
       a.userIdToStore shouldBe human.userId
       a.isDelegated shouldBe false
       a.consentId shouldBe None
@@ -283,10 +283,10 @@ class AgentDelegationTest extends ServerSetup {
 
     scenario("Reject is Full for an original user and Failure for a consent user", AgentDelegationTag) {
       val human = createUser()
-      Users.users.vend.attributionOf(human.userId, UserReference.ConsentUserId).map(_.userIdToStore) shouldBe Full(human.userId)
+      Users.users.vend.attributionOf(human.userId, UserReference.Consent_UserId).map(_.userIdToStore) shouldBe Full(human.userId)
       val consent = MappedConsent.create.mUserId(human.userId).saveMe()
       val agent = createUser(createdByConsentId = Some(consent.consentId))
-      val rejected = Users.users.vend.attributionOf(agent.userId, UserReference.ConsentUserId)
+      val rejected = Users.users.vend.attributionOf(agent.userId, UserReference.Consent_UserId)
       rejected shouldBe a[Failure]
       rejected.asInstanceOf[Failure].msg should include(ErrorMessages.InvalidUserId)
     }
@@ -298,7 +298,7 @@ class AgentDelegationTest extends ServerSetup {
         r.fields should not be empty
         Class.forName(r.mapperClass) // resolves, or the reference names a class that does not exist
       }
-      UserReference.byPolicy(AttributionPolicy.Reject).map(_.name) should contain allOf ("ConsentUserId", "ConsumerCreatedByUserId")
+      UserReference.byPolicy(AttributionPolicy.Reject).map(_.name) should contain allOf ("Consent_UserId", "Consumer_CreatedByUserId")
     }
   }
 
@@ -323,7 +323,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("getOrCreateAccountHolder goes through the attribution policy (AccountHoldersUser)") {
+  feature("getOrCreateAccountHolder goes through the attribution policy (AccountHolders_User)") {
 
     scenario("an account created by a consent user is held by its on-behalf-of user", AgentDelegationTag) {
       val human = createUser()
@@ -354,7 +354,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("DynamicData rows go through the attribution policy (DynamicDataUserId), reads and writes alike") {
+  feature("DynamicData rows go through the attribution policy (DynamicData_UserId), reads and writes alike") {
 
     val entityName = "agent_delegation_note"
     def noteJson(id: String): JObject = (s"${entityName}_id" -> id) ~ ("name" -> "written by an agent")
@@ -385,7 +385,7 @@ class AgentDelegationTest extends ServerSetup {
       dynamicData.delete(None, entityName, id, Some(human.userId), isPersonalEntity = true) shouldBe Full(true)
     }
 
-    scenario("a dynamic entity definition created by a consent user is owned by its on-behalf-of user (DynamicEntityUserId)", AgentDelegationTag) {
+    scenario("a dynamic entity definition created by a consent user is owned by its on-behalf-of user (DynamicEntity_UserId)", AgentDelegationTag) {
       val human = createUser()
       val consent = MappedConsent.create.mUserId(human.userId).saveMe()
       val agent = createUser(createdByConsentId = Some(consent.consentId))
@@ -402,7 +402,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("User-Customer links go through the attribution policy (UserCustomerLinkUserId)") {
+  feature("User-Customer links go through the attribution policy (UserCustomerLink_UserId)") {
 
     def links = code.usercustomerlinks.UserCustomerLink.userCustomerLink.vend
 
@@ -527,7 +527,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("Transaction requests record both ids (UserReference.TransactionRequestUserIdOnBehalfOfUserId)") {
+  feature("Transaction requests record both ids (UserReference.TransactionRequest_UserId)") {
 
     scenario("a request made by an original user names that user in both columns", AgentDelegationTag) {
       val human = createUser()
@@ -554,7 +554,7 @@ class AgentDelegationTest extends ServerSetup {
       val agent1 = createUser(createdByConsentId = Some(consent1.consentId))
       val consent2 = MappedConsent.create.mUserId(agent1.userId).saveMe()   // names a consent user: data bug
       val agent2 = createUser(createdByConsentId = Some(consent2.consentId))
-      Users.users.vend.onBehalfOfUserIdOf(agent2.userId) shouldBe a[Failure]   // the precondition this pins
+      Users.users.vend.resolveOnBehalfOfUserId(agent2.userId) shouldBe a[Failure]   // the precondition this pins
       val row = storedTransactionRequestFor(agent2)
       storedField(row.mUserId.get) shouldBe agent2.userId
       storedField(row.mOnBehalfOfUserId.get) shouldBe ""
@@ -569,7 +569,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("Banks record the human who created them (UserReference.BankCreatedByUserId)") {
+  feature("Banks record the human who created them (UserReference.Bank_CreatedByUserId)") {
 
     /** Create a bank through the connector as `callerUserId`, and return the stored row. */
     def createBankAs(callContext: Option[CallContext]): MappedBank = {
@@ -620,7 +620,7 @@ class AgentDelegationTest extends ServerSetup {
     }
   }
 
-  feature("Counterparties record both ids (UserReference.CounterpartyCreatedByUserIdCreatedByOnBehalfOfUserId)") {
+  feature("Counterparties record both ids (UserReference.Counterparty_CreatedByUserId)") {
 
     /** Create a counterparty through the provider as `callerUserId`, and return the stored row. */
     def createCounterpartyAs(callerUserId: String): MappedCounterparty = {
@@ -672,7 +672,7 @@ class AgentDelegationTest extends ServerSetup {
       val agent1 = createUser(createdByConsentId = Some(consent1.consentId))
       val consent2 = MappedConsent.create.mUserId(agent1.userId).saveMe()
       val agent2 = createUser(createdByConsentId = Some(consent2.consentId))
-      Users.users.vend.onBehalfOfUserIdOf(agent2.userId) shouldBe a[Failure]
+      Users.users.vend.resolveOnBehalfOfUserId(agent2.userId) shouldBe a[Failure]
       val row = createCounterpartyAs(agent2.userId)
       storedField(row.mCreatedByUserId.get) shouldBe agent2.userId
       storedField(row.mCreatedByOnBehalfOfUserId.get) shouldBe agent2.userId

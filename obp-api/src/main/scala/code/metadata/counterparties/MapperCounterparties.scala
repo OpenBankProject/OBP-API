@@ -238,7 +238,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
    */
   private def counterpartyCreators(createdByUserId: String): (String, String) =
     if (createdByUserId == null || createdByUserId.isEmpty) (createdByUserId, createdByUserId)
-    else Users.users.vend.attributionOf(createdByUserId, code.users.UserReference.CounterpartyCreatedByUserIdCreatedByOnBehalfOfUserId) match {
+    else Users.users.vend.attributionOf(createdByUserId, code.users.UserReference.Counterparty_CreatedByUserId) match {
       case Full(attribution) => (attribution.userId, attribution.onBehalfOfUserId)
       case _                 => (createdByUserId, createdByUserId)
     }

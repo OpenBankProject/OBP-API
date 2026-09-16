@@ -3432,7 +3432,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    *  - the request layer (`consentCreator` / `consenter`) knows things the stored chain cannot,
    *    because a Berlin Group / UK consent carries its consenter on the request;
    *  - otherwise the attribution, which walks the stored consent chain, applies the
-   *    `BankCreatedByUserId` policy and is the one place a delegated write is logged.
+   *    `Bank_CreatedByUserId` policy and is the one place a delegated write is logged.
    *
    * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
    */
@@ -3441,7 +3441,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case None => ""
       case Some(callerUserId) =>
         val fromStoredChain = Users.users.vend
-          .attributedUserId(callerUserId, code.users.UserReference.BankCreatedByUserId)
+          .attributedUserId(callerUserId, code.users.UserReference.Bank_CreatedByUserId)
           .openOr(callerUserId)
         callContext
           .flatMap(cc => cc.consentCreator.or(cc.consenter).toOption)

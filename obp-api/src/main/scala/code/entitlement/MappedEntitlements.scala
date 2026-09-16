@@ -207,8 +207,8 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
     // (ConsentEntitlementUser); every other grant is written to the on-behalf-of user
     // (EntitlementUser). The resolver logs the redirect. ON_BEHALF_OF_USER_ID_PLAN.md.
     val ref =
-      if (createdByProcess == code.api.Constant.consent_user) code.users.UserReference.EntitlementUserIdConsentScope
-      else code.users.UserReference.EntitlementUserId
+      if (createdByProcess == code.api.Constant.consent_user) code.users.UserReference.Entitlement_UserId_ConsentScope
+      else code.users.UserReference.Entitlement_UserId
     val targetUserId = code.users.Users.users.vend.attributedUserId(userId, ref) match {
       case Full(id) => id
       case f: Failure => return f

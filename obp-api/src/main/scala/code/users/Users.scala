@@ -90,12 +90,13 @@ trait Users {
   def getUsers(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]]
 
   /**
-   * Get users via a Doobie-based SQL JOIN across resourceuser, authuser and
-   * mappedbadloginattempt. Returns pre-joined rows plus the user's entitlements
-   * and most-recent-per-type agreements, fetched in batch.
+   * This searches for users with a single SQL join, written in Doobie, across the resourceuser,
+   * authuser and mappedbadloginattempt tables. It returns the joined rows, and with each row the
+   * user's entitlements and their most recent agreement of each type, all fetched in batches
+   * rather than one query per user.
    *
-   * Supported OBPQueryParam filters: OBPProvider, OBPUsername, OBPIsDeleted,
-   * OBPLockedStatus, OBPRoleName, OBPBankId, OBPLimit, OBPOffset.
+   * It understands these OBPQueryParam filters: OBPProvider, OBPUsername, OBPIsDeleted,
+   * OBPLockedStatus, OBPRoleName, OBPBankId, OBPLimit and OBPOffset.
    */
   def getUsersV600F(queryParams: List[OBPQueryParam])
     : Future[List[(DoobieUserQueries.UserSearchRow, List[code.entitlement.Entitlement], List[UserAgreement])]]
@@ -114,26 +115,39 @@ trait Users {
 
   // ---- on-behalf-of resolution (ON_BEHALF_OF_USER_ID_PLAN.md, Phase 1) ----------------------
 
-  /** The on-behalf-of user id for `userId`.
-   *  consent user  -> the consent's userId (read at call time: BG/UK consents bind their human
-   *                   only at authorisation, so it is never copied at creation)
-   *  original user -> userId unchanged
-   *  Fails closed: unknown user / dangling consent id / consent with no human yet -> userId (+ WARN).
-   *  Invariant: the result is an original user (isOriginalUser); a consent whose user is itself a
-   *  consent user is a data bug -> WARN + Failure, the one case that cannot fall back.
-   *  Takes only the id on purpose: nothing request-asserted (body/header/query) can steer it. */
-  def onBehalfOfUserIdOf(userId: String): Box[String]
+  /** This resolves the caller's user id to the user id of the person they are acting for.
+   *
+   *  When the caller is a consent user, the answer is the user named by its Consent, looked up at
+   *  the moment of the call rather than copied when the consent user was made: a Berlin Group or UK
+   *  consent does not know its person until the person authorises it. When the caller is an ordinary
+   *  user, the answer is the id it was given.
+   *
+   *  It fails closed, meaning that where it cannot find an answer it keeps the caller's own id and
+   *  logs a warning. That covers an unknown user, a consent id pointing at nothing, and a consent
+   *  with no person attached yet. There is one case it will not fall back on: a Consent whose user
+   *  is itself a consent user breaks the rule that resolution is a single hop, so rather than guess
+   *  it warns and returns a Failure.
+   *
+   *  It takes the id alone, and deliberately so. Nothing the caller asserts in the request — a body,
+   *  a header, a query parameter — can influence whom the write is attributed to. */
+  def resolveOnBehalfOfUserId(userId: String): Box[String]
 
-  /** True when `userId` acts for itself and may own durable state. */
-  def actsForSelf(userId: String): Boolean = onBehalfOfUserIdOf(userId).exists(_ == userId)
+  /** This is true when the given user acts only for itself, and may therefore own rows that
+   *  outlive any Consent. It is false for an agent acting for somebody else. */
+  def actsForSelf(userId: String): Boolean = resolveOnBehalfOfUserId(userId).exists(_ == userId)
 
-  /** Attribution for writing the column(s) `ref` names as `userId`. Applies `ref.policy`:
-   *  UseAuthenticatedUserId -> Full(userId as both), resolver not consulted
-   *  UseOnBehalfOfUserId    -> Full(resolved), WARN naming `ref` when delegated
-   *  Reject                 -> Full if `userId` acts for itself, else Failure(InvalidUserId ...) */
+  /** This works out whose user id to write into the column that `ref` names, for a call made by
+   *  `userId`, and returns both candidate ids in an Attribution.
+   *
+   *  What it does depends on the reference's policy. Under UseAuthenticatedUserId it returns the
+   *  caller as both ids without resolving anything. Under UseOnBehalfOfUserId it resolves the
+   *  person the caller acts for, and logs a warning naming the reference whenever the two differ,
+   *  so every delegated write leaves a trace. Under Reject it succeeds only if the caller acts for
+   *  itself, and otherwise returns a Failure that the endpoint turns into a 400. */
   def attributionOf(userId: String, ref: UserReference): Box[Attribution]
 
-  /** Convenience for single-column writers: the one value to store. */
+  /** This is a shortcut for code filling a single column: it asks attributionOf the same question
+   *  and hands back just the one id to store, rather than the whole Attribution. */
   def attributedUserId(userId: String, ref: UserReference): Box[String] = attributionOf(userId, ref).map(_.userIdToStore)
 
   def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser]
