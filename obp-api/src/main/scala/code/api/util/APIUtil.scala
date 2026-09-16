@@ -239,9 +239,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
 
-  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name.toLowerCase == "DirectLogin".toLowerCase()).isDefined
+  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.exists(_.name.equalsIgnoreCase("DirectLogin"))
 
-  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "Authorization").isDefined
+  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.exists(_.name.equalsIgnoreCase("Authorization"))
 
   /*
      The OAuth 2.0 Authorization Framework: Bearer Token
@@ -262,7 +262,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Other types: the `GatewayLogin` is in the VALUE
    * Authorization:GatewayLogin token=xxxx
    */
-  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.map(_.name).exists(_ ==DAuthHeaderKey)
+  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.exists(_.name.equalsIgnoreCase(DAuthHeaderKey))
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -313,7 +313,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def getRequestHeader(name: String, requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.toSet.filter(_.name.toLowerCase == name.toLowerCase).toList match {
+    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(name)).toList match {
       case x :: Nil => x.values.mkString(";")
       case _ => ""
     }
@@ -499,13 +499,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def checkConditionalRequest(cc: Option[CallContext], httpVerb: String, httpCode: Int, httpBody: Box[String]) = {
     val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
-    requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
+    requestHeaders.filter(_.name.equalsIgnoreCase(RequestHeader.`If-None-Match`)).headOption match {
       case Some(value) => // Handle the If-None-Match HTTP request header
         checkIfNotMatchHeader(cc, httpCode, httpBody, value.values.mkString(""))
       case None =>
         // When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
         // The most common use case is to update a cached entity that has no associated ETag
-        requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match {
+        requestHeaders.filter(_.name.equalsIgnoreCase(RequestHeader.`If-Modified-Since`)).headOption match {
           case Some(value) => // Handle the If-Modified-Since HTTP request header
             checkIfModifiedSinceHeader(cc, httpVerb, httpCode, httpBody, value.values.mkString(""))
           case None =>
@@ -4658,7 +4658,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return Full(errorResponse) if validate fail
    */
   def validateRequestHeadersKeys(operationId: String, callContext: CallContext): Box[JsonResponse] = {
-    val headerKeysGrouped: Map[String, List[HTTPParam]] = callContext.requestHeaders.groupBy(x => x.name)
+    val headerKeysGrouped: Map[String, List[HTTPParam]] = callContext.requestHeaders.groupBy(_.name.toLowerCase(java.util.Locale.ROOT))
     headerKeysGrouped.toList.forall(_._2.size == 1) match {
       case true => Empty
       case false => 
@@ -4747,12 +4747,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case (Some(callContext), operationId) if enableForceError =>
         val requestHeaders = callContext.requestHeaders
 
-        val forceError = requestHeaders.collectFirst({
-          case HTTPParam("Force-Error", value::_) => value
-        })
-        val responseCode = requestHeaders.collectFirst({
-          case HTTPParam("Response-Code", value::_) => value
-        })
+        val forceError = requestHeaders.collectFirst {
+          case HTTPParam(name, value::_) if name.equalsIgnoreCase("Force-Error") => value
+        }
+        val responseCode = requestHeaders.collectFirst {
+          case HTTPParam(name, value::_) if name.equalsIgnoreCase("Response-Code") => value
+        }
 
         if(forceError.isEmpty) {
           Empty

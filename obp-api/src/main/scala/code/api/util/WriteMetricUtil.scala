@@ -144,7 +144,7 @@ object WriteMetricUtil extends MdcLoggable {
     }
 
   private def requestHeaderValue(cc: CallContextLight, headerName: String): String =
-    cc.requestHeaders.find(_.name.toLowerCase() == headerName).map(_.values.mkString(",")).getOrElse("")
+    cc.requestHeaders.find(_.name.equalsIgnoreCase(headerName)).map(_.values.mkString(",")).getOrElse("")
 
   private def saveMetricSafely(cc: CallContextLight, fields: MetricFields): Unit = {
     import fields._

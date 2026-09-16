@@ -134,7 +134,7 @@ object DAuth extends MdcLoggable {
 
   // Check if the request (access token or request token) is valid and return a tuple
   def getDAuthToken(requestHeaders: List[HTTPParam]) : Option[List[String]]  = {
-    requestHeaders.find(_.name==APIUtil.DAuthHeaderKey).map(_.values)
+    requestHeaders.find(_.name.equalsIgnoreCase(APIUtil.DAuthHeaderKey)).map(_.values)
   }
 
   def getOrCreateResourceUser(jwtPayload: String, callContext: Option[CallContext]) : Box[(User, Option[CallContext])] = {
