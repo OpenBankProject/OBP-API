@@ -41,7 +41,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
 
   /**
-   * On-behalf-of guard (attribution policy UserReference.UserCustomerLinkUser): a User-Customer
+   * On-behalf-of guard (attribution policy UserReference.UserCustomerLinkUserId): a User-Customer
    * link is owned by the on-behalf-of user. When the caller is a consent user the row is written
    * for the user the consent names, so the link does not strand when the consent dies. For an
    * original user this is a no-op. The resolver logs every redirect.
@@ -60,7 +60,7 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
    * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2 row 2.
    */
   private def linkOwnerUserId(userId: String): String =
-    Users.users.vend.attributedUserId(userId, UserReference.UserCustomerLinkUser).openOr(userId)
+    Users.users.vend.attributedUserId(userId, UserReference.UserCustomerLinkUserId).openOr(userId)
 
   def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
     val ownerUserId = linkOwnerUserId(userId)

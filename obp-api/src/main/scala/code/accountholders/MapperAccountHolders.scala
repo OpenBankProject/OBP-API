@@ -64,7 +64,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   //Note, this method, will not check the existing of bankAccount, any value of BankIdAccountId
   //Can create the MapperAccountHolders.
   //
-  // On-behalf-of guard (attribution policy UserReference.AccountHolderUser): an account is
+  // On-behalf-of guard (attribution policy UserReference.AccountHoldersUser): an account is
   // held by the on-behalf-of user. When `user` is a consent user the holder row is written
   // for the user the consent names, so the account does not strand when the consent dies.
   // For an original user this is a no-op. The resolver logs every redirect.
@@ -77,7 +77,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
 
   /** The user the holder row is written for: `user` itself, or its on-behalf-of user. */
   private def accountHolderUserFor(user: User): Box[User] =
-    Users.users.vend.attributedUserId(user.userId, code.users.UserReference.AccountHolderUser).flatMap { holderUserId =>
+    Users.users.vend.attributedUserId(user.userId, code.users.UserReference.AccountHoldersUser).flatMap { holderUserId =>
       if (holderUserId == user.userId) Full(user)
       else Users.users.vend.getUserByUserId(holderUserId) ?~ s"getOrCreateAccountHolder: on-behalf-of user $holderUserId of ${user.userId} not found"
     }

@@ -128,9 +128,9 @@ trait Users {
   def actsForSelf(userId: String): Boolean = onBehalfOfUserIdOf(userId).exists(_ == userId)
 
   /** Attribution for writing the column(s) `ref` names as `userId`. Applies `ref.policy`:
-   *  KeepUserId          -> Full(userId as both), resolver not consulted
-   *  UseOnBehalfOfUserId -> Full(resolved), WARN naming `ref` when delegated
-   *  Reject              -> Full if `userId` acts for itself, else Failure(InvalidUserId ...) */
+   *  UseAuthenticatedUserId -> Full(userId as both), resolver not consulted
+   *  UseOnBehalfOfUserId    -> Full(resolved), WARN naming `ref` when delegated
+   *  Reject                 -> Full if `userId` acts for itself, else Failure(InvalidUserId ...) */
   def attributionOf(userId: String, ref: UserReference): Box[Attribution]
 
   /** Convenience for single-column writers: the one value to store. */

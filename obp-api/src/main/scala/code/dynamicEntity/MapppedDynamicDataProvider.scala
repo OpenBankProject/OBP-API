@@ -51,14 +51,14 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 
   /**
    * The user a row belongs to: the caller, or the user its consent names (attribution policy
-   * UserReference.DynamicDataUser). Applied on every entry point that takes a userId, for
+   * UserReference.DynamicDataUserId). Applied on every entry point that takes a userId, for
    * reads as well as writes, so a consent user reads, updates and deletes the same rows it
    * writes. The resolver logs each redirect; a Failure (invariant broken) keeps the caller.
    * The endpoint decides who may reach this provider (a consent user needs the entity's role,
    * see Http4sDynamicEntity.personalRoleWaived). ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
    */
   private def ownerOf(userId: Option[String]): Option[String] =
-    userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicDataUser).openOr(id))
+    userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicDataUserId).openOr(id))
 
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)

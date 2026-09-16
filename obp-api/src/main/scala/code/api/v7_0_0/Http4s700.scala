@@ -7057,7 +7057,7 @@ object Http4s700 {
     /** The User whose links are read: the caller, or the User its Consent acts for. Same rule as the provider. */
     private def linkedCustomerOwnerId(userId: String): String =
       code.users.Users.users.vend
-        .attributedUserId(userId, code.users.UserReference.UserCustomerLinkUser).openOr(userId)
+        .attributedUserId(userId, code.users.UserReference.UserCustomerLinkUserId).openOr(userId)
 
     val getMyCustomersAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / _ / "my" / "customers" =>

@@ -129,7 +129,7 @@ case class Attribution(
   def isDelegated: Boolean = userId != onBehalfOfUserId
   /** the single value for the column `ref` names, per its policy */
   def userIdToStore: String = ref.policy match {
-    case KeepUserId         => userId
+    case UseAuthenticatedUserId         => userId
     case UseOnBehalfOfUserId => onBehalfOfUserId
     case Reject             => userId   // unreachable: attributionOf fails first
   }
@@ -137,7 +137,7 @@ case class Attribution(
 
 // ---- the entry point providers actually call ---------------------------------------------
 /** Attribution for writing column `ref` as `userId`. Applies `ref.policy`:
- *  KeepUserId / UseOnBehalfOfUserId → Full(attribution), WARN naming `ref` when isDelegated
+ *  UseAuthenticatedUserId / UseOnBehalfOfUserId → Full(attribution), WARN naming `ref` when isDelegated
  *  Reject → Full(attribution) if !isDelegated, else Failure(InvalidUserId … names a consent user) */
 def attributionOf(userId: String, ref: UserReference): Box[Attribution]
 
@@ -205,7 +205,7 @@ Columns the draft missed, and the policy given (change in the file if wrong):
 
 | policy | added |
 |---|---|
-| `KeepUserId` | `AuthUser.user` (login row), `OpenIDConnectToken.AuthUserPrimaryKey`, `MappedUserRefreshes.mUserId`, `MetricArchive.userId`, `DynamicDataAccess.GrantedBy` (audit) |
+| `UseAuthenticatedUserId` | `AuthUser.user` (login row), `OpenIDConnectToken.AuthUserPrimaryKey`, `MappedUserRefreshes.mUserId`, `MetricArchive.userId`, `DynamicDataAccess.GrantedBy` (audit) |
 | `UseOnBehalfOfUserId` | `MappedUserScope.mUserId`, `DirectDebit.UserId`, `DynamicData.UserId`, `DynamicDataAccess.UserId`, `MappedCounterpartyWhereTag.user`, `MappedTag.user`, `MappedWhereTag.user`, `MappedTransactionImage.user`, `MappedCustomerMessage.user`, `MappedKycDocument.user`, `MappedKycStatus.user`, `MappedSocialMedia.user`, `MappedKycCheck.user`, `SignatoryPanel.UserIds`, `ChatMessage.MentionedUserIds` |
 | `Reject` | `Token.userForeignKey` (OAuth token issued to a consent user) |
 | not a user id | `MappedBankAccount.holder`, `MappedTransaction.counterpartyAccountHolder`, `AccountAccessRequest.CheckerComment`, `MappedKycCheck.mStaffName`, `MappedMeeting.mStaffToken`, `MappedEntitlement.mCreatedByProcess`, `ResourceUser.userId_` / `CreatedByConsentId` / `CreatedByUserInvitationId` |
@@ -221,11 +221,11 @@ column takes when the user is a consent user (or an agent user with an on-behalf
 
 | policy | meaning |
 |---|---|
-| `KeepUserId` | the authenticated user's own id; no resolver |
+| `UseAuthenticatedUserId` | the authenticated user's own id; no resolver |
 | `UseOnBehalfOfUserId` | the on-behalf-of user's id, via the resolver in the provider |
 | `Reject` | the request is refused with 400 |
 
-"Record both" below is a table-level description: one `KeepUserId` column and one
+"Record both" below is a table-level description: one `UseAuthenticatedUserId` column and one
 `UseOnBehalfOfUserId` column on the same row. Such tables make one `attributionOf` call with a
 table-level reference and write both fields of the `Attribution`.
 
@@ -235,7 +235,7 @@ The policy file is **main-tree Scala**, because `Users.attributionOf` reads it a
 ```scala
 sealed trait AttributionPolicy
 object AttributionPolicy {
-  case object KeepUserId          extends AttributionPolicy
+  case object UseAuthenticatedUserId          extends AttributionPolicy
   case object UseOnBehalfOfUserId extends AttributionPolicy
   case object Reject              extends AttributionPolicy
 }
@@ -243,11 +243,11 @@ object AttributionPolicy {
 /** One value per user-reference column (or per record-both table). Naming: <Table><Column-role>. */
 sealed abstract class UserReference(val policy: AttributionPolicy, val mapper: Class[_], val fields: List[String])
 object UserReference {
-  case object AccountAccessUser      extends UserReference(KeepUserId,          classOf[AccountAccess],            List("user"))
-  case object ConsentEntitlementUser extends UserReference(KeepUserId,          classOf[MappedEntitlement],        List("mUserId")) // createdByProcess == consent_user
-  case object EntitlementUser        extends UserReference(UseOnBehalfOfUserId, classOf[MappedEntitlement],        List("mUserId"))
-  case object AccountHolderUser      extends UserReference(UseOnBehalfOfUserId, classOf[MapperAccountHolders],     List("user"))
-  case object TransactionRequest     extends UserReference(UseOnBehalfOfUserId, classOf[MappedTransactionRequest], List("mUserId", "mOnBehalfOfUserId")) // record both
+  case object AccountAccessUser      extends UserReference(UseAuthenticatedUserId,          classOf[AccountAccess],            List("user"))
+  case object ConsentEntitlementUser extends UserReference(UseAuthenticatedUserId,          classOf[MappedEntitlement],        List("mUserId")) // createdByProcess == consent_user
+  case object EntitlementUser        extends UserReference(UseOnBehalfOfUserId   , classOf[MappedEntitlement],        List("mUserId"))
+  case object AccountHolderUser      extends UserReference(UseOnBehalfOfUserId   , classOf[MapperAccountHolders],     List("user"))
+  case object TransactionRequest     extends UserReference(UseOnBehalfOfUserId   , classOf[MappedTransactionRequest], List("mUserId", "mOnBehalfOfUserId")) // record both
   case object ConsentCreator         extends UserReference(Reject,              classOf[MappedConsent],            List("mUserId"))
   case object OAuthConsumerCreator   extends UserReference(Reject,              classOf[Consumer],                 List("createdByUserId"))
   // … one per row of the tables below
@@ -259,7 +259,7 @@ Carrying `mapper` + `fields` on each value is what lets the Phase-4 frozen test 
 reflected Mapper column to exactly one reference (one column may have two references only when
 they differ by process, as `MappedEntitlement.mUserId` does).
 
-### KeepUserId — authorisation materialisation, NO resolver
+### UseAuthenticatedUserId — authorisation materialisation, NO resolver
 | # | class | field | note |
 |---|---|---|---|
 | 1 | `views/system/AccountAccess` | user id | views copied from the JWT each request; ALL_CONSUMERS rows; has lifecycle GC |
@@ -270,7 +270,7 @@ they differ by process, as `MappedEntitlement.mUserId` does).
 | 6 | `chat/MappedChatMessage` | `SenderUserId` | sender = the user is truthful; `MentionedUserIds` are humans by construction |
 | 7 | `api/pemusage/MappedPemUsage` | `LastUserId` | audit |
 
-### Record both — `KeepUserId` column + `UseOnBehalfOfUserId` column on one row
+### Record both — `UseAuthenticatedUserId` column + `UseOnBehalfOfUserId` column on one row
 | # | class | user field | on-behalf-of field | action |
 |---|---|---|---|---|
 | 8 | `metrics/MappedMetrics` | `userId` | via `consent_reference_id` | none |
@@ -283,7 +283,7 @@ they differ by process, as `MappedEntitlement.mUserId` does).
 |---|---|---|---|
 | 12 | `accountholders/MapperAccountHolders` | `user` FK | `getOrCreateAccountHolder(user, …)` (:39) — resolve `user` first |
 | 13 | `usercustomerlinks/MappedUserCustomerLink` | `mUserId` | `createUserCustomerLink(userId, …)` (:14) |
-| 14 | `accountapplication/MappedAccountApplication` | `mUserId` | create (v3.1 endpoint already guards; make provider default) |
+| 14 | `accountapplication/MappedAccountApplication` | `mUserId` | **Corrected 2026-09-15: do NOT make the provider default.** The note above predates the Phase 3 guards. `user_id` is always explicit at `Http4s310.scala:3228` — `userId = postedData.user_id`, never defaulted to the caller — so there is no implicit-self path for a redirect to fire on. If one did fire it would silently substitute an id the caller explicitly named, turning a correct 400 into a quiet rewrite and inverting the doctrine (explicit → refuse, implicit → redirect). Same shape as `AccountAccessRequestTarget`: guard at the endpoint, which is already done, and reclassify rather than wire. |
 | 15 | `accountaccessrequest/AccountAccessRequest` | `RequestorUserId`, `TargetUserId`, `CheckerUserId` | create + approve (v6 endpoints already guard target) |
 | 16 | `entitlementrequest/MappedEntitlementRquests` | `mUserId` | create (v3.0 endpoint resolves already) |
 | 17 | `apicollection/ApiCollection` | `UserId` | create |
@@ -374,7 +374,7 @@ reference — are caught by the Phase-4 sweep; the second is also visible in rev
 
 1. Providers that take a `User` (AccountHolders): resolve to id, re-fetch the on-behalf-of `User` once (cached).
 2. Keep endpoint-level `cc.onBehalfOfUserId` uses; they become redundant clarity, not the mechanism.
-3. `KeepUserId` writers that share a provider method with a `UseOnBehalfOfUserId` path (views materialiser, consent entitlements) pass a different `UserReference` (e.g. `ConsentEntitlementUser` vs `EntitlementUser`); no more string-typed exemptions.
+3. `UseAuthenticatedUserId` writers that share a provider method with a `UseOnBehalfOfUserId` path (views materialiser, consent entitlements) pass a different `UserReference` (e.g. `ConsentEntitlementUser` vs `EntitlementUser`); no more string-typed exemptions.
 
 Order of attack (highest strand-risk first): AccountHolders → UserCustomerLink → AccountApplication → UserAuthContext → ApiCollection/UserAttribute → the rest mechanically.
 
@@ -386,6 +386,7 @@ Progress:
 | 2 | `MappedUserCustomerLink.createUserCustomerLink` | ✅ 2026-09-10 (working tree). Provider resolves via `linkOwnerUserId` on the three methods keyed by a single user id: `createUserCustomerLink`, `getOCreateUserCustomerLink`, and the two-argument `getUserCustomerLink`. Those three had to move together: the two-argument lookup is every caller's "already linked?" pre-check immediately before a create, and the table carries `UniqueIndex(mUserId, mCustomerId)` — a redirected create paired with an unredirected pre-check passes the check on the consent user and then breaks the index on the human (500, not the intended 400 `CustomerAlreadyExistsForUser`, since `createUserCustomerLink` has no `tryo`). `getUserCustomerLinksByUserId` is deliberately **not** resolved: it also serves the admin lookup at `GET /banks/BANK_ID/user_customer_links/users/USER_ID`, where the id is an explicit target and rewriting it would silently answer a different question; endpoints meaning "my links" pass the resolved id themselves. Phase 3 guards added to all five explicit-target callers (v1.4.0 `addCustomer`, v2.0.0 / v2.1.0 `createCustomer` — guarded only when `user_id` is supplied, since an omitted one means the caller and the provider redirects it — and v2.0.0 / v4.0.0 `createUserCustomerLinks`), each with `InvalidUserId` added to the ResourceDoc error list and a digest-bound `parity_allowlist.json` entry. `AgentDelegationTest` has five scenarios (consent user → human; original user unchanged; unbound consent fails closed; the pre-check asks about the row the create would write; listing by user id is not redirected). 33 scenarios green. |
 | 3 | `DynamicData.UserId` (`DynamicDataUser`), `DynamicEntity.UserId` (`DynamicEntityUser`) | ✅ 2026-09-04 (working tree). Provider `MappedDynamicDataProvider` resolves the caller on **every** entry point (save, update, get, getAll, delete, existsData): personal rows are keyed by the same column on reads and writes, so the redirect must be symmetric or a consent user could not read back what it wrote. Definition creator resolved in `MappedDynamicEntityProvider.createOrUpdate`. **Decided 2026-09-04 (access control): a consent user gets no `personal_requires_role=false` waiver** — on `/my` endpoints it must hold the entity's role, so a Consent has to name the entity explicitly before its holder reaches the human's personal rows (`Http4sDynamicEntity.personalRoleWaived`); the projection read path resolves the owner the same way (`personalRowOwner`). Doc strings of the six My endpoints say so; `UserHasMissingRoles` is now always in their error lists. Tests: `AgentDelegationTest` (provider + definition) and `DynamicEntityConsentUserTest` (HTTP: human no role → 201; consent without role → 403 naming the role; consent with roles → 201, row readable by both, stored on the human). Consumer: the Portal / API Manager Opey conversation entities (`obp_portal_opey_conversation`, `obp_manager_opey_conversation`); the apps write those as the human; **built 2026-09-04 in OBP-Frontend** (definitions, startup bootstrap, `ConversationRecorder`, rows under My Data). **Out of scope here: row-level (ACL) entities** — `DynamicDataAccess.UserId` bootstrap grant and the `allows` checks both stay on the consent user (consistent with each other: rows strand, nothing leaks); `DynamicDataAccessUser` is a later Phase 2 row. |
 | 4 | `MappedBank.CreatedByUserId` (`BankCreator`) | ✅ 2026-09-14. `LocalMappedConnector.bankCreatorUserId` resolves the caller before `createOrUpdateBank` stamps the row. Two sources in the order `CallContext.onBehalfOfUserId` uses: the request layer (`consentCreator`/`consenter`, which a BG/UK consent carries on the request and the stored chain cannot know) wins, otherwise `attributedUserId(_, BankCreator)` walks the stored chain, applies the policy and logs the delegation. **Closes the defect seen in the wild 2026-09-03**: a bank created through Opey under a temporary consent had `createdbyuserid` = the consent user, so it dropped out of every "banks created by me" read once that consent was revoked. Only one of the four `MappedBank.create` sites sets the column — the Boot, sandbox-import and internal-connector paths have no user and leave it empty. The read side (`Http4s700` self-service quota) already counted via `humanAndAgentUserIds`, so it keeps matching either way; write and read now agree on the human. `AgentDelegationTest` has five scenarios (original user unchanged; consent user → human; unbound consent fails closed; request-layer consenter wins; no authenticated user leaves it empty), and the `BankCreator` entry is gone from `OnBehalfOfOwnershipSweepTest.notYetWired` — the ratchet fails if it comes back. 49 scenarios green. |
+| 5 | `MappedCounterparty.mCreatedByUserId` (`CounterpartyCreator`) | ✅ 2026-09-15, and the first row decided as **record both** rather than redirect. `MapperCounterparties.counterpartyCreators` makes one `attributionOf` call and writes the actor to `mCreatedByUserId` and the human to a new `mCreatedByOnBehalfOfUserId`. Two reasons it is not a redirect: (a) a counterparty is the control on **where money may be sent**, so "which agent created this" has to be answerable from the row rather than by correlating a timestamp against a metrics table with its own retention — the same argument that made `MappedTransactionRequest` record both; (b) `mCreatedByUserId` is published as `created_by_user_id` on the **v2.2.0 and v4.0.0** counterparty responses, so redirecting it would make a STABLE field report a human for something an agent did (`CounterpartyTest` still green, confirming the API is unchanged). Safe at provider level because none of the four call sites takes a user id from the request — v2.2.0 `createCounterparty`, v4.0.0 `createExplicitCounterparty` and `createCounterpartyForAnyAccount`, and the v5.0.0 VRP consent flow all pass the caller's own id — so there is no explicit target a redirect could silently substitute. The new column is **internal**: not on `CounterpartyTrait` (obp-commons, implemented by the remote-connector DTOs) and not in any JSON, because adding a field to those STABLE responses would change the frozen contract; a v7 read can expose it later. No migration — Schemifier adds new columns, as it did for `MappedTransactionRequest.mOnBehalfOfUserId`. **Limitation**: the provider receives only a `String`, so unlike `bankCreatorUserId` it cannot honour the request layer's `consentCreator`/`consenter`; a BG/UK consent with no stored human yet falls back to the actor, which is the documented fail-closed behaviour. `AgentDelegationTest` has four scenarios (original user in both columns; consent user → actor + human; unbound consent fails closed; a broken chain still names the actor rather than blanking the audit column). 53 scenarios green. |
 
 **After Phase 2 — the third set of things a Consent carries.** Personal resources are owned, not
 granted, so delegating them through entity Roles over-grants. Design settled 2026-09-04 in
@@ -431,14 +432,14 @@ The 19 guards, by version: v1.4.0 `addCustomer`; v2.0.0 `createAccount`, `create
 
    **The scan reads SQL, not the Mapper**, because the columns are three different shapes: the `user_id` string, a `MappedLongForeignKey` to `ResourceUser`'s primary key (`MapperAccountHolders.user`), and a list of ids (`SignatoryPanel.UserIds`). `DBUtil.runQuery` stringifies every column, so one comparison — equal to the primary key, or containing the user_id — covers all three.
 
-   **Found on first run: the scan needs the shared-column discriminator.** `MappedEntitlement.mUserId` is named by `EntitlementUser` (`UseOnBehalfOfUserId`) *and* `ConsentEntitlementUser` (`KeepUserId`), split by `createdByProcess == consent_user`. Scanning the column as a whole reports every Consent's own materialised scope as a leak — rows that are *meant* to sit on the consent user and are revoked with it. Fixed by a `sharedColumnDiscriminator` map naming the field the provider branches on, plus a fourth scenario asserting every policy-disagreeing column has one. That is the other half of `UserReferenceAttributionPolicyTest`'s "two references on one column must differ by policy": where they differ, the scan has to be told how.
+   **Found on first run: the scan needs the shared-column discriminator.** `MappedEntitlement.mUserId` is named by `EntitlementUser` (`UseOnBehalfOfUserId`) *and* `ConsentEntitlementUser` (`UseAuthenticatedUserId`), split by `createdByProcess == consent_user`. Scanning the column as a whole reports every Consent's own materialised scope as a leak — rows that are *meant* to sit on the consent user and are revoked with it. Fixed by a `sharedColumnDiscriminator` map naming the field the provider branches on, plus a fourth scenario asserting every policy-disagreeing column has one. That is the other half of `UserReferenceAttributionPolicyTest`'s "two references on one column must differ by policy": where they differ, the scan has to be told how.
 4. Existing `ConsentObpTest` / `ConsentTest` keep passing (35033 now only AnyBank).
 
 ## Phase 5 — follow-through
 
 1. Portal page `/developers/opey-permissions`: shrink "Attribution Is Not Yet Universal" to one line once the sweep test is green; use the vocabulary above there too.
 2. Memory: write `on-behalf-of-user-id-plan` (none exists yet) pointing at this file, then mark built.
-3. Optional later: consent revocation GC for consent-user rows (`KeepUserId`) — still declined for now.
+3. Optional later: consent revocation GC for consent-user rows (`UseAuthenticatedUserId`) — still declined for now.
 
 ## Decisions (settled 2026-09-02)
 

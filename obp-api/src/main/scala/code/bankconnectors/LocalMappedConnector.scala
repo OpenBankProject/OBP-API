@@ -3441,7 +3441,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case None => ""
       case Some(callerUserId) =>
         val fromStoredChain = Users.users.vend
-          .attributedUserId(callerUserId, code.users.UserReference.BankCreator)
+          .attributedUserId(callerUserId, code.users.UserReference.BankCreatedByUserId)
           .openOr(callerUserId)
         callContext
           .flatMap(cc => cc.consentCreator.or(cc.consenter).toOption)

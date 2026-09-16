@@ -66,8 +66,31 @@ object LiftUsers extends Users with MdcLoggable{
 
   private def nonBlank(s: String): Boolean = s != null && s.nonEmpty
 
+  /**
+   * Walk from the authenticated caller to the human it acts for. Exactly ONE hop:
+   *
+   *   ResourceUser(userId).isConsentUser  ->  CreatedByConsentId  ->  Consent  ->  consent.userId
+   *
+   * and the user that lands on must itself be an original user. There is no loop and no second
+   * hop by design: a consent user cannot create a Consent (UserReference.ConsentUserId is
+   * policy Reject), so a well-formed chain is always one step deep. That is what makes the
+   * result checkable — see ON_BEHALF_OF_USER_ID_PLAN.md, Decision 4.
+   *
+   * Every branch below FAILS CLOSED, i.e. keeps the caller, except one. Keeping the caller means
+   * the row is stored against the agent identity and strands when the consent dies — bad, but
+   * local and visible in the WARN. Guessing a human instead would silently attribute writes to
+   * someone who never authorised them, which is worse. The single exception is a consent naming
+   * another consent user: that breaks the one-hop invariant outright, so it returns a Failure
+   * rather than a fallback, because there is no answer that is even arguably right.
+   *
+   * Takes only the id on purpose (see the trait): nothing request-asserted can steer it.
+   */
   private def resolveOnBehalfOf(userId: String): Resolved = {
+    // An empty caller id is not an error here — anonymous and system paths reach writers too.
+    // Hand it straight back so callers get "" rather than a Failure they would have to unpick.
     if (!nonBlank(userId)) return Resolved(Full(userId), None, cacheable = false)
+    // Every UseOnBehalfOfUserId write costs this lookup, so consent callers would otherwise pay
+    // two extra reads per row written. Only stable answers were put here — see the cache above.
     val cached = if (onBehalfOfCacheTtlSeconds > 0) Option(onBehalfOfCache.getIfPresent(userId)) else None
     if (cached.isDefined) return cached.get
     val resolved: Resolved = ResourceUser.find(By(ResourceUser.userId_, userId)) match {
@@ -92,20 +115,93 @@ object LiftUsers extends Users with MdcLoggable{
             logger.warn(s"onBehalfOfUserIdOf: consent user $userId names consent $consentId, which does not exist; keeping $userId (fails closed)")
             Resolved(Full(userId), Some(consentId), cacheable = false)
         }
+      // An ordinary user: acts for itself. Cacheable because a user that is not consent-minted
+      // can never become one — CreatedByConsentId is written at creation and never updated.
       case Full(_) => Resolved(Full(userId), None, cacheable = true)
       case _ =>
         logger.warn(s"onBehalfOfUserIdOf: no ResourceUser $userId; keeping it (fails closed)")
         Resolved(Full(userId), None, cacheable = false)
     }
+    // Only the two settled answers are stored: "ordinary user, acts for itself" and "consent user,
+    // bound to this human". Everything else is a transient or broken state that can legitimately
+    // change within the TTL — most importantly a BG/UK consent authorised a moment from now, which
+    // must not stay pinned to the agent for the next ten minutes.
     if (resolved.cacheable && onBehalfOfCacheTtlSeconds > 0) onBehalfOfCache.put(userId, resolved)
     resolved
   }
 
   override def onBehalfOfUserIdOf(userId: String): Box[String] = resolveOnBehalfOf(userId).onBehalfOfUserId
 
+  /**
+   * The one entry point a provider calls before writing a user id into a column.
+   *
+   * `ref` says WHICH COLUMN is about to be written. Each UserReference value names a Mapper class
+   * and one or more of its fields, and carries the policy chosen for them — UserReference.BankCreatedByUserId
+   * names MappedBank.CreatedByUserId, and applies to that column only.
+   *
+   * It has to be a parameter rather than something derived from the caller, because the right id
+   * depends on the column and not just on who is calling. MappedEntitlement.mUserId is the case
+   * that proves it: the same consent user writing that one column gets a different answer
+   * depending on which process is writing. EntitlementUser (UseOnBehalfOfUserId) is a role being
+   * granted to somebody, so it lands on the human; ConsentEntitlementUser (UseAuthenticatedUserId) is the
+   * consent engine copying the Consent's own scope onto the agent, so it must stay on the agent.
+   * Same column, opposite policies.
+   *
+   * Which policy applies to which column is recorded in UserReference.scala and nowhere else;
+   * this method only applies it.
+   *
+   * ---- Callers, as worked examples (2026-09-15) ----
+   *
+   * A. Single-column writers. Want one id, so they use the `attributedUserId` convenience and
+   *    fall back to the caller, so that a Failure can never blank the column.
+   *
+   *      caller                                         reference passed
+   *      ---------------------------------------------  --------------------
+   *      MappedUserCustomerLink.linkOwnerUserId         UserCustomerLinkUser
+   *      MapperAccountHolders.getOrCreateAccountHolder  AccountHolderUser
+   *      LocalMappedConnector.bankCreatorUserId         BankCreator
+   *
+   * B. Record-both tables. Call attributionOf directly, because they need both ids out of the
+   *    one Attribution rather than just the single value to store.
+   *
+   *      caller                            reference           columns written
+   *      --------------------------------  ------------------  -----------------------------
+   *      MappedTransactionRequestProvider  TransactionRequest  mUserId + mOnBehalfOfUserId
+   *
+   * C. One column, two policies. The reference is chosen per process, then passed in.
+   *
+   *      caller                             reference               chosen when
+   *      ---------------------------------  ----------------------  ----------------------------
+   *      MappedEntitlements.addEntitlement  ConsentEntitlementUser  createdByProcess ==
+   *                                                                 Constant.consent_user
+   *      MappedEntitlements.addEntitlement  EntitlementUser         otherwise
+   *
+   * D. Reads. These resolve too, and must, or an agent cannot see back what it just wrote:
+   *    personal rows are keyed by the same column on both sides, so the redirect has to be
+   *    symmetric. The last two are endpoint-level rather than provider-level — where a handler
+   *    decides WHOSE rows to read, it has to ask the same question the provider asks on write.
+   *
+   *      caller                                reference             covers
+   *      ------------------------------------  --------------------  ----------------------
+   *      MapppedDynamicDataProvider            DynamicDataUser       save/update/get/delete
+   *      MapppedDynamicEntityProvider          DynamicEntityUser     definition creator
+   *      Http4sDynamicEntity.personalRowOwner  DynamicDataUser       projection read path
+   *      Http4s700.linkedCustomerOwnerId       UserCustomerLinkUser  v7 "my customers"
+   *
+   * This is also the audit point. A delegated write logs here and nowhere else, which is why
+   * providers should call it even when they already know the on-behalf-of user from the request
+   * layer (see LocalMappedConnector.bankCreatorUserId) — and why naming the reference in main is
+   * what OnBehalfOfOwnershipSweepTest's ratchet counts as "wired".
+   */
   override def attributionOf(userId: String, ref: UserReference): Box[Attribution] = ref.policy match {
-    case AttributionPolicy.KeepUserId =>
+    // Audit and authorisation-materialisation columns: the caller's own id IS the truthful value,
+    // so the resolver is not consulted at all. Deliberate — it also keeps these writes free of the
+    // two extra reads resolution costs on a cache miss.
+    case AttributionPolicy.UseAuthenticatedUserId =>
       Full(Attribution(userId, userId, None, ref))
+    // Ownership columns: store the human. Note the WARN fires only when the answer actually
+    // differs from the caller, so ordinary traffic stays quiet and every line in the log is a
+    // real delegated write, naming the reference and the column it landed in.
     case AttributionPolicy.UseOnBehalfOfUserId =>
       val r = resolveOnBehalfOf(userId)
       r.onBehalfOfUserId.map { h =>
@@ -114,6 +210,13 @@ object LiftUsers extends Users with MdcLoggable{
           logger.warn(s"attribution ${ref.name}: user $userId is a consent user (consent ${r.consentId.getOrElse("?")}); writing on-behalf-of user $h to ${ref.mapperClass}.${ref.fields.mkString("/")}")
         a
       }
+    // Things an agent must not do at all, whoever it acts for: minting a Consent (nested
+    // delegation) or an OAuth consumer/token (credentials that outlive the consent). There is no
+    // redirect that would make these safe — a Consent created "for" the human would be one the
+    // human never granted — so this returns a Failure and the endpoint turns it into a 400.
+    // NOTE: as of 2026-09-15 nothing calls attributionOf with a Reject reference, so the refusal
+    // is pinned by AgentDelegationTest but not yet reachable over HTTP. Wiring the consent-create
+    // path is tracked in ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2/3.
     case AttributionPolicy.Reject =>
       val r = resolveOnBehalfOf(userId)
       r.onBehalfOfUserId.flatMap { h =>
