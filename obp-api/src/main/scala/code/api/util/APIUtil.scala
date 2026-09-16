@@ -282,9 +282,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-JWT value from a Request Header as a String
    */
   def getConsentJWT(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-JWT`).toList match {
+    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-JWT`)).toList match {
       case x :: Nil => Some(x.values.mkString(", "))
-      case _ => requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+      case _ => requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-Id`)).toList match {
         case x :: Nil => Some(x.values.mkString(", "))
         case _ => None
       }
@@ -296,7 +296,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-JWT value from a Request Header as a String
    */
   def getConsentIdRequestHeaderValue(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-Id`)).toList match {
       case x :: Nil => Some(x.values.mkString(", "))
       case _ => None
     }
@@ -306,7 +306,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the PSD2-CERT value from a Request Header as a String
    */
   def `getPSD2-CERT`(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`PSD2-CERT`).toList match {
+    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`PSD2-CERT`)).toList match {
       case x :: Nil => Some(x.values.mkString(", "))
       case _ => None
     }
@@ -329,7 +329,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-ID value from a Request Header as a String
    */
   def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-ID`).toList match {
+    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-ID`)).toList match {
       case x :: Nil => Some(x.values.mkString(", "))
       case _ => None
     }
@@ -2842,7 +2842,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       } else if (BerlinGroupCheck.hasUnwantedConsentIdHeaderForBGEndpoint(url, reqHeaders)) {
         val message = ErrorMessages.InvalidConsentIdUsage
         Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
-      } else if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
+      } else if (url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
         // Choose consumer based on validation method configuration
         val consumerForConsent = if (method == "CONSUMER_KEY_VALUE" && consumerByConsumerKey.isDefined) {
           consumerByConsumerKey
