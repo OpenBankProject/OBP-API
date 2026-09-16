@@ -49,6 +49,8 @@ object PegdownOptions {
       .replaceAll("&amp;;", "&")
       .replaceAll("&lsquo;", "'")
       .replaceAll("&hellip;", "...")
+      .replaceAll("&ndash;", "–")
+      .replaceAll("&mdash;", "—")
 //        not support make text bold that not at beginning of a line, so here manual convert to it to <strong> tag
 //      .replaceAll("""\*\*(.+?)\*\*""", "<strong>$1</strong>")
   }
