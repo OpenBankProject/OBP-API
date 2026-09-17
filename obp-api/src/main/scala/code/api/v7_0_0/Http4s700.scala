@@ -35,7 +35,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
@@ -3398,6 +3398,87 @@ object Http4s700 {
       apiTagRoutingScheme :: Nil,
       Some(List(canDeleteRoutingScheme)),
       http4sPartialFunction = Some(deleteRoutingScheme)
+    )
+
+    // ─── Account Notification Webhooks: delete ───────────────────────────────
+    //
+    // The two create endpoints arrived in v4.0.0 with no way to remove what they made, so a
+    // notification webhook was permanent for everyone, by every route: the provider's delete
+    // methods existed but nothing called them. These are that missing half.
+
+    val deleteSystemAccountNotificationWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "web-hooks" / "account" / "notifications" / "on-create-transaction" / webhookId =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          val provider = code.webhook.SystemAccountNotificationWebhookTrait.systemAccountNotificationWebhook.vend
+          for {
+            _ <- provider.getSystemAccountNotificationWebhookByIdFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), NotificationWebhookNotFound, 404))
+            _ <- provider.deleteSystemAccountNotificationWebhookFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), DeleteWebhookError, 400))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteSystemAccountNotificationWebhook),
+      "DELETE",
+      "/web-hooks/account/notifications/on-create-transaction/WEBHOOK_ID",
+      "Delete system level Account Notification Webhook",
+      """Delete a system level account notification webhook, so that it stops firing for transactions created anywhere on this instance.
+        |
+        |The webhook id is the `webhook_id` returned when the webhook was created.
+        |
+        |Deletion is permanent: the row is removed rather than deactivated, so a webhook deleted in error has to be created again.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, NotificationWebhookNotFound,
+           DeleteWebhookError, UnknownError),
+      apiTagWebhook :: apiTagBank :: Nil,
+      Some(List(canDeleteSystemAccountNotificationWebhook)),
+      http4sPartialFunction = Some(deleteSystemAccountNotificationWebhook)
+    )
+
+    val deleteBankAccountNotificationWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "web-hooks" / "account" / "notifications" / "on-create-transaction" / webhookId =>
+        EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
+          val provider = code.webhook.BankAccountNotificationWebhookTrait.bankAccountNotificationWebhook.vend
+          for {
+            webhook <- provider.getBankAccountNotificationWebhookByIdFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), NotificationWebhookNotFound, 404))
+            // A webhook belonging to another bank is reported as not found rather than forbidden.
+            // The role is held per bank, so answering 403 here would let a caller with the role at
+            // one bank discover which webhook ids exist at every other bank.
+            _ <- Future(if (webhook.bankId == bank.bankId.value) Full(true) else net.liftweb.common.Empty)
+              .map(unboxFullOrFail(_, Some(cc), NotificationWebhookNotFound, 404))
+            _ <- provider.deleteBankAccountNotificationWebhookFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), DeleteWebhookError, 400))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteBankAccountNotificationWebhook),
+      "DELETE",
+      "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction/WEBHOOK_ID",
+      "Delete bank level Account Notification Webhook",
+      """Delete a bank level account notification webhook, so that it stops firing for transactions created on the specified bank.
+        |
+        |The webhook id is the `webhook_id` returned when the webhook was created. A webhook belonging to a different bank is reported as not found.
+        |
+        |Deletion is permanent: the row is removed rather than deactivated, so a webhook deleted in error has to be created again.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
+           NotificationWebhookNotFound, DeleteWebhookError, UnknownError),
+      apiTagWebhook :: apiTagBank :: Nil,
+      Some(List(canDeleteAccountNotificationWebhookAtOneBank)),
+      http4sPartialFunction = Some(deleteBankAccountNotificationWebhook)
     )
 
     val getBankSupportedRoutingSchemes: HttpRoutes[IO] = HttpRoutes.of[IO] {

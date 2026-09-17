@@ -95,6 +95,10 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
   implicit val runtime: IORuntime = IORuntime.global
 
+  private val webhookDeferred =
+    "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
+    "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md."
+
   private val mechanicalBatch =
     "Phase 2 mechanical batch: the provider does not call attributionOf yet, so a consent user's " +
     "row is stored against the consent user and dies with the Consent."
@@ -143,9 +147,9 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
     "DirectDebit_UserId"                         -> mechanicalBatch,
     "Mandate_CreatedByUserId"                          -> mechanicalBatch,
     "SignatoryPanel_UserIds"                     -> mechanicalBatch,
-    "AccountWebhook_CreatedByUserId"                   -> mechanicalBatch,
-    "SystemAccountNotificationWebhook_CreatedByUserId" -> mechanicalBatch,
-    "BankAccountNotificationWebhook_CreatedByUserId"   -> mechanicalBatch,
+    "AccountWebhook_CreatedByUserId" -> webhookDeferred,
+    "SystemAccountNotificationWebhook_CreatedByUserId" -> webhookDeferred,
+    "BankAccountNotificationWebhook_CreatedByUserId" -> webhookDeferred,
     "ChatRoom_CreatedByUserId"                         -> mechanicalBatch,
     "Participant_UserId"                     -> mechanicalBatch,
     "Reaction_UserId"                        -> mechanicalBatch,

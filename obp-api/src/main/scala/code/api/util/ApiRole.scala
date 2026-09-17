@@ -681,6 +681,12 @@ object ApiRole extends MdcLoggable{
   case class CanCreateAccountNotificationWebhookAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccountNotificationWebhookAtOneBank = CanCreateAccountNotificationWebhookAtOneBank()
 
+  case class CanDeleteSystemAccountNotificationWebhook(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSystemAccountNotificationWebhook = CanDeleteSystemAccountNotificationWebhook()
+
+  case class CanDeleteAccountNotificationWebhookAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteAccountNotificationWebhookAtOneBank = CanDeleteAccountNotificationWebhookAtOneBank()
+
   case class CanUpdateWebhook(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateWebhook = CanUpdateWebhook()
 

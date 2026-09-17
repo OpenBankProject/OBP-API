@@ -467,6 +467,8 @@ object ErrorMessages {
   val CreateCustomerLinkError = "OBP-30148: Could not create the Customer Link."
   val UpdateCustomerLinkError = "OBP-30149: Could not update the Customer Link."
   val InvestigationReportNotAvailable = "OBP-30150: Investigation Report is only available in mapped mode (connector=mapped)."
+  val NotificationWebhookNotFound = "OBP-30151: Account Notification Webhook not found. Please specify a valid value for WEBHOOK_ID."
+  val DeleteWebhookError = "OBP-30152: Could not delete the Webhook."
 
   val CreateWebhookError = "OBP-30047: Cannot create Webhook"
   val GetWebhooksError = "OBP-30048: Cannot get Webhooks"
