@@ -64,10 +64,11 @@ import scala.io.Source
  *
  * The plan says: "call every UseOnBehalfOfUserId create endpoint with the consent JWT; assert no
  * row in any such table references the consent user's id". Taken literally that suite is red on the
- * day it is written and stays red for months: of the 53 UseOnBehalfOfUserId references,
- * EIGHT are wired today (TransactionRequest_UserId, Entitlement_UserId,
- * AccountHolders_User, UserCustomerLink_UserId, DynamicEntity_UserId/DynamicData_UserId,
- * Bank_CreatedByUserId, Counterparty_CreatedByUserId -- Phase 2 rows 1 to 5).
+ * day it is written and stays red for months: of the 62 references this scenario covers (the 59
+ * UseOnBehalfOfUserId ones and the 3 Reject ones), EIGHT are wired today (TransactionRequest_UserId,
+ * Entitlement_UserId, AccountHolders_User, UserCustomerLink_UserId,
+ * DynamicEntity_UserId/DynamicData_UserId, Bank_CreatedByUserId, Counterparty_CreatedByUserId --
+ * Phase 2 rows 1 to 5), and the other 54 are the notYetWired list below.
  * A permanently
  * red suite is one people learn to ignore, which is the same reasoning AuthSweepTest's
  * expectedAuthDeviation records for its own two entries.
@@ -258,7 +259,14 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
    * Reference name -> (discriminator field, the value that belongs to the OTHER reference).
    */
   private val sharedColumnDiscriminator: Map[String, (String, String)] = Map(
-    "Entitlement_UserId" -> ("mCreatedByProcess", code.api.Constant.consent_user)
+    "Entitlement_UserId" -> ("mCreatedByProcess", code.api.Constant.consent_user),
+    // MappedExpectedChallengeAnswer.ExpectedUserId is the second case. One table holds two kinds of
+    // challenge. A payment challenge names a transaction request, and belongs to the human whose
+    // money is moving (ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest). A consent or
+    // signing-basket authorisation challenge names no transaction request, and belongs to whoever
+    // is doing the authorising, which is the caller (ExpectedChallengeAnswer_ExpectedUserId) -- so
+    // a consent user legitimately appears in that column, and the scan must not read it as a leak.
+    "ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest" -> ("TransactionRequestId", "")
   )
 
   /** This lists the columns that more than one reference names under differing policies. Every one

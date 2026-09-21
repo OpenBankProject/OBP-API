@@ -1001,6 +1001,10 @@ object ErrorMessages {
   // the published side. Both call sites name the constant rather than the literal, so nothing but
   // the number moves.
   val PaymentNotInitiatedByCaller = "OBP-40062: The addressed payment was not initiated by you. "
+  val ChallengeNotAddressedToCaller = "OBP-40063: This Strong Customer Authentication challenge is addressed to another user and cannot be answered by you. " +
+    "A payment started on somebody else's behalf is authorised by that person, not by the caller that started it."
+  val PaymentChallengeHasNoOnBehalfOfUser = "OBP-40064: This payment needs Strong Customer Authentication, but the user it is being made for could not be determined, " +
+    "so there is nobody who can be asked to authorise it. A consent that names the user it acts for is required before a payment of this size can be started."
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

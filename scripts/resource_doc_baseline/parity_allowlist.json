@@ -1602,6 +1602,86 @@
       "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only.",
       "lift_digest": "7397560b818a5d9f4eb31a701499aea10c0ecd8d89d15496c0904d90984b84a6",
       "http4s_digest": "881b4fe9e74e92efbe1177f1548d7ad4aa85be90f0ec44789ecf779267335f6b"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "answerTransactionRequestChallenge",
+      "field": "errorResponseBodies",
+      "reason": "Adds ChallengeNotAddressedToCaller (OBP-40063): a payment challenge is answered by the person the payment is for, so an agent acting under a Consent is refused rather than allowed to relay a code it was never sent. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "13648f17562c1654881963b4978024f82e1edcdb92729397a2b015b291939ddb",
+      "http4s_digest": "c584fa1579db6b30ed7c21cf3dc7da57f50dcad7abba332ea1a58dd4c37808c4"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAccount",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAccountOtp",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAgentCashWithDrawal",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCard",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCounterparty",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestFreeForm",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestRefund",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestSepa",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestSimple",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
     }
   ]
 }

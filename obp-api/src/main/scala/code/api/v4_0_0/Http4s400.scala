@@ -3194,6 +3194,7 @@ object Http4s400 {
         InvalidNumber,
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
+        PaymentChallengeHasNoOnBehalfOfUser,
         TransactionDisabled,
         UnknownError
       ),
@@ -3235,6 +3236,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3269,6 +3271,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3310,6 +3313,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3351,6 +3355,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3379,6 +3384,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3413,6 +3419,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3454,6 +3461,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3517,6 +3525,7 @@ object Http4s400 {
         InvalidNumber,
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
+        PaymentChallengeHasNoOnBehalfOfUser,
         TransactionDisabled,
         UnknownError
       ),
@@ -3623,6 +3632,15 @@ object Http4s400 {
       val isOwnChallenge = challenges.find(_.challengeId == challengeAnswerJson.id)
         .exists(_.expectedUserId == user.userId)
       for {
+        // Where the challenge is somebody else's, the branch below drops the user check, so that
+        // an account with several required answers can be worked through. That latitude is for
+        // people who share an account. It is not extended to an agent: a payment started on a
+        // person's behalf is authorised by that person, otherwise the agent would only have to
+        // get the code read out to it, which is the relay Strong Customer Authentication exists
+        // to prevent. See ON_BEHALF_OF_USER_ID_PLAN.md, Decision 9.
+        _ <- code.util.Helper.booleanToFuture(ChallengeNotAddressedToCaller, failCode = 403, cc = Some(cc)) {
+          isOwnChallenge || user.isOriginalUser
+        }
         (isValidated, _) <- if (isOwnChallenge)
           NewStyle.function.validateChallengeAnswer(
             challengeAnswerJson.id, challengeAnswerJson.answer, SuppliedAnswerType.PLAIN_TEXT_VALUE, Some(cc))
@@ -3749,6 +3767,7 @@ object Http4s400 {
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
         AllowedAttemptsUsedUp,
+        ChallengeNotAddressedToCaller,
         TransactionDisabled,
         UnknownError
       ),

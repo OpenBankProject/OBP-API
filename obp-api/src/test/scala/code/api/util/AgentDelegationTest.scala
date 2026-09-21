@@ -40,8 +40,10 @@ import code.consent.MappedConsent
 import code.model.dataAccess.ResourceUser
 import code.setup.ServerSetup
 import code.model.dataAccess.MappedBank
+import code.transactionChallenge.{MappedChallengeProvider, MappedExpectedChallengeAnswer}
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
 import code.users.{AttributionPolicy, UserReference, Users}
+import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.model.{AccountId, AmountOfMoney, AmountOfMoneyJsonV121, BankAccount, BankAccountCommons, BankId, BankIdAccountId, TransactionRequestCharge, TransactionRequestId, TransactionRequestType}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper.By
@@ -566,6 +568,109 @@ class AgentDelegationTest extends ServerSetup {
       val row = storedTransactionRequestFor(agent)
       storedField(row.mUserId.get) shouldBe agent.userId
       storedField(row.mOnBehalfOfUserId.get) shouldBe agent.userId
+    }
+  }
+
+  feature("A payment challenge can only be answered by the person it was addressed to") {
+
+    /** Saves one OBP_TRANSACTION_REQUEST_CHALLENGE for `expectedUserId` with a known answer. */
+    def savedChallengeFor(expectedUserId: String, answer: String): String = {
+      val challengeId = generateUUID()
+      val salt = org.mindrot.jbcrypt.BCrypt.gensalt()
+      MappedChallengeProvider.saveChallenge(
+        challengeId = challengeId,
+        transactionRequestId = generateUUID(),
+        salt = salt,
+        expectedAnswer = org.mindrot.jbcrypt.BCrypt.hashpw(answer, salt).substring(0, 44),
+        expectedUserId = expectedUserId,
+        scaMethod = None,
+        scaStatus = None,
+        consentId = None,
+        basketId = None,
+        authenticationMethodId = None,
+        challengeType = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString
+      ).openOrThrowException("expected the challenge to be saved")
+      challengeId
+    }
+
+    def attemptCounterOf(challengeId: String): Int =
+      MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.ChallengeId, challengeId))
+        .openOrThrowException("expected the challenge row to exist").AttemptCounter.get
+
+    scenario("the person it was addressed to can answer it", AgentDelegationTag) {
+      val human = createUser()
+      val challengeId = savedChallengeFor(human.userId, "123456")
+      MappedChallengeProvider.validateChallenge(challengeId, "123456", Some(human.userId)) shouldBe a[Full[_]]
+    }
+
+    scenario("somebody else is refused, and is told the challenge is not theirs", AgentDelegationTag) {
+      val human = createUser()
+      val agent = createUser()
+      val challengeId = savedChallengeFor(human.userId, "123456")
+      val result = MappedChallengeProvider.validateChallenge(challengeId, "123456", Some(agent.userId))
+      result shouldBe a[Failure]
+      result.asInstanceOf[Failure].msg should include(ErrorMessages.ChallengeNotAddressedToCaller)
+    }
+
+    // The defect this closes: the attempt counter used to be incremented before the caller was
+    // matched against the challenge, so an agent politely trying to answer its human's payment
+    // challenge burned that human's three attempts and locked the payment out.
+    scenario("a call from somebody else does not use up the allowance of the person it belongs to", AgentDelegationTag) {
+      val human = createUser()
+      val agent = createUser()
+      val challengeId = savedChallengeFor(human.userId, "123456")
+      MappedChallengeProvider.validateChallenge(challengeId, "123456", Some(agent.userId)) shouldBe a[Failure]
+      MappedChallengeProvider.validateChallenge(challengeId, "999999", Some(agent.userId)) shouldBe a[Failure]
+      attemptCounterOf(challengeId) shouldBe 0
+      MappedChallengeProvider.validateChallenge(challengeId, "123456", Some(human.userId)) shouldBe a[Full[_]]
+    }
+  }
+
+  feature("Payment challenges are addressed to the human (UserReference.ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest)") {
+
+    /** Writes a transaction request as `user` and asks who must answer its SCA challenge. */
+    def challengeRecipientFor(user: ResourceUser): Box[com.openbankproject.commons.model.User] = {
+      val row = storedTransactionRequestFor(user)
+      val transactionRequest = row.toTransactionRequest
+        .getOrElse(fail("expected the stored transaction request to convert back"))
+      LocalMappedConnector.paymentChallengeRecipient(transactionRequest, user)
+    }
+
+    scenario("a payment started by a person is authorised by that same person", AgentDelegationTag) {
+      val human = createUser()
+      challengeRecipientFor(human).map(_.userId) shouldBe Full(human.userId)
+    }
+
+    // The point of the whole feature: an agent has no email address and no phone number of its own,
+    // so a challenge left on it is either never delivered (the payment sits at INITIATED for ever)
+    // or, on an instance using the DUMMY SCA method, answered by the agent itself.
+    scenario("a payment started by an agent is authorised by the human it acts for", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val recipient = challengeRecipientFor(agent)
+      recipient.map(_.userId) shouldBe Full(human.userId)
+      recipient.map(_.userId) should not be Full(agent.userId)
+    }
+
+    scenario("an agent whose consent names nobody cannot authorise the payment, and is refused", AgentDelegationTag) {
+      val consent = MappedConsent.create.mUserId("").saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      challengeRecipientFor(agent) shouldBe a[Failure]
+    }
+
+    scenario("a broken consent chain is refused rather than left on the agent", AgentDelegationTag) {
+      val human = createUser()
+      val consent1 = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent1 = createUser(createdByConsentId = Some(consent1.consentId))
+      val consent2 = MappedConsent.create.mUserId(agent1.userId).saveMe()   // names a consent user: data bug
+      val agent2 = createUser(createdByConsentId = Some(consent2.consentId))
+      challengeRecipientFor(agent2) shouldBe a[Failure]
+    }
+
+    scenario("the reference carries the on-behalf-of policy, and the consent one still does not", AgentDelegationTag) {
+      UserReference.ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest.policy shouldBe AttributionPolicy.UseOnBehalfOfUserId
+      UserReference.ExpectedChallengeAnswer_ExpectedUserId.policy shouldBe AttributionPolicy.UseAuthenticatedUserId
     }
   }
 

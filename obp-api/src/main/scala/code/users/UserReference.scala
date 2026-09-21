@@ -150,7 +150,7 @@ object UserReference {
   case object Entitlement_UserId_ConsentScope                  extends UserReference(UseAuthenticatedUserId, "code.entitlement.MappedEntitlement", List("mUserId"), "only when createdByProcess == consent_user: the consent engine copying the consent's own scope")
   case object Entitlement_GrantedByUserId                      extends UserReference(UseAuthenticatedUserId, "code.entitlement.MappedEntitlement", List("mGrantedByUserId"), "audit: who granted")
   case object UserLocks_UserId                                 extends UserReference(UseAuthenticatedUserId, "code.userlocks.UserLocks", List("UserId"), "lock the authenticated user")
-  case object ExpectedChallengeAnswer_ExpectedUserId           extends UserReference(UseAuthenticatedUserId, "code.transactionChallenge.MappedExpectedChallengeAnswer", List("ExpectedUserId"), "the challenge is answered by the initiating user")
+  case object ExpectedChallengeAnswer_ExpectedUserId           extends UserReference(UseAuthenticatedUserId, "code.transactionChallenge.MappedExpectedChallengeAnswer", List("ExpectedUserId"), "consent and signing-basket authorisation: the caller IS the person authorising, so the challenge is theirs")
   case object ChatMessage_SenderUserId                         extends UserReference(UseAuthenticatedUserId, "code.chat.ChatMessage", List("SenderUserId"), "sender = the authenticated user is truthful")
   case object Metric_UserId                                    extends UserReference(UseAuthenticatedUserId, "code.metrics.MappedMetric", List("userId"), "record both: on-behalf-of via consent_reference_id at read time")
   case object MetricArchive_UserId                             extends UserReference(UseAuthenticatedUserId, "code.metrics.MetricArchive", List("userId"), "as Metric_UserId")
@@ -163,6 +163,7 @@ object UserReference {
   // ---- UseOnBehalfOfUserId: the row belongs to the person, so it must outlive the Consent that
   // ---- created it. A handful of these tables keep both ids, and those name two fields.
   case object TransactionRequest_UserId                        extends UserReference(UseOnBehalfOfUserId   , "code.transactionrequests.MappedTransactionRequest", List("mUserId", "mOnBehalfOfUserId"), "record both: mUserId = userId, mOnBehalfOfUserId = onBehalfOfUserId")
+  case object ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest extends UserReference(UseOnBehalfOfUserId, "code.transactionChallenge.MappedExpectedChallengeAnswer", List("ExpectedUserId"), "payment SCA: the challenge belongs to the human whose money moves, never to the agent that started the payment")
   case object Entitlement_UserId                               extends UserReference(UseOnBehalfOfUserId   , "code.entitlement.MappedEntitlement", List("mUserId"), "the role holder; the consent-engine case is Entitlement_UserId_ConsentScope")
   case object AccountHolders_User                              extends UserReference(UseOnBehalfOfUserId   , "code.accountholders.MapperAccountHolders", List("user"), "the human holds the account; one held by a per-consent identity strands when the consent dies")
   case object UserCustomerLink_UserId                          extends UserReference(UseOnBehalfOfUserId   , "code.usercustomerlinks.MappedUserCustomerLink", List("mUserId"), "a Customer is linked to a human; a link on an agent identity dies with its Consent")
@@ -237,6 +238,7 @@ object UserReference {
     Entitlement_GrantedByUserId,
     UserLocks_UserId,
     ExpectedChallengeAnswer_ExpectedUserId,
+    ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest,
     ChatMessage_SenderUserId,
     Metric_UserId,
     MetricArchive_UserId,

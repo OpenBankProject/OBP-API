@@ -110,6 +110,13 @@ object MappedChallengeProvider extends ChallengeProvider {
   ): Box[ChallengeTrait] = {
     for{
        challenge <-  getChallenge(challengeId) ?~! s"${ErrorMessages.InvalidTransactionRequestChallengeId}"
+       // Whether the caller is the person this challenge was addressed to is settled before the
+       // attempt counter moves. Somebody who was never sent the code cannot be "getting it wrong",
+       // and counting their call would let them use up the allowance of the person who was sent it
+       // -- an agent that politely tried to answer its human's payment challenge three times would
+       // lock that payment out. The answer itself is not looked at on this path.
+       _ <- if (userId.forall(_ == challenge.expectedUserId)) Full(true)
+            else Failure(ErrorMessages.ChallengeNotAddressedToCaller)
        newAttemptCounterValue <- tryo(code.bankconnectors.DoobieChallengeQueries.incrementAndGetChallengeCounter(challengeId)) ?~! "Failed to update challenge attempt counter"
        createDateTime = challenge.createdAt.get
        challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
@@ -121,6 +128,8 @@ object MappedChallengeProvider extends ChallengeProvider {
           val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
           val expectedHashedAnswer = challenge.expectedAnswer
           val answerMatches = currentHashedAnswer == expectedHashedAnswer
+          // The caller was already matched against expectedUserId above, before the attempt counter
+          // moved; this repeats it so the condition stays readable on its own.
           val userMatches = userId.forall(_ == challenge.expectedUserId)
           if (answerMatches && userMatches) {
             markChallengeSuccessful(challengeId)

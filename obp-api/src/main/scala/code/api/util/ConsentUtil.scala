@@ -656,39 +656,40 @@ object Consent extends MdcLoggable {
         case Full(mc) => ccWithOnBehalf.copy(consentReferenceId = Some(mc.consentReferenceId))
         case _        => ccWithOnBehalf
       }
-      if (cc.consentCreator.nonEmpty &&
-        APIUtil.getPropsAsBoolValue(nameOfProperty = "experimental_become_user_that_created_consent", defaultValue = false)) {
-        logger.warn("WARNING: experimental_become_user_that_created_consent is DEPRECATED and will be removed soon. Please unset this property.")
-        logger.info("experimental_become_user_that_created_consent = true")
-        logger.info(s"${cc.consentCreator.map(_.userId).getOrElse("")} is logged on instead of Consent user")
-        Future(cc.consentCreator, Some(cc)) // Just propagate the consent creator back
-      } else {
-        logger.info("experimental_become_user_that_created_consent = false")
-        logger.info(s"Getting Consent user (consent.sub: ${consent.sub}, consent.iss: ${consent.iss})")
-        // 1. Get or Create a User
-        getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
-          case (Full(user), newUser) =>
-            // 2. Assign entitlements to the User
-            addEntitlements(user, consent) match {
-              case Full(user) =>
-                // 3. Copy Auth Context to the User
-                copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
-                  case Full(_) =>
-                    // 4. Assign views to the User
-                    (grantAccessToViews(user, consent), Some(cc))
-                  case failure@Failure(_, _, _) => // Handled errors
-                    (failure, Some(cc))
-                  case _ =>
-                    (Failure(ErrorMessages.UnknownError), Some(cc))
-                }
-              case failure@Failure(msg, exp, chain) => // Handled errors
-                (Failure(msg), Some(cc))
-              case _ =>
-                (Failure(CannotAddEntitlement + consentAsJwt), Some(cc))
-            }
-          case _ =>
-            (Failure(CannotGetOrCreateUser + consentAsJwt), Some(cc))
-        }
+      // A Consent-JWT always authenticates as the consent user: the agent identity the Consent
+      // minted, never the human who created the Consent. There used to be a props toggle here,
+      // experimental_become_user_that_created_consent, which logged the creator on instead. It has
+      // been removed and should not come back. Becoming the human dissolves the isolation the
+      // Consent model rests on: the caller would get the human's entitlements and views instead of
+      // the narrower set the Consent grants, every metric row would name the human, and the
+      // on-behalf-of work (ON_BEHALF_OF_USER_ID_PLAN.md) would have nothing to attribute, because
+      // the caller and the on-behalf-of user would be one identity. The human stays reachable
+      // where it is genuinely needed: cc.consentCreator holds them, CallContext.onBehalfOfUserId
+      // resolves them, and the providers write durable rows for them.
+      logger.info(s"Getting Consent user (consent.sub: ${consent.sub}, consent.iss: ${consent.iss})")
+      // 1. Get or Create a User
+      getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
+        case (Full(user), newUser) =>
+          // 2. Assign entitlements to the User
+          addEntitlements(user, consent) match {
+            case Full(user) =>
+              // 3. Copy Auth Context to the User
+              copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
+                case Full(_) =>
+                  // 4. Assign views to the User
+                  (grantAccessToViews(user, consent), Some(cc))
+                case failure@Failure(_, _, _) => // Handled errors
+                  (failure, Some(cc))
+                case _ =>
+                  (Failure(ErrorMessages.UnknownError), Some(cc))
+              }
+            case failure@Failure(msg, exp, chain) => // Handled errors
+              (Failure(msg), Some(cc))
+            case _ =>
+              (Failure(CannotAddEntitlement + consentAsJwt), Some(cc))
+          }
+        case _ =>
+          (Failure(CannotGetOrCreateUser + consentAsJwt), Some(cc))
       }
     }
 

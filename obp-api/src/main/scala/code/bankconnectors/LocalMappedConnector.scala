@@ -4822,6 +4822,75 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     */
 
 
+  /**
+   * This works out which person has to answer the Strong Customer Authentication challenge for a
+   * payment, which is not always the caller that started that payment.
+   *
+   * A payment can be started by an agent: a consent user, minted by a Consent that a person granted
+   * to an application such as Opey or an MCP client. The money being moved is still the person's, so
+   * the challenge has to reach that person. They are the one an OTP can actually be delivered to --
+   * an agent identity has no email address and no phone number of its own -- and they are the one
+   * whose authorisation Strong Customer Authentication exists to obtain in the first place. Leaving
+   * the challenge on the agent gives one of two bad outcomes: on an instance that sends a real OTP
+   * nothing is delivered and the payment sits at INITIATED for ever behind a challenge nobody can
+   * answer, and on an instance configured with the DUMMY SCA method the agent simply authorises its
+   * own payment.
+   *
+   * The person is read back from the transaction request that has just been written rather than
+   * resolved a second time here. That row has already applied
+   * UserReference.TransactionRequest_UserId to the caller, and it also honours the consentCreator /
+   * consenter that a Berlin Group or UK consent carries on the request itself, which the stored
+   * consent chain cannot know. Reading it back keeps the challenge and the payment naming one and
+   * the same person, where a second independent resolution could drift from it. The policy
+   * governing the column this ends up in is
+   * UserReference.ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest.
+   *
+   * @return the person to address the challenge to, or a Failure when no such person can be
+   *         determined. That happens when the caller is an agent whose Consent does not name the
+   *         person it acts for, and it is deliberately fail-closed: the payment is refused rather
+   *         than parked behind a challenge that can never be answered.
+   */
+  // Visible to the rest of `code` rather than fully private so that AgentDelegationTest can put the
+  // decision itself under test; driving it through createTransactionRequestv210 would need a whole
+  // bank, account and view fixture to reach one branch.
+  private[code] def paymentChallengeRecipient(transactionRequest: TransactionRequest, initiator: User): Box[User] = {
+    // Applying the policy here is what logs the delegation against the column about to be written,
+    // and it is what decides the answer if the transaction request row carries none.
+    val attributedUserId: Option[String] = Users.users.vend
+      .attributionOf(initiator.userId, code.users.UserReference.ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest)
+      .toOption.map(_.onBehalfOfUserId).filter(_.nonEmpty)
+    val recipientUserId = transactionRequest.on_behalf_of_user_id.filter(_.nonEmpty)
+      .orElse(attributedUserId)
+      .getOrElse(initiator.userId)
+    if (recipientUserId == initiator.userId) {
+      // The caller is acting for themselves. This is the ordinary case for a person logging in
+      // directly, and it is also what a broken consent chain collapses to, so an agent that has
+      // landed here must still be refused.
+      if (initiator.isOriginalUser) Full(initiator)
+      else {
+        logger.warn(s"paymentChallengeRecipient says: the caller (${initiator.userId}) of transaction request " +
+          s"(${transactionRequest.id.value}) is a consent user and its Consent does not name the user it acts for, " +
+          s"so there is nobody to address the payment challenge to. Refusing the payment.")
+        Failure(PaymentChallengeHasNoOnBehalfOfUser)
+      }
+    } else {
+      // Delegated. The plan's invariant is that an on-behalf-of user is always an original user, so
+      // a stored chain saying otherwise is a data bug, and it is refused rather than acted on.
+      Users.users.vend.getUserByUserId(recipientUserId) match {
+        case Full(recipient) if recipient.isOriginalUser => Full(recipient)
+        case Full(_) =>
+          logger.warn(s"paymentChallengeRecipient says: the on-behalf-of user ($recipientUserId) of transaction " +
+            s"request (${transactionRequest.id.value}) is itself a consent user, which breaks the one-hop " +
+            s"invariant. Refusing the payment.")
+          Failure(PaymentChallengeHasNoOnBehalfOfUser)
+        case _ =>
+          logger.warn(s"paymentChallengeRecipient says: the on-behalf-of user ($recipientUserId) of transaction " +
+            s"request (${transactionRequest.id.value}) does not exist. Refusing the payment.")
+          Failure(PaymentChallengeHasNoOnBehalfOfUser)
+      }
+    }
+  }
+
   override def createTransactionRequestv210(initiator: User,
                                             viewId: ViewId,
                                             fromAccount: BankAccount,
@@ -4921,11 +4990,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           }
         case TransactionRequestStatus.INITIATED =>
           for {
+            // The challenge belongs to the person the payment is for, who is not the caller when an
+            // agent started it. See paymentChallengeRecipient.
+            challengeRecipient <- Future { paymentChallengeRecipient(transactionRequest, initiator) } map {
+              unboxFullOrFail(_, callContext, PaymentChallengeHasNoOnBehalfOfUser, 400)
+            }
             //if challenge necessary, create a new one
             (challengeId, callContext) <- createChallenge(
               fromAccount.bankId,
               fromAccount.accountId,
-              initiator.userId,
+              challengeRecipient.userId,
               transactionRequestType: TransactionRequestType,
               transactionRequest.id.value,
               scaMethod,
@@ -5093,7 +5167,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           } else {
             // return the lists of users, who need to be answered the challenges
             def getUsersForChallenges(bankId: BankId,
-                                      accountId: AccountId) = {
+                                      accountId: AccountId,
+                                      challengeRecipient: User) = {
               Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
                 _._1.map {
                   x => {
@@ -5101,21 +5176,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                       for (
                         permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
                       ) yield {
-                        permission.views.exists(view =>view.view.allowed_actions.exists( _ == CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE))
+                        // An agent that holds a view on this account is skipped even when that view
+                        // carries the permission: a payment challenge is answered by a person, and
+                        // an agent identity has no email address or phone number an OTP could reach.
+                        // See paymentChallengeRecipient for the whole argument.
+                        (permission.views.exists(view =>view.view.allowed_actions.exists( _ == CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE)) &&
+                          permission.user.isOriginalUser)
                         match {
                           case true => Some(permission.user)
                           case _ => None
                         }
                       }
-                    } else List(Some(initiator))
+                    } else List(Some(challengeRecipient))
                   }.flatten.distinct
                 }
               }
             }
   
             for {
+              // The challenge belongs to the person the payment is for, who is not the caller when
+              // an agent started it. See paymentChallengeRecipient.
+              challengeRecipient <- Future { paymentChallengeRecipient(transactionRequest, initiator) } map {
+                unboxFullOrFail(_, callContext, PaymentChallengeHasNoOnBehalfOfUser, 400)
+              }
               //if challenge necessary, create a new one
-              users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
+              users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId, challengeRecipient)
               //now we support multiple challenges. We can support multiple people to answer the challenges.
               //So here we return the challengeIds. 
               (challenges, callContext) <- Connector.connector.vend.createChallengesC2(
