@@ -34,8 +34,8 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, NotificationWebhookNotFound, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -2076,6 +2076,139 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       And("the row should still exist with status RETIRED")
       val fetched = RoutingSchemes.routingScheme.vend.getRoutingScheme(scheme)
       fetched.map(_.status) shouldBe net.liftweb.common.Full("RETIRED")
+    }
+  }
+
+  // ── Account Notification Webhook deletes ──────────────────────────────────
+  //
+  // v4.0.0 shipped the two creates with no delete, so these rows could not be removed by anyone.
+  // The provider is driven directly to make the fixtures; creating them over HTTP would test the
+  // v4 endpoints rather than these.
+
+  private def createSystemNotificationWebhook(): String = {
+    val created = scala.concurrent.Await.result(
+      code.webhook.SystemAccountNotificationWebhookTrait.systemAccountNotificationWebhook.vend
+        .createSystemAccountNotificationWebhookFuture(
+          userId = resourceUser1.userId,
+          triggerName = code.api.util.ApiTrigger.onCreateTransaction.toString,
+          url = "https://example.com/hook",
+          httpMethod = "POST",
+          httpProtocol = "HTTP/1.1"),
+      scala.concurrent.duration.Duration(20, "seconds"))
+    created.openOrThrowException("could not create the system notification webhook fixture").webhookId
+  }
+
+  private def createBankNotificationWebhook(bankId: String): String = {
+    val created = scala.concurrent.Await.result(
+      code.webhook.BankAccountNotificationWebhookTrait.bankAccountNotificationWebhook.vend
+        .createBankAccountNotificationWebhookFuture(
+          bankId = bankId,
+          userId = resourceUser1.userId,
+          triggerName = code.api.util.ApiTrigger.onCreateTransaction.toString,
+          url = "https://example.com/hook",
+          httpMethod = "POST",
+          httpProtocol = "HTTP/1.1"),
+      scala.concurrent.duration.Duration(20, "seconds"))
+    created.openOrThrowException("could not create the bank notification webhook fixture").webhookId
+  }
+
+  feature("Http4s700 deleteSystemAccountNotificationWebhook endpoint") {
+
+    scenario("Reject unauthenticated DELETE", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", "/obp/v7.0.0/web-hooks/account/notifications/on-create-transaction/does-not-matter")
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 when missing canDeleteSystemAccountNotificationWebhook", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token2.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", "/obp/v7.0.0/web-hooks/account/notifications/on-create-transaction/does-not-matter", headers)
+      statusCode shouldBe 403
+    }
+
+    scenario("Return 404 for an unknown webhook id", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canDeleteSystemAccountNotificationWebhook.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod(
+        "DELETE", "/obp/v7.0.0/web-hooks/account/notifications/on-create-transaction/no-such-webhook", headers)
+      statusCode shouldBe 404
+      messageOf(json) should startWith(NotificationWebhookNotFound)
+    }
+
+    scenario("Return 204 and remove the row when role granted", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canDeleteSystemAccountNotificationWebhook.toString)
+      val webhookId = createSystemNotificationWebhook()
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/web-hooks/account/notifications/on-create-transaction/$webhookId", headers)
+      statusCode shouldBe 204
+
+      And("the row should be gone")
+      val fetched = scala.concurrent.Await.result(
+        code.webhook.SystemAccountNotificationWebhookTrait.systemAccountNotificationWebhook.vend
+          .getSystemAccountNotificationWebhookByIdFuture(webhookId), scala.concurrent.duration.Duration(20, "seconds"))
+      fetched.isDefined shouldBe false
+
+      And("deleting it a second time should answer 404")
+      val (secondStatusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/web-hooks/account/notifications/on-create-transaction/$webhookId", headers)
+      secondStatusCode shouldBe 404
+    }
+  }
+
+  feature("Http4s700 deleteBankAccountNotificationWebhook endpoint") {
+
+    scenario("Reject unauthenticated DELETE", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/banks/$bankId/web-hooks/account/notifications/on-create-transaction/does-not-matter")
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 when missing canDeleteAccountNotificationWebhookAtOneBank", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val headers = Map("DirectLogin" -> s"token=${token2.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/banks/$bankId/web-hooks/account/notifications/on-create-transaction/does-not-matter", headers)
+      statusCode shouldBe 403
+    }
+
+    scenario("Return 204 and remove the row when role granted", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      addEntitlement(bankId, resourceUser1.userId, canDeleteAccountNotificationWebhookAtOneBank.toString)
+      val webhookId = createBankNotificationWebhook(bankId)
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/banks/$bankId/web-hooks/account/notifications/on-create-transaction/$webhookId", headers)
+      statusCode shouldBe 204
+
+      And("the row should be gone")
+      val fetched = scala.concurrent.Await.result(
+        code.webhook.BankAccountNotificationWebhookTrait.bankAccountNotificationWebhook.vend
+          .getBankAccountNotificationWebhookByIdFuture(webhookId), scala.concurrent.duration.Duration(20, "seconds"))
+      fetched.isDefined shouldBe false
+    }
+
+    scenario("A webhook belonging to another bank reads as not found, not forbidden", Http4s700RoutesTag) {
+      val ownerBankId = testBankId1.value
+      val otherBankId = testBankId2.value
+      addEntitlement(otherBankId, resourceUser1.userId, canDeleteAccountNotificationWebhookAtOneBank.toString)
+      val webhookId = createBankNotificationWebhook(ownerBankId)
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/banks/$otherBankId/web-hooks/account/notifications/on-create-transaction/$webhookId", headers)
+      statusCode shouldBe 404
+      messageOf(json) should startWith(NotificationWebhookNotFound)
+
+      And("the webhook must still exist at its own bank")
+      val fetched = scala.concurrent.Await.result(
+        code.webhook.BankAccountNotificationWebhookTrait.bankAccountNotificationWebhook.vend
+          .getBankAccountNotificationWebhookByIdFuture(webhookId), scala.concurrent.duration.Duration(20, "seconds"))
+      fetched.isDefined shouldBe true
     }
   }
 

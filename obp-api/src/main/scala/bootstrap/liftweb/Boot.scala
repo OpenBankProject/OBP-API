@@ -397,6 +397,8 @@ class Boot extends MdcLoggable {
 
     warnAboutEmailDeliveryConfiguration()
 
+    warnAboutRemovedProps()
+
     OAuth2Login.logConfigWarnings()
 
     createBootstrapOidcOperatorUser()
@@ -772,6 +774,38 @@ class Boot extends MdcLoggable {
           logger.warn("========================================================================")
         }
       case _ => // No super admin users configured, nothing to warn about
+    }
+  }
+
+  /**
+   * Warn at startup about props that this instance still sets but that OBP no longer reads.
+   *
+   * A prop that has been removed from the code is simply ignored, so an operator who set it
+   * deliberately gets a silent change of behaviour on upgrade and no way to find out. Naming it
+   * here turns that into one line in the boot log. Entries are (prop name, what to know now).
+   */
+  private def warnAboutRemovedProps(): Unit = {
+    val removedProps = List(
+      "experimental_become_user_that_created_consent" ->
+        ("A Consent-JWT now always authenticates as the consent user (the agent identity the " +
+          "Consent minted), never as the human who created the Consent. Setting this to true used " +
+          "to log that human on instead. The human is still recorded on what the call creates - " +
+          "see on_behalf_of_user_id - but the caller's own permissions are the Consent's.")
+    )
+    val stillSet = removedProps.filter { case (name, _) =>
+      APIUtil.getPropsValue(name).exists(_.trim.nonEmpty)
+    }
+    if (stillSet.nonEmpty) {
+      logger.warn("========================================================================")
+      logger.warn("WARNING: this instance sets props that OBP no longer reads:")
+      stillSet.foreach { case (name, explanation) =>
+        logger.warn("")
+        logger.warn(s"  $name")
+        logger.warn(s"    $explanation")
+      }
+      logger.warn("")
+      logger.warn("Remove them from your props file; they have no effect.")
+      logger.warn("========================================================================")
     }
   }
 

@@ -219,6 +219,30 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
       By(MappedCounterparty.mThisViewId, viewId.value)))
   }
 
+  /**
+   * (who made the call, who they were acting for) for a counterparty about to be written.
+   *
+   * Record-both rather than redirect. A counterparty is the control on where money may be sent,
+   * so "which agent created this" must be answerable from the row itself — not reconstructed by
+   * matching a timestamp against a metrics table that has its own retention. And mCreatedByUserId
+   * is published as `created_by_user_id` on the v2.2.0 and v4.0.0 counterparty responses, so
+   * redirecting it would make a STABLE field report a human for something an agent did.
+   *
+   * Only the caller's id is needed to get both: attributionOf resolves the human from it. What a
+   * provider cannot do without a CallContext is honour the request layer's consentCreator /
+   * consenter, which a Berlin Group or UK consent carries on the request rather than in the
+   * stored chain — for those, an unbound consent falls back to the caller, which is the
+   * documented fail-closed behaviour.
+   *
+   * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+   */
+  private def counterpartyCreators(createdByUserId: String): (String, String) =
+    if (createdByUserId == null || createdByUserId.isEmpty) (createdByUserId, createdByUserId)
+    else Users.users.vend.attributionOf(createdByUserId, code.users.UserReference.Counterparty_CreatedByUserId) match {
+      case Full(attribution) => (attribution.userId, attribution.onBehalfOfUserId)
+      case _                 => (createdByUserId, createdByUserId)
+    }
+
   override def createCounterparty(
                                   createdByUserId: String,
                                   thisBankId: String,
@@ -239,10 +263,12 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
     tryo{
+      val (actorUserId, onBehalfOfUserId) = counterpartyCreators(createdByUserId)
       val mappedCounterparty = MappedCounterparty.create
         .mCounterPartyId(APIUtil.createExplicitCounterpartyId) //We create the Counterparty_Id here, it means, it will be created in each connector.
         .mName(name)
-        .mCreatedByUserId(createdByUserId)
+        .mCreatedByUserId(actorUserId)
+        .mCreatedByOnBehalfOfUserId(onBehalfOfUserId)
         .mThisBankId(thisBankId)
         .mThisAccountId(thisAccountId)
         .mThisViewId(thisViewId)
@@ -506,6 +532,19 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   def getSingleton = MappedCounterparty
 
   object mCreatedByUserId extends MappedString(this, 36)
+  /**
+   * The human the creator was acting for, when a Consent was involved; otherwise the same as
+   * mCreatedByUserId. Record-both, as MappedTransactionRequest does — a counterparty controls
+   * where money may be sent, so both "who did this" and "whose is this" have to be answerable
+   * from the row rather than by correlating a timestamp against the metrics table.
+   *
+   * Not on CounterpartyTrait and not in any JSON: the trait lives in obp-commons and is
+   * implemented by the remote-connector DTOs, and adding a field to the v2.2.0/v4.0.0
+   * counterparty responses would change a STABLE contract. Internal audit column for now.
+   *
+   * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+   */
+  object mCreatedByOnBehalfOfUserId extends MappedString(this, 36)
   object mName extends MappedString(this, 36)
   object mThisBankId extends MappedString(this, 36)
   object mThisAccountId extends AccountIdString(this)

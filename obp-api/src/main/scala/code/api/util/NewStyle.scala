@@ -3760,6 +3760,26 @@ object NewStyle extends MdcLoggable{
         }
       }
 
+      // The id of a Dynamic Entity record is kept in a database column of a fixed width
+      // (code.DynamicData.DynamicData.DynamicDataId). A caller is allowed to supply that id instead of
+      // letting one be generated, which is how an entity is given a natural key such as a country code,
+      // so the value can be any length at all. Check it here and answer with a message that says what is
+      // wrong: without this check an over-long id only fails once it reaches the database driver, and the
+      // caller is told nothing more useful than "value too long for type character varying".
+      val maximumRecordIdLength = code.DynamicData.DynamicData.DynamicDataId.maxLen
+      val overLongRecordId: Option[String] = requestBodyDynamicInstance.flatMap { body =>
+        body \ DynamicEntityHelper.createEntityId(entityName) match {
+          case JString(recordId) if recordId.length > maximumRecordIdLength => Some(recordId)
+          case _ => None
+        }
+      }
+      if (overLongRecordId.isDefined) {
+        return Helper.booleanToFuture(
+          s"$DynamicEntityRecordIdTooLong The maximum length is $maximumRecordIdLength characters, the given id is ${overLongRecordId.get.length} characters long.",
+          cc = callContext)(false)
+          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+      }
+
       requestBodyDynamicInstance match {
           // @(variable-binding pattern), we can use the empty variable 
           // If there is not instance in requestBody, we just call the `dynamicEntityProcess` directly.

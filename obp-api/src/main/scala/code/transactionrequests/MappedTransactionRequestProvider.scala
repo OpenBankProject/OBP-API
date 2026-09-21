@@ -143,7 +143,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
 
      // Note: We don't save transaction_ids, status and challenge here.
     // Record both: mUserId = the authenticated user, mOnBehalfOfUserId = who the payment is for.
-    // The attribution call (UserReference.TransactionRequest) answers the second; the request
+    // The attribution call (UserReference.TransactionRequest_UserId) answers the second; the request
     // layer's consentCreator / consenter take precedence over its DB chain, as in
     // CallContext.onBehalfOfUserId. The call is made even when they already name the
     // on-behalf-of user, because it is the one place a delegated write is logged.
@@ -154,7 +154,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     val authenticatedUserId: Option[String] =
       callContext.flatMap(_.user.toOption).map(_.userId).filter(_.nonEmpty)
     val transactionRequestAttribution: Option[code.users.Attribution] = authenticatedUserId.flatMap(userId =>
-      code.users.Users.users.vend.attributionOf(userId, code.users.UserReference.TransactionRequest).toOption)
+      code.users.Users.users.vend.attributionOf(userId, code.users.UserReference.TransactionRequest_UserId).toOption)
     val onBehalfOfUserIdOption: Option[String] =
       callContext.flatMap(cc => cc.consentCreator.or(cc.consenter).toOption).map(_.userId).filter(_.nonEmpty)
         .orElse(transactionRequestAttribution.map(_.onBehalfOfUserId))

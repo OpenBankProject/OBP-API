@@ -51,9 +51,11 @@ import org.scalatest.Tag
 import scala.io.Source
 
 /**
- * Phase 4 item 3 of ON_BEHALF_OF_USER_ID_PLAN.md: what a consent user creates is owned by the human.
+ * This suite checks that what an agent creates ends up owned by the person it acts for, rather
+ * than by the throwaway identity the Consent gave it. It is item 3 of Phase 4 in
+ * ON_BEHALF_OF_USER_ID_PLAN.md.
  *
- * The complement of ExplicitTargetConsentUserSweepTest. That suite covers the half of the doctrine
+ * It is the complement of ExplicitTargetConsentUserSweepTest. That suite covers the half of the doctrine
  * where the caller names a target by id and is refused; this one covers the half where the caller
  * means "me" and the provider silently redirects the write to the human the Consent was granted by.
  * The caller here IS a consent user, driven by a real Consent JWT minted over the wire.
@@ -62,9 +64,12 @@ import scala.io.Source
  *
  * The plan says: "call every UseOnBehalfOfUserId create endpoint with the consent JWT; assert no
  * row in any such table references the consent user's id". Taken literally that suite is red on the
- * day it is written and stays red for months: of the 53 UseOnBehalfOfUserId references,
- * FIVE are wired today (TransactionRequest, EntitlementUser, AccountHolderUser,
- * UserCustomerLinkUser, DynamicEntityUser/DynamicDataUser -- Phase 2 rows 1 to 3). A permanently
+ * day it is written and stays red for months: of the 62 references this scenario covers (the 59
+ * UseOnBehalfOfUserId ones and the 3 Reject ones), EIGHT are wired today (TransactionRequest_UserId,
+ * Entitlement_UserId, AccountHolders_User, UserCustomerLink_UserId,
+ * DynamicEntity_UserId/DynamicData_UserId, Bank_CreatedByUserId, Counterparty_CreatedByUserId --
+ * Phase 2 rows 1 to 5), and the other 54 are the notYetWired list below.
+ * A permanently
  * red suite is one people learn to ignore, which is the same reasoning AuthSweepTest's
  * expectedAuthDeviation records for its own two entries.
  *
@@ -81,7 +86,7 @@ import scala.io.Source
  *     reference the consent user -- except in the tables the inventory says are not wired yet.
  *
  *  3. THE SCAN ITSELF WORKS (runtime, negative control). The same consent user creates an API
- *     collection, whose reference (ApiCollectionUser) is NOT wired. The scan must find that row.
+ *     collection, whose reference (ApiCollection_UserId) is NOT wired. The scan must find that row.
  *     Without this, scenario 2 passes just as happily if the scan is silently looking at nothing --
  *     which is the failure mode a table-driven assertion has and a hand-written one does not.
  */
@@ -91,12 +96,17 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
   implicit val runtime: IORuntime = IORuntime.global
 
+  private val webhookDeferred =
+    "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
+    "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md."
+
   private val mechanicalBatch =
     "Phase 2 mechanical batch: the provider does not call attributionOf yet, so a consent user's " +
     "row is stored against the consent user and dies with the Consent."
 
   /**
-   * References whose provider does not consult the resolver yet (Phase 2 is incremental).
+   * This lists the references whose provider does not consult the resolver yet, because Phase 2 is
+   * being done a table at a time rather than all at once.
    *
    * Written out by hand rather than derived from "what main does not reference". A derived list
    * would agree with reality by construction: the undecided check could never fail, because
@@ -108,66 +118,65 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
    * This list may only shrink.
    */
   private val notYetWired: Map[String, String] = Map(
-    "AccountApplicationUser"                  -> mechanicalBatch,
-    "AccountAccessRequestRequestor"           -> mechanicalBatch,
-    "AccountAccessRequestChecker"             -> mechanicalBatch,
-    "DynamicChangeRequestRequestor"           -> mechanicalBatch,
-    "DynamicChangeRequestChecker"             -> mechanicalBatch,
-    "EntitlementRequestUser"                  -> mechanicalBatch,
-    "UserScopeUser"                           -> mechanicalBatch,
-    "ApiCollectionUser"                       -> mechanicalBatch,
-    "UserAttributeUser"                       -> mechanicalBatch,
-    "UserAgreementUser"                       -> mechanicalBatch,
-    "UserInitActionUser"                      -> mechanicalBatch,
-    "UserAuthContextUser"                     -> mechanicalBatch,
-    "UserAuthContextUpdateUser"               -> mechanicalBatch,
-    "DynamicDataAccessUser"                   -> mechanicalBatch,
-    "DynamicEndpointUser"                     -> mechanicalBatch,
-    "DynamicResourceDocCreator"               -> mechanicalBatch,
-    "DynamicMessageDocCreator"                -> mechanicalBatch,
-    "ConnectorMethodCreator"                  -> mechanicalBatch,
-    "AbacRuleCreator"                         -> mechanicalBatch,
-    "CounterpartyCreator"                     -> mechanicalBatch,
-    "CounterpartyWhereTagUser"                -> mechanicalBatch,
-    "ApiProductSubscriptionCreator"           -> mechanicalBatch,
-    "DynamicGlossaryItemCreator"              -> mechanicalBatch,
-    "OrganisationCreator"                     -> mechanicalBatch,
-    "PayeeLookupCreator"                      -> mechanicalBatch,
-    "RoutingSchemeCreator"                    -> mechanicalBatch,
-    "UtilityPaymentCallbackCreator"           -> mechanicalBatch,
-    "StandingOrderUser"                       -> mechanicalBatch,
-    "DirectDebitUser"                         -> mechanicalBatch,
-    "MandateCreator"                          -> mechanicalBatch,
-    "SignatoryPanelUsers"                     -> mechanicalBatch,
-    "AccountWebhookCreator"                   -> mechanicalBatch,
-    "SystemAccountNotificationWebhookCreator" -> mechanicalBatch,
-    "BankAccountNotificationWebhookCreator"   -> mechanicalBatch,
-    "ChatRoomCreator"                         -> mechanicalBatch,
-    "ChatParticipantUser"                     -> mechanicalBatch,
-    "ChatReactionUser"                        -> mechanicalBatch,
-    "ChatEmailDigestStateUser"                -> mechanicalBatch,
-    "ChatMessageMentionedUsers"               -> mechanicalBatch,
-    "CrmEventUser"                            -> mechanicalBatch,
-    "KycCheckUser"                            -> mechanicalBatch,
-    "KycCheckStaff"                           -> mechanicalBatch,
-    "KycDocumentUser"                         -> mechanicalBatch,
-    "KycStatusUser"                           -> mechanicalBatch,
-    "SocialMediaUser"                         -> mechanicalBatch,
-    "CustomerMessageUser"                     -> mechanicalBatch,
-    "MeetingCustomerUser"                     -> mechanicalBatch,
-    "MeetingStaffUser"                        -> mechanicalBatch,
-    "TagUser"                                 -> mechanicalBatch,
-    "WhereTagUser"                            -> mechanicalBatch,
-    "TransactionImageUser"                    -> mechanicalBatch,
-    "AccountAccessRequestTarget" ->
+    "AccountApplication_UserId"                  -> mechanicalBatch,
+    "AccountAccessRequest_RequestorUserId"           -> mechanicalBatch,
+    "AccountAccessRequest_CheckerUserId"             -> mechanicalBatch,
+    "DynamicChangeRequest_RequestorUserId"           -> mechanicalBatch,
+    "DynamicChangeRequest_CheckerUserId"             -> mechanicalBatch,
+    "EntitlementRequest_UserId"                  -> mechanicalBatch,
+    "UserScope_UserId"                           -> mechanicalBatch,
+    "ApiCollection_UserId"                       -> mechanicalBatch,
+    "UserAttribute_UserId"                       -> mechanicalBatch,
+    "UserAgreement_UserId"                       -> mechanicalBatch,
+    "UserInitAction_UserId"                      -> mechanicalBatch,
+    "UserAuthContext_UserId"                     -> mechanicalBatch,
+    "UserAuthContextUpdate_UserId"               -> mechanicalBatch,
+    "DynamicDataAccess_UserId"                   -> mechanicalBatch,
+    "DynamicEndpoint_UserId"                     -> mechanicalBatch,
+    "DynamicResourceDoc_CreatedByUserId"               -> mechanicalBatch,
+    "DynamicMessageDoc_CreatedByUserId"                -> mechanicalBatch,
+    "ConnectorMethod_CreatedByUserId"                  -> mechanicalBatch,
+    "AbacRule_CreatedByUserId"                         -> mechanicalBatch,
+    "CounterpartyWhereTag_User"                -> mechanicalBatch,
+    "ApiProductSubscription_CreatedByUserId"           -> mechanicalBatch,
+    "DynamicGlossaryItem_CreatedByUserId"              -> mechanicalBatch,
+    "Organisation_CreatedByUserId"                     -> mechanicalBatch,
+    "PayeeLookup_CreatedByUserId"                      -> mechanicalBatch,
+    "RoutingScheme_CreatedByUserId"                    -> mechanicalBatch,
+    "UtilityPaymentCallback_CreatedByUserId"           -> mechanicalBatch,
+    "StandingOrder_UserId"                       -> mechanicalBatch,
+    "DirectDebit_UserId"                         -> mechanicalBatch,
+    "Mandate_CreatedByUserId"                          -> mechanicalBatch,
+    "SignatoryPanel_UserIds"                     -> mechanicalBatch,
+    "AccountWebhook_CreatedByUserId" -> webhookDeferred,
+    "SystemAccountNotificationWebhook_CreatedByUserId" -> webhookDeferred,
+    "BankAccountNotificationWebhook_CreatedByUserId" -> webhookDeferred,
+    "ChatRoom_CreatedByUserId"                         -> mechanicalBatch,
+    "Participant_UserId"                     -> mechanicalBatch,
+    "Reaction_UserId"                        -> mechanicalBatch,
+    "ChatEmailDigestState_UserId"                -> mechanicalBatch,
+    "ChatMessage_MentionedUserIds"               -> mechanicalBatch,
+    "CrmEvent_UserId"                            -> mechanicalBatch,
+    "KycCheck_User"                            -> mechanicalBatch,
+    "KycCheck_StaffUserId"                           -> mechanicalBatch,
+    "KycDocument_User"                         -> mechanicalBatch,
+    "KycStatus_User"                           -> mechanicalBatch,
+    "SocialMedia_User"                         -> mechanicalBatch,
+    "CustomerMessage_User"                     -> mechanicalBatch,
+    "Meeting_CustomerUserId"                     -> mechanicalBatch,
+    "Meeting_StaffUserId"                        -> mechanicalBatch,
+    "Tag_User"                                 -> mechanicalBatch,
+    "WhereTag_User"                            -> mechanicalBatch,
+    "TransactionImage_User"                    -> mechanicalBatch,
+    "AccountAccessRequest_TargetUserId" ->
       ("explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
        "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
-    "ConsentCreator" ->
+    "Consent_UserId" ->
       ("Reject, not yet enforced: a consent user can still create a Consent (nested delegation). " +
        "attributionOf already returns Failure for it -- AgentDelegationTest pins that -- but no " +
        "caller consults it. ON_BEHALF_OF_USER_ID_PLAN.md Phase 3, still open."),
-    "OAuthConsumerCreator" -> "Reject, not yet enforced: no caller consults attributionOf.",
-    "OAuthTokenUser"       -> "Reject, not yet enforced: no caller consults attributionOf."
+    "Consumer_CreatedByUserId" -> "Reject, not yet enforced: no caller consults attributionOf.",
+    "Token_UserForeignKey"       -> "Reject, not yet enforced: no caller consults attributionOf."
   )
 
   // ── which references main actually uses ────────────────────────────────────
@@ -184,25 +193,52 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
     }
 
   /**
-   * Reference names mentioned anywhere in main outside the policy file itself.
+   * This is the set of reference names mentioned anywhere in the main sources, outside the policy
+   * file itself.
    *
    * "Mentioned" is weaker than "applied correctly" -- a provider could name the reference and still
    * store the wrong id. That stronger question is what scenario 2 answers at runtime; this one only
    * has to separate "somebody has been here" from "nobody has", which is exactly what the ratchet
    * needs to know.
+   *
+   * Comments are stripped first, and that is load-bearing rather than tidiness. Documenting a
+   * reference is not wiring it: on 2026-09-15 a doc comment on LiftUsers.attributionOf explaining
+   * WHY a consent user cannot create a Consent named `UserReference.Consent_UserId` in prose, and
+   * the ratchet promptly reported the (entirely correct) Consent_UserId exemption as stale. A guard
+   * that fires when someone writes a comment teaches people to write fewer comments, and worse,
+   * lets a reference be marked wired without a single call site.
+   *
+   * The pattern has to admit `_`: reference names carry one at the table/column boundary
+   * (Bank_CreatedByUserId). Without it the match stops at the table half, which is not a name in
+   * `all`, so the intersect drops it and every wired reference reads as unwired.
    */
   private lazy val usedInMain: Set[String] = {
     val names = UserReference.all.map(_.name).toSet
-    val pattern = """UserReference\.([A-Za-z]+)""".r
+    val pattern = """UserReference\.([A-Za-z_]+)""".r
     scalaFilesUnder(mainSourceRoot)
       .filterNot(_.getPath.endsWith("code/users/UserReference.scala"))
       .flatMap { f =>
         val source = Source.fromFile(f, "UTF-8")
-        try pattern.findAllMatchIn(source.mkString).map(_.group(1)).toList finally source.close()
+        try pattern.findAllMatchIn(withoutComments(source.mkString)).map(_.group(1)).toList
+        finally source.close()
       }
       .toSet
       .intersect(names)
   }
+
+  /**
+   * This returns the given Scala source with its block, scaladoc and line comments blanked out, so
+   * that a name appearing only in a comment is not mistaken for a use of it.
+   *
+   * Deliberately a pair of regexes rather than a lexer: the only thing read out of the result is
+   * `UserReference.Xxx`, so the one way this can be wrong -- a `//` inside a string literal
+   * truncating the rest of that line -- would have to be followed by a UserReference mention in
+   * the same literal to matter, which no call site looks like.
+   */
+  private def withoutComments(source: String): String =
+    source
+      .replaceAll("(?s)/\\*.*?\\*/", " ")
+      .replaceAll("//[^\n]*", " ")
 
   // ── the leak scan ──────────────────────────────────────────────────────────
 
@@ -210,10 +246,11 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
     ToSchemify.models.map(meta => meta.getClass.getName.stripSuffix("$") -> meta).toMap
 
   /**
-   * How to tell two references apart when they name the SAME column with different policies.
+   * This says how to tell two references apart when they name the same column under different
+   * policies, which the scan needs in order to read that column at all.
    *
-   * MappedEntitlement.mUserId is the one case in the policy file: EntitlementUser
-   * (UseOnBehalfOfUserId, the role holder) and ConsentEntitlementUser (KeepUserId, the consent
+   * MappedEntitlement.mUserId is the one case in the policy file: Entitlement_UserId
+   * (UseOnBehalfOfUserId, the role holder) and Entitlement_UserId_ConsentScope (UseAuthenticatedUserId, the consent
    * engine copying the Consent's own scope onto the consent user). MappedEntitlements.addEntitlement
    * picks between them on createdByProcess, so a scan of that column that does not apply the same
    * discriminator reports every consent's own materialised scope as a leak -- which it is not; those
@@ -222,10 +259,19 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
    * Reference name -> (discriminator field, the value that belongs to the OTHER reference).
    */
   private val sharedColumnDiscriminator: Map[String, (String, String)] = Map(
-    "EntitlementUser" -> ("mCreatedByProcess", code.api.Constant.consent_user)
+    "Entitlement_UserId" -> ("mCreatedByProcess", code.api.Constant.consent_user),
+    // MappedExpectedChallengeAnswer.ExpectedUserId is the second case. One table holds two kinds of
+    // challenge. A payment challenge names a transaction request, and belongs to the human whose
+    // money is moving (ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest). A consent or
+    // signing-basket authorisation challenge names no transaction request, and belongs to whoever
+    // is doing the authorising, which is the caller (ExpectedChallengeAnswer_ExpectedUserId) -- so
+    // a consent user legitimately appears in that column, and the scan must not read it as a leak.
+    "ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest" -> ("TransactionRequestId", "")
   )
 
-  /** Columns named by references that disagree on policy, so the scan must be told how to split them. */
+  /** This lists the columns that more than one reference names under differing policies. Every one
+   *  of them must appear in sharedColumnDiscriminator above, or the scan cannot tell which rows
+   *  belong to which reference. */
   private lazy val sharedColumns: List[(String, List[UserReference])] =
     UserReference.all
       .flatMap(ref => ref.fields.map(field => s"${ref.mapperClass}.$field" -> ref))
@@ -359,7 +405,7 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
       withClue(
         s"""|${unsplit.size} column(s) are named by references with different policies, but the scan
-            |has no discriminator for them -- so it would read the KeepUserId rows as leaks from the
+            |has no discriminator for them -- so it would read the UseAuthenticatedUserId rows as leaks from the
             |UseOnBehalfOfUserId reference, or miss real leaks by widening the exemption. Add an entry
             |to sharedColumnDiscriminator naming the field the provider branches on:
             |${unsplit.mkString("\n")}
@@ -413,9 +459,9 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
       val agentId  = currentUserIdOf(headers)
       val agentKey = primaryKeyOf(agentId)
 
-      withClue("ApiCollectionUser must still be unwired for this control to mean anything; " +
+      withClue("ApiCollection_UserId must still be unwired for this control to mean anything; " +
                "once it is wired, replace it here with another unwired reference: ") {
-        usedInMain should not contain "ApiCollectionUser"
+        usedInMain should not contain "ApiCollection_UserId"
       }
 
       val (status, body) = callApi("POST", "/obp/v4.0.0/my/api-collections", headers,
@@ -427,7 +473,7 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
       withClue("the api collection was stored against the consent user, but the scan did not see " +
                "it -- so the scan in the scenario above is not looking where it claims to: ") {
-        referencesOwnedBy(agentId, agentKey) should contain("ApiCollectionUser")
+        referencesOwnedBy(agentId, agentKey) should contain("ApiCollection_UserId")
       }
     }
   }

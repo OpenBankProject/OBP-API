@@ -55,7 +55,9 @@ import org.scalatest.Tag
 import scala.io.Source
 
 /**
- * Phase 3 of ON_BEHALF_OF_USER_ID_PLAN.md: an EXPLICIT user id naming a consent user is refused.
+ * This suite checks that a request naming a consent user explicitly, by putting its id in the body
+ * or the path, is refused rather than quietly rewritten. It is Phase 3 of
+ * ON_BEHALF_OF_USER_ID_PLAN.md.
  *
  * The plan splits every user-reference column two ways. Where the caller means "me", the provider
  * quietly redirects the write to the human the caller acts for (Phase 2) -- an agent that creates

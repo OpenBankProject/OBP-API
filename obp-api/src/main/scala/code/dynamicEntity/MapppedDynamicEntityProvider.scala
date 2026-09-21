@@ -109,9 +109,9 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
         val saved = entityToPersist
           .EntityName(dynamicEntity.entityName)
           .MetadataJson(dynamicEntity.metadataJson)
-          // Definition creator resolves to the on-behalf-of user (UserReference.DynamicEntityUser):
+          // Definition creator resolves to the on-behalf-of user (UserReference.DynamicEntity_UserId):
           // a consent user owns nothing durable. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
-          .UserId(code.users.Users.users.vend.attributedUserId(dynamicEntity.userId, code.users.UserReference.DynamicEntityUser).openOr(dynamicEntity.userId))
+          .UserId(code.users.Users.users.vend.attributedUserId(dynamicEntity.userId, code.users.UserReference.DynamicEntity_UserId).openOr(dynamicEntity.userId))
           .BankId(dynamicEntity.bankId.getOrElse(null))
           .HasPersonalEntity(dynamicEntity.hasPersonalEntity)
           .HasPublicAccess(dynamicEntity.hasPublicAccess)

@@ -30,7 +30,7 @@ package code.DynamicData
 import org.json4s._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.DynamicDataNotFound
-import code.util.MappedUUID
+import code.api.util.APIUtil.generateUUID
 import net.liftweb.common.{Box, Failure, Full}
 import com.openbankproject.commons.util.json
 import org.json4s.JObject
@@ -51,14 +51,14 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 
   /**
    * The user a row belongs to: the caller, or the user its consent names (attribution policy
-   * UserReference.DynamicDataUser). Applied on every entry point that takes a userId, for
+   * UserReference.DynamicData_UserId). Applied on every entry point that takes a userId, for
    * reads as well as writes, so a consent user reads, updates and deletes the same rows it
    * writes. The resolver logs each redirect; a Failure (invariant broken) keeps the caller.
    * The endpoint decides who may reach this provider (a consent user needs the entity's role,
    * see Http4sDynamicEntity.personalRoleWaived). ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
    */
   private def ownerOf(userId: Option[String]): Option[String] =
-    userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicDataUser).openOr(id))
+    userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicData_UserId).openOr(id))
 
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
@@ -290,7 +290,20 @@ class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with Id
 
   override def getSingleton = DynamicData
 
-  object DynamicDataId extends MappedUUID(this)
+  /**
+   * The identifier of a single Dynamic Entity record. This column used to be a `MappedUUID`, which is
+   * 36 characters wide because that is the length of a UUID. A caller may however supply the id itself
+   * in the request body instead of letting one be generated, which is how a Dynamic Entity is given a
+   * natural key such as a country code or a scheme name, so the value is not always a UUID and can be
+   * considerably longer than 36 characters. Such a value used to reach Postgres unchanged and fail
+   * there with "value too long for type character varying(36)". The column is therefore an ordinary
+   * string of 255 characters, the same width as the two other columns that hold this same id: the
+   * row level access list in DynamicDataAccess, and the `data_id` column of the SQL projection tables.
+   * The default value stays a generated UUID, so a request that omits the id behaves exactly as before.
+   */
+  object DynamicDataId extends MappedString(this, 255) {
+    override def defaultValue = generateUUID()
+  }
   object DynamicEntityName extends MappedString(this, 255)
 
   object DataJson extends MappedText(this)

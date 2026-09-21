@@ -33,11 +33,12 @@ import net.liftweb.mapper.MetaMapper
 import org.scalatest.Tag
 
 /**
- * Frozen-style guard over the attribution policy table (`UserReference`), in the spirit of
- * `code.util.FrozenClassTest`: the policy file must name every user-reference column in the schema,
- * and must not name columns that do not exist.
+ * This test guards the attribution policy table in `UserReference` against the database schema
+ * drifting away from it. It works in the same way as `code.util.FrozenClassTest`: the policy file
+ * must name every column in the schema that holds a user id, and must not name a column that does
+ * not exist.
  *
- * Why this exists. Attribution is enforced in the providers, one `UserReference` at a time
+ * Why it exists. Attribution is enforced in the providers, one `UserReference` at a time
  * (ON_BEHALF_OF_USER_ID_PLAN.md Phase 2). Doing that by hand is only safe if the map of what needs
  * doing is provably complete — otherwise a table added next week grows a `UserId` column that
  * silently strands rows on consent users, and nothing anywhere says so. This test is that proof.
@@ -52,13 +53,15 @@ class UserReferenceAttributionPolicyTest extends ServerSetup {
 
   object UserReferenceTag extends Tag("UserReferenceAttributionPolicy")
 
-  /** Column names that look like a user reference. Matches the plan's pattern. */
+  /** This is how the test decides a column holds a user id: by its name. It is the same pattern
+   *  the plan uses. */
   private val userReferenceNamePattern = "(?i).*(userid|createdby|grantedby|holder).*".r
 
   private def mapperClassName(meta: MetaMapper[_]): String =
     meta.getClass.getName.stripSuffix("$")
 
-  /** (mapperClass, fieldName) for every schema field whose name looks like a user reference. */
+  /** This lists every column in the live schema whose name says it holds a user id, as a pair of
+   *  the Mapper class and the field. It is what the policy table has to account for. */
   private lazy val schemaUserReferenceColumns: List[(String, String)] =
     for {
       meta <- ToSchemify.models
@@ -66,7 +69,9 @@ class UserReferenceAttributionPolicyTest extends ServerSetup {
       if userReferenceNamePattern.pattern.matcher(field.name).matches()
     } yield (mapperClassName(meta), field.name)
 
-  /** (mapperClass, fieldName) -> the references naming it. */
+  /** This is the other side of the comparison: for each column the policy table names, the
+   *  references that name it. A column normally has one, but may have two where they differ by
+   *  policy. */
   private lazy val declaredColumns: Map[(String, String), List[UserReference]] =
     UserReference.all
       .flatMap(ref => ref.fields.map(field => (ref.mapperClass, field) -> ref))
@@ -129,8 +134,8 @@ class UserReferenceAttributionPolicyTest extends ServerSetup {
       }
     }
 
-    // MappedEntitlement.mUserId is the deliberate case: EntitlementUser (UseOnBehalfOfUserId) and
-    // ConsentEntitlementUser (KeepUserId) name the same column, chosen per createdByProcess.
+    // MappedEntitlement.mUserId is the deliberate case: Entitlement_UserId (UseOnBehalfOfUserId) and
+    // Entitlement_UserId_ConsentScope (UseAuthenticatedUserId) name the same column, chosen per createdByProcess.
     scenario("a column named by more than one UserReference has references that differ by policy", UserReferenceTag) {
       val ambiguous = declaredColumns.toList
         .filter { case (_, refs) => refs.size > 1 && refs.map(_.policy).distinct.size == 1 }

@@ -109,6 +109,7 @@ object ErrorMessages {
   val RowLevelAccessNotEnabled = "OBP-09021: The row-access endpoints are only available for dynamic entities created with use_row_level_access = true."
   val DynamicEntityJoinRequiresProjection = "OBP-09022: obp_exists / obp_not_exists join queries require the SQL projection backend (dynamic_entity.indexing.backend=auto on a supported database). This deployment serves Dynamic Entity reads in-memory, where joins are not supported."
   val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name, the set of property names and each property's type must stay the same, and no property may be added to 'required'. Changing indexed, index, example, description, minLength, maxLength and the read/write role settings is allowed. Delete all the data before making a structural change."
+  val DynamicEntityRecordIdTooLong = "OBP-09024: The id of this DynamicEntity record is too long. A record id is stored in a column of 255 characters. Please supply a shorter id, or leave the id field out of the request body and one will be generated."
 
 
   // General messages (OBP-10XXX)
@@ -467,6 +468,8 @@ object ErrorMessages {
   val CreateCustomerLinkError = "OBP-30148: Could not create the Customer Link."
   val UpdateCustomerLinkError = "OBP-30149: Could not update the Customer Link."
   val InvestigationReportNotAvailable = "OBP-30150: Investigation Report is only available in mapped mode (connector=mapped)."
+  val NotificationWebhookNotFound = "OBP-30151: Account Notification Webhook not found. Please specify a valid value for WEBHOOK_ID."
+  val DeleteWebhookError = "OBP-30152: Could not delete the Webhook."
 
   val CreateWebhookError = "OBP-30047: Cannot create Webhook"
   val GetWebhooksError = "OBP-30048: Cannot get Webhooks"
@@ -999,6 +1002,10 @@ object ErrorMessages {
   // the published side. Both call sites name the constant rather than the literal, so nothing but
   // the number moves.
   val PaymentNotInitiatedByCaller = "OBP-40062: The addressed payment was not initiated by you. "
+  val ChallengeNotAddressedToCaller = "OBP-40063: This Strong Customer Authentication challenge is addressed to another user and cannot be answered by you. " +
+    "A payment started on somebody else's behalf is authorised by that person, not by the caller that started it."
+  val PaymentChallengeHasNoOnBehalfOfUser = "OBP-40064: This payment needs Strong Customer Authentication, but the user it is being made for could not be determined, " +
+    "so there is nobody who can be asked to authorise it. A consent that names the user it acts for is required before a payment of this size can be started."
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
