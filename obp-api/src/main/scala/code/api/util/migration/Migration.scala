@@ -189,6 +189,7 @@ object Migration extends MdcLoggable {
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
       alterDynamicResourceDocBodyFieldsLength()
       alterDynamicResourceDocTextFieldsLength()
+      alterDynamicDataIdLength()
     }
 
     /**
@@ -761,6 +762,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterMappedConsentColumnConsumerIdLength)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnConsumerIdLength(name)
+      }
+    }
+
+    private def alterDynamicDataIdLength(): Boolean = {
+      val name = nameOf(alterDynamicDataIdLength)
+      runOnce(name) {
+        MigrationOfDynamicDataIdFieldLength.alterColumnDynamicDataIdLength(name)
       }
     }
 
