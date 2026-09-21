@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.dynamic.entity.projection
 
 import code.DynamicData.DynamicData
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import doobie._
 import doobie.implicits._
 
@@ -84,17 +85,19 @@ object ProjectionStore {
       .query[(String, String)].to[List]
 
   /**
-   * Scope predicate mirroring `MappedDynamicDataProvider`'s get-all: entity name always; bankId via
-   * IS NOT DISTINCT FROM (handles system-level NULL); personal flag; userId only when personal.
+   * Scope predicate mirroring `MappedDynamicDataProvider`'s get-all: entity name always; bankId
+   * always (a system-level record stores a sentinel, never NULL); personal flag; userId only when
+   * personal, and that column IS still nullable so it keeps its null-safe comparison.
    * Returned without the `WHERE` keyword so callers can AND it with index predicates.
    */
   def scope(bankId: Option[String], entityName: String, isPersonalEntity: Boolean, userId: Option[String], alias: String = ""): Fragment = {
     val p = if (alias.isEmpty) "" else alias + "."
-    // Bind as Option[String]: a system-level entity has bankId=None, which must bind SQL NULL — `orNull`
-    // as a plain String trips doobie's non-nullable Put[String] ("oops, null"). Put[Option[String]]
-    // emits NULL for None, and `IS NOT DISTINCT FROM NULL` is the intended null-safe match.
+    // The bank id column holds Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID for a record that belongs
+    // to no bank, never a SQL NULL, so this is a plain equality. It used to bind an Option and
+    // compare with IS NOT DISTINCT FROM; that stopped matching the moment the sentinel replaced the
+    // NULL, and this is the one place outside the Mapper queries that reads the column directly.
     val byEntity   = Fragment.const(p + entityNameColumn) ++ fr"=" ++ fr0"$entityName"
-    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${bankId: Option[String]}"
+    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"=" ++ fr0"${bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)}"
     val byPersonal = Fragment.const(p + personalColumn) ++ fr"=" ++ fr0"$isPersonalEntity"
     val base = byEntity ++ fr"AND" ++ byBank ++ fr"AND" ++ byPersonal
     if (isPersonalEntity) base ++ fr"AND" ++ Fragment.const(p + userIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${userId: Option[String]}"

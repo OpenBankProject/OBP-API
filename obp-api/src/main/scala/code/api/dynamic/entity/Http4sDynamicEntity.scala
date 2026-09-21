@@ -406,7 +406,7 @@ object Http4sDynamicEntity extends MdcLoggable {
                   // In-memory floor: fetch all rows (unscoped) and keep those the ACL marks readable.
                   // (The projection EXISTS backend for row-level get-all is a documented follow-up; the
                   // in-memory path is always correct, just not index-accelerated.)
-                  val readable = aclVend.getReadableDynamicDataIds(u.userId, entityName, bankId).toSet
+                  val readable = aclVend.getReadableDynamicDataIds(bankId, entityName, u.userId).toSet
                   val readableRows = dataVend.getAllCommunity(bankId, entityName).filter(_.dynamicDataId.exists(readable.contains))
                   val readableJson: JArray = JArray(readableRows.map(r => parse(r.dataJson)))
                   val filtered = filterDynamicObjects(readableJson, queryParams(req))
@@ -416,7 +416,7 @@ object Http4sDynamicEntity extends MdcLoggable {
                   for {
                     // Hide existence: a row you cannot read is indistinguishable from a missing row (404).
                     _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) {
-                           box.isDefined && aclVend.allows(id, u.userId, DynamicDataAccessPermission.Read)
+                           box.isDefined && aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Read)
                          }
                   } yield {
                     val singleObject: JValue = unboxResult(box, entityName)
@@ -438,7 +438,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles update access on this row", 403, cc = callContext) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Update) }
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Update) }
       // Field-level write roles still apply on top of the row ACL.
       updateJson = preserveRestrictedOnPut(json.asInstanceOf[JObject], existing, writeRestrictedFieldsOf(bankId, entityName))
       box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, updateJson, id).map(it => parse(it.dataJson))
@@ -458,7 +458,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       bodyObj = json.asInstanceOf[JObject]
       // Row ACL replaces the entity-update role; per-field write roles still apply (requireEntityRole = false).
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles update access on this row", 403, cc = callContext) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Update) }
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Update) }
       missingRoles = missingPatchRoleNames(bodyObj.obj.map(_.name), bankId, entityName, u.userId, code.api.util.APIUtil.getConsumerPrimaryKey(callContext), requireEntityRole = false)
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles ${missingRoles.mkString(", ")}", 403, cc = callContext) { missingRoles.isEmpty }
       existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
@@ -480,9 +480,9 @@ object Http4sDynamicEntity extends MdcLoggable {
       existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles delete access on this row", 403, cc = callContext) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Delete) }
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Delete) }
       _ = dataVend.deleteCommunity(bankId, entityName, id)
-      _ = aclVend.deleteAllForRow(id) // cascade the ACL rows for the deleted data row
+      _ = aclVend.deleteAllForRow(bankId, entityName, id) // cascade the ACL rows for the deleted data row
     } yield JObject(Nil)
   }
 
@@ -503,8 +503,8 @@ object Http4sDynamicEntity extends MdcLoggable {
     ("can_grant" -> a.canGrant) ~
     ("granted_by" -> a.grantedBy)
 
-  private def rowAccessListJson(dataId: String): JObject =
-    ("access" -> JArray(aclVend.getAccessForRow(dataId).map(rowAccessRowJson)))
+  private def rowAccessListJson(bankId: Option[String], entityName: String, dataId: String): JObject =
+    ("access" -> JArray(aclVend.getAccessForRow(bankId, entityName, dataId).map(rowAccessRowJson)))
 
   // Shared preamble: before-intercept, auth, bank, flag-off (400), grant authorisation (403).
   private def rowAccessAuthorise(cc: CallContext, bankId: Option[String], entityName: String, id: String,
@@ -517,7 +517,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       (_, callContext2) <- bankCheck(bankId, callContext)
       _ <- Helper.booleanToFuture(RowLevelAccessNotEnabled, 400, cc = callContext2) { isRowLevel(bankId, entityName) }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles grant access on this row", 403, cc = callContext2) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Grant) ||
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Grant) ||
                hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId))
            }
     } yield (u, callContext2)
@@ -527,7 +527,7 @@ object Http4sDynamicEntity extends MdcLoggable {
     EndpointHelpers.executeAndRespond(req) { cc =>
       for {
         _ <- rowAccessAuthorise(cc, bankId, entityName, id, GET_ALL)
-      } yield rowAccessListJson(id)
+      } yield rowAccessListJson(bankId, entityName, id)
     }
 
   private def upsertRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] =
@@ -544,21 +544,21 @@ object Http4sDynamicEntity extends MdcLoggable {
                entries.nonEmpty && entries.forall(o => strField(o, "user_id").isDefined)
              }
         _ = entries.foreach { o =>
-              aclVend.grant(id, strField(o, "user_id").get,
+              aclVend.grant(bankId, entityName, id, strField(o, "user_id").get,
                 canRead = boolField(o, "can_read", default = false),
                 canUpdate = boolField(o, "can_update", default = false),
                 canDelete = boolField(o, "can_delete", default = false),
                 canGrant = boolField(o, "can_grant", default = true), // §8.1: re-share by default
-                entityName, bankId, grantedBy = granter.userId)
+                grantedBy = granter.userId)
             }
-      } yield rowAccessListJson(id)
+      } yield rowAccessListJson(bankId, entityName, id)
     }
 
   private def revokeRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String, grantUserId: String): IO[Response[IO]] =
     EndpointHelpers.executeAndRespond(req) { cc =>
       for {
         _ <- rowAccessAuthorise(cc, bankId, entityName, id, DELETE)
-        removed = aclVend.revoke(id, grantUserId).getOrElse(0) // cascades to downstream grants (§7)
+        removed = aclVend.revoke(bankId, entityName, id, grantUserId).getOrElse(0) // cascades to downstream grants (§7)
       } yield (("revoked_count" -> removed): JObject)
     }
 
@@ -637,7 +637,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         // edit, and share their own record with no role and no meta-admin hop (§4 / §8.1).
         _ = if (isRowLevel(bankId, entityName)) (singleObject \ DynamicEntityHelper.createEntityId(entityName)) match {
               case JString(rid) =>
-                userIdOpt.foreach(uid => aclVend.grant(rid, uid, canRead = true, canUpdate = true, canDelete = true, canGrant = true, entityName, bankId, grantedBy = uid))
+                userIdOpt.foreach(uid => aclVend.grant(bankId, entityName, rid, uid, canRead = true, canUpdate = true, canDelete = true, canGrant = true, grantedBy = uid))
               case _ =>
             }
       } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))

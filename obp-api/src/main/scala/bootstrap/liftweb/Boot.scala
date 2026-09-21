@@ -280,6 +280,10 @@ class Boot extends MdcLoggable {
     // The method self-guards (skips when the table is absent or has no duplicates), so running it
     // on every boot is a cheap no-op on fresh/clean/test databases.
     Migration.database.deduplicateBeforeUniqueIndexSchemify()
+    // Same reasoning, for the Dynamic Entity tables: their unique indexes are becoming
+    // space-scoped, which needs the system level rows off SQL NULL and the superseded
+    // single-column indexes dropped, both before Schemifier issues the new index DDL.
+    Migration.database.prepareDynamicEntitySpaceScopedIndexes()
     schemifyAll()
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)

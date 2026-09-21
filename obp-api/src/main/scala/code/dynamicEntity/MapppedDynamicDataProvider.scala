@@ -31,6 +31,7 @@ import org.json4s._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.DynamicDataNotFound
 import code.api.util.APIUtil.generateUUID
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import net.liftweb.common.{Box, Failure, Full}
 import com.openbankproject.commons.util.json
 import org.json4s.JObject
@@ -92,7 +93,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
         By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.IsPersonalEntity, false),
-        NullRef(DynamicData.BankId)
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       ) match {
         case Full(dynamicData) => Full(dynamicData)
         case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
@@ -102,7 +103,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
         By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.UserId, userId.getOrElse(null)),
-        NullRef(DynamicData.BankId)
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       ) match {
         case Full(dynamicData) => Full(dynamicData)
         case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, userId = $userId")
@@ -144,13 +145,13 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.IsPersonalEntity, false),
-        NullRef(DynamicData.BankId),
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
       )
     } else if(bankId.isEmpty && isPersonalEntity){  //isPersonalEntity == true, get all the data for specific userId (regardless of how it was created).
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
         By(DynamicData.UserId, userId.getOrElse(null)),
-        NullRef(DynamicData.BankId)
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       )
     } else if(bankId.isDefined && !isPersonalEntity){ //isPersonalEntity == false, get all the data, no need for specific userId.
       DynamicData.findAll(
@@ -181,7 +182,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     if (bankId.isEmpty) {
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
-        NullRef(DynamicData.BankId),
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
       )
     } else {
       DynamicData.findAll(
@@ -202,7 +203,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       DynamicData.find(
         By(DynamicData.DynamicDataId, id),
         By(DynamicData.DynamicEntityName, entityName),
-        NullRef(DynamicData.BankId)
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       ) match {
         case Full(dynamicData) => Full(dynamicData)
         case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
@@ -241,7 +242,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     if(bankId.isEmpty && !isPersonalEntity){//isPersonalEntity == false, get all the data, no need for specific userId.
       DynamicData.find(
         By(DynamicData.DynamicEntityName, dynamicEntityName),
-        NullRef(DynamicData.BankId),
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
         By(DynamicData.IsPersonalEntity, false)
       ).isDefined
     } else if(bankId.isDefined && !isPersonalEntity){//isPersonalEntity == false, get all the data, no need for specific userId.
@@ -253,7 +254,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     } else if(bankId.isEmpty && isPersonalEntity){ //isPersonalEntity == true, check if data exists for specific userId (regardless of how it was created).
       DynamicData.find(
         By(DynamicData.DynamicEntityName, dynamicEntityName),
-        NullRef(DynamicData.BankId),
+        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
         By(DynamicData.UserId, userId.getOrElse(null))
       ).nonEmpty
     } else { //isPersonalEntity == true, check if data exists for specific userId (regardless of how it was created).
@@ -271,7 +272,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       val dataStr = json.compactRender(requestBody)
      val saved = data.DataJson(dataStr)
        .DynamicEntityName(entityName)
-       .BankId(bankId.getOrElse(null))
+       .BankId(bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID))
        .UserId(userId.getOrElse(null))
        .IsPersonalEntity(isPersonalEntity)
        .saveMe()
@@ -317,12 +318,27 @@ class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with Id
   override def dynamicDataId: Option[String] = Option(DynamicDataId.get)
   override def dynamicEntityName: String = DynamicEntityName.get
   override def dataJson: String = DataJson.get
-  override def bankId: Option[String] = Option(BankId.get)
+  // A system level record stores the sentinel rather than a SQL NULL, so it is filtered back out
+  // here: every caller of this method still sees None for such a record, exactly as before.
+  override def bankId: Option[String] = Option(BankId.get).filterNot(_ == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
   override def userId: Option[String] = Option(UserId.get)
   override def isPersonalEntity: Boolean = IsPersonalEntity.get
 }
 
 object DynamicData extends DynamicData with LongKeyedMetaMapper[DynamicData] {
-  override def dbIndexes = UniqueIndex(DynamicDataId) :: super.dbIndexes
+  /**
+   * A record's id is unique within one space and one entity, not across the whole instance.
+   *
+   * The columns are named in the order the things they identify come into existence: the bank (the
+   * space) exists first, the entity is defined within it, and the record is created last. The index
+   * used to name DynamicDataId alone, which meant two spaces could not each hold a record with the
+   * same natural key -- one country table holding DE stopped any other from holding it. The
+   * discriminators were already sitting in the same row, simply unused by the index.
+   *
+   * The bank id column never holds a SQL NULL; see Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID for
+   * why that matters here, since Postgres treats NULLs as distinct and a nullable column in this
+   * index would enforce nothing for system level records.
+   */
+  override def dbIndexes = UniqueIndex(BankId, DynamicEntityName, DynamicDataId) :: super.dbIndexes
 }
 

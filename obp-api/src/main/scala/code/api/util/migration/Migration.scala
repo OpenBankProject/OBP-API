@@ -29,6 +29,7 @@ package code.api.util.migration
 
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.api.util.{APIUtil, ApiPropsWithAlias}
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
 import code.context.MappedUserAuthContextUpdate
@@ -190,6 +191,135 @@ object Migration extends MdcLoggable {
       alterDynamicResourceDocBodyFieldsLength()
       alterDynamicResourceDocTextFieldsLength()
       alterDynamicDataIdLength()
+    }
+
+    /**
+     * What one step of prepareDynamicEntitySpaceScopedIndexes actually did.
+     *
+     * The description is written for whoever later reads the migration log asking what an upgrade
+     * did to their database, so it says what was found as well as what was changed -- "nothing to
+     * move" is as much of an answer as "moved 4 rows", and a step that claims work it did not do is
+     * worse than no log at all.
+     */
+    private case class SchemaPreparationOutcome(description: String, changedSomething: Boolean, failed: Boolean)
+
+    /**
+     * Prepare the two Dynamic Entity tables for their new, space-scoped unique indexes.
+     *
+     * A Dynamic Entity record's id used to be unique across the whole instance, because the unique
+     * index named that column alone. That was wrong: an id is only meaningful within one space and
+     * one entity, and two spaces may each hold a record whose natural key is the country code DE.
+     * The index now names the bank id and the entity name as well, which Schemifier creates from
+     * DynamicData.dbIndexes and DynamicDataAccess.dbIndexes.
+     *
+     * Two things have to happen for that to be correct on an existing database. The bank id column
+     * has to stop holding SQL NULL for a system level record, because Postgres treats NULLs as
+     * distinct inside a unique index and the new index would therefore enforce nothing at all for
+     * exactly those rows; the sentinel written instead is
+     * Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID. And the superseded single-column unique indexes
+     * have to be dropped, because Lift's Schemifier only ever creates indexes and never removes
+     * one, so an old index would survive and keep refusing the duplicate ids the new index exists
+     * to allow.
+     *
+     * Invoked directly from Boot BEFORE schemifyAll() and deliberately not routed through
+     * executeScripts/runOnce, for the same reason set out on deduplicateBeforeUniqueIndexSchemify:
+     * those passes are gated by the migration_scripts.* props, which are off in tests, whereas
+     * Schemifier creates the new index ungated in every environment. A gated back fill would leave
+     * a test database still carrying the old index, still refusing the ids this change allows.
+     *
+     * Because it is not a runOnce, it runs on every boot and is written to be a cheap no-op once
+     * there is nothing left to do. It still writes a MigrationScriptLog entry on the boots where it
+     * did something or failed, so the work shows up where an operator looks for it; the entry
+     * reports every step, including the ones that found nothing to do.
+     *
+     * The back fill cannot produce a duplicate. The old unique index made every id unique across
+     * the instance, so no two system level rows can already share one.
+     */
+    def prepareDynamicEntitySpaceScopedIndexes(): Unit = {
+      val name = "prepareDynamicEntitySpaceScopedIndexes"
+      val startDate = System.currentTimeMillis()
+      val outcomes = List(
+        adoptSystemLevelBankIdSentinel("dynamicdata"),
+        adoptSystemLevelBankIdSentinel("dynamicdataaccess"),
+        dropSupersededIndex("dynamicdata", "dynamicdata_dynamicdataid"),
+        dropSupersededIndex("dynamicdataaccess", "dynamicdataaccess_dynamicdataid_userid")
+      )
+      val endDate = System.currentTimeMillis()
+      val didSomething = outcomes.exists(_.changedSomething)
+      val anythingFailed = outcomes.exists(_.failed)
+      val alreadyRecorded = MigrationScriptLogProvider.migrationScriptLogProvider.vend.isExecuted(name)
+      // An entry is written on the boot that does the work, on any boot that fails, and on the first
+      // boot that finds the schema already correct. That last case matters: an instance whose data
+      // was converted by a build predating this logging, or a database created fresh with the new
+      // index already in DynamicData.dbIndexes, would otherwise have nothing here at all, and the
+      // operator could not tell "this ran and there was nothing to do" from "this never ran".
+      // Every instance therefore ends up with exactly one entry, and it says which of the two it was.
+      if (didSomething || anythingFailed || !alreadyRecorded) {
+        val summary =
+          if (anythingFailed) "Completed with failures"
+          else if (didSomething) "Applied"
+          else "No change needed, the schema was already space-scoped"
+        saveLog(name, APIUtil.gitCommit, isSuccessful = !anythingFailed, startDate, endDate,
+          s"$summary: ${outcomes.map(_.description).mkString("; ")}")
+      }
+    }
+
+    /** Replace the SQL NULLs in `tableName`'s bankid column with the system level sentinel. */
+    private def adoptSystemLevelBankIdSentinel(tableName: String): SchemaPreparationOutcome = {
+      if (!DbFunction.tableExistsByName(tableName)) {
+        SchemaPreparationOutcome(s"$tableName: table not present, so no bank ids to move", changedSomething = false, failed = false)
+      } else {
+        val sql = s"UPDATE $tableName SET bankid = '$DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID' WHERE bankid IS NULL"
+        try {
+          val moved = DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+            val st = conn.createStatement()
+            try st.executeUpdate(sql) finally st.close()
+          }
+          if (moved > 0) {
+            logger.warn(s"prepareDynamicEntitySpaceScopedIndexes: moved $moved system level row(s) in " +
+              s"$tableName from a NULL bank id to '$DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID'")
+            SchemaPreparationOutcome(s"$sql -- moved $moved row(s)", changedSomething = true, failed = false)
+          } else {
+            SchemaPreparationOutcome(s"$tableName: no row had a NULL bank id, so none was moved", changedSomething = false, failed = false)
+          }
+        } catch {
+          case e: SQLException =>
+            logger.error(s"prepareDynamicEntitySpaceScopedIndexes: $sql failed", e)
+            SchemaPreparationOutcome(s"$sql -- FAILED: ${e.getMessage}", changedSomething = false, failed = true)
+        }
+      }
+    }
+
+    /**
+     * Drop an index that a wider one has replaced, if it is still there.
+     *
+     * Whether the index was present is established first rather than relying on IF EXISTS, so that
+     * the log can distinguish an index this actually removed from one that was already gone. SQL
+     * Server needs the table named in the statement; every other driver OBP ships takes the plain
+     * form.
+     */
+    private def dropSupersededIndex(tableName: String, indexName: String): SchemaPreparationOutcome = {
+      if (!DbFunction.tableExistsByName(tableName)) {
+        SchemaPreparationOutcome(s"$tableName: table not present, so index $indexName cannot be either", changedSomething = false, failed = false)
+      } else if (!DbFunction.indexExistsByName(tableName, indexName)) {
+        SchemaPreparationOutcome(s"$indexName: already absent from $tableName, so nothing was dropped", changedSomething = false, failed = false)
+      } else {
+        val isSqlServer = getPropsValue("db.driver")
+          .exists(_.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver"))
+        val sql = if (isSqlServer) s"DROP INDEX $indexName ON $tableName" else s"DROP INDEX $indexName"
+        try {
+          DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+            val st = conn.createStatement()
+            try st.execute(sql) finally st.close()
+          }
+          logger.warn(s"prepareDynamicEntitySpaceScopedIndexes: dropped the superseded index $indexName on $tableName")
+          SchemaPreparationOutcome(s"$sql -- dropped from $tableName", changedSomething = true, failed = false)
+        } catch {
+          case e: SQLException =>
+            logger.error(s"prepareDynamicEntitySpaceScopedIndexes: $sql failed", e)
+            SchemaPreparationOutcome(s"$sql -- FAILED: ${e.getMessage}", changedSomething = false, failed = true)
+        }
+      }
     }
 
     /**
@@ -964,6 +1094,31 @@ object Migration extends MdcLoggable {
             if (!rs.next) false
             else if (rs.getString(3).toLowerCase == tableName.toLowerCase) true
             else check()
+          check()
+        }
+      }
+    }
+
+    /**
+      * Is an index of this name present on this table, according to JDBC metadata?
+      *
+      * This exists so that a step which removes a superseded index can report whether it actually
+      * removed one or found it already gone. `DROP INDEX IF EXISTS` cannot tell the two apart, and a
+      * migration log that says an index was dropped when it was never there is worse than no log.
+      * Index names are compared without regard to case, because each database stores them in its own.
+      */
+    def indexExistsByName(tableName: String, indexName: String): Boolean = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+        val md = conn.getMetaData
+        val schema = getDefaultSchemaName(conn)
+        using(md.getIndexInfo(null, schema, tableName, false, true)) { rs =>
+          def check(): Boolean =
+            if (!rs.next) false
+            else Option(rs.getString(6)) match {
+              // A null index name is a table statistics row, not an index; skip it.
+              case Some(found) if found.equalsIgnoreCase(indexName) => true
+              case _ => check()
+            }
           check()
         }
       }
