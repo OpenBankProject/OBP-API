@@ -493,6 +493,32 @@ class DynamicGlossaryItemTest extends ServerSetupWithTestData {
       delete(title, user1).code should equal(204)
     }
 
+    scenario("search reads the text of an Item, so a reader who does not know the title still finds it", ApiEndpoint6, VersionOfApi) {
+      When("someone searches for what a thing does rather than for what it is called here")
+      val byWords = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("search", "agent messages")))
+      byWords.code should equal(200)
+      val byWordsTitles = byWords.body.extract[GlossaryJsonV700].glossary_items.map(_.title)
+
+      Then("the Item that answers the question is found, although neither word is in its title")
+      withClue("searching for 'agent messages' must find the Signal Channels Item: ") {
+        byWordsTitles should contain("Signal Channels")
+      }
+
+      And("an Item whose title holds every word is listed before the Items that match on their text alone")
+      val byTitleWords = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("search", "ai agents")))
+      byTitleWords.code should equal(200)
+      val byTitleWordsTitles = byTitleWords.body.extract[GlossaryJsonV700].glossary_items.map(_.title)
+      byTitleWordsTitles.headOption should equal(Some("Hello AI Agents"))
+      byTitleWordsTitles should contain("Signal Channels")
+
+      And("a word that appears nowhere matches nothing")
+      val nothing = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("search", "zzzznosuchwordzzzz")))
+      nothing.code should equal(200)
+      val noMatch = nothing.body.extract[GlossaryJsonV700]
+      noMatch.glossary_items shouldBe empty
+      noMatch.total_count should equal(0)
+    }
+
     scenario("limit and offset page the result, and total_count counts what matched", ApiEndpoint6, VersionOfApi) {
       val firstTwo = makeGetRequest((v7 / "api" / "glossary").GET <<? List(("limit", "2")))
       firstTwo.code should equal(200)
