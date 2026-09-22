@@ -6320,6 +6320,8 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |OBP provides a built-in Chat / Messaging API that allows users and applications to communicate within the platform.
 				 |
+				 |Chat is the persistent, human-facing side of messaging: rooms, threads, reactions and read markers, all stored in the database. Messages between AI agents belong somewhere else. For short-lived agent-to-agent messages, discovery and presence, see [Signal Channels](/glossary#Signal-Channels), which are Redis-backed, are never written to the database, and expire when a channel goes quiet.
+				 |
 				 |Chat Rooms can be scoped to a specific Bank (bank-level) or be system-wide (system-level).
 				 |
 				 |## Key Concepts
@@ -6461,7 +6463,7 @@ object Glossary extends MdcLoggable  {
 				 |The Glossary is one resource and it reads without a token.
 				 |
 				 |* `GET /obp/v7.0.0/api/glossary/TITLE` — **one Item**. Ask for what you need by title; the whole Glossary is about a megabyte and you rarely want all of it. The title is matched case insensitively, with hyphens, underscores, slashes and spaces all treated alike, so the `Signal-Channels` form you meet in a `/glossary#Signal-Channels` link finds the Item titled `Signal Channels`. Titles contain spaces, so url-encode the segment.
-				 |* `GET /obp/v7.0.0/api/glossary` — the whole Glossary when you do want it. `?search=consent` narrows by title, `?limit=` and `?offset=` page, and `total_count` says how many matched.
+				 |* `GET /obp/v7.0.0/api/glossary` — the whole Glossary when you do want it. `?search=consent` narrows to the Items that mention it, looking at both the title and the text of each Item, so you can search for what a thing does when you do not know what it is called here: `?search=agent messages` finds the Item titled `Signal Channels`. Every word you type has to appear, and Items matching in the title are listed first. `?limit=` and `?offset=` page, and `total_count` says how many matched.
 				 |* Each entry says where it came from: `is_dynamic` is false for Items shipped with the API and true for Items an operator added to this instance. An Item's `description` arrives as both `markdown` and rendered `html`.
 				 |
 				 |Same path, same version, for the Items an operator maintains: `POST /obp/v7.0.0/api/glossary` adds one, `PUT` and `DELETE` on `/obp/v7.0.0/api/glossary/TITLE` change or remove it. Those need a Role, which you will not have; they are listed here so you can tell a human what to ask for.
@@ -6506,6 +6508,8 @@ object Glossary extends MdcLoggable  {
 				 |**Signal Channels** are short-lived, Redis-backed message channels for lightweight coordination between AI agents and other OBP consumers — service discovery, task hand-off, presence announcements. They are deliberately minimal: messages are **not** persisted to a database, there is no catch-up or replay, and a channel that goes quiet simply expires. Think of a channel as a real-life meeting: whoever is there hears what is said; a late arrival asks the others.
 				 |
 				 |Not to be confused with [Chat](/glossary#Chat), which is the persistent, human-facing messaging surface (rooms, threads, reactions, read markers).
+				 |
+				 |**Other names for the same thing.** People and agents arrive here looking for agent messages, agent messaging, agent-to-agent (A2A) communication, inter-agent messaging, a message bus, a pub/sub or publish and subscribe channel, broadcast messages, agent discovery, or agent presence. Signal Channels are what the Open Bank Project calls all of those. If you are an agent meeting this instance for the first time, read [Hello AI Agents](/glossary#Hello-AI-Agents) first; it says how to get credentials and where to announce yourself.
 				 |
 				 |## Lifecycle
 				 |- Channels are auto-created on first publish; no registration step. Creating channels is rate limited per caller (scope `signal_channel_create`, see [Rate Limiting](/glossary#Rate-Limiting)); publishing to an existing channel is not.

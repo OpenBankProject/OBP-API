@@ -3772,8 +3772,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   // Convention-based public app URL props.
-  // Any prop starting with "public_" and ending with "_url" is included in the App Directory.
-  // Register known defaults so they appear in getConfigPropsPairs when set.
+  // Every key registered here appears in getConfigPropsPairs and so in the App Directory.
+  // The set is fixed in code: an operator-added public_*_url prop is NOT picked up
+  // automatically, because getConfigPropsPairs reads getRegisteredDefaults rather than
+  // scanning the props file.
   // Note: public_obp_api_url falls back to hostname prop if not explicitly set.
   // Note: public_obp_portal_url falls back to portal_external_url if not explicitly set.
   val publicAppUrlDefaults: Map[String, String] = Map(
@@ -3785,7 +3787,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
     "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
     "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:48123"),
-    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
+    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9101"),
+    "public_obp_mcp_internal_url" -> getPropsValue("public_obp_mcp_internal_url").openOr("http://localhost:9100"),
     "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
     "public_obp_stripe_url" -> getPropsValue("public_obp_stripe_url").openOr("http://localhost:4242"),
     "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")

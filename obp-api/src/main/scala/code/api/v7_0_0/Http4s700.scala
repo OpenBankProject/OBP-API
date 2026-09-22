@@ -3641,13 +3641,32 @@ object Http4s700 {
             _ <- glossaryReadIsAllowed(cc)
             _ <- Helper.booleanToFuture(InvalidGlossarySource, 400, Some(cc))(Set("all", "static", "dynamic")(source))
           } yield {
-            val matching = glossaryEntries.filter { case (item, _) =>
-              (source match {
+            // Search looks at the text of an Item as well as its title, and takes the words of the
+            // search separately rather than as one string. Someone who does not yet know what a
+            // thing is called here cannot guess its title, so a search for "agent messages" has to
+            // find the Item titled "Signal Channels"; matching the whole phrase against titles
+            // alone found nothing at all. Every word must appear somewhere in the Item, and the
+            // Items whose titles hold all of them are listed first, so an exact title still leads.
+            val searchWords: List[String] = search.toList.flatMap(_.split("\\s+")).filter(_.nonEmpty)
+            val inSource = glossaryEntries.filter { case (item, _) =>
+              source match {
                 case "static"  => !item.isDynamic
                 case "dynamic" => item.isDynamic
                 case _         => true
-              }) && search.forall(s => item.title.toLowerCase.contains(s))
+              }
             }
+            val matching =
+              if (searchWords.isEmpty) inSource
+              else {
+                val (titleMatches, bodyMatches) = inSource.filter { case (item, _) =>
+                  val titleAndText = s"${item.title}\n${item.textDescription}".toLowerCase
+                  searchWords.forall(titleAndText.contains)
+                }.partition { case (item, _) =>
+                  val title = item.title.toLowerCase
+                  searchWords.forall(title.contains)
+                }
+                titleMatches ++ bodyMatches
+              }
             // Paging is opt in: without limit the Glossary answers whole, as it has for years.
             val page = limit match {
               case Some(n) => matching.slice(offset, offset + n.max(0))
@@ -3684,7 +3703,7 @@ object Http4s700 {
         |
         |**Optional query parameters:**
         |
-        |* `search` — only Items whose title contains this value, case insensitively.
+        |* `search` — only Items that contain what you type, case insensitively, looking at the title and at the text of the Item. The words are matched one by one and an Item has to contain all of them, so `search=agent messages` finds the Item titled `Signal Channels` even though neither word is in its title. Items whose titles contain every word are listed before those that only match on their text.
         |* `source` — `all` (default), `static` or `dynamic`.
         |* `limit` and `offset` — page the result. Without `limit` the whole Glossary is returned, as it always has been. `total_count` counts what matched before paging.
         |
