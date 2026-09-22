@@ -61,6 +61,66 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   private def ownerOf(userId: Option[String]): Option[String] =
     userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicData_UserId).openOr(id))
 
+  /**
+   * The bank and the entity that a lookup is confined to.
+   *
+   * Every query in this provider starts from these two, so that a record held in one space can
+   * never be found, updated or deleted through a request naming another. A record belonging to no
+   * bank is stored under Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than as a SQL NULL,
+   * and that is what lets the system level case share this one query: it differs from a space only
+   * in the value bound here. While the column held NULL the two needed different SQL -- NullRef
+   * against a plain equality -- and each method below carried a separate copy of itself for each.
+   *
+   * The two are named in the order the things they identify come into existence, the bank first and
+   * then the entity defined within it, which is also the order of the columns in DynamicData's
+   * unique index. A query needing more than these two appends it -- the record id next, then the
+   * ownership predicate -- so every query in this file reads in that same order.
+   */
+  private def whereClauseBankOrSystemAndEntity(bankId: Option[String], entityName: String): List[QueryParam[DynamicData]] =
+    List(
+      By(DynamicData.BankId, bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)),
+      By(DynamicData.DynamicEntityName, entityName)
+    )
+
+  /**
+   * Whose records of an entity the caller is asking about.
+   *
+   * Each record of a personal entity belongs to one user, and is selected by naming that user.
+   * Records of any other entity are selected by the flag alone, with no user named at all.
+   */
+  private def byOwnership(isPersonalEntity: Boolean, userId: Option[String]): QueryParam[DynamicData] =
+    if (isPersonalEntity) By(DynamicData.UserId, userId.getOrElse(null))
+    else By(DynamicData.IsPersonalEntity, false)
+
+  /**
+   * The wording of the not-found failure for an owner-scoped read, which varies with what the
+   * caller named.
+   *
+   * These four spellings are reproduced exactly as they stood when each case had its own copy of
+   * the query, because they reach callers as the body of a not-found response. Two of them are
+   * irregular and are deliberately left that way: one renders the user id as an Option, so it reads
+   * "userId = Some(x)", and the bank id is preceded by a space here that the community wording
+   * below does not have. The one deviation is that a missing user id used to be read with .get in
+   * the last case, which threw while building the message instead of producing one; it now reads
+   * as null, and no message that previously rendered is changed.
+   */
+  private def notFoundMessage(entityName: String, id: String, bankId: Option[String],
+                              userId: Option[String], isPersonalEntity: Boolean): String = {
+    val base = s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id"
+    (bankId.isDefined, isPersonalEntity) match {
+      case (false, false) => base
+      case (false, true)  => s"$base, userId = $userId"
+      case (true, false)  => s"$base, bankId= ${bankId.get}"
+      case (true, true)   => s"$base, bankId= ${bankId.get}, userId = ${userId.getOrElse(null)}"
+    }
+  }
+
+  /** As notFoundMessage, for the community reads, whose bank id carries no leading space. */
+  private def notFoundCommunityMessage(entityName: String, id: String, bankId: Option[String]): String = {
+    val base = s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id"
+    bankId.map(theBank => s"$base, bankId=$theBank").getOrElse(base)
+  }
+
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
     val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
@@ -78,59 +138,23 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   def existsById(entityName: String, id: String): Boolean = {
     println(s"========== Reference validation: checking if DynamicDataId='$id' exists for DynamicEntityName='$entityName' ==========")
     val exists = DynamicData.count(
-      By(DynamicData.DynamicDataId, id),
-      By(DynamicData.DynamicEntityName, entityName)
+      By(DynamicData.DynamicEntityName, entityName),
+      By(DynamicData.DynamicDataId, id)
     ) > 0
     println(s"========== Reference validation result: exists=$exists ==========")
     exists
   }
 
-  override def get(bankId: Option[String],entityName: String, id: String, callerUserId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
+  override def get(bankId: Option[String], entityName: String, id: String, callerUserId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val userId = ownerOf(callerUserId)
-    if(bankId.isEmpty && !isPersonalEntity ){ //isPersonalEntity == false, get all the data, no need for specific userId.
-      //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
-      DynamicData.find(
-        By(DynamicData.DynamicDataId, id),
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.IsPersonalEntity, false),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
-      ) match {
-        case Full(dynamicData) => Full(dynamicData)
-        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
-      }
-    } else if(bankId.isEmpty && isPersonalEntity){ //isPersonalEntity == true, get the data for specific userId (regardless of how it was created).
-      DynamicData.find(
-        By(DynamicData.DynamicDataId, id),
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.UserId, userId.getOrElse(null)),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
-      ) match {
-        case Full(dynamicData) => Full(dynamicData)
-        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, userId = $userId")
-      }
-    } else if(bankId.isDefined && !isPersonalEntity ){ //isPersonalEntity == false, get all the data, no need for specific userId.
-      //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
-      DynamicData.find(
-        By(DynamicData.DynamicDataId, id),
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.IsPersonalEntity, false),
-        By(DynamicData.BankId, bankId.get),
-      ) match {
-        case Full(dynamicData) => Full(dynamicData)
-        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, bankId= ${bankId.get}")
-      }
-    }else{  //isPersonalEntity == true, get the data for specific userId (regardless of how it was created).
-      DynamicData.find(
-        By(DynamicData.DynamicDataId, id),
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, bankId.get),
-        By(DynamicData.UserId, userId.get)
-      ) match {
-        case Full(dynamicData) => Full(dynamicData)
-        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, bankId= ${bankId.get}, userId = ${userId.get}")
-      }
+    // An Empty is turned into a Failure rather than passed up: this is get-by-id, and the reason
+    // nothing came back is worth stating at this level.
+    DynamicData.find(
+      (whereClauseBankOrSystemAndEntity(bankId, entityName) :+ By(DynamicData.DynamicDataId, id) :+ byOwnership(isPersonalEntity, userId)): _*
+    ) match {
+      case Full(dynamicData) => Full(dynamicData)
+      case _ => Failure(notFoundMessage(entityName, id, bankId, userId, isPersonalEntity))
     }
-
   }
 
   override def getAllDataJson(bankId: Option[String], entityName: String, userId: Option[String], isPersonalEntity: Boolean): List[JObject] = {
@@ -141,31 +165,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 
   override def getAll(bankId: Option[String], entityName: String, callerUserId: Option[String], isPersonalEntity: Boolean): List[DynamicDataT] = {
     val userId = ownerOf(callerUserId)
-    if(bankId.isEmpty && !isPersonalEntity){ //isPersonalEntity == false, get all the data, no need for specific userId.
-      DynamicData.findAll(
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.IsPersonalEntity, false),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
-      )
-    } else if(bankId.isEmpty && isPersonalEntity){  //isPersonalEntity == true, get all the data for specific userId (regardless of how it was created).
-      DynamicData.findAll(
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.UserId, userId.getOrElse(null)),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
-      )
-    } else if(bankId.isDefined && !isPersonalEntity){ //isPersonalEntity == false, get all the data, no need for specific userId.
-      DynamicData.findAll(
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.IsPersonalEntity, false),
-        By(DynamicData.BankId, bankId.get),
-      )
-    }else{
-      DynamicData.findAll(//isPersonalEntity == true, get all the data for specific userId (regardless of how it was created).
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, bankId.get),
-        By(DynamicData.UserId, userId.getOrElse(null))
-      )
-    }
+    DynamicData.findAll((whereClauseBankOrSystemAndEntity(bankId, entityName) :+ byOwnership(isPersonalEntity, userId)): _*)
   }
 
   override def delete(bankId: Option[String], entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean) = {
@@ -178,19 +178,8 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   // Community access: return ALL records regardless of userId/IsPersonalEntity
-  override def getAllCommunity(bankId: Option[String], entityName: String): List[DynamicDataT] = {
-    if (bankId.isEmpty) {
-      DynamicData.findAll(
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
-      )
-    } else {
-      DynamicData.findAll(
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, bankId.get),
-      )
-    }
-  }
+  override def getAllCommunity(bankId: Option[String], entityName: String): List[DynamicDataT] =
+    DynamicData.findAll(whereClauseBankOrSystemAndEntity(bankId, entityName): _*)
 
   override def getAllDataJsonCommunity(bankId: Option[String], entityName: String): List[JObject] = {
     getAllCommunity(bankId, entityName)
@@ -198,27 +187,11 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       .map(_.asInstanceOf[JObject])
   }
 
-  override def getCommunity(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT] = {
-    if (bankId.isEmpty) {
-      DynamicData.find(
-        By(DynamicData.DynamicDataId, id),
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
-      ) match {
-        case Full(dynamicData) => Full(dynamicData)
-        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
-      }
-    } else {
-      DynamicData.find(
-        By(DynamicData.DynamicDataId, id),
-        By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, bankId.get),
-      ) match {
-        case Full(dynamicData) => Full(dynamicData)
-        case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id, bankId=${bankId.get}")
-      }
+  override def getCommunity(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT] =
+    DynamicData.find((whereClauseBankOrSystemAndEntity(bankId, entityName) :+ By(DynamicData.DynamicDataId, id)): _*) match {
+      case Full(dynamicData) => Full(dynamicData)
+      case _ => Failure(notFoundCommunityMessage(entityName, id, bankId))
     }
-  }
 
   override def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String): Box[DynamicDataT] = {
     val dynamicData = getCommunity(bankId, entityName, id)
@@ -239,40 +212,16 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 
   override def existsData(bankId: Option[String], dynamicEntityName: String, callerUserId: Option[String], isPersonalEntity: Boolean): Boolean = {
     val userId = ownerOf(callerUserId)
-    if(bankId.isEmpty && !isPersonalEntity){//isPersonalEntity == false, get all the data, no need for specific userId.
-      DynamicData.find(
-        By(DynamicData.DynamicEntityName, dynamicEntityName),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
-        By(DynamicData.IsPersonalEntity, false)
-      ).isDefined
-    } else if(bankId.isDefined && !isPersonalEntity){//isPersonalEntity == false, get all the data, no need for specific userId.
-      DynamicData.find(
-        By(DynamicData.DynamicEntityName, dynamicEntityName),
-        By(DynamicData.BankId, bankId.get),
-        By(DynamicData.IsPersonalEntity, false)
-      ).nonEmpty
-    } else if(bankId.isEmpty && isPersonalEntity){ //isPersonalEntity == true, check if data exists for specific userId (regardless of how it was created).
-      DynamicData.find(
-        By(DynamicData.DynamicEntityName, dynamicEntityName),
-        By(DynamicData.BankId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID),
-        By(DynamicData.UserId, userId.getOrElse(null))
-      ).nonEmpty
-    } else { //isPersonalEntity == true, check if data exists for specific userId (regardless of how it was created).
-      DynamicData.find(
-        By(DynamicData.DynamicEntityName, dynamicEntityName),
-        By(DynamicData.BankId, bankId.get),
-        By(DynamicData.UserId, userId.getOrElse(null))
-      ).nonEmpty
-    }
+    DynamicData.find((whereClauseBankOrSystemAndEntity(bankId, dynamicEntityName) :+ byOwnership(isPersonalEntity, userId)): _*).isDefined
   }
 
   private def saveOrUpdate(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean, dynamicData: => DynamicData): Box[DynamicData] = {
     val data: DynamicData = dynamicData
     tryo {
       val dataStr = json.compactRender(requestBody)
-     val saved = data.DataJson(dataStr)
+     val saved = data.BankId(bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID))
        .DynamicEntityName(entityName)
-       .BankId(bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID))
+       .DataJson(dataStr)
        .UserId(userId.getOrElse(null))
        .IsPersonalEntity(isPersonalEntity)
        .saveMe()

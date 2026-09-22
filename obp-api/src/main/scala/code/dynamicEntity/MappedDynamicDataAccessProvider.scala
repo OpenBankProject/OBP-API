@@ -53,8 +53,13 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
    * A record id alone does not identify a record, because ids are only unique within one space and
    * one entity. Every query below starts from this list so that a grant made on the country code DE
    * in one space can never be read, revoked or cascaded as a grant on DE in another.
+   *
+   * The columns are always named in the order the things they identify come into existence -- the
+   * bank, then the entity defined within it, then the record, then the user the grant is for --
+   * which is also the column order of the unique index these rows live under. Anything a query adds
+   * beyond these three is appended after them, so every query in this file reads the same way down.
    */
-  private def scopeOf(bankId: Option[String], entityName: String, dynamicDataId: String): List[QueryParam[DynamicDataAccess]] =
+  private def whereClauseBankOrSystemAndEntityAndDataId(bankId: Option[String], entityName: String, dynamicDataId: String): List[QueryParam[DynamicDataAccess]] =
     List(
       By(DynamicDataAccess.BankId, storedBankId(bankId)),
       By(DynamicDataAccess.EntityName, entityName),
@@ -65,20 +70,20 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
                      canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
                      grantedBy: String): Box[DynamicDataAccessT] = tryo {
     val row = DynamicDataAccess.find(
-      (By(DynamicDataAccess.UserId, userId) :: scopeOf(bankId, entityName, dynamicDataId)): _*
+      (whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId) :+ By(DynamicDataAccess.UserId, userId)): _*
     ).getOrElse(
       DynamicDataAccess.create
+        .BankId(storedBankId(bankId))
+        .EntityName(entityName)
         .DynamicDataId(dynamicDataId)
         .UserId(userId)
-        .EntityName(entityName)
-        .BankId(storedBankId(bankId))
     )
-    row.CanRead(canRead)
+    row.BankId(storedBankId(bankId))
+      .EntityName(entityName)
+      .CanRead(canRead)
       .CanUpdate(canUpdate)
       .CanDelete(canDelete)
       .CanGrant(canGrant)
-      .EntityName(entityName)
-      .BankId(storedBankId(bankId))
       .GrantedBy(grantedBy)
       .saveMe()
   }
@@ -87,7 +92,7 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
     // Walk the GrantedBy edges within this single data row: remove the target user and
     // everyone they granted downstream. The visited-set makes re-share cycles terminate
     // and absorbs the owner row's self-edge (GrantedBy == UserId).
-    val scope = scopeOf(bankId, entityName, dynamicDataId)
+    val whereThisRecord = whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId)
     val toRemove = mutable.LinkedHashSet[String](userId)
     val visited  = mutable.Set[String]()
     var frontier = List(userId)
@@ -97,7 +102,7 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
       if (!visited.contains(current)) {
         visited += current
         val children = DynamicDataAccess.findAll(
-          (By(DynamicDataAccess.GrantedBy, current) :: scope): _*
+          (whereThisRecord :+ By(DynamicDataAccess.GrantedBy, current)): _*
         ).map(_.UserId.get).filterNot(visited.contains)
         children.foreach { child =>
           toRemove += child
@@ -106,26 +111,26 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
       }
     }
     toRemove.toList.flatMap { uid =>
-      DynamicDataAccess.findAll((By(DynamicDataAccess.UserId, uid) :: scope): _*)
+      DynamicDataAccess.findAll((whereThisRecord :+ By(DynamicDataAccess.UserId, uid)): _*)
     }.map(_.delete_!).count(identity)
   }
 
   override def getAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataAccessT] =
-    DynamicDataAccess.findAll(scopeOf(bankId, entityName, dynamicDataId): _*)
+    DynamicDataAccess.findAll(whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId): _*)
 
   override def getReadableDynamicDataIds(bankId: Option[String], entityName: String, userId: String): List[String] =
     DynamicDataAccess.findAll(
-      By(DynamicDataAccess.UserId, userId),
+      By(DynamicDataAccess.BankId, storedBankId(bankId)),
       By(DynamicDataAccess.EntityName, entityName),
-      By(DynamicDataAccess.CanRead, true),
-      By(DynamicDataAccess.BankId, storedBankId(bankId))
+      By(DynamicDataAccess.UserId, userId),
+      By(DynamicDataAccess.CanRead, true)
     ).map(_.DynamicDataId.get)
 
   override def allows(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
                       permission: DynamicDataAccessPermission): Boolean = {
     import DynamicDataAccessPermission._
     DynamicDataAccess.find(
-      (By(DynamicDataAccess.UserId, userId) :: scopeOf(bankId, entityName, dynamicDataId)): _*
+      (whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId) :+ By(DynamicDataAccess.UserId, userId)): _*
     ).map { row =>
       permission match {
         case Read   => row.CanRead.get
@@ -137,13 +142,13 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
   }
 
   override def deleteAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): Box[Boolean] = tryo {
-    DynamicDataAccess.findAll(scopeOf(bankId, entityName, dynamicDataId): _*).forall(_.delete_!)
+    DynamicDataAccess.findAll(whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId): _*).forall(_.delete_!)
   }
 
   override def deleteAllForEntity(bankId: Option[String], entityName: String): Box[Boolean] = tryo {
     DynamicDataAccess.findAll(
-      By(DynamicDataAccess.EntityName, entityName),
-      By(DynamicDataAccess.BankId, storedBankId(bankId))
+      By(DynamicDataAccess.BankId, storedBankId(bankId)),
+      By(DynamicDataAccess.EntityName, entityName)
     ).forall(_.delete_!)
   }
 }
