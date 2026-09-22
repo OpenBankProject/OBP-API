@@ -247,14 +247,22 @@ object Migration extends MdcLoggable {
       val endDate = System.currentTimeMillis()
       val didSomething = outcomes.exists(_.changedSomething)
       val anythingFailed = outcomes.exists(_.failed)
-      val alreadyRecorded = MigrationScriptLogProvider.migrationScriptLogProvider.vend.isExecuted(name)
+      // Boot calls this before Schemifier, so on a database Schemifier has not created yet there is
+      // no migrationscriptlog table to read or to write. Reading it there raises a SQL error, and an
+      // error thrown at this point aborts the whole boot rather than one migration -- which is what
+      // a completely fresh database, such as the empty H2 every CI test shard starts from, gets. The
+      // steps above each found nothing to prepare on such a database, so there is nothing to record
+      // either, and the log is skipped until a later boot has a table to write it to.
+      val migrationLogTableExists = DbFunction.tableExistsByName("migrationscriptlog")
+      val alreadyRecorded = migrationLogTableExists &&
+        MigrationScriptLogProvider.migrationScriptLogProvider.vend.isExecuted(name)
       // An entry is written on the boot that does the work, on any boot that fails, and on the first
       // boot that finds the schema already correct. That last case matters: an instance whose data
       // was converted by a build predating this logging, or a database created fresh with the new
       // index already in DynamicData.dbIndexes, would otherwise have nothing here at all, and the
       // operator could not tell "this ran and there was nothing to do" from "this never ran".
       // Every instance therefore ends up with exactly one entry, and it says which of the two it was.
-      if (didSomething || anythingFailed || !alreadyRecorded) {
+      if (migrationLogTableExists && (didSomething || anythingFailed || !alreadyRecorded)) {
         val summary =
           if (anythingFailed) "Completed with failures"
           else if (didSomething) "Applied"
