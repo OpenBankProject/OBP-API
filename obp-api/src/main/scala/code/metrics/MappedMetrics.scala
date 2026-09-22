@@ -997,7 +997,10 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getAuthType(): String = authType.get
 }
 object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
+  // metricId: MetricsArchiveScheduler looks each archived row up by metricId twice (the dedup in
+  // saveMetricsArchive and the verify before deleting the source row). Without this index both
+  // lookups scan the whole archive, so the cost of archiving one row grows with the archive size.
   override def dbIndexes =
     Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) ::
-      Index(appName) :: Index(developerEmail) :: Index(consentReferenceId) :: super.dbIndexes
+      Index(appName) :: Index(developerEmail) :: Index(consentReferenceId) :: Index(metricId) :: super.dbIndexes
 }
