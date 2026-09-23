@@ -241,6 +241,10 @@ object Migration extends MdcLoggable {
       val outcomes = List(
         adoptSystemLevelBankIdSentinel("dynamicdata"),
         adoptSystemLevelBankIdSentinel("dynamicdataaccess"),
+        // The definitions kept SQL NULL for a system level entity while the data tables had already
+        // moved. One feature, two conventions: every read had to branch, and the branch that looked
+        // for NULL silently found nothing once the writer had started using the sentinel.
+        adoptSystemLevelBankIdSentinel("dynamicentity"),
         dropSupersededIndex("dynamicdata", "dynamicdata_dynamicdataid"),
         dropSupersededIndex("dynamicdataaccess", "dynamicdataaccess_dynamicdataid_userid")
       )

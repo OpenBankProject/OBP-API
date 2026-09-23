@@ -34,40 +34,41 @@ import net.liftweb.common.{Box, Empty, EmptyBox, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJsonFormats with MdcLoggable {
 
-  override def getById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntityT] = {
-    if (bankId.isEmpty)//If bankId is empty, we only return the system level entities
-      DynamicEntity.find(
-        By(DynamicEntity.DynamicEntityId, dynamicEntityId),
-        NullRef(DynamicEntity.BankId))
-    else
-      DynamicEntity.find(
-        By(DynamicEntity.DynamicEntityId, dynamicEntityId),
-        By(DynamicEntity.BankId, bankId.get))
-  }
+  /**
+   * The value the bank id column holds for a given space.
+   *
+   * A definition belonging to a bank stores that bank's id. A definition belonging to the system
+   * space stores Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than a SQL NULL, which is the
+   * convention the Dynamic Entity data tables already follow. Storing a real value rather than NULL
+   * means a query can compare the column like any other, and a unique index over it means what it
+   * says; a NULL compares equal to nothing, including itself. Readers still see None for a system
+   * level definition, because `bankId` filters the sentinel back out.
+   */
+  private def storedBankId(bankId: Option[String]): String =
+    bankId.filter(_.nonEmpty).getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+
+
+  override def getById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntityT] =
+    DynamicEntity.find(
+      By(DynamicEntity.BankId, storedBankId(bankId)),
+      By(DynamicEntity.DynamicEntityId, dynamicEntityId))
 
   override def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT] =
-    if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
-      DynamicEntity.find(
-        By(DynamicEntity.EntityName, entityName),
-        NullRef(DynamicEntity.BankId)
-      )
-    else
-      DynamicEntity.find(
-        By(DynamicEntity.BankId, bankId.get),
-        By(DynamicEntity.EntityName, entityName)
-      )
+    DynamicEntity.find(
+      By(DynamicEntity.BankId, storedBankId(bankId)),
+      By(DynamicEntity.EntityName, entityName)
+    )
       
 
   override def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntity] = {
     if(returnBothBankAndSystemLevel)
       DynamicEntity.findAll()
-    else if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
-      DynamicEntity.findAll(NullRef(DynamicEntity.BankId))
     else
-      DynamicEntity.findAll(By(DynamicEntity.BankId, bankId.get))
+      DynamicEntity.findAll(By(DynamicEntity.BankId, storedBankId(bankId)))
   }
 
   override def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity] = {
@@ -90,14 +91,12 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     // rows admin-only (no backfill). Warn so the operator grants access deliberately.
     val wasRowLevel = existsDynamicEntity.map(_.useRowLevelAccess).getOrElse(false)
     if (!wasRowLevel && dynamicEntity.useRowLevelAccess) {
-      val existingRowCount = dynamicEntity.bankId match {
-        case Some(b) => code.DynamicData.DynamicData.count(
-          By(code.DynamicData.DynamicData.DynamicEntityName, dynamicEntity.entityName),
-          By(code.DynamicData.DynamicData.BankId, b))
-        case None => code.DynamicData.DynamicData.count(
-          By(code.DynamicData.DynamicData.DynamicEntityName, dynamicEntity.entityName),
-          NullRef(code.DynamicData.DynamicData.BankId))
-      }
+      // The data table stores the system space as the sentinel, never as a SQL NULL, so both spaces
+      // are one comparison. Looking for NULL here counted zero rows for every system level entity,
+      // which meant the warning below never fired for exactly the entities most likely to have data.
+      val existingRowCount = code.DynamicData.DynamicData.count(
+        By(code.DynamicData.DynamicData.DynamicEntityName, dynamicEntity.entityName),
+        By(code.DynamicData.DynamicData.BankId, storedBankId(dynamicEntity.bankId)))
       if (existingRowCount > 0)
         logger.warn(s"createOrUpdate says: useRowLevelAccess switched on for entity '${dynamicEntity.entityName}' " +
           s"(bankId=${dynamicEntity.bankId.getOrElse("none")}) which already has $existingRowCount row(s); these are now " +
@@ -112,7 +111,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           // Definition creator resolves to the on-behalf-of user (UserReference.DynamicEntity_UserId):
           // a consent user owns nothing durable. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
           .UserId(code.users.Users.users.vend.attributedUserId(dynamicEntity.userId, code.users.UserReference.DynamicEntity_UserId).openOr(dynamicEntity.userId))
-          .BankId(dynamicEntity.bankId.getOrElse(null))
+          .BankId(storedBankId(dynamicEntity.bankId))
           .HasPersonalEntity(dynamicEntity.hasPersonalEntity)
           .HasPublicAccess(dynamicEntity.hasPublicAccess)
           .HasCommunityAccess(dynamicEntity.hasCommunityAccess)
@@ -151,7 +150,14 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
   override def delete(dynamicEntity: DynamicEntityT): Box[Boolean] = Box.tryo{
     dynamicEntity match {
       case v: DynamicEntity => DynamicEntity.delete_!(v)
-      case v => DynamicEntity.bulkDelete_!!(By(DynamicEntity.EntityName, v.entityName))
+      // Anything that is not one of our own rows is matched by name, and a name identifies an entity
+      // only within one space: two spaces may each hold one called country. Without the bank id this
+      // deletes every space's copy. No caller reaches this branch today -- both pass a row this
+      // provider just returned -- but the signature takes any DynamicEntityT, and DynamicEntityCommons
+      // is what a caller naturally holds, so the branch is one call away from being reached.
+      case v => DynamicEntity.bulkDelete_!!(
+        By(DynamicEntity.BankId, storedBankId(v.bankId)),
+        By(DynamicEntity.EntityName, v.entityName))
     }
   }
 
@@ -181,7 +187,11 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   override def entityName: String = EntityName.get
   override def metadataJson: String = MetadataJson.get
   override def userId: String = UserId.get
-  override def bankId: Option[String] = if (BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get)
+  // A system level definition stores the sentinel rather than a SQL NULL; it is filtered back out
+  // here so every reader still sees None, exactly as before. Empty and null are still read as the
+  // system space, so a row written before the sentinel existed reads correctly until it is moved.
+  override def bankId: Option[String] =
+    Option(BankId.get).filterNot(_.isEmpty).filterNot(_ == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
   override def hasPersonalEntity: Boolean = HasPersonalEntity.get
   override def hasPublicAccess: Boolean = HasPublicAccess.get
   override def hasCommunityAccess: Boolean = HasCommunityAccess.get
