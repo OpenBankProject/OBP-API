@@ -1,0 +1,17 @@
+<configuration>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %t %c{0} [%p] %m%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- LOG_LEVEL env var (or -DLOG_LEVEL= system property) overrides this; unset falls back to
+       INFO. Default is intentionally quiet, not DEBUG: DEBUG by default means every deployment
+       silently pays the cost of maximal log volume (including the per-message secret-masking
+       pass in SecureLogging) unless someone remembers to turn it down, an opt-out default that
+       is easy to forget. Verbose logging should be an explicit, per-environment opt-in instead. -->
+  <root level="${LOG_LEVEL:-INFO}">
+    <appender-ref ref="STDOUT"/>
+  </root>
+</configuration>
