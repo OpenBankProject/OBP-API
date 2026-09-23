@@ -66,32 +66,43 @@ trait DynamicDataAccessT {
 trait DynamicDataAccessProvider {
 
   /**
-   * Upsert one ACL row: grant (or update) `userId`'s permissions on `dynamicDataId`.
-   * `grantedBy` records the userId who created the grant, for the revoke cascade.
+   * Every method here is scoped by the space and the entity as well as by the record id.
+   *
+   * A record id is only unique within one space and one entity -- two spaces may each hold a record
+   * whose natural key is the country code DE -- so a method that took the record id alone could not
+   * tell those two records apart, and an access grant made in one space would be read as a grant in
+   * the other. The parameters are ordered the way the things they name come into existence: the
+   * bank (the space) first, then the entity defined within it, then the record.
    */
-  def grant(dynamicDataId: String, userId: String,
-            canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
-            entityName: String, bankId: Option[String], grantedBy: String): Box[DynamicDataAccessT]
 
   /**
-   * Revoke `userId`'s access to `dynamicDataId` AND cascade: every grant transitively
-   * made by `userId` on the same row is removed too (walk `grantedBy` with a visited-set
+   * Upsert one ACL row: grant (or update) `userId`'s permissions on the named record.
+   * `grantedBy` records the userId who created the grant, for the revoke cascade.
+   */
+  def grant(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
+            canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
+            grantedBy: String): Box[DynamicDataAccessT]
+
+  /**
+   * Revoke `userId`'s access to the named record AND cascade: every grant transitively
+   * made by `userId` on the same record is removed too (walk `grantedBy` with a visited-set
    * so re-share cycles terminate). Returns the number of ACL rows removed.
    */
-  def revoke(dynamicDataId: String, userId: String): Box[Int]
+  def revoke(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String): Box[Int]
 
-  /** All ACL rows for a single data row (for the GET .../access listing). */
-  def getAccessForRow(dynamicDataId: String): List[DynamicDataAccessT]
+  /** All ACL rows for a single record (for the GET .../access listing). */
+  def getAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataAccessT]
 
-  /** DynamicDataIds of `entityName`/`bankId` that `userId` may read — the get-all filter. */
-  def getReadableDynamicDataIds(userId: String, entityName: String, bankId: Option[String]): List[String]
+  /** DynamicDataIds of the entity in this space that `userId` may read -- the get-all filter. */
+  def getReadableDynamicDataIds(bankId: Option[String], entityName: String, userId: String): List[String]
 
-  /** Does `userId` hold `permission` on `dynamicDataId`? */
-  def allows(dynamicDataId: String, userId: String, permission: DynamicDataAccessPermission): Boolean
+  /** Does `userId` hold `permission` on the named record? */
+  def allows(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
+             permission: DynamicDataAccessPermission): Boolean
 
-  /** Cascade on row delete: remove every ACL row for the data row. */
-  def deleteAllForRow(dynamicDataId: String): Box[Boolean]
+  /** Cascade on record delete: remove every ACL row for that record. */
+  def deleteAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): Box[Boolean]
 
-  /** Cascade on entity delete: remove every ACL row for the entity/bank. */
-  def deleteAllForEntity(entityName: String, bankId: Option[String]): Box[Boolean]
+  /** Cascade on entity delete: remove every ACL row for the entity in this space. */
+  def deleteAllForEntity(bankId: Option[String], entityName: String): Box[Boolean]
 }

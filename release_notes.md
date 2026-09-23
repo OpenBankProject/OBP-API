@@ -3,6 +3,36 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+22/09/2026    TBD           CONFIG CHANGE: public_obp_mcp_url now denotes the MCP instance that
+                            external clients can authenticate against (AUTH_PROVIDER=obp-oidc,
+                            OBP_AUTHORIZATION_VIA=oauth, full OAuth 2.1 + Dynamic Client
+                            Registration), rather than simply "the MCP server". Its built-in
+                            default moves from http://localhost:9100 to http://localhost:9101.
+
+                            A second prop, public_obp_mcp_internal_url, names the internal
+                            instance that Opey uses (AUTH_PROVIDER=bearer-only,
+                            OBP_AUTHORIZATION_VIA=consent), default http://localhost:9100.
+
+                            DevOps action: in each environment, check what
+                            OBP_PUBLIC_OBP_MCP_URL is set to. If it points at the internal /
+                            Opey instance, move that value to OBP_PUBLIC_OBP_MCP_INTERNAL_URL
+                            and set OBP_PUBLIC_OBP_MCP_URL to the external OAuth instance. If it
+                            already points at the external instance, leave it and add the
+                            internal one. If either variable is unset, note that the built-in
+                            default for public_obp_mcp_url has moved port.
+
+                            Why it matters: these props feed the public App Directory (GET /apps,
+                            authentication not required), which external clients and agents use
+                            for discovery. If public_obp_mcp_url names the internal instance, a
+                            client connects and can list tools but every call then fails with
+                            consent_required - a failure that presents as a healthy server.
+
+                            Verify with: curl -H 'Accept: application/json' <api>/apps and confirm
+                            both MCP entries appear with the expected URLs. Each instance reports
+                            its own live mode at <url>/status (field: Outbound to OBP-API
+                            (OBP_AUTHORIZATION_VIA)); that is the source of truth, while the props
+                            only say where the instances are.
+
 15/08/2026    614e7294e     BUILD/DEPLOY CHANGE: obp-api and obp-commons are built with Scala 2.13.
                             The class files this produces are Java 25, where 2.12 emitted Java 8
                             whatever -release said - 2.13 honours -release fully. Anything loading

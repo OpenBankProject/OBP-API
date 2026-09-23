@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.DynamicData
 
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -35,27 +36,63 @@ import scala.collection.mutable
 
 object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
 
-  override def grant(dynamicDataId: String, userId: String,
+  /**
+   * This turns the optional bank id the caller supplies into the value actually stored in the
+   * BankId column. An ACL row for a record that belongs to no bank is stored under
+   * Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than as a SQL NULL, for the same reason the
+   * record itself is: the unique index over these rows has to include the bank id, and Postgres
+   * treats NULLs as distinct, so a nullable column would make the index enforce nothing for the
+   * system level rows.
+   */
+  private def storedBankId(bankId: Option[String]): String =
+    bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+
+  /**
+   * The parameters that pin an ACL row to one record: the space, the entity and the record id.
+   *
+   * A record id alone does not identify a record, because ids are only unique within one space and
+   * one entity. Every query below starts from this list so that a grant made on the country code DE
+   * in one space can never be read, revoked or cascaded as a grant on DE in another.
+   *
+   * The columns are always named in the order the things they identify come into existence -- the
+   * bank, then the entity defined within it, then the record, then the user the grant is for --
+   * which is also the column order of the unique index these rows live under. Anything a query adds
+   * beyond these three is appended after them, so every query in this file reads the same way down.
+   */
+  private def whereClauseBankOrSystemAndEntityAndDataId(bankId: Option[String], entityName: String, dynamicDataId: String): List[QueryParam[DynamicDataAccess]] =
+    List(
+      By(DynamicDataAccess.BankId, storedBankId(bankId)),
+      By(DynamicDataAccess.EntityName, entityName),
+      By(DynamicDataAccess.DynamicDataId, dynamicDataId)
+    )
+
+  override def grant(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
                      canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
-                     entityName: String, bankId: Option[String], grantedBy: String): Box[DynamicDataAccessT] = tryo {
+                     grantedBy: String): Box[DynamicDataAccessT] = tryo {
     val row = DynamicDataAccess.find(
-      By(DynamicDataAccess.DynamicDataId, dynamicDataId),
-      By(DynamicDataAccess.UserId, userId)
-    ).getOrElse(DynamicDataAccess.create.DynamicDataId(dynamicDataId).UserId(userId))
-    row.CanRead(canRead)
+      (whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId) :+ By(DynamicDataAccess.UserId, userId)): _*
+    ).getOrElse(
+      DynamicDataAccess.create
+        .BankId(storedBankId(bankId))
+        .EntityName(entityName)
+        .DynamicDataId(dynamicDataId)
+        .UserId(userId)
+    )
+    row.BankId(storedBankId(bankId))
+      .EntityName(entityName)
+      .CanRead(canRead)
       .CanUpdate(canUpdate)
       .CanDelete(canDelete)
       .CanGrant(canGrant)
-      .EntityName(entityName)
-      .BankId(bankId.getOrElse(null))
       .GrantedBy(grantedBy)
       .saveMe()
   }
 
-  override def revoke(dynamicDataId: String, userId: String): Box[Int] = tryo {
+  override def revoke(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String): Box[Int] = tryo {
     // Walk the GrantedBy edges within this single data row: remove the target user and
     // everyone they granted downstream. The visited-set makes re-share cycles terminate
     // and absorbs the owner row's self-edge (GrantedBy == UserId).
+    val whereThisRecord = whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId)
     val toRemove = mutable.LinkedHashSet[String](userId)
     val visited  = mutable.Set[String]()
     var frontier = List(userId)
@@ -65,8 +102,7 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
       if (!visited.contains(current)) {
         visited += current
         val children = DynamicDataAccess.findAll(
-          By(DynamicDataAccess.DynamicDataId, dynamicDataId),
-          By(DynamicDataAccess.GrantedBy, current)
+          (whereThisRecord :+ By(DynamicDataAccess.GrantedBy, current)): _*
         ).map(_.UserId.get).filterNot(visited.contains)
         children.foreach { child =>
           toRemove += child
@@ -75,34 +111,26 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
       }
     }
     toRemove.toList.flatMap { uid =>
-      DynamicDataAccess.findAll(
-        By(DynamicDataAccess.DynamicDataId, dynamicDataId),
-        By(DynamicDataAccess.UserId, uid)
-      )
+      DynamicDataAccess.findAll((whereThisRecord :+ By(DynamicDataAccess.UserId, uid)): _*)
     }.map(_.delete_!).count(identity)
   }
 
-  override def getAccessForRow(dynamicDataId: String): List[DynamicDataAccessT] =
-    DynamicDataAccess.findAll(By(DynamicDataAccess.DynamicDataId, dynamicDataId))
+  override def getAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataAccessT] =
+    DynamicDataAccess.findAll(whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId): _*)
 
-  override def getReadableDynamicDataIds(userId: String, entityName: String, bankId: Option[String]): List[String] = {
-    val base: List[QueryParam[DynamicDataAccess]] = List(
-      By(DynamicDataAccess.UserId, userId),
+  override def getReadableDynamicDataIds(bankId: Option[String], entityName: String, userId: String): List[String] =
+    DynamicDataAccess.findAll(
+      By(DynamicDataAccess.BankId, storedBankId(bankId)),
       By(DynamicDataAccess.EntityName, entityName),
+      By(DynamicDataAccess.UserId, userId),
       By(DynamicDataAccess.CanRead, true)
-    )
-    val scoped = bankId match {
-      case Some(b) => By(DynamicDataAccess.BankId, b) :: base
-      case None    => NullRef(DynamicDataAccess.BankId) :: base
-    }
-    DynamicDataAccess.findAll(scoped: _*).map(_.DynamicDataId.get)
-  }
+    ).map(_.DynamicDataId.get)
 
-  override def allows(dynamicDataId: String, userId: String, permission: DynamicDataAccessPermission): Boolean = {
+  override def allows(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
+                      permission: DynamicDataAccessPermission): Boolean = {
     import DynamicDataAccessPermission._
     DynamicDataAccess.find(
-      By(DynamicDataAccess.DynamicDataId, dynamicDataId),
-      By(DynamicDataAccess.UserId, userId)
+      (whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId) :+ By(DynamicDataAccess.UserId, userId)): _*
     ).map { row =>
       permission match {
         case Read   => row.CanRead.get
@@ -113,16 +141,15 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
     }.getOrElse(false)
   }
 
-  override def deleteAllForRow(dynamicDataId: String): Box[Boolean] = tryo {
-    DynamicDataAccess.findAll(By(DynamicDataAccess.DynamicDataId, dynamicDataId)).forall(_.delete_!)
+  override def deleteAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): Box[Boolean] = tryo {
+    DynamicDataAccess.findAll(whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId): _*).forall(_.delete_!)
   }
 
-  override def deleteAllForEntity(entityName: String, bankId: Option[String]): Box[Boolean] = tryo {
-    val params: List[QueryParam[DynamicDataAccess]] = bankId match {
-      case Some(b) => List(By(DynamicDataAccess.EntityName, entityName), By(DynamicDataAccess.BankId, b))
-      case None    => List(By(DynamicDataAccess.EntityName, entityName), NullRef(DynamicDataAccess.BankId))
-    }
-    DynamicDataAccess.findAll(params: _*).forall(_.delete_!)
+  override def deleteAllForEntity(bankId: Option[String], entityName: String): Box[Boolean] = tryo {
+    DynamicDataAccess.findAll(
+      By(DynamicDataAccess.BankId, storedBankId(bankId)),
+      By(DynamicDataAccess.EntityName, entityName)
+    ).forall(_.delete_!)
   }
 }
 
@@ -148,12 +175,17 @@ class DynamicDataAccess extends DynamicDataAccessT with LongKeyedMapper[DynamicD
   override def canGrant: Boolean = CanGrant.get
   override def grantedBy: String = GrantedBy.get
   override def entityName: String = EntityName.get
-  override def bankId: Option[String] = Option(BankId.get)
+  // A system level ACL row stores the sentinel rather than a SQL NULL; it is filtered back out
+  // here so every reader still sees None, exactly as before.
+  override def bankId: Option[String] = Option(BankId.get).filterNot(_ == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 }
 
 object DynamicDataAccess extends DynamicDataAccess with LongKeyedMetaMapper[DynamicDataAccess] {
   override def dbIndexes =
-    UniqueIndex(DynamicDataId, UserId) ::
+    // One ACL row per (space, entity, record, user). DynamicDataId alone does not identify a
+    // record -- ids repeat across spaces -- so this index carries the same discriminators, in the
+    // same existence order, as DynamicData's own unique index.
+    UniqueIndex(BankId, EntityName, DynamicDataId, UserId) ::
     Index(UserId, EntityName, BankId) ::
     Index(DynamicDataId, GrantedBy) ::
     super.dbIndexes

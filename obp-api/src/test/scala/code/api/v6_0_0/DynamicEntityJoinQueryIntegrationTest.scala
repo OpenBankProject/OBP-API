@@ -117,8 +117,9 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
 
       val d1 = saveRec(Deal, "partner_ref" -> JString(p1))
       saveRec(Deal, "partner_ref" -> JString(p2)) // d2: granted to nobody
-      DynamicDataAccessProvider.provider.vend.grant(d1, userA, canRead = true, canUpdate = false,
-        canDelete = false, canGrant = false, entityName = Deal, bankId = None, grantedBy = owner)
+      DynamicDataAccessProvider.provider.vend.grant(bankId = None, entityName = Deal, dynamicDataId = d1,
+        userId = userA, canRead = true, canUpdate = false, canDelete = false, canGrant = false,
+        grantedBy = owner)
 
       // --- provision AFTER writing, so the backfill populates projections from the blobs.
       //     (This makes the test independent of dynamic_entity.indexing.backend; provisioning's backfill +

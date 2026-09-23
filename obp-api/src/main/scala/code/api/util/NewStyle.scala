@@ -3620,7 +3620,7 @@ object NewStyle extends MdcLoggable{
             DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
             // Cascade row-level ACL rows for this entity (§7) — safety net for any rows not already
             // cleaned up by per-row delete; no-op for non-row-level entities.
-            code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForEntity(entity.entityName, entity.bankId)
+            code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForEntity(entity.bankId, entity.entityName)
           }
           deleteEntitleMentResult
         }

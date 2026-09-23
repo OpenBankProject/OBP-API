@@ -58,6 +58,30 @@ object Constant extends MdcLoggable {
   // identified by their group_id.
   final val group_membership = "GROUP_MEMBERSHIP"
 
+  /**
+   * This is the value the bank id column holds for a Dynamic Entity record that belongs to no bank.
+   *
+   * A Dynamic Entity record is either scoped to one bank, which the Dynamic Entity feature calls a
+   * space, or it is system level and belongs to the instance as a whole. The system level case used
+   * to be written as a SQL NULL. That could not stay, because the uniqueness of a record's id has to
+   * be enforced per space rather than across the whole instance: two spaces may each legitimately
+   * hold a record whose natural key is the country code DE, and before this change the second one
+   * was refused. Postgres treats NULLs as distinct inside a unique index, so a composite unique
+   * index over the bank id would have stopped enforcing anything at all for the system level rows --
+   * the very rows every existing instance is full of. Writing a real value instead removes that
+   * exception, and the index in DynamicData.dbIndexes can then say plainly what it means.
+   *
+   * The value is three characters long, and every endpoint that accepts a caller supplied bank id
+   * requires at least four (APIUtil.checkShortString plus a per endpoint minimum length check), so
+   * no caller can create a bank that collides with it. DynamicEntitySystemLevelBankIdTest holds that
+   * property down, because the minimum length check is written out separately in each endpoint
+   * rather than shared, and so is the part of the rule most likely to drift.
+   *
+   * This value is an internal storage detail and is never published. DynamicData.bankId filters it
+   * back out, so every reader still sees None for a system level record exactly as before.
+   */
+  final val DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID = "SYS"
+
   object Pagination {
     final val offset = 0
     final val limit = 50

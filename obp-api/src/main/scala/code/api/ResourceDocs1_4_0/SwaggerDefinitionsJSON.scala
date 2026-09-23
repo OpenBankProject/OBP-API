@@ -6390,7 +6390,8 @@ object SwaggerDefinitionsJSON {
       ConfigPropJsonV600("public_obp_oidc_url", "http://localhost:9000"),
       ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),
       ConfigPropJsonV600("public_obp_hola_url", "http://localhost:48123"),
-      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9100"),
+      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9101"),
+      ConfigPropJsonV600("public_obp_mcp_internal_url", "http://localhost:9100"),
       ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000"),
       ConfigPropJsonV600("public_obp_stripe_url", "http://localhost:4242")
     )

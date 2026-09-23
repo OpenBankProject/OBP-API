@@ -369,7 +369,38 @@ public_keycloak_url=http://localhost:7787
 #   Docker (Dockerfile EXPOSE 8087)        -> 8087  (or override via SERVER_PORT env var)
 # The default below matches Docker; for local non-Docker dev use http://localhost:48123 instead.
 public_obp_hola_url=http://localhost:8087
-public_obp_mcp_url=http://localhost:9100
+# ---------------------------------------------------------------------------
+# OBP-MCP — the Model Context Protocol tool surface for OBP-API.
+#
+# Two instances may run side by side. They expose the same tools; they differ
+# in who they serve, and therefore how they authenticate:
+#
+#   external  run_server_oauth.sh, :9101 (mirrors k8s-mcp2)
+#             AUTH_PROVIDER=obp-oidc, OBP_AUTHORIZATION_VIA=oauth
+#             Full OAuth 2.1 + Dynamic Client Registration. For MCP clients
+#             that sign a user in and cannot drive a consent flow themselves
+#             — Claude Code, VS Code, Claude Desktop.
+#
+#   internal  run_server.sh, :9100
+#             AUTH_PROVIDER=bearer-only, OBP_AUTHORIZATION_VIA=consent
+#             For agents running inside the deployment — Opey reaches it via
+#             its own mcp_servers.json, not via this prop.
+#
+# public_obp_mcp_url is the one the App Directory advertises, so it must name
+# an instance an outside client can actually authenticate against. Pointed at
+# the internal instance it yields a server that connects and lists tools, then
+# fails every call with consent_required.
+#
+# The public_ prefix marks a prop as an App Directory entry (see
+# APIUtil.publicAppUrlDefaults) — it is not a claim that the target is
+# internet-facing. The internal instance is listed so operators can see and
+# health-probe it.
+#
+# Each instance reports its own live mode at <url>/status, which is the source
+# of truth. These props only say where the instances are.
+# ---------------------------------------------------------------------------
+public_obp_mcp_url=http://localhost:9101
+public_obp_mcp_internal_url=http://localhost:9100
 public_obp_opey_url=http://localhost:5000
 # OBP-Stripe subscription / payment service (Go server, default port 4242)
 public_obp_stripe_url=http://localhost:4242
