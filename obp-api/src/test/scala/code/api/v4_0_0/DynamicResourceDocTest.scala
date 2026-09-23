@@ -249,7 +249,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
 
   // End-to-end exercise of the NATIVE runtime-compiled dynamic-endpoint dispatch (Piece C):
   // Http4sDynamicEndpoint.pieceC -> DynamicEndpoints.findEndpoint -> ResourceDoc.authCheckIO ->
-  // the compiled OBPEndpointIO handler -> Sandbox.runInSandboxIO -> OBPReturnType => IO[Response] implicit.
+  // the compiled OBPEndpointIO handler -> DynamicCodeBody.force -> OBPReturnType => IO[Response] implicit.
   // The metadata-CRUD scenarios above only prove the doc/template compiles; these prove it RUNS.
   feature("Native execution of runtime-compiled dynamic endpoints (Piece C)") {
 

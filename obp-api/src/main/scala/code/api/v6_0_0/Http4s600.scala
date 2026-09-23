@@ -2300,7 +2300,9 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "management" / "dynamic-entities" / "reference-types" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
-            val referenceTypeNames = code.dynamicEntity.ReferenceType.referenceTypeNames
+            // The catalogue of every reference type on the instance. A definition is validated against
+            // the types of its own space (ReferenceType.referenceTypeNames), which is the narrower list.
+            val referenceTypeNames = code.dynamicEntity.ReferenceType.allReferenceTypeNames
             val dynamicEntityNames = NewStyle.function.getDynamicEntities(None, true)
               .map(e => s"reference:${e.entityName}").toSet
             val exampleId1 = APIUtil.generateUUID()
@@ -12745,14 +12747,14 @@ object Http4s600 {
           s"""Dry-run validation of a Dynamic Resource Doc. Send the same payload you would send to `Create Dynamic Resource Doc` and this endpoint will:
           |
           |- Parse `method_body` (URL-decoded) as Scala code and run the ToolBox compiler against it, wrapped in the same template used at runtime (request/response case classes generated from `example_request_body` / `success_response_body`).
-          |- Run the OBP compilation-dependency guard (when the OBP prop `dynamic_code_compile_validate_enable` is set to `true`).
+          |- Run the OBP call allowlist guard (when the OBP prop `dynamic_code_obp_calls_are_restricted` is set to `true`).
           |
           |Always returns HTTP 200. Inspect the `valid` field in the response:
           |
           |* `true`  — the Scala compiles and all referenced OBP methods are on the allowlist.
           |* `false` — the response includes `error` (raw compiler / guard message), `message` (OBP error constant) and `details.error_type` — one of:
           |  * `CompilationError` — `method_body` failed to compile.
-          |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_compile_validate_dependencies`.
+          |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_allowed_obp_methods`.
           |  * `UnknownError` — any other unexpected exception.
           |
           |Nothing is persisted and no endpoint is served as a result of calling this.

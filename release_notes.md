@@ -3,6 +3,107 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+23/09/2026    TBD           CHANGED, action required: seven Roles are now granted per bank
+                            rather than instance wide. They are the five Counterparty Attribute
+                            Roles (CanCreateCounterpartyAttribute, CanGetCounterpartyAttribute,
+                            CanGetCounterpartyAttributes, CanUpdateCounterpartyAttribute,
+                            CanDeleteCounterpartyAttribute), CanGetAdapterInfoAtOneBank and
+                            CanConfigureAmqpBankBroker.
+
+                            All seven were declared requiresBankId = false. That flag does more
+                            than widen what a Role is called: it tells OBP to look the
+                            Entitlement up at the empty bank id, ignoring whichever bank the
+                            request was about, so one row let its holder act at every bank on
+                            the instance, including banks onboarded later. Each of these Roles
+                            acts on something belonging to a single bank -- a Counterparty
+                            Attribute hangs off one bank's account, adapter information is asked
+                            for one bank, and an AMQP broker registration is where one bank's
+                            settlement and credit messages are published -- and every comparable
+                            Role in OBP already names a bank.
+
+                            ACTION FOR OPERATORS: existing Entitlements are NOT migrated. A row
+                            held at the system scope (bank_id empty) stops authorising these
+                            endpoints on upgrade. Grant the Role again at each bank where the
+                            holder needs it:
+
+                              POST /obp/v7.0.0/users/USER_ID/entitlements
+                              { "bank_id": "BANK_ID", "role_name": "CanConfigureAmqpBankBroker" }
+
+                            Find who is affected before upgrading with
+                            GET /obp/v6.0.0/entitlements (or the roles-with-counts endpoint) and
+                            look for these Role names with an empty bank_id. There is no
+                            automatic expansion on purpose: the old grant covered every bank, and
+                            reproducing that would write one row per bank per holder for
+                            permissions an operator may only have wanted at one or two of them.
+
+                            The stale system scoped rows authorise nothing after the upgrade and
+                            can be deleted once the per bank grants are in place.
+
+                            This is the first instalment of a longer direction: Roles that let a
+                            holder act on ANY bank are being retired in favour of Roles that name
+                            one bank. System Roles, whose subject is the instance rather than a
+                            bank, are not affected.
+
+```
+Date          Commit        Action
+23/09/2026    TBD           RENAMED props: dynamic_code_compile_validate_enable is now
+                            dynamic_code_obp_calls_are_restricted, and
+                            dynamic_code_compile_validate_dependencies is now
+                            dynamic_code_allowed_obp_methods.
+
+                            The old names read as "validate that the dynamic code compiles",
+                            which is not what they do -- the code is compiled either way. What
+                            they control is an allowlist of the OBP methods dynamic code may
+                            call: with the gate on, creating or updating a body that calls an
+                            OBP method outside the list is rejected with OBP-40047 naming the
+                            method. It is an allowlist on OBP's own API surface, NOT a sandbox:
+                            it does not restrict file, network or reflection access, and does
+                            not check general scala/java library calls.
+
+                            Both old names are still read, so an instance that set either keeps
+                            its behaviour; using one logs a deprecation warning naming the new
+                            name. Set the new name and the old one is ignored. Nothing changes
+                            for an instance that set neither -- the gate still defaults to false,
+                            meaning dynamic code may call any OBP method, and only matters once
+                            allow_user_generated_scala_code is true.
+
+                            No behaviour change, names only.
+
+Date          Commit        Action
+23/09/2026    TBD           REMOVED: the dynamic-code sandbox, and with it the props
+                            dynamic_code_sandbox_enable and dynamic_code_sandbox_permissions.
+                            An instance that still sets either will simply ignore them.
+
+                            It wrapped runtime-compiled dynamic endpoint / connector code in
+                            AccessController.doPrivileged with a restricted permission set, to
+                            limit file, network and reflection access. SecurityManager was
+                            removed in JDK 24 (JEP 411, completed by JEP 486) and OBP now
+                            requires JVM 25, so doPrivileged is a pass-through on every runtime
+                            that can run this code: the sandbox could not restrict anything,
+                            while still costing a privileged wrapper on each dynamic call and
+                            an ExecutionContext wrapper on every task. It is deleted rather
+                            than left as a switch implying isolation it cannot deliver.
+
+                            Behaviour is unchanged, because the sandbox already enforced nothing
+                            on a supported JVM. What changes is that this is now explicit:
+                            dynamic code runs with the full privileges of the OBP process. The
+                            controls that DO work are allow_user_generated_scala_code (the
+                            master gate, still false by default),
+                            dynamic_code_obp_calls_are_restricted (the allowlist of
+                            callable OBP methods) and dynamic_code_requires_approval
+                            (maker-checker). Anyone who believed the sandbox was containing
+                            untrusted dynamic code should re-read those three.
+
+                            The early-return recovery that lived in the same wrapper is kept as
+                            DynamicUtil.DynamicCodeBody.force, so `return errorResponse(...)` in
+                            a dynamic body still yields its response rather than a 500.
+                            CompiledObjects.sandboxEndpoint(bankId) becomes compiledEndpoint()
+                            and DynamicCompileEndpoint.boundBankId is gone; both existed only to
+                            select the per-bank permission set. Five Sandbox scenarios in
+                            DynamicUtilTest are removed - three of them had been silently
+                            cancelling on every run since the build moved to JDK 21+.
+
+Date          Commit        Action
 22/09/2026    TBD           CONFIG CHANGE: public_obp_mcp_url now denotes the MCP instance that
                             external clients can authenticate against (AUTH_PROVIDER=obp-oidc,
                             OBP_AUTHORIZATION_VIA=oauth, full OAuth 2.1 + Dynamic Client

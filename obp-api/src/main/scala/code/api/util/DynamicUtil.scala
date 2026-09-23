@@ -33,7 +33,6 @@ import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
 import cats.effect.IO
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
@@ -43,7 +42,6 @@ import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.apache.commons.lang3.StringUtils
 import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
 
-import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
@@ -256,95 +254,32 @@ object DynamicUtil extends MdcLoggable{
     Nil
   }
 
-  trait Sandbox {
-    @throws[Exception]
-    def runInSandbox[R](action: => R): R
-
-    /**
-     * Run a dynamic body's IO under the same security sandbox, for native (http4s) runtime-compiled
-     * dynamic endpoints (Piece C). The body's SYNCHRONOUS CONSTRUCTION (forcing the by-name `io`,
-     * i.e. applying the compiled handler / running the user statements up to the first Future) runs
-     * inside the privileged context with the restricted permissions; the resulting IO is then
-     * evaluated by the cats-effect runtime OUTSIDE the privileged context. This mirrors the Lift
-     * path exactly: there `runInSandbox { process(...) }` wrapped only the synchronous construction
-     * plus the blocking wait, while the user's Future body (DB / network / serialization) ran on the
-     * EC thread outside `doPrivileged`. Running the whole IO inside `doPrivileged` instead would
-     * (wrongly) subject framework I/O — DB sockets, etc. — to the dynamic-code permission set.
-     *
-     * Non-local `return`: when the dynamic body is the runtime-compiled template it is a closure,
-     * so `return errorResponse(...)` throws a `NonLocalReturnControl` carrying the IO it should
-     * return (the Lift runInSandbox caught the JsonResponse equivalent). We recover that IO here so
-     * an early `return` in user code yields its response rather than a 500. (In PractiseEndpoint the
-     * body is a real method, so `return` is an ordinary return and never reaches this catch.)
-     */
-    def runInSandboxIO[A](io: => IO[A]): IO[A] = {
-      def forceBodyIO(): IO[A] =
+  /**
+   * Forces a dynamic body's IO and recovers the non-local `return` a compiled closure
+   * uses for an early exit, so `return errorResponse(...)` in user code yields its
+   * response rather than a 500. (In PractiseEndpoint the body is a real method, so
+   * `return` is ordinary and never reaches the catch.)
+   *
+   * This is what remains of the former `Sandbox`. That wrapper also ran dynamic code
+   * under `AccessController.doPrivileged` with a restricted permission set, configured
+   * by the `dynamic_code_sandbox_enable` / `dynamic_code_sandbox_permissions` props.
+   * SecurityManager was removed in JDK 24 (JEP 486) and OBP now requires JVM 25, so
+   * `doPrivileged` is a pass-through on every runtime that can run this code: the
+   * sandbox could not restrict file, network or reflection access, while still costing
+   * a privileged wrapper on every dynamic call. It has been removed rather than left as
+   * a switch that implies isolation it cannot deliver.
+   *
+   * Dynamic code therefore runs with the full privileges of the OBP process. The
+   * controls that do work are `allow_user_generated_scala_code` (the master gate),
+   * `dynamic_code_obp_calls_are_restricted` (the allowlist of callable OBP methods)
+   * and `dynamic_code_requires_approval` (maker-checker).
+   */
+  object DynamicCodeBody {
+    def force[A](io: => IO[A]): IO[A] = {
+      def forced(): IO[A] =
         try io
         catch { case e: scala.runtime.NonLocalReturnControl[_] => e.value.asInstanceOf[IO[A]] }
-      IO.defer(runInSandbox(forceBodyIO()))
-    }
-  }
-
-  object Sandbox {
-    // SecurityManager was deprecated for removal in JDK 17 (JEP 411) and setSecurityManager()
-    // now throws UnsupportedOperationException on this runtime (JDK 25). Catch and ignore so
-    // the rest of the Sandbox (AccessController.doPrivileged) still compiles and runs — but
-    // with no SecurityManager installed, AccessController.doPrivileged is a pass-through:
-    // Sandbox.runInSandbox no longer actually restricts what dynamic-endpoint/connector
-    // code can do (file/network/reflection access are all unguarded). Log loudly so this
-    // silent security regression isn't invisible in production — it was previously masked
-    // by three DynamicUtilTest scenarios that are now `assume`-skipped for the same reason.
-    try {
-      if (System.getSecurityManager == null) {
-        Policy.setPolicy(new Policy() {
-          override def getPermissions(codeSource: CodeSource): PermissionCollection = {
-            for (element <- Thread.currentThread.getStackTrace) {
-              if ("sun.rmi.server.LoaderHandler" == element.getClassName && "loadClass" == element.getMethodName)
-                return new Permissions
-            }
-            super.getPermissions(codeSource)
-          }
-
-          override def implies(domain: ProtectionDomain, permission: Permission) = true
-        })
-        System.setSecurityManager(new SecurityManager)
-      }
-    } catch {
-      case _: UnsupportedOperationException =>
-        logger.warn("code.api.util.DynamicUtil.Sandbox: SecurityManager is unavailable on this JVM " +
-          "(JEP 486, JDK 24+). Sandbox.runInSandbox / Sandbox.createSandbox will NOT enforce any " +
-          "permission restrictions on dynamic-endpoint / connector-builder code — file, network and " +
-          "reflection access are unguarded. This is expected on JDK 24+ but is a real reduction in " +
-          "isolation for the dynamic-code feature; do not rely on this sandbox for untrusted code on this runtime.")
-    }
-
-    def createSandbox(permissionList: List[Permission]): Sandbox = {
-      val accessControlContext: AccessControlContext = {
-        val permissions = new Permissions()
-        permissionList.foreach(permissions.add)
-        val protectionDomain = new ProtectionDomain(null, permissions)
-        new AccessControlContext(Array(protectionDomain))
-      }
-
-      new Sandbox {
-        @throws[Exception]
-        def runInSandbox[R](action: => R): R = {
-          val privilegedAction: PrivilegedAction[R] = () => action
-          AccessController.doPrivileged(privilegedAction, accessControlContext)
-        }
-        // The former NonLocalReturnControl[JsonResponse] catch (for the Lift dynamic-code path's
-        // `return Full(errorJsonResponse(...))`) is gone: the only caller is runInSandboxIO, whose
-        // forceBodyIO already recovers a NonLocalReturnControl before it reaches here.
-      }
-    }
-
-    private val memoSandbox = new Memo[String, Sandbox]
-
-    /**
-     * this method will call create Sandbox underneath, but will have default permissions and bankId permission and cache.  
-     */
-    def sandbox(bankId: String): Sandbox = memoSandbox.memoize(bankId) {
-      Sandbox.createSandbox(BankId.permission(bankId) :: Validation.allowedRuntimePermissions)
+      IO.defer(forced())
     }
   }
 
@@ -396,7 +331,6 @@ object DynamicUtil extends MdcLoggable{
       |import scala.concurrent.{Await, Future}
       |import com.openbankproject.commons.dto._
       |import code.api.util.APIUtil.ResourceDoc
-      |import code.api.util.DynamicUtil.Sandbox
       |import code.api.util.NewStyle.HttpCode
       |import code.api.util._
       |import code.api.v4_0_0.JSONFactory400
@@ -420,7 +354,7 @@ object DynamicUtil extends MdcLoggable{
   object Validation {
 
     /**
-     * Turn the `dynamic_code_compile_validate_dependencies` props value into the Scala source
+     * Turn the `dynamic_code_allowed_obp_methods` props value into the Scala source
      * that, once compiled, yields the whitelist.
      *
      * A named function rather than an inline expression so a test can drive the real thing.
@@ -439,31 +373,32 @@ object DynamicUtil extends MdcLoggable{
         dependenciesString.replaceFirst("\\[", "Map[String, String](").dropRight(1) +
         ").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
 
-    val dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
-    val scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
-    val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
     
-    // all Permissions put at here
-    // Here is the Java Permission document, please extend these permissions carefully. 
-    // https://docs.oracle.com/javase/8/docs/technotes/guides/security/spec/security-spec.doc3.html#17001
-    // If you are not familiar with the permissions, we provide the clear error messages for the missing permissions in the log.
-    // eg1 scala test level : and have a look at the scala test for `createSandbox` method, you can see how to add permissions there too. 
-    // eg2 api level:  "OBP-40047: DynamicResourceDoc method have no enough permissions.  No permission of: (\"java.io.FilePermission\" \"stop-words-en.txt\" \"write\")"
-    //       --> you can extends following permission: new java.net.SocketPermission("ir.dcs.gla.ac.uk:80", "connect,resolve"), 
-    // NOTE: These permissions are only checked during runtime, not the compilation period.
-//    val allowedRuntimePermissions = List[Permission](
-//      new NetPermission("specifyStreamHandler"),
-//      new ReflectPermission("suppressAccessChecks"),
-//      new RuntimePermission("getenv.*"),
-//      new PropertyPermission("cglib.useCache", "read"),
-//      new PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
-//      new PropertyPermission("cglib.debugLocation", "read"),
-//      new RuntimePermission("accessDeclaredMembers"),
-//      new RuntimePermission("getClassLoader"),
-//    )
-    val allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
+    // Runtime permission control was removed with the sandbox: SecurityManager is gone
+    // from JDK 24+ (JEP 486) and OBP requires JVM 25, so it could not be enforced. See
+    // DynamicUtil.DynamicCodeBody for what replaced it and which controls still work.
 
-    val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
+    /**
+     * Renamed 2026-09-23: dynamic_code_compile_validate_enable -> dynamic_code_obp_calls_are_restricted
+     * and dynamic_code_compile_validate_dependencies -> dynamic_code_allowed_obp_methods. The old
+     * names said "compile validate", which reads as "check that it compiles"; what they actually
+     * control is an allowlist of the OBP methods dynamic code may call.
+     *
+     * Both legacy names are still read, because dropping them would silently disable a restriction
+     * an operator had deliberately turned on. A deployment using either is warned, once, at boot.
+     */
+    private def legacyProp(current: String, legacy: String): Box[String] = {
+      val legacyValue = APIUtil.getPropsValue(legacy)
+      if (legacyValue.isDefined && APIUtil.getPropsValue(current).isEmpty) {
+        logger.warn(s"Props `$legacy` is deprecated and has been renamed to `$current`. The old " +
+                    s"name is still honoured, but rename it: support will be removed.")
+      }
+      APIUtil.getPropsValue(current) or legacyValue
+    }
+
+    val dependenciesString =
+      legacyProp("dynamic_code_allowed_obp_methods", "dynamic_code_compile_validate_dependencies")
+        .openOr("[]").trim
     val scalaCodeDependencies = dependenciesScalaCode(dependenciesString)
     val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
     
@@ -487,7 +422,6 @@ object DynamicUtil extends MdcLoggable{
 //      JSONFactory400.getClass.getTypeName -> "createBanksJson",
 //
 //      // class methods
-//      classOf[Sandbox].getTypeName -> "runInSandbox",
 //      classOf[CallContext].getTypeName -> "*",
 //      classOf[ResourceDoc].getTypeName -> "getPathParams",
 //      "scala.reflect.runtime.package$" -> "universe",
@@ -496,7 +430,7 @@ object DynamicUtil extends MdcLoggable{
 //      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
 //
 //    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
-    val allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_compile_validate_dependencies` to Map")
+    val allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_allowed_obp_methods` to Map")
 
     //Do not touch this Set, try to use the `allowedPermissions` and `allowedMethods` to control the sandbox 
     val restrictedTypes = Set(
@@ -534,7 +468,9 @@ object DynamicUtil extends MdcLoggable{
     }
 
     def validateDependency(obj: AnyRef): Unit = {
-      if(APIUtil.getPropsAsBoolValue("dynamic_code_compile_validate_enable",false)){
+      val restricted = legacyProp("dynamic_code_obp_calls_are_restricted", "dynamic_code_compile_validate_enable")
+        .map(_.trim.equalsIgnoreCase("true")).openOr(false)
+      if(restricted){
         val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass)
         validateDependency(dependentMethods)
       } else{ // If false, nothing to do here.

@@ -58,7 +58,7 @@ import org.http4s.{HttpRoutes, Request, Response}
  *     `code.api.dynamic.endpoint.helper.DynamicEndpoints.CompiledObjects` / `DynamicCompileEndpoint`).
  *     The doc's auth/validation chain (`ResourceDoc.authCheckIO`, the native mirror of
  *     `wrappedWithAuthCheck`) runs first, then the handler runs inside the dynamic-code security
- *     sandbox (`Sandbox.runInSandboxIO`, applied inside the compiled handler).
+ *     body forcing / early-return recovery (`DynamicCodeBody.force`, inside the compiled handler).
  *
  * Piece B is tried first; a non-match falls through to Piece C; a non-match there returns
  * `OptionT.none`, so the request falls through the Http4sApp chain (the Lift bridge produces the

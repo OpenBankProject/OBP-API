@@ -6750,7 +6750,7 @@ object Http4s700 {
         |`example_request_body` and `success_response_body` (they become the generated `RequestRootJsonClass` / `ResponseRootJsonClass`).
         |
         |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's wrapper lines are
-        |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_compile_validate_enable` is on,
+        |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_obp_calls_are_restricted` is on,
         |the dependency validator runs too and any forbidden call is reported in `dependency_error`. `compiles` is true only when both pass.
         |
         |Nothing is evaluated or cached, but compiling is a full scalac run, so the same rules apply as for creating: the

@@ -1234,6 +1234,7 @@ object Glossary extends MdcLoggable  {
 				 |  - CanCreateEntitlementAtOneBank
 				 |  - CanCreateEntitlementAtAnyBank
 				 |Consent users (the principal a Consent-JWT authenticates as) never receive Just in Time Entitlements: their Roles come only from the Consent, even if the Consent carries CanCreateEntitlementAtOneBank.
+				 |Nothing is ever granted this way in the system space either, the space whose bank id is the literal SYS. Reaching that space is meant to be a deliberate act, so a Role there is granted by hand by someone holding the system space granting Role; holding the ordinary per bank granting Role at the bank id SYS grants nothing and the request is refused with the usual missing Role error.
 				 |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 				 |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
 				 |

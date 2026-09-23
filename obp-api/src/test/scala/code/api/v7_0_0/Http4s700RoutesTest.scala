@@ -3080,8 +3080,19 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       messageOf(json) should include("CanConfigureAmqpBankBroker")
     }
 
+    scenario("Return 403 when CanConfigureAmqpBankBroker was granted at another bank", Http4s700RoutesTag) {
+      // The coordinates registered here decide where OBP publishes one bank's settlement and credit
+      // messages, so the Role that writes them belongs to that bank. A grant at another bank must
+      // not reach this one.
+      addEntitlement(testBankId2.value, resourceUser1.userId, canConfigureAmqpBankBroker.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", brokerPath(testBankId1.value), brokerBody(), headers)
+      statusCode shouldBe 403
+      messageOf(json) should include("CanConfigureAmqpBankBroker")
+    }
+
     scenario("Broker registry CRUD round-trip; password is never echoed", Http4s700RoutesTag) {
-      addEntitlement("", resourceUser1.userId, canConfigureAmqpBankBroker.toString)
+      addEntitlement(testBankId1.value, resourceUser1.userId, canConfigureAmqpBankBroker.toString)
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
 
       When("DELETE clears any previous registration (idempotent)")

@@ -2318,6 +2318,100 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
   
+  /**
+   * Grant a caller the Roles they are missing, at the moment they first need them.
+   *
+   * This is the "just in time" entitlement described in the Glossary and switched on with the
+   * create_just_in_time_entitlements prop. The idea is that a caller who could have granted
+   * themselves a Role by hand, because they hold one of the granting Roles, should not have to make
+   * that second call: OBP writes the Entitlement for them and lets the request through. The row is
+   * an ordinary Entitlement, marked with created_by_process = "create_just_in_time_entitlements" so
+   * that an operator reading the table later can tell it apart from a hand granted one.
+   *
+   * Two callers are never granted anything this way. A consent user is refused because a Role held
+   * by a per-consent identity would be stranded there rather than belonging to the human. And the
+   * system space is refused because reaching it is meant to be a deliberate act: a Dynamic Entity
+   * at the bank id DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID is the instance wide space, and granting
+   * anything in it requires the system space granting Role rather than the ordinary per bank one.
+   * Without this second exclusion, holding the per bank granting Role at that one bank id would be
+   * enough to collect system space Roles silently, one endpoint call at a time.
+   *
+   * Returns true only when every missing Role was granted, which is what lets the caller through.
+   */
+  /**
+   * The two Roles that hand out Roles are never granted automatically. Granting one of them to a
+   * caller who is already using this automation would let a caller widen their own granting reach
+   * without anybody deciding to let them, which is the one thing the manual process is there for.
+   * The Glossary Item Entitlement and sample.props.template both state this exclusion.
+   */
+  private val rolesNeverGrantedJustInTime: Set[String] =
+    Set(ApiRole.canCreateEntitlementAtOneBank.toString, ApiRole.canCreateEntitlementAtAnyBank.toString)
+
+  /**
+   * Grant a caller the Roles they are missing, at the moment they first need them.
+   *
+   * This is the "just in time" entitlement described in the Glossary and switched on with the
+   * create_just_in_time_entitlements prop. The idea is that a caller who could have granted
+   * themselves a Role by hand, because they hold one of the granting Roles, should not have to make
+   * that second call: OBP writes the Entitlement for them and lets the request through. The row is
+   * an ordinary Entitlement, marked with created_by_process = "create_just_in_time_entitlements" so
+   * that an operator reading the table later can tell it apart from a hand granted one.
+   *
+   * "Could have granted it by hand" is meant literally, and is what the checks below reproduce.
+   * Add Entitlement writes a Role at the scope the Role itself declares: a Role with
+   * requiresBankId = false lives at the system scope and is refused if a bank id is supplied, and a
+   * Role with requiresBankId = true is refused without one. The granting Role needed differs the
+   * same way, because only a holder of CanCreateEntitlementAtAnyBank can write at the system scope.
+   * So a caller who may grant Entitlements at one bank gets bank Roles at that bank and nothing
+   * else, and in particular gets no system scoped Role, however the endpoint they called was
+   * addressed. Whether the caller may then proceed is decided by reading the Entitlements back at
+   * the scope the check uses, never by the write having succeeded: a row written at the wrong scope
+   * is a row no check will ever read, so treating the write as the answer would let a caller past a
+   * Role they do not hold and cannot obtain.
+   *
+   * Two callers are never granted anything this way. A consent user is refused because a Role held
+   * by a per-consent identity would be stranded there rather than belonging to the human. And the
+   * system space is refused because reaching it is meant to be a deliberate act: a Dynamic Entity
+   * at the bank id DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID is the instance wide space, and granting
+   * anything in it requires the system space granting Role rather than the ordinary per bank one.
+   * Without this second exclusion, holding the per bank granting Role at that one bank id would be
+   * enough to collect system space Roles silently, one endpoint call at a time.
+   */
+  private def grantJustInTimeEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
+    if (!getPropsAsBoolValue("create_just_in_time_entitlements", false) ||
+      isConsentUser(userId) ||
+      bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) {
+      false
+    } else {
+      val mayGrantAtThisBank = hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank)
+      val mayGrantAtEveryBankAndAtTheSystemScope = hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)
+
+      roles.foreach { role =>
+        val scopeAddEntitlementWouldUse = if (role.requiresBankId) bankId else ""
+        val couldHaveBeenGrantedByHand = role match {
+          // A combination is a way of writing "all of these at once" for a check; it is not a Role
+          // anybody can hold, so there is no row to write for it.
+          case _: RoleCombination => false
+          case _ if rolesNeverGrantedJustInTime.contains(role.toString) => false
+          case _ if role.requiresBankId => bankId.nonEmpty && (mayGrantAtThisBank || mayGrantAtEveryBankAndAtTheSystemScope)
+          case _ => mayGrantAtEveryBankAndAtTheSystemScope
+        }
+        if (couldHaveBeenGrantedByHand && !hasEntitlement(bankId, userId, role)) {
+          val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
+            scopeAddEntitlementWouldUse,
+            userId,
+            role.toString,
+            "create_just_in_time_entitlements",
+            grantedByUserId = Some(userId)
+          )
+          logger.info(s"Just in Time Entitlements: $addedEntitlement")
+        }
+      }
+
+      roles.exists(hasEntitlement(bankId, userId, _))
+    }
+  }
+
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
@@ -2338,25 +2432,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       def userHasTheRoles: Boolean = {
         val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-        userHasTheRole || {
-          getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
-            // If a user is trying to use a Role and the user could grant them selves the required Role(s),
-            // then just automatically grant the Role(s)!
-            (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
-              hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
-              roles.forall { role =>
-                val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                  bankId,
-                  userId,
-                  role.toString,
-                  "create_just_in_time_entitlements",
-                  grantedByUserId = Some(userId)
-                )
-                logger.info(s"Just in Time Entitlements: $addedEntitlement")
-                addedEntitlement.isDefined
-              }
-          }
-        }
+        userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
       }
 
       // Consumer AND User has the Role
@@ -2399,20 +2475,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
         def userHasTheRoles: Boolean = {
           val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-          userHasTheRole || {
-            getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
-              (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
-                hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
-                roles.forall { role =>
-                  val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                    bankId, userId, role.toString, "create_just_in_time_entitlements",
-                    grantedByUserId = Some(userId)
-                  )
-                  logger.info(s"Just in Time Entitlements: $addedEntitlement")
-                  addedEntitlement.isDefined
-                }
-            }
-          }
+          userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
         }
 
         def consumerHasTheScopes: Boolean =

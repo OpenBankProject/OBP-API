@@ -17,7 +17,7 @@ The technical sandbox no longer provides a meaningful second line of defence:
   enforces nothing (`DynamicUtil.scala:253-259` logs this).
 - The GraalVM JavaScript context is created with `HostAccess.ALL`, `PolyglotAccess.ALL` and
   unrestricted host class lookup (`DynamicUtil.scala:486-529`).
-- The dependency validator (`dynamic_code_compile_validate_enable`) is off by default and only
+- The OBP call allowlist (`dynamic_code_obp_calls_are_restricted`) is off by default and only
   blocks reflection and `ExecutionContext`; it has no notion of file, network or process access.
 
 So a single holder of `CanCreateDynamicResourceDoc` or `CanCreateConnectorMethod` has remote code

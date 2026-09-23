@@ -190,7 +190,7 @@ trait DynamicEntityT {
 
         case (t, None, v) if t.startsWith("reference:")           =>
           val value = v.asInstanceOf[JString].s
-          ReferenceType.validateRefValue(t, propertyName, value, callContext)
+          ReferenceType.validateRefValue(bankId, t, propertyName, value, callContext)
 
         case (_, Some(DynamicEntityFieldType.string), v)
           if ! DynamicEntityFieldType.string.isLengthValid(v, minLength, maxLength) =>
@@ -372,7 +372,32 @@ object ReferenceType extends MdcLoggable {
     }
   )
 
-  def referenceTypeNames: List[String] = {
+  /**
+   * The reference types a definition in `space` (bank_id) may declare.
+   *
+   * A `reference:` field points at a record in its own space, so only the entities of that space are
+   * offered: a definition at a bank may reference that bank's entities, and a definition in the
+   * system space may reference the system space's. The static references below are unaffected,
+   * because a Bank, a Customer or a Transaction is one object on the instance and has no space of
+   * its own. `space` is the bank id of the definition being validated, and None is the system space.
+   *
+   * Cross space links are not forbidden forever, only kept out of `reference:`; when they are wanted
+   * they get a type name of their own so that no existing definition changes meaning.
+   */
+  def referenceTypeNames(space: Option[String]): List[String] = {
+    val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities(space, false)
+      .map(entity => s"reference:${entity.entityName}")
+
+    val staticRefs: List[String] = staticRefTypeToValidateFunction.keys.toList
+     dynamicRefs ++: staticRefs
+  }
+
+  /**
+   * Every reference type on the instance, whatever space it belongs to. This is the catalogue the
+   * Get Reference Types endpoint serves, not the list a definition is validated against: use
+   * [[referenceTypeNames]] with the definition's own space for that.
+   */
+  def allReferenceTypeNames: List[String] = {
     val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities(None, true)
       .map(entity => s"reference:${entity.entityName}")
 
@@ -410,7 +435,7 @@ object ReferenceType extends MdcLoggable {
     val reg2 = """reference:(?:[^:]+):([^&]+)&([^&]+)""".r
     val reg3 = """reference:(?:[^:]+):([^&]+)&([^&]+)&([^&]+)""".r
     val reg4 = """reference:(?:[^:]+):([^&]+)&([^&]+)&([^&]+)&([^&]+)""".r
-    referenceTypeNames.zipWithIndex.map { pair =>
+    allReferenceTypeNames.zipWithIndex.map { pair =>
       val (refTypeName, index) = pair
       val example = refTypeName match {
         case reg1(_) => exampleId1
@@ -427,21 +452,27 @@ object ReferenceType extends MdcLoggable {
     }
   }
 
-  def validateRefValue(typeName: String, propertyName: String, value: String, callContext: Option[CallContext]): Future[String] = {
+  /**
+   * Check one `reference:` value. `space` is the bank id of the entity holding the field, and None
+   * is the system space; the referenced record must live in that same space. Since the record id
+   * became unique per space rather than per instance, an id alone no longer identifies a record, so
+   * a check that ignored the space would accept another bank's record as if it were this one's.
+   */
+  def validateRefValue(space: Option[String], typeName: String, propertyName: String, value: String, callContext: Option[CallContext]): Future[String] = {
     if(staticRefTypeToValidateFunction.contains(typeName)) {
       staticRefTypeToValidateFunction.get(typeName).get.apply(propertyName, value, callContext)
     } else {
       val dynamicEntityName = typeName.replace("reference:", "")
       val errorMsg = s"""$dynamicEntityName not found by the id value '$value', propertyName is '$propertyName'"""
-      logger.info(s"========== Validating reference field: propertyName='$propertyName', typeName='$typeName', dynamicEntityName='$dynamicEntityName', value='$value' ==========")
-      
+      logger.debug(s"validateRefValue says: validating propertyName='$propertyName', typeName='$typeName', dynamicEntityName='$dynamicEntityName', value='$value', space='${space.getOrElse("system")}'")
+
       Future {
-        val exists = code.DynamicData.MappedDynamicDataProvider.existsById(dynamicEntityName, value)
+        val exists = code.DynamicData.MappedDynamicDataProvider.recordExists(space, dynamicEntityName, value)
         if (exists) {
-          logger.info(s"========== Reference validation SUCCESS: propertyName='$propertyName', dynamicEntityName='$dynamicEntityName', value='$value' ==========")
+          logger.debug(s"validateRefValue says: found $dynamicEntityName '$value' for propertyName='$propertyName'")
           ""
         } else {
-          logger.warn(s"========== Reference validation FAILED: propertyName='$propertyName', dynamicEntityName='$dynamicEntityName', value='$value' ==========")
+          logger.debug(s"validateRefValue says: no $dynamicEntityName '$value' in this space for propertyName='$propertyName'")
           errorMsg
         }
       }
@@ -566,7 +597,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     )
 
     val JField(entityName, metadataJson) = entityFields.head
-    
+
     val namePattern = "[-_A-Za-z0-9]+".r.pattern
     // validate entity name
     checkFormat(namePattern.matcher(entityName).matches(), s"$DynamicEntityInstanceValidateFail The entity name should contains characters [-_A-Za-z0-9], but current entity name: $entityName")
@@ -622,7 +653,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       val fieldTypeName = fieldType.asInstanceOf[JString].s
 
       checkFormat(fieldType.isInstanceOf[JString] && fieldTypeName.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should exist and be a json string")
-      checkFormat(allowedFieldType.contains(fieldTypeName), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be one of these string value: ${allowedFieldType.mkString(", ")}")
+      checkFormat(allowedFieldType(bankId).contains(fieldTypeName), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'type' field should be one of these string value: ${allowedFieldType(bankId).mkString(", ")}")
 
       val fieldTypeOp: Option[DynamicEntityFieldType] = DynamicEntityFieldType.withNameOption(fieldTypeName)
 
@@ -652,7 +683,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
         val Some(dEntityFieldType: DynamicEntityFieldType) = fieldTypeOp
         checkFormat(dEntityFieldType.isJValueValid(fieldExample),
           s"$DynamicEntityInstanceValidateFail The value of $fieldName's 'example' is wrong, ${dEntityFieldType.wrongTypeMsg}")
-      } else if(ReferenceType.referenceTypeNames.contains(fieldTypeName)) {
+      } else if(ReferenceType.referenceTypeNames(bankId).contains(fieldTypeName)) {
         checkFormat(fieldExample.isInstanceOf[JString], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be type ${DynamicEntityFieldType.string}")
         checkFormat(ReferenceType.isLegalReferenceValue(fieldTypeName, fieldExample.asInstanceOf[JString].s), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' is illegal format.")
       } else {
@@ -720,8 +751,8 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
   // `reference` is an internal query-layer type (see DynamicEntityFieldType.reference), never declared
   // bare by callers — they declare `reference:<Target>`, which ReferenceType.referenceTypeNames supplies.
-  private def allowedFieldType: List[String] =
-    DynamicEntityFieldType.values.filterNot(_ == DynamicEntityFieldType.reference).map(_.toString) ++: ReferenceType.referenceTypeNames
+  private def allowedFieldType(space: Option[String]): List[String] =
+    DynamicEntityFieldType.values.filterNot(_ == DynamicEntityFieldType.reference).map(_.toString) ++: ReferenceType.referenceTypeNames(space)
 }
 
 /**
@@ -739,21 +770,15 @@ case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: 
 trait DynamicEntityProvider {
   def getById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntityT]
 
-  //Note, we use entity name to create the roles, and bank level and system level can not be mixed, 
-  // so --> here can not use bankId as parameters: 
+  //Note, we use entity name to create the roles, and bank level and system level can not be mixed,
+  // so --> here can not use bankId as parameters:
   def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT]
 
   def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntityT]
-  
+
   def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity]
 
   def createOrUpdate(dynamicEntity: DynamicEntityT): Box[DynamicEntityT]
 
   def delete(dynamicEntity: DynamicEntityT):Box[Boolean]
 }
-
-
-
-
-
-

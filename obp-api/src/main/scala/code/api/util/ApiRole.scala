@@ -242,7 +242,10 @@ object ApiRole extends MdcLoggable{
   // Operator role for registering each onboarded bank's AMQP broker coordinates
   // (host/port/vhost/credentials) in the per-bank publish registry. Transport
   // registry, not corridor-specific; Open Corridor Interface C is the first consumer.
-  case class CanConfigureAmqpBankBroker(requiresBankId: Boolean = false) extends ApiRole
+  // Named per bank and granted per bank: the coordinates decide where one bank's settlement and
+  // credit messages are published, so a grant for one bank must not repoint another's. It was
+  // declared requiresBankId = false until 2026-09-23, which made a single row cover every bank.
+  case class CanConfigureAmqpBankBroker(requiresBankId: Boolean = true) extends ApiRole
   lazy val canConfigureAmqpBankBroker = CanConfigureAmqpBankBroker()
 
   // Open Corridor: operator role for the settle-pair trigger — nets a bank pair's
@@ -540,7 +543,7 @@ object ApiRole extends MdcLoggable{
   case class CanGetAdapterInfo(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAdapterInfo = CanGetAdapterInfo()
   
-  case class CanGetAdapterInfoAtOneBank(requiresBankId: Boolean = false) extends ApiRole
+  case class CanGetAdapterInfoAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetAdapterInfoAtOneBank = CanGetAdapterInfoAtOneBank()
   
   case class CanGetDatabaseInfo(requiresBankId: Boolean = false) extends ApiRole
@@ -859,19 +862,26 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteRegulatedEntityAttribute(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteRegulatedEntityAttribute = CanDeleteRegulatedEntityAttribute()
 
-  case class CanGetCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  case class CanGetCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCounterpartyAttribute = CanGetCounterpartyAttribute()
 
-  case class CanGetCounterpartyAttributes(requiresBankId: Boolean = false) extends ApiRole
+  case class CanGetCounterpartyAttributes(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCounterpartyAttributes = CanGetCounterpartyAttributes()
 
-  case class CanCreateCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  // A Counterparty Attribute belongs to one bank's account, and adapter info is asked for one bank,
+  // so these Roles name a bank like every other attribute Role does (CanCreateProductAttribute,
+  // CanCreateAtmAttribute and the rest). They were declared requiresBankId = false, which meant a
+  // single Entitlement row authorised them at every bank however the endpoint was addressed.
+  // Existing grants are NOT migrated: an Entitlement held at the system scope stops authorising
+  // these endpoints, and an operator grants the Role again at the banks that need it. The release
+  // note of 23/09/2026 says so, and ANY_BANK_ROLE_REMOVAL_PLAN.md has the reasoning.
+  case class CanCreateCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCounterpartyAttribute = CanCreateCounterpartyAttribute()
 
-  case class CanUpdateCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  case class CanUpdateCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCounterpartyAttribute = CanUpdateCounterpartyAttribute()
 
-  case class CanDeleteCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  case class CanDeleteCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteCounterpartyAttribute = CanDeleteCounterpartyAttribute()
 
 

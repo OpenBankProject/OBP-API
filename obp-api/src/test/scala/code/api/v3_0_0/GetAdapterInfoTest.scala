@@ -68,8 +68,19 @@ class GetAdapterInfoTest extends V300ServerSetup with DefaultUsers {
       And("error should be " + UserHasMissingRoles + canGetAdapterInfoAtOneBank)
       response310.body.extract[ErrorMessage].message contains  (UserHasMissingRoles + canGetAdapterInfoAtOneBank) shouldBe (true)
     }
+    scenario("A grant at another bank does not open this one", ApiEndpoint, VersionOfApi) {
+      // The Role is named AtOneBank and the handler checks it at the bank in the URL, so a grant
+      // made at some other bank must authorise nothing here.
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(
+        testBankId2.value, resourceUser1.userId, canGetAdapterInfoAtOneBank.toString)
+      When("We make a request for a bank the Role was not granted at")
+      val response310 = makeGetRequest((v3_0Request / "banks" / testBankId1.value / "adapter").GET <@ (user1))
+      Then("We should get a 403")
+      response310.code should equal(403)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
     scenario("We will try to get adapter info", ApiEndpoint, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetAdapterInfoAtOneBank.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canGetAdapterInfoAtOneBank.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_0Request / "banks"/testBankId1.value/ "adapter").GET <@ (user1)
       val response310 = makeGetRequest(request310)
