@@ -384,6 +384,14 @@ class PegdownOptionsTest extends FlatSpec with Matchers {
     val html = PegdownOptions.convertGitHubDocMarkdownToHtml(markdownText)
   }
 
+  it should "render typographic dashes as XML-safe characters" taggedAs FunctionsTag in {
+    val html = convertPegdownToHtmlTweaked("A consent -- and a longer --- separator")
+
+    html should not include "&ndash;"
+    html should not include "&mdash;"
+    stringToNodeSeq(html)
+  }
+
   "description string" should "test the markdown * -> html <li> tag" taggedAs FunctionsTag in {
 
     // This string is from Foobar Property List: format
