@@ -109,17 +109,17 @@ object Http4sDynamicEntity extends MdcLoggable {
   // declared `indexed` fields. Phase 1 backend = in-memory portable floor (projection backend later).
 
   private def deIndexedFields(bankId: Option[String], entityName: String): Map[String, FieldSpec] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.indexedFields).getOrElse(Map.empty)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.indexedFields).getOrElse(Map.empty)
 
   private def deReferenceFields(bankId: Option[String], entityName: String): Map[String, String] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.referenceFields).getOrElse(Map.empty)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.referenceFields).getOrElse(Map.empty)
 
   private def deUnindexedReferenceFields(bankId: Option[String], entityName: String): Map[String, String] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.unindexedReferenceFields).getOrElse(Map.empty)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.unindexedReferenceFields).getOrElse(Map.empty)
 
   /** Resolve a join-target (child) entity's indexed + reference fields for the planner (same bank scope). */
   private def childJoinInfo(bankId: Option[String])(child: String): Option[JoinTargetInfo] =
-    DynamicEntityHelper.definitionsMap.get((bankId, child))
+    DynamicEntityHelper.definitionOf(bankId, child)
       .map(i => JoinTargetInfo(i.indexedFields, i.referenceFields, i.unindexedReferenceFields))
 
   /** Parse + validate list-read query params into a QueryPlan; fail 400 (clear message) on any error. */
@@ -216,7 +216,7 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   // ----- Field-level write permissions: POST/PUT never write write-restricted fields -----
   private def writeRestrictedFieldsOf(bankId: Option[String], entityName: String): List[String] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.writeRestrictedFields).getOrElse(Nil)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.writeRestrictedFields).getOrElse(Nil)
 
   private def stripFields(obj: JObject, fields: List[String]): JObject =
     if (fields.isEmpty) obj else JObject(obj.obj.filterNot(f => fields.contains(f.name)))
@@ -247,7 +247,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   // a Consumer's Scopes, either, or both. Personal ("my") endpoints and row-level (ACL) entities
   // always need a User: their rows belong to one.
   private def authModeOf(bankId: Option[String], entityName: String): EndpointAuthMode =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.endpointAuthMode).getOrElse(UserOnly)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.endpointAuthMode).getOrElse(UserOnly)
 
   /** authenticatedAccess for user modes, applicationAccess (User optional, Consumer required) for application modes. */
   private def entityAccess(cc: CallContext, bankId: Option[String], entityName: String, isPersonalEntity: Boolean): Future[(Box[User], Option[CallContext])] =
@@ -293,7 +293,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def missingPatchRoleNames(
     bodyFieldNames: List[String], bankId: Option[String], entityName: String, userId: String, consumerId: String, requireEntityRole: Boolean
   ): List[String] = {
-    val info = DynamicEntityHelper.definitionsMap.get((bankId, entityName))
+    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
     // Only declared schema fields are meaningful (id/audit/unknown fields are ignored by the merge).
     val schemaFields = info.map(_.propertyNames).getOrElse(bodyFieldNames)
     val touched = bodyFieldNames.intersect(schemaFields)
@@ -330,7 +330,7 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   // Remove any read-restricted field the caller lacks the read role for (anonymous => userIdOpt None => omit all).
   private def applyReadRestrictions(value: JValue, bankId: Option[String], entityName: String, userIdOpt: Option[String]): JValue = {
-    val info = DynamicEntityHelper.definitionsMap.get((bankId, entityName))
+    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
     val readRestricted = info.map(_.readRestrictedFields).getOrElse(Nil)
     val omit: Set[String] = readRestricted.filterNot { f =>
       userIdOpt.exists { uid =>
@@ -395,7 +395,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def aclVend = DynamicDataAccessProvider.provider.vend
   private def dataVend = DynamicDataProvider.connectorMethodProvider.vend
   private def isRowLevel(bankId: Option[String], entityName: String): Boolean =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.useRowLevelAccess)
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.useRowLevelAccess)
 
   private def rowLevelGet(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
     val isGetAll = StringUtils.isBlank(id)
@@ -472,7 +472,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles ${missingRoles.mkString(", ")}", 403, cc = callContext) { missingRoles.isEmpty }
       existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
-      mergedJson = mergePatch(DynamicEntityHelper.definitionsMap.get((bankId, entityName)), existing, bodyObj)
+      mergedJson = mergePatch(DynamicEntityHelper.definitionOf(bankId, entityName), existing, bodyObj)
       box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, mergedJson, id).map(it => parse(it.dataJson))
       singleObject: JValue = unboxResult(box, entityName)
     } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
@@ -589,7 +589,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "read", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
@@ -632,7 +632,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "write", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
@@ -666,7 +666,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "write", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
@@ -695,7 +695,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")) }
         bodyObj = json.asInstanceOf[JObject]
@@ -709,7 +709,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, userIdOpt, isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
         // PATCH = partial update: merge incoming fields over the existing record.
-        mergedJson = mergePatch(DynamicEntityHelper.definitionsMap.get((bankId, entityName)), existing.asInstanceOf[Box[JValue]], bodyObj)
+        mergedJson = mergePatch(DynamicEntityHelper.definitionOf(bankId, entityName), existing.asInstanceOf[Box[JValue]], bodyObj)
         (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(mergedJson), Some(id), bankId, None, userIdOpt, isPersonalEntity, Some(cc))
         singleObject: JValue = unboxResult(box, entityName)
       } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
@@ -729,7 +729,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "write", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canDeleteRole(entityName, bankId), callContext)

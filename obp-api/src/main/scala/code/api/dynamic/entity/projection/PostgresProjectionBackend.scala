@@ -53,7 +53,7 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
   def name: String = "postgres-projection"
 
   def query(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): IO[List[JObject]] = {
-    val indexed   = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.indexedFields).getOrElse(Map.empty)
+    val indexed   = DynamicEntityHelper.definitionOf(bankId, entityName).map(_.indexedFields).getOrElse(Map.empty)
     val safeTable = ProjectionNaming.tableName(bankId, entityName)
     val P = "p"; val D = "d"
     def columnOf(f: String): Option[String]  = indexed.get(f).map(_ => s"$P." + ProjectionNaming.columnName(f))
@@ -95,7 +95,7 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
    */
   private def existsFragment(join: JoinClause, parentBankId: Option[String], parentProjAlias: String, parentBlobAlias: String, callerUserId: Option[String]): Option[Fragment] = {
     val childEntity  = join.childEntity
-    val childIndexed = DynamicEntityHelper.definitionsMap.get((parentBankId, childEntity)).map(_.indexedFields).getOrElse(Map.empty)
+    val childIndexed = DynamicEntityHelper.definitionOf(parentBankId, childEntity).map(_.indexedFields).getOrElse(Map.empty)
     val childTable   = ProjectionNaming.tableName(parentBankId, childEntity)
     val cp = "cp"; val cd = "cd"
     def childColumnOf(f: String): Option[String]  = childIndexed.get(f).map(_ => s"$cp." + ProjectionNaming.columnName(f))
@@ -125,7 +125,7 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
 
   /** ACL restriction for a row-level child: only rows the caller can read count toward EXISTS / NOT EXISTS. */
   private def childAclFragment(childEntity: String, bankId: Option[String], childBlobAlias: String, callerUserId: Option[String]): Fragment = {
-    val isRowLevel = DynamicEntityHelper.definitionsMap.get((bankId, childEntity)).exists(_.useRowLevelAccess)
+    val isRowLevel = DynamicEntityHelper.definitionOf(bankId, childEntity).exists(_.useRowLevelAccess)
     (isRowLevel, callerUserId) match {
       case (true, Some(uid)) =>
         fr"AND EXISTS (SELECT 1 FROM" ++ Fragment.const(s"${ProjectionStore.aclTable} acl") ++

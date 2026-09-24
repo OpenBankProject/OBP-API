@@ -1682,6 +1682,14 @@
       "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
       "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
       "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "validateDynamicResourceDoc",
+      "field": "description",
+      "reason": "The props named in this description were renamed: dynamic_code_compile_validate_enable is now dynamic_code_obp_calls_are_restricted, and dynamic_code_compile_validate_dependencies is now dynamic_code_allowed_obp_methods. The old names read as a compile check, which is not what they do; both old names are still honoured at runtime with a deprecation warning.",
+      "lift_digest": "047ea29aa10e0000c66a13b908ff679defb15226fd931f00b723cacd66a12928",
+      "http4s_digest": "f326a54473e63b08e1b47763d2bdbd7b5574bc4906f067072898ec32c58c6954"
     }
   ]
 }
