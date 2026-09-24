@@ -59,6 +59,27 @@ class MdcLoggableBoundedQueueTest extends FlatSpec with Matchers {
     } finally ex.shutdownNow()
   }
 
+  it should "run on the pool thread under the caller's thread name, then restore the pool thread's name" in {
+    val poolThreadName = "test-pool-thread"
+    val ex = java.util.concurrent.Executors.newSingleThreadExecutor((r: Runnable) => new Thread(r, poolThreadName))
+    try {
+      val seen = new java.util.concurrent.atomic.AtomicReference[(Thread, String)]()
+      val done = new CountDownLatch(1)
+      Helper.dispatchOn(ex, "test", critical = false) {
+        seen.set((Thread.currentThread(), Thread.currentThread().getName)); done.countDown()
+      }
+      done.await(10, TimeUnit.SECONDS) shouldBe true
+      seen.get._1 should not be theSameInstanceAs(Thread.currentThread()) // still off the calling thread
+      seen.get._2 shouldBe Thread.currentThread().getName                 // but attributed to it
+
+      val restored = new java.util.concurrent.atomic.AtomicReference[String]()
+      val done2 = new CountDownLatch(1)
+      ex.execute(() => { restored.set(Thread.currentThread().getName); done2.countDown() })
+      done2.await(10, TimeUnit.SECONDS) shouldBe true
+      restored.get shouldBe poolThreadName
+    } finally ex.shutdownNow()
+  }
+
   it should "keep the production pool's queue bounded and observable" in {
     Helper.mdcLogQueueDepth should be >= 0
     Helper.mdcLogDroppedCount should be >= 0L

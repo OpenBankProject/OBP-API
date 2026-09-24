@@ -368,9 +368,19 @@ object Helper extends Loggable {
 
   // The executor is a parameter so a test can drive a tiny queue to saturation.
   private[util] def dispatchOn(executor: java.util.concurrent.Executor, clazzName: String, critical: Boolean)(body: => Unit): Unit = {
-    val task: Runnable = () =>
+    // Logback's %t and the Redis line format both read the current thread's name. Once the write
+    // moves to a pool thread that name would always be "mdc-log-dispatch-N", hiding which
+    // request/actor/compute thread logged. Record the caller's name now and lend it to the pool
+    // thread for the duration of the write, then restore it.
+    val callerThreadName = Thread.currentThread().getName
+    val task: Runnable = () => {
+      val current = Thread.currentThread()
+      val poolThreadName = current.getName
+      if (poolThreadName != callerThreadName) current.setName(callerThreadName)
       try body
       catch { case e: Throwable => System.err.println(s"[$clazzName] background log dispatch failed: ${e.getMessage}") }
+      finally if (current.getName != poolThreadName) current.setName(poolThreadName)
+    }
     try executor.execute(task)
     catch {
       case _: java.util.concurrent.RejectedExecutionException =>

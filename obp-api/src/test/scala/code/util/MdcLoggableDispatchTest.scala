@@ -24,7 +24,7 @@ class MdcLoggableDispatchTest extends FlatSpec with Matchers {
     def probeDebug(msg: String): Unit = logger.debug(msg)
   }
 
-  "MdcLoggable" should "deliver an enabled log call to the underlying logger asynchronously, off the calling thread" in {
+  "MdcLoggable" should "deliver an enabled log call to the underlying logger asynchronously, attributed to the calling thread" in {
     val logbackLogger = LoggerFactory.getLogger(ProbeLogger.getClass.getName).asInstanceOf[LogbackLogger]
     val originalLevel = logbackLogger.getLevel
     logbackLogger.setLevel(Level.DEBUG)
@@ -57,8 +57,8 @@ class MdcLoggableDispatchTest extends FlatSpec with Matchers {
       captured should not be empty
       val event = captured.get(0)
       event.getFormattedMessage should include(marker)
-      event.getThreadName should not equal callingThreadName
-      event.getThreadName should startWith("mdc-log-dispatch-")
+      // The write runs on the pool, but the record must still name the thread that logged.
+      event.getThreadName shouldBe callingThreadName
     } finally {
       logbackLogger.detachAppender(appender)
       logbackLogger.setLevel(originalLevel)
