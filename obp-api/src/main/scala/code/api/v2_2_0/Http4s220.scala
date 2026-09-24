@@ -425,7 +425,9 @@ object Http4s220 {
               Some(cc),
               s"$InvalidConnector Current Input is $connector. It should be eg: rest_vMar2019..."
             )
-            JSONFactory220.createMessageDocsJson(connectorObject.messageDocs.toList)
+            MessageDocsJsonCache.getOrCompute(connector) {
+              JSONFactory220.createMessageDocsJson(connectorObject.messageDocs.toList)
+            }
           }
         }
     }
