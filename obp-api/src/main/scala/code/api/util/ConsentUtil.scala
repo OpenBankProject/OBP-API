@@ -124,9 +124,21 @@ case class Role(role_name: String,
                )
 /** JWT claim: one personal dynamic entity the consent user may act on for the granting User. */
 case class ConsentPersonalDynamicEntity(bank_id: String, entity_name: String, actions: List[String]) {
-  def bankIdOpt: Option[String] = Option(bank_id).filter(_.nonEmpty)
+  def bankIdOpt: Option[String] = ConsentPersonalDynamicEntity.bankIdOrNoneForSystem(bank_id)
   def covers(bankId: Option[String], entityName: String, action: String): Boolean =
     entity_name == entityName && bankIdOpt == bankId && actions.contains(action)
+}
+object ConsentPersonalDynamicEntity {
+  /**
+   * This function turns the bank_id of a `my_resources` entry into the space the Dynamic Entity code
+   * asks about, where None is the system space.
+   *
+   * The system space is named `SYS` (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID), as it is in stored
+   * records and in the Record Roles. The empty string named it before that, and consents written by
+   * existing clients still send it, so both mean the system space. Every other value is a bank id.
+   */
+  def bankIdOrNoneForSystem(bankId: String): Option[String] =
+    Option(bankId).filter(b => b.nonEmpty && b != code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 }
 /** JWT claim: the granting User's linked Customers at one Bank the consent user may act on. */
 case class ConsentLinkedCustomers(bank_id: String, actions: List[String]) {
@@ -1484,7 +1496,7 @@ object Consent extends MdcLoggable {
         badActions(where, entry.actions)
     }.flatten
     val problems: List[String] = customerProblems ++ myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
-      val bankId = Option(entry.bank_id).filter(_.nonEmpty)
+      val bankId = ConsentPersonalDynamicEntity.bankIdOrNoneForSystem(entry.bank_id)
       val where = s"personal_dynamic_entities entry (bank_id '${Option(entry.bank_id).getOrElse("")}', entity_name '${entry.entity_name}')"
       val definition = code.api.dynamic.entity.helper.DynamicEntityHelper.definitionOf(bankId, entry.entity_name)
       List(

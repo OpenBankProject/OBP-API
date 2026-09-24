@@ -269,7 +269,7 @@ object Http4sDynamicEntity extends MdcLoggable {
                                             boxUser: Box[User], callContext: Option[CallContext]): Future[Box[Unit]] =
     if (!isPersonalEntity || !boxUser.exists(_.isConsentUser)) Future.successful(Full(()))
     else Helper.booleanToFuture(
-      s"$ConsentMyResourcesMissing personal_dynamic_entities entry needed: bank_id '${bankId.getOrElse("")}', entity_name '$entityName', action '$action'",
+      s"$ConsentMyResourcesMissing personal_dynamic_entities entry needed: bank_id '${bankId.getOrElse(code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)}', entity_name '$entityName', action '$action'",
       403, cc = callContext) {
       callContext.flatMap(_.consentMyResources).exists(_.coversPersonalDynamicEntity(bankId, entityName, action))
     }

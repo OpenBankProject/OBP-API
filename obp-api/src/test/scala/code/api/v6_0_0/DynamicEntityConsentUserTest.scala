@@ -81,8 +81,9 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
     makeDeleteRequest((v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@ (user1))
   }
 
-  private def personalEntity(name: String, actions: List[String]): JValue =
-    ("bank_id" -> "") ~ ("entity_name" -> name) ~ ("actions" -> actions)
+  /** A my_resources entry for a system-level entity. SYS names the system space; the empty string is the older form. */
+  private def personalEntity(name: String, actions: List[String], bankId: String = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID): JValue =
+    ("bank_id" -> bankId) ~ ("entity_name" -> name) ~ ("actions" -> actions)
 
   private def consentBody(roleNames: List[String], myResources: Option[JValue]): JValue = {
     val base: JObject =
@@ -182,6 +183,27 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
         val current = makeGetRequest((v6_0_0_Request / "users" / "current").GET, headers)
         current.code should equal(200)
         ((current.body \ "my_resources" \ "personal_dynamic_entities")(0) \ "entity_name").extract[String] should equal(entityName)
+      } finally deleteSystemEntity(dynamicEntityId)
+    }
+
+    scenario("a consent naming the system space with the older empty bank_id still covers the entity", VersionOfApi, ConsentUserTag) {
+      val dynamicEntityId = createSystemEntity(entityName)
+      try {
+        val headers = consentHeaders(Nil, Some(("personal_dynamic_entities" -> List(personalEntity(entityName, List("read", "write"), bankId = "")))))
+        val create = makePostRequest((dynamicEntity_Request / "my" / entityName).POST, write(record), headers)
+        create.code should equal(201)
+        val list = makeGetRequest((dynamicEntity_Request / "my" / entityName).GET, headers)
+        list.code should equal(200)
+      } finally deleteSystemEntity(dynamicEntityId)
+    }
+
+    scenario("the missing-entry error names SYS as the bank_id of a system-level entity", VersionOfApi, ConsentUserTag) {
+      val dynamicEntityId = createSystemEntity(entityName)
+      try {
+        val headers = consentHeaders(Nil, Some(("personal_dynamic_entities" -> List(personalEntity(entityName, List("read"))))))
+        val create = makePostRequest((dynamicEntity_Request / "my" / entityName).POST, write(record), headers)
+        create.code should equal(403)
+        create.body.extract[ErrorMessage].message should include(s"bank_id '$DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID'")
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
