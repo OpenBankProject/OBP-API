@@ -76,7 +76,22 @@ object RedisLogger {
    * restore the old "ship everything" behaviour.
    */
   private val redisLoggingMinLevel: LogLevel.LogLevel =
-    LogLevel.valueOf(APIUtil.getPropsValue("redis_logging_min_level", "INFO"))
+    parseMinLevel(APIUtil.getPropsValue("redis_logging_min_level", "INFO"))
+
+  /**
+   * Parse the configured floor. An unrecognised value must not throw: this runs while the
+   * RedisLogger object is being initialised, and MdcLoggable consults RedisLogger on every log
+   * call, so a throwing initialiser would turn a config typo into failures at ordinary logging
+   * statements across the application. Fall back to INFO and say so on stderr (not through a
+   * logger, which would re-enter this initialiser).
+   */
+  private[cache] def parseMinLevel(configured: String): LogLevel.LogLevel =
+    try LogLevel.valueOf(configured.trim)
+    catch {
+      case _: IllegalArgumentException =>
+        System.err.println(s"Invalid redis_logging_min_level '$configured'; using INFO. Valid values: TRACE, DEBUG, INFO, WARN, WARNING, ERROR, ALL")
+        LogLevel.INFO
+    }
 
   /**
    * Whether a message at this level should be shipped to Redis right now. Combines the

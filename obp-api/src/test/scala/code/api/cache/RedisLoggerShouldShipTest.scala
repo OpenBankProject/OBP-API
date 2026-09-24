@@ -58,4 +58,20 @@ class RedisLoggerShouldShipTest extends FlatSpec with Matchers {
   it should "never ship LogLevel.ALL, which is a read-side aggregate queue, not a real message level" in {
     RedisLogger.shouldShip(RedisLogger.LogLevel.ALL) shouldBe false
   }
+  "RedisLogger.parseMinLevel" should "accept every documented level, ignoring case and surrounding spaces" in {
+    RedisLogger.parseMinLevel("TRACE") should equal(RedisLogger.LogLevel.TRACE)
+    RedisLogger.parseMinLevel(" debug ") should equal(RedisLogger.LogLevel.DEBUG)
+    RedisLogger.parseMinLevel("warn") should equal(RedisLogger.LogLevel.WARNING)
+    RedisLogger.parseMinLevel("Warning") should equal(RedisLogger.LogLevel.WARNING)
+    RedisLogger.parseMinLevel("ERROR") should equal(RedisLogger.LogLevel.ERROR)
+  }
+
+  it should "fall back to INFO instead of throwing for an unrecognised value" in {
+    // A throwing parse would fail the RedisLogger initialiser, and MdcLoggable consults RedisLogger
+    // on every log call, so a typo in props would break ordinary logging statements.
+    noException should be thrownBy RedisLogger.parseMinLevel("OFF")
+    RedisLogger.parseMinLevel("OFF") should equal(RedisLogger.LogLevel.INFO)
+    RedisLogger.parseMinLevel("") should equal(RedisLogger.LogLevel.INFO)
+    RedisLogger.parseMinLevel("FATAL") should equal(RedisLogger.LogLevel.INFO)
+  }
 }
