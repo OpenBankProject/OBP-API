@@ -234,6 +234,18 @@ class Boot extends MdcLoggable {
     }
 
     if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
+    // Make the effective root log level visible at start-up. DEBUG/TRACE is expensive on this
+    // code base and is only meant to be enabled deliberately (LOG_LEVEL), so say so loudly.
+    try {
+      org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) match {
+        case l: ch.qos.logback.classic.Logger =>
+          val level = l.getEffectiveLevel
+          if (level.levelInt <= ch.qos.logback.classic.Level.DEBUG_INT)
+            logger.warn(s"Effective root log level is $level (LOG_LEVEL override); expect higher CPU and log volume")
+          else logger.info(s"Effective root log level is $level")
+        case _ => ()
+      }
+    } catch { case _: Throwable => () }
     logger.info("external props folder: " + propsPath)
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     logger.info("Current Project TimeZone: " + TimeZone.getDefault)
