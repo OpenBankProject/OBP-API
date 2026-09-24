@@ -329,10 +329,19 @@ object Helper extends Loggable {
   private val MdcLogDropReportEvery = 10000L
   private val mdcLogDropped = new java.util.concurrent.atomic.AtomicLong(0)
 
+  /**
+   * ThreadPoolExecutor and ArrayBlockingQueue reject a size below 1 with IllegalArgumentException.
+   * The pool is created lazily on the first log call, so a 0 or negative prop would fail that call
+   * and every later one. Clamp both values to at least 1 instead.
+   */
+  private[util] def dispatchPoolSettings(configuredPoolSize: Int, configuredQueueSize: Int): (Int, Int) =
+    (math.max(1, configuredPoolSize), math.max(1, configuredQueueSize))
+
   private lazy val mdcLoggingExecutor: java.util.concurrent.ThreadPoolExecutor = {
     val threadCount = new java.util.concurrent.atomic.AtomicInteger(0)
-    val poolSize = APIUtil.getPropsAsIntValue("mdc_logging_dispatch_thread_pool_size", 2)
-    val queueSize = APIUtil.getPropsAsIntValue("mdc_logging_dispatch_queue_size", 10000)
+    val (poolSize, queueSize) = dispatchPoolSettings(
+      APIUtil.getPropsAsIntValue("mdc_logging_dispatch_thread_pool_size", 2),
+      APIUtil.getPropsAsIntValue("mdc_logging_dispatch_queue_size", 10000))
     val executor = new java.util.concurrent.ThreadPoolExecutor(
       poolSize, poolSize, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
       new java.util.concurrent.ArrayBlockingQueue[Runnable](queueSize),

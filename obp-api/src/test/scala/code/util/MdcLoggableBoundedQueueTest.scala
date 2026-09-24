@@ -93,6 +93,17 @@ class MdcLoggableBoundedQueueTest extends FlatSpec with Matchers {
     Helper.mdcLogDroppedCount shouldBe before // shutdown is not overload, so nothing is counted as dropped
   }
 
+  it should "clamp a zero or negative pool or queue size so the pool can still be created" in {
+    Helper.dispatchPoolSettings(0, 0) shouldBe ((1, 1))
+    Helper.dispatchPoolSettings(-3, -10) shouldBe ((1, 1))
+    Helper.dispatchPoolSettings(2, 10000) shouldBe ((2, 10000))
+    // The clamped values are accepted by the real constructors, the raw ones are not.
+    an[IllegalArgumentException] should be thrownBy new ArrayBlockingQueue[Runnable](0)
+    val (pool, queue) = Helper.dispatchPoolSettings(0, 0)
+    val ex = new ThreadPoolExecutor(pool, pool, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue[Runnable](queue))
+    try ex.getCorePoolSize shouldBe 1 finally ex.shutdownNow()
+  }
+
   it should "keep the production pool's queue bounded and observable" in {
     Helper.mdcLogQueueDepth should be >= 0
     Helper.mdcLogDroppedCount should be >= 0L
