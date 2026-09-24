@@ -210,7 +210,7 @@ object DynamicEntityHelper {
    * system space.
    */
   def definitionOf(bankId: Option[String], entityName: String): Option[DynamicEntityInfo] =
-    DynamicEntityHelper.definitionOf(bankId, entityName)
+    definitionsMap.get((bankId, entityName))
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap { dEntity =>
     val baseRoles = DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId)
