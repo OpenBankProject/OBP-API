@@ -1,8 +1,8 @@
 # Dynamic Entity space model — SYS is an ordinary bank id
 
 Written 2026-09-22. This is the only document for this work: no separate checklist. Track progress
-here by marking items done in place. **Status on 2026-09-24: Phases 1, 2 and 3 are done, and phase 4
-for the Record Roles. Phase 5 is dropped. The Definition Roles join phase 6.** The decisions below are settled. Two pieces are in the tree: the storage half of
+here by marking items done in place. **Status on 2026-09-24: Phases 1, 2, 3 and 4 are done (the
+Definition Roles as part of 6b). Phase 5 is dropped. Phase 6 is done. Phases 7 and 8 remain.** The decisions below are settled. Two pieces are in the tree: the storage half of
 Phase 1, committed as `25f384baf`, where the two data tables adopted the sentinel and took their
 space-scoped unique index, and Phase 3, which refuses just-in-time entitlements in the system space.
 Everything else in this plan is still to write.
@@ -262,7 +262,51 @@ may grant what has to reach all of them.
 Consumer Scopes mirror roles and carry a bank id (`MappedScopesProvider.scala:115`). If a scope can
 name `SYS`, it needs the same rule, or the application path bypasses the user path.
 
-## Phase 6 — the v7.0.0 routes
+## Phase 6 — the v7.0.0 routes — **done 2026-09-24 (6a, 6b, 6c)**
+
+**6a** (internal): the URL extractors collapsed to one branch per shape, and every call site asks
+`DynamicEntityHelper.definitionOf(bankId, entityName)` instead of reading `definitionsMap` directly.
+
+**6b** (management routes, the Definition Roles, the space rule):
+
+* `DynamicEntitySpace` (`code.api.dynamic.entity.helper`) is the one place that converts between the
+  internal `Option` (None = system space) and the published bank id (`SYS`): `bankIdOrSystem` and
+  `bankIdOrNoneForSystem`, the latter also accepting the older empty string. The consent
+  `my_resources` check, the Record Role checks in `Http4sDynamicEntity` and the diagnostics all use it.
+* `ResourceDoc.allowSystemSpace()` is the opt-in that lets `SYS` through `validateBank` with no bank
+  resolved; the middleware then checks the doc's Roles at `SYS` like any bank id. Only the v7.0.0
+  definition docs opt in, so `/banks/SYS/…` still gives 404 everywhere else.
+* v7.0.0 `/management/banks/BANK_ID/dynamic-entities` — list, create, update, delete (204), backup,
+  cascade delete (204) — lives in `Http4s700DynamicEntityDefinitions`, outside `Http4s700`'s
+  initialiser, and reuses the v6.0.0 and v4.0.0 functions. Every response carries `bank_id`.
+* The Definition Roles merged as the table in phase 4 says, all `requiresBankId = true`; the two
+  `AnyBank` Roles are gone. The v4.0.0 and v6.0.0 `/management/system-dynamic-entities` endpoints keep
+  the Role in their doc with `disableAutoValidateRoles()` and check it in the handler at `SYS`
+  (`DynamicEntitySpace.requireRoleAtSystemSpace`), with the same 403 and message the middleware gives.
+* `MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere`, its own `runOnce`
+  (`renameDynamicEntityDefinitionRoles`), renames the stored Definition Roles and moves system level
+  ones to `SYS`; a Group the Record pass left at the empty bank id because it also held a Definition
+  Role now moves too.
+* Defects fixed on the way, all left over from records moving to `SYS` in phase 1: the orphaned-records
+  diagnostic treated every system record as orphaned (so its cleanup deleted them); v6.0.0's system list
+  counted zero records; v6.0.0's backup checked and granted the Record Role at the empty bank id; and
+  v6.0.0's update reported an unknown id as a 400 InvalidJsonFormat instead of a 404.
+
+**6c** (data routes): `/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...`, BANK_ID a bank's id or `SYS`,
+followed by exactly what follows `/obp/dynamic-entity/` (`ENTITY[/ID]`, `my/...`, `public/...`,
+`community/...`, `ENTITY/ID/access[/USER_ID]`). The `dynamic-entities` segment after the bank keeps an
+entity named, say, `accounts` from colliding with a standard endpoint. `Http4sDynamicEntity.wrappedRoutesDynamicEntityV700`
+rewrites the path to the unversioned shape and calls the same dispatcher, so both URL families run
+the same checks on the same storage; it is wired into `Http4s700.wrappedRoutesV700Services` ahead of
+the bridge to v6.0.0. The only behavioural difference: a v7.0.0 response always carries `bank_id`
+(`SYS` included, via a request attribute read by `wrapBankId`), while the unversioned URLs keep
+omitting it for the system space. The v7.0.0 definition responses' `_links` point at these URLs.
+`definitionsMap` is now keyed by the published bank id (`SYS`), finishing step 1.
+
+Not done in 6c, and left for phase 8: the per-entity ResourceDocs are still generated for the
+unversioned URLs only, so the API Explorer lists `/obp/dynamic-entity/...`; the v7.0.0 URLs are
+documented in the Glossary.
+
 
 Only now, with one storage convention, one role family and one grant rule, are the routes worth
 writing. `/obp/dynamic-entity/…` keeps serving unchanged throughout; the two read the same storage.
@@ -274,6 +318,16 @@ writing. `/obp/dynamic-entity/…` keeps serving unchanged throughout; the two r
    reserved space is let through with no bank. Everything that resolves a space asks that function
    instead of calling `getBank` directly, so the rule is stated once rather than repeated wherever a
    space is read.
+
+   **Superseded 2026-09-24: the template variable is `BANK_ID`, not `SPACE_ID`.** OBP writes
+   `banks/BANK_ID` everywhere, and a Dynamic Entity URL that said `banks/SPACE_ID` would mix two
+   vocabularies in one path. A consistent `spaces/SPACE_ID` alias for `banks/BANK_ID` may come later,
+   as its own step. Keeping `BANK_ID` also means the middleware's role check
+   (`ResourceDocMiddleware.authorizeRoles`, which reads `BANK_ID` from the path) checks a Definition
+   Role at `SYS` with no help from the handler. What `SYS` still needs is a way past `validateBank`,
+   which looks every `BANK_ID` up as a real bank; the proposal is an opt-in on the ResourceDoc, so
+   that only Dynamic Entity docs let `SYS` through and `/banks/SYS/accounts` still gives 404. The
+   paragraph below is the earlier reasoning, kept for the record.
 
    Implement it **without touching `ResourceDocMiddleware`**. `validateBank`
    (`ResourceDocMiddleware.scala:614`) fires on the literal template variable `BANK_ID` and is shared

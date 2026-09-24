@@ -7239,6 +7239,10 @@ object Http4s700 {
       http4sPartialFunction = Some(getMyCustomers)
     )
 
+    // Dynamic Entity definitions, one set of URLs for every space (SYS included). Declared in their own
+    // object to keep this initialiser under the JVM's 64KB method limit.
+    resourceDocs ++= Http4s700DynamicEntityDefinitions.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
@@ -7282,6 +7286,9 @@ object Http4s700 {
   lazy val wrappedRoutesV700Services: HttpRoutes[IO] =
     Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       Implementations7_0_0.allRoutesWithMiddleware.run(req)
+        // Dynamic Entity records at /banks/BANK_ID/dynamic-entities/...: the entity set changes at
+        // runtime, so these have no static ResourceDoc and must be tried before the bridge claims the path.
+        .orElse(code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(req))
         .orElse(v700ToV600Bridge.run(req))
     }
 }

@@ -43,11 +43,15 @@ import org.scalatest.Tag
  * is why this is migrated rather than left to every operator to re-grant, and these scenarios are what
  * say the mapping is the one intended.
  *
- * Four things are checked, because each is a different decision rather than a different example:
- * a Record Role is renamed and moved to the system space; a Definition Role is left alone, because its
- * endpoints still resolve at the empty bank id until their URLs carry a space; a Role that authorised
+ * The migration runs in two passes, Record Roles first and Definition Roles later, and each is checked
+ * for the decisions it makes rather than for examples of them. The Record pass: a Record Role is renamed
+ * and moved to the system space; a Definition Role is left for the second pass; a Role that authorised
  * every bank has no successor and must be left for a human; and a Group holding only Record Roles moves
  * to the system space with them, while one holding a mix stays put so that its other Roles keep working.
+ * The Definition pass: the System and BankLevel variants both become the one merged Role, at SYS and at
+ * their bank respectively; the any-bank Roles are still left alone; and a Group the Record pass had to
+ * leave behind, because it also held a Definition Role, can now move, while one holding a Role from
+ * outside Dynamic Entities still cannot.
  */
 class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
 
@@ -97,7 +101,7 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
     }
 
     scenario("it leaves a Definition Role and an any-bank Role alone", RoleRenameMigration) {
-      Given("a Definition Role, which still resolves at the empty bank id")
+      Given("a Definition Role, which the Record pass leaves for the Definition pass")
       giveEntitlement("", "CanCreateSystemLevelDynamicEntity")
       And("an any-bank Role, which has no single successor")
       giveEntitlement("", "CanCreateAnyBankLevelDynamicEntity")
@@ -137,6 +141,56 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
       val mixed = reloadGroup(mixedName)
       mixed.ListOfRoles.get should equal(s"CanCreateDynamicEntityRecord_$entity,CanCreateSystemLevelDynamicEntity")
       mixed.BankId.get should equal("")
+    }
+
+    scenario("the Definition pass merges the System and BankLevel variants, each in its own space", RoleRenameMigration) {
+      Given("a system level Definition Role at the empty bank id, and a bank level one at its bank")
+      giveEntitlement("", "CanUpdateSystemLevelDynamicEntity")
+      giveEntitlement("bank_one", "CanUpdateBankLevelDynamicEntity")
+      And("an any-bank Role, which has no single successor")
+      giveEntitlement("", "CanGetAnyBankLevelDynamicEntities")
+
+      When("the Definition pass runs")
+      MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere(s"definitionRoleRenameTest_$suffix") should equal(true)
+
+      Then("both carry the merged name, the system one at the system space and the bank one at its bank")
+      entitlementRowsFor("CanUpdateDynamicEntityDefinition").map(_.mBankId.get).sorted should equal(
+        List(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, "bank_one").sorted)
+
+      And("nothing is left under the old names")
+      entitlementRowsFor("CanUpdateSystemLevelDynamicEntity") shouldBe empty
+      entitlementRowsFor("CanUpdateBankLevelDynamicEntity") shouldBe empty
+
+      And("the any-bank Role is untouched")
+      val anyBankRows = entitlementRowsFor("CanGetAnyBankLevelDynamicEntities")
+      anyBankRows.size should equal(1)
+      anyBankRows.head.mBankId.get should equal("")
+    }
+
+    scenario("the Definition pass moves a Group the Record pass left behind, but not one holding another kind of Role", RoleRenameMigration) {
+      val entity = s"field_$suffix"
+      val leftBehindName = s"left_behind_group_$suffix"
+      val otherRoleName = s"other_role_group_$suffix"
+
+      Given("a system level Group holding a Record Role and a Definition Role, which the Record pass left at the empty bank id")
+      makeGroup(leftBehindName, "", List(s"CanCreateDynamicEntity_System$entity", "CanDeleteSystemLevelDynamicEntity"))
+      MigrationOfDynamicEntityRoleNames.renameEverywhere(s"roleRenameTest4_$suffix")
+      reloadGroup(leftBehindName).BankId.get should equal("")
+      And("another holding a Definition Role and a Role from outside Dynamic Entities")
+      makeGroup(otherRoleName, "", List("CanDeleteSystemLevelDynamicEntity", "CanGetAnyUser"))
+
+      When("the Definition pass runs")
+      MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere(s"definitionRoleRenameTest2_$suffix")
+
+      Then("the left-behind Group carries the new names and has moved to the system space")
+      val leftBehind = reloadGroup(leftBehindName)
+      leftBehind.ListOfRoles.get should equal(s"CanCreateDynamicEntityRecord_$entity,CanDeleteDynamicEntityDefinition")
+      leftBehind.BankId.get should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+
+      And("the other Group carries the new name but stays at the empty bank id, where CanGetAnyUser belongs")
+      val other = reloadGroup(otherRoleName)
+      other.ListOfRoles.get should equal("CanDeleteDynamicEntityDefinition,CanGetAnyUser")
+      other.BankId.get should equal("")
     }
   }
 }

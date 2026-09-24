@@ -957,44 +957,28 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteSignatoryPanel(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteSignatoryPanel = CanDeleteSignatoryPanel()
 
-  case class CanGetSystemLevelDynamicEntities(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetSystemLevelDynamicEntities = CanGetSystemLevelDynamicEntities()
+  // The Definition Roles gate a Dynamic Entity's definition (its schema and flags), as opposed to the
+  // Record Roles (CanCreateDynamicEntityRecord_<Entity> and friends), which gate its rows. Each one is
+  // granted at a bank id or at DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS) for the system space, and none
+  // reaches every bank at once. They replace the System, BankLevel and AnyBankLevel variants; stored
+  // grants of those were renamed by MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere.
+  case class CanCreateDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateDynamicEntityDefinition = CanCreateDynamicEntityDefinition()
 
-  case class CanCreateSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateSystemLevelDynamicEntity = CanCreateSystemLevelDynamicEntity()
+  case class CanUpdateDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateDynamicEntityDefinition = CanUpdateDynamicEntityDefinition()
 
-  case class CanCreateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canCreateBankLevelDynamicEntity = CanCreateBankLevelDynamicEntity()
+  case class CanDeleteDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteDynamicEntityDefinition = CanDeleteDynamicEntityDefinition()
 
-  case class CanCreateAnyBankLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateAnyBankLevelDynamicEntity = CanCreateAnyBankLevelDynamicEntity()
+  case class CanGetDynamicEntityDefinitions(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetDynamicEntityDefinitions = CanGetDynamicEntityDefinitions()
 
-  case class CanUpdateSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUpdateSystemDynamicEntity = CanUpdateSystemLevelDynamicEntity()
+  case class CanDeleteCascadeDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCascadeDynamicEntityDefinition = CanDeleteCascadeDynamicEntityDefinition()
 
-  case class CanUpdateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canUpdateBankLevelDynamicEntity = CanUpdateBankLevelDynamicEntity()
-
-  case class CanDeleteSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteSystemLevelDynamicEntity = CanDeleteSystemLevelDynamicEntity()
-
-  case class CanDeleteCascadeSystemDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteCascadeSystemDynamicEntity = CanDeleteCascadeSystemDynamicEntity()
-
-  case class CanBackupSystemDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canBackupSystemDynamicEntity = CanBackupSystemDynamicEntity()
-
-  case class CanBackupBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canBackupBankLevelDynamicEntity = CanBackupBankLevelDynamicEntity()
-
-  case class CanDeleteBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteBankLevelDynamicEntity = CanDeleteBankLevelDynamicEntity()
-
-  case class CanGetBankLevelDynamicEntities(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetBankLevelDynamicEntities = CanGetBankLevelDynamicEntities()
-
-  case class CanGetAnyBankLevelDynamicEntities(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetAnyBankLevelDynamicEntities = CanGetAnyBankLevelDynamicEntities()
+  case class CanBackupDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canBackupDynamicEntityDefinition = CanBackupDynamicEntityDefinition()
 
   case class CanGetDynamicEntityDiagnostics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicEntityDiagnostics = CanGetDynamicEntityDiagnostics()

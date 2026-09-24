@@ -50,55 +50,27 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
 
   // ==================== Helpers ====================
 
-  // Every Role this suite grants belongs to a system level entity, and a Dynamic Entity Record or
-  // field Role names its space: the system space is DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, not the
-  // empty bank id. The Definition Roles still resolve at the empty bank id until their endpoints
-  // carry a space in the URL, so they are granted separately below.
+  // Every Role this suite grants belongs to a system level entity, and every Dynamic Entity Role --
+  // Definition, Record and field alike -- names its space: the system space is
+  // DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, not the empty bank id.
   private def grant(role: String): Unit =
-    Entitlement.entitlement.vend.addEntitlement(emptyBankIdOrSYS(role), resourceUser1.userId, role)
-
-  /**
-   * The bank id to grant a Role at: the empty one, or SYS.
-   *
-   * Everything this suite grants for a system level entity -- the Record Roles, the auto-generated
-   * field Roles, and an explicit shared field Role the schema names itself -- is bank scoped, and its
-   * space is the system space, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID. The exceptions are the Definition
-   * Roles, which still resolve at the empty bank id because their endpoints carry no space in the
-   * URL; they are listed rather than pattern matched, because an explicit field Role can be named
-   * anything at all and would otherwise have to be guessed at.
-   *
-   * The whole helper goes away at phase 6, when the Definition endpoints gain a space and both
-   * families are granted the same way.
-   */
-  private val definitionRolesStillAtTheEmptyBankId: Set[String] = Set(
-    CanCreateSystemLevelDynamicEntity.toString,
-    CanUpdateSystemLevelDynamicEntity.toString,
-    CanDeleteSystemLevelDynamicEntity.toString,
-    CanGetSystemLevelDynamicEntities.toString,
-    CanCreateBankLevelDynamicEntity.toString,
-    CanUpdateBankLevelDynamicEntity.toString,
-    CanDeleteBankLevelDynamicEntity.toString,
-    CanGetBankLevelDynamicEntities.toString
-  )
-
-  private def emptyBankIdOrSYS(role: String): String =
-    if (definitionRolesStillAtTheEmptyBankId.contains(role)) "" else DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, role)
 
   // Grant to a specific user. Creating a dynamic entity auto-grants its CRUD roles to the *creator*
   // (resourceUser1, via createSystemEntity), so the "no entity update role" scenarios use resourceUser2 —
   // a user who did not create the entity and therefore only holds what we explicitly grant here.
   private def grantTo(userId: String, role: String): Unit =
-    Entitlement.entitlement.vend.addEntitlement(emptyBankIdOrSYS(role), userId, role)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, userId, role)
 
   private def createSystemEntity(entityJson: JValue): (Int, JValue) = {
-    grant(CanCreateSystemLevelDynamicEntity.toString)
+    grant(CanCreateDynamicEntityDefinition.toString)
     val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
     val response = makePostRequest(request, write(entityJson))
     (response.code, response.body)
   }
 
   private def deleteSystemEntity(dynamicEntityId: String): Unit = {
-    grant(CanDeleteSystemLevelDynamicEntity.toString)
+    grant(CanDeleteDynamicEntityDefinition.toString)
     val deleteRequest = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
     makeDeleteRequest(deleteRequest)
   }

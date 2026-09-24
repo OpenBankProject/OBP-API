@@ -82,7 +82,7 @@ import code.api.cache.Redis
 import code.bankconnectors.{Connector => BankConnector}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.APIUtil.{HTTPParam, createQueriesByHttpParamsFuture, unboxFull, unboxFullOrFail}
 import code.api.util.{ApiVersionUtils, CertificateUtil, CommonsEmailWrapper, RateLimitingUtil}
 import code.api.v2_0_0.{BasicViewJson, JSONFactory200}
@@ -121,7 +121,7 @@ import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.views.Views
-import net.liftweb.mapper.{By, NullRef}
+import net.liftweb.mapper.By
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{BankId, BankIdAccountId, CustomerId, ListResult, ViewId}
@@ -345,8 +345,9 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/management/system-dynamic-entities
     lazy val getSystemDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "system-dynamic-entities" =>
-        EndpointHelpers.withUser(req) { (_, _) =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
           for {
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canGetDynamicEntityDefinitions, cc)
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
@@ -354,7 +355,8 @@ object Http4s600 {
               val recordCount = DynamicData.count(
                 By(DynamicData.DynamicEntityName, entity.entityName),
                 By(DynamicData.IsPersonalEntity, false),
-                if (entity.bankId.isEmpty) NullRef(DynamicData.BankId) else By(DynamicData.BankId, entity.bankId.get)
+                // Records store SYS for the system space, never a NULL bank id.
+                By(DynamicData.BankId, DynamicEntitySpace.bankIdOrSystem(entity.bankId))
               )
               (entity, recordCount)
             }
@@ -495,7 +497,7 @@ object Http4s600 {
 
     // Inlined helpers — match the v6 Lift private versions in APIMethods600.
     private val validEntityNamePattern = "^[a-z][a-z0-9_]*$".r.pattern
-    private def validateEntityNameV600(entityName: String, cc: CallContext): Future[Unit] =
+    private[api] def validateEntityNameV600(entityName: String, cc: CallContext): Future[Unit] =
       if (validEntityNamePattern.matcher(entityName).matches()) Future.successful(())
       else Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
 
@@ -507,7 +509,7 @@ object Http4s600 {
         !NewStyle.function.getMethodRoutings(Some("dynamicEntityProcess"))
           .exists(_.parameters.exists(p => p.key == "entityName" && p.value == dynamicEntity.entityName))
 
-    private def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+    private[api] def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       // Wrap the connector call so a thrown RuntimeException (bad schema, etc.)
       // becomes a 400 InvalidJsonFormat — matches v6 Lift's dispatch wrapper.
@@ -537,15 +539,18 @@ object Http4s600 {
       // the creator's grants go to DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty bank id.
       // Granting at "" would write rows nothing reads, and the creator would be locked out of the
       // entity they had just defined.
-      val bankIdOrSYS = dynamicEntity.bankId.getOrElse(code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       crudRoles.foreach(role =>
-        Entitlement.entitlement.vend.addEntitlement(bankIdOrSYS, cc.onBehalfOfUserId, role.toString(),
+        Entitlement.entitlement.vend.addEntitlement(DynamicEntitySpace.bankIdOrSystem(dynamicEntity.bankId), cc.onBehalfOfUserId, role.toString(),
           grantedByUserId = Some(cc.userId)))
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }
 
-    private def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+    private[api] def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
+      // Look the definition up in its own space first, so that an id from another space, or no id at
+      // all, is a 404. Left to the update below, the not-found error is caught by the recoverWith and
+      // reported as a 400 InvalidJsonFormat.
+      _ <- NewStyle.function.getDynamicEntityById(dynamicEntity.bankId, dynamicEntity.dynamicEntityId.getOrElse(""), Some(cc))
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
           case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
@@ -569,6 +574,7 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canCreateDynamicEntityDefinition, cc, code.api.util.APIUtil.UserOrApplication)
             dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               DynamicEntityCommons(JSONFactory600.convertV600RequestToInternal(request), None, cc.userId, None)
             }
@@ -610,6 +616,7 @@ object Http4s600 {
             _ <- validateEntityNameV600(request.entity_name, cc)
             internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
             dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, None)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canUpdateDynamicEntityDefinition, cc)
             result <- updateDynamicEntityV600(cc, dynamicEntity)
           } yield result
         }
@@ -1937,10 +1944,8 @@ object Http4s600 {
             val orphaned = code.api.util.DiagnosticDynamicEntityCheck.checkOrphanedRecords(definitions)
             var totalDeleted: Long = 0
             orphaned.foreach { orphan =>
-              val records = if (orphan.bankId.isEmpty)
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), NullRef(DynamicData.BankId))
-              else
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), By(DynamicData.BankId, orphan.bankId))
+              // orphan.bankId is the stored form, SYS for the system space, so it matches the column as is.
+              val records = DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), By(DynamicData.BankId, orphan.bankId))
               records.foreach { r => r.delete_!; totalDeleted += 1 }
             }
             val orphanedJson = orphaned.map(o => JSONFactory600.OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount))
@@ -5369,7 +5374,7 @@ object Http4s600 {
       }
     }
 
-    private def backupDynamicEntityFut(
+    private[api] def backupDynamicEntityFut(
         bankIdOpt: Option[String],
         dynamicEntityId: String,
         cc: CallContext
@@ -5377,7 +5382,7 @@ object Http4s600 {
       for {
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankIdOpt, dynamicEntityId, Some(cc))
         canGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(entity.entityName, entity.bankId)
-        _ <- NewStyle.function.hasEntitlement(entity.bankId.getOrElse(""), cc.userId, canGetRole, Some(cc))
+        _ <- NewStyle.function.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(entity.bankId), cc.userId, canGetRole, Some(cc))
         (box, _) <- NewStyle.function.invokeDynamicConnector(
           com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
           entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
@@ -5389,7 +5394,7 @@ object Http4s600 {
         _ <- Future(backupDynamicEntityIo(entity, backupName, resultList))
         backupCanGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(backupName, entity.bankId)
         _ <- Future(code.entitlement.Entitlement.entitlement.vend.addEntitlement(
-          entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString(),
+          DynamicEntitySpace.bankIdOrSystem(entity.bankId), cc.userId, backupCanGetRole.toString(),
           grantedByUserId = Some(cc.userId)))
         backupEntity <- Future {
           code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
@@ -5406,7 +5411,8 @@ object Http4s600 {
       case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId / "backup" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
-          backupDynamicEntityFut(None, dynamicEntityId, cc)
+          DynamicEntitySpace.requireRoleAtSystemSpace(canBackupDynamicEntityDefinition, cc)
+            .flatMap(_ => backupDynamicEntityFut(None, dynamicEntityId, cc))
         }
     }
 
@@ -5418,35 +5424,46 @@ object Http4s600 {
         }
     }
 
+    /**
+     * This function deletes a Dynamic Entity together with all its records, after copying both to a
+     * `ZZ_BAK_` entity. `bankIdOpt` is the space, None for the system space. It is shared by the v6.0.0
+     * system endpoint and the v7.0.0 endpoint, which names the space in its URL.
+     */
+    private[api] def deleteDynamicEntityCascadeFut(bankIdOpt: Option[String], dynamicEntityId: String, cc: CallContext): Future[JObject] =
+      for {
+        (entity, _) <- NewStyle.function.getDynamicEntityById(bankIdOpt, dynamicEntityId, Some(cc))
+        _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
+          !entity.hasPersonalEntity
+        }
+        (box, _) <- NewStyle.function.invokeDynamicConnector(
+          com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
+          entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
+        resultList <- Future {
+          box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
+            .openOrThrowException(s"$UnknownError ")
+        }
+        _ <- Future {
+          if (!entity.entityName.startsWith("ZZ_BAK_"))
+            backupDynamicEntityIo(entity, s"ZZ_BAK_${entity.entityName}", resultList)
+        }
+        _ <- Future.sequence {
+          resultList.arr.map { record =>
+            val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
+            val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
+            Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
+              entity.bankId, entity.entityName, recordId, None, false))
+          }
+        }
+        _ <- NewStyle.function.deleteDynamicEntity(bankIdOpt, dynamicEntityId)
+      } yield JObject(Nil)
+
     lazy val deleteSystemDynamicEntityCascade: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / "cascade" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
-            (entity, _) <- NewStyle.function.getDynamicEntityById(None, dynamicEntityId, Some(cc))
-            _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
-              !entity.hasPersonalEntity
-            }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(
-              com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
-              entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
-            resultList <- Future {
-              box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
-                .openOrThrowException(s"$UnknownError ")
-            }
-            _ <- Future {
-              if (!entity.entityName.startsWith("ZZ_BAK_"))
-                backupDynamicEntityIo(entity, s"ZZ_BAK_${entity.entityName}", resultList)
-            }
-            _ <- Future.sequence {
-              resultList.arr.map { record =>
-                val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
-                val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
-                Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
-                  entity.bankId, entity.entityName, recordId, None, false))
-              }
-            }
-            _ <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
-          } yield JObject(Nil)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canDeleteCascadeDynamicEntityDefinition, cc)
+            result <- deleteDynamicEntityCascadeFut(None, dynamicEntityId, cc)
+          } yield result
         }
     }
 
@@ -7004,9 +7021,9 @@ object Http4s600 {
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canGetSystemLevelDynamicEntities :: Nil),
+        Some(canGetDynamicEntityDefinitions :: Nil),
         http4sPartialFunction = Some(getSystemDynamicEntities)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getBankLevelDynamicEntities),
@@ -7043,7 +7060,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canGetBankLevelDynamicEntities :: canGetAnyBankLevelDynamicEntities :: Nil),
+        Some(canGetDynamicEntityDefinitions :: Nil),
         http4sPartialFunction = Some(getBankLevelDynamicEntities)
       )
       resourceDocs += ResourceDoc(
@@ -7310,10 +7327,10 @@ object Http4s600 {
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canCreateSystemLevelDynamicEntity :: Nil),
+        Some(canCreateDynamicEntityDefinition :: Nil),
         authMode = code.api.util.APIUtil.UserOrApplication,
         http4sPartialFunction = Some(createSystemDynamicEntity)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(createBankLevelDynamicEntity),
@@ -7389,7 +7406,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canCreateBankLevelDynamicEntity :: Nil),
+        Some(canCreateDynamicEntityDefinition :: Nil),
         authMode = code.api.util.APIUtil.UserOrApplication,
         http4sPartialFunction = Some(createBankLevelDynamicEntity)
       )
@@ -7454,9 +7471,9 @@ object Http4s600 {
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canUpdateSystemDynamicEntity :: Nil),
+        Some(canUpdateDynamicEntityDefinition :: Nil),
         http4sPartialFunction = Some(updateSystemDynamicEntity)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(updateBankLevelDynamicEntity),
@@ -7524,7 +7541,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canUpdateBankLevelDynamicEntity :: Nil),
+        Some(canUpdateDynamicEntityDefinition :: Nil),
         http4sPartialFunction = Some(updateBankLevelDynamicEntity)
       )
       resourceDocs += ResourceDoc(
@@ -13381,9 +13398,9 @@ object Http4s600 {
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canBackupSystemDynamicEntity :: Nil),
+          Some(canBackupDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(backupSystemDynamicEntity)
-        )
+        ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
         resourceDocs += ResourceDoc(
           implementedInApiVersion,
           nameOf(backupBankLevelDynamicEntity),
@@ -13414,7 +13431,7 @@ object Http4s600 {
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canBackupBankLevelDynamicEntity :: Nil),
+          Some(canBackupDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(backupBankLevelDynamicEntity)
         )
     }
@@ -13455,9 +13472,9 @@ object Http4s600 {
             UnknownError
           ),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canDeleteCascadeSystemDynamicEntity :: Nil),
+          Some(canDeleteCascadeDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(deleteSystemDynamicEntityCascade)
-        )
+        ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getCustomerInvestigationReport),

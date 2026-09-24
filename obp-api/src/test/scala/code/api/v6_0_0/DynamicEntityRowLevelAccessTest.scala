@@ -49,14 +49,14 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
   // ==================== Helpers ====================
 
   def createSystemEntity(entityJson: JValue): (Int, JValue) = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
     val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@ (user1)
     val response = makePostRequest(request, write(entityJson))
     (response.code, response.body)
   }
 
   def deleteSystemEntity(dynamicEntityId: String): Unit = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
     makeDeleteRequest((v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@ (user1))
   }
 

@@ -70,14 +70,14 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
   private val consumerKeyHeader = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
 
   private def createSystemEntity(name: String, personalRequiresRole: Boolean = false): String = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
     val response = makePostRequest((v6_0_0_Request / "management" / "system-dynamic-entities").POST <@ (user1), write(definition(name, personalRequiresRole)))
     response.code should equal(201)
     (response.body \ "dynamic_entity_id").extract[String]
   }
 
   private def deleteSystemEntity(dynamicEntityId: String): Unit = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
     makeDeleteRequest((v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@ (user1))
   }
 
@@ -92,27 +92,17 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
       // A Dynamic Entity Record Role names its space, and these entities are system level, so the
       // consent has to carry SYS as the bank id; an entitlement offered at the empty bank id would be
       // written where no check reads it. ConsentUtil honours the Role's own requiresBankId.
-      ("entitlements" -> roleNames.map(role => ("bank_id" -> emptyBankIdOrSYS(role)) ~ ("role_name" -> role))) ~
+      ("entitlements" -> roleNames.map(role => ("bank_id" -> DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) ~ ("role_name" -> role))) ~
       ("consumer_id" -> testConsumer.consumerId.get) ~
       ("time_to_live" -> 3600)
     myResources.map(mr => base ~ ("my_resources" -> mr)).getOrElse(base)
   }
 
   /** POST a consent as user1 carrying `roleNames` and the given my_resources block; returns the raw response. */
-  /**
-   * The bank id a Role is granted at: SYS for the Dynamic Entity Record Roles, which name their
-   * space, and the empty one for the Definition Roles, which do not yet. See
-   * DYNAMIC_ENTITY_SPACE_MODEL_PLAN.md, phase 6, after which everything here is SYS.
-   */
-  private def emptyBankIdOrSYS(role: String): String =
-    if (role.contains("DynamicEntityRecord_") || role.contains("DynamicEntityField_") ||
-        role.contains("DynamicEntityRowAccess_")) DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-    else ""
-
   private def postConsent(roleNames: List[String], myResources: Option[JValue]) = {
     setPropsValues("consents.allowed" -> "true", "consumer_validation_method_for_consent" -> "CONSUMER_KEY_VALUE")
     // The granting human must hold the Role before a consent may carry it, and at the same space.
-    roleNames.foreach(role => Entitlement.entitlement.vend.addEntitlement(emptyBankIdOrSYS(role), resourceUser1.userId, role))
+    roleNames.foreach(role => Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, role))
     makePostRequest((v6_0_0_Request / "my" / "consents" / "IMPLICIT").POST <@ (user1), write(consentBody(roleNames, myResources)), consumerKeyHeader)
   }
 

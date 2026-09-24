@@ -428,7 +428,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
   }
   // prepare one dynamic entity FooBar
   private def addSystemDynamicEntity(): APIResponse = {
-    grantEntitlement(canCreateSystemLevelDynamicEntity)
+    grantEntitlement(canCreateDynamicEntityDefinition, code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
     val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ user1
     val fooBar =
       s"""

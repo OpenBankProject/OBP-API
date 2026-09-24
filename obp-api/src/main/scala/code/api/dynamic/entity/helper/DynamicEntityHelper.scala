@@ -64,16 +64,11 @@ private object SpaceSegments {
 /** Does a definition for this entity exist in this space? */
 private object DefinitionIn {
   def apply(space: Option[String], entityName: String): Boolean =
-    DynamicEntityHelper.definitionsMap.exists {
-      case ((mapSpace, mapName), info) => mapSpace == space && mapName == entityName && info.bankId == space
-    }
+    DynamicEntityHelper.definitionOf(space, entityName).isDefined
 
   /** As above, and the definition must also satisfy `predicate` — a flag such as hasPublicAccess. */
   def apply(space: Option[String], entityName: String, predicate: DynamicEntityInfo => Boolean): Boolean =
-    DynamicEntityHelper.definitionsMap.exists {
-      case ((mapSpace, mapName), info) =>
-        mapSpace == space && mapName == entityName && info.bankId == space && predicate(info)
-    }
+    DynamicEntityHelper.definitionOf(space, entityName).exists(predicate)
 }
 
 object EntityName {
@@ -198,19 +193,18 @@ object DynamicEntityHelper {
   }
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
-  //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
+  // Keyed by (bank id as published, entity name): SYS for the system space, never None or "".
+  def definitionsMap: Map[(String, String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((DynamicEntitySpace.bankIdOrSystem(it.bankId), it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
 
   /**
    * The definition of one entity in one space, or None when that space holds no such entity.
    *
    * Callers ask by space and name rather than reaching into [[definitionsMap]], so that the shape of
-   * the key stays an implementation detail: it carries an Option today and will carry the bank id as
-   * a plain string once the system space is `SYS` everywhere. `bankId` is the space, and None is the
-   * system space.
+   * the key stays an implementation detail. `bankId` is the space, with None for the system space; the
+   * map itself is keyed by the published form, SYS.
    */
   def definitionOf(bankId: Option[String], entityName: String): Option[DynamicEntityInfo] =
-    definitionsMap.get((bankId, entityName))
+    definitionsMap.get((DynamicEntitySpace.bankIdOrSystem(bankId), entityName))
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap { dEntity =>
     val baseRoles = DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId)

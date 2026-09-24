@@ -3,6 +3,60 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's
+                            DEFINITION, completing the change below. Each System and BankLevel pair
+                            is now one Role, granted at a bank's id or at SYS for the system space:
+
+                              CanCreateSystemLevelDynamicEntity, CanCreateBankLevelDynamicEntity
+                                -> CanCreateDynamicEntityDefinition
+                              CanUpdateSystemLevelDynamicEntity, CanUpdateBankLevelDynamicEntity
+                                -> CanUpdateDynamicEntityDefinition
+                              CanDeleteSystemLevelDynamicEntity, CanDeleteBankLevelDynamicEntity
+                                -> CanDeleteDynamicEntityDefinition
+                              CanGetSystemLevelDynamicEntities, CanGetBankLevelDynamicEntities
+                                -> CanGetDynamicEntityDefinitions
+                              CanBackupSystemDynamicEntity, CanBackupBankLevelDynamicEntity
+                                -> CanBackupDynamicEntityDefinition
+                              CanDeleteCascadeSystemDynamicEntity
+                                -> CanDeleteCascadeDynamicEntityDefinition
+
+                            NEW in v7.0.0: one set of management endpoints for every space,
+                            /management/banks/BANK_ID/dynamic-entities (list, create, update, delete,
+                            backup, cascade delete), where BANK_ID is a bank's id or SYS. The Role is
+                            checked at that BANK_ID, and every response carries bank_id, SYS included.
+                            SYS is accepted as BANK_ID only by endpoints that declare it; everywhere
+                            else it is still an unknown bank (404).
+
+                            NEW in v7.0.0: the records themselves, at
+                            /obp/v7.0.0/banks/BANK_ID/dynamic-entities/ENTITY_NAME[/RECORD_ID], and the
+                            my/, public/, community/ and .../access forms after dynamic-entities/.
+                            Same checks and storage as /obp/dynamic-entity/, but every response carries
+                            bank_id, SYS included. The unversioned URLs are unchanged.
+
+                            The older /management/system-dynamic-entities endpoints (v4.0.0, v6.0.0)
+                            keep working and check the same Roles at SYS.
+
+                            NOTHING TO DO for an ordinary upgrade: a second migration renames the
+                            stored Roles across Entitlements, Entitlement Requests, Consumer Scopes and
+                            Group Role lists, moving system level ones to SYS. A system level Group the
+                            first migration left behind because it also held a Definition Role now
+                            moves to SYS, unless it holds a Role from outside Dynamic Entities. An
+                            instance that runs with migration scripts disabled must re-grant by hand.
+
+                            FIXED, found while doing this:
+                            - DELETE /management/diagnostics/dynamic-entities/orphaned-records treated
+                              every system level record as orphaned, because records store SYS while
+                              definitions call the system space None, and so deleted them all. It now
+                              compares the two in the same form.
+                            - GET /obp/v6.0.0/management/system-dynamic-entities reported a
+                              record_count of 0 for every entity: it counted records with a NULL bank id.
+                            - Backing up a system level entity (v6.0.0) always returned 403, because it
+                              checked the entity's Get Record Role at the empty bank id, and it granted
+                              that Role on the backup there too, where nothing reads it. Both use SYS.
+                            - Updating a Dynamic Entity definition (v6.0.0) whose id does not exist in
+                              that space answered 400 InvalidJsonFormat; it now answers 404
+                              DynamicEntityNotFoundByDynamicEntityId.
+
 24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's records.
                             A Role that was called CanCreateDynamicEntity_SystemCountry or
                             CanCreateDynamicEntity_Country is now CanCreateDynamicEntityRecord_Country

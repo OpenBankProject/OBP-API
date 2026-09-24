@@ -1764,6 +1764,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * requests.
      */
     def isAutoValidateRoles: Boolean = _autoValidateRoles
+
+    private var _allowsSystemSpace = false
+
+    /**
+     * Let the system space's bank id, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS), stand in for BANK_ID.
+     *
+     * The middleware looks every BANK_ID up as a real bank and answers 404 when there is none, and no
+     * bank is called SYS. A Dynamic Entity lives in a space, which is either a bank or the system space,
+     * so its endpoints need SYS to get through; every other endpoint needs a real bank and must keep
+     * the 404. This is the opt-in that tells them apart. With it, a request naming SYS reaches the
+     * handler with no bank resolved, and the declared Roles are checked at SYS.
+     */
+    def allowSystemSpace(): ResourceDoc = {
+      _allowsSystemSpace = true
+      this
+    }
+
+    def allowsSystemSpace: Boolean = _allowsSystemSpace
     private var _autoValidateAuthenticate = true
     def disableAutoValidateAuthenticate(): ResourceDoc = {
       _autoValidateAuthenticate = false

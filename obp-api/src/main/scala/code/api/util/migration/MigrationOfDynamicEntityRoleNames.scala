@@ -38,21 +38,24 @@ import code.scope.MappedScope
  * Rename the Dynamic Entity Roles wherever a Role name is stored, and move the ones that were system
  * level onto the system space.
  *
- * The Roles that gate an entity's records gained the word Record and lost their System twin, so
- * `CanCreateDynamicEntity_SystemCountry` and `CanCreateDynamicEntity_Country` are both now
- * `CanCreateDynamicEntityRecord_Country`. The name no longer says which space it applies to; the
- * Entitlement's bank id does, and the system space is DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than
- * the empty string it used to be.
+ * This happens in two passes, each registered as its own runOnce migration, because the two Role
+ * families moved at different times.
  *
- * The Roles that gate a **definition** are deliberately untouched here. Merging their System and
- * BankLevel variants into one name means choosing one `requiresBankId`, and choosing `false` — which
- * the system management endpoints need, because their URLs carry no space for the middleware to read
- * — would widen the bank level Role into one grant that authorises every bank. They are renamed and
- * re-scoped in the same change that gives those endpoints a space in their URL; see
- * DYNAMIC_ENTITY_SPACE_MODEL_PLAN.md, phase 6.
+ * The **Record** pass ([[renameEverywhere]]). The Roles that gate an entity's records gained the word
+ * Record and lost their System twin, so `CanCreateDynamicEntity_SystemCountry` and
+ * `CanCreateDynamicEntity_Country` are both now `CanCreateDynamicEntityRecord_Country`. The name no
+ * longer says which space it applies to; the Entitlement's bank id does, and the system space is
+ * DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty string it used to be.
+ *
+ * The **Definition** pass ([[renameDefinitionRolesEverywhere]]). The Roles that gate a definition
+ * lost their System and BankLevel split: `CanCreateSystemLevelDynamicEntity` and
+ * `CanCreateBankLevelDynamicEntity` are both now `CanCreateDynamicEntityDefinition`, and so on for
+ * update, delete, get, backup and cascade delete. It waited for the v7.0.0 management endpoints,
+ * which name the space in their URL, because until then a system level Definition Role could only be
+ * checked at the empty bank id. See DYNAMIC_ENTITY_SPACE_MODEL_PLAN.md, phase 6.
  *
  * Unlike a Role that merely narrows, a renamed Role leaves an existing grant meaningless rather than
- * weaker: the old name no longer exists, so nothing reads the row. The rename is also exactly
+ * weaker: the old name no longer exists, so nothing reads the row. Each rename is also exactly
  * one-to-one, with no fan-out per bank, which is what makes this worth migrating rather than asking
  * every operator to re-grant by hand.
  *
@@ -90,9 +93,24 @@ object MigrationOfDynamicEntityRoleNames {
     "CanGetDynamicEntityField_"      -> "CanGetDynamicEntityField_"
   )
 
+  /** The Definition Roles: every old name -> the one Role that replaces it. */
+  private val definitionRoleRenames: Map[String, String] = Map(
+    "CanCreateSystemLevelDynamicEntity"   -> "CanCreateDynamicEntityDefinition",
+    "CanCreateBankLevelDynamicEntity"     -> "CanCreateDynamicEntityDefinition",
+    "CanUpdateSystemLevelDynamicEntity"   -> "CanUpdateDynamicEntityDefinition",
+    "CanUpdateBankLevelDynamicEntity"     -> "CanUpdateDynamicEntityDefinition",
+    "CanDeleteSystemLevelDynamicEntity"   -> "CanDeleteDynamicEntityDefinition",
+    "CanDeleteBankLevelDynamicEntity"     -> "CanDeleteDynamicEntityDefinition",
+    "CanGetSystemLevelDynamicEntities"    -> "CanGetDynamicEntityDefinitions",
+    "CanGetBankLevelDynamicEntities"      -> "CanGetDynamicEntityDefinitions",
+    "CanDeleteCascadeSystemDynamicEntity" -> "CanDeleteCascadeDynamicEntityDefinition",
+    "CanBackupSystemDynamicEntity"        -> "CanBackupDynamicEntityDefinition",
+    "CanBackupBankLevelDynamicEntity"     -> "CanBackupDynamicEntityDefinition"
+  )
+
   /**
-   * The new name for a stored Role, given the bank id the row holds, or None when the Role is not one
-   * of ours or has no successor. `wasSystemLevel` is true when the stored bank id is empty.
+   * The new name for a stored Record Role, given the bank id the row holds, or None when the Role is
+   * not one of ours or has no successor. `wasSystemLevel` is true when the stored bank id is empty.
    */
   def renameOf(oldName: String, wasSystemLevel: Boolean): Option[String] = {
     if (rolesWithNoSuccessor.contains(oldName)) None
@@ -108,24 +126,59 @@ object MigrationOfDynamicEntityRoleNames {
     }
   }
 
+  /** The new name for a stored Definition Role, or None when the Role is not an old Definition Role. */
+  def definitionRenameOf(oldName: String): Option[String] = definitionRoleRenames.get(oldName)
+
   /**
-   * Does a Role of this name move onto the system space when its row sat at the empty bank id?
-   *
-   * The Record family does: its checks resolve the space in the handler, so a system level grant now
-   * belongs at DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID. The Definition family does not, yet: those
-   * endpoints are served at URLs with no space segment, so the middleware still resolves them at the
-   * empty bank id and moving their rows would strand them. They move in the same change that gives
-   * those endpoints a space in their URL.
+   * Is this a Dynamic Entity Role under its current name — one that names a space, so a grant of it
+   * at the empty bank id belongs at the system space?
    */
-  private def movesToSystemSpace(oldName: String): Boolean = renameOf(oldName, wasSystemLevel = true).isDefined
+  private def isCurrentDynamicEntityRoleName(roleName: String): Boolean =
+    definitionRoleRenames.values.toSet.contains(roleName) ||
+      generatedRolePrefixRenames.map(_._2).exists(roleName.startsWith)
 
-  /** The space a renamed Role belongs at. */
-  private def newBankId(oldName: String, oldBankId: String): String =
-    if (oldBankId.isEmpty && movesToSystemSpace(oldName)) DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID else oldBankId
+  /**
+   * One rename pass. `renameOf` gives a stored name's successor (the Boolean says the row sat at the
+   * empty bank id); `belongsInSpace` says whether a Role stored at the empty bank id belongs at the
+   * system space once renamed, and is also what decides whether a system level Group can move.
+   */
+  private case class RenamePass(
+    renameOf: (String, Boolean) => Option[String],
+    belongsInSpace: String => Boolean
+  )
 
-  def renameEverywhere(name: String): Boolean = {
+  /**
+   * The Record pass moves only the Record Roles. The Definition Roles still resolved at the empty
+   * bank id then, so a Group holding one of them had to stay where it was.
+   */
+  private val recordPass = RenamePass(
+    renameOf = renameOf,
+    belongsInSpace = oldName => renameOf(oldName, wasSystemLevel = true).isDefined
+  )
+
+  /**
+   * The Definition pass moves the Definition Roles, and counts every Dynamic Entity Role already
+   * under its new name as belonging to a space too. That second part is what lets a system level
+   * Group the Record pass had to leave behind, because it also held a Definition Role, move now.
+   */
+  private val definitionPass = RenamePass(
+    renameOf = (oldName, _) => definitionRenameOf(oldName),
+    belongsInSpace = roleName => definitionRoleRenames.contains(roleName) || isCurrentDynamicEntityRoleName(roleName)
+  )
+
+  /** Rename the Record Roles in every store. */
+  def renameEverywhere(name: String): Boolean = run(name, recordPass)
+
+  /** Rename the Definition Roles in every store. */
+  def renameDefinitionRolesEverywhere(name: String): Boolean = run(name, definitionPass)
+
+  private def run(name: String, pass: RenamePass): Boolean = {
     val startDate = System.currentTimeMillis()
     val report = scala.collection.mutable.ListBuffer[String]()
+
+    /** The space a renamed Role belongs at. */
+    def newBankId(oldName: String, oldBankId: String): String =
+      if (oldBankId.isEmpty && pass.belongsInSpace(oldName)) DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID else oldBankId
 
     def renameRows(
       label: String,
@@ -135,7 +188,7 @@ object MigrationOfDynamicEntityRoleNames {
       val orphaned = scala.collection.mutable.ListBuffer[String]()
       rows.foreach { case (roleName, bankId, setRoleName, setBankId) =>
         if (rolesWithNoSuccessor.contains(roleName)) orphaned += roleName
-        else renameOf(roleName, bankId.isEmpty).foreach { newName =>
+        else pass.renameOf(roleName, bankId.isEmpty).foreach { newName =>
           setRoleName(newName)
           setBankId(newBankId(roleName, bankId))
           renamed += 1
@@ -179,22 +232,19 @@ object MigrationOfDynamicEntityRoleNames {
       Group.findAll().foreach { group =>
         val wasSystemLevel = group.BankId.get.isEmpty
         val storedRoles = group.ListOfRoles.get.split(",").toList.map(_.trim).filter(_.nonEmpty)
-        val renamedRoles = storedRoles.map(r => renameOf(r, wasSystemLevel).getOrElse(r))
+        val renamedRoles = storedRoles.map(r => pass.renameOf(r, wasSystemLevel).getOrElse(r))
         if (renamedRoles != storedRoles) {
           group.ListOfRoles(renamedRoles.mkString(","))
           renamedGroups += 1
         }
-        // A system level Group grants at its own bank id, which is empty, so a Group whose Roles are
-        // all ours moves to the system space and keeps working. One holding a mix cannot move: its
-        // other Roles belong at the empty bank id and would land where nothing reads them.
-        // Only a Group whose Roles all move to the system space may move with them. One holding a
-        // Definition Role, which still resolves at the empty bank id, has to stay where it is.
-        val everyRoleMoves = storedRoles.nonEmpty &&
-          storedRoles.forall(r => renameOf(r, wasSystemLevel).isDefined && movesToSystemSpace(r))
+        // A system level Group grants at its own bank id, which is empty, so a Group whose Roles all
+        // belong in a space moves to the system space and keeps working. One holding a mix cannot
+        // move: its other Roles belong at the empty bank id and would land where nothing reads them.
+        val everyRoleMoves = storedRoles.nonEmpty && storedRoles.forall(pass.belongsInSpace)
         if (wasSystemLevel && everyRoleMoves) {
           group.BankId(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
           movedGroups += 1
-        } else if (wasSystemLevel && storedRoles.exists(r => renameOf(r, wasSystemLevel).isDefined && movesToSystemSpace(r))) {
+        } else if (wasSystemLevel && storedRoles.exists(r => pass.renameOf(r, wasSystemLevel).isDefined)) {
           mixedGroups += group.GroupName.get
         }
         group.save

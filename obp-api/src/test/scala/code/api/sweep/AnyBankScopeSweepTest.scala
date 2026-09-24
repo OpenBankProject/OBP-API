@@ -63,7 +63,6 @@ class AnyBankScopeSweepTest extends ServerSetupWithTestData {
   private val rolesThatReachEveryBank: Set[String] = Set(
     "CanAddUserToGroupAtAllBanks",
     "CanCreateAccountAccessRequestAtAnyBank",
-    "CanCreateAnyBankLevelDynamicEntity",
     "CanCreateAtmAtAnyBank",
     "CanCreateAtmAttributeAtAnyBank",
     "CanCreateBranchAtAnyBank",
@@ -89,7 +88,6 @@ class AnyBankScopeSweepTest extends ServerSetupWithTestData {
     "CanGetAccountAccessRequestsAtAnyBank",
     "CanGetAccountsHeldAtAnyBank",
     "CanGetAccountsMinimalForCustomerAtAnyBank",
-    "CanGetAnyBankLevelDynamicEntities",
     "CanGetAtmAttributeAtAnyBank",
     "CanGetConsentsAtAnyBank",
     "CanGetCorrelatedUsersInfoAtAnyBank",
