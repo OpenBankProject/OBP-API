@@ -1195,37 +1195,35 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 }
 
 object DynamicEntityInfo {
+
+  /**
+   * The Roles that gate a Dynamic Entity's **records** — the rows, not the schema. The schema is
+   * gated by the Definition Roles in ApiRole, and the two were called the same thing until this
+   * change, which hid the difference between being allowed to define `country` and being allowed to
+   * put `FR` in it.
+   *
+   * A Role names an operation and an entity; the space it applies to is the Entitlement's bank id,
+   * `SYS` for the system space or a real bank id. The name no longer carries the space, which is why
+   * there is one name per operation here rather than a pair. Every one of them requires a bank id,
+   * so a single grant can never reach more than the space it names.
+   */
   def canCreateRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanCreateDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanCreateDynamicEntityRecord_" + entityName, true)
+
   def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanUpdateDynamicEntityRecord_" + entityName, true)
 
   def canGetRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanGetDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanGetDynamicEntityRecord_" + entityName, true)
 
   def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanDeleteDynamicEntityRecord_" + entityName, true)
 
   // Admin override for row-level access (§3): a holder may grant/list/revoke per-row ACL
   // on any row of the entity, even rows they cannot read. Ordinary owner-driven sharing
   // does not need this role — it goes through the row's own ACL CanGrant (§8.1).
   def canGrantRowAccessRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_" + entityName, true)
 
   def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
     canCreateRole(entityName, bankId),
@@ -1239,17 +1237,13 @@ object DynamicEntityInfo {
   // (so many fields/entities can share one role); otherwise auto-generate a per-field role.
   def fieldWriteRole(entityName: String, fieldName: String, bankId: Option[String], explicit: Option[String]): ApiRole =
     explicit match {
-      case Some(role) => getOrCreateDynamicApiRole(role, bankId.isDefined)
-      case None =>
-        if(bankId.isDefined) getOrCreateDynamicApiRole(s"CanWriteDynamicEntityField_${entityName}__${fieldName}", true)
-        else getOrCreateDynamicApiRole(s"CanWriteDynamicEntityField_System${entityName}__${fieldName}", false)
+      case Some(role) => getOrCreateDynamicApiRole(role, true)
+      case None => getOrCreateDynamicApiRole(s"CanWriteDynamicEntityField_${entityName}__${fieldName}", true)
     }
 
   def fieldReadRole(entityName: String, fieldName: String, bankId: Option[String], explicit: Option[String]): ApiRole =
     explicit match {
-      case Some(role) => getOrCreateDynamicApiRole(role, bankId.isDefined)
-      case None =>
-        if(bankId.isDefined) getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_${entityName}__${fieldName}", true)
-        else getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_System${entityName}__${fieldName}", false)
+      case Some(role) => getOrCreateDynamicApiRole(role, true)
+      case None => getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_${entityName}__${fieldName}", true)
     }
 }

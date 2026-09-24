@@ -35,6 +35,7 @@ import org.json4s.native.Serialization.write
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
  * Characterization tests for two areas of the dynamic-entity runtime CRUD that were
@@ -167,7 +168,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
 
       try {
         When("user1 creates two non-personal records via the system endpoint")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_filter_public")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_filter_public")
         val create = (dynamicEntity_Request / "test_filter_public").POST <@(user1)
         makePostRequest(create, write(record("Pub1", 10))).code should equal(201)
         makePostRequest(create, write(record("Pub2", 20))).code should equal(201)
@@ -200,7 +201,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
         makePostRequest(create, write(record("Com2", 200))).code should equal(201)
 
         And("user1 has the CanGet role for community access")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanGetDynamicEntity_Systemtest_filter_community")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanGetDynamicEntityRecord_test_filter_community")
         val base = (dynamicEntity_Request / "community" / "test_filter_community").GET <@(user1)
 
         Then("GET-all returns both")
@@ -230,7 +231,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
 
       try {
         When("user1 creates a non-personal bank-level record")
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, "CanCreateDynamicEntity_test_bank_public")
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_bank_public")
         val create = (dynamicEntity_Request / "banks" / bankId / "test_bank_public").POST <@(user1)
         val createResponse = makePostRequest(create, write(record("BankPub", 1)))
         createResponse.code should equal(201)
@@ -265,7 +266,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
         makeGetRequest(base.GET <@(user2)).code should equal(403)
 
         When("user2 is granted the bank-level CanGet role")
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser2.userId, "CanGetDynamicEntity_test_bank_community")
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser2.userId, "CanGetDynamicEntityRecord_test_bank_community")
         Then("the GET now returns 200")
         makeGetRequest(base.GET <@(user2)).code should equal(200)
       } finally {

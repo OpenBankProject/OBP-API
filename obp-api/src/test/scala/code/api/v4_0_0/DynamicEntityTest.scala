@@ -38,6 +38,7 @@ import org.json4s.native.Serialization.write
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 class DynamicEntityTest extends V400ServerSetup {
 
   /**
@@ -1183,43 +1184,43 @@ class DynamicEntityTest extends V400ServerSetup {
           responseCreateFoobar.headers.map(_.get("Content-Type")).getOrElse("").toLowerCase should include("application/json")
           And("error should be " + UserHasMissingRoles)
           responseCreateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntity_SystemFooBar") should be (true)
+          responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntityRecord_FooBar") should be (true)
 
           val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user2)
           val responseGetFoobars = makeGetRequest(requestGetFoobars)
           responseGetFoobars.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseGetFoobars.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseGetFoobars.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_SystemFooBar") should be (true)
+          responseGetFoobars.body.extract[ErrorMessage].message contains ("CanGetDynamicEntityRecord_FooBar") should be (true)
 
           val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user2)
           val responseGetFoobar = makeGetRequest(requestGetFoobar)
           responseGetFoobar.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseGetFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseGetFoobar.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_SystemFooBar") should be (true)
+          responseGetFoobar.body.extract[ErrorMessage].message contains ("CanGetDynamicEntityRecord_FooBar") should be (true)
 
           val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user2)
           val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
           responseUpdateFoobar.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseUpdateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseUpdateFoobar.body.extract[ErrorMessage].message contains ("CanUpdateDynamicEntity_SystemFooBar") should be (true)
+          responseUpdateFoobar.body.extract[ErrorMessage].message contains ("CanUpdateDynamicEntityRecord_FooBar") should be (true)
 
           val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user2)
           val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
           responseDeleteFoobar.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseDeleteFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseDeleteFoobar.body.extract[ErrorMessage].message contains ("CanDeleteDynamicEntity_SystemFooBar") should be (true)
+          responseDeleteFoobar.body.extract[ErrorMessage].message contains ("CanDeleteDynamicEntityRecord_FooBar") should be (true)
         }
 
         {
           Then("we grant user2 the missing roles and CRUD again - SystemLevel")
-          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanCreateDynamicEntity_SystemFooBar")
-          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanUpdateDynamicEntity_SystemFooBar")
-          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanGetDynamicEntity_SystemFooBar")
-          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanDeleteDynamicEntity_SystemFooBar")
+          Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanCreateDynamicEntityRecord_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanUpdateDynamicEntityRecord_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanGetDynamicEntityRecord_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanDeleteDynamicEntityRecord_FooBar")
           val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user2)
           val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
           responseCreateFoobar.code should equal(201)
@@ -1289,14 +1290,14 @@ class DynamicEntityTest extends V400ServerSetup {
           responseCreateFoobar.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseCreateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntity_FooBar") should be (true)
+          responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntityRecord_FooBar") should be (true)
 
           val requestGetFoobars = (dynamicEntity_Request /"banks"/ testBankId1.value / "FooBar").GET <@(user2)
           val responseGetFoobars = makeGetRequest(requestGetFoobars)
           responseGetFoobars.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseGetFoobars.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseGetFoobars.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_FooBar") should be (true)
+          responseGetFoobars.body.extract[ErrorMessage].message contains ("CanGetDynamicEntityRecord_FooBar") should be (true)
           
 
           val requestGetFoobar = (dynamicEntity_Request / "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user2)
@@ -1304,29 +1305,29 @@ class DynamicEntityTest extends V400ServerSetup {
           responseGetFoobar.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseGetFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseGetFoobar.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_FooBar") should be (true)
+          responseGetFoobar.body.extract[ErrorMessage].message contains ("CanGetDynamicEntityRecord_FooBar") should be (true)
 
           val requestUpdateFoobar = (dynamicEntity_Request / "banks"/ testBankId1.value /"FooBar" / dynamicEntityId).PUT <@(user2)
           val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
           responseUpdateFoobar.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseUpdateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseUpdateFoobar.body.extract[ErrorMessage].message contains ("CanUpdateDynamicEntity_FooBar") should be (true)
+          responseUpdateFoobar.body.extract[ErrorMessage].message contains ("CanUpdateDynamicEntityRecord_FooBar") should be (true)
 
           val requestDeleteFoobar = (dynamicEntity_Request / "banks"/ testBankId1.value /"FooBar" / dynamicEntityId ).DELETE <@(user2)
           val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
           responseDeleteFoobar.code should equal(403)
           And("error should be " + UserHasMissingRoles)
           responseDeleteFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-          responseDeleteFoobar.body.extract[ErrorMessage].message contains ("CanDeleteDynamicEntity_FooBar") should be (true)
+          responseDeleteFoobar.body.extract[ErrorMessage].message contains ("CanDeleteDynamicEntityRecord_FooBar") should be (true)
         }
         
         {
           Then("we grant user2 roles and try CRUD again")
-          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanCreateDynamicEntity_FooBar")
-          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanGetDynamicEntity_FooBar")
-          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanUpdateDynamicEntity_FooBar")
-          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanDeleteDynamicEntity_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanCreateDynamicEntityRecord_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanGetDynamicEntityRecord_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanUpdateDynamicEntityRecord_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanDeleteDynamicEntityRecord_FooBar")
           
           val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
           val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
@@ -1398,7 +1399,7 @@ class DynamicEntityTest extends V400ServerSetup {
         }
 
         Then("we grant user2 can get FooBar role, user2 can get the foobar records. ")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanGetDynamicEntity_SystemFooBar")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanGetDynamicEntityRecord_FooBar")
         val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").GET <@(user2)
         val responseCreateFoobarUser2 = makeGetRequest(requestCreateFoobarUser2)
         responseCreateFoobarUser2.code should equal(200)
@@ -1465,7 +1466,7 @@ class DynamicEntityTest extends V400ServerSetup {
         }
         {
           Then("we grant user2 can get FooBar role ")
-          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser3.userId, "CanGetDynamicEntity_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser3.userId, "CanGetDynamicEntityRecord_FooBar")
           val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user3)
           val responseCreateFoobarUser2 = makeGetRequest(requestCreateFoobarUser2)
           responseCreateFoobarUser2.code should equal(200)
@@ -1702,8 +1703,8 @@ class DynamicEntityTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanCreateSystemLevelDynamicEntity.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanGetSystemLevelDynamicEntities.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanCreateDynamicEntity_SystemFooBar")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanGetDynamicEntity_SystemFooBar")
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanCreateDynamicEntityRecord_FooBar")
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanGetDynamicEntityRecord_FooBar")
       When("We make a request v4.0.0")
       val requestSystemLevel = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ (user1)
 
@@ -1827,8 +1828,8 @@ class DynamicEntityTest extends V400ServerSetup {
     scenario("User1 Create Bank Foobar, user1 and user2 both CRUD their own myFooBars.", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)
-      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanCreateDynamicEntity_FooBar")
-      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanGetDynamicEntity_FooBar")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanCreateDynamicEntityRecord_FooBar")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanGetDynamicEntityRecord_FooBar")
       When("We make a request v4.0.0")
       val requestSystemLevel = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST <@ (user1)
 

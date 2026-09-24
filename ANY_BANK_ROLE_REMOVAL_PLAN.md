@@ -17,6 +17,66 @@ Working rules: the user commits, the assistant never does. Roles are retired one
 with its own migration, and a Role is only deleted once nothing declares it and every holder has
 been expanded. Nothing here requires a big-bang release.
 
+## The principle
+
+**A Role targets one space: one bank, or SYS.** Not two banks, not every bank, not "every bank that
+exists plus the ones created next year". Everything below is that sentence applied to the sixty-three
+Roles that currently break it.
+
+`SYS` is the system space, and a Role targeting it is an ordinary Role that happens to name that
+space — not a more powerful class of Role. That is why granting at `SYS` needs nothing special; see
+`DYNAMIC_ENTITY_SPACE_MODEL_PLAN.md`, where a dedicated system-space granting Role was planned and
+then dropped for exactly this reason.
+
+### How far the principle reaches — narrow now, wide later (decided 2026-09-24)
+
+**Now: it governs Roles about space-scoped things** — Dynamic Entities, attributes, accounts,
+customers, anything owned by one bank. Roles whose subject is the instance rather than a space —
+`CanGetAnyUser`, `CanReadMetrics`, `CanGetConfig`, `CanGetConnectorHealth` — keep
+`requiresBankId = false` and the empty bank id. Nothing about them changes, and the empty bank id
+survives as a third value beside a bank id and `SYS`.
+
+**Mid term: every Role names a space, and the instance-wide ones name `SYS`.** The empty bank id then
+disappears, `APIUtil.hasEntitlement` stops choosing between `bankId` and `""`, and eventually the
+`requiresBankId` flag itself has nothing left to say. That is the model worth arriving at; it is not
+this plan, because it is product-wide rather than about the sixty-three Roles here, and it carries two
+visible costs: every existing system Role grant moves from `""` to `SYS`, and every caller granting
+one must start sending `bank_id: "SYS"`, which `Add Entitlement`'s
+`role.requiresBankId == body.bank_id.nonEmpty` check would enforce the other way round.
+
+Two habits keep that door open while the narrow rule is in force. A new Role about something a bank
+owns is scoped to a space from the start, never added at the empty bank id for convenience. And no
+new code path should hard-code what the empty bank id means; ask the Role.
+
+#### Caution for whoever picks the wide move up
+
+The tempting shortcut is to let `SYS` mean whatever suits each endpoint: on Get Metrics it would mean
+"every metric regardless of the bank id on the record", while on a Dynamic Entity endpoint it means
+"the system space only". Do not do that, for two reasons.
+
+**An Entitlement row stops being readable.** `CanReadMetrics` at `SYS` and
+`CanGetDynamicEntity_country` at `SYS` look identical in the table, in a listing, and in an audit
+export, while one is instance-wide and the other is one namespace among many. Reviewing a grant would
+mean knowing, per Role, which convention applies.
+
+**It rebuilds the any-bank Role under a new spelling.** "Metrics at every bank, including banks
+created next year" is exactly `CanReadMetricsAtAnyBank`, the shape this plan exists to remove — now
+satisfying the letter of "a Role targets one space" while inverting its substance, and passing the
+guard test while doing it.
+
+The test to apply instead is whether the **resource** belongs to a space. A Dynamic Entity does: it
+lives in exactly one, so the Role names that space and `SYS` is one value among many. A metrics record
+does not, despite carrying a bank id column — the resource is the instance's request log, and the
+column is a field of a row rather than ownership. So `CanReadMetrics` is not a space-scoped Role
+granted at `SYS`; it is a Role about something with no space, which is the category the narrow rule
+keeps at the empty bank id.
+
+If the wide move still looks right after that, it needs a value that honestly means "not
+space-scoped", distinct from `SYS`. At which point there are three values again, better named. The
+gain being chased was one uniform comparison and the eventual removal of `requiresBankId`; if `SYS`
+has to be read per endpoint, `hasEntitlement` stops branching and every caller starts, in more places
+and with less visibility.
+
 ## Why
 
 `requiresBankId = false` does two quite different jobs today, and only one of them is a problem. On

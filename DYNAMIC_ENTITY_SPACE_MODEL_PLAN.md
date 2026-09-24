@@ -1,8 +1,8 @@
 # Dynamic Entity space model — SYS is an ordinary bank id
 
 Written 2026-09-22. This is the only document for this work: no separate checklist. Track progress
-here by marking items done in place. **Status on 2026-09-24: Phases 1, 2 and 3 are written and
-green; nothing else is built.** The decisions below are settled. Two pieces are in the tree: the storage half of
+here by marking items done in place. **Status on 2026-09-24: Phases 1, 2 and 3 are done, and phase 4
+for the Record Roles. Phase 5 is dropped. The Definition Roles join phase 6.** The decisions below are settled. Two pieces are in the tree: the storage half of
 Phase 1, committed as `25f384baf`, where the two data tables adopted the sentinel and took their
 space-scoped unique index, and Phase 3, which refuses just-in-time entitlements in the system space.
 Everything else in this plan is still to write.
@@ -148,10 +148,76 @@ no row is written; the second proves an ordinary bank is still granted just in t
 behaviour the guard must not have broken. Both were checked against a deliberately unguarded build:
 the first fails there (`true did not equal false`), so it is testing the guard and not the weather.
 
-## Phase 4 — every Dynamic Entity role names exactly one bank
+## Phase 4 — every Dynamic Entity role names exactly one bank — **Record Roles done 2026-09-24, tests green; Definition Roles moved to phase 6**
 
 This is the first instance of a wider direction: `ANY_BANK_ROLE_REMOVAL_PLAN.md` generalises it to
 the other sixty-one Roles that reach every bank.
+
+**Split during implementation, 2026-09-24.** Only the Record family moved. Merging the Definition
+family means choosing one `requiresBankId` for the merged Role, and the system level management
+endpoints — `/management/system-dynamic-entities` — carry no space in their URL, so
+`ResourceDocMiddleware.authorizeRoles` resolves them at the empty bank id and a bank scoped Role can
+never be satisfied there. Choosing `false` to suit them would widen the bank level Role into one grant
+that authorises every bank, which is the shape this work removes. So the Definition merge and re-scope
+happen in phase 6, in the same change that gives those endpoints a space. The Record Roles had no such
+problem: their handler resolves the space itself.
+
+What that meant in practice, and what it caught:
+
+* `DynamicEntityInfo` emits one name per operation, all `requiresBankId = true`, covering the Record
+  Roles, `CanGrantDynamicEntityRowAccess_` and the auto-generated field Roles.
+* `Http4sDynamicEntity` gained `spaceOf`, so a role check for a system level entity asks about `SYS`
+  rather than the empty bank id.
+* **Two production defects surfaced**, both the same shape: the creator auto-grant in `Http4s600` and
+  in `Http4s400` wrote the new bank scoped Roles at the empty bank id, so whoever defined a system
+  level entity was locked out of it the moment they created it. Both now grant at `bankIdOrSYS`.
+* Consent-carried entitlements have to name the space too; `ConsentUtil` already honours the Role's own
+  `requiresBankId`, so it was the caller that needed fixing.
+* `MigrationOfDynamicEntityRoleNames` rewrites the stored names across Entitlements, Entitlement
+  Requests, Consumer Scopes and Group Role lists, moves the system level ones to `SYS`, moves a Group
+  holding only these Roles, and reports mixed Groups and the two `AnyBank` Roles that have no successor.
+  Covered by `DynamicEntityRoleRenameMigrationTest`.
+
+Regression after the change: 26 suites, 108 tests, no failures.
+
+**Naming, decided 2026-09-24.** Two families, told apart by what they gate, and neither name changes
+with the space — consistency between a system operation and a bank operation is a main purpose of this
+work, and a Role whose name changes with the space is the opposite of it.
+
+*Definition Roles* gate creating and editing the definition. *Record Roles* gate writing rows into it.
+Today both are called "dynamic entity" Roles, which hides the difference: one lets you define
+`country`, the other lets you put `FR` in it.
+
+Each row collapses the Roles on the left into the **single** Role on the right, which is then granted
+at `SYS` or at a bank id. Thirteen Definition Role names become six, and each entity's four Record
+Roles lose their `_System<Entity>` twin.
+
+| Roles today (all replaced) | the one Role that replaces them |
+|---|---|
+| `CanCreateSystemLevelDynamicEntity`, `CanCreateBankLevelDynamicEntity`, `CanCreateAnyBankLevelDynamicEntity` | `CanCreateDynamicEntityDefinition` |
+| `CanUpdateSystemLevelDynamicEntity`, `CanUpdateBankLevelDynamicEntity` | `CanUpdateDynamicEntityDefinition` |
+| `CanDeleteSystemLevelDynamicEntity`, `CanDeleteBankLevelDynamicEntity` | `CanDeleteDynamicEntityDefinition` |
+| `CanGetSystemLevelDynamicEntities`, `CanGetBankLevelDynamicEntities`, `CanGetAnyBankLevelDynamicEntities` | `CanGetDynamicEntityDefinitions` |
+| `CanDeleteCascadeSystemDynamicEntity` | `CanDeleteCascadeDynamicEntityDefinition` |
+| `CanBackupSystemDynamicEntity`, `CanBackupBankLevelDynamicEntity` | `CanBackupDynamicEntityDefinition` |
+| `CanCreateDynamicEntity_SystemCountry`, `CanCreateDynamicEntity_Country` | `CanCreateDynamicEntityRecord_Country` |
+| `CanGetDynamicEntity_SystemCountry`, `CanGetDynamicEntity_Country` | `CanGetDynamicEntityRecord_Country` |
+| `CanUpdateDynamicEntity_SystemCountry`, `CanUpdateDynamicEntity_Country` | `CanUpdateDynamicEntityRecord_Country` |
+| `CanDeleteDynamicEntity_SystemCountry`, `CanDeleteDynamicEntity_Country` | `CanDeleteDynamicEntityRecord_Country` |
+
+Every one of them is granted at `SYS` or at a bank id, and none is `requiresBankId = false`.
+
+Backup and cascade delete sit in the Definition family deliberately (confirmed 2026-09-24): backup
+creates a `_BAK` definition alongside the copied rows, and cascade delete removes the definition
+together with its records. Both act on the definition, whatever they do to the data underneath it.
+
+Two consequences to carry into the release note. For an operator this is a rename **and** a re-scope
+at once: `CanCreateDynamicEntity_SystemCountry` at the empty bank id becomes
+`CanCreateDynamicEntityRecord_Country` at `SYS`. And the longest generated prefix grows from
+`CanCreateDynamicEntity_` to `CanCreateDynamicEntityRecord_`, 29 characters, so an entity name may be
+up to 226 characters before the Role name outgrows the 255-character Entitlement column — the same
+budget as before, since the old `System` variant was the same length.
+
 
 1. `ApiRole.scala:955-990` — every Dynamic Entity role becomes `requiresBankId = true`.
    `CanCreateAnyBankLevelDynamicEntity` and `CanGetAnyBankLevelDynamicEntities` are removed, and with
@@ -162,17 +228,25 @@ the other sixty-one Roles that reach every bank.
 4. `checkEntityRole` (`Http4sDynamicEntity.scala:274`) loses its empty-string branch, and its error
    message says `at Bank(SYS)` for the system space like any other.
 
-## Phase 5 — granting at SYS is its own permission
+## Phase 5 — granting at SYS is its own permission — **dropped 2026-09-24**
 
-New role `CanCreateEntitlementAtSystemSpace` (`requiresBankId = false`, held at `""`). It alone
-authorises `bank_id == SYS`; neither `canCreateEntitlementAtOneBank@SYS` nor
-`canCreateEntitlementAtAnyBank` satisfies it, and super admin keeps its bypass. Reusing
-`canCreateEntitlementAtAnyBank` was considered and rejected: it is `requiresBankId = false`
-(`ApiRole.scala:305`), so reusing it would rebuild the wildcard that reaches the system space, which
-is the thing Decision 3 removes.
+A dedicated `CanCreateEntitlementAtSystemSpace` was going to be the only thing that authorised
+`bank_id == SYS`. It is not being built, and the reason is the premise of this whole plan: `SYS` is an
+ordinary space, so a grant there is exactly as consequential as a grant at `obp1` — control over that
+space's entities and nothing more. The idea that reaching the system space should need a special key
+was inherited from the world where "system level" meant instance-wide power, which is the thing being
+removed. Granting at `SYS` therefore needs `canCreateEntitlementAtOneBank` **at SYS**, like anywhere
+else, and `Add Entitlement` already accepts that because it never checks that the bank exists.
 
-The rule lives in one shared predicate — `APIUtil.mayGrantAt(bankId, granterUserId)` — because
-several paths write entitlement rows without going through the endpoint:
+What that leans on is that **no Role may reach every space at once**. Today
+`canCreateEntitlementAtAnyBank` is `requiresBankId = false` (`ApiRole.scala:305`), so its holder can
+grant anywhere, `SYS` included. That is not a system-space problem, it is the any-bank problem, and it
+belongs to `ANY_BANK_ROLE_REMOVAL_PLAN.md` where the granting Roles are audited like every other pair.
+A special SYS role would have been a local patch for a global gap.
+
+The survey below is kept, because it is the audit the any-bank work needs: these are the paths that
+write an Entitlement row without going through the Add Entitlement endpoint, and any rule about who
+may grant what has to reach all of them.
 
 | path | where | rule |
 |---|---|---|
@@ -260,9 +334,12 @@ restore it as an oversight. Then deprecate `/obp/dynamic-entity/…`.
    uncovered. Groups do not soften this — a group entitlement row carries its own `bank_id`
    (`JSONFactory6.0.0.scala:2086-2095`), so groups bundle users, not banks.
 4. A `reference:` points inside its own space. A cross-space link may come later under its own name.
-5. Granting at `SYS` requires `CanCreateEntitlementAtSystemSpace` and nothing else satisfies it.
-6. The migration **does** grant that role to everyone holding `canCreateEntitlementAtAnyBank` when it
-   runs, so nobody is locked out on upgrade and today's effective permissions are preserved.
+5. ~~Granting at `SYS` requires `CanCreateEntitlementAtSystemSpace`.~~ **Reversed 2026-09-24**:
+   `SYS` is an ordinary space, so granting there needs `canCreateEntitlementAtOneBank` at `SYS` like
+   any bank. Stopping one Role from reaching every space is the any-bank plan's job, not a special
+   case here.
+6. ~~The migration grants that role to existing `canCreateEntitlementAtAnyBank` holders.~~ Moot,
+   since there is no such role.
 7. Just-in-time entitlements never grant at `SYS`.
 
 ## Risks

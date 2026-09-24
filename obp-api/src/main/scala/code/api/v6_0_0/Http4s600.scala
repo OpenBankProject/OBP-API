@@ -533,8 +533,13 @@ object Http4s600 {
     } yield {
       // Creator grants target the HUMAN (see createBank): a per-consent shadow principal
       // must not end up owning the entity's admin roles.
+      // The Record Roles name a space, and a definition with no bank belongs to the system space, so
+      // the creator's grants go to DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty bank id.
+      // Granting at "" would write rows nothing reads, and the creator would be locked out of the
+      // entity they had just defined.
+      val bankIdOrSYS = dynamicEntity.bankId.getOrElse(code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       crudRoles.foreach(role =>
-        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.onBehalfOfUserId, role.toString(),
+        Entitlement.entitlement.vend.addEntitlement(bankIdOrSYS, cc.onBehalfOfUserId, role.toString(),
           grantedByUserId = Some(cc.userId)))
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }

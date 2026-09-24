@@ -34,6 +34,7 @@ import org.json4s.native.Serialization.write
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
@@ -199,8 +200,8 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         Then("We should get a 403")
         createResponse.code should equal(403)
 
-        When("We add CanCreateDynamicEntity_Systemtest_personal_role to user2")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanCreateDynamicEntity_Systemtest_personal_role")
+        When("We add CanCreateDynamicEntityRecord_test_personal_role to user2")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanCreateDynamicEntityRecord_test_personal_role")
 
         And("We POST again")
         val createResponse2 = makePostRequest(createRequest, write(testDataRecord))
@@ -218,7 +219,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
       try {
         When("We add CanCreate role to user2 and create a record")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanCreateDynamicEntity_Systemtest_personal_role")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanCreateDynamicEntityRecord_test_personal_role")
         val createRequest = (dynamicEntity_Request / "my" / "test_personal_role").POST <@(user2)
         val createResponse = makePostRequest(createRequest, write(testDataRecord))
         createResponse.code should equal(201)
@@ -229,8 +230,8 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         Then("We should get a 403")
         getResponse.code should equal(403)
 
-        When("We add CanGetDynamicEntity_Systemtest_personal_role to user2")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanGetDynamicEntity_Systemtest_personal_role")
+        When("We add CanGetDynamicEntityRecord_test_personal_role to user2")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanGetDynamicEntityRecord_test_personal_role")
 
         And("We GET again")
         val getResponse2 = makeGetRequest(getRequest)
@@ -248,7 +249,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
       try {
         When("We add CanCreate role to user2 and create a record")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanCreateDynamicEntity_Systemtest_personal_role")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanCreateDynamicEntityRecord_test_personal_role")
         val createRequest = (dynamicEntity_Request / "my" / "test_personal_role").POST <@(user2)
         val createResponse = makePostRequest(createRequest, write(testDataRecord))
         createResponse.code should equal(201)
@@ -261,8 +262,8 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         Then("We should get a 403")
         putResponse.code should equal(403)
 
-        When("We add CanUpdateDynamicEntity_Systemtest_personal_role to user2")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanUpdateDynamicEntity_Systemtest_personal_role")
+        When("We add CanUpdateDynamicEntityRecord_test_personal_role to user2")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanUpdateDynamicEntityRecord_test_personal_role")
 
         And("We PUT again")
         val putResponse2 = makePutRequest(putRequest, write(testDataRecordUpdated))
@@ -280,7 +281,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
       try {
         When("We add CanCreate role to user2 and create a record")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanCreateDynamicEntity_Systemtest_personal_role")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanCreateDynamicEntityRecord_test_personal_role")
         val createRequest = (dynamicEntity_Request / "my" / "test_personal_role").POST <@(user2)
         val createResponse = makePostRequest(createRequest, write(testDataRecord))
         createResponse.code should equal(201)
@@ -293,8 +294,8 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         Then("We should get a 403")
         deleteResponse.code should equal(403)
 
-        When("We add CanDeleteDynamicEntity_Systemtest_personal_role to user2")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanDeleteDynamicEntity_Systemtest_personal_role")
+        When("We add CanDeleteDynamicEntityRecord_test_personal_role to user2")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanDeleteDynamicEntityRecord_test_personal_role")
 
         And("We DELETE again")
         val deleteResponse2 = makeDeleteRequest(deleteRequest)
@@ -317,7 +318,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
       try {
         When("We create a non-personal record via system endpoint")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_public")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_public")
         val createRequest = (dynamicEntity_Request / "test_public").POST <@(user1)
         val createResponse = makePostRequest(createRequest, write(testDataRecord))
         createResponse.code should equal(201)
@@ -339,7 +340,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
       try {
         When("We create a non-personal record via system endpoint")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_public")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_public")
         val createRequest = (dynamicEntity_Request / "test_public").POST <@(user1)
         val createResponse = makePostRequest(createRequest, write(testDataRecord))
         createResponse.code should equal(201)
@@ -405,8 +406,8 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         Then("We should get a 403")
         communityGetResponse.code should equal(403)
 
-        When("We add CanGetDynamicEntity_Systemtest_community to user2")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanGetDynamicEntity_Systemtest_community")
+        When("We add CanGetDynamicEntityRecord_test_community to user2")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanGetDynamicEntityRecord_test_community")
 
         And("We GET again")
         val communityGetResponse2 = makeGetRequest(communityGetRequest)
@@ -434,13 +435,13 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         myCreateResponse2.code should equal(201)
 
         When("User1 creates a non-personal record via system endpoint")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_community")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_community")
         val sysCreateRequest = (dynamicEntity_Request / "test_community").POST <@(user1)
         val sysCreateResponse = makePostRequest(sysCreateRequest, write(parse("""{"name": "System Record"}""")))
         sysCreateResponse.code should equal(201)
 
         When("We add CanGet role to user1 and GET /community/test_community")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanGetDynamicEntity_Systemtest_community")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanGetDynamicEntityRecord_test_community")
         val communityGetRequest = (dynamicEntity_Request / "community" / "test_community").GET <@(user1)
         val communityGetResponse = makeGetRequest(communityGetRequest)
 
@@ -505,14 +506,14 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
       try {
         When("We add CanCreate role and POST to /test_no_personal as user1")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_no_personal")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_no_personal")
         val createRequest = (dynamicEntity_Request / "test_no_personal").POST <@(user1)
         val createResponse = makePostRequest(createRequest, write(testDataRecord))
         Then("We should get a 201")
         createResponse.code should equal(201)
 
         When("We add CanGet role and GET /test_no_personal as user1")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanGetDynamicEntity_Systemtest_no_personal")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanGetDynamicEntityRecord_test_no_personal")
         val getRequest = (dynamicEntity_Request / "test_no_personal").GET <@(user1)
         val getResponse = makeGetRequest(getRequest)
         Then("We should get a 200")
@@ -540,13 +541,13 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         myPostResponse.code should equal(404)
 
         When("Non-personal CRUD with roles works normally")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_no_personal_role")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_no_personal_role")
         val createRequest = (dynamicEntity_Request / "test_no_personal_role").POST <@(user1)
         val createResponse = makePostRequest(createRequest, write(testDataRecord))
         Then("We should get a 201")
         createResponse.code should equal(201)
 
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanGetDynamicEntity_Systemtest_no_personal_role")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanGetDynamicEntityRecord_test_no_personal_role")
         val getRequest = (dynamicEntity_Request / "test_no_personal_role").GET <@(user1)
         val getResponse = makeGetRequest(getRequest)
         Then("We should get a 200")
@@ -568,7 +569,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
       try {
         When("User1 creates a personal record (with CanCreate role, since personal_requires_role=true)")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_all_flags")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_all_flags")
         val myCreateRequest = (dynamicEntity_Request / "my" / "test_all_flags").POST <@(user1)
         val myCreateResponse = makePostRequest(myCreateRequest, write(testDataRecord))
         myCreateResponse.code should equal(201)
@@ -585,7 +586,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
         publicGetResponse.code should equal(200)
 
         When("Community GET with auth + CanGet role returns ALL records")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanGetDynamicEntity_Systemtest_all_flags")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanGetDynamicEntityRecord_test_all_flags")
         val communityGetRequest = (dynamicEntity_Request / "community" / "test_all_flags").GET <@(user1)
         val communityGetResponse = makeGetRequest(communityGetRequest)
         Then("We should get a 200")

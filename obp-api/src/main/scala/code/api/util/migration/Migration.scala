@@ -191,6 +191,7 @@ object Migration extends MdcLoggable {
       alterDynamicResourceDocBodyFieldsLength()
       alterDynamicResourceDocTextFieldsLength()
       alterDynamicDataIdLength()
+      renameDynamicEntityRoles()
     }
 
     /**
@@ -904,6 +905,24 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterMappedConsentColumnConsumerIdLength)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnConsumerIdLength(name)
+      }
+    }
+
+    /**
+     * Move every stored Dynamic Entity Role onto its new name, and onto the system space where it used
+     * to sit at the empty bank id.
+     *
+     * The Roles were renamed twice over: the ones gating a definition lost their System / BankLevel
+     * split, and the ones gating records gained the word Record and lost their System twin. A renamed
+     * Role is different from a narrowed one — the old name no longer exists, so an existing grant
+     * authorises nothing rather than authorising less — and the mapping is exactly one-to-one, which
+     * is what makes it safe to do here instead of asking every operator to re-grant. The work, and
+     * what it deliberately leaves alone, is in [[MigrationOfDynamicEntityRoleNames]].
+     */
+    private def renameDynamicEntityRoles(): Boolean = {
+      val name = nameOf(renameDynamicEntityRoles)
+      runOnce(name) {
+        MigrationOfDynamicEntityRoleNames.renameEverywhere(name)
       }
     }
 

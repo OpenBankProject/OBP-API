@@ -1690,9 +1690,13 @@ object Http4s400 {
           DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
         )
       } yield {
+        // The Record Roles name a space, and a definition with no bank belongs to the system space, so
+        // the creator's grants go to DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty bank id.
+        // Granting at "" would write rows nothing reads, locking the creator out of the entity they
+        // had just defined. Same rule as the v6.0.0 creation path.
+        val bankIdOrSYS = dynamicEntity.bankId.getOrElse(code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
         crudRoles.foreach(role =>
-          Entitlement.entitlement.vend.addEntitlement(
-            dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
+          Entitlement.entitlement.vend.addEntitlement(bankIdOrSYS, cc.userId, role.toString()))
         val commonsData: DynamicEntityCommons = result
         commonsData.jValue
       }

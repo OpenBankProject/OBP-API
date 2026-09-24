@@ -3,6 +3,44 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's records.
+                            A Role that was called CanCreateDynamicEntity_SystemCountry or
+                            CanCreateDynamicEntity_Country is now CanCreateDynamicEntityRecord_Country
+                            in both cases, and the same for Get, Update and Delete, for
+                            CanGrantDynamicEntityRowAccess_, and for the auto-generated field Roles
+                            CanWriteDynamicEntityField_ and CanGetDynamicEntityField_.
+
+                            The name no longer says which space the Role applies to; the Entitlement's
+                            bank id does. A Role for a bank's entity is granted at that bank as before.
+                            A Role for a system level entity is now granted at the bank id SYS rather
+                            than at the empty bank id, because a Role that names its space cannot be
+                            granted at no space at all.
+
+                            Two Roles are gone and cannot be migrated:
+                            CanCreateAnyBankLevelDynamicEntity and CanGetAnyBankLevelDynamicEntities.
+                            One Entitlement row for either authorised every bank on the instance,
+                            including banks onboarded later, which is what this work removes. Their
+                            holders are named in the migration log; grant the per bank Role instead, at
+                            each bank where it is needed.
+
+                            NOTHING TO DO for an ordinary upgrade: a migration rewrites the stored
+                            names and moves the system level ones to SYS, across Entitlements,
+                            Entitlement Requests, Consumer Scopes and the Role list on a Group. A Group
+                            holding only these Roles moves to SYS with them; one that also holds other
+                            Roles stays where it is and is named in the migration log, because its
+                            Dynamic Entity Roles then need granting another way.
+
+                            An instance that runs with migration scripts disabled must re-grant by
+                            hand; the log entry names what would have moved.
+
+                            The Roles that gate a Dynamic Entity's DEFINITION -- creating, editing and
+                            deleting the entity itself -- are NOT part of this change. They keep their
+                            names and their empty bank id for now, because the system level management
+                            endpoints carry no space in their URL for the framework to read. They
+                            change in the release that gives those endpoints a space.
+
+```
+Date          Commit        Action
 23/09/2026    TBD           CHANGED, action required: seven Roles are now granted per bank
                             rather than instance wide. They are the five Counterparty Attribute
                             Roles (CanCreateCounterpartyAttribute, CanGetCounterpartyAttribute,

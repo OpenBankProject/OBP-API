@@ -39,6 +39,7 @@ import org.json4s.JsonDSL._
 import org.json4s._
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
  * auth_mode on a Dynamic Entity decides who may hold the roles guarding its data endpoints:
@@ -79,8 +80,8 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
     makeDeleteRequest((v6_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1))
   }
 
-  def getRoleName(entityName: String): String = s"CanGetDynamicEntity_System$entityName"
-  def createRoleName(entityName: String): String = s"CanCreateDynamicEntity_System$entityName"
+  def getRoleName(entityName: String): String = s"CanGetDynamicEntityRecord_$entityName"
+  def createRoleName(entityName: String): String = s"CanCreateDynamicEntityRecord_$entityName"
 
   feature("auth_mode on the entity definition") {
 
@@ -118,7 +119,7 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
       val (code, body) = createSystemEntity(entityJson(entityName, None))
       code should equal(201)
       val entityId = (body \ "dynamic_entity_id").extract[String]
-      val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, getRoleName(entityName))
+      val scope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString, getRoleName(entityName))
       try {
         val response = makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2))
         response.code should equal(403)
@@ -134,7 +135,7 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
       val (code, body) = createSystemEntity(entityJson(entityName, Some("UserOrApplication")))
       code should equal(201)
       val entityId = (body \ "dynamic_entity_id").extract[String]
-      val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, getRoleName(entityName))
+      val scope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString, getRoleName(entityName))
       try {
         val response = makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2))
         response.code should equal(200)
@@ -149,7 +150,7 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
       val (code, body) = createSystemEntity(entityJson(entityName, Some("UserOrApplication")))
       code should equal(201)
       val entityId = (body \ "dynamic_entity_id").extract[String]
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, getRoleName(entityName))
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, getRoleName(entityName))
       try {
         val response = makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2))
         response.code should equal(200)
@@ -163,7 +164,7 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
       val (code, body) = createSystemEntity(entityJson(entityName, Some("UserOrApplication")))
       code should equal(201)
       val entityId = (body \ "dynamic_entity_id").extract[String]
-      val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, getRoleName(entityName))
+      val scope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString, getRoleName(entityName))
       try {
         val response = makePostRequest((dynamicEntity_Request / entityName).POST <@(user2), write(("name" -> "x"): JObject))
         response.code should equal(403)
@@ -180,9 +181,9 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
       code should equal(201)
       val entityId = (body \ "dynamic_entity_id").extract[String]
       try {
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, getRoleName(entityName))
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, getRoleName(entityName))
         makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2)).code should equal(403)
-        val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, getRoleName(entityName))
+        val scope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString, getRoleName(entityName))
         try {
           makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2)).code should equal(200)
         } finally {

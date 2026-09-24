@@ -34,6 +34,7 @@ import org.json4s.native.Serialization.write
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
  * Row-level access (use_row_level_access) — see ideas/DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md.
@@ -76,7 +77,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
     ("schema" -> simpleSchema)
 
   // user1 owns the entity definition (and is auto-granted the entity roles incl. the admin grant role).
-  // user1 creates records (it holds CanCreateDynamicEntity_Systemtest_rl from the definition create).
+  // user1 creates records (it holds CanCreateDynamicEntityRecord_test_rl from the definition create).
   def createRecord(name: String): String = {
     val resp = makePostRequest((dynamicEntity_Request / "test_rl").POST <@ (user1), write(("name" -> name): JValue))
     resp.code should equal(201)
@@ -191,7 +192,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
         makeGetRequest((dynamicEntity_Request / "test_rl" / id / "access").GET <@ (user3)).code should equal(403)
 
         When("user3 is granted the admin row-access role")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser3.userId, "CanGrantDynamicEntityRowAccess_Systemtest_rl")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser3.userId, "CanGrantDynamicEntityRowAccess_test_rl")
 
         Then("user3 can list access even though it cannot read the row")
         makeGetRequest((dynamicEntity_Request / "test_rl" / id / "access").GET <@ (user3)).code should equal(200)
@@ -215,7 +216,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
       try {
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_normal_rl")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_normal_rl")
         val createResp = makePostRequest((dynamicEntity_Request / "test_normal_rl").POST <@ (user1), write(("name" -> "x"): JValue))
         createResp.code should equal(201)
         val id = (createResp.body \ "test_normal_rl" \ "test_normal_rl_id").extract[String]

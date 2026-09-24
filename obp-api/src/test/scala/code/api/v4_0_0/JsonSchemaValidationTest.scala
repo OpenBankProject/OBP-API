@@ -357,7 +357,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, s"OBPv4.0.0-dynamicEntity_createFooBar_")
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1
@@ -374,7 +374,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1

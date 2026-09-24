@@ -170,6 +170,15 @@ object Http4sDynamicEntity extends MdcLoggable {
     s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(b => s", bank_id: '$b'").getOrElse("")
 
   /** Resolve bankId to a Bank (404 if missing) for bank-level entities; no-op otherwise. */
+  /**
+   * The space an Entitlement for this request is held at: a real bank id, or the system space as
+   * DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID. Every Dynamic Entity Role names a space and none is granted
+   * at the empty bank id, so a role check for a system level entity has to ask about SYS; asking
+   * about "" would look somewhere nobody grants.
+   */
+  private def spaceOf(bankId: Option[String]): String =
+    bankId.getOrElse(code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+
   private def bankCheck(bankId: Option[String], cc: Option[CallContext]): Future[(Any, Option[CallContext])] =
     if (bankId.isDefined) NewStyle.function.getBank(BankId(bankId.get), cc).map { case (b, c) => (b, c) }
     else Future.successful(("", cc))
@@ -272,10 +281,10 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   /** The entity's role, checked per the entity's auth mode (entitlements, scopes, either or both). */
   private def checkEntityRole(bankId: Option[String], entityName: String, boxUser: Box[User], role: ApiRole, callContext: Option[CallContext]): Future[Box[Unit]] = {
-    val bankIdStr = bankId.getOrElse("")
+    val bankIdStr = spaceOf(bankId)
     val userId = boxUser.map(_.userId).openOr("")
     val consumerId = code.api.util.APIUtil.getConsumerPrimaryKey(callContext)
-    val errorMessage = if (bankIdStr.isEmpty) UserHasMissingRoles + role.toString else UserHasMissingRoles + role.toString + s" at Bank($bankIdStr)"
+    val errorMessage = UserHasMissingRoles + role.toString + s" at Bank($bankIdStr)"
     Helper.booleanToFuture(errorMessage, cc = callContext) {
       code.api.util.APIUtil.handleAccessControlWithAuthMode(bankIdStr, userId, consumerId, List(role), authModeOf(bankId, entityName))
     }
@@ -291,7 +300,7 @@ object Http4sDynamicEntity extends MdcLoggable {
     val writeRestricted = info.map(_.writeRestrictedFields).getOrElse(Nil).toSet
     val authMode = authModeOf(bankId, entityName)
     def has(role: code.api.util.ApiRole): Boolean =
-      code.api.util.APIUtil.handleAccessControlWithAuthMode(bankId.getOrElse(""), userId, consumerId, List(role), authMode)
+      code.api.util.APIUtil.handleAccessControlWithAuthMode(spaceOf(bankId), userId, consumerId, List(role), authMode)
     touched.flatMap { f =>
       if (writeRestricted.contains(f)) {
         val role = DynamicEntityInfo.fieldWriteRole(entityName, f, bankId, info.flatMap(_.explicitWriteRole(f)))
@@ -326,7 +335,7 @@ object Http4sDynamicEntity extends MdcLoggable {
     val omit: Set[String] = readRestricted.filterNot { f =>
       userIdOpt.exists { uid =>
         val role = DynamicEntityInfo.fieldReadRole(entityName, f, bankId, info.flatMap(_.explicitReadRole(f)))
-        code.api.util.APIUtil.hasEntitlement(bankId.getOrElse(""), uid, role)
+        code.api.util.APIUtil.hasEntitlement(spaceOf(bankId), uid, role)
       }
     }.toSet
     if (omit.isEmpty) value else omitFields(value, omit)
@@ -518,7 +527,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       _ <- Helper.booleanToFuture(RowLevelAccessNotEnabled, 400, cc = callContext2) { isRowLevel(bankId, entityName) }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles grant access on this row", 403, cc = callContext2) {
              aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Grant) ||
-               hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId))
+               hasEntitlement(spaceOf(bankId), u.userId, DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId))
            }
     } yield (u, callContext2)
   }
@@ -775,7 +784,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
         (Full(u), callContext) <- authenticatedAccess(callContext0)
         (_, callContext) <- bankCheck(bankId, callContext)
-        _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
+        _ <- NewStyle.function.hasEntitlement(spaceOf(bankId), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
         // Community reads are in-memory only; joins require the projection backend.
