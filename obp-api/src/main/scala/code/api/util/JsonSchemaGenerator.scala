@@ -30,8 +30,10 @@ package code.api.util
 import org.json4s._
 import code.api.util.APIUtil.MessageDoc
 import com.openbankproject.commons.util.ReflectUtils
+import com.tesobe.CacheKeyFromArguments
 import org.json4s.JsonDSL._
 
+import scala.concurrent.duration._
 import scala.reflect.runtime.universe._
 
 /**
@@ -42,9 +44,34 @@ import scala.reflect.runtime.universe._
 object JsonSchemaGenerator {
 
   /**
-   * Convert a list of MessageDoc to a complete JSON Schema document
+   * Convert a list of MessageDoc to a complete JSON Schema document.
+   *
+   * Memoized in-process, keyed by connectorName: for a given connector the message docs
+   * (and therefore the schema) are static for the lifetime of the JVM, but building it
+   * walks every message type's full field tree via Scala runtime reflection (`<:<`/`=:=`
+   * subtype checks), which is expensive and -- unlike a plain field lookup -- leaves behind
+   * long-lived reflection bookkeeping objects (TypeConstraint/UndoPair/Symbol) that don't
+   * get reclaimed promptly. Recomputing this on every request under sustained polling keeps
+   * adding them and grows old-gen heap usage. The caller (Http4s600) also has a
+   * Redis-backed cache in front of this, but that one silently falls through to a full
+   * recompute if Redis is unreachable or slow -- this in-memory layer doesn't depend on
+   * Redis at all, so it stays a working safety net even when Redis is the one struggling.
    */
   def messageDocsToJsonSchema(messageDocs: List[MessageDoc], connectorName: String): JObject = {
+    // This 3-tuple of random UUIDs is a placeholder only -- CacheKeyFromArguments is a macro
+    // that replaces it at compile time with a real key derived from this method's owner,
+    // name and arguments (regardless of this method's own arity; the convention throughout
+    // this codebase is always a 3-tuple here). See:
+    // https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+    var cacheKey = (java.util.UUID.randomUUID().toString, java.util.UUID.randomUUID().toString, java.util.UUID.randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      code.api.cache.Caching.memoizeSyncWithImMemory(Some(cacheKey.toString()))(100000.days) {
+        messageDocsToJsonSchemaUncached(messageDocs, connectorName)
+      }
+    }
+  }
+
+  private def messageDocsToJsonSchemaUncached(messageDocs: List[MessageDoc], connectorName: String): JObject = {
     val allDefinitions = scala.collection.mutable.Map[String, JObject]()
     
     val messages = messageDocs.map { messageDoc =>
