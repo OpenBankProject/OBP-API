@@ -2,37 +2,78 @@ package code.api.v2_2_0
 
 import java.util.concurrent.Callable
 
+import code.api.cache.Caching
 import com.google.common.cache.{Cache, CacheBuilder}
+import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
+import net.liftweb.common.Loggable
+import org.json4s.JValue
 
 /**
- * In-process cache for the fully built `GET /message-docs/CONNECTOR` response.
+ * Two-level cache for the fully built `GET /message-docs/CONNECTOR` response.
  *
  * Building the response runs Scala runtime reflection over every message doc's example
  * inbound and outbound message, which is expensive in CPU and grows the reflection
  * universe. The result only depends on the connector's `messageDocs`, which a connector
- * fills once while its singleton is initialised and never changes afterwards, so it is
- * safe to keep per connector name for the life of the process.
+ * fills once while its singleton is initialised and never changes afterwards.
+ *
+ * Levels, checked in this order:
+ *  1. In-process: a bounded Guava cache holding the immutable JValue. It keeps working when
+ *     Redis is down, so an unreachable Redis can never send every request back into
+ *     reflection.
+ *  2. Shared: the same Redis-backed store the resource-doc and swagger endpoints use
+ *     (`Caching.getStaticSwaggerDocCache`, same key prefix and TTL, same fail-safe behaviour:
+ *     an unreachable Redis is a miss, never an error). It lets replicas and restarts reuse
+ *     one instance's work.
  *
  * Contract:
  *  - Key: the connector name, and only after it has been resolved to a real connector.
  *    Unknown names fail before reaching the cache, so request input cannot grow it;
- *    `MaxEntries` is a second, hard bound.
- *  - Single flight: concurrent cold requests for one connector run the generator once.
- *  - A generator failure is not cached; the next request retries.
- *  - The cached value is an immutable case class tree and is shared between requests.
- *  - Invalidation: `invalidateAll()`. Nothing in production mutates a connector's
- *    message docs after start-up, so nothing calls it there.
+ *    `MaxEntries` is a second, hard bound on the in-process level.
+ *  - Single flight: concurrent cold requests for one connector run the loader once, and
+ *    therefore touch Redis and the generator once.
+ *  - A failure is never cached; the next request retries.
+ *  - Redis is written only after a successful generation. An unparsable Redis value is
+ *    treated as a miss and regenerated.
+ *  - Invalidation: `invalidateAll()` clears the in-process level. The Redis level expires by
+ *    `staticResourceDocsObp.cache.ttl.seconds`. Nothing in production mutates a connector's
+ *    message docs after start-up, so nothing calls `invalidateAll()` there.
  */
-object MessageDocsJsonCache {
+object MessageDocsJsonCache extends Loggable {
   private val MaxEntries = 64L
 
-  private val cache: Cache[String, JSONFactory220.MessageDocsJson] =
-    CacheBuilder.newBuilder().maximumSize(MaxEntries).build[String, JSONFactory220.MessageDocsJson]()
+  /** The shared level. Abstracted so tests can count reads and writes without a Redis. */
+  trait SharedStore {
+    def get(key: String): Option[String]
+    def set(key: String, value: String): Unit
+  }
 
-  def getOrCompute(connectorName: String)(generate: => JSONFactory220.MessageDocsJson): JSONFactory220.MessageDocsJson =
-    try cache.get(connectorName, new Callable[JSONFactory220.MessageDocsJson] { def call() = generate })
+  object RedisStore extends SharedStore {
+    def get(key: String): Option[String] = Caching.getStaticSwaggerDocCache(key)
+    def set(key: String, value: String): Unit = Caching.setStaticSwaggerDocCache(key, value)
+  }
+
+  private def sharedKey(connectorName: String) = s"message-docs-v2.2.0-$connectorName"
+
+  private val cache: Cache[String, JValue] =
+    CacheBuilder.newBuilder().maximumSize(MaxEntries).build[String, JValue]()
+
+  def getOrCompute(connectorName: String, store: SharedStore = RedisStore)(generate: => JValue): JValue =
+    try cache.get(connectorName, new Callable[JValue] {
+      def call(): JValue = {
+        val key = sharedKey(connectorName)
+        val fromShared = store.get(key).flatMap { s =>
+          try Some(parse(s))
+          catch { case e: Exception => logger.warn(s"Ignoring unparsable shared message-docs entry $key: ${e.getMessage}"); None }
+        }
+        fromShared.getOrElse {
+          val generated = generate
+          store.set(key, compactRender(generated))
+          generated
+        }
+      }
+    })
     catch {
-      // Surface the generator's own exception, not Guava's wrapper.
+      // Surface the loader's own exception, not Guava's wrapper.
       case e: java.util.concurrent.ExecutionException if e.getCause != null => throw e.getCause
       case e: com.google.common.util.concurrent.UncheckedExecutionException if e.getCause != null => throw e.getCause
     }
