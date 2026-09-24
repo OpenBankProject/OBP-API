@@ -109,6 +109,22 @@ class MessageDocsJsonCacheTest extends FlatSpec with Matchers with BeforeAndAfte
     r shouldBe doc("c1")
   }
 
+  it should "serve the same JSON from the generating instance as from another instance reading the shared level" in {
+    // Numbers are where a render/parse round trip can change the value or its formatting.
+    val awkward: JValue = ("message_docs" -> List[JValue](
+      ("decimal" -> BigDecimal("10.10")): JValue,
+      ("double" -> 0.1): JValue,
+      ("big" -> BigInt("12345678901234567890")): JValue,
+      ("neg" -> -5): JValue))
+    val store = new FakeStore
+    val generated = MessageDocsJsonCache.getOrCompute("c1", store) { awkward }
+    MessageDocsJsonCache.invalidateAll() // another replica: empty in-process level, same shared level
+    val fromShared = MessageDocsJsonCache.getOrCompute("c1", store) { fail("must be served from the shared level") }
+    generated shouldBe fromShared
+    org.json4s.native.JsonMethods.compact(org.json4s.native.JsonMethods.render(generated)) shouldBe
+      org.json4s.native.JsonMethods.compact(org.json4s.native.JsonMethods.render(fromShared))
+  }
+
   it should "regenerate after invalidateAll when the shared level is empty" in {
     val calls = new AtomicInteger(0)
     val a = new FakeStore

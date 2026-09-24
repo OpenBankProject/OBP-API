@@ -66,9 +66,13 @@ object MessageDocsJsonCache extends Loggable {
           catch { case e: Exception => logger.warn(s"Ignoring unparsable shared message-docs entry $key: ${e.getMessage}"); None }
         }
         fromShared.getOrElse {
-          val generated = generate
-          store.set(key, compactRender(generated))
-          generated
+          // Serve the round-tripped form even on the instance that generated it. Otherwise this
+          // instance would return the JValue it built while every other replica (and this one
+          // after a restart) returns parse(compactRender(...)), and number formatting could differ
+          // between them.
+          val rendered = compactRender(generate)
+          store.set(key, rendered)
+          parse(rendered)
         }
       }
     })
