@@ -316,19 +316,72 @@ object Helper extends Loggable {
   // point in top-to-bottom initialization order, which is what this needs given how
   // entangled this codebase's early object initialization already is (not something
   // introduced here).
-  private lazy val mdcLoggingExecutor: java.util.concurrent.ExecutorService = {
+  // Bounded on purpose. An unbounded queue in front of this pool would turn a burst of log
+  // calls -- each one holding the message closure and everything it captured -- into heap
+  // growth, i.e. the failure this pool exists to avoid. Failure mode when the queue is full,
+  // documented here because it is a deliberate choice:
+  //   * DEBUG/TRACE/INFO entries are dropped and counted (`mdcLogDroppedCount`);
+  //   * WARN/ERROR entries are run inline on the calling thread, so a warning or error is
+  //     never silently lost. That only happens while the pool is saturated, which bounds the
+  //     extra work on request threads to the overload window itself.
+  // A drop is reported on stderr for the first occurrence and then once per
+  // `MdcLogDropReportEvery`, so a sustained overload cannot turn into a stderr flood either.
+  private val MdcLogDropReportEvery = 10000L
+  private val mdcLogDropped = new java.util.concurrent.atomic.AtomicLong(0)
+
+  private lazy val mdcLoggingExecutor: java.util.concurrent.ThreadPoolExecutor = {
     val threadCount = new java.util.concurrent.atomic.AtomicInteger(0)
-    java.util.concurrent.Executors.newFixedThreadPool(
-      APIUtil.getPropsAsIntValue("mdc_logging_dispatch_thread_pool_size", 2),
+    val poolSize = APIUtil.getPropsAsIntValue("mdc_logging_dispatch_thread_pool_size", 2)
+    val queueSize = APIUtil.getPropsAsIntValue("mdc_logging_dispatch_queue_size", 10000)
+    val executor = new java.util.concurrent.ThreadPoolExecutor(
+      poolSize, poolSize, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+      new java.util.concurrent.ArrayBlockingQueue[Runnable](queueSize),
       (r: Runnable) => {
         val t = new Thread(r, s"mdc-log-dispatch-${threadCount.incrementAndGet()}")
         t.setDaemon(true)
         t
-      }
+      },
+      new java.util.concurrent.ThreadPoolExecutor.AbortPolicy()
     )
+    // The threads are daemons so they never hold the JVM open, which also means anything
+    // still queued at exit would be lost. Give the queue a short, bounded chance to drain.
+    Runtime.getRuntime.addShutdownHook(new Thread(() => {
+      executor.shutdown()
+      try executor.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS)
+      catch { case _: InterruptedException => () }
+    }, "mdc-log-dispatch-shutdown"))
+    executor
   }
-  private lazy val mdcLoggingExecutionContext: scala.concurrent.ExecutionContext =
-    scala.concurrent.ExecutionContext.fromExecutor(mdcLoggingExecutor)
+
+  /** Entries dropped because the dispatch queue was full since start-up. */
+  def mdcLogDroppedCount: Long = mdcLogDropped.get()
+
+  /** Entries currently waiting for a dispatch thread. */
+  def mdcLogQueueDepth: Int = mdcLoggingExecutor.getQueue.size()
+
+  /**
+   * Run `body` on the dispatch pool. When the queue is full, `critical` work runs inline on the
+   * caller and anything else is dropped and counted. `body` never throws to the caller.
+   */
+  private[util] def dispatchLog(clazzName: String, critical: Boolean)(body: => Unit): Unit =
+    dispatchOn(mdcLoggingExecutor, clazzName, critical)(body)
+
+  // The executor is a parameter so a test can drive a tiny queue to saturation.
+  private[util] def dispatchOn(executor: java.util.concurrent.Executor, clazzName: String, critical: Boolean)(body: => Unit): Unit = {
+    val task: Runnable = () =>
+      try body
+      catch { case e: Throwable => System.err.println(s"[$clazzName] background log dispatch failed: ${e.getMessage}") }
+    try executor.execute(task)
+    catch {
+      case _: java.util.concurrent.RejectedExecutionException =>
+        if (critical) task.run()
+        else {
+          val dropped = mdcLogDropped.incrementAndGet()
+          if (dropped == 1L || dropped % MdcLogDropReportEvery == 0L)
+            System.err.println(s"[$clazzName] log dispatch queue is full; $dropped non-critical log entries dropped so far")
+        }
+    }
+  }
 
   trait MdcLoggable extends Loggable {
 
@@ -360,19 +413,14 @@ object Helper extends Loggable {
       // result is actually going to be consumed (by the local logger and/or Redis
       // shipping) -- not unconditionally on every call site, which is what made this a
       // hot path under high request volume with DEBUG enabled. And once it is going to be
-      // paid, it's dispatched onto mdcLoggingExecutionContext (see its own doc comment)
+      // paid, it's dispatched onto mdcLoggingExecutor (see the failure-mode note above it)
       // rather than run inline on whatever thread called into this logger.
-      private def dispatch(body: => Unit): Unit = {
-        val future = scala.concurrent.Future(body)(mdcLoggingExecutionContext)
-        future.failed.foreach { e =>
-          System.err.println(s"[$clazzName] background log dispatch failed: ${e.getMessage}")
-        }(mdcLoggingExecutionContext)
-      }
+      private def dispatch(critical: Boolean)(body: => Unit): Unit = dispatchLog(clazzName, critical)(body)
 
       // INFO
       override def info(msg: => AnyRef): Unit = {
         if (underlyingLogger.isInfoEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.INFO)) {
-          dispatch {
+          dispatch(critical = false) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isInfoEnabled) underlyingLogger.info(maskedMsg)
             RedisLogger.logAsync(RedisLogger.LogLevel.INFO, toRedisFormat(maskedMsg))
@@ -382,7 +430,7 @@ object Helper extends Loggable {
 
       override def info(msg: => AnyRef, t: => Throwable): Unit = {
         if (underlyingLogger.isInfoEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.INFO)) {
-          dispatch {
+          dispatch(critical = false) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             val capturedT = t
             if (underlyingLogger.isInfoEnabled) underlyingLogger.info(maskedMsg, capturedT)
@@ -394,7 +442,7 @@ object Helper extends Loggable {
       // WARN
       override def warn(msg: => AnyRef): Unit = {
         if (underlyingLogger.isWarnEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.WARNING)) {
-          dispatch {
+          dispatch(critical = true) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isWarnEnabled) underlyingLogger.warn(maskedMsg)
             RedisLogger.logAsync(RedisLogger.LogLevel.WARNING, toRedisFormat(maskedMsg))
@@ -404,7 +452,7 @@ object Helper extends Loggable {
 
       override def warn(msg: => AnyRef, t: Throwable): Unit = {
         if (underlyingLogger.isWarnEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.WARNING)) {
-          dispatch {
+          dispatch(critical = true) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isWarnEnabled) underlyingLogger.warn(maskedMsg, t)
             RedisLogger.logAsync(RedisLogger.LogLevel.WARNING, toRedisFormat(maskedMsg) + "\n" + t.toString)
@@ -415,7 +463,7 @@ object Helper extends Loggable {
       // ERROR
       override def error(msg: => AnyRef): Unit = {
         if (underlyingLogger.isErrorEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.ERROR)) {
-          dispatch {
+          dispatch(critical = true) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isErrorEnabled) underlyingLogger.error(maskedMsg)
             RedisLogger.logAsync(RedisLogger.LogLevel.ERROR, toRedisFormat(maskedMsg))
@@ -425,7 +473,7 @@ object Helper extends Loggable {
 
       override def error(msg: => AnyRef, t: Throwable): Unit = {
         if (underlyingLogger.isErrorEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.ERROR)) {
-          dispatch {
+          dispatch(critical = true) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isErrorEnabled) underlyingLogger.error(maskedMsg, t)
             RedisLogger.logAsync(RedisLogger.LogLevel.ERROR, toRedisFormat(maskedMsg) + "\n" + t.toString)
@@ -436,7 +484,7 @@ object Helper extends Loggable {
       // DEBUG
       override def debug(msg: => AnyRef): Unit = {
         if (underlyingLogger.isDebugEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.DEBUG)) {
-          dispatch {
+          dispatch(critical = false) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isDebugEnabled) underlyingLogger.debug(maskedMsg)
             RedisLogger.logAsync(RedisLogger.LogLevel.DEBUG, toRedisFormat(maskedMsg))
@@ -446,7 +494,7 @@ object Helper extends Loggable {
 
       override def debug(msg: => AnyRef, t: Throwable): Unit = {
         if (underlyingLogger.isDebugEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.DEBUG)) {
-          dispatch {
+          dispatch(critical = false) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isDebugEnabled) underlyingLogger.debug(maskedMsg, t)
             RedisLogger.logAsync(RedisLogger.LogLevel.DEBUG, toRedisFormat(maskedMsg) + "\n" + t.toString)
@@ -457,7 +505,7 @@ object Helper extends Loggable {
       // TRACE
       override def trace(msg: => AnyRef): Unit = {
         if (underlyingLogger.isTraceEnabled || RedisLogger.shouldShip(RedisLogger.LogLevel.TRACE)) {
-          dispatch {
+          dispatch(critical = false) {
             val maskedMsg = SecureLogging.maskSensitive(msg)
             if (underlyingLogger.isTraceEnabled) underlyingLogger.trace(maskedMsg)
             RedisLogger.logAsync(RedisLogger.LogLevel.TRACE, toRedisFormat(maskedMsg))

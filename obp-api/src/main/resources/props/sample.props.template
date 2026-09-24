@@ -2000,6 +2000,12 @@ redis_logging_all_queue_max_entries = 1000       # Max ALL messages
 ## to decouple from the calling thread, not to parallelize heavy logging.
 mdc_logging_dispatch_thread_pool_size = 2
 
+## Maximum number of log entries that may wait for a dispatch thread. The queue is bounded so a
+## burst of log calls cannot become heap growth. When it is full, DEBUG/TRACE/INFO entries are
+## dropped (and counted) while WARN/ERROR entries run on the calling thread, so a warning or an
+## error is never silently lost. Default 10000.
+mdc_logging_dispatch_queue_size = 10000
+
 ## Optional: Circuit breaker reset interval (ms)
 ## How long before retrying after circuit breaker opens. Default 60s.
 redis_logging_circuit_breaker_reset_ms = 60000
