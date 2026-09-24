@@ -3,6 +3,37 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+24/09/2026    PR #2921      BEHAVIOUR CHANGE: log output and Redis log shipping.
+                            - The root log level now defaults to INFO (logback.xml ships in the
+                              jar; it was an unused logback.xml.example with DEBUG). Set LOG_LEVEL
+                              (env var or -DLOG_LEVEL=) to change it. The effective level is logged
+                              at start-up, with a warning when it is DEBUG or TRACE.
+                            - redis_logging_min_level (new, default INFO): with
+                              redis_logging_enabled=true, only INFO and above are shipped. Before,
+                              every level was shipped, so a deployment that already has Redis
+                              logging on stops filling the DEBUG/TRACE (and their share of the ALL)
+                              log-cache queues after upgrading, and the log-cache endpoints return
+                              nothing for those levels. Set redis_logging_min_level=TRACE to get the
+                              old behaviour back. An unrecognised value falls back to INFO with a
+                              message on stderr.
+                            - Log entries are masked and written on a small background pool
+                              (mdc_logging_dispatch_thread_pool_size, default 2) with a bounded
+                              queue (mdc_logging_dispatch_queue_size, default 10000). When the
+                              queue is full, DEBUG/TRACE/INFO entries are dropped and counted while
+                              WARN/ERROR are written on the calling thread. Output from different
+                              threads is no longer strictly ordered.
+                            - The default logback.xml pattern prints the thread that logged as
+                              %X{callerThread} after %t, because %t alone is the pool thread for
+                              these entries. A logback configuration of your own needs the same
+                              addition to show it; the Redis log line already carries it.
+
+                            GET /obp/v2.2.0/message-docs/CONNECTOR (and the versions that bridge to
+                            it) is cached per connector, in process and in Redis under
+                            message-docs-v2.2.0-CONNECTOR with the staticResourceDocsObp TTL. The
+                            response is unchanged. The Redis copy is not versioned by build, so
+                            after an upgrade that changes message docs, an existing entry can be
+                            served until its TTL passes; flush that key to refresh it at once.
+
 15/08/2026    614e7294e     BUILD/DEPLOY CHANGE: obp-api and obp-commons are built with Scala 2.13.
                             The class files this produces are Java 25, where 2.12 emitted Java 8
                             whatever -release said - 2.13 honours -release fully. Anything loading
