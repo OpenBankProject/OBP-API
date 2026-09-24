@@ -59,24 +59,27 @@ class MdcLoggableBoundedQueueTest extends FlatSpec with Matchers {
     } finally ex.shutdownNow()
   }
 
-  it should "run on the pool thread under the caller's thread name, then restore the pool thread's name" in {
+  it should "run on the pool thread with the caller's name in the MDC, and leave the pool thread untouched" in {
     val poolThreadName = "test-pool-thread"
     val ex = java.util.concurrent.Executors.newSingleThreadExecutor((r: Runnable) => new Thread(r, poolThreadName))
     try {
-      val seen = new java.util.concurrent.atomic.AtomicReference[(Thread, String)]()
+      val seen = new java.util.concurrent.atomic.AtomicReference[(Thread, String, String)]()
       val done = new CountDownLatch(1)
       Helper.dispatchOn(ex, "test", critical = false) {
-        seen.set((Thread.currentThread(), Thread.currentThread().getName)); done.countDown()
+        seen.set((Thread.currentThread(), Thread.currentThread().getName, org.slf4j.MDC.get(Helper.MdcCallerThreadKey)))
+        done.countDown()
       }
       done.await(10, TimeUnit.SECONDS) shouldBe true
       seen.get._1 should not be theSameInstanceAs(Thread.currentThread()) // still off the calling thread
-      seen.get._2 shouldBe Thread.currentThread().getName                 // but attributed to it
+      seen.get._2 shouldBe poolThreadName                                 // the pool thread keeps its own name
+      seen.get._3 shouldBe Thread.currentThread().getName                 // the caller travels in the MDC
 
-      val restored = new java.util.concurrent.atomic.AtomicReference[String]()
+      // The key must not leak into the next task on the same pool thread.
+      val leaked = new java.util.concurrent.atomic.AtomicReference[String]("unset")
       val done2 = new CountDownLatch(1)
-      ex.execute(() => { restored.set(Thread.currentThread().getName); done2.countDown() })
+      ex.execute(() => { leaked.set(org.slf4j.MDC.get(Helper.MdcCallerThreadKey)); done2.countDown() })
       done2.await(10, TimeUnit.SECONDS) shouldBe true
-      restored.get shouldBe poolThreadName
+      leaked.get shouldBe null
     } finally ex.shutdownNow()
   }
 

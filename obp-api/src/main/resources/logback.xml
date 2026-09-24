@@ -2,10 +2,12 @@
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %t %c{0} [%p] %m%n</pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %t %X{callerThread:-} %c{0} [%p] %m%n</pattern>
     </encoder>
   </appender>
 
+  <!-- %X{callerThread} is the thread that logged: log writes run on a background pool, so %t alone
+       would always be mdc-log-dispatch-N. It is empty for entries not written through that pool. -->
   <!-- LOG_LEVEL env var (or -DLOG_LEVEL= system property) overrides this; unset falls back to
        INFO. Default is intentionally quiet, not DEBUG: DEBUG by default means every deployment
        silently pays the cost of maximal log volume (including the per-message secret-masking

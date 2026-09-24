@@ -369,20 +369,24 @@ object Helper extends Loggable {
   private[util] def dispatchLog(clazzName: String, critical: Boolean)(body: => Unit): Unit =
     dispatchOn(mdcLoggingExecutor, clazzName, critical)(body)
 
+  /** MDC key carrying the name of the thread that logged, set while a dispatched entry is written. */
+  val MdcCallerThreadKey = "callerThread"
+
   // The executor is a parameter so a test can drive a tiny queue to saturation.
   private[util] def dispatchOn(executor: java.util.concurrent.Executor, clazzName: String, critical: Boolean)(body: => Unit): Unit = {
-    // Logback's %t and the Redis line format both read the current thread's name. Once the write
-    // moves to a pool thread that name would always be "mdc-log-dispatch-N", hiding which
-    // request/actor/compute thread logged. Record the caller's name now and lend it to the pool
-    // thread for the duration of the write, then restore it.
+    // The write happens on a pool thread, so the thread name Logback and the Redis line format
+    // would report is always "mdc-log-dispatch-N". Carry the caller's name in the MDC instead of
+    // renaming the pool thread: it costs no native calls, and thread dumps still show what each
+    // pool thread really is. The default logback.xml pattern prints it after %t.
     val callerThreadName = Thread.currentThread().getName
     val task: Runnable = () => {
-      val current = Thread.currentThread()
-      val poolThreadName = current.getName
-      if (poolThreadName != callerThreadName) current.setName(callerThreadName)
+      val previous = org.slf4j.MDC.get(MdcCallerThreadKey)
+      org.slf4j.MDC.put(MdcCallerThreadKey, callerThreadName)
       try body
       catch { case e: Throwable => System.err.println(s"[$clazzName] background log dispatch failed: ${e.getMessage}") }
-      finally if (current.getName != poolThreadName) current.setName(poolThreadName)
+      finally {
+        if (previous == null) org.slf4j.MDC.remove(MdcCallerThreadKey) else org.slf4j.MDC.put(MdcCallerThreadKey, previous)
+      }
     }
     try executor.execute(task)
     catch {
@@ -421,7 +425,7 @@ object Helper extends Loggable {
 
         private def toRedisFormat(msg: AnyRef): String = {
           val ts = dateFormatTL.get().format(new Date())
-          val thread = Thread.currentThread().getName
+          val thread = Option(org.slf4j.MDC.get(MdcCallerThreadKey)).getOrElse(Thread.currentThread().getName)
           s"[$ts] [$thread] [$clazzName] ${msg.toString}"
         }
 

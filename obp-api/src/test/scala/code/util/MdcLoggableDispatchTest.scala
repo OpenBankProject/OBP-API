@@ -58,7 +58,8 @@ class MdcLoggableDispatchTest extends FlatSpec with Matchers {
       val event = captured.get(0)
       event.getFormattedMessage should include(marker)
       // The write runs on the pool, but the record must still name the thread that logged.
-      event.getThreadName shouldBe callingThreadName
+      event.getThreadName should startWith("mdc-log-dispatch-")
+      event.getMDCPropertyMap.get(Helper.MdcCallerThreadKey) shouldBe callingThreadName
     } finally {
       logbackLogger.detachAppender(appender)
       logbackLogger.setLevel(originalLevel)
