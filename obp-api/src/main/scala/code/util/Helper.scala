@@ -345,11 +345,14 @@ object Helper extends Loggable {
     )
     // The threads are daemons so they never hold the JVM open, which also means anything
     // still queued at exit would be lost. Give the queue a short, bounded chance to drain.
-    Runtime.getRuntime.addShutdownHook(new Thread(() => {
+    // Registration is refused once the JVM is already shutting down. That must not make the
+    // first log call of a dying process throw, so the pool simply runs without a hook then.
+    try Runtime.getRuntime.addShutdownHook(new Thread(() => {
       executor.shutdown()
       try executor.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS)
       catch { case _: InterruptedException => () }
     }, "mdc-log-dispatch-shutdown"))
+    catch { case _: IllegalStateException => () }
     executor
   }
 
@@ -384,11 +387,15 @@ object Helper extends Loggable {
     try executor.execute(task)
     catch {
       case _: java.util.concurrent.RejectedExecutionException =>
-        if (critical) task.run()
-        else {
-          val dropped = mdcLogDropped.incrementAndGet()
-          if (dropped == 1L || dropped % MdcLogDropReportEvery == 0L)
-            System.err.println(s"[$clazzName] log dispatch queue is full; $dropped non-critical log entries dropped so far")
+        executor match {
+          // The pool has been shut down (JVM exit): nothing is overloaded, so write the entry
+          // on the caller instead of losing what other shutdown hooks log.
+          case s: java.util.concurrent.ExecutorService if s.isShutdown => task.run()
+          case _ if critical => task.run()
+          case _ =>
+            val dropped = mdcLogDropped.incrementAndGet()
+            if (dropped == 1L || dropped % MdcLogDropReportEvery == 0L)
+              System.err.println(s"[$clazzName] log dispatch queue is full; $dropped non-critical log entries dropped so far")
         }
     }
   }

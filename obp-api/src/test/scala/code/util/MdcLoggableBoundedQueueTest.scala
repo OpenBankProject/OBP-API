@@ -80,6 +80,16 @@ class MdcLoggableBoundedQueueTest extends FlatSpec with Matchers {
     } finally ex.shutdownNow()
   }
 
+  it should "write on the caller instead of dropping when the pool has been shut down" in {
+    val ex = tinyExecutor()
+    ex.shutdown()
+    val ranOn = new java.util.concurrent.atomic.AtomicReference[String]()
+    val before = Helper.mdcLogDroppedCount
+    Helper.dispatchOn(ex, "test", critical = false) { ranOn.set(Thread.currentThread().getName) }
+    ranOn.get shouldBe Thread.currentThread().getName
+    Helper.mdcLogDroppedCount shouldBe before // shutdown is not overload, so nothing is counted as dropped
+  }
+
   it should "keep the production pool's queue bounded and observable" in {
     Helper.mdcLogQueueDepth should be >= 0
     Helper.mdcLogDroppedCount should be >= 0L
