@@ -1985,6 +1985,13 @@ ethereum.rpc.url=http://127.0.0.1:8545
 ## Enable Redis logging (true/false)
 redis_logging_enabled = false
 
+## Lowest level shipped to Redis when redis_logging_enabled is true (TRACE/DEBUG/INFO/WARNING/ERROR).
+## Defaults to INFO so enabling Redis log shipping doesn't also force every DEBUG/TRACE call site
+## (which can be extremely high-volume) to pay the cost of formatting and masking a message that
+## would otherwise be skipped locally. Set to DEBUG or TRACE only when you actually want that volume
+## shipped, e.g. temporarily while investigating an issue.
+redis_logging_min_level = INFO
+
 ## Batch size for sending logs to Redis
 ## Smaller batch size reduces latency for logging critical messages.
 redis_logging_batch_size = 50
@@ -2014,6 +2021,27 @@ redis_logging_info_queue_max_entries = 1000      # Max INFO messages
 redis_logging_warning_queue_max_entries = 1000   # Max WARNING messages
 redis_logging_error_queue_max_entries = 1000     # Max ERROR messages
 redis_logging_all_queue_max_entries = 1000       # Max ALL messages
+
+
+
+##########################################################
+#                   MDC Logging Dispatch                #
+##########################################################
+## Number of threads used to run secret-masking (SecureLogging.maskSensitive) and the local/
+## Redis log write itself, once a call to logger.debug/info/warn/error/trace has determined
+## the message will actually be consumed. This work used to run inline on whatever thread
+## called the logger, including http4s/cats-effect fiber-managed threads -- CPU-bound work
+## that doesn't yield can trip the runtime's own fiber-starvation detector the same way real
+## blocking I/O would, and its response (spinning up more worker/blocker threads that are
+## never reclaimed) only adds overhead. Keep this small; it's meant to decouple from the
+## calling thread, not to parallelize heavy logging.
+mdc_logging_dispatch_thread_pool_size = 2
+
+## Maximum number of log entries that may wait for a dispatch thread. The queue is bounded so a
+## burst of log calls cannot become heap growth. When it is full, DEBUG/TRACE/INFO entries are
+## dropped (and counted) while WARN/ERROR entries run on the calling thread, so a warning or an
+## error is never silently lost. Default 10000.
+mdc_logging_dispatch_queue_size = 10000
 
 ## Optional: Circuit breaker reset interval (ms)
 ## How long before retrying after circuit breaker opens. Default 60s.
