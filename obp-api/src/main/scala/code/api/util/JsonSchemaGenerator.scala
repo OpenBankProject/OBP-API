@@ -51,8 +51,8 @@ object JsonSchemaGenerator {
    * walks every message type's full field tree via Scala runtime reflection (`<:<`/`=:=`
    * subtype checks), which is expensive and -- unlike a plain field lookup -- leaves behind
    * long-lived reflection bookkeeping objects (TypeConstraint/UndoPair/Symbol) that don't
-   * get reclaimed promptly. Recomputing this on every request under sustained polling is
-   * what drove a production old-gen heap to exhaustion. The caller (Http4s600) also has a
+   * get reclaimed promptly. Recomputing this on every request under sustained polling keeps
+   * adding them and grows old-gen heap usage. The caller (Http4s600) also has a
    * Redis-backed cache in front of this, but that one silently falls through to a full
    * recompute if Redis is unreachable or slow -- this in-memory layer doesn't depend on
    * Redis at all, so it stays a working safety net even when Redis is the one struggling.

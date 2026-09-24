@@ -1996,8 +1996,8 @@ redis_logging_all_queue_max_entries = 1000       # Max ALL messages
 ## called the logger, including http4s/cats-effect fiber-managed threads -- CPU-bound work
 ## that doesn't yield can trip the runtime's own fiber-starvation detector the same way real
 ## blocking I/O would, and its response (spinning up more worker/blocker threads that are
-## never reclaimed) was a contributing factor in a real incident. Keep this small; it's meant
-## to decouple from the calling thread, not to parallelize heavy logging.
+## never reclaimed) only adds overhead. Keep this small; it's meant to decouple from the
+## calling thread, not to parallelize heavy logging.
 mdc_logging_dispatch_thread_pool_size = 2
 
 ## Maximum number of log entries that may wait for a dispatch thread. The queue is bounded so a
