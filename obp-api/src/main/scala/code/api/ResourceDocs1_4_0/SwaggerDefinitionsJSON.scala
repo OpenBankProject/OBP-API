@@ -4736,7 +4736,7 @@ object SwaggerDefinitionsJSON {
     consent_request_id = None,
     valid_from = Some(new Date()),
     time_to_live = Some(3600),
-    my_resources = Some(code.api.v6_0_0.PostConsentMyResourcesJson(Some(List(code.api.v6_0_0.PostConsentPersonalDynamicEntityJson("", "FooBar", List("read", "write"))))))
+    my_resources = Some(code.api.v6_0_0.PostConsentMyResourcesJson(Some(List(code.api.v6_0_0.PostConsentPersonalDynamicEntityJson("SYS", "FooBar", List("read", "write"))))))
   )
   
   lazy val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))

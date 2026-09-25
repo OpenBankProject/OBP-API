@@ -251,9 +251,6 @@ class Boot extends MdcLoggable {
     logger.info("Current Project TimeZone: " + TimeZone.getDefault)
 
 
-    // set dynamic_code_sandbox_enable to System.properties, so com.openbankproject.commons.ExecutionContext can read this value
-    APIUtil.getPropsValue("dynamic_code_sandbox_enable")
-      .foreach(it => System.setProperty("dynamic_code_sandbox_enable", it))
   }
 
 

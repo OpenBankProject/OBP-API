@@ -135,15 +135,22 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   // Separate method for reference validation - only checks ID and entity name exist
-  def existsById(entityName: String, id: String): Boolean = {
-    println(s"========== Reference validation: checking if DynamicDataId='$id' exists for DynamicEntityName='$entityName' ==========")
-    val exists = DynamicData.count(
+  /**
+   * Does `entityName` hold a record with this id, in this space?
+   *
+   * Used to check a `reference:` field. The space matters because a record id is unique within one
+   * space and one entity, not across the instance: two banks may each hold a record whose natural
+   * key is the country code DE, and so may the system space. Asking without the space would answer
+   * a different question, namely whether such a record exists anywhere, and a reference would then
+   * resolve to another bank's record. `bankId` is the space, and None is the system space, stored
+   * as Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID.
+   */
+  def recordExists(bankId: Option[String], entityName: String, id: String): Boolean =
+    DynamicData.count(
+      By(DynamicData.BankId, bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)),
       By(DynamicData.DynamicEntityName, entityName),
       By(DynamicData.DynamicDataId, id)
     ) > 0
-    println(s"========== Reference validation result: exists=$exists ==========")
-    exists
-  }
 
   override def get(bankId: Option[String], entityName: String, id: String, callerUserId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val userId = ownerOf(callerUserId)

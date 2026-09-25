@@ -242,7 +242,10 @@ object ApiRole extends MdcLoggable{
   // Operator role for registering each onboarded bank's AMQP broker coordinates
   // (host/port/vhost/credentials) in the per-bank publish registry. Transport
   // registry, not corridor-specific; Open Corridor Interface C is the first consumer.
-  case class CanConfigureAmqpBankBroker(requiresBankId: Boolean = false) extends ApiRole
+  // Named per bank and granted per bank: the coordinates decide where one bank's settlement and
+  // credit messages are published, so a grant for one bank must not repoint another's. It was
+  // declared requiresBankId = false until 2026-09-23, which made a single row cover every bank.
+  case class CanConfigureAmqpBankBroker(requiresBankId: Boolean = true) extends ApiRole
   lazy val canConfigureAmqpBankBroker = CanConfigureAmqpBankBroker()
 
   // Open Corridor: operator role for the settle-pair trigger — nets a bank pair's
@@ -540,7 +543,7 @@ object ApiRole extends MdcLoggable{
   case class CanGetAdapterInfo(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAdapterInfo = CanGetAdapterInfo()
   
-  case class CanGetAdapterInfoAtOneBank(requiresBankId: Boolean = false) extends ApiRole
+  case class CanGetAdapterInfoAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetAdapterInfoAtOneBank = CanGetAdapterInfoAtOneBank()
   
   case class CanGetDatabaseInfo(requiresBankId: Boolean = false) extends ApiRole
@@ -859,19 +862,26 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteRegulatedEntityAttribute(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteRegulatedEntityAttribute = CanDeleteRegulatedEntityAttribute()
 
-  case class CanGetCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  case class CanGetCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCounterpartyAttribute = CanGetCounterpartyAttribute()
 
-  case class CanGetCounterpartyAttributes(requiresBankId: Boolean = false) extends ApiRole
+  case class CanGetCounterpartyAttributes(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCounterpartyAttributes = CanGetCounterpartyAttributes()
 
-  case class CanCreateCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  // A Counterparty Attribute belongs to one bank's account, and adapter info is asked for one bank,
+  // so these Roles name a bank like every other attribute Role does (CanCreateProductAttribute,
+  // CanCreateAtmAttribute and the rest). They were declared requiresBankId = false, which meant a
+  // single Entitlement row authorised them at every bank however the endpoint was addressed.
+  // Existing grants are NOT migrated: an Entitlement held at the system scope stops authorising
+  // these endpoints, and an operator grants the Role again at the banks that need it. The release
+  // note of 23/09/2026 says so, and ANY_BANK_ROLE_REMOVAL_PLAN.md has the reasoning.
+  case class CanCreateCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCounterpartyAttribute = CanCreateCounterpartyAttribute()
 
-  case class CanUpdateCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  case class CanUpdateCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCounterpartyAttribute = CanUpdateCounterpartyAttribute()
 
-  case class CanDeleteCounterpartyAttribute(requiresBankId: Boolean = false) extends ApiRole
+  case class CanDeleteCounterpartyAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteCounterpartyAttribute = CanDeleteCounterpartyAttribute()
 
 
@@ -947,44 +957,28 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteSignatoryPanel(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteSignatoryPanel = CanDeleteSignatoryPanel()
 
-  case class CanGetSystemLevelDynamicEntities(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetSystemLevelDynamicEntities = CanGetSystemLevelDynamicEntities()
+  // The Definition Roles gate a Dynamic Entity's definition (its schema and flags), as opposed to the
+  // Record Roles (CanCreateDynamicEntityRecord_<Entity> and friends), which gate its rows. Each one is
+  // granted at a bank id or at DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS) for the system space, and none
+  // reaches every bank at once. They replace the System, BankLevel and AnyBankLevel variants; stored
+  // grants of those were renamed by MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere.
+  case class CanCreateDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateDynamicEntityDefinition = CanCreateDynamicEntityDefinition()
 
-  case class CanCreateSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateSystemLevelDynamicEntity = CanCreateSystemLevelDynamicEntity()
+  case class CanUpdateDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateDynamicEntityDefinition = CanUpdateDynamicEntityDefinition()
 
-  case class CanCreateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canCreateBankLevelDynamicEntity = CanCreateBankLevelDynamicEntity()
+  case class CanDeleteDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteDynamicEntityDefinition = CanDeleteDynamicEntityDefinition()
 
-  case class CanCreateAnyBankLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateAnyBankLevelDynamicEntity = CanCreateAnyBankLevelDynamicEntity()
+  case class CanGetDynamicEntityDefinitions(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetDynamicEntityDefinitions = CanGetDynamicEntityDefinitions()
 
-  case class CanUpdateSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUpdateSystemDynamicEntity = CanUpdateSystemLevelDynamicEntity()
+  case class CanDeleteCascadeDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCascadeDynamicEntityDefinition = CanDeleteCascadeDynamicEntityDefinition()
 
-  case class CanUpdateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canUpdateBankLevelDynamicEntity = CanUpdateBankLevelDynamicEntity()
-
-  case class CanDeleteSystemLevelDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteSystemLevelDynamicEntity = CanDeleteSystemLevelDynamicEntity()
-
-  case class CanDeleteCascadeSystemDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteCascadeSystemDynamicEntity = CanDeleteCascadeSystemDynamicEntity()
-
-  case class CanBackupSystemDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canBackupSystemDynamicEntity = CanBackupSystemDynamicEntity()
-
-  case class CanBackupBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canBackupBankLevelDynamicEntity = CanBackupBankLevelDynamicEntity()
-
-  case class CanDeleteBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteBankLevelDynamicEntity = CanDeleteBankLevelDynamicEntity()
-
-  case class CanGetBankLevelDynamicEntities(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetBankLevelDynamicEntities = CanGetBankLevelDynamicEntities()
-
-  case class CanGetAnyBankLevelDynamicEntities(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetAnyBankLevelDynamicEntities = CanGetAnyBankLevelDynamicEntities()
+  case class CanBackupDynamicEntityDefinition(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canBackupDynamicEntityDefinition = CanBackupDynamicEntityDefinition()
 
   case class CanGetDynamicEntityDiagnostics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicEntityDiagnostics = CanGetDynamicEntityDiagnostics()

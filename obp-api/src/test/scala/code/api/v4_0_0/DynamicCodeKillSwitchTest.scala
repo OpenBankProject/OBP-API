@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api.v4_0_0
 
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.DynamicCodeExecutionDisabled
@@ -235,7 +236,7 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
 
     scenario("OFF: create Dynamic Entity still succeeds because it never compiles user code", VersionOfApi) {
       setPropsValues("allow_user_generated_scala_code" -> "false")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
 
       val entityJson = org.json4s.native.JsonMethods.parse(
         """
@@ -263,7 +264,7 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
 
       val dynamicEntityId = (response.body \ "dynamic_entity_id").extract[String]
 
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
       val deleteRequest = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@ (user1)
       makeDeleteRequest(deleteRequest)
     }

@@ -485,4 +485,16 @@ Authentication is Mandatory""".stripMargin
     descriptionHtml3 contains("<p>Authentication is Mandatory</p>") should be (true)
 
   }
+
+  "dashes, ellipses and quotes" should "be served as written, not as typographic entities" taggedAs FunctionsTag in {
+    val descriptionHtml = convertPegdownToHtmlTweaked(
+      """Only that Consumer can present the Consent JWT -- any other gets "ConsentNotFound"... it's pinned.""")
+
+    // An XML parse is what failed on &ndash;, so it is the check that matters.
+    stringToNodeSeq(descriptionHtml)
+    descriptionHtml should include ("JWT -- any other")
+    descriptionHtml should include ("...")
+    descriptionHtml should not include ("&ndash;")
+    descriptionHtml should not include ("&ldquo;")
+  }
 }

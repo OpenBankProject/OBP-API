@@ -191,6 +191,8 @@ object Migration extends MdcLoggable {
       alterDynamicResourceDocBodyFieldsLength()
       alterDynamicResourceDocTextFieldsLength()
       alterDynamicDataIdLength()
+      renameDynamicEntityRoles()
+      renameDynamicEntityDefinitionRoles()
     }
 
     /**
@@ -241,6 +243,10 @@ object Migration extends MdcLoggable {
       val outcomes = List(
         adoptSystemLevelBankIdSentinel("dynamicdata"),
         adoptSystemLevelBankIdSentinel("dynamicdataaccess"),
+        // The definitions kept SQL NULL for a system level entity while the data tables had already
+        // moved. One feature, two conventions: every read had to branch, and the branch that looked
+        // for NULL silently found nothing once the writer had started using the sentinel.
+        adoptSystemLevelBankIdSentinel("dynamicentity"),
         dropSupersededIndex("dynamicdata", "dynamicdata_dynamicdataid"),
         dropSupersededIndex("dynamicdataaccess", "dynamicdataaccess_dynamicdataid_userid")
       )
@@ -900,6 +906,41 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterMappedConsentColumnConsumerIdLength)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnConsumerIdLength(name)
+      }
+    }
+
+    /**
+     * Move every stored Dynamic Entity Role onto its new name, and onto the system space where it used
+     * to sit at the empty bank id.
+     *
+     * This is the Record pass: the Roles gating records gained the word Record and lost their System
+     * twin. The Roles gating a definition follow in [[renameDynamicEntityDefinitionRoles]]. A renamed
+     * Role is different from a narrowed one — the old name no longer exists, so an existing grant
+     * authorises nothing rather than authorising less — and the mapping is exactly one-to-one, which
+     * is what makes it safe to do here instead of asking every operator to re-grant. The work, and
+     * what it deliberately leaves alone, is in [[MigrationOfDynamicEntityRoleNames]].
+     */
+    private def renameDynamicEntityRoles(): Boolean = {
+      val name = nameOf(renameDynamicEntityRoles)
+      runOnce(name) {
+        MigrationOfDynamicEntityRoleNames.renameEverywhere(name)
+      }
+    }
+
+    /**
+     * Move every stored Dynamic Entity Definition Role onto its merged name, and onto the system space
+     * where it sat at the empty bank id: `CanCreateSystemLevelDynamicEntity` at the empty bank id becomes
+     * `CanCreateDynamicEntityDefinition` at SYS, `CanCreateBankLevelDynamicEntity` at a bank keeps its bank.
+     *
+     * This is a separate runOnce from [[renameDynamicEntityRoles]] because it ships later: the merged
+     * Roles are bank scoped, and a system level grant of one can only be checked where a URL names the
+     * space, which the v7.0.0 management endpoints are the first to do. The work is in
+     * [[MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere]].
+     */
+    private def renameDynamicEntityDefinitionRoles(): Boolean = {
+      val name = nameOf(renameDynamicEntityDefinitionRoles)
+      runOnce(name) {
+        MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere(name)
       }
     }
 

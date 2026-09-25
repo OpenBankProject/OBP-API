@@ -31,7 +31,7 @@ import org.json4s._
 import cats.effect.IO
 import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
-import code.api.util.DynamicUtil.{Sandbox, Validation}
+import code.api.util.DynamicUtil.{DynamicCodeBody, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, Http4sEndpointIO, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}
 import net.liftweb.common.{Box, Failure, Full}
@@ -248,28 +248,21 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
     CompiledObjects.compileProblems(exampleRequestBody, successResponseBody, methodBody)
 
   /**
-   * This is used to check the security permission at the run time.
-   * all the obp partialFunctions will be wrapped into the sandbox which under the permission control.
-   *
+   * Wraps the compiled partial function as an endpoint. This used to bind a per-bank
+   * security sandbox; that sandbox could not be enforced on JDK 24+ and has been
+   * removed (see DynamicUtil.DynamicCodeBody), so what remains is forcing the body and
+   * recovering an early `return` from user code.
    */
-  def sandboxEndpoint(bankId: Option[String]) : Http4sEndpointIO = {
-    val sandbox = bankId match {
-      case Some(v) if StringUtils.isNotBlank(v) =>
-         Sandbox.sandbox(v)
-      case _ => Sandbox.sandbox("*")
-    }
-
+  def compiledEndpoint() : Http4sEndpointIO =
     new Http4sEndpointIO {
       override def isDefinedAt(req: Request[IO]): Boolean = partialFunction.isDefinedAt(req)
 
-      // run dynamic code in sandbox
       override def apply(req: Request[IO]): CallContext => IO[Response[IO]] = { cc =>
         val fn = partialFunction.apply(req)
 
-        sandbox.runInSandboxIO(fn(cc))
+        DynamicCodeBody.force(fn(cc))
       }
     }
-  }
 
   private def toCaseObject(jValue: Option[JValue]): Product = CompiledObjects.toCaseObject(jValue)
 }

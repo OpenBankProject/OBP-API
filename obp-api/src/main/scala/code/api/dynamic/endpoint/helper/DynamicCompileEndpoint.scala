@@ -31,7 +31,7 @@ import org.json4s._
 import scala.language.implicitConversions
 import cats.effect.IO
 import code.api.util.APIUtil.{Http4sEndpointIO, OBPReturnType}
-import code.api.util.DynamicUtil.{Sandbox, Validation}
+import code.api.util.DynamicUtil.{DynamicCodeBody, Validation}
 import code.api.util.{CallContext, CustomJsonFormats, DynamicUtil}
 import org.http4s.{Request, Response}
 
@@ -49,9 +49,6 @@ import org.http4s.{Request, Response}
 trait DynamicCompileEndpoint {
   implicit val formats = CustomJsonFormats.formats
 
-  // * is any bankId
-  val boundBankId: String
-
   protected def process(callContext: CallContext, request: Request[IO], pathParams: Map[String, String]): IO[Response[IO]]
 
   val endpoint: Http4sEndpointIO = new Http4sEndpointIO {
@@ -62,7 +59,7 @@ trait DynamicCompileEndpoint {
 
       validateDependencies()
 
-      Sandbox.sandbox(boundBankId).runInSandboxIO {
+      DynamicCodeBody.force {
         process(cc, request, pathParams)
       }
     }

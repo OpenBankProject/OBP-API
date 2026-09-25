@@ -35,20 +35,17 @@ import com.vladsch.flexmark.util.options.{DataHolder, MutableDataSet}
 
 
 object PegdownOptions {
-  private val OPTIONS: DataHolder = PegdownOptionsAdapter.flexmarkOptions(Extensions.ALL)
+  // Everything except SMARTYPANTS. That extension rewrites plain quotes, "--", "---" and "..." into
+  // typographic HTML entities such as &ndash;, which are not defined in XML. Descriptions are written
+  // as plain text and should be served as written.
+  private val OPTIONS: DataHolder = PegdownOptionsAdapter.flexmarkOptions(Extensions.ALL & ~Extensions.SMARTYPANTS)
   private val PARSER: Parser = Parser.builder(OPTIONS).build
   private val RENDERER: HtmlRenderer = HtmlRenderer.builder(OPTIONS).build
   
   def convertPegdownToHtmlTweaked(description: String): String = {
     val document = PARSER.parse(convertImgTag(description.stripMargin))
     RENDERER.render(document)
-      .replaceAll("&ldquo", "&quot")
-      .replaceAll("&rdquo", "&quot")
-      .replaceAll("&rsquo;", "'")
-      .replaceAll("&lsquo;;", "'")
       .replaceAll("&amp;;", "&")
-      .replaceAll("&lsquo;", "'")
-      .replaceAll("&hellip;", "...")
 //        not support make text bold that not at beginning of a line, so here manual convert to it to <strong> tag
 //      .replaceAll("""\*\*(.+?)\*\*""", "<strong>$1</strong>")
   }

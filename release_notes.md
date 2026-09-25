@@ -3,6 +3,199 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's
+                            DEFINITION, completing the change below. Each System and BankLevel pair
+                            is now one Role, granted at a bank's id or at SYS for the system space:
+
+                              CanCreateSystemLevelDynamicEntity, CanCreateBankLevelDynamicEntity
+                                -> CanCreateDynamicEntityDefinition
+                              CanUpdateSystemLevelDynamicEntity, CanUpdateBankLevelDynamicEntity
+                                -> CanUpdateDynamicEntityDefinition
+                              CanDeleteSystemLevelDynamicEntity, CanDeleteBankLevelDynamicEntity
+                                -> CanDeleteDynamicEntityDefinition
+                              CanGetSystemLevelDynamicEntities, CanGetBankLevelDynamicEntities
+                                -> CanGetDynamicEntityDefinitions
+                              CanBackupSystemDynamicEntity, CanBackupBankLevelDynamicEntity
+                                -> CanBackupDynamicEntityDefinition
+                              CanDeleteCascadeSystemDynamicEntity
+                                -> CanDeleteCascadeDynamicEntityDefinition
+
+                            NEW in v7.0.0: one set of management endpoints for every space,
+                            /management/banks/BANK_ID/dynamic-entities (list, create, update, delete,
+                            backup, cascade delete), where BANK_ID is a bank's id or SYS. The Role is
+                            checked at that BANK_ID, and every response carries bank_id, SYS included.
+                            SYS is accepted as BANK_ID only by endpoints that declare it; everywhere
+                            else it is still an unknown bank (404).
+
+                            NEW in v7.0.0: the records themselves, at
+                            /obp/v7.0.0/banks/BANK_ID/dynamic-entities/ENTITY_NAME[/RECORD_ID], and the
+                            my/, public/, community/ and .../access forms after dynamic-entities/.
+                            Same checks and storage as /obp/dynamic-entity/, but every response carries
+                            bank_id, SYS included. The unversioned URLs are unchanged.
+
+                            The older /management/system-dynamic-entities endpoints (v4.0.0, v6.0.0)
+                            keep working and check the same Roles at SYS.
+
+                            NOTHING TO DO for an ordinary upgrade: a second migration renames the
+                            stored Roles across Entitlements, Entitlement Requests, Consumer Scopes and
+                            Group Role lists, moving system level ones to SYS. A system level Group the
+                            first migration left behind because it also held a Definition Role now
+                            moves to SYS, unless it holds a Role from outside Dynamic Entities. An
+                            instance that runs with migration scripts disabled must re-grant by hand.
+
+                            FIXED, found while doing this:
+                            - DELETE /management/diagnostics/dynamic-entities/orphaned-records treated
+                              every system level record as orphaned, because records store SYS while
+                              definitions call the system space None, and so deleted them all. It now
+                              compares the two in the same form.
+                            - GET /obp/v6.0.0/management/system-dynamic-entities reported a
+                              record_count of 0 for every entity: it counted records with a NULL bank id.
+                            - Backing up a system level entity (v6.0.0) always returned 403, because it
+                              checked the entity's Get Record Role at the empty bank id, and it granted
+                              that Role on the backup there too, where nothing reads it. Both use SYS.
+                            - Updating a Dynamic Entity definition (v6.0.0) whose id does not exist in
+                              that space answered 400 InvalidJsonFormat; it now answers 404
+                              DynamicEntityNotFoundByDynamicEntityId.
+
+24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's records.
+                            A Role that was called CanCreateDynamicEntity_SystemCountry or
+                            CanCreateDynamicEntity_Country is now CanCreateDynamicEntityRecord_Country
+                            in both cases, and the same for Get, Update and Delete, for
+                            CanGrantDynamicEntityRowAccess_, and for the auto-generated field Roles
+                            CanWriteDynamicEntityField_ and CanGetDynamicEntityField_.
+
+                            The name no longer says which space the Role applies to; the Entitlement's
+                            bank id does. A Role for a bank's entity is granted at that bank as before.
+                            A Role for a system level entity is now granted at the bank id SYS rather
+                            than at the empty bank id, because a Role that names its space cannot be
+                            granted at no space at all.
+
+                            Two Roles are gone and cannot be migrated:
+                            CanCreateAnyBankLevelDynamicEntity and CanGetAnyBankLevelDynamicEntities.
+                            One Entitlement row for either authorised every bank on the instance,
+                            including banks onboarded later, which is what this work removes. Their
+                            holders are named in the migration log; grant the per bank Role instead, at
+                            each bank where it is needed.
+
+                            NOTHING TO DO for an ordinary upgrade: a migration rewrites the stored
+                            names and moves the system level ones to SYS, across Entitlements,
+                            Entitlement Requests, Consumer Scopes and the Role list on a Group. A Group
+                            holding only these Roles moves to SYS with them; one that also holds other
+                            Roles stays where it is and is named in the migration log, because its
+                            Dynamic Entity Roles then need granting another way.
+
+                            An instance that runs with migration scripts disabled must re-grant by
+                            hand; the log entry names what would have moved.
+
+                            The Roles that gate a Dynamic Entity's DEFINITION -- creating, editing and
+                            deleting the entity itself -- are NOT part of this change. They keep their
+                            names and their empty bank id for now, because the system level management
+                            endpoints carry no space in their URL for the framework to read. They
+                            change in the release that gives those endpoints a space.
+
+```
+Date          Commit        Action
+23/09/2026    TBD           CHANGED, action required: seven Roles are now granted per bank
+                            rather than instance wide. They are the five Counterparty Attribute
+                            Roles (CanCreateCounterpartyAttribute, CanGetCounterpartyAttribute,
+                            CanGetCounterpartyAttributes, CanUpdateCounterpartyAttribute,
+                            CanDeleteCounterpartyAttribute), CanGetAdapterInfoAtOneBank and
+                            CanConfigureAmqpBankBroker.
+
+                            All seven were declared requiresBankId = false. That flag does more
+                            than widen what a Role is called: it tells OBP to look the
+                            Entitlement up at the empty bank id, ignoring whichever bank the
+                            request was about, so one row let its holder act at every bank on
+                            the instance, including banks onboarded later. Each of these Roles
+                            acts on something belonging to a single bank -- a Counterparty
+                            Attribute hangs off one bank's account, adapter information is asked
+                            for one bank, and an AMQP broker registration is where one bank's
+                            settlement and credit messages are published -- and every comparable
+                            Role in OBP already names a bank.
+
+                            ACTION FOR OPERATORS: existing Entitlements are NOT migrated. A row
+                            held at the system scope (bank_id empty) stops authorising these
+                            endpoints on upgrade. Grant the Role again at each bank where the
+                            holder needs it:
+
+                              POST /obp/v7.0.0/users/USER_ID/entitlements
+                              { "bank_id": "BANK_ID", "role_name": "CanConfigureAmqpBankBroker" }
+
+                            Find who is affected before upgrading with
+                            GET /obp/v6.0.0/entitlements (or the roles-with-counts endpoint) and
+                            look for these Role names with an empty bank_id. There is no
+                            automatic expansion on purpose: the old grant covered every bank, and
+                            reproducing that would write one row per bank per holder for
+                            permissions an operator may only have wanted at one or two of them.
+
+                            The stale system scoped rows authorise nothing after the upgrade and
+                            can be deleted once the per bank grants are in place.
+
+                            This is the first instalment of a longer direction: Roles that let a
+                            holder act on ANY bank are being retired in favour of Roles that name
+                            one bank. System Roles, whose subject is the instance rather than a
+                            bank, are not affected.
+
+```
+Date          Commit        Action
+23/09/2026    TBD           RENAMED props: dynamic_code_compile_validate_enable is now
+                            dynamic_code_obp_calls_are_restricted, and
+                            dynamic_code_compile_validate_dependencies is now
+                            dynamic_code_allowed_obp_methods.
+
+                            The old names read as "validate that the dynamic code compiles",
+                            which is not what they do -- the code is compiled either way. What
+                            they control is an allowlist of the OBP methods dynamic code may
+                            call: with the gate on, creating or updating a body that calls an
+                            OBP method outside the list is rejected with OBP-40047 naming the
+                            method. It is an allowlist on OBP's own API surface, NOT a sandbox:
+                            it does not restrict file, network or reflection access, and does
+                            not check general scala/java library calls.
+
+                            Both old names are still read, so an instance that set either keeps
+                            its behaviour; using one logs a deprecation warning naming the new
+                            name. Set the new name and the old one is ignored. Nothing changes
+                            for an instance that set neither -- the gate still defaults to false,
+                            meaning dynamic code may call any OBP method, and only matters once
+                            allow_user_generated_scala_code is true.
+
+                            No behaviour change, names only.
+
+Date          Commit        Action
+23/09/2026    TBD           REMOVED: the dynamic-code sandbox, and with it the props
+                            dynamic_code_sandbox_enable and dynamic_code_sandbox_permissions.
+                            An instance that still sets either will simply ignore them.
+
+                            It wrapped runtime-compiled dynamic endpoint / connector code in
+                            AccessController.doPrivileged with a restricted permission set, to
+                            limit file, network and reflection access. SecurityManager was
+                            removed in JDK 24 (JEP 411, completed by JEP 486) and OBP now
+                            requires JVM 25, so doPrivileged is a pass-through on every runtime
+                            that can run this code: the sandbox could not restrict anything,
+                            while still costing a privileged wrapper on each dynamic call and
+                            an ExecutionContext wrapper on every task. It is deleted rather
+                            than left as a switch implying isolation it cannot deliver.
+
+                            Behaviour is unchanged, because the sandbox already enforced nothing
+                            on a supported JVM. What changes is that this is now explicit:
+                            dynamic code runs with the full privileges of the OBP process. The
+                            controls that DO work are allow_user_generated_scala_code (the
+                            master gate, still false by default),
+                            dynamic_code_obp_calls_are_restricted (the allowlist of
+                            callable OBP methods) and dynamic_code_requires_approval
+                            (maker-checker). Anyone who believed the sandbox was containing
+                            untrusted dynamic code should re-read those three.
+
+                            The early-return recovery that lived in the same wrapper is kept as
+                            DynamicUtil.DynamicCodeBody.force, so `return errorResponse(...)` in
+                            a dynamic body still yields its response rather than a 500.
+                            CompiledObjects.sandboxEndpoint(bankId) becomes compiledEndpoint()
+                            and DynamicCompileEndpoint.boundBankId is gone; both existed only to
+                            select the per-bank permission set. Five Sandbox scenarios in
+                            DynamicUtilTest are removed - three of them had been silently
+                            cancelling on every run since the build moved to JDK 21+.
+
+Date          Commit        Action
 22/09/2026    TBD           CONFIG CHANGE: public_obp_mcp_url now denotes the MCP instance that
                             external clients can authenticate against (AUTH_PROVIDER=obp-oidc,
                             OBP_AUTHORIZATION_VIA=oauth, full OAuth 2.1 + Dynamic Client

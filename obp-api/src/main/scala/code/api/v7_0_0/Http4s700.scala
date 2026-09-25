@@ -6750,7 +6750,7 @@ object Http4s700 {
         |`example_request_body` and `success_response_body` (they become the generated `RequestRootJsonClass` / `ResponseRootJsonClass`).
         |
         |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's wrapper lines are
-        |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_compile_validate_enable` is on,
+        |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_obp_calls_are_restricted` is on,
         |the dependency validator runs too and any forbidden call is reported in `dependency_error`. `compiles` is true only when both pass.
         |
         |Nothing is evaluated or cached, but compiling is a full scalac run, so the same rules apply as for creating: the
@@ -7239,6 +7239,10 @@ object Http4s700 {
       http4sPartialFunction = Some(getMyCustomers)
     )
 
+    // Dynamic Entity definitions, one set of URLs for every space (SYS included). Declared in their own
+    // object to keep this initialiser under the JVM's 64KB method limit.
+    resourceDocs ++= Http4s700DynamicEntityDefinitions.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
@@ -7282,6 +7286,9 @@ object Http4s700 {
   lazy val wrappedRoutesV700Services: HttpRoutes[IO] =
     Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       Implementations7_0_0.allRoutesWithMiddleware.run(req)
+        // Dynamic Entity records at /banks/BANK_ID/dynamic-entities/...: the entity set changes at
+        // runtime, so these have no static ResourceDoc and must be tried before the bridge claims the path.
+        .orElse(code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(req))
         .orElse(v700ToV600Bridge.run(req))
     }
 }

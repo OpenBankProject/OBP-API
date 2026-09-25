@@ -1335,6 +1335,7 @@ create_just_in_time_entitlements=false
 # This speeds up the process of granting of roles. Certain roles are excluded from this automation:
 # - CanCreateEntitlementAtOneBank
 # - CanCreateEntitlementAtAnyBank
+# Nothing is granted this way in the system space (the space whose bank id is the literal SYS): a Role there is always granted by hand.
 # If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 # Note: In the entitlements model we set createdbyprocess="create_just_in_time_entitlements". For manual operations we set createdbyprocess="manual"
 # -------------------------------------------------------------
@@ -1776,29 +1777,34 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # it must be set to true explicitly, there is no run-mode-based fallback.
 allow_user_generated_scala_code=false
 
-# enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
-dynamic_code_sandbox_enable=false
-# Here is the default permissions if you set the dynamic_code_sandbox_enable = true. If you need more permission need to add it manually here.
-# Better search for comment code `val allowedRuntimePermissions = List[Permission]( ....` need to provide the fully qualified class name and proper parameters.
-dynamic_code_sandbox_permissions=[\
-    new java.net.NetPermission("specifyStreamHandler"),\
-    new java.lang.reflect.ReflectPermission("suppressAccessChecks"),\
-    new java.lang.RuntimePermission("getenv.*"),\
-    new java.util.PropertyPermission("cglib.useCache", "read"),\
-    new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),\
-    new java.util.PropertyPermission("cglib.debugLocation", "read"),\
-    new java.lang.RuntimePermission("accessDeclaredMembers"),\
-    new java.lang.RuntimePermission("getClassLoader")\
-]
+# NOTE: dynamic_code_sandbox_enable and dynamic_code_sandbox_permissions were removed.
+# They wrapped dynamic code in AccessController.doPrivileged with a restricted permission
+# set, which stopped being enforceable when SecurityManager was removed in JDK 24 (JEP 486);
+# OBP requires JVM 25, so the sandbox could never restrict file, network or reflection
+# access while still costing a privileged wrapper on every dynamic call. Dynamic code runs
+# with the full privileges of the OBP process. The controls that do work are
+# allow_user_generated_scala_code (below), dynamic_code_compile_validate_enable and
+# dynamic_code_requires_approval.
 
 
-# enable dynamic code compile validation, default is false, if set it to true, it will validate all the dynamic method body when you create/update any
-# dynamic scala method. Note, it only check all the obp code dependents for all the method in OBP code.
-dynamic_code_compile_validate_enable=false
-# The default support dependencies if set dynamic_code_compile_validate_enable = true. it can be the class level or the method level,
-# you can add them in the following list. Better check search for comment code: val allowedCompilationMethods: Map[String, Set[String]] = Map( ...
-# need to prepare the correct OBP scala code.
-dynamic_code_compile_validate_dependencies=[\
+# When true, dynamic code may call ONLY the OBP methods listed in
+# dynamic_code_allowed_obp_methods below; creating or updating a body that calls anything
+# else is rejected with OBP-40047 naming the offending method. It is an allowlist on OBP's
+# own API surface -- NOT a sandbox: it does not restrict file, network or reflection access,
+# and it does not check general scala/java library calls.
+#
+# Renamed from dynamic_code_compile_validate_enable, which read as "check that it compiles".
+# The old name is still honoured with a deprecation warning at boot.
+#
+# Defaults to false, so dynamic code may call any OBP method. Only relevant once
+# allow_user_generated_scala_code is true.
+dynamic_code_obp_calls_are_restricted=false
+# The allowlist used when the above is true: typeName -> allowed methods ("*" for all).
+# Renamed from dynamic_code_compile_validate_dependencies. Search the code for
+# `val allowedCompilationMethods` for how it is parsed; entries must be valid OBP scala.
+# NOTE: this default list allows no data access, so an endpoint that reads dynamic entities
+# (e.g. code.DynamicData.DynamicDataProvider) must be added here before it can be created.
+dynamic_code_allowed_obp_methods=[\
       NewStyle.function.getClass.getTypeName -> "*",\
       CompiledObjects.getClass.getTypeName -> "sandbox",\
       HttpCode.getClass.getTypeName -> "200",\

@@ -124,7 +124,7 @@ case class Role(role_name: String,
                )
 /** JWT claim: one personal dynamic entity the consent user may act on for the granting User. */
 case class ConsentPersonalDynamicEntity(bank_id: String, entity_name: String, actions: List[String]) {
-  def bankIdOpt: Option[String] = Option(bank_id).filter(_.nonEmpty)
+  def bankIdOpt: Option[String] = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(bank_id)
   def covers(bankId: Option[String], entityName: String, action: String): Boolean =
     entity_name == entityName && bankIdOpt == bankId && actions.contains(action)
 }
@@ -1484,9 +1484,9 @@ object Consent extends MdcLoggable {
         badActions(where, entry.actions)
     }.flatten
     val problems: List[String] = customerProblems ++ myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
-      val bankId = Option(entry.bank_id).filter(_.nonEmpty)
+      val bankId = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(entry.bank_id)
       val where = s"personal_dynamic_entities entry (bank_id '${Option(entry.bank_id).getOrElse("")}', entity_name '${entry.entity_name}')"
-      val definition = code.api.dynamic.entity.helper.DynamicEntityHelper.definitionsMap.get((bankId, entry.entity_name))
+      val definition = code.api.dynamic.entity.helper.DynamicEntityHelper.definitionOf(bankId, entry.entity_name)
       List(
         if (entry.entity_name == null || entry.entity_name.isEmpty) Some(s"$where: entity_name is required") else None,
         if (definition.isEmpty) Some(s"$where: no such dynamic entity") else None,

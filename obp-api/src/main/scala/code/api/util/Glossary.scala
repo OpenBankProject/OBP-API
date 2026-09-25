@@ -1234,6 +1234,7 @@ object Glossary extends MdcLoggable  {
 				 |  - CanCreateEntitlementAtOneBank
 				 |  - CanCreateEntitlementAtAnyBank
 				 |Consent users (the principal a Consent-JWT authenticates as) never receive Just in Time Entitlements: their Roles come only from the Consent, even if the Consent carries CanCreateEntitlementAtOneBank.
+				 |Nothing is ever granted this way in the system space either, the space whose bank id is the literal SYS. Reaching that space is meant to be a deliberate act, so a Role there is granted by hand by someone holding the system space granting Role; holding the ordinary per bank granting Role at the bank id SYS grants nothing and the request is refused with the usual missing Role error.
 				 |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 				 |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
 				 |
@@ -1715,7 +1716,7 @@ object Glossary extends MdcLoggable  {
 || `entitlements` | Roles at a Bank or the system (granted) | the User holds the stored Entitlement; virtual Entitlements do not count |
 || `my_resources` | the User's own personal resources (owned), one typed list per kind, e.g. `personal_dynamic_entities` | the kind and instance exist; no Role, the User owns these rows |
 |
-|`my_resources` is accepted by the Create Consent endpoint from v6.0.0 (older create-consent bodies are frozen). Example: `{"personal_dynamic_entities": [{"bank_id": "", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
+|`my_resources` is accepted by the Create Consent endpoint from v6.0.0 (older create-consent bodies are frozen). Example: `{"personal_dynamic_entities": [{"bank_id": "SYS", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. The `bank_id` of an entry is the space the entity lives in: `SYS` for a system-level entity, or the id of the Bank. An empty `bank_id` also means the system space. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
 |
 |
 |
@@ -3691,12 +3692,34 @@ object Glossary extends MdcLoggable  {
 |
 |**Management endpoints:**
 |
+|From v7.0.0 one set of URLs manages the definitions in every space. BANK_ID is a bank's id, or `SYS` for the system space, and each Role is checked at that BANK_ID:
+|
+|* GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities - List the definitions in the space, with record counts (CanGetDynamicEntityDefinitions)
+|* POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities - Create a definition (CanCreateDynamicEntityDefinition)
+|* PUT /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition (CanUpdateDynamicEntityDefinition)
+|* DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID - Delete a definition that has no records (CanDeleteDynamicEntityDefinition)
+|* POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup - Copy a definition and its records to a `_BAK` entity (CanBackupDynamicEntityDefinition)
+|* DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/cascade/DYNAMIC_ENTITY_ID - Delete a definition and its records, after copying both to a `ZZ_BAK_` entity (CanDeleteCascadeDynamicEntityDefinition)
+|
+|**Record endpoints from v7.0.0:**
+|
+|A Dynamic Entity's records are served at `/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...`, with BANK_ID a bank's id or `SYS` for the system space. What follows `dynamic-entities/` is the same as after `/obp/dynamic-entity/`:
+|
+|* ENTITY_NAME and ENTITY_NAME/RECORD_ID - list, create, read, update (PUT and PATCH) and delete
+|* my/ENTITY_NAME[/RECORD_ID] - the caller's own records
+|* public/ENTITY_NAME[/RECORD_ID] and community/ENTITY_NAME[/RECORD_ID] - the read-only forms
+|* ENTITY_NAME/RECORD_ID/access[/USER_ID] - the access list of a row-level entity
+|
+|Every v7.0.0 response carries `bank_id`, `SYS` included. The unversioned `/obp/dynamic-entity/[banks/BANK_ID/]...` URLs serve the same records with the same checks, and keep omitting `bank_id` for the system space.
+|
+|Earlier versions keep their separate management URLs for the system space; their Roles are the same ones, granted at `SYS`:
+|
 |* POST /management/system-dynamic-entities - Create system level entity
 |* POST /management/banks/BANK_ID/dynamic-entities - Create bank level entity
 |* GET /management/system-dynamic-entities - List all system level entities
 |* GET /management/banks/BANK_ID/dynamic-entities - List bank level entities
 |* PUT /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Update entity definition
-|* DELETE /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Delete entity (and all its data)
+|* DELETE /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Delete an entity that has no records
 |
 |**Discovering Dynamic Entity Endpoints (for application developers):**
 |
@@ -3719,8 +3742,8 @@ object Glossary extends MdcLoggable  {
 |
 |**Required roles to manage Dynamic Entities:**
 |
-|* CanCreateSystemLevelDynamicEntity
-|* CanCreateBankLevelDynamicEntity
+|* CanCreateDynamicEntityDefinition, granted at the bank id of the space: `SYS` for the system space, or a bank's id
+|* CanUpdateDynamicEntityDefinition, CanDeleteDynamicEntityDefinition, CanGetDynamicEntityDefinitions, CanBackupDynamicEntityDefinition and CanDeleteCascadeDynamicEntityDefinition, granted the same way
 |
 |**Use cases:**
 |
@@ -3982,8 +4005,7 @@ object Glossary extends MdcLoggable  {
 |
 |**Required roles:**
 |
-|* CanCreateSystemLevelDynamicEntity - To create system level dynamic entities
-|* CanCreateBankLevelDynamicEntity - To create bank level dynamic entities
+|* CanCreateDynamicEntityDefinition - To create dynamic entities. Granted at `SYS` it covers the system space; granted at a bank's id it covers that bank.
 |
 |For general information about Dynamic Entities, see ${getGlossaryItemLink("Dynamic-Entities")}
 |

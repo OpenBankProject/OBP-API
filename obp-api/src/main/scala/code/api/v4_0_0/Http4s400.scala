@@ -54,7 +54,7 @@ import code.consent.ConsentStatus
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, UserInvitationPurpose}
 import java.util.Date
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.{ApiRole => ApiRoleObj}
 import code.api.util.newstyle.ViewNewStyle
 import code.users.Users
@@ -1531,7 +1531,7 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "management" / "system-dynamic-entities" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemLevelDynamicEntities, Some(cc))
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canGetDynamicEntityDefinitions, cc)
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
@@ -1562,9 +1562,9 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canGetSystemLevelDynamicEntities)),
+      Some(List(canGetDynamicEntityDefinitions)),
       http4sPartialFunction = Some(getSystemDynamicEntities)
-    )
+    ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── getBankLevelDynamicEntities ──────────────────────────────────────────
 
@@ -1572,8 +1572,6 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "management" / "banks" / _ / "dynamic-entities" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(bank.bankId.value, user.userId,
-              List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities), Some(cc))
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bank.bankId.value), false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
@@ -1605,7 +1603,7 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities)),
+      Some(List(canGetDynamicEntityDefinitions)),
       http4sPartialFunction = Some(getBankLevelDynamicEntities)
     )
 
@@ -1690,9 +1688,12 @@ object Http4s400 {
           DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
         )
       } yield {
+        // The Record Roles name a space, and a definition with no bank belongs to the system space, so
+        // the creator's grants go to DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty bank id.
+        // Granting at "" would write rows nothing reads, locking the creator out of the entity they
+        // had just defined. Same rule as the v6.0.0 creation path.
         crudRoles.foreach(role =>
-          Entitlement.entitlement.vend.addEntitlement(
-            dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
+          Entitlement.entitlement.vend.addEntitlement(DynamicEntitySpace.bankIdOrSystem(dynamicEntity.bankId), cc.userId, role.toString()))
         val commonsData: DynamicEntityCommons = result
         commonsData.jValue
       }
@@ -1718,7 +1719,7 @@ object Http4s400 {
         commonsData.jValue
       }
 
-    private def deleteDynamicEntityImpl(bankId: Option[String], dynamicEntityId: String, cc: CallContext): Future[Box[Boolean]] =
+    private[api] def deleteDynamicEntityImpl(bankId: Option[String], dynamicEntityId: String, cc: CallContext): Future[Box[Boolean]] =
       for {
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankId, dynamicEntityId, Some(cc))
         (box, _) <- NewStyle.function.invokeDynamicConnector(
@@ -1741,6 +1742,7 @@ object Http4s400 {
             jsonObj <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).asInstanceOf[JObject]
             }
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canCreateDynamicEntityDefinition, cc)
             dynamicEntity <- tryOrApiFail(cc) {
               DynamicEntityCommons(jsonObj, None, cc.userId, None)
             }
@@ -1762,8 +1764,9 @@ object Http4s400 {
       dynamicEntityResponseBodyExample,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateSystemLevelDynamicEntity)),
+      Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createSystemDynamicEntity))
+      .disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── createBankLevelDynamicEntity ─────────────────────────────────────────
 
@@ -1798,7 +1801,7 @@ object Http4s400 {
       dynamicEntityResponseBodyExample,
       List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateBankLevelDynamicEntity, canCreateAnyBankLevelDynamicEntity)),
+      Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createBankLevelDynamicEntity))
 
     // ─── updateSystemDynamicEntity ────────────────────────────────────────────
@@ -1811,6 +1814,7 @@ object Http4s400 {
             json <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody)
             }
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canUpdateDynamicEntityDefinition, cc)
             result <- updateDynamicEntityImpl(None, dynamicEntityId, json, cc)
           } yield result
         }
@@ -1833,8 +1837,9 @@ object Http4s400 {
       dynamicEntityResponseBodyExample,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canUpdateSystemDynamicEntity)),
+      Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateSystemDynamicEntity))
+      .disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── updateBankLevelDynamicEntity ─────────────────────────────────────────
 
@@ -1868,7 +1873,7 @@ object Http4s400 {
       dynamicEntityResponseBodyExample,
       List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canUpdateBankLevelDynamicEntity)),
+      Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateBankLevelDynamicEntity))
 
     // ─── deleteSystemDynamicEntity (200) ─────────────────────────────────────
@@ -1876,7 +1881,10 @@ object Http4s400 {
     lazy val deleteSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          deleteDynamicEntityImpl(None, dynamicEntityId, cc).map(_ => JObject(Nil))
+          for {
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canDeleteDynamicEntityDefinition, cc)
+            _ <- deleteDynamicEntityImpl(None, dynamicEntityId, cc)
+          } yield JObject(Nil)
         }
     }
 
@@ -1901,9 +1909,9 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canDeleteSystemLevelDynamicEntity)),
+      Some(List(canDeleteDynamicEntityDefinition)),
       http4sPartialFunction = Some(deleteSystemDynamicEntity)
-    )
+    ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── deleteBankLevelDynamicEntity (200) ──────────────────────────────────
 
@@ -1936,7 +1944,7 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canDeleteBankLevelDynamicEntity)),
+      Some(List(canDeleteDynamicEntityDefinition)),
       http4sPartialFunction = Some(deleteBankLevelDynamicEntity)
     )
 

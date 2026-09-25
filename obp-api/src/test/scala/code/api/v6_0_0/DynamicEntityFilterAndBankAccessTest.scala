@@ -35,6 +35,7 @@ import org.json4s.native.Serialization.write
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
  * Characterization tests for two areas of the dynamic-entity runtime CRUD that were
@@ -73,27 +74,27 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
     (("entity_name" -> entityName) ~ ("has_personal_entity" -> true) ~ ("schema" -> twoFieldSchema)) merge extraFlags
 
   def createSystemEntity(entityJson: JValue): (Int, JValue) = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
     val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
     val response = makePostRequest(request, write(entityJson))
     (response.code, response.body)
   }
 
   def deleteSystemEntity(dynamicEntityId: String): Unit = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
     val deleteRequest = (v6_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
     makeDeleteRequest(deleteRequest)
   }
 
   def createBankEntity(bankId: String, entityJson: JValue): (Int, JValue) = {
-    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
     val request = (v6_0_0_Request / "management" / "banks" / bankId / "dynamic-entities").POST <@(user1)
     val response = makePostRequest(request, write(entityJson))
     (response.code, response.body)
   }
 
   def deleteBankEntity(bankId: String, dynamicEntityId: String): Unit = {
-    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteBankLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
     val deleteRequest = (v6_0_0_Request / "management" / "banks" / bankId / "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
     makeDeleteRequest(deleteRequest)
   }
@@ -167,7 +168,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
 
       try {
         When("user1 creates two non-personal records via the system endpoint")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_filter_public")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_filter_public")
         val create = (dynamicEntity_Request / "test_filter_public").POST <@(user1)
         makePostRequest(create, write(record("Pub1", 10))).code should equal(201)
         makePostRequest(create, write(record("Pub2", 20))).code should equal(201)
@@ -200,7 +201,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
         makePostRequest(create, write(record("Com2", 200))).code should equal(201)
 
         And("user1 has the CanGet role for community access")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanGetDynamicEntity_Systemtest_filter_community")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanGetDynamicEntityRecord_test_filter_community")
         val base = (dynamicEntity_Request / "community" / "test_filter_community").GET <@(user1)
 
         Then("GET-all returns both")
@@ -230,7 +231,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
 
       try {
         When("user1 creates a non-personal bank-level record")
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, "CanCreateDynamicEntity_test_bank_public")
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_bank_public")
         val create = (dynamicEntity_Request / "banks" / bankId / "test_bank_public").POST <@(user1)
         val createResponse = makePostRequest(create, write(record("BankPub", 1)))
         createResponse.code should equal(201)
@@ -265,7 +266,7 @@ class DynamicEntityFilterAndBankAccessTest extends V600ServerSetup {
         makeGetRequest(base.GET <@(user2)).code should equal(403)
 
         When("user2 is granted the bank-level CanGet role")
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser2.userId, "CanGetDynamicEntity_test_bank_community")
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser2.userId, "CanGetDynamicEntityRecord_test_bank_community")
         Then("the GET now returns 200")
         makeGetRequest(base.GET <@(user2)).code should equal(200)
       } finally {

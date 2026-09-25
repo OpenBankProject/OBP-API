@@ -3376,8 +3376,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
 }
 
-/** One personal dynamic entity the Consent may act on for the granting User: bank_id "" for a
- *  system-level entity; actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
+/** One personal dynamic entity the Consent may act on for the granting User: bank_id "SYS" for a
+ *  system-level entity (the empty string is still accepted for it); actions are "read" and/or "write".
+ *  ideas/CONSENT_MY_RESOURCES.md */
 case class PostConsentPersonalDynamicEntityJson(bank_id: String, entity_name: String, actions: List[String])
 /** The granting User's linked Customers at one Bank that the Consent may act on. bank_id is required:
  *  a Customer belongs to a Bank, and naming it keeps the grant as narrow as the User meant it.

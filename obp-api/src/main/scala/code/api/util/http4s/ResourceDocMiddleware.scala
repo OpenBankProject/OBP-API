@@ -322,7 +322,7 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- validateDuplicateQueryParams(cc, initialContext)
       context <- authenticate(req, resourceDoc, context)
       context <- refuseUnresolvedUKConsent(resourceDoc, context)
-      context <- validateBank(pathParams, context)
+      context <- validateBank(resourceDoc, pathParams, context)
       context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
       context <- validateView(pathParams, context)
@@ -610,10 +610,18 @@ object ResourceDocMiddleware extends MdcLoggable {
       success(ctx)
   }
 
-  /** Bank validation: checks BANK_ID and fetches bank */
-  private def validateBank(pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
+  /**
+   * Bank validation: checks BANK_ID and fetches the bank.
+   *
+   * The one exception is the system space. A ResourceDoc that declares allowSystemSpace() accepts
+   * DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS) as BANK_ID, and the request goes on with no bank
+   * resolved. Every other endpoint still answers 404 for SYS, because no bank has that id.
+   */
+  private def validateBank(resourceDoc: ResourceDoc, pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
 
     pathParams.get("BANK_ID") match {
+      case Some(bankId) if bankId == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID && resourceDoc.allowsSystemSpace =>
+        DSL.success(ctx)
       case Some(bankId) =>
         EitherT(
           IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext))))
