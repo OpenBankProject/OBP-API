@@ -1183,41 +1183,41 @@
       "version": "v6_0_0",
       "endpoint": "createBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
       "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "a520ce22176587451f8d8d6bf6886bff796789885d37954bcf3229e1d8eb3f07"
+      "http4s_digest": "2177cf2f3d19eed21d73bacb62cf340e195298eb334857a67e24b4ccdaab61ce"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
       "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "da38d765f6c3d2d20e3ee1926b694379992f3516bbd216eb577ea87a31f05ff1"
+      "http4s_digest": "a216f7033fb45112130ff7ae7acee56b02ee0443d428e60fcaee1415ba4083b4"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
       "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "deb202032cdb70e656bba7d2b1ccce8e684040028cfa9a8dca5af32899d15919"
+      "http4s_digest": "0853c5554b070120aa477631bb4ce97f36b60e09acaad61f64199d407fd3d1da"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
       "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "c416426234c796ac9b38889b4672ba90e20f956e3fc0bf198353d423cc9ece23"
+      "http4s_digest": "c8b602bc69dc86b8eb92e52f18e0a2714ef0d14d5de560186da8a372c6af2ecf"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
       "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "5412357d39eff3acd773dcccb1d2675253d1261424c3d9aa37bf28fd99a37a10"
+      "http4s_digest": "787e40986d922b9f0d28ce3f1b3f5110f8521bc2a26fab8b3923e6851c41bfc4"
     },
     {
       "version": "v3_0_0",

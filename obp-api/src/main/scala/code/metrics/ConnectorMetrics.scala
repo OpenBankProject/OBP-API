@@ -91,7 +91,7 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
   }
 
   override def bulkDeleteConnectorMetrics(): Boolean = {
-    MappedMetric.bulkDelete_!!()
+    MappedConnectorMetric.bulkDelete_!!()
   }
 
 }

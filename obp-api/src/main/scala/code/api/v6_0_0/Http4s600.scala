@@ -9164,7 +9164,7 @@ object Http4s600 {
           UnknownError
         ),
         List(apiTagMetric, apiTagApi),
-        None,
+        Some(List(canGetConnectorTrace)),
         http4sPartialFunction = Some(getConnectorTraces)
       )
       resourceDocs += ResourceDoc(
@@ -13774,7 +13774,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagApi :: Nil,
-        None,
+        Some(List(canGetConfigProps)),
         http4sPartialFunction = Some(getConfigProps)
       )
       // Intentional drift from Lift's APIMethods600.scala source-of-truth:

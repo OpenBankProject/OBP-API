@@ -30,10 +30,12 @@ package code.api.util
 import org.json4s._
 import code.api.util.APIUtil.MessageDoc
 import com.openbankproject.commons.util.ReflectUtils
-import com.tesobe.CacheKeyFromArguments
+import com.google.common.cache.{Cache, CacheBuilder, CacheStats}
 import org.json4s.JsonDSL._
 
-import scala.concurrent.duration._
+import java.util.concurrent.Callable
+import java.util.concurrent.atomic.AtomicLong
+
 import scala.reflect.runtime.universe._
 
 /**
@@ -56,20 +58,34 @@ object JsonSchemaGenerator {
    * Redis-backed cache in front of this, but that one silently falls through to a full
    * recompute if Redis is unreachable or slow -- this in-memory layer doesn't depend on
    * Redis at all, so it stays a working safety net even when Redis is the one struggling.
+   *
+   * The key is the connector name only. It must not be derived from `messageDocs`: turning the
+   * whole list (with every example message) into a key string costs megabytes per call.
+   * Callers always pass the named connector's own message docs.
    */
-  def messageDocsToJsonSchema(messageDocs: List[MessageDoc], connectorName: String): JObject = {
-    // This 3-tuple of random UUIDs is a placeholder only -- CacheKeyFromArguments is a macro
-    // that replaces it at compile time with a real key derived from this method's owner,
-    // name and arguments (regardless of this method's own arity; the convention throughout
-    // this codebase is always a 3-tuple here). See:
-    // https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-    var cacheKey = (java.util.UUID.randomUUID().toString, java.util.UUID.randomUUID().toString, java.util.UUID.randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      code.api.cache.Caching.memoizeSyncWithImMemory(Some(cacheKey.toString()))(100000.days) {
+  def messageDocsToJsonSchema(messageDocs: List[MessageDoc], connectorName: String): JObject =
+    try schemaCache.get(connectorName, new Callable[JObject] {
+      def call(): JObject = {
+        generatorCallsCounter.incrementAndGet()
         messageDocsToJsonSchemaUncached(messageDocs, connectorName)
       }
+    })
+    catch {
+      // Surface the generator's own exception, not Guava's wrapper.
+      case e: java.util.concurrent.ExecutionException if e.getCause != null => throw e.getCause
+      case e: com.google.common.util.concurrent.UncheckedExecutionException if e.getCause != null => throw e.getCause
     }
-  }
+
+  private val schemaCache: Cache[String, JObject] =
+    CacheBuilder.newBuilder().maximumSize(64L).recordStats().build[String, JObject]()
+
+  private val generatorCallsCounter = new AtomicLong(0)
+
+  /** Cache hits and misses, for tests and monitoring. */
+  def cacheStats: CacheStats = schemaCache.stats()
+
+  /** Times a schema was actually built (cache misses that reached the reflection walk). */
+  def generatorCalls: Long = generatorCallsCounter.get()
 
   private def messageDocsToJsonSchemaUncached(messageDocs: List[MessageDoc], connectorName: String): JObject = {
     val allDefinitions = scala.collection.mutable.Map[String, JObject]()
