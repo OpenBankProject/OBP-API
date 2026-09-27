@@ -11,8 +11,9 @@ would have explained it (live thread count, heap left after garbage collection, 
 log queue depth) were either not collected at all or were held in hand-written counters that nothing
 exported.
 
-Status, 2026-09-27: the conventions are agreed; the code is not built yet. Section 11 lists what
-exists today and section 12 the assumptions made while the DevOps answers are pending.
+Status, 2026-09-27: the first part is built (`code.telemetry`, the separate port, the v7.0.0
+endpoint and the guard tests). Section 13 lists what is recorded today and what is not yet, and
+section 12 the assumptions made while the DevOps answers are pending.
 
 ## 1. The name: Telemetry, not metrics
 
@@ -176,8 +177,10 @@ up without anyone remembering to add it later.
 
 **For Prometheus: a separate port on each instance.**
 
-- Props `telemetry.enabled` (default `false`) and `telemetry.port`, documented in
-  `sample.props.template`. The default is off because, on a bare host, any open port may be
+- Props `telemetry.port.enabled` (default `false`), `telemetry.host` (default `0.0.0.0`) and
+  `telemetry.port` (default `9464`), documented in `sample.props.template`. They control the port
+  only: Telemetry is always recorded, because recording costs an atomic add and the endpoint below
+  reads the same registry. The port is off by default because, on a bare host, any open port may be
   reachable; each deployment switches it on deliberately. `9464` is the conventional port (it is
   the OpenTelemetry Prometheus exporter's default).
 - The path is `/telemetry`, not Prometheus's default `/metrics`, to keep the word "metrics" to its
@@ -199,8 +202,9 @@ load it is meant to reveal; and every scrape would write an API Metrics row.
   id, like `CanReadMetrics` and `CanGetConfig`. It is a separate Role from `CanReadMetrics` because
   JVM and cache figures are different information from API usage records.
 - The response names the instance that answered (`api_instance_id`, section 8) and the build
-  commit, then gives the figures grouped by area. A reader behind a load balancer can then tell
-  which node the figures describe.
+  commit, then lists every meter with its tags and current values, sorted by name. The query
+  parameter `name_prefix` narrows the list to one area, for example `?name_prefix=obp.api.endpoint`.
+  A reader behind a load balancer can tell which node the figures describe.
 - It reads the same registry as the port, so the two views cannot disagree.
 - Its ResourceDoc description states this instance's actual settings, taken from the props at
   start-up (for example, the port Prometheus should scrape and the path, or that the port is off),
@@ -213,27 +217,36 @@ load it is meant to reveal; and every scrape would write an API Metrics row.
   lines), not only what they return. `PerformanceBudgetTest` and `LoggingCostBudgetTest` are the
   first. Once the registry exists they read from it instead of from bespoke getters, so tests and
   production dashboards look at the same numbers.
-- **A structural test**, in the style of `MappedClassNameTest`, fails when:
-  - a new `AtomicLong` counter, or a Guava cache not registered with `Telemetry`, appears outside
-    `code.telemetry`;
-  - after a suite has run, a registered name breaks section 5, or a tag has more distinct values
-    than a small fixed limit (section 6).
+- **`TelemetryConventionsTest`** (`obp-api/src/test/scala/code/telemetry/`) holds the code to this
+  document. It fails when:
+  - a file outside `code.telemetry` holds more `AtomicLong(` counters than its allowlist entry
+    (the allowlist only shrinks; a lower count than the entry also fails, so the entry is lowered);
+  - a file builds a Guava cache (`CacheBuilder.newBuilder`) without wrapping it in
+    `Telemetry.monitorCache`;
+  - the running server registered a meter that is neither `obp.api.*` nor a standard family
+    (`jvm.`, `process.`, `system.`, `hikaricp.`, `cache.`);
+  - a series carries a tag key that names an identifier (user, consumer, consent, account,
+    transaction, customer, bank, URL, path, correlation id, `api_instance_id` outside the info
+    series).
+  A limit on the number of distinct values per tag is not checked yet.
+- **`TelemetryTest`** checks the naming rule, the Prometheus form of counters, endpoint and Connector
+  timers (including the fixed buckets), and the separate port (served at `/telemetry`, 404
+  elsewhere), without a server.
+- **`TelemetryEndpointTest`** checks the v7.0.0 endpoint: 401, 403 without the Role, the instance
+  id, the standard and start-up meters, the middleware's count of the endpoint's own requests, and
+  `name_prefix`.
 
-Hand-written counters that exist today, to move onto the registry (each keeps its getter until its
-callers read the registry):
+The hand-written counters that existed when Telemetry arrived are now exported through
+`TelemetryBindings`, which reads their getters, so the code that counts is unchanged:
 
-| Site | Counter | Meaning |
+| Site | Counter | Exported as |
 |---|---|---|
-| `obp-api/src/main/scala/code/util/Helper.scala:330` | `mdcLogDropped` | log entries dropped because the dispatch queue was full |
-| `obp-api/src/main/scala/code/util/Helper.scala:331` | `mdcLogDispatched` | log entries accepted by the dispatch pool |
-| `obp-api/src/main/scala/code/util/Helper.scala:332` | `mdcLogInline` | WARN or ERROR entries written on the caller because the queue was full |
-| `obp-api/src/main/scala/code/util/SecureLogging.scala:169` | `maskCallsCounter` | times log masking ran |
-| `obp-api/src/main/scala/code/api/util/JsonSchemaGenerator.scala:82` | `generatorCallsCounter` | times the connector JSON Schema was generated |
-| `obp-api/src/main/scala/code/api/v2_2_0/MessageDocsJsonCache.scala:62` | `generatorCallsCounter` | times the message-docs response was generated |
-| `obp-api/src/main/scala/code/api/v2_2_0/MessageDocsJsonCache.scala:63`–`:65` | `sharedGets`, `sharedHits`, `sharedSets` | the shared (Redis) level of the message-docs cache |
-| `obp-api/src/main/scala/code/metricsstream/MetricsEventBus.scala:167` | `dropped` | API Metrics stream events dropped |
-| `obp-api/src/main/scala/code/logcache/LogCacheEventBus.scala:179` | `dropped` | log cache stream events dropped |
-| `obp-api/src/main/scala/code/api/cache/RedisLogger.scala:111` | `consecutiveFailures` | Redis log shipping failures in a row; a gauge, not a counter |
+| `obp-api/src/main/scala/code/util/Helper.scala:330`–`:332` | `mdcLogDropped`, `mdcLogDispatched`, `mdcLogInline` | `obp.api.log.dispatch.entries{result=dropped/dispatched/inline}`; queue depth as `obp.api.log.dispatch.queue.depth` |
+| `obp-api/src/main/scala/code/util/SecureLogging.scala:169` | `maskCallsCounter` | `obp.api.log.masking.calls` |
+| `obp-api/src/main/scala/code/api/util/JsonSchemaGenerator.scala:82` | `generatorCallsCounter` | `obp.api.json_schema.generations` |
+| `obp-api/src/main/scala/code/api/v2_2_0/MessageDocsJsonCache.scala:62`–`:65` | `generatorCallsCounter`, `sharedGets`, `sharedHits`, `sharedSets` | `obp.api.message_docs.generations`, `obp.api.message_docs.shared.gets{result=hit/miss}`, `obp.api.message_docs.shared.sets` |
+| `obp-api/src/main/scala/code/metricsstream/MetricsEventBus.scala` and `code/logcache/LogCacheEventBus.scala` | per-subscriber `dropped` (logged only) | `obp.api.stream.messages.dropped{stream=metrics/log_cache}`, counted at the drop site across all subscribers |
+| `obp-api/src/main/scala/code/api/cache/RedisLogger.scala:111` | `consecutiveFailures` | `obp.api.redis_logger.consecutive_failures` (a gauge) |
 
 ## 12. Assumptions pending the DevOps answers
 
@@ -262,3 +275,28 @@ Before OBP-API itself carries Telemetry, the JVM figures can be collected from a
 with no code change: the Prometheus JMX exporter is a Java agent added to the JVM start command
 (`-javaagent:jmx_prometheus_javaagent.jar=9404:config.yaml`), which serves heap, garbage-collection,
 thread and class figures on its own port. Remove it once the Micrometer JVM binders are in.
+
+## 13. What is recorded today
+
+| Meter | Type | Tags | Recorded at |
+|---|---|---|---|
+| `obp.api.endpoint.requests` | timer, fixed buckets | `operation`, `api_version`, `status` | `ResourceDocMiddleware`, once per request, by the hop that matched a ResourceDoc |
+| `obp.api.endpoint.response.size` | distribution summary, bytes | `operation` | the same, when the response states its length |
+| `obp.api.connector.calls` | timer, fixed buckets | `connector`, `connector_method`, `result` | the Connector proxy (`code/bankconnectors/package.scala`) |
+| `obp.api.redis.commands` | timer | `command`, `result` | `Redis.use` |
+| `cache.gets`, `cache.puts`, `cache.evictions`, `cache.size` | standard | `cache` = `in_memory`, `json_schema`, `message_docs`, `on_behalf_of` | every Guava cache, through `Telemetry.monitorCache` |
+| `hikaricp.*` | standard | `pool` | the database pool (`CustomDBVendor`) |
+| `jvm.*`, `process.*`, `system.*` | standard | | JVM memory, heap after garbage collection (`jvm.memory.usage.after.gc`), garbage collection, threads, classes, CPU, uptime, open files |
+| `obp.api.instance.info` | gauge, always 1 | `api_instance_id`, `git_commit` | start-up |
+| the counters in section 11 | | | `TelemetryBindings` |
+
+Not recorded yet:
+- hits and misses of `Caching.memoize*` with the Redis provider (the in-memory provider is covered
+  through the `in_memory` cache);
+- the batch writers for API Metrics and Connector Metrics: their queues are
+  `ConcurrentLinkedQueue`s, whose size costs a walk of the whole queue, so they need their own
+  counters rather than a gauge on `size()`;
+- item counts of list responses;
+- endpoints without a ResourceDoc (Dynamic Entity records, Dynamic Endpoints, the unversioned
+  routes), which do not pass through the matching branch of `ResourceDocMiddleware`.
+

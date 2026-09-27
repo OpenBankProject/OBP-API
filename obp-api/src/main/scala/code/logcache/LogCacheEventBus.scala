@@ -170,6 +170,9 @@ object LogCacheEventBus extends MdcLoggable {
    * On queue-full: drop oldest. On delivery error: stop the thread and let
    * the gRPC cancel handler clean up the subscription.
    */
+  // Drops across every subscriber, for Telemetry. The per-subscriber count below is only logged.
+  private lazy val StreamDropsCounter = code.telemetry.Telemetry.counter("obp.api.stream.messages.dropped", "stream" -> "log_cache")
+
   private class BufferedObserver(
     inner: StreamObserver[String],
     channelKey: String,
@@ -186,6 +189,7 @@ object LogCacheEventBus extends MdcLoggable {
       if (!queue.offer(msg)) {
         queue.poll() // drop oldest
         queue.offer(msg)
+        StreamDropsCounter.increment()
         val d = dropped.incrementAndGet()
         if (d == 1L || d % 1000L == 0L) {
           logger.warn(s"LogCacheEventBus says: Dropping messages on $channelKey (slow consumer); dropped so far: $d")

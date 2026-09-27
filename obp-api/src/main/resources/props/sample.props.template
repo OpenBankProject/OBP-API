@@ -257,6 +257,18 @@ write_connector_metrics=false
 ## Enable writing connector traces (full outbound/inbound message payloads per call) to RDBMS table `connector_trace`. Verbose — keep off in prod unless debugging.
 write_connector_trace=false
 
+## Telemetry: aggregated numbers about this instance (request rates and durations per endpoint,
+## Connector calls, caches, the database pool, memory, garbage collection, threads) for Prometheus.
+## Not API Metrics: see docs/telemetry_conventions.md. Telemetry is always recorded; these props
+## only decide whether a separate port serves it. Prometheus scrapes each instance's port at the
+## path /telemetry (set `metrics_path: /telemetry` in the scrape configuration). Never publish the
+## port outside the host or cluster: it has no authentication. People can also read Telemetry
+## through GET /obp/v7.0.0/management/telemetry with the Role CanGetTelemetry.
+## Defaults live in code.telemetry.Telemetry.
+# telemetry.port.enabled=false
+# telemetry.host=0.0.0.0
+# telemetry.port=9464
+
 ## ElasticSearch
 #allow_elasticsearch=true
 #allow_elasticsearch_warehouse=true

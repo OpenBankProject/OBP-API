@@ -197,7 +197,8 @@ object ResourceDocMiddleware extends MdcLoggable {
                     else RequestScopeConnection.withBusinessDBTransaction(routeIO)
                   executed.map(Option(_))
               }
-            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)))
+            val startNanos = System.nanoTime()
+            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)).flatTap(recordTelemetry(resourceDoc, startNanos)))
 
           case None =>
             // This group has no ResourceDoc for the request. Almost always the request is simply
@@ -221,6 +222,22 @@ object ResourceDocMiddleware extends MdcLoggable {
       }
     }
   }
+
+  /**
+   * Records Telemetry for a request this group served: its duration, status class and, when the
+   * response states its length, its size. Only the hop that matched a ResourceDoc records, so a
+   * request that crossed several version hops is counted once. A request that fell through (a
+   * disabled endpoint) returned no response here and is not recorded.
+   */
+  private def recordTelemetry(resourceDoc: ResourceDoc, startNanos: Long)(response: Option[Response[IO]]): IO[Unit] =
+    response match {
+      case Some(served) => IO {
+        code.telemetry.Telemetry.recordEndpoint(
+          resourceDoc.operationId, resourceDoc.implementedInApiVersion.apiShortVersion,
+          served.status.code, System.nanoTime() - startNanos, served.contentLength)
+      }
+      case None => IO.unit
+    }
 
   /**
    * Resolve the caller for a hop that has no ResourceDoc for the request, once per request.

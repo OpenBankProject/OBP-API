@@ -564,6 +564,11 @@ object ApiRole extends MdcLoggable{
   case class CanGetConfigProps(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConfigProps = CanGetConfigProps()
 
+  // Telemetry is about the running instance, which belongs to no bank, so the Role is held at the
+  // empty bank id. It is separate from CanReadMetrics: JVM and cache figures are not API usage records.
+  case class CanGetTelemetry(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetTelemetry = CanGetTelemetry()
+
   case class CanGetSignalStats(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSignalStats = CanGetSignalStats()
 

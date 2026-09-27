@@ -7243,6 +7243,9 @@ object Http4s700 {
     // object to keep this initialiser under the JVM's 64KB method limit.
     resourceDocs ++= Http4s700DynamicEntityDefinitions.resourceDocs
 
+    // Telemetry, for people; Prometheus reads the separate Telemetry port instead.
+    resourceDocs ++= Http4s700Telemetry.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))

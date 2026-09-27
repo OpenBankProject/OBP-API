@@ -6897,6 +6897,11 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |Each running OBP-API process has its own `api_instance_id`, the same id that appears on every API Metrics record it writes. Telemetry reports it alongside the build commit, so figures from one instance can be matched with that instance's API Metrics.
 				 |
+				 |## Reading Telemetry
+				 |
+				 |- **Prometheus** collects Telemetry from a separate port of each OBP-API instance, at the path `/telemetry`, in the Prometheus text format. Reading each instance directly keeps figures from different instances apart, and the port keeps answering when the API itself is overloaded. ${if (code.telemetry.Telemetry.portSettings.enabled) s"On this instance the port is open, on port ${code.telemetry.Telemetry.portSettings.port}." else "On this instance the port is not open."}
+				 |- **People** can read the same figures with `GET /obp/v7.0.0/management/telemetry`, which requires the Role CanGetTelemetry. Its response names the instance that answered.
+				 |
 				 |See also: [API Metrics](/glossary#API-Metrics), [Connector Metrics](/glossary#Connector-Metrics), [Rate Limiting](/glossary#Rate-Limiting), [Connector](/glossary#Connector), [Resource Doc](/glossary#Resource-Doc).
 				 |
 """)

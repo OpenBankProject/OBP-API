@@ -76,8 +76,8 @@ object JsonSchemaGenerator {
       case e: com.google.common.util.concurrent.UncheckedExecutionException if e.getCause != null => throw e.getCause
     }
 
-  private val schemaCache: Cache[String, JObject] =
-    CacheBuilder.newBuilder().maximumSize(64L).recordStats().build[String, JObject]()
+  private val schemaCache: Cache[String, JObject] = code.telemetry.Telemetry.monitorCache(
+    CacheBuilder.newBuilder().maximumSize(64L).recordStats().build[String, JObject](), "json_schema")
 
   private val generatorCallsCounter = new AtomicLong(0)
 

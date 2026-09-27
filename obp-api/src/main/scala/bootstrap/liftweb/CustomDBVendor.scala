@@ -87,6 +87,9 @@ class CustomDBVendor(driverName: String,
     config.addDataSourceProperty("prepStmtCacheSize", "250")
     config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
 
+    // Telemetry: the pool's connections, waits and timeouts, as the standard hikaricp_* series.
+    config.setMetricRegistry(code.telemetry.Telemetry.registry)
+
     val ds: HikariDataSource = new HikariDataSource(config)
   }
 

@@ -208,6 +208,8 @@ object Redis extends MdcLoggable {
     if(ttlSeconds.equals(Some(0))){ // set ttl = 0, we will totally turn off the cache
       None
     }else{
+      val startNanos = System.nanoTime()
+      var succeeded = false
       try {
         jedisConnection = Some(jedisPool.getResource())
 
@@ -236,13 +238,18 @@ object Redis extends MdcLoggable {
           throw new RuntimeException("Please check the Redis.use parameters, if the method == set, the value can not be None !!!")
         }
         //change the null to Option
-        APIUtil.stringOrNone(redisResult)
+        val result = APIUtil.stringOrNone(redisResult)
+        succeeded = true
+        result
       } catch {
         case e: Throwable =>
           throw new RuntimeException(e)
       } finally {
         if (jedisConnection.isDefined && jedisConnection.get != null)
           jedisConnection.map(_.close())
+        code.telemetry.Telemetry.timer("obp.api.redis.commands",
+          "command" -> method.toString, "result" -> (if (succeeded) "success" else "error"))
+          .record(System.nanoTime() - startNanos, java.util.concurrent.TimeUnit.NANOSECONDS)
       }
     }
   }

@@ -3,6 +3,29 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+27/09/2026    TBD           NEW: Telemetry, aggregated numbers about each running instance for
+                            Prometheus and Grafana (not API Metrics; see the Glossary entry
+                            "Telemetry" and docs/telemetry_conventions.md). Recorded always:
+                            requests per endpoint (by operation id, API version and status class),
+                            Connector calls per method, Redis commands, cache hits and misses, the
+                            database pool, the log dispatch queue, memory, garbage collection and
+                            threads.
+                            NEW props: telemetry.port.enabled (default false), telemetry.host
+                            (default 0.0.0.0), telemetry.port (default 9464). When enabled, a
+                            separate port serves Telemetry at /telemetry in the Prometheus text
+                            format. It has no authentication: never publish it outside the host or
+                            cluster.
+                            NEW in v7.0.0: GET /management/telemetry, the same figures as JSON, with
+                            the new Role CanGetTelemetry (instance-wide, empty bank id).
+                            NEW dependency: Micrometer 1.17.1 (micrometer-core,
+                            micrometer-registry-prometheus).
+27/09/2026    785f1a4b7     FIXED: three endpoints had lost their Role in the move to http4s and
+                            now require it again, so callers without it get 403:
+                              GET /obp/v6.0.0/management/connector/traces  CanGetConnectorTrace
+                              GET /obp/v6.0.0/management/config-props      CanGetConfigProps
+                              PUT /obp/v4.0.0/banks/BANK_ID/atms/ATM_ID    CanUpdateAtm (at BANK_ID)
+                            updateAtm had accepted CanCreateAtmAtAnyBank by mistake; it now accepts
+                            only CanUpdateAtm at the bank, in line with retiring any-bank Roles.
 24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's
                             DEFINITION, completing the change below. Each System and BankLevel pair
                             is now one Role, granted at a bank's id or at SYS for the system space:

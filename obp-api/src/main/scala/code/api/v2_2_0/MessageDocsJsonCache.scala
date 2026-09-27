@@ -55,8 +55,8 @@ object MessageDocsJsonCache extends Loggable {
 
   private def sharedKey(connectorName: String) = s"message-docs-v2.2.0-$connectorName"
 
-  private val cache: Cache[String, JValue] =
-    CacheBuilder.newBuilder().maximumSize(MaxEntries).recordStats().build[String, JValue]()
+  private val cache: Cache[String, JValue] = code.telemetry.Telemetry.monitorCache(
+    CacheBuilder.newBuilder().maximumSize(MaxEntries).recordStats().build[String, JValue](), "message_docs")
 
   // Counters for tests and monitoring. They only ever go up; compare before and after values.
   private val generatorCallsCounter = new AtomicLong(0)
