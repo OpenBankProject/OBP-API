@@ -3848,7 +3848,7 @@ object Glossary extends MdcLoggable  {
 || Call | Does |
 ||---|---|
 || `GET /obp/dynamic-entity/ENTITY/RECORD_ID/access` | lists who may read, update, delete and grant this record, and who granted them |
-|| `POST /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them: `user_id` is required, `can_read`, `can_update` and `can_delete` default to `false`, `can_grant` defaults to `true` |
+|| `PUT /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them: `user_id` is required, `can_read`, `can_update` and `can_delete` default to `false`, `can_grant` defaults to `true` |
 || `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/USER_ID` | revokes that User, cascading to every grant they passed on |
 |
 |Bank level entities take the same paths under `/banks/BANK_ID/`. The caller needs `can_grant` on the record — the User who created it has it — or `CanGrantDynamicEntityRowAccess_SystemENTITY` (`CanGrantDynamicEntityRowAccess_ENTITY` at a bank), which administers any record. The calls return 400 on an entity that is not row level. Creating a record still takes the entity's Create role, and `useRowLevelAccess` is only supported for locally-backed entities.
@@ -6769,6 +6769,140 @@ object Glossary extends MdcLoggable  {
 				 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
 				 |
 				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "API Metrics",
+		description =
+			s"""
+				 |# API Metrics
+				 |
+				 |**API Metrics** are OBP-API's record of the calls made to it: one record for every API call, saying who made the call, which endpoint it reached, when, how long it took and what status it returned. They are used to see how the API is being used (which endpoints, which Consumers, which Users), to follow up a particular call, and to review the calls made by a Consumer or by an agent acting under a Consent.
+				 |
+				 |On this instance, API Metrics are ${if (code.metrics.MetricsProps.writeMetrics) "being recorded" else "not being recorded"}.
+				 |
+				 |## What each record contains
+				 |
+				 |- the date and time of the call, and its duration in milliseconds
+				 |- the URL, the HTTP verb and the HTTP status code returned
+				 |- the endpoint that handled the call and the API version it is implemented in
+				 |- the User (user id and username) and the Consumer (consumer id, application name and developer email)
+				 |- how the caller authenticated (for example DirectLogin, OAuth2, Consent or Anonymous) and, for a call made under a Consent, the Consent reference id
+				 |- the correlation id, which is also returned to the caller in the `Correlation-Id` response header and is shared by every Connector call made while serving the call (see [Connector Metrics](/glossary#Connector-Metrics))
+				 |- the source and target addresses, taken from the `X-Forwarded-For` and `X-Forwarded-Host` request headers
+				 |- the `api_instance_id` of the OBP-API instance that served the call
+				 |- the response body, for selected endpoints only
+				 |
+				 |## How long records are kept
+				 |
+				 |Records are written to the database in batches. ${if (code.metrics.MetricsProps.enableMetricsScheduler) s"On this instance, records stay in the live metrics table for ${code.metrics.MetricsProps.retainMetricsDays} days, are then moved to the metrics archive, and are deleted from the archive after ${code.metrics.MetricsProps.retainArchiveMetricsDays} days." else "On this instance, records are not moved to the archive or deleted automatically."}
+				 |
+				 |## Reading API Metrics
+				 |
+				 |- `GET /management/metrics`: search the records, filtered by date, User, Consumer, endpoint, verb, status and more. Requires the Role CanReadMetrics.
+				 |- `GET /management/aggregate-metrics`: counts and durations over a filtered set of records. Requires the Role CanReadAggregateMetrics.
+				 |- `GET /management/metrics/top-apis`, `/top-consumers` and `/top-users`: the most used endpoints, the most active Consumers and the most active Users. Require the Role CanReadMetrics.
+				 |- `GET /management/metrics/banks/BANK_ID`: the records for calls about one bank. Requires the Role CanGetMetricsAtOneBank at that bank.
+				 |- `GET /my/metrics`: the calling User's own calls, together with the calls made by agents under Consents that User granted. No Role is required.
+				 |- `GET /management/system/diagnostics/metrics`: the state of the metrics table and its archive. Requires the Role CanGetMetricsDiagnostics.
+				 |
+				 |## API Metrics are not Telemetry
+				 |
+				 |API Metrics record individual calls and who made them. [Telemetry](/glossary#Telemetry) is aggregated numbers about how an instance is behaving (request rates, durations, cache hit ratios, memory, threads) and never records who made a call. Use API Metrics to answer "who called what"; use Telemetry to answer "is this instance healthy".
+				 |
+				 |See also: [Connector Metrics](/glossary#Connector-Metrics), [Telemetry](/glossary#Telemetry), [Rate Limiting](/glossary#Rate-Limiting), [Consent](/glossary#Consent).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Connector Metrics",
+		description =
+			s"""
+				 |# Connector Metrics
+				 |
+				 |**Connector Metrics** are OBP-API's record of the calls it makes to the [Connector](/glossary#Connector), the component that talks to the bank's systems: one record for every Connector call. A single API call can lead to several Connector calls, so Connector Metrics show where the time of an API call went and which calls to the bank's systems failed.
+				 |
+				 |On this instance, Connector Metrics are ${if (APIUtil.getPropsAsBoolValue("write_connector_metrics", false)) "being recorded" else "not being recorded"}.
+				 |
+				 |## What each record contains
+				 |
+				 |- the Connector name and the Connector method called (for example `getBankAccount`)
+				 |- the date and time of the call, and its duration in milliseconds
+				 |- whether the call succeeded
+				 |- the key request parameters of the call
+				 |- the correlation id of the API call it was made for, so the Connector calls behind one API call can be found from its [API Metrics](/glossary#API-Metrics) record
+				 |- the `api_instance_id` of the OBP-API instance that made the call
+				 |
+				 |Records are written to the database in batches.
+				 |
+				 |## Reading Connector Metrics
+				 |
+				 |- `GET /management/connector/metrics`: search the records, filtered by date, Connector name, method and correlation id. Requires the Role CanGetConnectorMetrics.
+				 |
+				 |## Related records
+				 |
+				 |- **Connector call counts** are per-hour counters of Connector calls made and of successful and failed responses, per Connector method, held in Redis rather than in the database. On this instance they are ${if (code.metrics.ConnectorCountsRedis.isEnabled) "being counted" else "not being counted"}. Read them with `GET /management/connector/metrics/counts` (Role CanReadMetrics).
+				 |- **Connector Traces** hold the complete messages sent to and received from the Connector for each call, for debugging. They are much larger than Connector Metrics and can contain customer and account data. On this instance they are ${if (APIUtil.getPropsAsBoolValue("write_connector_trace", false)) "being recorded" else "not being recorded"}. Read them with `GET /management/connector/traces`.
+				 |
+				 |## Connector Metrics are not Telemetry
+				 |
+				 |Connector Metrics record individual Connector calls. [Telemetry](/glossary#Telemetry) reports aggregated numbers about how an instance is behaving, including the rate, errors and duration of Connector calls per method, without keeping a record of each call.
+				 |
+				 |See also: [API Metrics](/glossary#API-Metrics), [Connector](/glossary#Connector), [Connector Method](/glossary#Connector-Method), [Telemetry](/glossary#Telemetry).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Telemetry",
+		description =
+			s"""
+				 |# Telemetry
+				 |
+				 |**Telemetry** is the set of aggregated numbers that describe how a running OBP-API instance is behaving: how many requests it serves and how long they take, how often its caches answer without recomputing, how full its queues and connection pools are, how much memory it uses and how many threads it runs. Operators use it to see trouble building up (a heap filling, a queue backing up, a cache that has stopped hitting) and to find its cause once something has gone wrong.
+				 |
+				 |## Telemetry is not API Metrics
+				 |
+				 |OBP already uses the word "metrics" for two kinds of per-call record. Telemetry is a different thing and deliberately has a different name:
+				 |
+				 || | What it is | Where it lives | Carries identities? |
+				 ||---|---|---|---|
+				 || **API Metrics** | one record per API call: who called what, when, and how long it took | the OBP database, read through the metrics endpoints | yes: consumer and user |
+				 || **Connector Metrics** | one record per call from OBP-API to the Connector | the OBP database, read through the connector metrics endpoint | per call |
+				 || **Telemetry** | aggregated numbers about the running instance: counts, rates, durations, sizes, current levels | collected from each instance by a monitoring system such as Prometheus and viewed in a tool such as Grafana; never stored in the OBP database | never |
+				 |
+				 |API Metrics answer "who used the API, and how". Telemetry answers "is this instance healthy, and if not, why not". Because Telemetry never records who made a call, it can be collected on every request without writing to the database.
+				 |
+				 |## What Telemetry measures
+				 |
+				 |Telemetry uses four types of measurement:
+				 |
+				 |- **Counters** count how often something happened, for example cache hits and cache misses.
+				 |- **Gauges** report a current level, for example the depth of a queue or the number of live threads.
+				 |- **Distribution summaries** describe how large something is and how widely that varies, for example the size of response bodies or the number of items in a returned list.
+				 |- **Timers** describe how long something takes, for example the duration of an endpoint or a Connector call.
+				 |
+				 |It covers each endpoint (request rate, errors and duration), each Connector method, the caches, Redis, the database connection pool, the log dispatch queue, and the Java virtual machine itself (memory, garbage collection, threads).
+				 |
+				 |## Naming
+				 |
+				 |OBP-API's own Telemetry series start with `obp_api_`, for example `obp_api_cache_gets_total` with a `cache` label naming the cache and a `result` label of `hit` or `miss`. Other Open Bank Project products use their own prefixes. Standard series from the Java virtual machine and the database connection pool keep their usual names (`jvm_*`, `hikaricp_*`), so that standard dashboards work with them.
+				 |
+				 |Telemetry labels only ever take values from small, fixed sets (an operation id, an API version, a status class, a cache name). They never contain a user id, consumer id, consent id, account id or any other identifier of a person or a record.
+				 |
+				 |## Which instance is reporting
+				 |
+				 |Each running OBP-API process has its own `api_instance_id`, the same id that appears on every API Metrics record it writes. Telemetry reports it alongside the build commit, so figures from one instance can be matched with that instance's API Metrics.
+				 |
+				 |## Reading Telemetry
+				 |
+				 |- **Prometheus** collects Telemetry from a separate port of each OBP-API instance, at the path `/telemetry`, in the Prometheus text format. Reading each instance directly keeps figures from different instances apart, and the port keeps answering when the API itself is overloaded. ${if (code.telemetry.Telemetry.portSettings.enabled) s"On this instance the port is open, on port ${code.telemetry.Telemetry.portSettings.port}." else "On this instance the port is not open."}
+				 |- **People** can read the same figures with `GET /obp/v7.0.0/management/telemetry`, which requires the Role CanGetTelemetry. Its response names the instance that answered.
+				 |
+				 |See also: [API Metrics](/glossary#API-Metrics), [Connector Metrics](/glossary#Connector-Metrics), [Rate Limiting](/glossary#Rate-Limiting), [Connector](/glossary#Connector), [Resource Doc](/glossary#Resource-Doc).
 				 |
 """)
 

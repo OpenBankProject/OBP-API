@@ -109,6 +109,9 @@ object RedisLogger {
 
   // Circuit breaker state
   private val consecutiveFailures = new AtomicLong(0)
+
+  /** Failed shipments in a row since the last success. Telemetry reports it as a gauge. */
+  def consecutiveFailureCount: Long = consecutiveFailures.get()
   private val circuitBreakerOpen = new AtomicBoolean(false)
   private var lastFailureTime = 0L
 

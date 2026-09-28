@@ -104,14 +104,21 @@ object MetricBatchWriter extends MdcLoggable {
    * Enqueue a metric for batched writing. Never blocks the calling thread.
    * The background scheduler handles all flushing.
    */
+  // Rows queued, written and lost, and the queue depth, for Telemetry.
+  private lazy val telemetry = new code.telemetry.BatchWriterTelemetry("api_metrics")
+
   def enqueue(row: MetricRow): Unit = {
     queue.add(row)
+    telemetry.queued()
   }
 
   /**
    * Drain the queue and batch-insert all pending metrics via Doobie.
    */
   private[code] def flush(): Unit = {
+    val flushStart = System.nanoTime()
+    // Rows taken off the queue by this flush. If the write fails they are lost, so Telemetry counts them.
+    var drainedRows = 0
     try {
       val batch = new java.util.ArrayList[MetricRow]()
       var item = queue.poll()
@@ -119,6 +126,7 @@ object MetricBatchWriter extends MdcLoggable {
         batch.add(item)
         item = queue.poll()
       }
+      drainedRows = batch.size()
 
       if (!batch.isEmpty) {
         val rows = {
@@ -170,6 +178,7 @@ object MetricBatchWriter extends MdcLoggable {
         } yield n
         val count = DoobieUtil.runQuery(program)
         logger.debug(s"MetricBatchWriter says: flushed $count metrics via doobie-pool")
+        telemetry.written(drainedRows, System.nanoTime() - flushStart)
       }
     } catch {
       case e: Exception =>
@@ -179,6 +188,7 @@ object MetricBatchWriter extends MdcLoggable {
         // (e.g. "value too long for type character varying(N)") is lost and metrics are
         // silently dropped. Walk the chain so the root cause is always logged.
         logger.error(s"MetricBatchWriter says: flush failed${sqlChainDetail(e)}", e)
+        if (drainedRows > 0) telemetry.lost(drainedRows, System.nanoTime() - flushStart)
     }
   }
 

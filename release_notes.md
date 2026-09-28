@@ -3,6 +3,48 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/09/2026    TBD           NEW rate-limit scope "documentation" in the self-service (per client IP)
+                            limiter, covering every public documentation read under any version prefix:
+                            resource-docs, message-docs, api/glossary, api/tags, api/versions,
+                            api/error-messages, api/popular-endpoints and the endpoints/*-validations
+                            lists. Built-in limits 60 a minute, 1000 an hour, 10000 a day per IP. It
+                            stays in shadow mode (X-Rate-Limit-Warning, no 429) even when
+                            self_service.rate_limit.mode is enforce, until
+                            self_service.rate_limit.documentation.mode = enforce is set.
+                            NEW prop: self_service.rate_limit.<scope>.mode, a mode per scope.
+                            CHANGED: the resource-docs tags and functions filters are sorted,
+                            de-duplicated and limited to values some ResourceDoc carries (static or
+                            dynamic, see ResourceDocVocabulary), so every spelling of the same filter,
+                            with or without made-up values, shares one cached document. Responses are
+                            unchanged: the filters match by membership, and a filter of only unknown
+                            values still returns no documents. Cache keys now accept only a
+                            ResourceDocFilters, which can only be built this way.
+                            NEW Telemetry: resource-docs, Swagger, OpenAPI and message-docs Swagger
+                            requests are timed; hits, misses and errors of the Redis-backed document
+                            and product caches; outcomes of the self-service limiter per scope.
+27/09/2026    TBD           NEW: Telemetry, aggregated numbers about each running instance for
+                            Prometheus and Grafana (not API Metrics; see the Glossary entry
+                            "Telemetry" and docs/telemetry_conventions.md). Recorded always:
+                            requests per endpoint (by operation id, API version and status class),
+                            Connector calls per method, Redis commands, cache hits and misses, the
+                            database pool, the log dispatch queue, memory, garbage collection and
+                            threads.
+                            NEW props: telemetry.port.enabled (default false), telemetry.host
+                            (default 0.0.0.0), telemetry.port (default 9464). When enabled, a
+                            separate port serves Telemetry at /telemetry in the Prometheus text
+                            format. It has no authentication: never publish it outside the host or
+                            cluster.
+                            NEW in v7.0.0: GET /management/telemetry, the same figures as JSON, with
+                            the new Role CanGetTelemetry (instance-wide, empty bank id).
+                            NEW dependency: Micrometer 1.17.1 (micrometer-core,
+                            micrometer-registry-prometheus).
+27/09/2026    785f1a4b7     FIXED: three endpoints had lost their Role in the move to http4s and
+                            now require it again, so callers without it get 403:
+                              GET /obp/v6.0.0/management/connector/traces  CanGetConnectorTrace
+                              GET /obp/v6.0.0/management/config-props      CanGetConfigProps
+                              PUT /obp/v4.0.0/banks/BANK_ID/atms/ATM_ID    CanUpdateAtm (at BANK_ID)
+                            updateAtm had accepted CanCreateAtmAtAnyBank by mistake; it now accepts
+                            only CanUpdateAtm at the bank, in line with retiring any-bank Roles.
 24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's
                             DEFINITION, completing the change below. Each System and BankLevel pair
                             is now one Role, granted at a bank's id or at SYS for the system space:

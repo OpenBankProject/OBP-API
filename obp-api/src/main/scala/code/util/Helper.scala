@@ -328,6 +328,8 @@ object Helper extends Loggable {
   // `MdcLogDropReportEvery`, so a sustained overload cannot turn into a stderr flood either.
   private val MdcLogDropReportEvery = 10000L
   private val mdcLogDropped = new java.util.concurrent.atomic.AtomicLong(0)
+  private val mdcLogDispatched = new java.util.concurrent.atomic.AtomicLong(0)
+  private val mdcLogInline = new java.util.concurrent.atomic.AtomicLong(0)
 
   /**
    * ThreadPoolExecutor and ArrayBlockingQueue reject a size below 1 with IllegalArgumentException.
@@ -368,6 +370,12 @@ object Helper extends Loggable {
   /** Entries dropped because the dispatch queue was full since start-up. */
   def mdcLogDroppedCount: Long = mdcLogDropped.get()
 
+  /** Entries accepted by the dispatch pool since start-up. */
+  def mdcLogDispatchedCount: Long = mdcLogDispatched.get()
+
+  /** WARN/ERROR entries written on the calling thread because the dispatch queue was full. */
+  def mdcLogInlineCount: Long = mdcLogInline.get()
+
   /** Entries currently waiting for a dispatch thread. */
   def mdcLogQueueDepth: Int = mdcLoggingExecutor.getQueue.size()
 
@@ -397,14 +405,14 @@ object Helper extends Loggable {
         if (previous == null) org.slf4j.MDC.remove(MdcCallerThreadKey) else org.slf4j.MDC.put(MdcCallerThreadKey, previous)
       }
     }
-    try executor.execute(task)
+    try { executor.execute(task); mdcLogDispatched.incrementAndGet() }
     catch {
       case _: java.util.concurrent.RejectedExecutionException =>
         executor match {
           // The pool has been shut down (JVM exit): nothing is overloaded, so write the entry
           // on the caller instead of losing what other shutdown hooks log.
           case s: java.util.concurrent.ExecutorService if s.isShutdown => task.run()
-          case _ if critical => task.run()
+          case _ if critical => mdcLogInline.incrementAndGet(); task.run()
           case _ =>
             val dropped = mdcLogDropped.incrementAndGet()
             if (dropped == 1L || dropped % MdcLogDropReportEvery == 0L)

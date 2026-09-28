@@ -85,7 +85,32 @@ object SelfServiceRateLimitMiddleware extends MdcLoggable {
     // signal_channel_create: the one unbounded write into Redis. Counted only when the
     // channel named in the path does not exist yet, so ordinary publishing is untouched.
     Entry("signal_channel_create", Method.POST, s"^$V/signal-channels/([^/]+)/messages$$".r,
-      (_, m) => code.api.cache.RedisMessaging.channelInfo(m.group(1)).isEmpty)
+      (_, m) => code.api.cache.RedisMessaging.channelInfo(m.group(1)).isEmpty),
+    // documentation: every public documentation read, for any version prefix. Public and
+    // anonymous by design, and some are expensive when not cached (rendering the whole API,
+    // or working out popular endpoints from usage records). The resource-docs routes are served
+    // outside ResourceDocMiddleware, so the per-IP limit for anonymous calls never reaches them;
+    // for them this entry is the only per-IP limit. `/root` is left out: it is cheap, and
+    // monitoring polls it. Shadow mode unless the scope's own mode prop is set
+    // (SelfServiceRateLimiter.shadowUnlessSetScopes).
+    Entry("documentation", Method.GET, "^/obp/[^/]+/resource-docs/[^/]+/(obp|swagger|openapi|openapi\\.yaml)$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/banks/[^/]+/resource-docs/[^/]+/obp$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/message-docs/[^/]+(/json-schema|/swagger2\\.0)?$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/api/(glossary(/[^/]+)?|tags|versions|error-messages|popular-endpoints)$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/endpoints/(json-schema-validations|authentication-type-validations)$".r)
+  )
+
+  /** What each scope counts, in words, for the rate limiter configuration endpoint and API Manager. */
+  val scopeDescriptions: Map[String, String] = Map(
+    "signup" -> "POST /users, /users/email-validation, /banks/BANK_ID/user-invitations",
+    "password_reset" -> "POST /users/password-reset-url, /users/password",
+    "consent_request" -> "POST /consumer/consent-requests, /consumer/vrp-consent-requests",
+    "consumer_registration" -> "POST /dynamic-registration/consumers",
+    "lookup" -> "POST /account/check/scheme/iban",
+    "signal_channel_create" -> "POST /signal-channels/CHANNEL_NAME/messages, when the channel does not exist yet",
+    "documentation" -> ("GET of the public documentation: resource-docs (obp, swagger, openapi, openapi.yaml, bank level), " +
+      "message-docs (plain, json-schema, swagger2.0), api/glossary, api/tags, api/versions, api/error-messages, " +
+      "api/popular-endpoints, endpoints/json-schema-validations, endpoints/authentication-type-validations")
   )
 
   def scopeFor(req: Request[IO]): Option[String] = {

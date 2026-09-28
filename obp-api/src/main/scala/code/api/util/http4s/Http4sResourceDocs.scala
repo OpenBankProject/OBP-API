@@ -35,7 +35,7 @@ import code.api.ResponseHeader
 import code.api.cache.Caching
 import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CustomJsonFormats, YAMLUtils}
+import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CustomJsonFormats, ResourceDocFilters, YAMLUtils}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.bankconnectors.rest.RestConnector_vMar2019
@@ -112,8 +112,10 @@ object Http4sResourceDocs extends MdcLoggable {
   // `req.uri.query.params` instead of Lift's `ObpS.param` / `S.request`.
 
   private final case class ParsedParams(
-    tags: Option[List[ResourceDocTag]],
-    partialFunctions: Option[List[String]],
+    // The raw filter values. They never reach a cache key or a filter directly: each handler turns
+    // them into a ResourceDocFilters first (see ResourceDocFilters for why).
+    tagValues: Option[List[String]],
+    functionValues: Option[List[String]],
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionId: Option[String],
@@ -133,7 +135,7 @@ object Http4sResourceDocs extends MdcLoggable {
     val tags = rawTags match {
       case None | Some("") => None
       case Some(s)         =>
-        val list = s.trim.split(",").toList.map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_))
+        val list = s.trim.split(",").toList.map(_.trim).filter(_.nonEmpty)
         if (list.nonEmpty) Some(list) else None
     }
     val partialFunctions = rawFunctions match {
@@ -311,13 +313,13 @@ object Http4sResourceDocs extends MdcLoggable {
     isVersion4OrHigher: Boolean
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val includeTech = includeTechnologyForPrefix(prefix)
       val cacheKey = APIUtil.createResourceDocCacheKey(
         None,
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -334,7 +336,7 @@ object Http4sResourceDocs extends MdcLoggable {
           val cached = Caching.getDynamicResourceDocCache(cacheKey)
           if (cached.isDefined) json.parse(cached.get)
           else {
-            val rdJson = impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher = false).head
+            val rdJson = impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher = false).head
             val jv = resourceDocsJsonToJsonResponse(rdJson)
             Caching.setDynamicResourceDocCache(cacheKey, json.compactRender(jv))
             jv
@@ -343,7 +345,7 @@ object Http4sResourceDocs extends MdcLoggable {
           val cached = Caching.getStaticResourceDocCache(cacheKey)
           if (cached.isDefined) json.parse(cached.get)
           else {
-            val rdJson = impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head
+            val rdJson = impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head
             val jv = resourceDocsJsonToJsonResponse(rdJson)
             Caching.setStaticResourceDocCache(cacheKey, json.compactRender(jv))
             jv
@@ -352,7 +354,7 @@ object Http4sResourceDocs extends MdcLoggable {
           val cached = Caching.getAllResourceDocCache(cacheKey)
           if (cached.isDefined) json.parse(cached.get)
           else {
-            val rdJson = impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head
+            val rdJson = impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head
             val jv = resourceDocsJsonToJsonResponse(rdJson)
             Caching.setAllResourceDocCache(cacheKey, json.compactRender(jv))
             jv
@@ -393,13 +395,13 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val isVersion4OrHigher = true
       val cacheKey = APIUtil.createResourceDocCacheKey(
         None,
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -418,11 +420,11 @@ object Http4sResourceDocs extends MdcLoggable {
             case None =>
               params.contentParam match {
                 case Some(DYNAMIC) =>
-                  impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher).head.resource_docs
+                  impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher).head.resource_docs
                 case Some(STATIC) =>
-                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head.resource_docs
+                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head.resource_docs
                 case _ =>
-                  impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
+                  impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
           impl.convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
@@ -466,13 +468,13 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val isVersion4OrHigher = true
       val cacheKey = APIUtil.createResourceDocCacheKey(
         Some("openapi31"),
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -491,11 +493,11 @@ object Http4sResourceDocs extends MdcLoggable {
             case None =>
               params.contentParam match {
                 case Some(DYNAMIC) =>
-                  impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher).head.resource_docs
+                  impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher).head.resource_docs
                 case Some(STATIC) =>
-                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head.resource_docs
+                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head.resource_docs
                 case _ =>
-                  impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
+                  impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
           impl.convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
@@ -536,13 +538,13 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), String] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val isVersion4OrHigher = true
       val cacheKey = APIUtil.createResourceDocCacheKey(
         Some("openapi31yaml"),
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -561,11 +563,11 @@ object Http4sResourceDocs extends MdcLoggable {
             case None =>
               params.contentParam match {
                 case Some(DYNAMIC) =>
-                  impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher).head.resource_docs
+                  impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher).head.resource_docs
                 case Some(STATIC) =>
-                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head.resource_docs
+                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head.resource_docs
                 case _ =>
-                  impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
+                  impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
           impl.convertResourceDocsToOpenAPI31YAMLAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
@@ -622,12 +624,12 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val cacheKey = APIUtil.createResourceDocCacheKey(
         Some(bankIdStr),
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -637,7 +639,7 @@ object Http4sResourceDocs extends MdcLoggable {
       val jv: JValue =
         if (cached.isDefined) json.parse(cached.get)
         else {
-          val rdJson = impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher = false).head
+          val rdJson = impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher = false).head
           val response = resourceDocsJsonToJsonResponse(rdJson)
           Caching.setDynamicResourceDocCache(cacheKey, json.compactRender(response))
           response
@@ -665,11 +667,11 @@ object Http4sResourceDocs extends MdcLoggable {
 
   private def buildMessageDocsSwagger(params: ParsedParams, connector: String): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.normalisedOnly(params.tagValues, params.functionValues)
       val cacheKey = APIUtil.createResourceDocCacheKey(
         None,
         connector,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -680,7 +682,7 @@ object Http4sResourceDocs extends MdcLoggable {
         if (cached.isDefined) json.parse(cached.get)
         else {
           val convertedToResourceDocs = RestConnector_vMar2019.messageDocs.map(APIUtil.toResourceDoc).toList
-          val resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, params.tags, params.partialFunctions)
+          val resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, filters.tags, filters.functions)
           val resourceDocJsonList = JSONFactory1_4_0.createResourceDocsJson(resourceDocListFiltered, isVersion4OrHigher = true, None).resource_docs
           val swaggerResourceDoc = code.api.ResourceDocs1_4_0.SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)
           val allSwaggerDefinitionCaseClasses =
@@ -705,6 +707,15 @@ object Http4sResourceDocs extends MdcLoggable {
   // along the path. The Lift dispatch did the same thing (one dispatcher per
   // version prefix, all calling the same handlers).
 
+  /**
+   * Records Telemetry for one of these routes under its ResourceDoc's operation id. These routes
+   * answer outside ResourceDocMiddleware, which is where every other endpoint is timed; their docs
+   * are declared in ResourceDocs1_4_0, at v1.4.0, whatever version prefix the request used.
+   */
+  private def timed(handlerName: String)(response: IO[Response[IO]]): IO[Response[IO]] =
+    code.telemetry.Telemetry.timeEndpoint(
+      APIUtil.buildOperationId(ApiVersion.v1_4_0, handlerName), ApiVersion.v1_4_0.apiShortVersion)(response)
+
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "obp" =>
       // Match the Lift dispatchers' `isVersion4OrHigher` setting per prefix —
@@ -714,10 +725,10 @@ object Http4sResourceDocs extends MdcLoggable {
         case "v4.0.0" | "v5.0.0" | "v5.1.0" | "v6.0.0" => true
         case _                                          => false
       }
-      handleGetResourceDocsObp(req, prefix, requestedApiVersionString, isVersion4OrHigher = isV4OrHigher)
+      timed("getResourceDocsObp")(handleGetResourceDocsObp(req, prefix, requestedApiVersionString, isVersion4OrHigher = isV4OrHigher))
 
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "swagger" =>
-      handleGetResourceDocsSwagger(req, prefix, requestedApiVersionString)
+      timed("getResourceDocsSwagger")(handleGetResourceDocsSwagger(req, prefix, requestedApiVersionString))
 
     // OpenAPI 3.1 JSON and YAML — served for every URL prefix.
     //
@@ -731,15 +742,18 @@ object Http4sResourceDocs extends MdcLoggable {
     // for non-v6 prefixes; `isVersion4OrHigher` is hardcoded `true` inside the
     // handlers because the OpenAPI converter always consumes the v4-shape input.
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi" =>
-      handleGetResourceDocsOpenAPI31(req, prefix, requestedApiVersionString)
+      timed("getResourceDocsOpenAPI31")(handleGetResourceDocsOpenAPI31(req, prefix, requestedApiVersionString))
 
+    // No ResourceDoc describes the YAML form, so it has no operation id and is not timed.
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi.yaml" =>
       handleGetResourceDocsOpenAPI31Yaml(req, prefix, requestedApiVersionString)
 
     case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "obp" =>
-      handleGetBankLevelDynamicResourceDocsObp(req, prefix, bankIdStr, requestedApiVersionString)
+      timed("getBankLevelDynamicResourceDocsObp")(handleGetBankLevelDynamicResourceDocsObp(req, prefix, bankIdStr, requestedApiVersionString))
 
     case req @ GET -> Root / "obp" / _ / "message-docs" / connector / "swagger2.0" =>
-      handleGetMessageDocsSwagger(req, connector)
+      code.telemetry.Telemetry.timeEndpoint(
+        APIUtil.buildOperationId(ApiVersion.v3_1_0, "getMessageDocsSwagger"), ApiVersion.v3_1_0.apiShortVersion
+      )(handleGetMessageDocsSwagger(req, connector))
   }
 }

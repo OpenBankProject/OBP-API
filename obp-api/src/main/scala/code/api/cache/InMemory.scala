@@ -44,8 +44,8 @@ object InMemory extends MdcLoggable {
   // a single Guava instance has to serve every one of them. The underlying store is declared at
   // Entry[Any] and narrowed per call: the cast is erased at run time, and a given key always holds
   // the type its own call site wrote, which is the same assumption the untyped ScalaCache made.
-  val underlyingGuavaCache: GuavaUnderlying[String, Entry[Any]] =
-    CacheBuilder.newBuilder().maximumSize(100000L).build[String, Entry[Any]]()
+  val underlyingGuavaCache: GuavaUnderlying[String, Entry[Any]] = code.telemetry.Telemetry.monitorCache(
+    CacheBuilder.newBuilder().maximumSize(100000L).recordStats().build[String, Entry[Any]](), "in_memory")
 
   // Built once, for the same reason as Redis's: the wrapper holds no per-type state and the cast is
   // erased, so one instance serves every A instead of one allocation per cache read.

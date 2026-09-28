@@ -1,9 +1,10 @@
 package code.api.v2_2_0
 
 import java.util.concurrent.Callable
+import java.util.concurrent.atomic.AtomicLong
 
 import code.api.cache.Caching
-import com.google.common.cache.{Cache, CacheBuilder}
+import com.google.common.cache.{Cache, CacheBuilder, CacheStats}
 import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
 import net.liftweb.common.Loggable
 import org.json4s.JValue
@@ -54,23 +55,33 @@ object MessageDocsJsonCache extends Loggable {
 
   private def sharedKey(connectorName: String) = s"message-docs-v2.2.0-$connectorName"
 
-  private val cache: Cache[String, JValue] =
-    CacheBuilder.newBuilder().maximumSize(MaxEntries).build[String, JValue]()
+  private val cache: Cache[String, JValue] = code.telemetry.Telemetry.monitorCache(
+    CacheBuilder.newBuilder().maximumSize(MaxEntries).recordStats().build[String, JValue](), "message_docs")
+
+  // Counters for tests and monitoring. They only ever go up; compare before and after values.
+  private val generatorCallsCounter = new AtomicLong(0)
+  private val sharedGetsCounter = new AtomicLong(0)
+  private val sharedHitsCounter = new AtomicLong(0)
+  private val sharedSetsCounter = new AtomicLong(0)
 
   def getOrCompute(connectorName: String, store: SharedStore = RedisStore)(generate: => JValue): JValue =
     try cache.get(connectorName, new Callable[JValue] {
       def call(): JValue = {
         val key = sharedKey(connectorName)
+        sharedGetsCounter.incrementAndGet()
         val fromShared = store.get(key).flatMap { s =>
           try Some(parse(s))
           catch { case e: Exception => logger.warn(s"Ignoring unparsable shared message-docs entry $key: ${e.getMessage}"); None }
         }
+        if (fromShared.isDefined) sharedHitsCounter.incrementAndGet()
         fromShared.getOrElse {
           // Serve the round-tripped form even on the instance that generated it. Otherwise this
           // instance would return the JValue it built while every other replica (and this one
           // after a restart) returns parse(compactRender(...)), and number formatting could differ
           // between them.
+          generatorCallsCounter.incrementAndGet()
           val rendered = compactRender(generate)
+          sharedSetsCounter.incrementAndGet()
           store.set(key, rendered)
           parse(rendered)
         }
@@ -85,4 +96,15 @@ object MessageDocsJsonCache extends Loggable {
   def invalidateAll(): Unit = cache.invalidateAll()
 
   def size: Long = cache.size()
+
+  /** In-process level hits and misses (a miss goes on to the shared level). */
+  def stats: CacheStats = cache.stats()
+
+  /** Times the response was actually built, i.e. both levels missed. */
+  def generatorCalls: Long = generatorCallsCounter.get()
+
+  /** Shared level reads, reads that found a usable entry, and writes. */
+  def sharedGets: Long = sharedGetsCounter.get()
+  def sharedHits: Long = sharedHitsCounter.get()
+  def sharedSets: Long = sharedSetsCounter.get()
 }

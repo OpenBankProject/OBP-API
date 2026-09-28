@@ -344,6 +344,18 @@
       <artifactId>HikariCP</artifactId>
       <version>4.0.3</version>
     </dependency>
+    <!-- Telemetry: Micrometer records it, the Prometheus registry serves it.
+         See docs/telemetry_conventions.md. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <version>1.17.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>1.17.1</version>
+    </dependency>
     <!-- ********** flexmark END ********** -->
     <!--class scanning, replaces classutil for better Fat JAR support-->
     <dependency>

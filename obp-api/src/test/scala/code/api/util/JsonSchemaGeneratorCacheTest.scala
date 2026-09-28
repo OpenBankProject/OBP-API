@@ -103,6 +103,21 @@ class JsonSchemaGeneratorCacheTest extends FlatSpec with Matchers {
     }
   }
 
+  it should "build the schema once for repeated calls, keyed by connector name only" in {
+    val connectorName = freshConnectorName("counted")
+    val generatorBefore = JsonSchemaGenerator.generatorCalls
+    val hitsBefore = JsonSchemaGenerator.cacheStats.hitCount
+
+    val first = JsonSchemaGenerator.messageDocsToJsonSchema(sampleMessageDocs(connectorName), connectorName)
+    (1 to 9).foreach(_ => JsonSchemaGenerator.messageDocsToJsonSchema(sampleMessageDocs(connectorName), connectorName))
+    // The key must not be derived from the docs list (building that key costs megabytes per
+    // call on a real connector), so a different list under the same name is still a hit.
+    JsonSchemaGenerator.messageDocsToJsonSchema(Nil, connectorName) should equal(first)
+
+    JsonSchemaGenerator.generatorCalls - generatorBefore shouldBe 1
+    JsonSchemaGenerator.cacheStats.hitCount - hitsBefore shouldBe 10
+  }
+
   it should "isolate different connector names as independent cache entries" in {
     val connectorA = freshConnectorName("connector-a")
     val connectorB = freshConnectorName("connector-b")

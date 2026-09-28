@@ -6331,7 +6331,7 @@ object Http4s400 {
         atmJsonV400,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        Some(List(canUpdateAtm, canCreateAtmAtAnyBank)),
+        Some(List(canUpdateAtm)),
         http4sPartialFunction = Some(updateAtm)
       )
     }

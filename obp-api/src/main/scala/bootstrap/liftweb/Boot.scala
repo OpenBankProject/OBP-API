@@ -578,6 +578,11 @@ class Boot extends MdcLoggable {
     // Sandbox account creation menu removed - API-only mode, no portal pages
 
 
+    // Telemetry (aggregated numbers about this instance, for Prometheus). Not API Metrics: see
+    // docs/telemetry_conventions.md. Recording is always on; the prop telemetry.port.enabled
+    // decides whether the separate port is opened.
+    code.telemetry.Telemetry.start()
+
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
     if (code.metrics.MetricsProps.writeMetrics) {

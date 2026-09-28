@@ -33,7 +33,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired, ConsentMyResourcesMissing}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.json4s.JsonDSL._
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
@@ -221,6 +221,25 @@ object DynamicEntityHelper {
     collection.mutable.ArrayBuffer(docs:_*)
   }
 
+  /**
+   * The v7.0.0 docs of every entity's endpoints, at `/banks/BANK_ID/dynamic-entities/...` with the
+   * entity's own bank id, SYS for the system space. The same operations as [[doc]], with ids of the
+   * form `OBPv7.0.0-dynamicEntity_create<entity>_<bank id>`.
+   *
+   * These are kept out of [[doc]] on purpose. [[doc]] is what the rest of OBP resolves operation ids
+   * and partial function names against (request dispatch, interceptors, metrics, validations), and a
+   * v7.0.0 doc shares its partial function name with the v4.0.0 one, so mixing them in would change
+   * which id those lookups return. Only the v7.0.0 resource-docs listing serves these.
+   */
+  def v700Doc: List[ResourceDoc] = docsIn(ApiVersion.v7_0_0).values.toList
+
+  /**
+   * The v7.0.0 URL of an entity's endpoints as a doc template: `/banks/BANK_ID/dynamic-entities`
+   * followed by what follows `/obp/dynamic-entity/[banks/BANK_ID/]` in the unversioned URL.
+   */
+  def v700UrlPrefix(bankId: Option[String]): String =
+    s"/banks/${DynamicEntitySpace.bankIdOrSystem(bankId)}/dynamic-entities"
+
   def createEntityId(entityName: String) = {
     // (?<=[a-z0-9])(?=[A-Z]) --> mean `Positive Lookbehind (?<=[a-z0-9])` && Positive Lookahead (?=[A-Z]) --> So we can find the space to replace to  `_`
     val regexPattern = "(?<=[a-z0-9])(?=[A-Z])|-"
@@ -228,7 +247,10 @@ object DynamicEntityHelper {
     s"${entityName}_Id".replaceAll(regexPattern, "_").toLowerCase
   }
 
-  def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = {
+  def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = docsIn(implementedInApiVersion)
+
+  /** Every entity's docs in one API version: v4.0.0 for the unversioned URLs, v7.0.0 for the v7.0.0 ones. */
+  private def docsIn(apiVersion: ScannedApiVersion): Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
 
     // record exists tag names, to avoid duplicated dynamic tag name.
@@ -268,7 +290,7 @@ object DynamicEntityHelper {
       existsTagNames += tagName
       ApiTag(tagName)
     }
-    val fun: DynamicEntityInfo => mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = createDocs(apiTag)
+    val fun: DynamicEntityInfo => mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = createDocs(apiTag, apiVersion)
     val docs: Iterable[((DynamicEntityOperation, String), ResourceDoc)] = definitionsMap.values.flatMap(fun)
     docs.toMap
   }
@@ -280,7 +302,7 @@ object DynamicEntityHelper {
    * @param dynamicEntityInfo dynamicEntityInfo
    * @return all ResourceDoc of given dynamicEntity
    */
-  private def createDocs(fun: (String, String) => ResourceDocTag)
+  private def createDocs(fun: (String, String) => ResourceDocTag, apiVersion: ScannedApiVersion)
                 (dynamicEntityInfo: DynamicEntityInfo): mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
     val hasPersonalEntity = dynamicEntityInfo.hasPersonalEntity
@@ -296,8 +318,21 @@ object DynamicEntityHelper {
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
     val bankId = dynamicEntityInfo.bankId
-    val resourceDocUrl = if(bankId.isDefined)  s"/banks/${bankId.getOrElse("")}/$entityName" else  s"/$entityName"
-    val myResourceDocUrl = if(bankId.isDefined)  s"/banks/${bankId.getOrElse("")}/my/$entityName" else  s"/my/$entityName"
+    // What comes before the entity name: in v7.0.0 the space, always named (SYS included); in the
+    // unversioned URLs a bank when there is one, and nothing for the system space.
+    val urlPrefix =
+      if (apiVersion == ApiVersion.v7_0_0) v700UrlPrefix(bankId)
+      else bankId.map(b => s"/banks/$b").getOrElse("")
+    val resourceDocUrl = s"$urlPrefix/$entityName"
+    // Response examples. A v7.0.0 response always names its space, `"bank_id": "SYS"` included, where
+    // the unversioned URLs name a bank only for a bank level entity.
+    def inSpace(example: JObject): JObject =
+      if (apiVersion == ApiVersion.v7_0_0)
+        (("bank_id" -> DynamicEntitySpace.bankIdOrSystem(bankId)): JObject) merge JObject(example.obj.filterNot(_.name == "bank_id"))
+      else example
+    val singleExample = inSpace(dynamicEntityInfo.getSingleExample)
+    val listExample = inSpace(dynamicEntityInfo.getExampleList)
+    val myResourceDocUrl = s"$urlPrefix/my/$entityName"
 
 
     // (operationType, entityName) -> ResourceDoc
@@ -305,7 +340,7 @@ object DynamicEntityHelper {
     val apiTag: ResourceDocTag = fun(entityName,splitNameWithBankId)
 
     resourceDocs += (DynamicEntityOperation.GET_ALL, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildGetAllFunctionName(bankId, entityName),
       "GET",
       s"$resourceDocUrl",
@@ -322,7 +357,7 @@ object DynamicEntityHelper {
          |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
          |""".stripMargin,
       EmptyBody,
-      dynamicEntityInfo.getExampleList,
+      listExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -335,7 +370,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.GET_ONE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildGetOneFunctionName(bankId, entityName),
       "GET",
       s"$resourceDocUrl/$idNameInUrl",
@@ -350,7 +385,7 @@ object DynamicEntityHelper {
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -363,7 +398,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildCreateFunctionName(bankId, entityName),
       "POST",
       s"$resourceDocUrl",
@@ -379,7 +414,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -393,7 +428,7 @@ object DynamicEntityHelper {
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildUpdateFunctionName(bankId, entityName),
       "PUT",
       s"$resourceDocUrl/$idNameInUrl",
@@ -409,7 +444,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -423,7 +458,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.PATCH, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildPatchFunctionName(bankId, entityName),
       "PATCH",
       s"$resourceDocUrl/$idNameInUrl",
@@ -446,7 +481,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutId,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -460,7 +495,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildDeleteFunctionName(bankId, entityName),
       "DELETE",
       s"$resourceDocUrl/$idNameInUrl",
@@ -473,7 +508,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -495,7 +530,7 @@ object DynamicEntityHelper {
         (if (personalRequiresRole) " The role is required in addition." else "")
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetAllFunctionName(bankId, s"My$entityName"),
         "GET",
         s"$myResourceDocUrl",
@@ -514,7 +549,7 @@ object DynamicEntityHelper {
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getExampleList,
+        listExample,
         myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canGetRole)) else None,
@@ -522,7 +557,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetOneFunctionName(bankId, s"My$entityName"),
         "GET",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -539,7 +574,7 @@ object DynamicEntityHelper {
            |$myConsentUserNote
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canGetRole)) else None,
@@ -547,7 +582,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.CREATE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildCreateFunctionName(bankId, s"My$entityName"),
         "POST",
         s"$myResourceDocUrl",
@@ -565,7 +600,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canCreateRole)) else None,
@@ -573,7 +608,7 @@ object DynamicEntityHelper {
         )
 
       resourceDocs += (DynamicEntityOperation.UPDATE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildUpdateFunctionName(bankId, s"My$entityName"),
         "PUT",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -591,7 +626,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canUpdateRole)) else Some(List(dynamicEntityInfo.canUpdateRole)),
@@ -599,7 +634,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.PATCH, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildPatchFunctionName(bankId, s"My$entityName"),
         "PATCH",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -620,7 +655,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canUpdateRole)) else Some(List(dynamicEntityInfo.canUpdateRole)),
@@ -628,7 +663,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.DELETE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildDeleteFunctionName(bankId, s"My$entityName"),
         "DELETE",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -643,7 +678,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canDeleteRole)) else None,
@@ -653,11 +688,11 @@ object DynamicEntityHelper {
 
     val hasPublicAccess = dynamicEntityInfo.hasPublicAccess
     if(hasPublicAccess) {
-      val publicResourceDocUrl = if(bankId.isDefined) s"/banks/${bankId.getOrElse("")}/public/$entityName" else s"/public/$entityName"
+      val publicResourceDocUrl = s"$urlPrefix/public/$entityName"
       val publicSplitNameWithBankId = s"Public$splitNameWithBankId"
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, publicSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetAllFunctionName(bankId, s"Public$entityName"),
         "GET",
         s"$publicResourceDocUrl",
@@ -674,7 +709,7 @@ object DynamicEntityHelper {
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = false)}
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getExampleList,
+        listExample,
         List(
           UnknownError
         ),
@@ -683,7 +718,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, publicSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetOneFunctionName(bankId, s"Public$entityName"),
         "GET",
         s"$publicResourceDocUrl/$idNameInUrl",
@@ -698,7 +733,7 @@ object DynamicEntityHelper {
            |Authentication is Optional
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         List(
           UnknownError
         ),
@@ -709,11 +744,11 @@ object DynamicEntityHelper {
 
     val hasCommunityAccess = dynamicEntityInfo.hasCommunityAccess
     if(hasCommunityAccess) {
-      val communityResourceDocUrl = if(bankId.isDefined) s"/banks/${bankId.getOrElse("")}/community/$entityName" else s"/community/$entityName"
+      val communityResourceDocUrl = s"$urlPrefix/community/$entityName"
       val communitySplitNameWithBankId = s"Community$splitNameWithBankId"
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, communitySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetAllFunctionName(bankId, s"Community$entityName"),
         "GET",
         s"$communityResourceDocUrl",
@@ -730,7 +765,7 @@ object DynamicEntityHelper {
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = false)}
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getExampleList,
+        listExample,
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
@@ -742,7 +777,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, communitySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetOneFunctionName(bankId, s"Community$entityName"),
         "GET",
         s"$communityResourceDocUrl/$idNameInUrl",
@@ -757,7 +792,7 @@ object DynamicEntityHelper {
            |Authentication is Required
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
@@ -793,7 +828,7 @@ object DynamicEntityHelper {
            |""".stripMargin
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, accessSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetRowAccessFunctionName(bankId, entityName),
         "GET",
         s"$accessResourceDocUrl",
@@ -817,9 +852,9 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.UPDATE, accessSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGrantRowAccessFunctionName(bankId, entityName),
-        "POST",
+        "PUT",
         s"$accessResourceDocUrl",
         s"Grant Access to a $splitName Record",
         s"""Grant (or update) another User's access to one $splitName record.
@@ -846,7 +881,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.DELETE, accessSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildRevokeRowAccessFunctionName(bankId, entityName),
         "DELETE",
         s"$accessResourceDocUrl/USER_ID",
@@ -1019,7 +1054,8 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
     if (restricted.isEmpty) getSingleExampleWithoutId
     else JObject(getSingleExampleWithoutId.obj.filterNot(f => restricted.contains(f.name)))
   }
-  val bankIdJObject: JObject = ("bank-id" -> ExampleValue.bankIdExample.value)
+  // A bank level entity's responses name its bank, as `bank_id`; see Http4sDynamicEntity.wrapBankId.
+  val bankIdJObject: JObject = ("bank_id" -> bankId.getOrElse(ExampleValue.bankIdExample.value))
 
   def getSingleExample: JObject = if (bankId.isDefined){
     val SingleObject: JObject = (singleName -> (JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)))

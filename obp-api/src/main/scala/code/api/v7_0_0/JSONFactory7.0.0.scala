@@ -235,7 +235,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     per_day: Option[Long] = None,
     per_week: Option[Long] = None,
     per_month: Option[Long] = None,
-    global_per_hour: Option[Long] = None
+    global_per_hour: Option[Long] = None,
+    // Self-service scopes only: the scope's own mode (it can differ from the limiter's), and what it counts.
+    mode: Option[String] = None,
+    covers: Option[String] = None
   )
   /** One of the three rate limiters, in the order they are checked. `mode` is shadow or enforce. */
   case class RateLimiterJsonV700(
@@ -254,7 +257,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   val rateLimitersJsonV700Example: RateLimitersJsonV700 = RateLimitersJsonV700(List(
     RateLimiterJsonV700("self_service", 1, "OBP-10060", enabled = true, "shadow", "client IP address",
       "before routing and before authentication, on the self-service endpoints", "self_service.rate_limit",
-      List(RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500)))),
+      List(
+        RateLimiterLimitJsonV700("documentation", per_minute = Some(60), per_hour = Some(1000), per_day = Some(10000), global_per_hour = Some(-1),
+          mode = Some("shadow"), covers = Some("GET of the public documentation: resource-docs, message-docs, api/glossary, api/tags, api/versions, ...")),
+        RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500),
+          mode = Some("shadow"), covers = Some("POST /users, /users/email-validation, /banks/BANK_ID/user-invitations")))),
     RateLimiterJsonV700("authentication", 2, "OBP-10061", enabled = false, "shadow", "client IP address and account",
       "inside the credential check of Direct Login, DAuth, Gateway Login and SIWE", "auth.rate_limit",
       List(RateLimiterLimitJsonV700("ip", per_minute = Some(10), per_hour = Some(100)), RateLimiterLimitJsonV700("account", per_minute = Some(6)))),
@@ -273,14 +280,16 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       name = "self_service", order = 1, error_code = errorCode(ErrorMessages.TooManyRequestsSelfService),
       enabled = SelfServiceRateLimiter.enabled, mode = SelfServiceRateLimiter.mode,
       keyed_by = "client IP address",
-      runs = "before routing and before authentication, on the self-service endpoints",
+      runs = "before routing and before authentication, on the self-service endpoints and the public documentation",
       props_prefix = SelfServiceRateLimiter.PropsPrefix,
       limits = SelfServiceRateLimiter.scopeDefaults.keys.toList.sorted.map { scope =>
         RateLimiterLimitJsonV700(scope,
           per_minute = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_minute")),
           per_hour = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_hour")),
           per_day = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_day")),
-          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)))
+          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)),
+          mode = Some(SelfServiceRateLimiter.modeFor(scope)),
+          covers = code.api.util.http4s.SelfServiceRateLimitMiddleware.scopeDescriptions.get(scope))
       }
     )
     val authentication = RateLimiterJsonV700(
@@ -2762,4 +2771,64 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     attributes = Some(List(apiProductSubscriptionAttributeResponseJsonV700Example))
   )
   lazy val apiProductSubscriptionsJsonV700Example = ApiProductSubscriptionsJsonV700(List(apiProductSubscriptionJsonV700Example))
+
+  // ===== Telemetry =====
+
+  /** One meter: its Micrometer name, type, unit, tags and current values (count, total_time, max, value ...). */
+  case class TelemetryMeterJsonV700(
+    name: String,
+    `type`: String,
+    base_unit: Option[String],
+    tags: Map[String, String],
+    measurements: Map[String, Double]
+  )
+
+  /** The separate port Prometheus scrapes, as configured on this instance. */
+  case class TelemetryPortJsonV700(enabled: Boolean, port: Int, path: String)
+
+  case class TelemetryJsonV700(
+    api_instance_id: String,
+    git_commit: String,
+    port: TelemetryPortJsonV700,
+    meters: List[TelemetryMeterJsonV700]
+  )
+
+  /** This instance's Telemetry, from the same registry the separate port serves, optionally limited to names starting with `namePrefix`. */
+  def createTelemetryJson(namePrefix: Option[String]): TelemetryJsonV700 = {
+    import scala.jdk.CollectionConverters._
+    val settings = code.telemetry.Telemetry.portSettings
+    val meters = code.telemetry.Telemetry.registry.getMeters.asScala.toList
+      .filter(meter => namePrefix.forall(prefix => meter.getId.getName.startsWith(prefix)))
+      .map { meter =>
+        val id = meter.getId
+        TelemetryMeterJsonV700(
+          name = id.getName,
+          `type` = id.getType.name.toLowerCase,
+          base_unit = Option(id.getBaseUnit),
+          tags = id.getTags.asScala.map(tag => tag.getKey -> tag.getValue).toMap,
+          // A gauge whose source has gone reads NaN, which is not valid JSON.
+          measurements = meter.measure().asScala
+            .filter(measurement => java.lang.Double.isFinite(measurement.getValue))
+            .map(measurement => measurement.getStatistic.name.toLowerCase -> measurement.getValue).toMap)
+      }
+      .sortBy(meter => (meter.name, meter.tags.toList.sorted.mkString(",")))
+    TelemetryJsonV700(
+      api_instance_id = Constant.ApiInstanceId,
+      git_commit = APIUtil.gitCommit,
+      port = TelemetryPortJsonV700(settings.enabled, settings.port, code.telemetry.Telemetry.ScrapePath),
+      meters = meters)
+  }
+
+  lazy val telemetryJsonV700Example = TelemetryJsonV700(
+    api_instance_id = "obp_4f6b3c2a-9d1e-4b7a-8c5f-2e1d0a9b8c7d",
+    git_commit = "3286937795b4d0c2e1f6a8b9c0d1e2f3a4b5c6d7",
+    port = TelemetryPortJsonV700(enabled = true, port = code.telemetry.Telemetry.DefaultPort, path = code.telemetry.Telemetry.ScrapePath),
+    meters = List(
+      TelemetryMeterJsonV700("cache.gets", "counter", None, Map("cache" -> "json_schema", "result" -> "hit"), Map("count" -> 118.0)),
+      TelemetryMeterJsonV700("jvm.threads.live", "gauge", Some("threads"), Map.empty, Map("value" -> 64.0)),
+      TelemetryMeterJsonV700("obp.api.endpoint.requests", "timer", Some("seconds"),
+        Map("operation" -> "OBPv7.0.0-getBanks", "api_version" -> "v7.0.0", "status" -> "2xx"),
+        Map("count" -> 42.0, "total_time" -> 1.26, "max" -> 0.081))
+    )
+  )
 }

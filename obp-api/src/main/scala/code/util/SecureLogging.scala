@@ -166,7 +166,13 @@ object SecureLogging {
     customPatternCache.getOrElseUpdate(regex, Pattern.compile(regex, Pattern.CASE_INSENSITIVE))
 
   // ===== Masking Logic =====
+  private val maskCallsCounter = new java.util.concurrent.atomic.AtomicLong(0)
+
+  /** Times maskSensitive has run since start-up. Lets tests check that skipped log levels cost nothing. */
+  def maskCalls: Long = maskCallsCounter.get()
+
   def maskSensitive(msg: AnyRef): String = {
+    maskCallsCounter.incrementAndGet()
     val msgString = Option(msg).map(_.toString).getOrElse("")
     if (msgString.isEmpty) return msgString
 

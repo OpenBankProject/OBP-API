@@ -449,10 +449,16 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
       // So they must keep their dynamic-* prefix here, matching getResourceDocsObpDynamicCached.
       // (Commit efb97531e over-corrected this branch to always use the requested version,
       // which made API Explorer render dynamic-entity CRUD URLs as /obp/v7.0.0/<entity> — a 404.)
-      val dynamicDocs = allDynamicResourceDocs
+      //
+      // The exception is v7.0.0, which serves Dynamic Entity records at its own URLs,
+      // /obp/v7.0.0/banks/BANK_ID/dynamic-entities/... (BANK_ID a bank's id or SYS). Its listing
+      // documents those, with v7.0.0 operation ids, in place of the unversioned ones.
+      val dynamicDocs = allDynamicResourceDocsIn(requestedApiVersion)
         .map { it =>
           it.specifiedUrl =
-            if (it.partialFunctionName.startsWith("dynamicEntity"))
+            if (it.partialFunctionName.startsWith("dynamicEntity") && it.implementedInApiVersion == ApiVersion.v7_0_0)
+              Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.v7_0_0}${it.requestUrl}")
+            else if (it.partialFunctionName.startsWith("dynamicEntity"))
               Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}")
             else
               Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")

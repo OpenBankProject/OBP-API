@@ -7110,7 +7110,7 @@ object Http4s700 {
       "Get Rate Limiter Config",
       s"""Returns the live configuration of the three rate limiters on this instance, in the order they are checked:
          |
-         |1. **self_service** runs before routing and authentication, keyed by client IP address, on the endpoints anyone can call before the bank has granted them anything. A trip answers 429 `OBP-10060`.
+         |1. **self_service** runs before routing and authentication, keyed by client IP address, on the endpoints anyone can call before the bank has granted them anything, and on the public documentation. A trip answers 429 `OBP-10060`. Each of its `limits` rows is a scope, with the endpoints it `covers` and its own `mode`: a scope can stay in shadow mode while the limiter's `mode` is enforce (the `documentation` scope does, unless its own mode is set).
          |2. **authentication** runs inside the credential check, keyed by IP address and account. A trip answers 429 `OBP-10061`.
          |3. **consumer** runs after authentication, keyed by Consumer, or by IP address for anonymous calls. A trip answers 429 `OBP-10018`.
          |
@@ -7242,6 +7242,9 @@ object Http4s700 {
     // Dynamic Entity definitions, one set of URLs for every space (SYS included). Declared in their own
     // object to keep this initialiser under the JVM's 64KB method limit.
     resourceDocs ++= Http4s700DynamicEntityDefinitions.resourceDocs
+
+    // Telemetry, for people; Prometheus reads the separate Telemetry port instead.
+    resourceDocs ++= Http4s700Telemetry.resourceDocs
 
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs

@@ -61,11 +61,12 @@ object LiftUsers extends Users with MdcLoggable{
    *  until the entry expired. */
   private lazy val onBehalfOfCacheTtlSeconds: Long =
     APIUtil.getPropsAsLongValue("on_behalf_of_user_id.cache_ttl_seconds", 600L)
-  private lazy val onBehalfOfCache: com.google.common.cache.Cache[String, Resolved] =
+  private lazy val onBehalfOfCache: com.google.common.cache.Cache[String, Resolved] = code.telemetry.Telemetry.monitorCache(
     com.google.common.cache.CacheBuilder.newBuilder()
       .expireAfterWrite(onBehalfOfCacheTtlSeconds, java.util.concurrent.TimeUnit.SECONDS)
       .maximumSize(100000)
-      .build[String, Resolved]()
+      .recordStats()
+      .build[String, Resolved](), "on_behalf_of")
 
   private def nonBlank(s: String): Boolean = s != null && s.nonEmpty
 

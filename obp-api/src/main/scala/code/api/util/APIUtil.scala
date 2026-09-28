@@ -5004,6 +5004,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   lazy val allStaticResourceDocs: List[ResourceDoc] = ResourceDocRegistry.allStaticResourceDocs
 
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+
+  /**
+   * The dynamic docs a versioned resource-docs listing shows. v7.0.0 documents Dynamic Entity records at
+   * their v7.0.0 URLs (/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...); every other version at the
+   * unversioned /obp/dynamic-entity/... URLs, as [[allDynamicResourceDocs]] does.
+   */
+  def allDynamicResourceDocsIn(requestedApiVersion: ScannedApiVersion): List[ResourceDoc] =
+    if (requestedApiVersion == ApiVersion.v7_0_0)
+      (DynamicEntityHelper.v700Doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+    else allDynamicResourceDocs
   
   def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs
 
@@ -5145,16 +5155,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
   }
 
+  /**
+   * The cache key of a rendered documentation response. The filters are a [[ResourceDocFilters]],
+   * never raw request values: that type can only be built sorted, de-duplicated and (for ResourceDoc
+   * listings) limited to values some ResourceDoc carries, so a caller cannot multiply cache entries
+   * by varying the filters. The key text keeps its earlier shape.
+   */
   def createResourceDocCacheKey(
     bankId : Option[String],
     requestedApiVersionString: String,
-    tags: Option[List[ResourceDocTag]],
-    partialFunctions: Option[List[String]],
+    filters: ResourceDocFilters,
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean]
-  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
+  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:${filters.tags}-partialFunctions:${filters.functions}-locale:${locale.toString}" +
     // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
     // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
     // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that

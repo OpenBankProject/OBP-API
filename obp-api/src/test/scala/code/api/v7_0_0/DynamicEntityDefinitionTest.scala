@@ -352,4 +352,76 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
       errorOf(response) should include(BankNotFound)
     }
   }
+
+  feature("v7.0.0 resource docs of a Dynamic Entity's endpoints") {
+
+    /** The OBPv7.0.0 listing as the API Explorer asks for it, narrowed to the given partial functions. */
+    def v7Docs(functions: List[String]): List[JValue] = {
+      val response = makeGetRequest((v7 / "resource-docs" / "OBPv7.0.0" / "obp") <<? List(("functions", functions.mkString(","))))
+      response.code should equal(200)
+      (response.body \ "resource_docs").children
+    }
+
+    def v4Docs(functions: List[String]): List[JValue] = {
+      val response = makeGetRequest((v7 / "resource-docs" / "OBPv6.0.0" / "obp") <<? List(("functions", functions.mkString(","))))
+      response.code should equal(200)
+      (response.body \ "resource_docs").children
+    }
+
+    def operationIds(docs: List[JValue]): List[String] = docs.map(d => (d \ "operation_id").extract[String])
+
+    scenario("the OBPv7.0.0 listing documents records at their v7.0.0 URLs, in the system space and at a bank", VersionOfApi) {
+      val entityName = newEntityName()
+      val bankId = testBankId1.value
+      val systemEntityId = createdWithFlags(SYS, entityName, "use_row_level_access" -> true)
+      val bankEntityId = createdWithFlags(bankId, entityName)
+      try {
+        val functions = List(
+          s"dynamicEntity_create${entityName}_",
+          s"dynamicEntity_get${entityName}List_$bankId",
+          s"dynamicEntity_grant${entityName}RowAccess_")
+        val docs = v7Docs(functions)
+        def docWithId(id: String): JValue =
+          docs.find(d => (d \ "operation_id").extract[String] == id).getOrElse(fail(s"no resource doc $id in ${operationIds(docs)}"))
+
+        Then("a system entity's docs have v7.0.0 ids and name SYS in the URL and in the example response")
+        val create = docWithId(s"OBPv7.0.0-dynamicEntity_create${entityName}_")
+        (create \ "request_verb").extract[String] should equal("POST")
+        (create \ "request_url").extract[String] should equal(s"/banks/$SYS/dynamic-entities/$entityName")
+        (create \ "specified_url").extract[String] should equal(s"/obp/v7.0.0/banks/$SYS/dynamic-entities/$entityName")
+        (create \ "implemented_by" \ "version").extract[String] should equal("OBPv7.0.0")
+        (create \ "success_response_body" \ "bank_id").extract[String] should equal(SYS)
+
+        And("the row-level access grant is documented as the PUT it is served as")
+        val grantAccess = docWithId(s"OBPv7.0.0-dynamicEntity_grant${entityName}RowAccess_")
+        (grantAccess \ "request_verb").extract[String] should equal("PUT")
+        (grantAccess \ "request_url").extract[String] should equal(s"/banks/$SYS/dynamic-entities/$entityName/${entityName.toUpperCase}_ID/access")
+
+        And("a bank level entity's docs name its bank")
+        val list = docWithId(s"OBPv7.0.0-dynamicEntity_get${entityName}List_$bankId")
+        (list \ "request_url").extract[String] should equal(s"/banks/$bankId/dynamic-entities/$entityName")
+        (list \ "success_response_body" \ "bank_id").extract[String] should equal(bankId)
+
+        And("the v7.0.0 listing does not also carry the unversioned docs")
+        operationIds(docs).filter(_.startsWith("OBPv4.0.0-dynamicEntity_")) shouldBe empty
+
+        Then("an older version's listing keeps the unversioned docs and their v4.0.0 ids")
+        val olderDocs = v4Docs(functions)
+        operationIds(olderDocs) should contain(s"OBPv4.0.0-dynamicEntity_create${entityName}_")
+        operationIds(olderDocs).filter(_.startsWith("OBPv7.0.0-")) shouldBe empty
+        val olderCreate = olderDocs.find(d => (d \ "operation_id").extract[String] == s"OBPv4.0.0-dynamicEntity_create${entityName}_").get
+        (olderCreate \ "specified_url").extract[String] should equal(s"/obp/dynamic-entity/$entityName")
+        (olderCreate \ "success_response_body" \ "bank_id") should equal(JNothing)
+
+        And("an older listing's bank level example names the entity's bank as bank_id, as the response does")
+        val olderList = olderDocs.find(d => (d \ "operation_id").extract[String] == s"OBPv4.0.0-dynamicEntity_get${entityName}List_$bankId")
+          .getOrElse(fail(s"no v4.0.0 list doc in ${operationIds(olderDocs)}"))
+        (olderList \ "success_response_body" \ "bank_id").extract[String] should equal(bankId)
+        (olderList \ "success_response_body" \ "bank-id") should equal(JNothing)
+      } finally {
+        cascadeDelete(SYS, systemEntityId)
+        cascadeDelete(bankId, bankEntityId)
+      }
+    }
+  }
 }
