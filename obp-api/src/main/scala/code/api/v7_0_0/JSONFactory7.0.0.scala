@@ -2772,6 +2772,37 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   )
   lazy val apiProductSubscriptionsJsonV700Example = ApiProductSubscriptionsJsonV700(List(apiProductSubscriptionJsonV700Example))
 
+  // ===== IP penalties =====
+
+  /** Request body of POST /management/ip-penalties. `per_minute_limit` 0 refuses every request. */
+  case class PostIpPenaltyJsonV700(ip_address: String, per_minute_limit: Long, duration_minutes: Long, reason: String)
+
+  case class IpPenaltyJsonV700(
+    ip_address: String,
+    per_minute_limit: Long,
+    reason: String,
+    created_by_user_id: String,
+    created_at: Date,
+    expires_at: Date
+  )
+  case class IpPenaltiesJsonV700(ip_penalties: List[IpPenaltyJsonV700])
+
+  def createIpPenaltyJson(penalty: code.api.util.IpPenalties.Penalty): IpPenaltyJsonV700 =
+    IpPenaltyJsonV700(penalty.ipAddress, penalty.perMinuteLimit, penalty.reason, penalty.createdByUserId,
+      new Date(penalty.createdAtMillis), new Date(penalty.expiresAtMillis))
+
+  lazy val postIpPenaltyJsonV700Example = PostIpPenaltyJsonV700(
+    ip_address = "203.0.113.42", per_minute_limit = 10, duration_minutes = 60,
+    reason = "Vulnerability scan: about 900 requests a minute to resource-docs with changing filters")
+
+  lazy val ipPenaltyJsonV700Example = IpPenaltyJsonV700(
+    ip_address = "203.0.113.42", per_minute_limit = 10,
+    reason = "Vulnerability scan: about 900 requests a minute to resource-docs with changing filters",
+    created_by_user_id = ExampleValue.userIdExample.value,
+    created_at = APIUtil.DateWithMsExampleObject, expires_at = APIUtil.DateWithMsExampleObject)
+
+  lazy val ipPenaltiesJsonV700Example = IpPenaltiesJsonV700(List(ipPenaltyJsonV700Example))
+
   // ===== Telemetry =====
 
   /** One meter: its Micrometer name, type, unit, tags and current values (count, total_time, max, value ...). */

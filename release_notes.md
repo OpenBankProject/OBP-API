@@ -3,6 +3,16 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/09/2026    TBD           NEW: IP penalties, an operator's temporary per-minute limit on one IP
+                            address, on every endpoint, checked before all other rate limiters.
+                            per_minute_limit 0 refuses every request. Always enforced, kept in Redis
+                            (shared by every instance), removed automatically on expiry (at most one
+                            week). A refused request gets 429 OBP-10062.
+                            NEW in v7.0.0: POST, GET /management/ip-penalties and
+                            DELETE /management/ip-penalties/IP_ADDRESS, with the new Roles
+                            CanCreateIpPenalty, CanGetIpPenalties, CanDeleteIpPenalty (empty bank id).
+                            The penalty endpoints are never refused, so a mistake can be undone.
+                            NEW error codes: OBP-10062 to OBP-10066.
 28/09/2026    TBD           NEW rate-limit scope "documentation" in the self-service (per client IP)
                             limiter, covering every public documentation read under any version prefix:
                             resource-docs, message-docs, api/glossary, api/tags, api/versions,

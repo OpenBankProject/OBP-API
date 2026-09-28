@@ -763,6 +763,8 @@ object Glossary extends MdcLoggable  {
 				 |2. **Authentication limiter** (`auth.rate_limit.*`) runs inside the credential check of Direct Login, DAuth, Gateway Login and SIWE, before the password or token is verified, keyed by IP address and by account. It defends against brute force, credential stuffing and lockout attacks. Trip code: `OBP-10061`.
 				 |3. **Consumer quota** (the limits described above) runs after authentication, keyed by Consumer, or by IP address with a single hourly ceiling for anonymous calls. It is the commercial and fair-use quota. Trip code: `OBP-10018`.
 				 |
+				 |Before all three, an operator can put a single IP address under a temporary **IP penalty**: a per-minute limit on every endpoint, for a set time, for example during a scan or denial-of-service attempt (`POST /obp/v7.0.0/management/ip-penalties`, Role CanCreateIpPenalty). A per-minute limit of 0 refuses every request. Penalties are always enforced, shared by every instance, and disappear when they expire; the penalty endpoints themselves are never refused, so a mistake can be undone. Trip code: `OBP-10062`.
+				 |
 				 |A login attempt is counted by the authentication limiter only; it is not a self-service scope, so no attempt is counted twice. Every limiter counts in Redis and fails open: a Redis outage never blocks a call.
 				 |
 				 |### Self-service rate limiting (per IP address, before any credential)
