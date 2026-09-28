@@ -203,7 +203,11 @@ object Http4sApp extends MdcLoggable {
       // trusted forwarder naming it. Unconditional on purpose — the deployment where the answer is
       // least obvious, a proxy forwarding the header over a hop with no client certificate, enables
       // no TLS middleware at all, so neither step can live in Http4sServer's mtls.enabled branch.
+      // The traffic note travels with the request; inner layers fill it in (see TrafficSources).
+      val note = new code.telemetry.TrafficSources.Note
       val req = CallerCertificate.resolveCaller(Psd2CertIngress.canonicalize(rawReq))
+        .withAttribute(Http4sRequestAttributes.trafficNoteKey, note)
+      val startNanos = System.nanoTime()
       // Self-service rate limiting (sign-up, password reset, consent requests, consumer
       // registration, lookups, signal channel creation) runs here, before routing, keyed by the
       // client IP. In shadow mode it only adds X-Rate-Limit-* headers; in enforce mode a trip
@@ -220,6 +224,12 @@ object Http4sApp extends MdcLoggable {
               .withEntity(body.getBytes("UTF-8"))
               .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8"))))))
         }
+        .flatTap(resp => IO {
+          // Where the traffic is coming from: every request, served, refused or unmatched, once.
+          try code.telemetry.TrafficSources.record(note, Http4sCallContextBuilder.clientIp(req), resp.status.code,
+            (System.nanoTime() - startNanos) / 1000000L)
+          catch { case e: Throwable => logger.debug(s"Http4sApp says: could not record traffic: ${e.getMessage}") }
+        })
     }
   }
 }

@@ -139,7 +139,9 @@ object SelfServiceRateLimitMiddleware extends MdcLoggable {
       if (ipPenaltyManagementPath.findFirstIn(req.uri.path.renderString).isDefined) IO.pure(None)
       else IO.blocking(IpPenalties.check(Http4sCallContextBuilder.clientIp(req)))
     penaltyRefusal.flatMap {
-      case Some(refusal) => IO.pure(penaltyResponse(refusal))
+      case Some(refusal) =>
+        Http4sRequestAttributes.trafficNote(req).foreach(_.refusedBy = Some("ip_penalty"))
+        IO.pure(penaltyResponse(refusal))
       case None => applyScopes(req)(run)
     }
   }
@@ -162,7 +164,9 @@ object SelfServiceRateLimitMiddleware extends MdcLoggable {
       case None => run(req)
       case Some(scope) =>
         IO.blocking(SelfServiceRateLimiter.check(scope, Http4sCallContextBuilder.clientIp(req), "ip")).flatMap {
-          case Blocked(s, _, exceeded) => IO.pure(blockedResponse(s, exceeded))
+          case Blocked(s, _, exceeded) =>
+            Http4sRequestAttributes.trafficNote(req).foreach(_.refusedBy = Some(s))
+            IO.pure(blockedResponse(s, exceeded))
           case outcome                 => run(req).map(resp => decorate(resp, outcome))
         }
     }

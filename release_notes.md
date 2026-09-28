@@ -3,6 +3,13 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/09/2026    TBD           NEW in v7.0.0: GET /management/traffic/top-callers?window=1|5|15, where the
+                            traffic on the answering instance is coming from: the busiest Consumers,
+                            client IP addresses (every request, authenticated or not), and callers and
+                            endpoints, over the last 1, 5 or 15 minutes. Estimated counts from
+                            fixed-size tables (the Space-Saving algorithm of Metwally, Agrawal and
+                            El Abbadi, 2005), in memory only, 15 minutes kept. New Role
+                            CanGetTrafficSources (empty bank id). New error code OBP-10067.
 28/09/2026    TBD           NEW cache namespaces message_docs and glossary, shown and invalidated like
                             the others (system/cache in API Manager, POST
                             /management/cache/namespaces/invalidate).

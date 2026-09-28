@@ -30,7 +30,7 @@ import java.util.Date
 
 import code.api.Constant
 import code.api.util.{APIUtil, ExampleValue, IpPenalties}
-import code.telemetry.Telemetry
+import code.telemetry.{Telemetry, TrafficSources}
 
 /*
  * The JSON of the v7.0.0 operations endpoints (Telemetry and IP penalties).
@@ -79,6 +79,66 @@ case class IpPenaltyJsonV700(
 )
 
 case class IpPenaltiesJsonV700(ip_penalties: List[IpPenaltyJsonV700])
+
+// ===== Where traffic is coming from =====
+
+/** A Consumer among the busiest. `requests` is within `error` of the true count. */
+case class TrafficConsumerJsonV700(
+  consumer_id: String,
+  application_name: String,
+  requests: Long,
+  error: Long,
+  status_2xx: Long,
+  status_4xx: Long,
+  status_5xx: Long,
+  refused: Long,
+  unmatched: Long,
+  endpoints: List[String],
+  last_ip_address: String,
+  first_seen: Date,
+  last_seen: Date
+)
+
+/** A client IP address among the busiest, whatever credentials its requests carried. */
+case class TrafficAddressJsonV700(
+  ip_address: String,
+  requests: Long,
+  error: Long,
+  status_2xx: Long,
+  status_4xx: Long,
+  status_5xx: Long,
+  refused: Long,
+  unmatched: Long,
+  endpoints: List[String],
+  consumer_ids: List[String],
+  first_seen: Date,
+  last_seen: Date
+)
+
+/** A pair of caller (a Consumer, or an IP address for other requests) and endpoint among the busiest. */
+case class TrafficCallerEndpointJsonV700(
+  caller_kind: String,
+  caller: String,
+  endpoint: String,
+  api_version: Option[String],
+  requests: Long,
+  error: Long,
+  status_2xx: Long,
+  status_4xx: Long,
+  status_5xx: Long,
+  refused: Long,
+  mean_duration_ms: Long,
+  max_duration_ms: Long,
+  last_seen: Date
+)
+
+case class TrafficSourcesJsonV700(
+  api_instance_id: String,
+  window_minutes: Int,
+  consumers: List[TrafficConsumerJsonV700],
+  addresses: List[TrafficAddressJsonV700],
+  callers_and_endpoints: List[TrafficCallerEndpointJsonV700]
+)
 
 /** This object builds the JSON above, and holds the examples the ResourceDocs show. */
 object JSONFactory700Operations {
@@ -137,4 +197,72 @@ object JSONFactory700Operations {
     created_at = APIUtil.DateWithMsExampleObject, expires_at = APIUtil.DateWithMsExampleObject)
 
   lazy val ipPenaltiesJsonV700Example = IpPenaltiesJsonV700(List(ipPenaltyJsonV700Example))
+
+  // ===== Where traffic is coming from =====
+
+  val TrafficRowsShown = 50
+
+  private def endpointsOf(sets: List[scala.collection.mutable.LinkedHashSet[String]]): List[String] =
+    sets.flatten.distinct.take(TrafficSources.EndpointsKeptPerCaller)
+
+  /** The busiest Consumers, addresses, and callers and endpoints of this instance, over the last `windowMinutes`. */
+  def createTrafficSourcesJson(windowMinutes: Int): TrafficSourcesJsonV700 = {
+    import TrafficSources._
+    val consumers = TrafficSources.consumers(windowMinutes).take(TrafficRowsShown).map { m =>
+      val latest = m.details.maxBy(_.lastSeen)
+      TrafficConsumerJsonV700(
+        consumer_id = m.key,
+        application_name = m.details.map(_.name).find(_.nonEmpty).getOrElse(""),
+        requests = m.requests, error = m.error,
+        status_2xx = m.details.map(_.status2xx).sum, status_4xx = m.details.map(_.status4xx).sum,
+        status_5xx = m.details.map(_.status5xx).sum, refused = m.details.map(_.refused).sum,
+        unmatched = m.details.map(_.unmatched).sum,
+        endpoints = endpointsOf(m.details.map(_.endpoints)),
+        last_ip_address = latest.lastIp,
+        first_seen = new Date(m.details.map(_.firstSeen).min), last_seen = new Date(latest.lastSeen))
+    }
+    val addresses = TrafficSources.addresses(windowMinutes).take(TrafficRowsShown).map { m =>
+      TrafficAddressJsonV700(
+        ip_address = m.key,
+        requests = m.requests, error = m.error,
+        status_2xx = m.details.map(_.status2xx).sum, status_4xx = m.details.map(_.status4xx).sum,
+        status_5xx = m.details.map(_.status5xx).sum, refused = m.details.map(_.refused).sum,
+        unmatched = m.details.map(_.unmatched).sum,
+        endpoints = endpointsOf(m.details.map(_.endpoints)),
+        consumer_ids = m.details.flatMap(_.consumers).distinct.take(ConsumersKeptPerAddress),
+        first_seen = new Date(m.details.map(_.firstSeen).min), last_seen = new Date(m.details.map(_.lastSeen).max))
+    }
+    val callerEndpoints = TrafficSources.callerEndpoints(windowMinutes).take(TrafficRowsShown).map { m =>
+      val (caller, endpoint) = m.key
+      val counted = m.details.map(d => d.status2xx + d.status4xx + d.status5xx).sum
+      TrafficCallerEndpointJsonV700(
+        caller_kind = caller.kind, caller = caller.value, endpoint = endpoint,
+        api_version = m.details.map(_.apiVersion).find(_.nonEmpty),
+        requests = m.requests, error = m.error,
+        status_2xx = m.details.map(_.status2xx).sum, status_4xx = m.details.map(_.status4xx).sum,
+        status_5xx = m.details.map(_.status5xx).sum, refused = m.details.map(_.refused).sum,
+        mean_duration_ms = if (counted > 0) m.details.map(_.totalDurationMillis).sum / counted else 0L,
+        max_duration_ms = m.details.map(_.maxDurationMillis).max,
+        last_seen = new Date(m.details.map(_.lastSeen).max))
+    }
+    TrafficSourcesJsonV700(Constant.ApiInstanceId, windowMinutes, consumers, addresses, callerEndpoints)
+  }
+
+  lazy val trafficSourcesJsonV700Example = TrafficSourcesJsonV700(
+    api_instance_id = "obp_4f6b3c2a-9d1e-4b7a-8c5f-2e1d0a9b8c7d",
+    window_minutes = 5,
+    consumers = List(TrafficConsumerJsonV700(
+      consumer_id = ExampleValue.consumerIdExample.value, application_name = "Mobile Banking App",
+      requests = 12400, error = 0, status_2xx = 12310, status_4xx = 85, status_5xx = 5, refused = 0, unmatched = 0,
+      endpoints = List("OBPv7.0.0-getBanks", "OBPv6.0.0-getCoreAccountById"), last_ip_address = "198.51.100.23",
+      first_seen = APIUtil.DateWithMsExampleObject, last_seen = APIUtil.DateWithMsExampleObject)),
+    addresses = List(TrafficAddressJsonV700(
+      ip_address = "203.0.113.42", requests = 52400, error = 300, status_2xx = 1200, status_4xx = 51100, status_5xx = 100,
+      refused = 0, unmatched = 38000, endpoints = List("unmatched", "OBPv1.4.0-getResourceDocsObp"), consumer_ids = Nil,
+      first_seen = APIUtil.DateWithMsExampleObject, last_seen = APIUtil.DateWithMsExampleObject)),
+    callers_and_endpoints = List(TrafficCallerEndpointJsonV700(
+      caller_kind = "ip", caller = "203.0.113.42", endpoint = "unmatched", api_version = None,
+      requests = 38000, error = 250, status_2xx = 0, status_4xx = 38000, status_5xx = 0, refused = 0,
+      mean_duration_ms = 3, max_duration_ms = 41, last_seen = APIUtil.DateWithMsExampleObject))
+  )
 }

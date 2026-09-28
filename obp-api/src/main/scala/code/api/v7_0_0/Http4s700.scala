@@ -7249,6 +7249,9 @@ object Http4s700 {
     // IP penalties: an operator's temporary per-minute limit on one address.
     resourceDocs ++= Http4s700IpPenalties.resourceDocs
 
+    // Where traffic is coming from: the busiest Consumers, addresses, and callers and endpoints.
+    resourceDocs ++= Http4s700TrafficSources.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
