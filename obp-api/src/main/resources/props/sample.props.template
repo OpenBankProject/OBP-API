@@ -894,7 +894,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 
 ##################################################################################
 # List of Users that should automatically have roles needed to call endpoints used by OBP-OIDC or OBP Keycloak Provider.
-# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanCreateConsumer
+# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
 # oidc_operator_user_ids=USER_ID1,USER_ID2,
 ####################################################################################
 

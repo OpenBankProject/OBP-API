@@ -3,12 +3,19 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/09/2026    TBD           NEW in v7.0.0: GET /consumers/current/scopes, the Roles the calling Consumer
+                            holds as Scopes (role_name, bank_id). No Role; a User or an Application on
+                            its own may call it, like GET /consumers/current/identity. For services
+                            (Portal, API Manager) to report on their status pages which Scopes they lack.
 28/09/2026    TBD           CHANGED: CanCreateConsumer is added to the Roles of an OIDC operator: a
                             virtual Entitlement for users in oidc_operator_user_ids, and granted to the
                             bootstrap user created from oidc_operator_username (only when that user is
                             first created; an existing user keeps its stored Entitlements). OBP-OIDC
                             checks for it at startup when dynamic client registration or client
                             bootstrap is on.
+                            CanGetConsumers is also added to the virtual Entitlements of users in
+                            oidc_operator_user_ids (the bootstrap user already had it), so that list
+                            alone satisfies OBP-OIDC's startup Role check.
 28/09/2026    TBD           CHANGED in v7.0.0: GET and PUT /management/banks/BANK_ID/dynamic-entities
                             (list and update Dynamic Entity definitions) accept an Application on its
                             own (auth mode UserOrApplication), as POST already did, so a Consumer

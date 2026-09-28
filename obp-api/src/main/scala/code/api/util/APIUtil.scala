@@ -2256,7 +2256,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // Virtual roles granted by super_admin_user_ids prop
   val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
   // Virtual roles granted by oidc_operator_user_ids prop
-  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanCreateConsumer")
+  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanGetConsumers", "CanCreateConsumer")
 
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty

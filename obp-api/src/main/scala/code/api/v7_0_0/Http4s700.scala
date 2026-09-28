@@ -808,6 +808,48 @@ object Http4s700 {
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
 
+    // Route: GET /obp/v7.0.0/consumers/current/scopes
+    // The Roles the calling Consumer holds as Scopes. No Role, like the identity above: a service may always
+    // learn what it has been granted, so its status page can say which Scopes it still needs.
+    val getCurrentConsumerScopes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consumers" / "current" / "scopes" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            consumer <- Future(cc.consumer match {
+              case Full(c) => Full(c)
+              case _ => net.liftweb.common.Empty
+            }).map(unboxFullOrFail(_, Some(cc), ApplicationNotIdentified, 401))
+            scopes <- Future(code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.get.toString).openOr(Nil))
+          } yield JSONFactory700.createCurrentConsumerScopesJsonV700(consumer, scopes)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getCurrentConsumerScopes),
+      "GET",
+      "/consumers/current/scopes",
+      "Get Current Consumer Scopes",
+      s"""Returns the Roles the Consumer making this call holds as Scopes, each with its `bank_id`
+        |(a bank id, SYS for the system space, or empty for a system Role).
+        |
+        |No Role is required. The caller must be identifiable as a Consumer, either through a logged-in User (whose
+        |Consumer this is) or as an Application on its own (OAuth2 client credentials, or a Consumer Key).
+        |A call with no credentials gets ${ApplicationNotIdentified}
+        |
+        |Use it from a service (for example the Portal or the API Manager) to check that its Consumer holds the Scopes
+        |it needs. To list another Consumer's Scopes, see Get Scopes for Consumer.
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.currentConsumerScopesJsonV700Example,
+      List(ApplicationNotIdentified, UnknownError),
+      apiTagConsumer :: apiTagScope :: apiTagApi :: Nil,
+      None,
+      authMode = UserOrApplication,
+      http4sPartialFunction = Some(getCurrentConsumerScopes)
+    )
+
     // Route: GET /obp/v7.0.0/public/password-config
     // Anonymous: clients need the policy before they hold credentials, to validate
     // a proposed password locally during signup or password reset. The /public
