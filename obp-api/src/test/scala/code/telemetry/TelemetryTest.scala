@@ -60,6 +60,27 @@ class TelemetryTest extends FlatSpec with Matchers {
     Telemetry.statusClass(503) shouldBe "5xx"
   }
 
+  it should "count the items of a list response, whether a bare array or an object wrapping one list" in {
+    import org.json4s._
+    Telemetry.listItemCount(JArray(List(JInt(1), JInt(2)))) shouldBe Some(2)
+    Telemetry.listItemCount(JObject(List("banks" -> JArray(List(JInt(1), JInt(2), JInt(3)))))) shouldBe Some(3)
+    // An object with no list, or with two lists, is not a list response.
+    Telemetry.listItemCount(JObject(List("bank_id" -> JString("x")))) shouldBe None
+    Telemetry.listItemCount(JObject(List("a" -> JArray(Nil), "b" -> JArray(Nil)))) shouldBe None
+  }
+
+  "BatchWriterTelemetry" should "derive the queue depth from rows queued, written and lost" in {
+    val writer = unique("writer")
+    val batchTelemetry = new BatchWriterTelemetry(writer)
+    (1 to 5).foreach(_ => batchTelemetry.queued())
+    batchTelemetry.written(2, 1000L)
+    batchTelemetry.lost(1, 1000L)
+    val scraped = Telemetry.scrape()
+    scraped should include(s"""obp_api_batch_writer_queue_depth{writer="$writer"} 2.0""")
+    scraped should include(s"""obp_api_batch_writer_rows_total{result="lost",writer="$writer"} 1.0""")
+    scraped should include(s"""obp_api_batch_writer_flushes_seconds_count{result="failure",writer="$writer"} 1""")
+  }
+
   "The Telemetry port" should "serve Telemetry at /telemetry and nothing else" in {
     val name = unique("port_probe")
     Telemetry.counter(s"obp.api.test.$name").increment()

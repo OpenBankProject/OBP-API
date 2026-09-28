@@ -282,6 +282,11 @@ thread and class figures on its own port. Remove it once the Micrometer JVM bind
 |---|---|---|---|
 | `obp.api.endpoint.requests` | timer, fixed buckets | `operation`, `api_version`, `status` | `ResourceDocMiddleware`, once per request, by the hop that matched a ResourceDoc |
 | `obp.api.endpoint.response.size` | distribution summary, bytes | `operation` | the same, when the response states its length |
+| `obp.api.endpoint.response.items` | distribution summary, items | `operation` | `EndpointHelpers`, for a response that is a JSON array or an object wrapping exactly one array; counted from the JSON the helper decomposes anyway |
+| `obp.api.memoize.gets` | counter | `provider` (`redis`, `in_memory`), `cache`, `result` (`hit`, `miss`) | `Caching.memoize*`. `cache` is `Owner.method` for a key built by `CacheKeyFromArguments`, and `other` for a key a caller wrote itself, which may hold an identifier |
+| `obp.api.batch_writer.rows` | counter | `writer` (`api_metrics`, `connector_metrics`), `result` (`queued`, `written`, `lost`) | the batch writers; `lost` is a batch dropped by a failed flush |
+| `obp.api.batch_writer.queue.depth` | gauge | `writer` | rows queued minus rows written or lost (the queue's own `size()` walks it) |
+| `obp.api.batch_writer.flushes` | timer | `writer`, `result` | each flush that had rows |
 | `obp.api.connector.calls` | timer, fixed buckets | `connector`, `connector_method`, `result` | the Connector proxy (`code/bankconnectors/package.scala`) |
 | `obp.api.redis.commands` | timer | `command`, `result` | `Redis.use` |
 | `cache.gets`, `cache.puts`, `cache.evictions`, `cache.size` | standard | `cache` = `in_memory`, `json_schema`, `message_docs`, `on_behalf_of` | every Guava cache, through `Telemetry.monitorCache` |
@@ -290,13 +295,16 @@ thread and class figures on its own port. Remove it once the Micrometer JVM bind
 | `obp.api.instance.info` | gauge, always 1 | `api_instance_id`, `git_commit` | start-up |
 | the counters in section 11 | | | `TelemetryBindings` |
 
-Not recorded yet:
-- hits and misses of `Caching.memoize*` with the Redis provider (the in-memory provider is covered
-  through the `in_memory` cache);
-- the batch writers for API Metrics and Connector Metrics: their queues are
-  `ConcurrentLinkedQueue`s, whose size costs a walk of the whole queue, so they need their own
-  counters rather than a gauge on `size()`;
-- item counts of list responses;
-- endpoints without a ResourceDoc (Dynamic Entity records, Dynamic Endpoints, the unversioned
-  routes), which do not pass through the matching branch of `ResourceDocMiddleware`.
+Not recorded yet: requests served outside `ResourceDocMiddleware`. Every endpoint should have a
+ResourceDoc; these either have one but are served by routes the middleware does not wrap, or have
+none:
+- documented, served outside the middleware: the resource-docs, Swagger and OpenAPI routes
+  (`Http4sResourceDocs`), the unversioned `POST /my/logins/direct` (documented at v6.0.0), Dynamic
+  Entity records (unversioned and v7.0.0) and Dynamic Endpoints;
+- no ResourceDoc: `POST /my/logins/siwe/challenge`, `POST /my/logins/siwe`, and
+  `GET /obp/PREFIX/resource-docs/API_VERSION/openapi.yaml`;
+- server pages, also without a ResourceDoc: `/`, `/apps`, `/status`, `/health`, `/alive`.
+
+The full picture, and the decision to leave these routes as they are for now, is in
+`docs/resource_doc_and_endpoint_consistency_status.md`.
 

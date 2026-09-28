@@ -90,6 +90,18 @@ class TelemetryEndpointTest extends V600ServerSetup {
       names should contain("obp.api.log.dispatch.entries")
       names should contain("obp.api.instance.info")
 
+      And("every meter the API Manager Telemetry page reads is present under the name it expects")
+      // OBP-Frontend apps/api-manager/src/lib/telemetry/telemetry.ts reads these by name.
+      List(
+        "jvm.memory.used", "jvm.memory.max", "jvm.memory.usage.after.gc", "jvm.gc.overhead",
+        "jvm.threads.live", "process.cpu.usage", "process.uptime",
+        "hikaricp.connections", "hikaricp.connections.active", "hikaricp.connections.idle",
+        "hikaricp.connections.pending", "hikaricp.connections.max", "hikaricp.connections.timeout",
+        "cache.gets", "cache.size", "cache.evictions",
+        "obp.api.log.dispatch.queue.depth", "obp.api.log.masking.calls"
+      ).foreach(expected => names should contain(expected))
+      telemetry.meters.filter(_.name == "cache.gets").flatMap(_.tags.get("result")).toSet should equal(Set("hit", "miss"))
+
       And("the first request was counted by the middleware, under its operation id")
       val requestsToThisEndpoint = telemetry.meters.filter(meter =>
         meter.name == "obp.api.endpoint.requests" &&
@@ -97,6 +109,22 @@ class TelemetryEndpointTest extends V600ServerSetup {
           meter.tags.get("status").contains("2xx"))
       requestsToThisEndpoint should have size 1
       requestsToThisEndpoint.head.measurements("count") should be >= 1.0
+    }
+
+    scenario("List responses record their item counts, and memoised Connector calls are labelled by method", ApiEndpoint, VersionOfApi) {
+      Given("a list endpoint and a Connector call that is memoised with a key built by CacheKeyFromArguments")
+      makeGetRequest((v7_0_0_Request / "banks").GET).code should equal(200)
+      val response = withTelemetryRole { makeGetRequest(telemetryRequest.GET <@ (user1)) }
+      val meters = response.body.extract[TelemetryJsonV700].meters
+
+      Then("the list response's item count was recorded under its operation id")
+      meters.exists(meter => meter.name == "obp.api.endpoint.response.items" && meter.tags.get("operation").exists(_.endsWith("-getBanks"))) shouldBe true
+
+      And("memoised calls whose key names the cached method are labelled Owner.method, not other")
+      val memoizeLabels = meters.filter(_.name == "obp.api.memoize.gets").flatMap(_.tags.get("cache")).toSet
+      withClue(s"memoize labels seen: ${memoizeLabels.mkString(", ")} ") {
+        memoizeLabels.exists(label => label != "other") shouldBe true
+      }
     }
 
     scenario("name_prefix limits the list", ApiEndpoint, VersionOfApi) {

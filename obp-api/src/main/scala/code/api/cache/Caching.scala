@@ -37,12 +37,48 @@ import scala.concurrent.duration.Duration
 import scala.language.postfixOps
 object Caching extends MdcLoggable {
 
+  // ===== Telemetry =====
+
+  // A key built by CacheKeyFromArguments renders as "(Owner,method,arguments...)". Its first two
+  // fields name the cached code, from a list the code fixes; the arguments do not.
+  private val MacroKeyShape = """^\(([A-Za-z_][\w.$]*),([A-Za-z_][\w$]*),""".r.unanchored
+
+  /**
+   * The Telemetry label for a cache key: "Owner.method" for a key built by CacheKeyFromArguments,
+   * and "other" for a key a caller wrote itself, which may contain an identifier (a consumer id,
+   * a date) and so must never become a tag value.
+   */
+  private[cache] def telemetryLabel(cacheKey: Option[String]): String = cacheKey match {
+    case Some(MacroKeyShape(owner, method)) => s"$owner.$method"
+    case _ => "other"
+  }
+
+  /** Counts one memoised call as a hit, or as a miss when the cached function had to run. */
+  private def recordMemoizeGet(provider: String, cacheKey: Option[String], computed: Boolean): Unit =
+    code.telemetry.Telemetry.counter("obp.api.memoize.gets",
+      "provider" -> provider, "cache" -> telemetryLabel(cacheKey), "result" -> (if (computed) "miss" else "hit"))
+      .increment()
+
+  private def recordedSync[A](provider: String, cacheKey: Option[String])(memoize: (=> A) => A)(f: => A): A = {
+    var computed = false
+    val result = memoize { computed = true; f }
+    recordMemoizeGet(provider, cacheKey, computed)
+    result
+  }
+
+  private def recordedAsync[A](provider: String, cacheKey: Option[String])(memoize: (=> Future[A]) => Future[A])(f: => Future[A]): Future[A] = {
+    val computed = new java.util.concurrent.atomic.AtomicBoolean(false)
+    val result = memoize { computed.set(true); f }
+    result.onComplete(_ => recordMemoizeGet(provider, cacheKey, computed.get))(scala.concurrent.ExecutionContext.parasitic)
+    result
+  }
+
   def memoizeSyncWithProvider[A](cacheKey: Option[String])(ttl: Duration)(f: => A)(implicit m: Manifest[A]): A = {
     (cacheKey, ttl) match {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) => // Caching a call
-        Redis.memoizeSyncWithRedis(cacheKey)(ttl)(f)
+        recordedSync[A]("redis", cacheKey)(g => Redis.memoizeSyncWithRedis(cacheKey)(ttl)(g))(f)
       case _  => // Just forwarding a call
         f
     }
@@ -54,7 +90,7 @@ object Caching extends MdcLoggable {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) => // Caching a call
-        Redis.memoizeWithRedis(cacheKey)(ttl)(f)
+        recordedAsync[A]("redis", cacheKey)(g => Redis.memoizeWithRedis(cacheKey)(ttl)(g))(f)
       case _  => // Just forwarding a call
         f
     }
@@ -66,7 +102,7 @@ object Caching extends MdcLoggable {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) => // Caching a call
-        InMemory.memoizeSyncWithInMemory(cacheKey)(ttl)(f)
+        recordedSync[A]("in_memory", cacheKey)(g => InMemory.memoizeSyncWithInMemory(cacheKey)(ttl)(g))(f)
       case _  => // Just forwarding a call
         f
     }
@@ -78,7 +114,7 @@ object Caching extends MdcLoggable {
       case (_, t) if t == Duration.Zero  => // Just forwarding a call
         f
       case (Some(_), _) => // Caching a call
-        InMemory.memoizeWithInMemory(cacheKey)(ttl)(f)
+        recordedAsync[A]("in_memory", cacheKey)(g => InMemory.memoizeWithInMemory(cacheKey)(ttl)(g))(f)
       case _  => // Just forwarding a call
         f
     }

@@ -127,6 +127,26 @@ object Telemetry {
     responseBytes.foreach(bytes => summary("obp.api.endpoint.response.size", "bytes", "operation" -> operationId).record(bytes.toDouble))
   }
 
+  /**
+   * The number of items in a list response: the length of the response itself when it is a JSON
+   * array, or of its only array field when it is an object wrapping one list (`{"banks": [...]}`,
+   * the usual OBP shape). None for anything else, which is then not recorded.
+   */
+  def listItemCount(json: org.json4s.JValue): Option[Int] = json match {
+    case org.json4s.JArray(items) => Some(items.size)
+    case org.json4s.JObject(fields) =>
+      fields.collect { case (_, org.json4s.JArray(items)) => items.size } match {
+        case List(size) => Some(size)
+        case _ => None
+      }
+    case _ => None
+  }
+
+  /** Records how many items a list response carried, when it is one. */
+  def recordResponseItems(operationId: String, json: org.json4s.JValue): Unit =
+    listItemCount(json).foreach(size =>
+      summary("obp.api.endpoint.response.items", "items", "operation" -> operationId).record(size.toDouble))
+
   /** Records one call from OBP-API to a Connector method. */
   def recordConnectorCall(connectorName: String, methodName: String, millis: Long, isSuccess: Boolean): Unit =
     requestTimer("obp.api.connector.calls",

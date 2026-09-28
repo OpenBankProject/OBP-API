@@ -181,8 +181,22 @@ object Http4sRequestAttributes {
         case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
       }
 
+    /**
+     * Renders a handler's result as JSON. On the way it records, for Telemetry, how many items a
+     * list response carried. The count is taken from the JSON this method builds for rendering, so
+     * the result is not decomposed a second time. What counting does cost, on a list response, is
+     * one walk of the list (json4s holds array elements in a linked List, whose size is counted),
+     * a registry lookup of the operation's meter, and an atomic update: small next to decomposing
+     * and rendering the same list, but not nothing.
+     */
+    private def renderJson[A](result: A)(implicit formats: Formats, cc: CallContext): String = {
+      val json = Extraction.decompose(result)
+      cc.operationId.foreach(operationId => code.telemetry.Telemetry.recordResponseItems(operationId, json))
+      prettyRender(json)
+    }
+
     private def toJsonOk[A](result: A)(implicit formats: Formats, cc: CallContext): IO[Response[IO]] = {
-      val jsonString = prettyRender(Extraction.decompose(result))
+      val jsonString = renderJson(result)
       Ok(jsonString, jsonContentType).map(withCallContextHeaders)
     }
 
@@ -278,7 +292,7 @@ object Http4sRequestAttributes {
       } yield result
       io.attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -322,7 +336,7 @@ object Http4sRequestAttributes {
         case Right(body) =>
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -364,7 +378,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -408,7 +422,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -446,7 +460,7 @@ object Http4sRequestAttributes {
       } yield result
       io.attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -469,7 +483,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -534,7 +548,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -554,7 +568,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right((result, code)) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           val status = Status.fromInt(code).getOrElse(Status.Ok)
           IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
@@ -576,7 +590,7 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right((_, 204)) => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Right((result, code)) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           val status = Status.fromInt(code).getOrElse(Status.Ok)
           IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
