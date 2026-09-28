@@ -185,6 +185,38 @@ class SelfServiceRateLimiterTest extends ServerSetup {
     }
   }
 
+  feature("The documentation scope") {
+
+    scenario("it has generous built-in limits and no global cap") {
+      setPropsValues(s"$P.per_ip.per_minute" -> "", s"$P.per_ip.per_hour" -> "", s"$P.per_ip.per_day" -> "",
+        s"$P.documentation.per_ip.per_minute" -> "", s"$P.documentation.per_ip.per_hour" -> "",
+        s"$P.documentation.per_ip.per_day" -> "", s"$P.documentation.global.per_hour" -> "")
+      SelfServiceRateLimiter.perKeyLimit("documentation", "per_minute") shouldBe 60L
+      SelfServiceRateLimiter.perKeyLimit("documentation", "per_hour") shouldBe 1000L
+      SelfServiceRateLimiter.perKeyLimit("documentation", "per_day") shouldBe 10000L
+      SelfServiceRateLimiter.globalPerHourLimit("documentation") shouldBe -1L
+    }
+
+    scenario("it stays in shadow mode when the other scopes are enforced, until its own mode is set") {
+      setPropsValues(s"$P.mode" -> "enforce", s"$P.documentation.mode" -> "")
+      SelfServiceRateLimiter.modeFor("documentation") shouldBe SelfServiceRateLimiter.ModeShadow
+      SelfServiceRateLimiter.modeFor("signup") shouldBe SelfServiceRateLimiter.ModeEnforce
+
+      setPropsValues(s"$P.documentation.mode" -> "enforce")
+      SelfServiceRateLimiter.modeFor("documentation") shouldBe SelfServiceRateLimiter.ModeEnforce
+      setPropsValues(s"$P.mode" -> "", s"$P.documentation.mode" -> "")
+    }
+
+    scenario("a trip in the documentation scope is only a warning under a general enforce mode") {
+      setPropsValues(s"$P.enabled" -> "true", s"$P.mode" -> "enforce", s"$P.documentation.mode" -> "",
+        s"$P.documentation.per_ip.per_minute" -> "1")
+      val ip = freshIp()
+      SelfServiceRateLimiter.check("documentation", ip) shouldBe a[Allowed]
+      SelfServiceRateLimiter.check("documentation", ip) shouldBe a[Warned]
+      setPropsValues(s"$P.mode" -> "", s"$P.documentation.per_ip.per_minute" -> "")
+    }
+  }
+
   feature("SelfServiceRateLimitMiddleware scope table") {
 
     def post(path: String): Request[IO] = Request[IO](Method.POST, Uri.unsafeFromString(path))
@@ -205,6 +237,39 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v6.0.0/consumer/vrp-consent-requests")) shouldBe Some("consent_request")
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v6.0.0/dynamic-registration/consumers")) shouldBe Some("consumer_registration")
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v4.0.0/account/check/scheme/iban")) shouldBe Some("lookup")
+    }
+
+    scenario("the documentation routes map to the documentation scope, for any version prefix") {
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/resource-docs/v7.0.0/obp")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v3.1.0/resource-docs/v5.1.0/swagger")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/resource-docs/v6.0.0/openapi")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/resource-docs/v6.0.0/openapi.yaml")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v4.0.0/banks/gh.29.uk/resource-docs/v4.0.0/obp")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v5.1.0/message-docs/rest_vMar2019/swagger2.0")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v2.2.0/message-docs/rest_vMar2019")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/message-docs/rest_vMar2019/json-schema")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/api/glossary")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/api/glossary/Consent")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/api/tags")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/api/versions")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/api/error-messages")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/api/popular-endpoints")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v4.0.0/endpoints/json-schema-validations")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v4.0.0/endpoints/authentication-type-validations")) shouldBe Some("documentation")
+      // Only reads; and the cheap /root that monitoring polls is not counted.
+      SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v7.0.0/resource-docs/v7.0.0/obp")) shouldBe None
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/root")) shouldBe None
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/management/dynamic-message-docs")) shouldBe None
+    }
+
+    scenario("every scope in the table has built-in limits and a description") {
+      val scopes = SelfServiceRateLimitMiddleware.entries.map(_.scope).toSet
+      scopes.foreach { scope =>
+        withClue(s"scope $scope: ") {
+          SelfServiceRateLimiter.scopeDefaults.keySet should contain(scope)
+          SelfServiceRateLimitMiddleware.scopeDescriptions.keySet should contain(scope)
+        }
+      }
     }
 
     scenario("everything else is left alone") {

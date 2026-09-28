@@ -41,4 +41,28 @@ class MemoizeTelemetryTest extends FlatSpec with Matchers {
     gets(label, "miss") shouldBe 1.0
     gets(label, "hit") shouldBe 1.0
   }
+
+  "Caching's shared Redis caches" should "count a read of a stored key as a hit and of an absent key as a miss" in {
+    def reads(result: String): Double =
+      Option(Telemetry.registry.find("obp.api.redis_cache.gets").tags("cache", "financial_products", "result", result).counter())
+        .map(_.count()).getOrElse(0.0)
+    val key = s"MemoizeTelemetryTest-${UUID.randomUUID()}"
+    val hitsBefore = reads("hit")
+    val missesBefore = reads("miss")
+    val errorsBefore = reads("error")
+
+    Caching.getFinancialProductsCache(key, 60) shouldBe None
+    Caching.setFinancialProductsCache(key, "stored", 60)
+    val second = Caching.getFinancialProductsCache(key, 60)
+
+    // Without a reachable Redis every read is an error, not a miss; with one, absent then present.
+    if (reads("error") > errorsBefore) {
+      second shouldBe None
+      reads("error") - errorsBefore shouldBe 2.0
+    } else {
+      second shouldBe Some("stored")
+      reads("miss") - missesBefore shouldBe 1.0
+      reads("hit") - hitsBefore shouldBe 1.0
+    }
+  }
 }

@@ -1242,15 +1242,23 @@ featured_apis=elasticSearchWarehouseV300
 #   consumer_registration POST /dynamic-registration/consumers
 #   lookup                POST /account/check/scheme/iban
 #   signal_channel_create POST /signal-channels/CHANNEL_NAME/messages when the channel does not exist yet
+#   documentation         GET of the public documentation, any version prefix: resource-docs (obp, swagger,
+#                         openapi, openapi.yaml, bank level), message-docs (plain, json-schema, swagger2.0),
+#                         api/glossary, api/tags, api/versions, api/error-messages, api/popular-endpoints,
+#                         endpoints/json-schema-validations, endpoints/authentication-type-validations
 # Enabled by default in shadow mode: a trip is logged (event=self_service_rate_limit_shadow_trip)
 # and reported to the caller in the X-Rate-Limit-Warning header (OBP-10059), but the request is
 # allowed. Set mode to enforce to answer 429 OBP-10060 instead. Counters live in Redis and fail open.
 # self_service.rate_limit.enabled = true
 # self_service.rate_limit.mode = shadow
+# A scope can have its own mode, which overrides the one above. The documentation scope stays in
+# shadow mode unless its own mode is set, even when the mode above is enforce:
+# self_service.rate_limit.documentation.mode = shadow
 # Generic per-IP limits; -1 switches a window off, 0 blocks every call in it.
 # Built-in per-scope defaults (applied when neither a scope prop nor a generic prop is set):
 #   signup 3/5/10 | password_reset 3/5/10 | consent_request 10/30/100
 #   consumer_registration 5/10/20 | lookup 20/60/200 | signal_channel_create 5/20/50
+#   documentation 60/1000/10000
 # self_service.rate_limit.per_ip.per_minute = 10
 # self_service.rate_limit.per_ip.per_hour = 60
 # self_service.rate_limit.per_ip.per_day = 200

@@ -128,6 +128,22 @@ object Telemetry {
   }
 
   /**
+   * Times a route that answers outside ResourceDocMiddleware and records it as that middleware
+   * would: under the operation id of the route's own ResourceDoc and that doc's API version. Used
+   * where a route cannot sit behind the middleware (see
+   * docs/resource_doc_and_endpoint_consistency_status.md). A response that fails with an exception
+   * is recorded as 5xx, then the exception carries on.
+   */
+  def timeEndpoint(operationId: String, apiVersion: String)(
+    response: cats.effect.IO[org.http4s.Response[cats.effect.IO]]
+  ): cats.effect.IO[org.http4s.Response[cats.effect.IO]] =
+    cats.effect.IO(System.nanoTime()).flatMap { startNanos =>
+      response
+        .flatTap(served => cats.effect.IO(recordEndpoint(operationId, apiVersion, served.status.code, System.nanoTime() - startNanos, served.contentLength)))
+        .onError { case _ => cats.effect.IO(recordEndpoint(operationId, apiVersion, 500, System.nanoTime() - startNanos, None)) }
+    }
+
+  /**
    * The number of items in a list response: the length of the response itself when it is a JSON
    * array, or of its only array field when it is an object wrapping one list (`{"banks": [...]}`,
    * the usual OBP shape). None for anything else, which is then not recorded.

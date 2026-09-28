@@ -126,51 +126,69 @@ object Caching extends MdcLoggable {
   // into a 500. These are the documents API Explorer and Portal load on startup, so a Redis blip
   // used to take the whole surface down.
   def getDynamicResourceDocCache(key: String): Option[String] =
-    tryGet(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL)
+    tryGet("dynamic_resource_docs", DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL)
 
   def setDynamicResourceDocCache(key: String, value: String): Unit =
-    trySet(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL, value)
+    trySet("dynamic_resource_docs", DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL, value)
 
   def getStaticResourceDocCache(key: String): Option[String] =
-    tryGet(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
+    tryGet("static_resource_docs", STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
 
   def setStaticResourceDocCache(key: String, value: String): Unit =
-    trySet(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
+    trySet("static_resource_docs", STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
 
   def getAllResourceDocCache(key: String): Option[String] =
-    tryGet(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL)
+    tryGet("all_resource_docs", ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL)
 
   def setAllResourceDocCache(key: String, value: String): Unit =
-    trySet(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL, value)
+    trySet("all_resource_docs", ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL, value)
 
+  // Also holds the connector JSON Schemas served by v6.0.0 message-docs/CONNECTOR/json-schema.
   def getStaticSwaggerDocCache(key: String): Option[String] =
-    tryGet(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
+    tryGet("static_swagger", STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
 
   def setStaticSwaggerDocCache(key: String, value: String): Unit =
-    trySet(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
+    trySet("static_swagger", STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
 
   // Fail-safe wrappers around Redis.use. If Redis is unreachable (dev without a
   // running Redis, transient failure, etc.) we treat it as a miss and recompute instead of failing
   // the whole request.
-  private def tryGet(prefix: String, key: String, ttlSeconds: Int): Option[String] =
-    try use(JedisMethod.GET, (prefix + key).intern(), Some(ttlSeconds))
-    catch { case e: Throwable => logger.debug(s"Cache GET failed for $prefix$key: ${e.getMessage}"); None }
+  //
+  // Each read and write is counted for Telemetry under `cacheName`, a fixed name chosen at the call
+  // site (the key prefixes carry the instance and version namespace and are not meant for people).
+  // A read that failed because Redis was unreachable counts as "error", not "miss", so a Redis
+  // outage does not look like a cold cache.
+  private def tryGet(cacheName: String, prefix: String, key: String, ttlSeconds: Int): Option[String] = {
+    val outcome: Either[Throwable, Option[String]] =
+      try Right(use(JedisMethod.GET, (prefix + key).intern(), Some(ttlSeconds)))
+      catch { case e: Throwable => logger.debug(s"Cache GET failed for $prefix$key: ${e.getMessage}"); Left(e) }
+    val result = outcome match {
+      case Right(Some(_)) => "hit"
+      case Right(None) => "miss"
+      case Left(_) => "error"
+    }
+    code.telemetry.Telemetry.counter("obp.api.redis_cache.gets", "cache" -> cacheName, "result" -> result).increment()
+    outcome.toOption.flatten
+  }
 
-  private def trySet(prefix: String, key: String, ttlSeconds: Int, value: String): Unit =
-    try { use(JedisMethod.SET, (prefix + key).intern(), Some(ttlSeconds), Some(value)); () }
-    catch { case e: Throwable => logger.debug(s"Cache SET failed for $prefix$key: ${e.getMessage}") }
+  private def trySet(cacheName: String, prefix: String, key: String, ttlSeconds: Int, value: String): Unit = {
+    val result =
+      try { use(JedisMethod.SET, (prefix + key).intern(), Some(ttlSeconds), Some(value)); "success" }
+      catch { case e: Throwable => logger.debug(s"Cache SET failed for $prefix$key: ${e.getMessage}"); "error" }
+    code.telemetry.Telemetry.counter("obp.api.redis_cache.sets", "cache" -> cacheName, "result" -> result).increment()
+  }
 
   def getFinancialProductsCache(key: String, ttlSeconds: Int): Option[String] =
-    tryGet(FINANCIAL_PRODUCTS_PREFIX, key, ttlSeconds)
+    tryGet("financial_products", FINANCIAL_PRODUCTS_PREFIX, key, ttlSeconds)
 
   def setFinancialProductsCache(key: String, value: String, ttlSeconds: Int): Unit =
-    trySet(FINANCIAL_PRODUCTS_PREFIX, key, ttlSeconds, value)
+    trySet("financial_products", FINANCIAL_PRODUCTS_PREFIX, key, ttlSeconds, value)
 
   def getApiProductsCache(key: String, ttlSeconds: Int): Option[String] =
-    tryGet(API_PRODUCTS_PREFIX, key, ttlSeconds)
+    tryGet("api_products", API_PRODUCTS_PREFIX, key, ttlSeconds)
 
   def setApiProductsCache(key: String, value: String, ttlSeconds: Int): Unit =
-    trySet(API_PRODUCTS_PREFIX, key, ttlSeconds, value)
+    trySet("api_products", API_PRODUCTS_PREFIX, key, ttlSeconds, value)
 
   /**
    * Invalidate all rate limit cache entries for a specific consumer.

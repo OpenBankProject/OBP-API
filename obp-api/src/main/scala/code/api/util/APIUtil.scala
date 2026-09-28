@@ -5155,16 +5155,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
   }
 
+  /**
+   * The cache key of a rendered documentation response. The filters are a [[ResourceDocFilters]],
+   * never raw request values: that type can only be built sorted, de-duplicated and (for ResourceDoc
+   * listings) limited to values some ResourceDoc carries, so a caller cannot multiply cache entries
+   * by varying the filters. The key text keeps its earlier shape.
+   */
   def createResourceDocCacheKey(
     bankId : Option[String],
     requestedApiVersionString: String,
-    tags: Option[List[ResourceDocTag]],
-    partialFunctions: Option[List[String]],
+    filters: ResourceDocFilters,
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean]
-  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
+  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:${filters.tags}-partialFunctions:${filters.functions}-locale:${locale.toString}" +
     // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
     // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
     // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that

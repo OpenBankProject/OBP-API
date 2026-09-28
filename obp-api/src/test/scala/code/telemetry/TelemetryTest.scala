@@ -69,6 +69,19 @@ class TelemetryTest extends FlatSpec with Matchers {
     Telemetry.listItemCount(JObject(List("a" -> JArray(Nil), "b" -> JArray(Nil)))) shouldBe None
   }
 
+  it should "time a route outside the middleware under its operation id, and count an exception as 5xx" in {
+    import cats.effect.IO
+    import cats.effect.unsafe.implicits.global
+    import org.http4s.{Response, Status}
+    val operation = unique("OBPv1.4.0-probeDocs")
+    Telemetry.timeEndpoint(operation, "v1.4.0")(IO.pure(Response[IO](Status.Ok))).unsafeRunSync().status shouldBe Status.Ok
+    an[RuntimeException] should be thrownBy
+      Telemetry.timeEndpoint(operation, "v1.4.0")(IO.raiseError[Response[IO]](new RuntimeException("boom"))).unsafeRunSync()
+    val scraped = Telemetry.scrape()
+    scraped should include(s"""obp_api_endpoint_requests_seconds_count{api_version="v1.4.0",operation="$operation",status="2xx"} 1""")
+    scraped should include(s"""obp_api_endpoint_requests_seconds_count{api_version="v1.4.0",operation="$operation",status="5xx"} 1""")
+  }
+
   "BatchWriterTelemetry" should "derive the queue depth from rows queued, written and lost" in {
     val writer = unique("writer")
     val batchTelemetry = new BatchWriterTelemetry(writer)

@@ -3,6 +3,25 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/09/2026    TBD           NEW rate-limit scope "documentation" in the self-service (per client IP)
+                            limiter, covering every public documentation read under any version prefix:
+                            resource-docs, message-docs, api/glossary, api/tags, api/versions,
+                            api/error-messages, api/popular-endpoints and the endpoints/*-validations
+                            lists. Built-in limits 60 a minute, 1000 an hour, 10000 a day per IP. It
+                            stays in shadow mode (X-Rate-Limit-Warning, no 429) even when
+                            self_service.rate_limit.mode is enforce, until
+                            self_service.rate_limit.documentation.mode = enforce is set.
+                            NEW prop: self_service.rate_limit.<scope>.mode, a mode per scope.
+                            CHANGED: the resource-docs tags and functions filters are sorted,
+                            de-duplicated and limited to values some ResourceDoc carries (static or
+                            dynamic, see ResourceDocVocabulary), so every spelling of the same filter,
+                            with or without made-up values, shares one cached document. Responses are
+                            unchanged: the filters match by membership, and a filter of only unknown
+                            values still returns no documents. Cache keys now accept only a
+                            ResourceDocFilters, which can only be built this way.
+                            NEW Telemetry: resource-docs, Swagger, OpenAPI and message-docs Swagger
+                            requests are timed; hits, misses and errors of the Redis-backed document
+                            and product caches; outcomes of the self-service limiter per scope.
 27/09/2026    TBD           NEW: Telemetry, aggregated numbers about each running instance for
                             Prometheus and Grafana (not API Metrics; see the Glossary entry
                             "Telemetry" and docs/telemetry_conventions.md). Recorded always:

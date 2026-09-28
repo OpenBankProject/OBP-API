@@ -235,7 +235,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     per_day: Option[Long] = None,
     per_week: Option[Long] = None,
     per_month: Option[Long] = None,
-    global_per_hour: Option[Long] = None
+    global_per_hour: Option[Long] = None,
+    // Self-service scopes only: the scope's own mode (it can differ from the limiter's), and what it counts.
+    mode: Option[String] = None,
+    covers: Option[String] = None
   )
   /** One of the three rate limiters, in the order they are checked. `mode` is shadow or enforce. */
   case class RateLimiterJsonV700(
@@ -254,7 +257,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   val rateLimitersJsonV700Example: RateLimitersJsonV700 = RateLimitersJsonV700(List(
     RateLimiterJsonV700("self_service", 1, "OBP-10060", enabled = true, "shadow", "client IP address",
       "before routing and before authentication, on the self-service endpoints", "self_service.rate_limit",
-      List(RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500)))),
+      List(
+        RateLimiterLimitJsonV700("documentation", per_minute = Some(60), per_hour = Some(1000), per_day = Some(10000), global_per_hour = Some(-1),
+          mode = Some("shadow"), covers = Some("GET of the public documentation: resource-docs, message-docs, api/glossary, api/tags, api/versions, ...")),
+        RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500),
+          mode = Some("shadow"), covers = Some("POST /users, /users/email-validation, /banks/BANK_ID/user-invitations")))),
     RateLimiterJsonV700("authentication", 2, "OBP-10061", enabled = false, "shadow", "client IP address and account",
       "inside the credential check of Direct Login, DAuth, Gateway Login and SIWE", "auth.rate_limit",
       List(RateLimiterLimitJsonV700("ip", per_minute = Some(10), per_hour = Some(100)), RateLimiterLimitJsonV700("account", per_minute = Some(6)))),
@@ -273,14 +280,16 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       name = "self_service", order = 1, error_code = errorCode(ErrorMessages.TooManyRequestsSelfService),
       enabled = SelfServiceRateLimiter.enabled, mode = SelfServiceRateLimiter.mode,
       keyed_by = "client IP address",
-      runs = "before routing and before authentication, on the self-service endpoints",
+      runs = "before routing and before authentication, on the self-service endpoints and the public documentation",
       props_prefix = SelfServiceRateLimiter.PropsPrefix,
       limits = SelfServiceRateLimiter.scopeDefaults.keys.toList.sorted.map { scope =>
         RateLimiterLimitJsonV700(scope,
           per_minute = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_minute")),
           per_hour = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_hour")),
           per_day = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_day")),
-          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)))
+          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)),
+          mode = Some(SelfServiceRateLimiter.modeFor(scope)),
+          covers = code.api.util.http4s.SelfServiceRateLimitMiddleware.scopeDescriptions.get(scope))
       }
     )
     val authentication = RateLimiterJsonV700(
