@@ -1238,6 +1238,7 @@ object Http4s600 {
               (Constant.STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Static resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, "All resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, "Swagger documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.MESSAGE_DOCS_CACHE_KEY_PREFIX, "Message docs and connector JSON Schemas", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.CONNECTOR_PREFIX, "Connector method names and metadata", "3600", "Connector"),
               (Constant.METRICS_STABLE_PREFIX, "Stable metrics (historical)", "86400", "Metrics"),
               (Constant.METRICS_RECENT_PREFIX, "Recent metrics", "7", "Metrics"),
@@ -2543,7 +2544,7 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "message-docs" / connector / "json-schema" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val cacheKey = s"message-docs-json-schema-$connector"
-          val cacheValueFromRedis = code.api.cache.Caching.getStaticSwaggerDocCache(cacheKey)
+          val cacheValueFromRedis = code.api.cache.Caching.getMessageDocsCache(cacheKey)
           for {
             jsonSchema <- if (cacheValueFromRedis.isDefined) {
               NewStyle.function.tryons(s"$UnknownError Cannot parse cached JSON Schema.", 400, Some(cc)) {
@@ -2559,7 +2560,7 @@ object Http4s600 {
                 val schema = code.api.util.JsonSchemaGenerator.messageDocsToJsonSchema(
                   connectorObject.messageDocs.toList, connector)
                 val schemaString = com.openbankproject.commons.util.JsonAliases.compactRender(schema)
-                code.api.cache.Caching.setStaticSwaggerDocCache(cacheKey, schemaString)
+                code.api.cache.Caching.setMessageDocsCache(cacheKey, schemaString)
                 schema
               }
             }

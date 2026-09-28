@@ -66,7 +66,7 @@ object Http4s700Telemetry {
     case req @ GET -> `prefixPath` / "management" / "telemetry" =>
       EndpointHelpers.withUser(req) { (_, _) =>
         val namePrefix = req.uri.query.params.get("name_prefix").filter(_.nonEmpty)
-        Future(JSONFactory700.createTelemetryJson(namePrefix))
+        Future(JSONFactory700Operations.createTelemetryJson(namePrefix))
       }
   }
 
@@ -112,7 +112,7 @@ object Http4s700Telemetry {
        |for example `?name_prefix=obp.api.endpoint`.
        |""".stripMargin,
     EmptyBody,
-    JSONFactory700.telemetryJsonV700Example,
+    JSONFactory700Operations.telemetryJsonV700Example,
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     List(apiTagApi, apiTagSystem),
     Some(List(canGetTelemetry)),

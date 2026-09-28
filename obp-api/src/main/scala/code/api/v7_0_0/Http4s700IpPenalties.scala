@@ -34,7 +34,6 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.{CustomJsonFormats, IpPenalties}
-import code.api.v7_0_0.JSONFactory700.{IpPenaltiesJsonV700, IpPenaltyJsonV700, PostIpPenaltyJsonV700}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -91,7 +90,7 @@ object Http4s700IpPenalties {
           }
           added <- Future(IpPenalties.add(body.ip_address, body.per_minute_limit, body.duration_minutes, body.reason.trim, user.userId))
           _ <- Helper.booleanToFuture(added.left.getOrElse(UnknownError), failCode = 409, cc = Some(cc))(added.isRight)
-        } yield JSONFactory700.createIpPenaltyJson(added.toOption.get)
+        } yield JSONFactory700Operations.createIpPenaltyJson(added.toOption.get)
       }
   }
 
@@ -109,8 +108,8 @@ object Http4s700IpPenalties {
        |`duration_minutes` is from 1 to ${IpPenalties.MaxDurationMinutes} (one week). An address can have one
        |penalty at a time: to change it, delete it and create it again (409 when one exists).
        |""".stripMargin,
-    JSONFactory700.postIpPenaltyJsonV700Example,
-    JSONFactory700.ipPenaltyJsonV700Example,
+    JSONFactory700Operations.postIpPenaltyJsonV700Example,
+    JSONFactory700Operations.ipPenaltyJsonV700Example,
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidIpPenalty, InvalidIpAddress,
       IpPenaltyAlreadyExists, UnknownError),
     List(apiTagRateLimits, apiTagSystem),
@@ -122,7 +121,7 @@ object Http4s700IpPenalties {
   lazy val getIpPenalties: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `prefixPath` / "management" / "ip-penalties" =>
       EndpointHelpers.withUser(req) { (_, _) =>
-        Future(IpPenaltiesJsonV700(IpPenalties.listAll().map(JSONFactory700.createIpPenaltyJson)))
+        Future(IpPenaltiesJsonV700(IpPenalties.listAll().map(JSONFactory700Operations.createIpPenaltyJson)))
       }
   }
 
@@ -137,7 +136,7 @@ object Http4s700IpPenalties {
        |$penaltyDescription
        |""".stripMargin,
     EmptyBody,
-    JSONFactory700.ipPenaltiesJsonV700Example,
+    JSONFactory700Operations.ipPenaltiesJsonV700Example,
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     List(apiTagRateLimits, apiTagSystem),
     Some(List(canGetIpPenalties)),

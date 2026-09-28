@@ -59,12 +59,13 @@ object JsonSchemaGenerator {
    * recompute if Redis is unreachable or slow -- this in-memory layer doesn't depend on
    * Redis at all, so it stays a working safety net even when Redis is the one struggling.
    *
-   * The key is the connector name only. It must not be derived from `messageDocs`: turning the
-   * whole list (with every example message) into a key string costs megabytes per call.
-   * Callers always pass the named connector's own message docs.
+   * The key is the connector name (plus the `message_docs` cache namespace version, see
+   * `localKey`). It must not be derived from `messageDocs`: turning the whole list (with every
+   * example message) into a key string costs megabytes per call. Callers always pass the named
+   * connector's own message docs.
    */
   def messageDocsToJsonSchema(messageDocs: List[MessageDoc], connectorName: String): JObject =
-    try schemaCache.get(connectorName, new Callable[JObject] {
+    try schemaCache.get(localKey(connectorName), new Callable[JObject] {
       def call(): JObject = {
         generatorCallsCounter.incrementAndGet()
         messageDocsToJsonSchemaUncached(messageDocs, connectorName)
@@ -76,10 +77,18 @@ object JsonSchemaGenerator {
       case e: com.google.common.util.concurrent.UncheckedExecutionException if e.getCause != null => throw e.getCause
     }
 
+  // The key also carries the `message_docs` cache namespace version, so bumping that namespace
+  // rebuilds the schema on every instance (the version is re-read at most once a second).
+  private def localKey(connectorName: String): String =
+    s"${code.api.Constant.recentCacheNamespaceVersion(code.api.Constant.MESSAGE_DOCS_NAMESPACE)}|$connectorName"
+
   private val schemaCache: Cache[String, JObject] = code.telemetry.Telemetry.monitorCache(
     CacheBuilder.newBuilder().maximumSize(64L).recordStats().build[String, JObject](), "json_schema")
 
   private val generatorCallsCounter = new AtomicLong(0)
+
+  /** Schemas held in this instance's memory. */
+  def cacheSize: Long = schemaCache.size()
 
   /** Cache hits and misses, for tests and monitoring. */
   def cacheStats: CacheStats = schemaCache.stats()

@@ -32,7 +32,6 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetTelemetry
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.v6_0_0.V600ServerSetup
-import code.api.v7_0_0.JSONFactory700.TelemetryJsonV700
 import code.entitlement.Entitlement
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion

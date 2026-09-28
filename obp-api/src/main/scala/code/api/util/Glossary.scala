@@ -168,7 +168,11 @@ object Glossary extends MdcLoggable  {
 		val (checkedAt, version, byTitle) = cachedItemsByTitle.get()
 		if (checkedAt != 0L && now - checkedAt < GlossaryCacheRecheckMillis) (version, byTitle)
 		else {
-			val currentVersion = dynamicGlossaryItemsVersion
+			// The glossary cache namespace version is part of the token: bumping it (for example from
+			// the cache page in API Manager) reloads the Glossary here and, because the token is in
+			// every resource-docs cache key, rebuilds every cached document that embeds Glossary text.
+			val currentVersion =
+				s"$dynamicGlossaryItemsVersion-ns${code.api.Constant.recentCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE)}"
 			if (checkedAt != 0L && currentVersion == version) {
 				cachedItemsByTitle.set((now, version, byTitle))
 				(version, byTitle)
@@ -187,6 +191,9 @@ object Glossary extends MdcLoggable  {
 	}
 
 	private def glossaryItemsByTitle: Map[String, GlossaryItem] = glossaryState._2
+
+	/** Glossary items this instance holds in memory now (static and dynamic), for the cache page. */
+	def loadedItemCount: Int = glossaryItemsByTitle.size
 
 	/**
 	 * A token for Resource Doc cache keys. It changes whenever a Dynamic Glossary Item is added,

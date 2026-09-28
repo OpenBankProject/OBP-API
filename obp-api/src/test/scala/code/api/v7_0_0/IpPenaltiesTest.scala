@@ -32,7 +32,6 @@ import code.api.util.ApiRole.{CanCreateIpPenalty, CanDeleteIpPenalty, CanGetIpPe
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.util.IpPenalties
 import code.api.v6_0_0.V600ServerSetup
-import code.api.v7_0_0.JSONFactory700.{IpPenaltiesJsonV700, IpPenaltyJsonV700, PostIpPenaltyJsonV700}
 import code.entitlement.Entitlement
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion

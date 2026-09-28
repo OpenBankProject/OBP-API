@@ -164,6 +164,32 @@ object Constant extends MdcLoggable {
     }
   }
 
+  /** How long [[recentCacheNamespaceVersion]] trusts its copy of a namespace version before re-reading Redis. */
+  final val RecentNamespaceVersionMillis = 1000L
+
+  private val recentNamespaceVersions = new java.util.concurrent.ConcurrentHashMap[String, (Long, Long)]()
+
+  /**
+   * The version of a cache namespace, re-read from Redis at most once every
+   * [[RecentNamespaceVersionMillis]]. For caches held in each instance's memory (message docs,
+   * JSON Schemas, the Glossary), which put the version in their own keys so that bumping the
+   * namespace reaches them too, without a Redis read on every request. After a bump, the instance
+   * that made it sees the new version at once and the others within a second.
+   */
+  def recentCacheNamespaceVersion(namespaceId: String): Long = {
+    val now = System.currentTimeMillis()
+    Option(recentNamespaceVersions.get(namespaceId)) match {
+      case Some((version, readAt)) if now - readAt < RecentNamespaceVersionMillis => version
+      case _ =>
+        val version = getCacheNamespaceVersion(namespaceId)
+        recentNamespaceVersions.put(namespaceId, (version, now))
+        version
+    }
+  }
+
+  /** Forget the local copies of namespace versions, so the next read goes to Redis (tests). */
+  def forgetRecentCacheNamespaceVersions(): Unit = recentNamespaceVersions.clear()
+
   /**
    * Increment the version counter for a cache namespace.
    * This effectively invalidates all cached keys in that namespace by making them unreachable.
@@ -182,6 +208,8 @@ object Constant extends MdcLoggable {
       val newVersion = Redis.use(JedisMethod.INCR, versionKey, None, None)
         .map(_.toLong)
       logger.info(s"Cache namespace version incremented: ${namespaceId} -> ${newVersion.getOrElse("unknown")}")
+      // This instance sees the new version at once; the others within RecentNamespaceVersionMillis.
+      newVersion.foreach(v => recentNamespaceVersions.put(namespaceId, (v, System.currentTimeMillis())))
       newVersion
     } catch {
       case e: Throwable =>
@@ -340,6 +368,12 @@ object Constant extends MdcLoggable {
   final val CONNECTOR_INBOUND_NAMESPACE = "connector_inbound"
   final val FINANCIAL_PRODUCTS_NAMESPACE = "financial_products"
   final val API_PRODUCTS_NAMESPACE = "api_products"
+  // The rendered message docs of each connector (GET /message-docs/CONNECTOR) and each connector's
+  // JSON Schema (GET /message-docs/CONNECTOR/json-schema), in Redis and in each instance's memory.
+  final val MESSAGE_DOCS_NAMESPACE = "message_docs"
+  // The Glossary as each instance holds it in memory. Bumping it reloads the Glossary at once and
+  // rebuilds every cached resource-docs document, because their keys carry the Glossary version.
+  final val GLOSSARY_NAMESPACE = "glossary"
 
   // List of all versioned cache namespaces
   final val ALL_CACHE_NAMESPACES = List(
@@ -357,7 +391,9 @@ object Constant extends MdcLoggable {
     CONNECTOR_OUTBOUND_NAMESPACE,
     CONNECTOR_INBOUND_NAMESPACE,
     FINANCIAL_PRODUCTS_NAMESPACE,
-    API_PRODUCTS_NAMESPACE
+    API_PRODUCTS_NAMESPACE,
+    MESSAGE_DOCS_NAMESPACE,
+    GLOSSARY_NAMESPACE
   )
 
   // Cache key prefixes with global namespace and versioning for easy invalidation
@@ -368,6 +404,7 @@ object Constant extends MdcLoggable {
   def STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(RD_STATIC_NAMESPACE)
   def ALL_RESOURCE_DOC_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(RD_ALL_NAMESPACE)
   def STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(SWAGGER_STATIC_NAMESPACE)
+  def MESSAGE_DOCS_CACHE_KEY_PREFIX: String = getVersionedCachePrefix(MESSAGE_DOCS_NAMESPACE)
   final val CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL: Int = APIUtil.getPropsValue(s"createLocalisedResourceDocJson.cache.ttl.seconds", "3600").toInt
   final val GET_DYNAMIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
   final val GET_STATIC_RESOURCE_DOCS_TTL: Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "3600").toInt
