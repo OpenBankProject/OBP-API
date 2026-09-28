@@ -865,7 +865,7 @@ class Boot extends MdcLoggable {
   /**
    * Bootstrap OIDC Operator User
    * Given the following credentials, OBP will create a user *if it does not exist already*.
-   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
    */
   private def createBootstrapOidcOperatorUser() = {
 
@@ -905,7 +905,8 @@ class Boot extends MdcLoggable {
           CanVerifyUserCredentials,
           CanVerifyOidcClient,
           CanGetOidcClient,
-          CanGetConsumers
+          CanGetConsumers,
+          CanCreateConsumer
         )
 
         userBox match {

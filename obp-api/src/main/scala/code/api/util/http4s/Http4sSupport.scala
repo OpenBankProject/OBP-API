@@ -722,13 +722,14 @@ object Http4sCallContextBuilder {
    *  request-level middleware (SelfServiceRateLimitMiddleware) keys on the same value. */
   def clientIp(request: Request[IO]): String = extractIpAddress(request)
 
-  private def extractIpAddress(request: Request[IO]): String = {
-    val socketPeer = request.remoteAddr.map(_.toUriString).getOrElse("")
-    RemoteIpUtil.resolveClientIp(
-      socketPeer,
+  /** How the request's client address was decided (for TrafficSources and Deployment Checks). */
+  def clientIpResolution(request: Request[IO]): RemoteIpUtil.Resolution =
+    RemoteIpUtil.resolve(
+      request.remoteAddr.map(_.toUriString).getOrElse(""),
       name => request.headers.get(CIString(name)).map(_.head.value)
     )
-  }
+
+  private def extractIpAddress(request: Request[IO]): String = clientIpResolution(request).clientIp
   
   /**
    * Extract Authorization header value as Box[String]

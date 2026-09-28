@@ -226,7 +226,7 @@ object Http4sApp extends MdcLoggable {
         }
         .flatTap(resp => IO {
           // Where the traffic is coming from: every request, served, refused or unmatched, once.
-          try code.telemetry.TrafficSources.record(note, Http4sCallContextBuilder.clientIp(req), resp.status.code,
+          try code.telemetry.TrafficSources.record(note, Http4sCallContextBuilder.clientIpResolution(req), resp.status.code,
             (System.nanoTime() - startNanos) / 1000000L)
           catch { case e: Throwable => logger.debug(s"Http4sApp says: could not record traffic: ${e.getMessage}") }
         })

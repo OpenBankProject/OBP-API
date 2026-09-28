@@ -7252,6 +7252,9 @@ object Http4s700 {
     // Where traffic is coming from: the busiest Consumers, addresses, and callers and endpoints.
     resourceDocs ++= Http4s700TrafficSources.resourceDocs
 
+    // Deployment Checks: is this instance, and what sits in front of it, set up correctly.
+    resourceDocs ++= Http4s700DeploymentChecks.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))

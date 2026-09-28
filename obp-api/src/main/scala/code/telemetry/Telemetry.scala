@@ -188,6 +188,10 @@ object Telemetry {
       port = APIUtil.getPropsAsIntValue("telemetry.port", DefaultPort))
   }
 
+  /** When Prometheus (or anything) last collected Telemetry from the separate port; None if never since start-up. */
+  @volatile private var lastScrapeAt: Option[Long] = None
+  def lastScrapeMillis: Option[Long] = lastScrapeAt
+
   /** The port actually bound, when the separate port is open. */
   def boundPort: Option[Int] = server.map(_.getAddress.getPort)
 
@@ -228,7 +232,7 @@ object Telemetry {
       try {
         val (status, body, contentType) =
           if (exchange.getRequestURI.getPath == ScrapePath && exchange.getRequestMethod == "GET")
-            (200, scrape(), "text/plain; version=0.0.4; charset=utf-8")
+            { lastScrapeAt = Some(System.currentTimeMillis()); (200, scrape(), "text/plain; version=0.0.4; charset=utf-8") }
           else
             (404, s"Not found. Telemetry is served at $ScrapePath\n", "text/plain; charset=utf-8")
         val bytes = body.getBytes(StandardCharsets.UTF_8)

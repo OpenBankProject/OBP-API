@@ -14,6 +14,9 @@ class TrafficSourcesTest extends FlatSpec with Matchers with BeforeAndAfterEach 
   private val minute = 60000L
   private val t0 = 1790000000000L - 1790000000000L % minute // the start of a minute
 
+  /** A request that came straight from `ip`, with no forwarding header. */
+  private def direct(ip: String) = code.api.util.RemoteIpUtil.Resolution(ip, ip, forwardingHeaderPresent = false, headerHonoured = false, headerFromUntrustedPeer = false)
+
   private def note(operationId: Option[String] = None, consumer: Option[String] = None, refusedBy: Option[String] = None): Note = {
     val n = new Note
     n.operationId = operationId
@@ -25,7 +28,7 @@ class TrafficSourcesTest extends FlatSpec with Matchers with BeforeAndAfterEach 
   }
 
   "TrafficSources" should "count an authenticated request under its Consumer and its address, and pair the Consumer with the endpoint" in {
-    TrafficSources.record(note(Some("OBPv7.0.0-getBanks"), Some("consumer-1")), "198.51.100.1", 200, 12, t0)
+    TrafficSources.record(note(Some("OBPv7.0.0-getBanks"), Some("consumer-1")), direct("198.51.100.1"), 200, 12, t0)
 
     val consumers = TrafficSources.consumers(1, t0)
     consumers.map(c => (c.key, c.requests)) shouldBe List(("consumer-1", 1L))
@@ -40,14 +43,14 @@ class TrafficSourcesTest extends FlatSpec with Matchers with BeforeAndAfterEach 
   }
 
   it should "count an anonymous request under its address only, and group unknown paths as unmatched" in {
-    TrafficSources.record(note(), "203.0.113.9", 404, 2, t0)
+    TrafficSources.record(note(), direct("203.0.113.9"), 404, 2, t0)
     TrafficSources.consumers(1, t0) shouldBe empty
     TrafficSources.addresses(1, t0).head.details.head.unmatched shouldBe 1L
     TrafficSources.callerEndpoints(1, t0).map(_.key) shouldBe List((AddressCaller("203.0.113.9"), TrafficSources.UnmatchedEndpoint))
   }
 
   it should "record a refusal under the limiter that refused" in {
-    TrafficSources.record(note(refusedBy = Some("ip_penalty")), "203.0.113.9", 429, 1, t0)
+    TrafficSources.record(note(refusedBy = Some("ip_penalty")), direct("203.0.113.9"), 429, 1, t0)
     val pair = TrafficSources.callerEndpoints(1, t0).head
     pair.key._2 shouldBe "refused:ip_penalty"
     pair.details.head.refused shouldBe 1L
@@ -55,7 +58,7 @@ class TrafficSourcesTest extends FlatSpec with Matchers with BeforeAndAfterEach 
 
   it should "merge minutes into the window asked for, and leave out older minutes" in {
     (0 until 3).foreach { m =>
-      TrafficSources.record(note(Some("OBPv7.0.0-getBanks")), "203.0.113.9", 200, 5, t0 + m * minute)
+      TrafficSources.record(note(Some("OBPv7.0.0-getBanks")), direct("203.0.113.9"), 200, 5, t0 + m * minute)
     }
     val now = t0 + 2 * minute
     TrafficSources.addresses(1, now).head.requests shouldBe 1L

@@ -34,6 +34,7 @@ import code.api.util.{ApiRole, DiagnosticDynamicEntityCheck}
 import code.api.util.ErrorMessages._
 import code.dynamicEntity.DynamicEntityProvider
 import code.entitlement.Entitlement
+import code.scope.Scope
 import code.setup.ServerSetupWithTestData
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -200,6 +201,38 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
         response.code should equal(404)
         errorOf(response) should include(DynamicEntityNotFoundByDynamicEntityId)
       } finally cascadeDelete(testBankId1.value, dynamicEntityId)
+    }
+
+    scenario("a Consumer holding the Role as a Scope may list and update definitions", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      // A service (the Portal, the API Manager) ensures its entities at startup with a client-credentials
+      // token: no User, so the Roles must be accepted as Scopes on its Consumer (auth mode UserOrApplication).
+      // user2 holds none of these Roles and signs with testConsumer2, which gets the Scopes.
+      val entityName = newEntityName()
+      val dynamicEntityId = createdAt(SYS, entityName)
+      try {
+        When("user2 lists the definitions at SYS with neither an Entitlement nor a Scope")
+        val refused = makeGetRequest(definitionsAt(SYS).GET <@ (user2))
+        Then("the call is refused for the missing Role")
+        refused.code should equal(403)
+        errorOf(refused) should include(CanGetDynamicEntityDefinitions.toString)
+
+        Given("testConsumer2 holds the Get and Update Roles as Scopes at SYS")
+        val scopes = List(canGetDynamicEntityDefinitions, canUpdateDynamicEntityDefinition).map(role =>
+          Scope.scope.vend.addScope(SYS, testConsumer2.id.get.toString, role.toString))
+        try {
+          When("user2 lists them again")
+          val listed = makeGetRequest(definitionsAt(SYS).GET <@ (user2))
+          Then("the Scope is enough")
+          listed.code should equal(200)
+          (listed.body \ "dynamic_entities").extract[List[JObject]]
+            .map(e => (e \ "entity_name").extract[String]) should contain(entityName)
+
+          When("user2 updates the definition")
+          val updated = makePutRequest((definitionsAt(SYS) / dynamicEntityId).PUT <@ (user2), write(definition(entityName)))
+          Then("the Scope is enough for that too")
+          updated.code should equal(200)
+        } finally scopes.foreach(scope => Scope.scope.vend.deleteScope(scope))
+      } finally cascadeDelete(SYS, dynamicEntityId)
     }
   }
 

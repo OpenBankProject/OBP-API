@@ -114,7 +114,7 @@ object Http4s700DynamicEntityDefinitions {
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities
   lazy val getDynamicEntityDefinitions: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" =>
-      EndpointHelpers.withUser(req) { (_, _) =>
+      EndpointHelpers.executeAndRespond(req) { _ =>
         val bankId = DynamicEntitySpace.bankIdOrNoneForSystem(bankIdInUrl)
         for {
           dynamicEntities <- Future(NewStyle.function.getDynamicEntities(bankId, false))
@@ -161,6 +161,7 @@ object Http4s700DynamicEntityDefinitions {
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canGetDynamicEntityDefinitions :: Nil),
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(getDynamicEntityDefinitions)
   ).allowSystemSpace()
 
@@ -254,6 +255,7 @@ object Http4s700DynamicEntityDefinitions {
       DynamicEntityNotFoundByDynamicEntityId, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canUpdateDynamicEntityDefinition :: Nil),
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(updateDynamicEntityDefinition)
   ).allowSystemSpace()
 

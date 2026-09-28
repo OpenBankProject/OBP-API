@@ -140,6 +140,31 @@ case class TrafficSourcesJsonV700(
   callers_and_endpoints: List[TrafficCallerEndpointJsonV700]
 )
 
+// ===== Deployment Checks =====
+
+case class DeploymentCheckEvidenceJsonV700(name: String, value: String)
+
+/** One check. `basis` is observed (from traffic), configured (from props) or manual (not visible from OBP-API). */
+case class DeploymentCheckJsonV700(
+  id: String,
+  title: String,
+  area: String,
+  basis: String,
+  status: String,
+  message: String,
+  evidence: List[DeploymentCheckEvidenceJsonV700],
+  props: List[String]
+)
+
+case class DeploymentChecksJsonV700(
+  api_instance_id: String,
+  checked_at: Date,
+  window_minutes: Int,
+  errors: Int,
+  warnings: Int,
+  checks: List[DeploymentCheckJsonV700]
+)
+
 /** This object builds the JSON above, and holds the examples the ResourceDocs show. */
 object JSONFactory700Operations {
 
@@ -247,6 +272,32 @@ object JSONFactory700Operations {
     }
     TrafficSourcesJsonV700(Constant.ApiInstanceId, windowMinutes, consumers, addresses, callerEndpoints)
   }
+
+  def createDeploymentChecksJson(checks: List[code.api.util.DeploymentChecks.Check]): DeploymentChecksJsonV700 =
+    DeploymentChecksJsonV700(
+      api_instance_id = Constant.ApiInstanceId,
+      checked_at = new Date(),
+      window_minutes = code.api.util.DeploymentChecks.WindowMinutes,
+      errors = checks.count(_.status == "ERROR"),
+      warnings = checks.count(_.status == "WARNING"),
+      checks = checks.map(c => DeploymentCheckJsonV700(c.id, c.title, c.area, c.basis, c.status, c.message,
+        c.evidence.map { case (name, value) => DeploymentCheckEvidenceJsonV700(name, value) }, c.props)))
+
+  lazy val deploymentChecksJsonV700Example = DeploymentChecksJsonV700(
+    api_instance_id = "obp_4f6b3c2a-9d1e-4b7a-8c5f-2e1d0a9b8c7d",
+    checked_at = APIUtil.DateWithMsExampleObject,
+    window_minutes = 15,
+    errors = 1,
+    warnings = 0,
+    checks = List(DeploymentCheckJsonV700(
+      id = "check_client_address_forwarding", title = "Client addresses are passed on and used", area = "Client addresses",
+      basis = "observed", status = "ERROR",
+      message = "97% of requests carry a forwarding header (X-Real-IP or X-Forwarded-For), so a proxy is passing on client addresses, " +
+        "but trust.proxy.enabled is false and OBP-API ignores them.",
+      evidence = List(DeploymentCheckEvidenceJsonV700("requests (last 15 minutes)", "4210"),
+        DeploymentCheckEvidenceJsonV700("with a forwarding header", "4090 (97%)")),
+      props = List("trust.proxy.enabled", "trust.proxy.header", "trust.proxy.peers")))
+  )
 
   lazy val trafficSourcesJsonV700Example = TrafficSourcesJsonV700(
     api_instance_id = "obp_4f6b3c2a-9d1e-4b7a-8c5f-2e1d0a9b8c7d",

@@ -3,6 +3,27 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/09/2026    TBD           CHANGED: CanCreateConsumer is added to the Roles of an OIDC operator: a
+                            virtual Entitlement for users in oidc_operator_user_ids, and granted to the
+                            bootstrap user created from oidc_operator_username (only when that user is
+                            first created; an existing user keeps its stored Entitlements). OBP-OIDC
+                            checks for it at startup when dynamic client registration or client
+                            bootstrap is on.
+28/09/2026    TBD           CHANGED in v7.0.0: GET and PUT /management/banks/BANK_ID/dynamic-entities
+                            (list and update Dynamic Entity definitions) accept an Application on its
+                            own (auth mode UserOrApplication), as POST already did, so a Consumer
+                            holding CanGetDynamicEntityDefinitions / CanUpdateDynamicEntityDefinition
+                            as a Scope can call them with a client-credentials token.
+28/09/2026    TBD           NEW in v7.0.0: GET /management/system/diagnostics/deployment (Role
+                            CanGetConfig), Deployment Checks: whether client addresses are passed on
+                            and used, believed only from the proxy, spread across real clients;
+                            whether applications pass on their users' addresses; rate-limit set-up;
+                            root log level, Telemetry collection, Redis, API Metrics losses. Worked out
+                            from props and the last 15 minutes of traffic.
+                            NEW prop trust.proxy.peers: addresses or CIDR ranges whose forwarding header
+                            is believed. Unset, behaviour is unchanged (believed from anyone).
+                            FIXED: an IPv6 client address is now used without the brackets http4s puts
+                            round it, in canonical form. IP penalties could not match IPv6 clients.
 28/09/2026    TBD           NEW in v7.0.0: GET /management/traffic/top-callers?window=1|5|15, where the
                             traffic on the answering instance is coming from: the busiest Consumers,
                             client IP addresses (every request, authenticated or not), and callers and

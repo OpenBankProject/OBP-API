@@ -200,6 +200,10 @@ object ResourceDocMiddleware extends MdcLoggable {
                     note.consumerId = Some(consumer.consumerId.get)
                     note.consumerName = Some(consumer.name.get)
                   }
+                  for {
+                    note <- Http4sRequestAttributes.trafficNote(req)
+                    user <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.user.toOption)
+                  } note.userId = Some(user.userId)
                   val routeIO =
                     routes.run(enrichedReq)
                       .map(ensureJsonContentType)
