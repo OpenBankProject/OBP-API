@@ -21,10 +21,9 @@ import org.json4s.JValue
  *  1. In-process: a bounded Guava cache holding the immutable JValue. It keeps working when
  *     Redis is down, so an unreachable Redis can never send every request back into
  *     reflection.
- *  2. Shared: the same Redis-backed store the resource-doc and swagger endpoints use
- *     (`Caching.getStaticSwaggerDocCache`, same key prefix and TTL, same fail-safe behaviour:
- *     an unreachable Redis is a miss, never an error). It lets replicas and restarts reuse
- *     one instance's work.
+ *  2. Shared: Redis, in the `message_docs` cache namespace (`Caching.getMessageDocsCache`,
+ *     same TTL as the resource docs, same fail-safe behaviour: an unreachable Redis is a miss,
+ *     never an error). It lets replicas and restarts reuse one instance's work.
  *
  * Contract:
  *  - Key: the connector name, and only after it has been resolved to a real connector.
@@ -35,9 +34,12 @@ import org.json4s.JValue
  *  - A failure is never cached; the next request retries.
  *  - Redis is written only after a successful generation. An unparsable Redis value is
  *    treated as a miss and regenerated.
- *  - Invalidation: `invalidateAll()` clears the in-process level. The Redis level expires by
- *    `staticResourceDocsObp.cache.ttl.seconds`. Nothing in production mutates a connector's
- *    message docs after start-up, so nothing calls `invalidateAll()` there.
+ *  - Invalidation: bumping the `message_docs` cache namespace (for example from the cache page
+ *    in API Manager) reaches both levels on every instance: the Redis keys carry the namespace
+ *    version, and so do the in-process keys, which read it at most once a second
+ *    (`Constant.recentCacheNamespaceVersion`). The Redis level also expires by
+ *    `staticResourceDocsObp.cache.ttl.seconds`. `invalidateAll()` clears this instance's
+ *    in-process level only (tests).
  */
 object MessageDocsJsonCache extends Loggable {
   private val MaxEntries = 64L
@@ -49,8 +51,8 @@ object MessageDocsJsonCache extends Loggable {
   }
 
   object RedisStore extends SharedStore {
-    def get(key: String): Option[String] = Caching.getStaticSwaggerDocCache(key)
-    def set(key: String, value: String): Unit = Caching.setStaticSwaggerDocCache(key, value)
+    def get(key: String): Option[String] = Caching.getMessageDocsCache(key)
+    def set(key: String, value: String): Unit = Caching.setMessageDocsCache(key, value)
   }
 
   private def sharedKey(connectorName: String) = s"message-docs-v2.2.0-$connectorName"
@@ -64,8 +66,13 @@ object MessageDocsJsonCache extends Loggable {
   private val sharedHitsCounter = new AtomicLong(0)
   private val sharedSetsCounter = new AtomicLong(0)
 
+  // The in-process key carries the namespace version, so a bump makes old entries unreachable here
+  // too; they then age out of the bounded cache.
+  private def localKey(connectorName: String): String =
+    s"${code.api.Constant.recentCacheNamespaceVersion(code.api.Constant.MESSAGE_DOCS_NAMESPACE)}|$connectorName"
+
   def getOrCompute(connectorName: String, store: SharedStore = RedisStore)(generate: => JValue): JValue =
-    try cache.get(connectorName, new Callable[JValue] {
+    try cache.get(localKey(connectorName), new Callable[JValue] {
       def call(): JValue = {
         val key = sharedKey(connectorName)
         sharedGetsCounter.incrementAndGet()

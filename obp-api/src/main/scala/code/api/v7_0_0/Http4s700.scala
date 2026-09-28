@@ -7246,6 +7246,9 @@ object Http4s700 {
     // Telemetry, for people; Prometheus reads the separate Telemetry port instead.
     resourceDocs ++= Http4s700Telemetry.resourceDocs
 
+    // IP penalties: an operator's temporary per-minute limit on one address.
+    resourceDocs ++= Http4s700IpPenalties.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))

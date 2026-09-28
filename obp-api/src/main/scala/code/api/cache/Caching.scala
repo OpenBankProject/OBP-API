@@ -143,12 +143,18 @@ object Caching extends MdcLoggable {
   def setAllResourceDocCache(key: String, value: String): Unit =
     trySet("all_resource_docs", ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL, value)
 
-  // Also holds the connector JSON Schemas served by v6.0.0 message-docs/CONNECTOR/json-schema.
   def getStaticSwaggerDocCache(key: String): Option[String] =
     tryGet("static_swagger", STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
 
   def setStaticSwaggerDocCache(key: String, value: String): Unit =
     trySet("static_swagger", STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
+
+  // The rendered message docs and the JSON Schema of each connector (namespace message_docs).
+  def getMessageDocsCache(key: String): Option[String] =
+    tryGet("message_docs", MESSAGE_DOCS_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
+
+  def setMessageDocsCache(key: String, value: String): Unit =
+    trySet("message_docs", MESSAGE_DOCS_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
 
   // Fail-safe wrappers around Redis.use. If Redis is unreachable (dev without a
   // running Redis, transient failure, etc.) we treat it as a miss and recompute instead of failing

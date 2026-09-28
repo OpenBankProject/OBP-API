@@ -288,6 +288,8 @@ thread and class figures on its own port. Remove it once the Micrometer JVM bind
 | `obp.api.batch_writer.queue.depth` | gauge | `writer` | rows queued minus rows written or lost (the queue's own `size()` walks it) |
 | `obp.api.batch_writer.flushes` | timer | `writer`, `result` | each flush that had rows |
 | `obp.api.redis_cache.gets`, `obp.api.redis_cache.sets` | counter | `cache` (`static_resource_docs`, `dynamic_resource_docs`, `all_resource_docs`, `static_swagger`, `financial_products`, `api_products`), `result` (`hit`, `miss`, `error` for gets; `success`, `error` for sets) | `Caching.tryGet` / `trySet`; `error` means Redis was unreachable |
+| `obp.api.ip_penalties.active` | gauge | | how many addresses have an IP penalty (never which ones) |
+| `obp.api.ip_penalties.refused` | counter | | requests refused with 429 OBP-10062 |
 | `obp.api.self_service_rate_limit.checks` | counter | `scope`, `outcome` (`allowed`, `warned`, `blocked`, `skipped`) | `SelfServiceRateLimiter.check`; in shadow mode, `warned` shows how often a scope would refuse real traffic |
 | `obp.api.connector.calls` | timer, fixed buckets | `connector`, `connector_method`, `result` | the Connector proxy (`code/bankconnectors/package.scala`) |
 | `obp.api.redis.commands` | timer | `command`, `result` | `Redis.use` |

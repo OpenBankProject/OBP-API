@@ -47,7 +47,12 @@ object TelemetryBindings {
     bindLogging()
     bindMessageDocs()
     bindRedisLogger()
+    bindIpPenalties()
   }
+
+  /** How many addresses are under an operator's temporary limit. Never which ones: an address is not a tag. */
+  private def bindIpPenalties(): Unit =
+    Telemetry.gauge("obp.api.ip_penalties.active")(code.api.util.IpPenalties.active().size.toDouble)
 
   /** The log dispatch pool (Helper.MdcLoggable) and log masking. */
   private def bindLogging(): Unit = {

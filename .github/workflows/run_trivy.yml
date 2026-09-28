@@ -20,7 +20,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Only scan when build_container.yml actually pushed an image: its docker job
+    # is gated on the same variable, so without it there is nothing to pull.
+    if: ${{ vars.ENABLE_CONTAINER_BUILDING == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
 
     steps:
       - uses: actions/checkout@v4
@@ -40,8 +42,9 @@ jobs:
           path: .trivy
           key: ${{ runner.os }}-trivy-db-${{ steps.trivy-db.outputs.sha }}
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          version: "v0.74.0"
           image-ref: "docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.event_name == 'workflow_dispatch' && (inputs.image_sha || github.sha) || github.event.workflow_run.head_sha }}"
           format: "template"
           template: "@/contrib/sarif.tpl"

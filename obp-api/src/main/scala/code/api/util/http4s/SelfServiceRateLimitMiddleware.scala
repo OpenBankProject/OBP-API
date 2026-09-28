@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util.http4s
 
 import cats.effect.IO
-import code.api.util.SelfServiceRateLimiter
+import code.api.util.{IpPenalties, SelfServiceRateLimiter}
 import code.api.util.SelfServiceRateLimiter.{Blocked, Outcome, Skipped, Warned, Window}
 import code.util.Helper.MdcLoggable
 import org.http4s.{Header, Headers, Method, Request, Response, Status}
@@ -128,7 +128,36 @@ object SelfServiceRateLimitMiddleware extends MdcLoggable {
     }
 
   /** Wrap the application. */
-  def apply(req: Request[IO])(run: Request[IO] => IO[Response[IO]]): IO[Response[IO]] =
+  /**
+   * The penalty management endpoints are never refused because of a penalty, so an operator who
+   * penalised the wrong address (their own, or a proxy's) can always undo it.
+   */
+  private val ipPenaltyManagementPath = "^/obp/[^/]+/management/ip-penalties(/.*)?$".r
+
+  def apply(req: Request[IO])(run: Request[IO] => IO[Response[IO]]): IO[Response[IO]] = {
+    val penaltyRefusal: IO[Option[IpPenalties.Refusal]] =
+      if (ipPenaltyManagementPath.findFirstIn(req.uri.path.renderString).isDefined) IO.pure(None)
+      else IO.blocking(IpPenalties.check(Http4sCallContextBuilder.clientIp(req)))
+    penaltyRefusal.flatMap {
+      case Some(refusal) => IO.pure(penaltyResponse(refusal))
+      case None => applyScopes(req)(run)
+    }
+  }
+
+  private def penaltyResponse(refusal: IpPenalties.Refusal): Response[IO] = {
+    val escaped = IpPenalties.refusedMessage(refusal).replace("\\", "\\\\").replace("\"", "\\\"")
+    Response[IO](status = Status.TooManyRequests)
+      .withEntity(s"""{"code":429,"message":"$escaped"}""".getBytes("UTF-8"))
+      .withHeaders(Headers(
+        Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8"),
+        Header.Raw(CIString("Retry-After"), refusal.retryAfterSeconds.toString),
+        Header.Raw(CIString(LimitHeader), refusal.penalty.perMinuteLimit.toString),
+        Header.Raw(CIString(RemainingHeader), "0"),
+        Header.Raw(CIString(ResetHeader), refusal.retryAfterSeconds.toString)
+      ))
+  }
+
+  private def applyScopes(req: Request[IO])(run: Request[IO] => IO[Response[IO]]): IO[Response[IO]] =
     scopeFor(req) match {
       case None => run(req)
       case Some(scope) =>

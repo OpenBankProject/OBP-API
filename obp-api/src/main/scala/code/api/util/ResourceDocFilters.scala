@@ -136,6 +136,14 @@ object ResourceDocVocabulary {
     Vocabulary(staticVocabulary.tags ++ dynamic.tags, staticVocabulary.functions ++ dynamic.functions)
   }
 
+  /** A line for the cache page: the list's size and when its dynamic part was last rebuilt. */
+  def describe(): String = {
+    val vocabulary = current()
+    val rebuiltAt = dynamicSnapshot.get().map(s => java.time.Instant.ofEpochMilli(s.builtAtMillis).toString).getOrElse("not yet")
+    s"Tag and function list for resource-docs filters: ${vocabulary.tags.size} tags, ${vocabulary.functions.size} functions; " +
+      s"its dynamic part follows this namespace and was last rebuilt at $rebuiltAt"
+  }
+
   /** Forget the dynamic part, so the next call rebuilds it (tests, and after bulk dynamic changes). */
   def refreshDynamic(): Unit = dynamicSnapshot.set(None)
 }
