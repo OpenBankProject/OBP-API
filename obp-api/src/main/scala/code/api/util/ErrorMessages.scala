@@ -143,6 +143,7 @@ object ErrorMessages {
   val InvalidIpAddress = "OBP-10063: Invalid IP address. Give an IPv4 or IPv6 address, not a host name."
   val IpPenaltyAlreadyExists = "OBP-10064: This IP address already has a penalty. Remove it first to change it."
   val IpPenaltyNotFound = "OBP-10065: This IP address has no penalty."
+  val InvalidTrafficWindow = "OBP-10067: Invalid window. Use window=1, 5 or 15 (minutes)."
   val InvalidIpPenalty = "OBP-10066: Invalid IP penalty. per_minute_limit must be 0 or more, duration_minutes between 1 and 10080 (one week), and reason between 1 and 255 characters."
   // Not an error: the text of the X-Rate-Limit-Warning header a self-service endpoint returns in
   // shadow mode. SCOPE and LIMIT are replaced at runtime, e.g. "signup" and "5 per hour".

@@ -712,9 +712,16 @@ object Http4sResourceDocs extends MdcLoggable {
    * answer outside ResourceDocMiddleware, which is where every other endpoint is timed; their docs
    * are declared in ResourceDocs1_4_0, at v1.4.0, whatever version prefix the request used.
    */
-  private def timed(handlerName: String)(response: IO[Response[IO]]): IO[Response[IO]] =
-    code.telemetry.Telemetry.timeEndpoint(
-      APIUtil.buildOperationId(ApiVersion.v1_4_0, handlerName), ApiVersion.v1_4_0.apiShortVersion)(response)
+  private def timed(req: Request[IO], handlerName: String)(response: IO[Response[IO]]): IO[Response[IO]] =
+    timedAs(req, APIUtil.buildOperationId(ApiVersion.v1_4_0, handlerName), ApiVersion.v1_4_0.apiShortVersion)(response)
+
+  private def timedAs(req: Request[IO], operationId: String, apiVersion: String)(response: IO[Response[IO]]): IO[Response[IO]] = {
+    Http4sRequestAttributes.trafficNote(req).foreach { note =>
+      note.operationId = Some(operationId)
+      note.apiVersion = Some(apiVersion)
+    }
+    code.telemetry.Telemetry.timeEndpoint(operationId, apiVersion)(response)
+  }
 
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "obp" =>
@@ -725,10 +732,10 @@ object Http4sResourceDocs extends MdcLoggable {
         case "v4.0.0" | "v5.0.0" | "v5.1.0" | "v6.0.0" => true
         case _                                          => false
       }
-      timed("getResourceDocsObp")(handleGetResourceDocsObp(req, prefix, requestedApiVersionString, isVersion4OrHigher = isV4OrHigher))
+      timed(req, "getResourceDocsObp")(handleGetResourceDocsObp(req, prefix, requestedApiVersionString, isVersion4OrHigher = isV4OrHigher))
 
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "swagger" =>
-      timed("getResourceDocsSwagger")(handleGetResourceDocsSwagger(req, prefix, requestedApiVersionString))
+      timed(req, "getResourceDocsSwagger")(handleGetResourceDocsSwagger(req, prefix, requestedApiVersionString))
 
     // OpenAPI 3.1 JSON and YAML — served for every URL prefix.
     //
@@ -742,18 +749,17 @@ object Http4sResourceDocs extends MdcLoggable {
     // for non-v6 prefixes; `isVersion4OrHigher` is hardcoded `true` inside the
     // handlers because the OpenAPI converter always consumes the v4-shape input.
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi" =>
-      timed("getResourceDocsOpenAPI31")(handleGetResourceDocsOpenAPI31(req, prefix, requestedApiVersionString))
+      timed(req, "getResourceDocsOpenAPI31")(handleGetResourceDocsOpenAPI31(req, prefix, requestedApiVersionString))
 
     // No ResourceDoc describes the YAML form, so it has no operation id and is not timed.
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi.yaml" =>
       handleGetResourceDocsOpenAPI31Yaml(req, prefix, requestedApiVersionString)
 
     case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "obp" =>
-      timed("getBankLevelDynamicResourceDocsObp")(handleGetBankLevelDynamicResourceDocsObp(req, prefix, bankIdStr, requestedApiVersionString))
+      timed(req, "getBankLevelDynamicResourceDocsObp")(handleGetBankLevelDynamicResourceDocsObp(req, prefix, bankIdStr, requestedApiVersionString))
 
     case req @ GET -> Root / "obp" / _ / "message-docs" / connector / "swagger2.0" =>
-      code.telemetry.Telemetry.timeEndpoint(
-        APIUtil.buildOperationId(ApiVersion.v3_1_0, "getMessageDocsSwagger"), ApiVersion.v3_1_0.apiShortVersion
-      )(handleGetMessageDocsSwagger(req, connector))
+      timedAs(req, APIUtil.buildOperationId(ApiVersion.v3_1_0, "getMessageDocsSwagger"), ApiVersion.v3_1_0.apiShortVersion)(
+        handleGetMessageDocsSwagger(req, connector))
   }
 }

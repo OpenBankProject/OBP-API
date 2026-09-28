@@ -177,6 +177,10 @@ object ResourceDocMiddleware extends MdcLoggable {
             // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
             OptionT.none[IO, Response[IO]]
           case Some(resourceDoc) =>
+            Http4sRequestAttributes.trafficNote(req).foreach { note =>
+              note.operationId = Some(resourceDoc.operationId)
+              note.apiVersion = Some(resourceDoc.implementedInApiVersion.apiShortVersion)
+            }
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
             // Validate first (read-only, outside any transaction), then run business logic.
@@ -188,6 +192,14 @@ object ResourceDocMiddleware extends MdcLoggable {
                 case Left(errorResponse) =>
                   IO.pure(Option(errorResponse))
                 case Right(enrichedReq) =>
+                  // The caller is known now: record its Consumer for TrafficSources.
+                  for {
+                    note <- Http4sRequestAttributes.trafficNote(req)
+                    consumer <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.consumer.toOption)
+                  } {
+                    note.consumerId = Some(consumer.consumerId.get)
+                    note.consumerName = Some(consumer.name.get)
+                  }
                   val routeIO =
                     routes.run(enrichedReq)
                       .map(ensureJsonContentType)

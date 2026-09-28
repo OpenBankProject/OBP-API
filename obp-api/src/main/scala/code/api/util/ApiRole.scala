@@ -580,6 +580,12 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteIpPenalty(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteIpPenalty = CanDeleteIpPenalty()
 
+  // Shows which Consumers and client IP addresses are sending the most traffic to the instance
+  // (TrafficSources). About the instance, so held at the empty bank id. It names Consumers and IP
+  // addresses, which is why it is a Role of its own and not part of CanGetTelemetry.
+  case class CanGetTrafficSources(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetTrafficSources = CanGetTrafficSources()
+
   case class CanGetSignalStats(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSignalStats = CanGetSignalStats()
 

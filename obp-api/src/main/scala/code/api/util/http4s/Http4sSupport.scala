@@ -83,6 +83,17 @@ object Http4sRequestAttributes {
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
   /**
+   * Vault key for the traffic note of a request: what inner layers learn about it (its endpoint, its
+   * Consumer, a refusal) for TrafficSources, which Http4sApp records once the response is ready.
+   * Installed by Http4sApp on every request; bridge hops keep it, because `withUri` keeps attributes.
+   */
+  val trafficNoteKey: Key[code.telemetry.TrafficSources.Note] =
+    Key.newKey[IO, code.telemetry.TrafficSources.Note].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  /** The request's traffic note, when Http4sApp installed one (tests that call routes directly have none). */
+  def trafficNote(req: Request[IO]): Option[code.telemetry.TrafficSources.Note] = req.attributes.lookup(trafficNoteKey)
+
+  /**
    * Vault key for caching the (already-read) request body across bridge cascade hops.
    *
    * Http4s body streams are single-shot: `request.bodyText.compile.string` drains the stream.

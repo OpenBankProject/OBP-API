@@ -312,3 +312,31 @@ none:
 The full picture, and the decision to leave these routes as they are for now, is in
 `docs/resource_doc_and_endpoint_consistency_status.md`.
 
+## 14. Where traffic is coming from (not Telemetry, by design)
+
+Telemetry never names a caller (section 6), so it cannot say who is sending the traffic. That question
+is answered by `code.telemetry.TrafficSources`, kept apart on purpose:
+
+- **Three tables per minute:** the busiest Consumers (200 slots, authenticated requests), the busiest
+  client IP addresses (200 slots, every request), and the busiest pairs of caller and endpoint (500
+  slots; the caller is the Consumer when one was authenticated, otherwise the address). 15 minutes are
+  kept; reads merge the last 1, 5 or 15.
+- **Bounded memory, estimated counts.** Each table is a `HeavyHitters` summary of fixed size (the Space-Saving algorithm, credited below): every key
+  with more than 1/capacity of a minute's requests is guaranteed to be in it, and each count is within
+  its stated `error` of the truth.
+- **Recorded once per request, at the outermost layer** (`Http4sApp.httpApp`), so refused and
+  unmatched requests count too. Inner layers fill in a per-request note (endpoint, Consumer, refusal).
+  Paths no endpoint serves are grouped as one endpoint, `unmatched`.
+- **Never exported to Prometheus, never written anywhere.** Read only through
+  `GET /obp/v7.0.0/management/traffic/top-callers` (Role `CanGetTrafficSources`) and the "Where traffic
+  is coming from" panel of the API Manager Telemetry page, which links an address to the IP penalty form.
+  IP addresses are personal data: they stay in memory for at most 15 minutes.
+
+Credit for the ideas used:
+- Space-Saving: Ahmed Metwally, Divyakant Agrawal and Amr El Abbadi, "Efficient Computation of Frequent
+  and Top-k Elements in Data Streams", ICDT 2005, LNCS 3363, pages 398-412.
+- Its predecessor, the first frequent-items algorithm in bounded space: Jayadev Misra and David Gries,
+  "Finding Repeated Elements", Science of Computer Programming 2(2), 1982, pages 143-152.
+- Merging per-minute summaries into a window: Pankaj K. Agarwal, Graham Cormode, Zengfeng Huang,
+  Jeff M. Phillips, Zhewei Wei and Ke Yi, "Mergeable Summaries", PODS 2012, pages 23-34.
+
