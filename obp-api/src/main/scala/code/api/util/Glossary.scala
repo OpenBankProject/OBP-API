@@ -105,7 +105,31 @@ object Glossary extends MdcLoggable  {
 		 |""".stripMargin
 
 	// We use the requested title rather than the found item's, because anchors are case sensitive.
-	private def renderGlossaryItemLink(title: String): String = s"""[here](/glossary#${title})"""
+	// A space would end the markdown link's destination, so it is encoded; browsers decode it when
+	// they look for the anchor.
+	private def renderGlossaryItemLink(title: String): String =
+		s"""[here](${apiExplorerUrl}/glossary#${title.replace(" ", "%20")})"""
+
+	/** Where the API Explorer runs: the Glossary, Resource Docs and Message Docs are shown there. */
+	def apiExplorerUrl: String = APIUtil.getPropsValue("webui_api_explorer_url", "http://localhost:5174").stripSuffix("/")
+
+	/** Where the OBP Portal runs. */
+	def portalUrl: String = APIUtil.getPropsValue("webui_obp_portal_url", "http://localhost:5174").stripSuffix("/")
+
+	// A markdown link destination or an href that is a path on the API Explorer, without its host.
+	private val SiteRelativeExplorerLink = """(\]\(|href=")(/(?:glossary|index|resource-docs|message-docs|operationid)\b|/\?)""".r
+
+	/**
+	 * Makes the links in Glossary text to the API Explorer's own pages (other Glossary Items, Resource
+	 * Docs, Message Docs) fully qualified, so they work wherever the text is shown: the API Explorer,
+	 * the Portal, the API Manager, Opey or any other client. Every Glossary Item passes through here,
+	 * so an item written with a site-relative link is still served correctly. External links are
+	 * already absolute and are left alone.
+	 */
+	def qualifyExplorerLinks(text: String): String =
+		if (text == null) text
+		else SiteRelativeExplorerLink.replaceAllIn(text, m =>
+			java.util.regex.Matcher.quoteReplacement(m.group(1) + apiExplorerUrl + m.group(2)))
 
 	/**
 	 * Expands any Glossary placeholders in the given markdown. Text with no placeholder is returned
@@ -238,8 +262,11 @@ object Glossary extends MdcLoggable  {
 		// Constructs a GlossaryItem from just two parameters.
 		def apply(title: String, description: => String): GlossaryItem = {
 
+			// Links to the API Explorer's own pages are served fully qualified (see qualifyExplorerLinks).
+			def qualifiedDescription: String = qualifyExplorerLinks(description)
+
 			// Convert markdown to HTML
-			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(description)
+			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(qualifiedDescription)
 
 			// Try and generate a plain text string (requires valid HTML)
 			val textDescription: String = try {
@@ -251,7 +278,7 @@ object Glossary extends MdcLoggable  {
 
 			new GlossaryItem(
 				title,
-				() => description,
+				() => qualifiedDescription,
 				htmlDescription,
 				textDescription
 			)
@@ -413,11 +440,9 @@ object Glossary extends MdcLoggable  {
 		s"""<a href="$apiExplorerPrefix/operationid/$operationId">$title</a>"""
 	}
 
-	// Consumer registration URL helper
-	def getConsumerRegistrationUrl(): String = {
-		val apiExplorerUrl = APIUtil.getPropsValue("webui_api_explorer_url", "http://localhost:5174")
-		s"$apiExplorerUrl/consumers/register"
-	}
+	// Consumer registration URL helper: registration is a Portal page, unless the installation sends it elsewhere.
+	def getConsumerRegistrationUrl(): String =
+		APIUtil.getPropsValue("webui_external_consumer_registration_url").openOr(s"$portalUrl/consumers/register")
 
 	glossaryItems += GlossaryItem(
 		title = "Cheat Sheet",
@@ -6864,6 +6889,81 @@ object Glossary extends MdcLoggable  {
 				 |
 """)
 
+
+	glossaryItems += GlossaryItem(
+		title = "Platform Apps",
+		description =
+			s"""
+				 |# Platform Apps
+				 |
+				 |A **Platform App** is an application an installation runs as part of its own OBP deployment, such as the Portal, the API Manager, Opey or one of the bank's own services. Like any application it calls OBP as a Consumer, and some of its calls are made with its own application token (OAuth2 client credentials) rather than for a logged-in User: reading published pages for anonymous visitors, or creating the Dynamic Entities it depends on at startup. Those calls need Roles granted to its Consumer as Scopes.
+				 |
+				 |## How it works
+				 |
+				 |1. An administrator marks the app's Consumer as a Platform App (Role CanCreatePlatformApp), giving it the name administrators know it by.
+				 |2. The app declares, as itself, the Scopes it needs and what each is needed for. It does this whenever it starts or checks itself, so the list follows the version that is running. An app whose Consumer has not been marked cannot declare anything, so an arbitrary Consumer cannot ask to be granted Scopes this way.
+				 |3. OBP compares each declaration with the Scopes the Consumer holds. An administrator with CanGetPlatformApps sees, for every Platform App, which Scopes are held and which are missing, and grants the missing ones (CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at the Scope's bank id).
+				 |
+				 |A Scope declared as optional is one the app can manage without, for example because another Platform App does the same work. It is shown, but does not count as missing.
+				 |
+				 |Each app can also check its own Consumer: GET /obp/v7.0.0/consumers/current/scopes returns the Scopes the calling Consumer holds, without any Role.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Platform App](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createPlatformApp): `POST /obp/v7.0.0/management/platform-apps`, to mark a Consumer as a Platform App.
+				 |- [Get Platform Apps](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPlatformApps): `GET /obp/v7.0.0/management/platform-apps`, to list them, with each declared Scope held or not.
+				 |- [Delete Platform App](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deletePlatformApp): `DELETE /obp/v7.0.0/management/platform-apps/CONSUMER_ID`, to unmark one.
+				 |- [Update Current Consumer Platform App](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateCurrentConsumerPlatformApp): `PUT /obp/v7.0.0/consumers/current/platform-app`, for an app to declare the Scopes it needs.
+				 |- [Get Current Consumer Scopes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getCurrentConsumerScopes): `GET /obp/v7.0.0/consumers/current/scopes`, for an app to read the Scopes its Consumer holds.
+				 |- [Create Scope for a Consumer](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-addScope): `POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes`, to grant a missing Scope.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Groups",
+		description =
+			s"""
+				 |# Groups
+				 |
+				 |A **Group** is a named list of Roles at one bank id (or at system level), used to give the same Roles to many Users. A Group has a name, a description, its list of Roles, and whether it is enabled.
+				 |
+				 |A Group is not itself checked when a User calls an endpoint. Adding a User to a Group grants them the Group's Roles as ordinary Entitlements, at the Group's bank id, and those Entitlements are what every Role check reads.
+				 |
+				 |## Adding a User to a Group
+				 |
+				 |Each of the Group's Roles the User does not already hold at that bank id is granted to them (the User is emailed about each one), and the Entitlement records the Group that granted it (its `group_id`). A Role they already hold, however it was granted, is not granted again: a User holds a Role at a bank id once. The membership itself is recorded as well, so a User is a member of a Group even when the Group granted them nothing because they already held all its Roles.
+				 |
+				 |Only an enabled Group can have Users added to it.
+				 |
+				 |## Groups that share Roles
+				 |
+				 |Two Groups may list the same Role. A member of both holds it once, recorded against the Group that granted it first. When that Group stops granting it to the User, because the User is removed from it or the Role is taken out of it, the Role is kept if another Group the User is in, at the same bank id, still grants it: the Entitlement is then recorded against that Group instead. Nothing is emailed, because the User's Roles do not change.
+				 |
+				 |## Changing a Group's Roles
+				 |
+				 |Updating a Group changes its list of Roles, but not what its existing members hold. To bring them in line, sync the Group's members: each member is granted the Group's Roles they lack, and loses the Entitlements the Group granted for Roles it no longer has (subject to the sharing rule above). A dry run shows what would change without changing anything. Entitlements granted by hand, or by other Groups, are never touched.
+				 |
+				 |## Removing a User from a Group
+				 |
+				 |Removing a User from a Group ends the membership and deletes the Entitlements the Group granted them, except those another of their Groups still grants (see above). Deleting a Group ends all its memberships; the Entitlements it granted are left in place.
+				 |
+				 |## Roles
+				 |
+				 |Managing Groups needs CanCreateGroupAtOneBank, CanGetGroupsAtOneBank, CanUpdateGroupAtOneBank and CanDeleteGroupAtOneBank at the Group's bank id, or the AllBanks version of each (required for a system level Group). Adding and removing members needs CanAddUserToGroupAtOneBank and CanRemoveUserFromGroupAtOneBank, or their AllBanks versions; syncing a Group's members needs both.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-createGroup): `POST /obp/v6.0.0/management/groups`
+				 |- [Get Groups](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getGroups): `GET /obp/v6.0.0/management/groups`
+				 |- [Update Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-updateGroup): `PUT /obp/v6.0.0/management/groups/GROUP_ID`
+				 |- [Delete Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-deleteGroup): `DELETE /obp/v6.0.0/management/groups/GROUP_ID`
+				 |- [Get Group Entitlements](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getGroupEntitlements): `GET /obp/v6.0.0/management/groups/GROUP_ID/entitlements`, the Entitlements a Group has granted.
+				 |- [Add User to Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-addUserToGroup): `POST /obp/v6.0.0/users/USER_ID/group-entitlements`
+				 |- [Remove User from Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-removeUserFromGroup): `DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID`
+				 |- [Get User's Group Memberships](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getUserGroupMemberships): `GET /obp/v6.0.0/users/USER_ID/group-entitlements`
+				 |- [Sync Group Members](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncGroupMembers): `POST /obp/v7.0.0/management/groups/GROUP_ID/sync-members`
+				 |
+				 |How Roles and Entitlements control access is described ${getGlossaryItemLink("API.Access Control")}.
+				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
 		title = "Telemetry",

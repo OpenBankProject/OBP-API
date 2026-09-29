@@ -2233,6 +2233,9 @@ object Http4s600 {
               .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(group.bankId, user.userId, canAddUserToGroupAtOneBank, canAddUserToGroupAtAllBanks, cc)
             _ <- Helper.booleanToFuture(s"$UnknownError Group is not enabled", 400, Some(cc))(group.isEnabled)
+            // Recorded even when every Role is skipped below: the Entitlements alone would not show it.
+            _ <- Future(code.group.GroupMemberships.addMembership(group.groupId, userIdStr, Some(user.userId)))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot record the group membership", 400))
             existingEntitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
             entitlementResults <- Future.sequence(group.listOfRoles.map { roleName =>
               Future {
@@ -2270,13 +2273,20 @@ object Http4s600 {
             group <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
               .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(group.bankId, user.userId, canRemoveUserFromGroupAtOneBank, canRemoveUserFromGroupAtAllBanks, cc)
+            _ <- Future(code.group.GroupMemberships.removeMembership(groupId, userIdStr))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot remove the group membership", 400))
             entitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
             // group_id alone identifies group-born rows (only group grants set it) and holds
             // for legacy rows too; the old `process == GROUP_MEMBERSHIP` conjunct was redundant.
             groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(e =>
               e.groupId == Some(groupId))
-            _ <- Future.sequence(groupEntitlements.map(e =>
-              Future(Entitlement.entitlement.vend.deleteEntitlement(Full(e)))))
+            // A Role another of the user's Groups also grants is kept, and recorded against that Group.
+            _ <- Future.sequence(groupEntitlements.map(e => Future {
+              code.group.GroupMemberships.otherGroupGranting(userIdStr, e.bankId, e.roleName, groupId) match {
+                case Some(other) => Entitlement.entitlement.vend.setEntitlementGroupId(e.entitlementId, other.groupId)
+                case None => Entitlement.entitlement.vend.deleteEntitlement(Full(e))
+              }
+            }))
           } yield ""
         }
     }
@@ -4739,7 +4749,8 @@ object Http4s600 {
             entitlements <- Future(code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(userId))
             // group_id alone identifies group-born rows (see removeUserFromGroup).
             groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(_.groupId.isDefined)
-            groupIds = groupEntitlements.flatMap(_.groupId).distinct
+            // Includes Groups that granted the user nothing because they already held every Role.
+            groupIds = code.group.GroupMemberships.groupIdsOfUser(userId)
             _ <- Future.sequence {
               groupIds.flatMap { gid =>
                 code.group.GroupTrait.group.vend.getGroup(gid).toOption.map { g =>
@@ -5884,6 +5895,8 @@ object Http4s600 {
             _ <- groupRoleCheck(existing.bankId, user.userId, canDeleteGroupAtOneBank, canDeleteGroupAtAllBanks, cc)
             _ <- Future(code.group.GroupTrait.group.vend.deleteGroup(groupId))
               .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete group", 400))
+            _ <- Future(code.group.GroupMemberships.removeMembershipsOfGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete the group's memberships", 400))
           } yield ""
         }
     }
@@ -9668,6 +9681,9 @@ object Http4s600 {
         |This endpoint creates entitlements for every Role in the Group. If the user
         |already has a particular role at the same bank, that entitlement is skipped (not duplicated).
         |
+        |The membership itself is recorded too, so the user is a member of the Group even when every
+        |Role was skipped.
+        |
         |Each entitlement created will have:
         |- group_id set to the group ID
         |- process set to "GROUP_MEMBERSHIP"
@@ -9718,6 +9734,9 @@ object Http4s600 {
         |
         |Only removes entitlements with:
         |- group_id matching GROUP_ID
+        |
+        |An entitlement for a Role that another Group the user is in (at the same bank) also grants is kept,
+        |and recorded against that Group instead.
         |
         |Requires either:
         |- CanRemoveUserFromGroupAtAllBanks (for any group)
@@ -12930,7 +12949,7 @@ object Http4s600 {
           "Get User's Group Memberships",
           s"""Get all groups a user is a member of.
           |
-          |Returns groups where the user has entitlements carrying a group_id.
+          |Returns the groups the user was added to, and groups where the user has entitlements carrying a group_id.
           |
           |The response includes:
           |- list_of_entitlements: entitlements the user currently has from this group membership

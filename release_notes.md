@@ -3,6 +3,66 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+29/09/2026    TBD           NEW in v7.0.0: POST /management/groups/GROUP_ID/sync-members[?dry_run=true]
+                            brings the Entitlements of a Group's members in line with its current Roles:
+                            grants the Roles they lack, deletes those the Group granted but no longer
+                            has, and keeps (recorded against that Group) any Role another of the
+                            member's Groups still grants. Needs the add-to-group and remove-from-group
+                            Roles at the Group's bank.
+29/09/2026    TBD           CHANGED: Group memberships are recorded in a new table GroupMembership, so a
+                            user added to a Group whose Roles they already held is still its member.
+                            POST /users/USER_ID/group-entitlements writes the row; DELETE
+                            /users/USER_ID/group-entitlements/GROUP_ID removes it and keeps (re-tagged)
+                            any Entitlement another of the user's Groups also grants, instead of
+                            deleting it; GET /users/USER_ID/group-entitlements also lists Groups that
+                            granted the user nothing; DELETE /management/groups/GROUP_ID removes the
+                            Group's rows. Members from before this change are still found through the
+                            Entitlements their Groups granted. Responses are unchanged.
+29/09/2026    TBD           CHANGED in v7.0.0: POST /users/USER_ID/entitlements returns 404 BankNotFound
+                            when bank_id is neither empty, SYS, nor an existing Bank's id (matched
+                            exactly, case included). It used to store a grant no Role check would read.
+28/09/2026    TBD           NEW in v7.0.0: Platform Apps, the Consumers an installation runs as part of
+                            its own deployment (Portal, API Manager, ...). POST, GET
+                            /management/platform-apps and DELETE /management/platform-apps/CONSUMER_ID
+                            (new Roles CanCreatePlatformApp, CanGetPlatformApps, CanDeletePlatformApp)
+                            mark, list and unmark them; the list shows each app's declared Scopes, held
+                            or not. PUT /consumers/current/platform-app (no Role, an Application on its
+                            own may call it) lets a marked app declare the Scopes it needs and what for.
+                            New tables platform_app and platform_app_required_scope. New error codes
+                            OBP-35045 to OBP-35048. New Glossary item "Platform Apps".
+28/09/2026    TBD           NEW in v7.0.0: POST /consumers/CONSUMER_ID/scopes. As v4.0.0's, but bank_id may
+                            be SYS, the system space of Dynamic Entities (v4.0.0 refuses it with
+                            BankNotFound), so the Definition Roles can be granted to a Consumer as
+                            Scopes through the API. The granting Role (CanCreateScopeAtAnyBank, or
+                            CanCreateScopeAtOneBank at bank_id) is checked at the body's bank_id.
+28/09/2026    TBD           NEW in v7.0.0: GET /consumers/current/scopes, the Roles the calling Consumer
+                            holds as Scopes (role_name, bank_id). No Role; a User or an Application on
+                            its own may call it, like GET /consumers/current/identity. For services
+                            (Portal, API Manager) to report on their status pages which Scopes they lack.
+28/09/2026    TBD           CHANGED: CanCreateConsumer is added to the Roles of an OIDC operator: a
+                            virtual Entitlement for users in oidc_operator_user_ids, and granted to the
+                            bootstrap user created from oidc_operator_username (only when that user is
+                            first created; an existing user keeps its stored Entitlements). OBP-OIDC
+                            checks for it at startup when dynamic client registration or client
+                            bootstrap is on.
+                            CanGetConsumers is also added to the virtual Entitlements of users in
+                            oidc_operator_user_ids (the bootstrap user already had it), so that list
+                            alone satisfies OBP-OIDC's startup Role check.
+28/09/2026    TBD           CHANGED in v7.0.0: GET and PUT /management/banks/BANK_ID/dynamic-entities
+                            (list and update Dynamic Entity definitions) accept an Application on its
+                            own (auth mode UserOrApplication), as POST already did, so a Consumer
+                            holding CanGetDynamicEntityDefinitions / CanUpdateDynamicEntityDefinition
+                            as a Scope can call them with a client-credentials token.
+28/09/2026    TBD           NEW in v7.0.0: GET /management/system/diagnostics/deployment (Role
+                            CanGetConfig), Deployment Checks: whether client addresses are passed on
+                            and used, believed only from the proxy, spread across real clients;
+                            whether applications pass on their users' addresses; rate-limit set-up;
+                            root log level, Telemetry collection, Redis, API Metrics losses. Worked out
+                            from props and the last 15 minutes of traffic.
+                            NEW prop trust.proxy.peers: addresses or CIDR ranges whose forwarding header
+                            is believed. Unset, behaviour is unchanged (believed from anyone).
+                            FIXED: an IPv6 client address is now used without the brackets http4s puts
+                            round it, in canonical form. IP penalties could not match IPv6 clients.
 28/09/2026    TBD           NEW in v7.0.0: GET /management/traffic/top-callers?window=1|5|15, where the
                             traffic on the answering instance is coming from: the busiest Consumers,
                             client IP addresses (every request, authenticated or not), and callers and

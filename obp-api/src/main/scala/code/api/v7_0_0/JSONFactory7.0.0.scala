@@ -2162,6 +2162,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     consumer_name = "OBP Portal"
   )
 
+  /** One Role the calling Consumer holds as a Scope, and where: a bank id, SYS, or "" for a system Role. */
+  case class CurrentConsumerScopeJsonV700(
+    role_name: String,
+    bank_id: String
+  )
+
+  /** The calling Consumer's own Scopes. */
+  case class CurrentConsumerScopesJsonV700(
+    consumer_id: String,
+    scopes: List[CurrentConsumerScopeJsonV700]
+  )
+
+  def createCurrentConsumerScopesJsonV700(consumer: code.model.Consumer, scopes: List[code.scope.Scope]): CurrentConsumerScopesJsonV700 =
+    CurrentConsumerScopesJsonV700(
+      consumer_id = consumer.consumerId.get,
+      scopes = scopes.map(s => CurrentConsumerScopeJsonV700(role_name = s.roleName, bank_id = s.bankId))
+        .sortBy(s => (s.role_name, s.bank_id))
+    )
+
+  lazy val currentConsumerScopesJsonV700Example = CurrentConsumerScopesJsonV700(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    scopes = List(CurrentConsumerScopeJsonV700(role_name = "CanGetDynamicEntityDefinitions", bank_id = "SYS"))
+  )
+
   case class PasswordPolicyJsonV700(
     description: String,
     min_length: Int,

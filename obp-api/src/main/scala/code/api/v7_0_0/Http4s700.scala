@@ -541,6 +541,12 @@ object Http4s700 {
                    UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
                    APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
                  }
+            // Bank ids are matched exactly, case included: a grant at a bank id naming no bank is a
+            // row no check will ever read. SYS is the system space of Dynamic Entities, not a bank.
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
+              body.bank_id.isEmpty || body.bank_id == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ||
+                code.model.BankX(BankId(body.bank_id), Some(cc)).map(_._1).isDefined
+            }
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
             entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(
@@ -557,10 +563,11 @@ object Http4s700 {
       "POST",
       "/users/USER_ID/entitlements",
       "Add Entitlement for a User",
-      """Grant a Role to a User. Set bank_id to "" for system-level roles, or a valid bank_id for bank-level roles.""",
+      """Grant a Role to a User. Set bank_id to "" for system-level roles, or a valid bank_id for bank-level roles.
+        |The bank_id must name an existing Bank (matched exactly, case included), or be SYS, the system space of Dynamic Entities.""".stripMargin,
       CreateEntitlementJSON("gh.29.uk", "CanGetAnyUser"),
       EmptyBody,
-      List($AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, EntitlementAlreadyExists, UnknownError),
+      List($AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, BankNotFound, EntitlementAlreadyExists, UnknownError),
       apiTagEntitlement :: apiTagRole :: apiTagUser :: Nil,
       Some(List(canCreateEntitlementAtOneBank, canCreateEntitlementAtAnyBank)),
       http4sPartialFunction = Some(addEntitlement)
@@ -807,6 +814,107 @@ object Http4s700 {
       authMode = UserOrApplication,
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
+
+    // Route: GET /obp/v7.0.0/consumers/current/scopes
+    // The Roles the calling Consumer holds as Scopes. No Role, like the identity above: a service may always
+    // learn what it has been granted, so its status page can say which Scopes it still needs.
+    val getCurrentConsumerScopes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consumers" / "current" / "scopes" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            consumer <- Future(cc.consumer match {
+              case Full(c) => Full(c)
+              case _ => net.liftweb.common.Empty
+            }).map(unboxFullOrFail(_, Some(cc), ApplicationNotIdentified, 401))
+            scopes <- Future(code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.get.toString).openOr(Nil))
+          } yield JSONFactory700.createCurrentConsumerScopesJsonV700(consumer, scopes)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getCurrentConsumerScopes),
+      "GET",
+      "/consumers/current/scopes",
+      "Get Current Consumer Scopes",
+      s"""Returns the Roles the Consumer making this call holds as Scopes, each with its `bank_id`
+        |(a bank id, SYS for the system space, or empty for a system Role).
+        |
+        |No Role is required. The caller must be identifiable as a Consumer, either through a logged-in User (whose
+        |Consumer this is) or as an Application on its own (OAuth2 client credentials, or a Consumer Key).
+        |A call with no credentials gets ${ApplicationNotIdentified}
+        |
+        |Use it from a service (for example the Portal or the API Manager) to check that its Consumer holds the Scopes
+        |it needs. To list another Consumer's Scopes, see Get Scopes for Consumer.
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.currentConsumerScopesJsonV700Example,
+      List(ApplicationNotIdentified, UnknownError),
+      apiTagConsumer :: apiTagScope :: apiTagApi :: Nil,
+      None,
+      authMode = UserOrApplication,
+      http4sPartialFunction = Some(getCurrentConsumerScopes)
+    )
+
+    // Route: POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes (201)
+    // As v4.0.0's, with two differences: bank_id may be SYS, the system space of Dynamic Entities, where
+    // the Definition and Record Roles live (v4.0.0 refuses it as an unknown bank); and the duplicate check
+    // looks the Scope up by the Consumer's primary key, the key Scopes are stored under.
+    val addScope: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "consumers" / consumerId / "scopes" =>
+        EndpointHelpers.withUserAndBodyCreated[code.api.v3_0_0.CreateScopeJson, AnyRef](req) { (user, body, cc) =>
+          for {
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            role <- NewStyle.function.tryons(
+              s"$IncorrectRoleName ${body.role_name}. Possible roles are ${ApiRole.availableRoles.sorted.mkString(", ")}",
+              400, Some(cc)) { ApiRole.valueOf(body.role_name) }
+            _ <- Helper.booleanToFuture(
+              failMsg = if (role.requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
+              cc = Some(cc))(role.requiresBankId == body.bank_id.nonEmpty)
+            // The granting Role is held at the body's bank_id (SYS included), which the middleware cannot
+            // see: the doc keeps the Roles for the catalogue but disableAutoValidateRoles.
+            grantingRoles = ApiRole.canCreateScopeAtOneBank :: ApiRole.canCreateScopeAtAnyBank :: Nil
+            _ <- if (APIUtil.isSuperAdmin(user.userId)) Future.successful(())
+                 else Helper.booleanToFuture(
+                   UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
+                   APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
+                 }
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
+              body.bank_id.isEmpty || body.bank_id == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ||
+                code.model.BankX(BankId(body.bank_id), Some(cc)).map(_._1).isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc)) {
+              !APIUtil.hasScope(body.bank_id, consumer.id.get.toString, role)
+            }
+            scope <- Future(code.scope.Scope.scope.vend.addScope(body.bank_id, consumer.id.get.toString, body.role_name))
+              .map(unboxFull(_))
+          } yield code.api.v3_0_0.JSONFactory300.createScopeJson(scope)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(addScope),
+      "POST",
+      "/consumers/CONSUMER_ID/scopes",
+      "Create Scope for a Consumer",
+      s"""Grant a Role to a Consumer (App), as a Scope.
+        |
+        |For a system Role (e.g. CanGetAnyUser) set `bank_id` to an empty string. For a bank Role set it to a
+        |bank id, or to SYS for the system space of Dynamic Entities, where the Definition Roles
+        |(e.g. CanGetDynamicEntityDefinitions) and the Record Roles of system entities are held.
+        |
+        |The caller needs CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at that `bank_id`.
+        |""".stripMargin,
+      code.api.v3_0_0.CreateScopeJson("SYS", "CanGetDynamicEntityDefinitions"),
+      code.api.v3_0_0.ScopeJson("88f52c12-38ab-4c5f-8ef1-8a0f63a84a44", "CanGetDynamicEntityDefinitions", "SYS"),
+      List($AuthenticatedUserIsRequired, ConsumerNotFoundByConsumerId, InvalidJsonFormat, IncorrectRoleName,
+        EntitlementIsBankRole, EntitlementIsSystemRole, UserHasMissingRoles, BankNotFound, EntitlementAlreadyExists, UnknownError),
+      apiTagScope :: apiTagConsumer :: Nil,
+      Some(List(ApiRole.canCreateScopeAtOneBank, ApiRole.canCreateScopeAtAnyBank)),
+      http4sPartialFunction = Some(addScope)
+    ).disableAutoValidateRoles() // roles are bank-scoped by body.bank_id; checked in the handler
 
     // Route: GET /obp/v7.0.0/public/password-config
     // Anonymous: clients need the policy before they hold credentials, to validate
@@ -7249,8 +7357,17 @@ object Http4s700 {
     // IP penalties: an operator's temporary per-minute limit on one address.
     resourceDocs ++= Http4s700IpPenalties.resourceDocs
 
+    // Platform Apps: the Consumers this installation runs as part of its own deployment, and the Scopes they need.
+    resourceDocs ++= Http4s700PlatformApps.resourceDocs
+
+    // Groups: bring the members of a Group in line with its current Roles.
+    resourceDocs ++= Http4s700Groups.resourceDocs
+
     // Where traffic is coming from: the busiest Consumers, addresses, and callers and endpoints.
     resourceDocs ++= Http4s700TrafficSources.resourceDocs
+
+    // Deployment Checks: is this instance, and what sits in front of it, set up correctly.
+    resourceDocs ++= Http4s700DeploymentChecks.resourceDocs
 
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs

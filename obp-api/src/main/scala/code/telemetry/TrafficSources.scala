@@ -58,6 +58,9 @@ object TrafficSources {
   val MinutesKept = 15
   val EndpointsKeptPerCaller = 32
   val ConsumersKeptPerAddress = 8
+  val AddressesKeptPerConsumer = 16
+  val UsersKeptPerConsumer = 16
+  val PeersKeptPerMinute = 64
 
   // ===== What inner layers tell the recording point =====
 
@@ -67,6 +70,7 @@ object TrafficSources {
     @volatile var apiVersion: Option[String] = None
     @volatile var consumerId: Option[String] = None
     @volatile var consumerName: Option[String] = None
+    @volatile var userId: Option[String] = None
     @volatile var refusedBy: Option[String] = None
   }
 
@@ -97,6 +101,10 @@ object TrafficSources {
   final class ConsumerDetails extends StatusCounts {
     var name = ""
     val endpoints = mutable.LinkedHashSet.empty[String]
+    // For Deployment Checks: an application calling for many users from one address does not pass
+    // on its users' addresses.
+    val addresses = mutable.LinkedHashSet.empty[String]
+    val users = mutable.LinkedHashSet.empty[String]
     var lastIp = ""
     var firstSeen = 0L; var lastSeen = 0L
   }
@@ -113,12 +121,35 @@ object TrafficSources {
     var lastSeen = 0L
   }
 
+  /**
+   * How the minute's client addresses were decided (for Deployment Checks): whether a forwarding
+   * header came with the request, whether it was believed, and which TCP peers sent requests.
+   */
+  final class ForwardingCounts {
+    var requests = 0L
+    var withForwardingHeader = 0L
+    var headerHonoured = 0L
+    var headerFromUntrustedPeer = 0L
+    val peers = mutable.LinkedHashSet.empty[String]
+    val peersSendingHeader = mutable.LinkedHashSet.empty[String]
+
+    def add(resolution: code.api.util.RemoteIpUtil.Resolution): Unit = synchronized {
+      requests += 1
+      if (resolution.forwardingHeaderPresent) withForwardingHeader += 1
+      if (resolution.headerHonoured) headerHonoured += 1
+      if (resolution.headerFromUntrustedPeer) headerFromUntrustedPeer += 1
+      addCapped(peers, resolution.socketPeer, PeersKeptPerMinute)
+      if (resolution.forwardingHeaderPresent) addCapped(peersSendingHeader, resolution.socketPeer, PeersKeptPerMinute)
+    }
+  }
+
   // ===== One minute =====
 
   final class Minute(val startMillis: Long) {
     val consumers = new HeavyHitters[String, ConsumerDetails](ConsumerSlots, () => new ConsumerDetails)
     val addresses = new HeavyHitters[String, AddressDetails](AddressSlots, () => new AddressDetails)
     val callerEndpoints = new HeavyHitters[(Caller, String), CallerEndpointDetails](CallerEndpointSlots, () => new CallerEndpointDetails)
+    val forwarding = new ForwardingCounts
   }
 
   private def minuteStart(millis: Long): Long = millis - millis % 60000L
@@ -149,8 +180,11 @@ object TrafficSources {
    * response's. A request counts under its Consumer when one was authenticated, and always under its
    * client address.
    */
-  def record(note: Note, ipAddress: String, status: Int, durationMillis: Long, now: Long = System.currentTimeMillis()): Unit = {
+  def record(note: Note, resolution: code.api.util.RemoteIpUtil.Resolution, status: Int, durationMillis: Long,
+             now: Long = System.currentTimeMillis()): Unit = {
     val minute = minuteFor(now)
+    minute.forwarding.add(resolution)
+    val ipAddress = resolution.clientIp
     val isRefused = note.refusedBy.isDefined || status == 429
     val endpoint = note.refusedBy.map(limiter => s"refused:$limiter")
       .orElse(note.operationId)
@@ -164,6 +198,8 @@ object TrafficSources {
         note.consumerName.foreach(d.name = _)
         addCapped(d.endpoints, endpoint, EndpointsKeptPerCaller)
         d.lastIp = address
+        addCapped(d.addresses, address, AddressesKeptPerConsumer)
+        note.userId.foreach(addCapped(d.users, _, UsersKeptPerConsumer))
         if (d.firstSeen == 0L) d.firstSeen = now
         d.lastSeen = now
       }
@@ -224,6 +260,10 @@ object TrafficSources {
 
   def callerEndpoints(minutesBack: Int, now: Long = System.currentTimeMillis()): List[Merged[(Caller, String), CallerEndpointDetails]] =
     merge(window(minutesBack, now).map(_.callerEndpoints))
+
+  /** The forwarding counts of the window's minutes, newest first. */
+  def forwarding(minutesBack: Int, now: Long = System.currentTimeMillis()): List[ForwardingCounts] =
+    window(minutesBack, now).map(_.forwarding)
 
   /** Forget everything (tests). */
   def clear(): Unit = minutes.set(Nil)

@@ -1103,9 +1103,9 @@
       "version": "v6_0_0",
       "endpoint": "getUserGroupMemberships",
       "field": "description",
-      "reason": "Deliberate, reasoned simplification (documented in a matching code comment): filtering by group_id alone is functionally equivalent to the old group_id + process==\"GROUP_MEMBERSHIP\" conjunct, since group_id is only ever set for that process.",
+      "reason": "Deliberate, reasoned simplification (documented in a matching code comment): filtering by group_id alone is functionally equivalent to the old group_id + process==\"GROUP_MEMBERSHIP\" conjunct, since group_id is only ever set for that process. Group memberships are recorded in the GroupMembership table (2026-09-29): the description says the membership is recorded even when every Role is skipped, and that removal keeps a Role another of the user's Groups still grants.",
       "lift_digest": "00695d674cb901c588ec78f9a5c33e065363fa0a5ea55ae23bde960ac464aec4",
-      "http4s_digest": "cd76da70acd6a5991f43506b12bbdd5c4c07416e092afe8ff293c0d1ed1a889c"
+      "http4s_digest": "54312a80eabf953dcfcb0b4c1b6e0135a4d432506dcd7e09bba188e755bc3571"
     },
     {
       "version": "v6_0_0",
@@ -1143,9 +1143,9 @@
       "version": "v6_0_0",
       "endpoint": "removeUserFromGroup",
       "field": "description",
-      "reason": "Same deliberate group_id-only simplification as getUserGroupMemberships, verified via the same matching code comment.",
+      "reason": "Same deliberate group_id-only simplification as getUserGroupMemberships, verified via the same matching code comment. Group memberships are recorded in the GroupMembership table (2026-09-29): the description says the membership is recorded even when every Role is skipped, and that removal keeps a Role another of the user's Groups still grants.",
       "lift_digest": "7ed803789f6d7fb0ee0622523f4e3835ab7cbc166efd9c2454882836224db13f",
-      "http4s_digest": "9e2a740a07e70eb3bdd0b54afe2406fa70aab3a7941fa88d02970657d5f8ee21"
+      "http4s_digest": "d73d70b3a441279c03890e68bcc7cd754c8a9ed4419d1e43b85e01bbee52a3ae"
     },
     {
       "version": "v6_0_0",
@@ -1690,6 +1690,14 @@
       "reason": "The props named in this description were renamed: dynamic_code_compile_validate_enable is now dynamic_code_obp_calls_are_restricted, and dynamic_code_compile_validate_dependencies is now dynamic_code_allowed_obp_methods. The old names read as a compile check, which is not what they do; both old names are still honoured at runtime with a deprecation warning.",
       "lift_digest": "047ea29aa10e0000c66a13b908ff679defb15226fd931f00b723cacd66a12928",
       "http4s_digest": "f326a54473e63b08e1b47763d2bdbd7b5574bc4906f067072898ec32c58c6954"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "addUserToGroup",
+      "field": "description",
+      "reason": "Group memberships are recorded in the GroupMembership table (2026-09-29): the description says the membership is recorded even when every Role is skipped, and that removal keeps a Role another of the user's Groups still grants.",
+      "lift_digest": "2ea4d8ed48487fd253cf1633a68deb7a0ce5b2a6b554ecfb64ee798f4887297c",
+      "http4s_digest": "2766a28acb728f97343d2de181f5ddbe89ff62dfdf61d191453a1ce4b6cf602f"
     }
   ]
 }

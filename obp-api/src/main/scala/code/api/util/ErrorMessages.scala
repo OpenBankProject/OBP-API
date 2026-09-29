@@ -871,6 +871,10 @@ object ErrorMessages {
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "
   val ConsentConsumerIsRequired = "OBP-35044: A Consent must name a Consumer. Send consumer_id in the request body naming the Consumer the Consent is for, or make the call as that Consumer. "
+  val PlatformAppAlreadyExists = "OBP-35045: This Consumer is already a Platform App."
+  val PlatformAppNotFound = "OBP-35046: This Consumer is not a Platform App. An administrator marks a Consumer as a Platform App first (POST /management/platform-apps)."
+  val InvalidPlatformApp = "OBP-35047: Invalid Platform App. label must be between 1 and 100 characters."
+  val InvalidPlatformAppDeclaration = "OBP-35048: Invalid Platform App declaration. Send at most 100 required_scopes, each with a known role_name, a bank_id that suits the Role (empty for a system Role), and needed_for between 1 and 1000 characters; version is at most 100 characters."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

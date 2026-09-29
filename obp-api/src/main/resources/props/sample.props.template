@@ -257,6 +257,21 @@ write_connector_metrics=false
 ## Enable writing connector traces (full outbound/inbound message payloads per call) to RDBMS table `connector_trace`. Verbose — keep off in prod unless debugging.
 write_connector_trace=false
 
+## Client addresses behind a proxy. By default OBP-API takes the client address from the TCP peer,
+## which behind a reverse proxy, load balancer or server-side application is the proxy's address: every
+## per-IP limit, IP penalty and the busiest-callers view would then see one address. When a proxy sits
+## in front, let it set a header with the client's address (it MUST overwrite any value the client sent,
+## e.g. NGINX `proxy_set_header X-Real-IP $remote_addr;`) and trust that header here.
+## X-Forwarded-For is also accepted (its leftmost address is used) when the proxy sanitises the chain.
+## trust.proxy.peers limits whose header is believed: the addresses or CIDR ranges of the proxies (and
+## of server-side applications that pass on their users' addresses). A header from any other peer is
+## ignored. Unset, the header is believed from anyone, so a caller that reaches OBP-API directly can
+## name any address it likes. Deployment Checks (GET /obp/v7.0.0/management/system/diagnostics/deployment,
+## or Observe > Deployment Checks in API Manager) shows whether these are right for the traffic seen.
+# trust.proxy.enabled=false
+# trust.proxy.header=X-Real-IP
+# trust.proxy.peers=10.0.0.0/8, 2001:db8::/32
+
 ## Telemetry: aggregated numbers about this instance (request rates and durations per endpoint,
 ## Connector calls, caches, the database pool, memory, garbage collection, threads) for Prometheus.
 ## Not API Metrics: see docs/telemetry_conventions.md. Telemetry is always recorded; these props
@@ -879,7 +894,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 
 ##################################################################################
 # List of Users that should automatically have roles needed to call endpoints used by OBP-OIDC or OBP Keycloak Provider.
-# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient
+# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
 # oidc_operator_user_ids=USER_ID1,USER_ID2,
 ####################################################################################
 
@@ -1965,7 +1980,7 @@ regulated_entities = []
 
 # Bootstrap OIDC Operator User
 # Given the following credentials, OBP will create a user if they do not already exist.
-# This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+# This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
 # If you want to use this feature, please set up all three values properly at the same time.
 # oidc_operator_username=...
 # oidc_operator_initial_password=...
