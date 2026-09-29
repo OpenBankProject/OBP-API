@@ -171,6 +171,9 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
     "AccountAccessRequest_TargetUserId" ->
       ("explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
        "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
+    "GroupMembership_UserId" ->
+      ("the member is never the caller: the Group member sync endpoint reads each member's user id " +
+       "from the Group's existing Entitlements and membership rows, so there is nothing to redirect."),
     "Consent_UserId" ->
       ("Reject, not yet enforced: a consent user can still create a Consent (nested delegation). " +
        "attributionOf already returns Failure for it -- AgentDelegationTest pins that -- but no " +

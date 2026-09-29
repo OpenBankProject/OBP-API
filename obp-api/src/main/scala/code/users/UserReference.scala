@@ -159,12 +159,15 @@ object UserReference {
   case object AuthUser_User                                    extends UserReference(UseAuthenticatedUserId, "code.model.dataAccess.AuthUser", List("user"), "login row -> its own ResourceUser; not attribution")
   case object OpenIDConnectToken_AuthUserPrimaryKey            extends UserReference(UseAuthenticatedUserId, "code.token.OpenIDConnectToken", List("AuthUserPrimaryKey"), "token belongs to the login; not attribution")
   case object UserRefreshes_UserId                             extends UserReference(UseAuthenticatedUserId, "code.UserRefreshes.MappedUserRefreshes", List("mUserId"), "operational: refresh of the authenticated user's own account list")
+  case object PlatformApp_MarkedByUserId                       extends UserReference(UseAuthenticatedUserId, "code.platformapp.PlatformApp", List("MarkedByUserId"), "audit: who marked the Consumer as a platform app")
+  case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
 
   // ---- UseOnBehalfOfUserId: the row belongs to the person, so it must outlive the Consent that
   // ---- created it. A handful of these tables keep both ids, and those name two fields.
   case object TransactionRequest_UserId                        extends UserReference(UseOnBehalfOfUserId   , "code.transactionrequests.MappedTransactionRequest", List("mUserId", "mOnBehalfOfUserId"), "record both: mUserId = userId, mOnBehalfOfUserId = onBehalfOfUserId")
   case object ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest extends UserReference(UseOnBehalfOfUserId, "code.transactionChallenge.MappedExpectedChallengeAnswer", List("ExpectedUserId"), "payment SCA: the challenge belongs to the human whose money moves, never to the agent that started the payment")
   case object Entitlement_UserId                               extends UserReference(UseOnBehalfOfUserId   , "code.entitlement.MappedEntitlement", List("mUserId"), "the role holder; the consent-engine case is Entitlement_UserId_ConsentScope")
+  case object GroupMembership_UserId                           extends UserReference(UseOnBehalfOfUserId   , "code.group.GroupMembership", List("UserId"), "the member, who holds the Roles the Group grants; as Entitlement_UserId")
   case object AccountHolders_User                              extends UserReference(UseOnBehalfOfUserId   , "code.accountholders.MapperAccountHolders", List("user"), "the human holds the account; one held by a per-consent identity strands when the consent dies")
   case object UserCustomerLink_UserId                          extends UserReference(UseOnBehalfOfUserId   , "code.usercustomerlinks.MappedUserCustomerLink", List("mUserId"), "a Customer is linked to a human; a link on an agent identity dies with its Consent")
   case object AccountApplication_UserId                        extends UserReference(UseOnBehalfOfUserId   , "code.accountapplication.MappedAccountApplication", List("mUserId"), "explicit target: user_id comes from the request and is guarded at the endpoint, so the provider redirect is unreachable -- see ON_BEHALF_OF_USER_ID_PLAN.md row 14")
@@ -247,8 +250,11 @@ object UserReference {
     AuthUser_User,
     OpenIDConnectToken_AuthUserPrimaryKey,
     UserRefreshes_UserId,
+    PlatformApp_MarkedByUserId,
+    GroupMembership_CreatedByUserId,
     TransactionRequest_UserId,
     Entitlement_UserId,
+    GroupMembership_UserId,
     AccountHolders_User,
     UserCustomerLink_UserId,
     AccountApplication_UserId,
