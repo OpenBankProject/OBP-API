@@ -169,6 +169,11 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
     }
   }
 
+  override def setEntitlementGroupId(entitlementId: String, groupId: String): Box[Entitlement] =
+    MappedEntitlement.find(By(MappedEntitlement.mEntitlementId, entitlementId)).flatMap { e =>
+      tryo(e.mGroupId(groupId).saveMe())
+    }
+
   override def deleteDynamicEntityEntitlement(
       entityName: String,
       bankId: Option[String]

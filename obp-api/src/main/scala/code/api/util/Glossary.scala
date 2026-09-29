@@ -6919,6 +6919,53 @@ object Glossary extends MdcLoggable  {
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Groups",
+		description =
+			s"""
+				 |# Groups
+				 |
+				 |A **Group** is a named list of Roles at one bank id (or at system level), used to give the same Roles to many Users. A Group has a name, a description, its list of Roles, and whether it is enabled.
+				 |
+				 |A Group is not itself checked when a User calls an endpoint. Adding a User to a Group grants them the Group's Roles as ordinary Entitlements, at the Group's bank id, and those Entitlements are what every Role check reads.
+				 |
+				 |## Adding a User to a Group
+				 |
+				 |Each of the Group's Roles the User does not already hold at that bank id is granted to them (the User is emailed about each one), and the Entitlement records the Group that granted it (its `group_id`). A Role they already hold, however it was granted, is not granted again: a User holds a Role at a bank id once. The membership itself is recorded as well, so a User is a member of a Group even when the Group granted them nothing because they already held all its Roles.
+				 |
+				 |Only an enabled Group can have Users added to it.
+				 |
+				 |## Groups that share Roles
+				 |
+				 |Two Groups may list the same Role. A member of both holds it once, recorded against the Group that granted it first. When that Group stops granting it to the User, because the User is removed from it or the Role is taken out of it, the Role is kept if another Group the User is in, at the same bank id, still grants it: the Entitlement is then recorded against that Group instead. Nothing is emailed, because the User's Roles do not change.
+				 |
+				 |## Changing a Group's Roles
+				 |
+				 |Updating a Group changes its list of Roles, but not what its existing members hold. To bring them in line, sync the Group's members: each member is granted the Group's Roles they lack, and loses the Entitlements the Group granted for Roles it no longer has (subject to the sharing rule above). A dry run shows what would change without changing anything. Entitlements granted by hand, or by other Groups, are never touched.
+				 |
+				 |## Removing a User from a Group
+				 |
+				 |Removing a User from a Group ends the membership and deletes the Entitlements the Group granted them, except those another of their Groups still grants (see above). Deleting a Group ends all its memberships; the Entitlements it granted are left in place.
+				 |
+				 |## Roles
+				 |
+				 |Managing Groups needs CanCreateGroupAtOneBank, CanGetGroupsAtOneBank, CanUpdateGroupAtOneBank and CanDeleteGroupAtOneBank at the Group's bank id, or the AllBanks version of each (required for a system level Group). Adding and removing members needs CanAddUserToGroupAtOneBank and CanRemoveUserFromGroupAtOneBank, or their AllBanks versions; syncing a Group's members needs both.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-createGroup): `POST /obp/v6.0.0/management/groups`
+				 |- [Get Groups](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getGroups): `GET /obp/v6.0.0/management/groups`
+				 |- [Update Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-updateGroup): `PUT /obp/v6.0.0/management/groups/GROUP_ID`
+				 |- [Delete Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-deleteGroup): `DELETE /obp/v6.0.0/management/groups/GROUP_ID`
+				 |- [Get Group Entitlements](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getGroupEntitlements): `GET /obp/v6.0.0/management/groups/GROUP_ID/entitlements`, the Entitlements a Group has granted.
+				 |- [Add User to Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-addUserToGroup): `POST /obp/v6.0.0/users/USER_ID/group-entitlements`
+				 |- [Remove User from Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-removeUserFromGroup): `DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID`
+				 |- [Get User's Group Memberships](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getUserGroupMemberships): `GET /obp/v6.0.0/users/USER_ID/group-entitlements`
+				 |- [Sync Group Members](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncGroupMembers): `POST /obp/v7.0.0/management/groups/GROUP_ID/sync-members`
+				 |
+				 |How Roles and Entitlements control access is described ${getGlossaryItemLink("API.Access Control")}.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Telemetry",
 		description =
 			s"""

@@ -1134,6 +1134,7 @@ object ToSchemify extends MdcLoggable {
     CounterpartyAttributeMapper,
     BankAccountBalance,
     Group,
+    code.group.GroupMembership,
     Organisation,
     RoutingScheme,
     BankSupportedRoutingScheme,

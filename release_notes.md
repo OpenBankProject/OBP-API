@@ -3,6 +3,24 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+29/09/2026    TBD           NEW in v7.0.0: POST /management/groups/GROUP_ID/sync-members[?dry_run=true]
+                            brings the Entitlements of a Group's members in line with its current Roles:
+                            grants the Roles they lack, deletes those the Group granted but no longer
+                            has, and keeps (recorded against that Group) any Role another of the
+                            member's Groups still grants. Needs the add-to-group and remove-from-group
+                            Roles at the Group's bank.
+29/09/2026    TBD           CHANGED: Group memberships are recorded in a new table GroupMembership, so a
+                            user added to a Group whose Roles they already held is still its member.
+                            POST /users/USER_ID/group-entitlements writes the row; DELETE
+                            /users/USER_ID/group-entitlements/GROUP_ID removes it and keeps (re-tagged)
+                            any Entitlement another of the user's Groups also grants, instead of
+                            deleting it; GET /users/USER_ID/group-entitlements also lists Groups that
+                            granted the user nothing; DELETE /management/groups/GROUP_ID removes the
+                            Group's rows. Members from before this change are still found through the
+                            Entitlements their Groups granted. Responses are unchanged.
+29/09/2026    TBD           CHANGED in v7.0.0: POST /users/USER_ID/entitlements returns 404 BankNotFound
+                            when bank_id is neither empty, SYS, nor an existing Bank's id (matched
+                            exactly, case included). It used to store a grant no Role check would read.
 28/09/2026    TBD           NEW in v7.0.0: Platform Apps, the Consumers an installation runs as part of
                             its own deployment (Portal, API Manager, ...). POST, GET
                             /management/platform-apps and DELETE /management/platform-apps/CONSUMER_ID

@@ -541,6 +541,12 @@ object Http4s700 {
                    UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
                    APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
                  }
+            // Bank ids are matched exactly, case included: a grant at a bank id naming no bank is a
+            // row no check will ever read. SYS is the system space of Dynamic Entities, not a bank.
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
+              body.bank_id.isEmpty || body.bank_id == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ||
+                code.model.BankX(BankId(body.bank_id), Some(cc)).map(_._1).isDefined
+            }
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
             entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(
@@ -557,10 +563,11 @@ object Http4s700 {
       "POST",
       "/users/USER_ID/entitlements",
       "Add Entitlement for a User",
-      """Grant a Role to a User. Set bank_id to "" for system-level roles, or a valid bank_id for bank-level roles.""",
+      """Grant a Role to a User. Set bank_id to "" for system-level roles, or a valid bank_id for bank-level roles.
+        |The bank_id must name an existing Bank (matched exactly, case included), or be SYS, the system space of Dynamic Entities.""".stripMargin,
       CreateEntitlementJSON("gh.29.uk", "CanGetAnyUser"),
       EmptyBody,
-      List($AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, EntitlementAlreadyExists, UnknownError),
+      List($AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, BankNotFound, EntitlementAlreadyExists, UnknownError),
       apiTagEntitlement :: apiTagRole :: apiTagUser :: Nil,
       Some(List(canCreateEntitlementAtOneBank, canCreateEntitlementAtAnyBank)),
       http4sPartialFunction = Some(addEntitlement)
@@ -7352,6 +7359,9 @@ object Http4s700 {
 
     // Platform Apps: the Consumers this installation runs as part of its own deployment, and the Scopes they need.
     resourceDocs ++= Http4s700PlatformApps.resourceDocs
+
+    // Groups: bring the members of a Group in line with its current Roles.
+    resourceDocs ++= Http4s700Groups.resourceDocs
 
     // Where traffic is coming from: the busiest Consumers, addresses, and callers and endpoints.
     resourceDocs ++= Http4s700TrafficSources.resourceDocs
