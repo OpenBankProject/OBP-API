@@ -1138,6 +1138,8 @@ object ToSchemify extends MdcLoggable {
     RoutingScheme,
     BankSupportedRoutingScheme,
     code.glossaryitem.DynamicGlossaryItem,
+    code.platformapp.PlatformApp,
+    code.platformapp.PlatformAppRequiredScope,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,

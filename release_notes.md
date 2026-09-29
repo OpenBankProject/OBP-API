@@ -3,6 +3,20 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/09/2026    TBD           NEW in v7.0.0: Platform Apps, the Consumers an installation runs as part of
+                            its own deployment (Portal, API Manager, ...). POST, GET
+                            /management/platform-apps and DELETE /management/platform-apps/CONSUMER_ID
+                            (new Roles CanCreatePlatformApp, CanGetPlatformApps, CanDeletePlatformApp)
+                            mark, list and unmark them; the list shows each app's declared Scopes, held
+                            or not. PUT /consumers/current/platform-app (no Role, an Application on its
+                            own may call it) lets a marked app declare the Scopes it needs and what for.
+                            New tables platform_app and platform_app_required_scope. New error codes
+                            OBP-35045 to OBP-35048. New Glossary item "Platform Apps".
+28/09/2026    TBD           NEW in v7.0.0: POST /consumers/CONSUMER_ID/scopes. As v4.0.0's, but bank_id may
+                            be SYS, the system space of Dynamic Entities (v4.0.0 refuses it with
+                            BankNotFound), so the Definition Roles can be granted to a Consumer as
+                            Scopes through the API. The granting Role (CanCreateScopeAtAnyBank, or
+                            CanCreateScopeAtOneBank at bank_id) is checked at the body's bank_id.
 28/09/2026    TBD           NEW in v7.0.0: GET /consumers/current/scopes, the Roles the calling Consumer
                             holds as Scopes (role_name, bank_id). No Role; a User or an Application on
                             its own may call it, like GET /consumers/current/identity. For services

@@ -28,13 +28,16 @@ package code.api.v7_0_0
 
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.canGetDynamicEntityDefinitions
-import code.api.util.ErrorMessages.ApplicationNotIdentified
+import code.api.util.ApiRole.{canCreateScopeAtAnyBank, canGetDynamicEntityDefinitions}
+import code.api.util.ErrorMessages.{ApplicationNotIdentified, EntitlementAlreadyExists, UserHasMissingRoles}
+import code.entitlement.Entitlement
 import code.api.v6_0_0.V600ServerSetup
 import code.api.v7_0_0.JSONFactory700.{CurrentConsumerScopeJsonV700, CurrentConsumerScopesJsonV700}
 import code.scope.Scope
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import org.json4s.JsonDSL._
+import org.json4s.native.JsonMethods.{compact, render}
 import org.scalatest.Tag
 
 /** GET /obp/v7.0.0/consumers/current/scopes: the caller's own Consumer's Scopes, no Role. */
@@ -44,6 +47,7 @@ class CurrentConsumerScopesTest extends V600ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v7_0_0.toString)
   object ApiEndpoint1 extends Tag("getCurrentConsumerScopes")
+  object ApiEndpoint2 extends Tag("addScope")
 
   private def scopesPath = v7_0_0_Request / "consumers" / "current" / "scopes"
 
@@ -77,6 +81,43 @@ class CurrentConsumerScopesTest extends V600ServerSetup {
         otherBody.consumer_id should equal(testConsumer.consumerId.get)
         otherBody.scopes should not contain CurrentConsumerScopeJsonV700(canGetDynamicEntityDefinitions.toString, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       } finally Scope.scope.vend.deleteScope(granted)
+    }
+  }
+
+  feature(s"test $ApiEndpoint2 version $VersionOfApi") {
+
+    scenario("A Scope can be granted at SYS, once, by a caller holding CanCreateScopeAtAnyBank", ApiEndpoint2, VersionOfApi) {
+      val path = v7_0_0_Request / "consumers" / testConsumer2.consumerId.get / "scopes"
+      val body = compact(render(("bank_id" -> DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) ~ ("role_name" -> canGetDynamicEntityDefinitions.toString)))
+      def existing = Scope.scope.vend.getScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString,
+        canGetDynamicEntityDefinitions.toString)
+      existing.foreach(s => Scope.scope.vend.deleteScope(net.liftweb.common.Full(s)))
+
+      When("user1 has no granting Role")
+      val refused = makePostRequest(path.POST <@ (user1), body)
+      Then("the call is refused")
+      refused.code should equal(403)
+      refused.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
+
+      Given("user1 holds CanCreateScopeAtAnyBank")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateScopeAtAnyBank.toString)
+      try {
+        When("user1 grants the Scope at SYS")
+        val created = makePostRequest(path.POST <@ (user1), body)
+        Then("it is created at SYS, which v4.0.0 refuses as an unknown bank")
+        created.code should equal(201)
+        (created.body \ "bank_id").extract[String] should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+        existing.isDefined should equal(true)
+
+        When("the same Scope is granted again")
+        val again = makePostRequest(path.POST <@ (user1), body)
+        Then("it is refused as a duplicate")
+        again.code should equal(409)
+        again.body.extract[ErrorMessage].message should include(EntitlementAlreadyExists)
+      } finally {
+        existing.foreach(s => Scope.scope.vend.deleteScope(net.liftweb.common.Full(s)))
+        entitlement.foreach(e => Entitlement.entitlement.vend.deleteEntitlement(net.liftweb.common.Full(e)))
+      }
     }
   }
 }
