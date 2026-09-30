@@ -3224,6 +3224,7 @@ object SwaggerDefinitionsJSON {
     duration = 39,
     source_ip = ExampleValue.ipAddressExample.value,
     target_ip = ExampleValue.ipAddressExample.value,
+    forwarded_for = s"${ExampleValue.ipAddressExample.value}, 10.0.0.2, 10.0.0.3",
     response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}"""),
     status_code = 401,
     operation_id = "OBPv4.0.0-getBanks",

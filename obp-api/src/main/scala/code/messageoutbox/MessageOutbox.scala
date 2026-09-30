@@ -27,7 +27,25 @@ TESOBE (http://www.tesobe.com/)
 
 package code.messageoutbox
 
+import code.api.util.CommonsEmailWrapper.EmailContent
 import net.liftweb.mapper._
+import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
+
+/** An email as stored in an EMAIL outbox row: everything needed to send it, rendered at enqueue time. */
+case class OutboxEmailPayload(
+  from: String,
+  to: List[String],
+  cc: List[String],
+  bcc: List[String],
+  subject: String,
+  text_content: Option[String],
+  html_content: Option[String]
+) {
+  def toEmailContent: EmailContent =
+    EmailContent(from = from, to = to, cc = cc, bcc = bcc, subject = subject,
+      textContent = text_content, htmlContent = html_content)
+}
 
 /**
  * Generic transactional outbox for asynchronous messages OBP-API must deliver.
@@ -43,6 +61,11 @@ import net.liftweb.mapper._
  * publish behavior to the relay. Types so far:
  *   OPEN_CORRIDOR — Interface C messages to a bank's RabbitMQ vhost
  *                   (`target_id` = bank_id, publisher = OpenCorridorPublisher).
+ *   EMAIL         — an email, rendered at enqueue time (`payload_json` is an
+ *                   OutboxEmailPayload, `target_id` the recipients), sent over
+ *                   SMTP by the relay. Queued rather than sent in the request
+ *                   so that a rolled back request emails nobody, and so a burst
+ *                   of emails never blocks request threads.
  *
  * Row lifecycle:
  *   PENDING   — not yet delivered; the relay keeps publishing with backoff.
@@ -136,12 +159,18 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
   val STATUS_STICKY = "STICKY"
 
   val TYPE_OPEN_CORRIDOR = "OPEN_CORRIDOR"
+  val TYPE_EMAIL = "EMAIL"
+
+  val OPERATION_ROLE_GRANTED_EMAIL = "role_granted_email"
 
   // subject_id_type holds the OBP id-field name whose value space subject_id
   // belongs to (exact snake_case field name, e.g. transaction_request_id,
   // settlement_id, consent_id, customer_id ...).
   val SUBJECT_TYPE_SETTLEMENT_ID = "settlement_id"
   val SUBJECT_TYPE_TRANSACTION_REQUEST_ID = "transaction_request_id"
+  val SUBJECT_TYPE_ENTITLEMENT_ID = "entitlement_id"
+
+  private val emailFormats: Formats = DefaultFormats
 
   override def dbTableName = "message_outbox"
 
@@ -165,6 +194,33 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
       .PayloadJson(payloadJson)
       .Status(STATUS_PENDING)
       .saveMe()
+
+  /** Queue an email; the relay sends it (attachments are not supported). */
+  def enqueueEmail(subjectId: String, subjectIdType: String, operationName: String, email: EmailContent): MessageOutbox = {
+    val payload = OutboxEmailPayload(email.from, email.to, email.cc, email.bcc, email.subject,
+      email.textContent, email.htmlContent)
+    enqueue(TYPE_EMAIL, subjectId, subjectIdType, operationName,
+      email.to.mkString(",").take(255), Serialization.write(payload)(emailFormats))
+  }
+
+  def emailPayload(row: MessageOutbox): OutboxEmailPayload =
+    Serialization.read[OutboxEmailPayload](row.payloadJson)(emailFormats, manifest[OutboxEmailPayload])
+
+  /**
+   * Claim a PENDING row for one delivery attempt: counts the attempt, but only if the row is still
+   * as `row` read it. Returns true for exactly one caller, so with several OBP-API instances each
+   * running the relay a message is sent by one of them only. It commits at once (outside a request);
+   * if the claimant dies before sending, the row is still PENDING and is retried after the backoff.
+   */
+  def claimForDelivery(row: MessageOutbox): Boolean = {
+    import doobie.implicits._
+    code.api.util.DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox
+            SET attempts = attempts + 1, updated_at = NOW()
+            WHERE id = ${row.id.get}
+              AND status = $STATUS_PENDING
+              AND attempts = ${row.attempts}""".update.run) == 1
+  }
 
   def pending(): List[MessageOutbox] =
     MessageOutbox.findAll(By(MessageOutbox.Status, STATUS_PENDING))

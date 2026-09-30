@@ -40,10 +40,14 @@ import code.util.Helper.MdcLoggable
  *
  *    proxy_set_header X-Real-IP $remote_addr;
  *
- *  For `X-Forwarded-For`, the leftmost value is treated as the client. This is only
- *  trustworthy when the proxy is configured with `set_real_ip_from` + `real_ip_recursive`
- *  so it sanitises the forwarded chain before forwarding upstream. `X-Real-IP` is the
- *  simpler choice for single-proxy deployments.
+ *  `X-Forwarded-For` carries a chain: each hop (NGINX, a server-side application such as
+ *  API Explorer II, Opey, OBP-MCP) appends the address it received the request from, so the
+ *  chain reads "client, first hop, second hop, ...". Anyone can write anything at the left
+ *  end, so the chain is read from the right: skip every address in `trust.proxy.peers` and
+ *  the first address that is not trusted is the client. A caller that is not trusted cannot
+ *  name a false address, because it becomes the client itself. This needs every hop listed
+ *  in `trust.proxy.peers`; with the list unset every address counts as trusted and the
+ *  leftmost address is used, which is only safe when the outermost proxy replaces the chain.
  *
  *  `trust.proxy.peers` closes a gap: without it, the header is believed from whoever sent the
  *  request, so a caller that can reach OBP-API directly (bypassing the proxy) can name any
@@ -86,13 +90,24 @@ object RemoteIpUtil extends MdcLoggable {
       Resolution(peer, peer, ForwardingHeaders.exists(h => getHeader(h).exists(_.trim.nonEmpty)), headerHonoured = false, headerFromUntrustedPeer = false)
     } else {
       val headerName = APIUtil.getPropsValue("trust.proxy.header", "X-Real-IP")
-      val fromHeader = getHeader(headerName).flatMap(raw => extractClientIp(headerName, raw)).map(canonical)
+      val fromHeader = getHeader(headerName).flatMap(raw => extractClientIp(headerName, raw))
       fromHeader match {
         case None => Resolution(peer, peer, forwardingHeaderPresent = false, headerHonoured = false, headerFromUntrustedPeer = false)
         case Some(_) if !peerIsTrusted(peer) => Resolution(peer, peer, forwardingHeaderPresent = true, headerHonoured = false, headerFromUntrustedPeer = true)
         case Some(client) => Resolution(client, peer, forwardingHeaderPresent = true, headerHonoured = true, headerFromUntrustedPeer = false)
       }
     }
+  }
+
+  /** The hops a request passed through, for API Metrics: the X-Forwarded-For chain it arrived
+   *  with (all header lines, comma-joined in order) followed by the TCP peer, so the last hop is
+   *  recorded too. This is a record of what arrived, not a decision: entries left of the first
+   *  address that is not trusted may have been written by the client. The client address itself
+   *  comes from [[resolve]]. */
+  def forwardedForPath(socketPeer: String, forwardedForHeader: Option[String]): String = {
+    val peer = canonical(socketPeer)
+    val incoming = forwardedForHeader.map(_.trim).filter(_.nonEmpty)
+    (incoming.toList ++ List(peer).filter(_.nonEmpty)).mkString(", ")
   }
 
   /** The configured trusted peers, as parsed CIDR ranges (a single address is a /32 or /128). */
@@ -139,15 +154,38 @@ object RemoteIpUtil extends MdcLoggable {
     else unbracketed
   }
 
-  /** Single-value headers (X-Real-IP) yield the value as-is.
-   *  X-Forwarded-For is comma-separated; the leftmost entry is the original client. */
-  private def extractClientIp(headerName: String, raw: String): Option[String] = {
-    val candidate =
-      if (headerName.equalsIgnoreCase("X-Forwarded-For"))
-        raw.split(",").headOption.getOrElse("")
-      else
-        raw
-    val trimmed = candidate.trim
-    if (trimmed.isEmpty) None else Some(trimmed)
+  /** The client address a forwarding header names, in canonical form.
+   *  A single-value header (X-Real-IP) yields its value. If the request carried it more than
+   *  once, the values arrive comma-joined and the first is used, as before.
+   *  X-Forwarded-For yields the client found by [[clientFromForwardedFor]]. */
+  private def extractClientIp(headerName: String, raw: String): Option[String] =
+    if (headerName.equalsIgnoreCase("X-Forwarded-For")) clientFromForwardedFor(raw)
+    else Option(raw.split(",").headOption.getOrElse("").trim).filter(_.nonEmpty).map(canonical)
+
+  /** The client named by an X-Forwarded-For chain, read from the right.
+   *
+   *  Each hop appends the address it received the request from, so the rightmost entry was
+   *  written by the TCP peer (already checked to be trusted), the next one by the hop before
+   *  it, and so on. Walking leftwards, every address in trust.proxy.peers is a hop that can
+   *  be believed about the entry to its left; the first address that is not in the list is
+   *  the client. Entries further left were written by the client or by hops nobody vouches
+   *  for, and are ignored.
+   *
+   *  An entry that is not an address (for example "unknown") stops the walk: nothing to its
+   *  left can be believed, so the nearest trusted address to its right is the client, or
+   *  None (meaning the TCP peer) when it is the rightmost entry.
+   *
+   *  When every entry is trusted, including when trust.proxy.peers is unset, the leftmost
+   *  entry is the client. */
+  private[util] def clientFromForwardedFor(raw: String): Option[String] = {
+    val chainFromTheRight = raw.split(",").map(entry => canonical(entry)).filter(_.nonEmpty).toList.reverse
+    val firstUntrustedIndex = chainFromTheRight.indexWhere(address => !peerIsTrusted(address))
+    if (firstUntrustedIndex < 0) chainFromTheRight.lastOption
+    else {
+      val firstUntrusted = chainFromTheRight(firstUntrustedIndex)
+      if (addressBytes(firstUntrusted).isDefined) Some(firstUntrusted)
+      else if (firstUntrustedIndex == 0) None
+      else Some(chainFromTheRight(firstUntrustedIndex - 1))
+    }
   }
 }

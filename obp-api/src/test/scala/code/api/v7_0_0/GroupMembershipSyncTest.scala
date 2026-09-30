@@ -51,6 +51,8 @@ class GroupMembershipSyncTest extends V600ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v7_0_0.toString)
   object SyncGroupMembers extends Tag("syncGroupMembers")
+  object SyncGroupMember extends Tag("syncGroupMember")
+  object SyncUserGroups extends Tag("syncUserGroups")
   object AddEntitlement extends Tag("addEntitlement")
 
   private def bankId = testBankId1.value
@@ -58,6 +60,8 @@ class GroupMembershipSyncTest extends V600ServerSetup {
     Entitlement.entitlement.vend.addEntitlement(bank, resourceUser1.userId, role.toString)
   private def message(r: code.setup.APIResponse) = r.body.extract[ErrorMessage].message
   private def sync(groupId: String) = v7 / "management" / "groups" / groupId / "sync-members"
+  private def syncOne(groupId: String, userId: String) = v7 / "management" / "groups" / groupId / "users" / userId / "sync"
+  private def syncUser(userId: String) = v7 / "management" / "users" / userId / "sync-groups"
   private def membership(groupId: String) = compact(render("group_id" -> groupId))
   private def user2Entitlements =
     Entitlement.entitlement.vend.getEntitlementsByUserId(resourceUser2.userId).toList.flatten.filter(_.bankId == bankId)
@@ -101,6 +105,17 @@ class GroupMembershipSyncTest extends V600ServerSetup {
       val withAddOnly = makePostRequest(sync(group.groupId).POST <@ (user1), "")
       withAddOnly.code should equal(403)
       message(withAddOnly) should startWith(UserHasMissingRoles)
+
+      makePostRequest(syncOne(group.groupId, resourceUser2.userId).POST, "").code should equal(401)
+      val oneWithAddOnly = makePostRequest(syncOne(group.groupId, resourceUser2.userId).POST <@ (user1), "")
+      oneWithAddOnly.code should equal(403)
+      message(oneWithAddOnly) should startWith(UserHasMissingRoles)
+
+      makePostRequest(syncUser(resourceUser2.userId).POST, "").code should equal(401)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser2.userId, "CanTestSyncAuthRole", groupId = Some(group.groupId))
+      val userWithAddOnly = makePostRequest(syncUser(resourceUser2.userId).POST <@ (user1), "")
+      userWithAddOnly.code should equal(403)
+      message(userWithAddOnly) should startWith(UserHasMissingRoles)
     }
 
     scenario("overlapping Groups: membership, sync, and removal", SyncGroupMembers, VersionOfApi) {
@@ -158,6 +173,100 @@ class GroupMembershipSyncTest extends V600ServerSetup {
       roleGroup(r2) should equal(Some(b.groupId))
       roleGroup(r1) should equal(None)
       roleGroup(r3) should equal(None)
+    }
+  }
+
+  feature("Sync Group Member") {
+    scenario("one member of a changed Group, and a user who is not a member", SyncGroupMember, VersionOfApi) {
+      grant(canAddUserToGroupAtAllBanks)
+      grant(canRemoveUserFromGroupAtAllBanks)
+      val s1 = "CanTestSyncOneRole1"
+      val s2 = "CanTestSyncOneRole2"
+      val g = GroupTrait.group.vend.createGroup(Some(bankId), "sync-one", "", List(s1), isEnabled = true).openOrThrowException("g")
+      makePostRequest((v6_0_0_Request / "users" / resourceUser2.userId / "group-entitlements").POST <@ (user1),
+        membership(g.groupId)).code should equal(201)
+
+      When("the Group's Roles change from s1 to s2, and user2 is synced as a dry run")
+      GroupTrait.group.vend.updateGroup(g.groupId, None, None, Some(List(s2)), None)
+      val dry = makePostRequest(syncOne(g.groupId, resourceUser2.userId).POST <@ (user1) <<? List(("dry_run", "true")), "")
+      dry.code should equal(200)
+      val members = (dry.body \ "members").children
+      members.map(m => (m \ "user_id").extract[String]) should equal(List(resourceUser2.userId))
+      (members.head \ "entitlements_created").extract[List[String]] should equal(List(s2))
+      (members.head \ "entitlements_deleted").extract[List[String]] should equal(List(s1))
+      Then("nothing changed")
+      roleGroup(s1) should equal(Some(g.groupId))
+      roleGroup(s2) should equal(None)
+
+      When("user2 is synced for real")
+      makePostRequest(syncOne(g.groupId, resourceUser2.userId).POST <@ (user1), "").code should equal(200)
+      Then("user2 holds s2 from the Group, and not s1")
+      roleGroup(s2) should equal(Some(g.groupId))
+      roleGroup(s1) should equal(None)
+
+      Then("user1, who is not a member, is 404, and so is an unknown user")
+      makePostRequest(syncOne(g.groupId, resourceUser1.userId).POST <@ (user1), "").code should equal(404)
+      makePostRequest(syncOne(g.groupId, "no-such-user").POST <@ (user1), "").code should equal(404)
+    }
+  }
+
+  feature("Sync User Groups") {
+    scenario("every Group of a user, including one that was deleted", SyncUserGroups, VersionOfApi) {
+      grant(canAddUserToGroupAtAllBanks)
+      grant(canRemoveUserFromGroupAtAllBanks)
+      val u5 = "CanTestSyncUserRole5"
+      val u6 = "CanTestSyncUserRole6"
+      val u7 = "CanTestSyncUserRole7"
+      val u8 = "CanTestSyncUserRole8"
+      val u9 = "CanTestSyncUserRole9"
+      val c = GroupTrait.group.vend.createGroup(Some(bankId), "sync-user-C", "", List(u5, u6), isEnabled = true).openOrThrowException("C")
+      val d = GroupTrait.group.vend.createGroup(Some(bankId), "sync-user-D", "", List(u6), isEnabled = true).openOrThrowException("D")
+      val e = GroupTrait.group.vend.createGroup(Some(bankId), "sync-user-E", "", List(u7), isEnabled = true).openOrThrowException("E")
+      val addUser2 = (v6_0_0_Request / "users" / resourceUser2.userId / "group-entitlements").POST <@ (user1)
+      List(c, d, e).foreach(g => makePostRequest(addUser2, membership(g.groupId)).code should equal(201))
+      roleGroup(u6) should equal(Some(c.groupId))
+
+      When("E is deleted (its Entitlements stay), C now grants u5 and u8, and D grants u6, u8 and u9")
+      GroupTrait.group.vend.deleteGroup(e.groupId)
+      GroupMemberships.removeMembershipsOfGroup(e.groupId)
+      roleGroup(u7) should equal(Some(e.groupId))
+      GroupTrait.group.vend.updateGroup(c.groupId, None, None, Some(List(u5, u8)), None)
+      GroupTrait.group.vend.updateGroup(d.groupId, None, None, Some(List(u6, u8, u9)), None)
+
+      When("user2's Groups are synced as a dry run")
+      val dry = makePostRequest(syncUser(resourceUser2.userId).POST <@ (user1) <<? List(("dry_run", "true")), "")
+      dry.code should equal(200)
+      val groups = (dry.body \ "groups").children
+      def of(id: String) = groups.find(g => (g \ "group_id").extract[String] == id).get
+      def created(id: String) = (of(id) \ "entitlements_created").extract[List[String]]
+      Then("r8, which both C and D now grant, would be granted once")
+      (created(c.groupId) ++ created(d.groupId)).count(_ == u8) should equal(1)
+      created(d.groupId) should contain(u9)
+      (of(c.groupId) \ "entitlements_moved").children.map(m => (m \ "role_name").extract[String]) should equal(List(u6))
+      (of(e.groupId) \ "group_deleted").extract[Boolean] should equal(true)
+      (of(e.groupId) \ "entitlements_deleted").extract[List[String]] should equal(List(u7))
+      Then("nothing changed")
+      roleGroup(u8) should equal(None)
+      roleGroup(u6) should equal(Some(c.groupId))
+      roleGroup(u7) should equal(Some(e.groupId))
+
+      When("user2's Groups are synced for real")
+      makePostRequest(syncUser(resourceUser2.userId).POST <@ (user1), "").code should equal(200)
+      Then("user2 holds what C and D grant, u6 now recorded against D, and u7 from the deleted E is gone")
+      roleGroup(u5) should equal(Some(c.groupId))
+      List(Some(c.groupId), Some(d.groupId)) should contain(roleGroup(u8))
+      roleGroup(u9) should equal(Some(d.groupId))
+      roleGroup(u6) should equal(Some(d.groupId))
+      roleGroup(u7) should equal(None)
+
+      Then("a second sync changes nothing")
+      val again = makePostRequest(syncUser(resourceUser2.userId).POST <@ (user1), "")
+      again.code should equal(200)
+      (again.body \ "groups").children.foreach { g =>
+        (g \ "entitlements_created").extract[List[String]] shouldBe empty
+        (g \ "entitlements_deleted").extract[List[String]] shouldBe empty
+        (g \ "entitlements_moved").children shouldBe empty
+      }
     }
   }
 }

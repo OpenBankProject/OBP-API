@@ -41,6 +41,8 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
+import java.util.Date
+
 /**
  * Note on IsPersonalEntity flag:
  * The IsPersonalEntity flag indicates HOW a record was created (via /my/ endpoint or not),
@@ -125,13 +127,13 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     val idName = getIdName(entityName)
     val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
     val dynamicData: DynamicData = DynamicData.create.DynamicDataId(idValue)
-    val result = saveOrUpdate(bankId, entityName, requestBody, ownerOf(userId), isPersonalEntity, dynamicData)
+    val result = saveOrUpdate(bankId, entityName, requestBody, ownerOf(userId), isPersonalEntity, userId, dynamicData)
     result
   }
   override def update(bankId: Option[String], entityName: String, requestBody: JObject, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val owner = ownerOf(userId)
     val dynamicData = get(bankId, entityName, id, owner, isPersonalEntity).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id").asInstanceOf[DynamicData]
-    saveOrUpdate(bankId, entityName, requestBody, owner, isPersonalEntity, dynamicData)
+    saveOrUpdate(bankId, entityName, requestBody, owner, isPersonalEntity, userId, dynamicData)
   }
 
   // Separate method for reference validation - only checks ID and entity name exist
@@ -200,13 +202,19 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       case _ => Failure(notFoundCommunityMessage(entityName, id, bankId))
     }
 
-  override def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String): Box[DynamicDataT] = {
+  override def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String, callerUserId: Option[String]): Box[DynamicDataT] = {
     val dynamicData = getCommunity(bankId, entityName, id)
       .openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
       .asInstanceOf[DynamicData]
     // Preserve the row's existing owner/personal flag — row-level access changes the data, not provenance.
-    saveOrUpdate(bankId, entityName, requestBody, Option(dynamicData.UserId.get), dynamicData.IsPersonalEntity.get, dynamicData)
+    saveOrUpdate(bankId, entityName, requestBody, Option(dynamicData.UserId.get), dynamicData.IsPersonalEntity.get, callerUserId, dynamicData)
   }
+
+  override def getByIds(bankId: Option[String], entityName: String, ids: List[String]): List[DynamicDataT] =
+    // Grouped so that a long list never becomes one very long IN clause.
+    ids.distinct.grouped(1000).toList.flatMap { someIds =>
+      DynamicData.findAll((whereClauseBankOrSystemAndEntity(bankId, entityName) :+ ByList(DynamicData.DynamicDataId, someIds)): _*)
+    }
 
   override def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean] = {
     getCommunity(bankId, entityName, id).map { d =>
@@ -222,10 +230,40 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     DynamicData.find((whereClauseBankOrSystemAndEntity(bankId, dynamicEntityName) :+ byOwnership(isPersonalEntity, userId)): _*).isDefined
   }
 
-  private def saveOrUpdate(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean, dynamicData: => DynamicData): Box[DynamicData] = {
+  /**
+   * This works out the two user ids to record as the writer of a record, for a call made by
+   * `callerUserId`: the caller itself, which is an agent's own id when an agent made the call, and the
+   * user the call was made for. They are the same when nobody is delegating.
+   *
+   * Both are kept because a record is someone's data, and whether a person wrote it themselves or an
+   * agent wrote it for them has to be answerable from the record. `ref` names the pair of columns
+   * being filled, so the attribution log line names them. With no caller, both are null.
+   */
+  private def writersOf(callerUserId: Option[String], ref: code.users.UserReference): (String, String) =
+    callerUserId.filter(_.nonEmpty) match {
+      case None => (null, null)
+      case Some(caller) =>
+        code.users.Users.users.vend.attributionOf(caller, ref) match {
+          case Full(attribution) => (attribution.userId, attribution.onBehalfOfUserId)
+          case _                 => (caller, caller)
+        }
+    }
+
+  /**
+   * This saves a record, new or existing. `userId` is the owner stored in UserId, already resolved.
+   * `callerUserId` is the user making the call, not resolved, from which the writer columns are
+   * filled: the created pair only when the record is new, and the updated pair on every save.
+   */
+  private def saveOrUpdate(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean,
+                           callerUserId: Option[String], dynamicData: => DynamicData): Box[DynamicData] = {
     val data: DynamicData = dynamicData
     tryo {
       val dataStr = json.compactRender(requestBody)
+      val isNew = !data.saved_?
+      val (writerUserId, writerOnBehalfOfUserId) = writersOf(callerUserId,
+        if (isNew) code.users.UserReference.DynamicData_CreatedByUserId else code.users.UserReference.DynamicData_UpdatedByUserId)
+      if (isNew) data.CreatedByUserId(writerUserId).CreatedByOnBehalfOfUserId(writerOnBehalfOfUserId)
+      data.UpdatedByUserId(writerUserId).UpdatedByOnBehalfOfUserId(writerOnBehalfOfUserId)
      val saved = data.BankId(bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID))
        .DynamicEntityName(entityName)
        .DataJson(dataStr)
@@ -243,7 +281,21 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 }
 
-class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with IdPK {
+/**
+ * This class is one record of a Dynamic Entity.
+ *
+ * It mixes in CreatedUpdated, which adds the columns createdat and updatedat. createdat is set when
+ * the record is first saved. updatedat is set again on every save, so each update refreshes it. The
+ * two columns were added after records already existed, so a record saved before then holds NULL in
+ * both until it is next updated, and only updatedat is filled at that point: its creation time was
+ * never recorded and is not guessed. createdDate and updatedDate therefore return an Option.
+ *
+ * The four writer columns follow the same rule. CreatedByUserId and CreatedByOnBehalfOfUserId are
+ * set when the record is first saved; UpdatedByUserId and UpdatedByOnBehalfOfUserId on every save.
+ * Each pair holds the user who made the call and the user it was made for, which differ only when an
+ * agent acted for somebody. They are separate from UserId, which is the owner of a personal record.
+ */
+class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with IdPK with CreatedUpdated {
 
   override def getSingleton = DynamicData
 
@@ -271,6 +323,15 @@ class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with Id
   
   object IsPersonalEntity extends MappedBoolean(this)
 
+  /** The user whose call first saved this record: an agent's own id when an agent made the call. */
+  object CreatedByUserId extends MappedString(this, 255)
+  /** The user that call was made for; the same as CreatedByUserId when nobody was delegating. */
+  object CreatedByOnBehalfOfUserId extends MappedString(this, 255)
+  /** As CreatedByUserId, for the call that last saved this record. */
+  object UpdatedByUserId extends MappedString(this, 255)
+  /** As CreatedByOnBehalfOfUserId, for the call that last saved this record. */
+  object UpdatedByOnBehalfOfUserId extends MappedString(this, 255)
+
   override def dynamicDataId: Option[String] = Option(DynamicDataId.get)
   override def dynamicEntityName: String = DynamicEntityName.get
   override def dataJson: String = DataJson.get
@@ -279,6 +340,12 @@ class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with Id
   override def bankId: Option[String] = Option(BankId.get).filterNot(_ == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
   override def userId: Option[String] = Option(UserId.get)
   override def isPersonalEntity: Boolean = IsPersonalEntity.get
+  override def createdDate: Option[Date] = Option(createdAt.get)
+  override def updatedDate: Option[Date] = Option(updatedAt.get)
+  override def createdByUserId: Option[String] = Option(CreatedByUserId.get).filter(_.nonEmpty)
+  override def createdByOnBehalfOfUserId: Option[String] = Option(CreatedByOnBehalfOfUserId.get).filter(_.nonEmpty)
+  override def updatedByUserId: Option[String] = Option(UpdatedByUserId.get).filter(_.nonEmpty)
+  override def updatedByOnBehalfOfUserId: Option[String] = Option(UpdatedByOnBehalfOfUserId.get).filter(_.nonEmpty)
 }
 
 object DynamicData extends DynamicData with LongKeyedMetaMapper[DynamicData] {

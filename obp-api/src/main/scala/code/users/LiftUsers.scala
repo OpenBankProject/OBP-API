@@ -171,6 +171,9 @@ object LiftUsers extends Users with MdcLoggable{
    *      caller                            reference           columns written
    *      --------------------------------  ------------------  -----------------------------
    *      MappedTransactionRequestProvider  TransactionRequest  mUserId + mOnBehalfOfUserId
+   *      MapperCounterparties              Counterparty        mCreatedByUserId + mCreatedByOnBehalfOfUserId
+   *      MapppedDynamicDataProvider        DynamicData_Created CreatedByUserId + CreatedByOnBehalfOfUserId
+   *      MapppedDynamicDataProvider        DynamicData_Updated UpdatedByUserId + UpdatedByOnBehalfOfUserId
    *
    * C. One column, two policies. The reference is chosen per process, then passed in.
    *

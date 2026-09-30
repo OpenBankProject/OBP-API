@@ -240,6 +240,22 @@ object DynamicEntityHelper {
   def v700UrlPrefix(bankId: Option[String]): String =
     s"/banks/${DynamicEntitySpace.bankIdOrSystem(bankId)}/dynamic-entities"
 
+  /**
+   * This is the example of a record's metadata block in the v7.0.0 docs: an agent created the record
+   * for a person, and the person then updated it themselves. Without user ids, as the public reads
+   * return it, it carries the times only.
+   */
+  def exampleRecordMetadata(showUserIds: Boolean): JObject = {
+    val personUserId = ExampleValue.userIdExample.value
+    val agentUserId = "a9f2c7e1-3d4b-4a5c-8e6f-7a8b9c0d1e2f"
+    def event(at: String, userId: String, onBehalfOfUserId: String): JObject =
+      if (showUserIds) JObject(JField("at", JString(at)) :: JField("user_id", JString(userId)) :: JField("on_behalf_of_user_id", JString(onBehalfOfUserId)) :: Nil)
+      else JObject(JField("at", JString(at)) :: Nil)
+    JObject(
+      JField("created", event("2026-09-30T10:12:00Z", agentUserId, personUserId)) ::
+      JField("updated", event("2026-09-30T11:40:00Z", personUserId, personUserId)) :: Nil)
+  }
+
   def createEntityId(entityName: String) = {
     // (?<=[a-z0-9])(?=[A-Z]) --> mean `Positive Lookbehind (?<=[a-z0-9])` && Positive Lookahead (?=[A-Z]) --> So we can find the space to replace to  `_`
     val regexPattern = "(?<=[a-z0-9])(?=[A-Z])|-"
@@ -325,13 +341,22 @@ object DynamicEntityHelper {
       else bankId.map(b => s"/banks/$b").getOrElse("")
     val resourceDocUrl = s"$urlPrefix/$entityName"
     // Response examples. A v7.0.0 response always names its space, `"bank_id": "SYS"` included, where
-    // the unversioned URLs name a bank only for a bank level entity.
-    def inSpace(example: JObject): JObject =
-      if (apiVersion == ApiVersion.v7_0_0)
-        (("bank_id" -> DynamicEntitySpace.bankIdOrSystem(bankId)): JObject) merge JObject(example.obj.filterNot(_.name == "bank_id"))
-      else example
-    val singleExample = inSpace(dynamicEntityInfo.getSingleExample)
-    val listExample = inSpace(dynamicEntityInfo.getExampleList)
+    // the unversioned URLs name a bank only for a bank level entity. A v7.0.0 record is also followed
+    // by its metadata, and each list item has the shape of a single record response without bank_id
+    // (see Http4sDynamicEntity.singleResponse and listResponse). The public reads show the times only.
+    def v700Examples(showUserIds: Boolean): (JObject, JObject) = {
+      val record = JObject(JField(dynamicEntityInfo.idName, JString(ExampleValue.idExample.value)) :: dynamicEntityInfo.getSingleExampleWithoutId.obj)
+      val recordWithMetadata = List(JField(dynamicEntityInfo.singleName, record), JField("metadata", exampleRecordMetadata(showUserIds)))
+      val space = JField("bank_id", JString(DynamicEntitySpace.bankIdOrSystem(bankId)))
+      (JObject(space :: recordWithMetadata),
+       JObject(space :: JField(listName, JArray(List(JObject(recordWithMetadata)))) :: Nil))
+    }
+    val (singleExample, listExample) =
+      if (apiVersion == ApiVersion.v7_0_0) v700Examples(showUserIds = true)
+      else (dynamicEntityInfo.getSingleExample, dynamicEntityInfo.getExampleList)
+    val (publicSingleExample, publicListExample) =
+      if (apiVersion == ApiVersion.v7_0_0) v700Examples(showUserIds = false)
+      else (singleExample, listExample)
     val myResourceDocUrl = s"$urlPrefix/my/$entityName"
 
 
@@ -709,7 +734,7 @@ object DynamicEntityHelper {
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = false)}
            |""".stripMargin,
         EmptyBody,
-        listExample,
+        publicListExample,
         List(
           UnknownError
         ),
@@ -733,7 +758,7 @@ object DynamicEntityHelper {
            |Authentication is Optional
            |""".stripMargin,
         EmptyBody,
-        singleExample,
+        publicSingleExample,
         List(
           UnknownError
         ),

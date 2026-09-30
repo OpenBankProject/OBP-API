@@ -3746,6 +3746,28 @@ object Glossary extends MdcLoggable  {
 |
 |Every v7.0.0 response carries `bank_id`, `SYS` included. The unversioned `/obp/dynamic-entity/[banks/BANK_ID/]...` URLs serve the same records with the same checks, and keep omitting `bank_id` for the system space.
 |
+|**Record metadata from v7.0.0:**
+|
+|In a v7.0.0 response each record is followed by a `metadata` object, which says when the record was created and last updated, and for each, which User made the call (`user_id`) and which User it was made for (`on_behalf_of_user_id`). The two ids are the same when a User acted for themselves, and differ when an agent acted for somebody through a Consent. The metadata sits beside the record rather than inside it, so it can never collide with a field of the entity:
+|
+|```
+|{
+|  "bank_id": "SYS",
+|  "soil_sample": { "soil_sample_id": "8f1c2d9e-...", "ph": 6.7 },
+|  "metadata": {
+|    "created": { "at": "2026-09-30T10:12:00Z", "user_id": "a9f2c7e1-...", "on_behalf_of_user_id": "e1a4b6c8-..." },
+|    "updated": { "at": "2026-09-30T11:40:00Z", "user_id": "e1a4b6c8-...", "on_behalf_of_user_id": "e1a4b6c8-..." }
+|  }
+|}
+|```
+|
+|In a list, each item has that same shape without `bank_id`: `{"soil_sample": {...}, "metadata": {...}}`. Times are in UTC, to the second.
+|
+|* The public reads, which need no login, carry the times only, and never say who wrote a record.
+|* A value that was never recorded is null. A record written before this metadata existed has null in `created` for good, and `updated` is filled the next time the record is saved.
+|* A record held by another connector (a method routing for `dynamicEntityProcess` names its entity) has no `metadata`, because OBP does not hold that information.
+|* The unversioned `/obp/dynamic-entity/...` URLs return the record alone, and their list items stay plain records.
+|
 |Earlier versions keep their separate management URLs for the system space; their Roles are the same ones, granted at `SYS`:
 |
 |* POST /management/system-dynamic-entities - Create system level entity
@@ -6825,7 +6847,9 @@ object Glossary extends MdcLoggable  {
 				 |- the User (user id and username) and the Consumer (consumer id, application name and developer email)
 				 |- how the caller authenticated (for example DirectLogin, OAuth2, Consent or Anonymous) and, for a call made under a Consent, the Consent reference id
 				 |- the correlation id, which is also returned to the caller in the `Correlation-Id` response header and is shared by every Connector call made while serving the call (see [Connector Metrics](/glossary#Connector-Metrics))
-				 |- the source and target addresses, taken from the `X-Forwarded-For` and `X-Forwarded-Host` request headers
+				 |- `source_ip`: the address of the client, as OBP-API decided it (see [Client IP Address](/glossary#Client-IP-Address)). Records written before this was introduced hold the raw `X-Forwarded-For` header instead
+				 |- `forwarded_for`: the hops the call passed through: the `X-Forwarded-For` list it arrived with, followed by the address of the machine that connected to OBP-API. Entries to the left of the first address OBP-API does not trust may have been written by the caller, so read them as a claim, not a fact
+				 |- `target_ip`: the `X-Forwarded-Host` request header, as sent
 				 |- the `api_instance_id` of the OBP-API instance that served the call
 				 |- the response body, for selected endpoints only
 				 |
@@ -6847,6 +6871,61 @@ object Glossary extends MdcLoggable  {
 				 |API Metrics record individual calls and who made them. [Telemetry](/glossary#Telemetry) is aggregated numbers about how an instance is behaving (request rates, durations, cache hit ratios, memory, threads) and never records who made a call. Use API Metrics to answer "who called what"; use Telemetry to answer "is this instance healthy".
 				 |
 				 |See also: [Connector Metrics](/glossary#Connector-Metrics), [Telemetry](/glossary#Telemetry), [Rate Limiting](/glossary#Rate-Limiting), [Consent](/glossary#Consent).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Client IP Address",
+		description =
+			s"""
+				 |# Client IP Address
+				 |
+				 |The **Client IP Address** is the address of the person or program that really made a call, as opposed to the address of whatever passed the call on to OBP-API. OBP-API uses it for per-address [Rate Limiting](/glossary#Rate-Limiting) (including the documentation limit for callers who are not logged in), for IP penalties, and for the busiest-callers view.
+				 |
+				 |## The problem
+				 |
+				 |OBP-API only sees the machine that opened the connection to it. When a browser talks to API Explorer II, API Explorer II talks to OBP-API; when a User chats with Opey, Opey asks OBP-MCP, and OBP-MCP calls OBP-API. Without help, every one of those calls would appear to come from the same server, so one busy User could use up everyone's limit, and a penalty would lock out everyone at once.
+				 |
+				 |## How the address is passed on: X-Forwarded-For
+				 |
+				 |Each hop adds the address it received the request from to the `X-Forwarded-For` header before passing the request on. The header therefore reads "client, first hop, second hop, ...". For a chat with Opey behind NGINX, the chain that reaches OBP-API looks like this:
+				 |
+				 || Hop | Receives the request from | Appends |
+				 ||---|---|---|
+				 || NGINX in front of API Explorer II | the browser | the browser's address |
+				 || API Explorer II | NGINX | NGINX's address |
+				 || Opey | API Explorer II | API Explorer II's address |
+				 || OBP-MCP | Opey | Opey's address |
+				 || OBP-API | OBP-MCP (the TCP peer) | nothing: it reads the chain |
+				 |
+				 |API Explorer II, Opey and OBP-MCP each append the address of the machine they received the request from, the same way NGINX does. Opey keeps the chain outside the conversation, so it never reaches the language model, and it replaces any address header the model writes into a tool call. On the Berlin Group endpoints, API Explorer II also sends the browser's address as `PSU-IP-Address`.
+				 |
+				 |## How OBP-API stops a false address
+				 |
+				 |Anyone can write anything at the left end of the chain, so OBP-API never simply takes the first entry. It reads the chain **from the right**: it skips every address it trusts, and the first address it does not trust is the client. A caller that OBP-API does not trust cannot name a false address, because the walk stops at that caller's own address. For this to work, every hop (NGINX, API Explorer II, Opey, OBP-MCP) must be on OBP-API's list of trusted addresses, and it must not be possible to reach the services behind NGINX except through the hops in front of them.
+				 |
+				 |OBP-API also accepts an `X-Real-IP` header holding a single address, for a deployment with one proxy that overwrites it.
+				 |
+				 |## Where the address is recorded
+				 |
+				 |Each [API Metrics](/glossary#API-Metrics) record keeps the client address OBP-API decided on (`source_ip`) and the whole list of hops (`forwarded_for`), so a call can be traced back through the apps it passed through.
+				 |
+				 |## What the address does and does not tell you
+				 |
+				 |The client address is the address that opened a connection to the outermost trusted proxy. It cannot be faked by writing a false sending address on the network packets, because opening a connection needs the caller to receive the proxy's reply. It may, however, belong to a home router, a company's or mobile network's shared address, a VPN or Tor exit, rather than to the person's own device.
+				 |
+				 |## On this instance
+				 |
+				 |- Client addresses ${if (APIUtil.getPropsAsBoolValue("trust.proxy.enabled", false)) s"are taken from the `${APIUtil.getPropsValue("trust.proxy.header", "X-Real-IP")}` header" else "are not taken from any header: the machine that opened the connection is treated as the client"}.
+				 |- ${APIUtil.getPropsValue("trust.proxy.peers").toOption.map(_.trim).filter(_.nonEmpty) match {
+				      case Some(peers) => s"The header is believed only from these addresses: $peers."
+				      case None => "The header is believed from any caller, and for `X-Forwarded-For` the leftmost address is used, which the client itself can write."
+				    }}
+				 |
+				 |Deployment Checks (`GET /obp/v7.0.0/management/system/diagnostics/deployment`, Role CanGetConfig) show whether requests arrive with a forwarding header, which machines send it, and whether any were ignored because they came from an address that is not trusted.
+				 |
+				 |See also: [Rate Limiting](/glossary#Rate-Limiting), [API Metrics](/glossary#API-Metrics), [OBP-MCP](/glossary#OBP-MCP).
 				 |
 """)
 
@@ -6948,7 +7027,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Roles
 				 |
-				 |Managing Groups needs CanCreateGroupAtOneBank, CanGetGroupsAtOneBank, CanUpdateGroupAtOneBank and CanDeleteGroupAtOneBank at the Group's bank id, or the AllBanks version of each (required for a system level Group). Adding and removing members needs CanAddUserToGroupAtOneBank and CanRemoveUserFromGroupAtOneBank, or their AllBanks versions; syncing a Group's members needs both.
+				 |Managing Groups needs CanCreateGroupAtOneBank, CanGetGroupsAtOneBank, CanUpdateGroupAtOneBank and CanDeleteGroupAtOneBank at the Group's bank id, or the AllBanks version of each (required for a system level Group). Adding and removing members needs CanAddUserToGroupAtOneBank and CanRemoveUserFromGroupAtOneBank, or their AllBanks versions; syncing a Group's members, or a user's Groups, needs both.
 				 |
 				 |## Endpoints
 				 |
@@ -6961,6 +7040,8 @@ object Glossary extends MdcLoggable  {
 				 |- [Remove User from Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-removeUserFromGroup): `DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID`
 				 |- [Get User's Group Memberships](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getUserGroupMemberships): `GET /obp/v6.0.0/users/USER_ID/group-entitlements`
 				 |- [Sync Group Members](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncGroupMembers): `POST /obp/v7.0.0/management/groups/GROUP_ID/sync-members`
+				 |- [Sync Group Member](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncGroupMember): `POST /obp/v7.0.0/management/groups/GROUP_ID/users/USER_ID/sync`, the same for one member.
+				 |- [Sync User Groups](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncUserGroups): `POST /obp/v7.0.0/management/users/USER_ID/sync-groups`, one user in every Group they are in, and the Entitlements left by Groups since deleted.
 				 |
 				 |How Roles and Entitlements control access is described ${getGlossaryItemLink("API.Access Control")}.
 				 |""".stripMargin)

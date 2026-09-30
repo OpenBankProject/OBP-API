@@ -30,6 +30,7 @@ package code.DynamicData
 import org.json4s._
 import com.openbankproject.commons.model.{Converter, JsonFieldReName}
 import net.liftweb.common.Box
+import java.util.Date
 import org.json4s.JObject
 import net.liftweb.util.SimpleInjector
 
@@ -47,6 +48,31 @@ trait DynamicDataT {
   def bankId: Option[String]
   def userId: Option[String]
   def isPersonalEntity: Boolean
+  /**
+   * When the record was first saved. None for a record saved before the timestamp columns existed,
+   * and for an implementation that does not store timestamps.
+   */
+  def createdDate: Option[Date] = None
+  /**
+   * When the record was last saved. None for a record not saved since the timestamp columns were
+   * added, and for an implementation that does not store timestamps.
+   */
+  def updatedDate: Option[Date] = None
+  /**
+   * The user who made the call that first saved the record. That is an agent's own user id when an
+   * agent made the call for somebody else. None for a record saved before the column existed, and for
+   * an implementation that does not store it.
+   */
+  def createdByUserId: Option[String] = None
+  /**
+   * The user the call that first saved the record was made for. It equals createdByUserId when nobody
+   * was delegating. None in the same cases as createdByUserId.
+   */
+  def createdByOnBehalfOfUserId: Option[String] = None
+  /** As createdByUserId, for the call that last saved the record. */
+  def updatedByUserId: Option[String] = None
+  /** As createdByOnBehalfOfUserId, for the call that last saved the record. */
+  def updatedByOnBehalfOfUserId: Option[String] = None
 }
 
 case class DynamicDataCommons(dynamicEntityName: String,
@@ -74,10 +100,19 @@ trait DynamicDataProvider {
   def getAllDataJsonCommunity(bankId: Option[String], entityName: String): List[JObject]
   def getCommunity(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT]
 
+  /**
+   * The records of one entity in one space whose ids are in `ids`, whoever owns them. An id with no
+   * record is left out of the answer rather than reported. This exists so that a response can carry
+   * each record's metadata after the records themselves were read by some other route, such as the
+   * connector or the projection tables; it is not an access check.
+   */
+  def getByIds(bankId: Option[String], entityName: String, ids: List[String]): List[DynamicDataT]
+
   // Community mutation methods - operate on a row regardless of owner (used by row-level access,
   // where the ACL, not ownership, decides who may update/delete). Preserve the row's existing
-  // userId / isPersonalEntity so its provenance is unchanged.
-  def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String): Box[DynamicDataT]
+  // userId / isPersonalEntity so its provenance is unchanged. callerUserId is the user making the
+  // call, recorded as the record's last writer.
+  def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String, callerUserId: Option[String]): Box[DynamicDataT]
   def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean]
 }
 

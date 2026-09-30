@@ -623,11 +623,10 @@ class Boot extends MdcLoggable {
       val delay = APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_request_status_scheduler_delay, please provide number of seconds.")
       TransactionRequestStatusScheduler.start(delay)
     }
-    // Open Corridor: the transactional-outbox relay publishing Interface C messages
-    // (credit notifications + settlement instructions) to the banks' own vhosts.
-    if (APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)) {
-      MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("open_corridor.outbox_relay_interval", 10L))
-    }
+    // The transactional-outbox relay: sends queued emails (e.g. "you have been granted a Role") and,
+    // when Open Corridor is enabled, publishes Interface C messages (credit notifications +
+    // settlement instructions) to the banks' own vhosts.
+    MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("message_outbox.relay_interval_seconds", 10L))
     // Chat: emails users an occasional digest of unread messages (computed at
     // send time from read markers — see ChatEmailDigestScheduler for why this
     // is not the transactional message outbox).
