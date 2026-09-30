@@ -247,6 +247,14 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     // would clear the whole shared DB and cause cross-shard rate-limit/cache flakiness.
     try {
       Redis.deleteKeysByPattern(code.api.Constant.getGlobalCacheNamespacePrefix + "*")
+      // Deleting the keys also deletes the cache namespace version counters, so each one starts
+      // again at 1 and a version number seen in the last scenario comes round again. Anything held
+      // in this JVM under such a version would then look current when it is not: the ResourceDoc
+      // vocabulary rebuilt for the last scenario's Dynamic Entities, for example, would be reused
+      // and a new entity's function names dropped from a `functions` filter. So forget those copies
+      // along with the keys.
+      code.api.Constant.forgetRecentCacheNamespaceVersions()
+      code.api.util.ResourceDocVocabulary.refreshDynamic()
     } catch {
       case e: Throwable =>
         logger.warn("------------| Redis issue during flushing data |------------")
