@@ -1262,7 +1262,7 @@ object Http4s200 {
                    APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, requiredEntitlements)
                  }
             _ <- code.util.Helper.booleanToFuture(BankNotFound, cc = cc2) {
-              body.bank_id.isEmpty || BankX(BankId(body.bank_id), cc2).map(_._1).isDefined
+              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, cc2)
             }
             _ <- code.util.Helper.booleanToFuture(EntitlementAlreadyExists, cc = cc2) {
               !hasEntitlement(body.bank_id, userId, role)

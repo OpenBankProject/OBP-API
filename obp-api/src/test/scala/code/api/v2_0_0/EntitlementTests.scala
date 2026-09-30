@@ -147,6 +147,28 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responsePost3.code should equal(201)
       responsePost3.body.extract[EntitlementJSON].bank_id should equal(testBankId1.value)
     }
+
+    // SYS is the system space of Dynamic Entities, where their Roles are granted although no Bank has
+    // that id. API Manager accepts an Entitlement Request by calling this endpoint at v6.0.0, which
+    // cascades to this v2.0.0 handler, so it has to accept SYS as v7.0.0 does.
+    scenario("We try to create entitlement - addEntitlement at SYS, the system space of Dynamic Entities") {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateEntitlementAtAnyBank.toString)
+      val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON.copy(
+        bank_id = code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, role_name = ApiRole.canGetDynamicEntityDefinitions.toString)
+
+      When("the Role is granted at SYS through the v6.0.0 URL, as API Manager does")
+      val requestPost = (baseRequest / "obp" / "v6.0.0" / "users" / resourceUser2.userId / "entitlements").POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(requestBody))
+
+      Then("it is granted, not refused as an unknown bank")
+      responsePost.code should equal(201)
+      responsePost.body.extract[EntitlementJSON].bank_id should equal(code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+
+      And("a bank id that is neither SYS nor a Bank is still refused")
+      val unknownBank = makePostRequest(requestPost, write(requestBody.copy(bank_id = "no-such-bank")))
+      unknownBank.code should equal(400)
+      unknownBank.body.toString contains (extractErrorMessageCode(BankNotFound)) should be (true)
+    }
   }
 
 
