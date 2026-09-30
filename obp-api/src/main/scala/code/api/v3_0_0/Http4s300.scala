@@ -1655,8 +1655,9 @@ object Http4s300 {
       case req @ POST -> `prefixPath` / "entitlement-requests" =>
         EndpointHelpers.withUserAndBodyCreated[CreateEntitlementRequestJSON, EntitlementRequestJSON](req) { (user, body, cc) =>
           for {
-            _ <- if (body.bank_id.isEmpty) Future.successful(())
-                 else NewStyle.function.getBank(BankId(body.bank_id), Some(cc)).map(_ => ())
+            _ <- code.util.Helper.booleanToFuture(s"$BankNotFound Current BankId is ${body.bank_id}", failCode = 404, cc = Some(cc)) {
+                   APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
+                 }
             _ <- code.util.Helper.booleanToFuture(
               IncorrectRoleName + body.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", "),
               cc = Some(cc)) { availableRoles.exists(_ == body.role_name) }
@@ -2088,7 +2089,7 @@ object Http4s300 {
             allowedEntitlementsTxt = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
             _ <- NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(body.bank_id, user.userId, allowedEntitlements, Some(cc))
             _ <- code.util.Helper.booleanToFuture(BankNotFound, cc = Some(cc)) {
-              body.bank_id.nonEmpty == false || BankX(BankId(body.bank_id), Some(cc)).map(_._1).isDefined
+              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
             }
             _ <- code.util.Helper.booleanToFuture(EntitlementAlreadyExists, cc = Some(cc)) {
               !hasScope(body.bank_id, consumerIdStr, role)

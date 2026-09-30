@@ -46,6 +46,20 @@ message MetricEvent {
   // Reference id of the consent (if any) that authorised the request.
   // Mirrors MetricJsonV600.consent_reference_id (REST v6.0.0+).
   string consent_reference_id             = 18;
+  // The hops the request passed through: the X-Forwarded-For chain it arrived
+  // with, followed by the TCP peer OBP-API saw. Matches MetricJsonV600.forwarded_for.
+  // source_ip (14) is the client address OBP-API decided on from that chain.
+  string forwarded_for                    = 19;
+  // Authentication scheme of the call, never the credential: "Consent", "OAuth2",
+  // "OAuth1", "DirectLogin", "GatewayLogin", "DAuth", "Anonymous" or "Other".
+  // Matches MetricJsonV600.auth_type.
+  string auth_type                        = 20;
+  // How the caller's certificate was established: "direct", "forwarded" or "none";
+  // empty when the request carried no certificate. Matches MetricJsonV600.certificate_trust.
+  string certificate_trust                = 21;
+  // The specifics behind certificate_trust: the forwarding proxy's subject for
+  // "forwarded", the rejection reason for "none". Matches MetricJsonV600.certificate_trust_detail.
+  string certificate_trust_detail         = 22;
 }
 
 // Live tail of API metrics as they are written.

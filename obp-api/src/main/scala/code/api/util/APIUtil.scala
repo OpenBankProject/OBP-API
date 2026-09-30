@@ -2288,6 +2288,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def isConsentUser(userId: String): Boolean =
     Users.users.vend.getUserByUserId(userId).exists(_.isConsentUser)
 
+  /**
+   * This says whether an Entitlement or a Scope may be written at `bankId`.
+   *
+   * Three values are allowed: the empty bank id, where a system Role is held; SYS, the system space
+   * of Dynamic Entities, whose Roles are granted there although no Bank has that id; and the id of a
+   * Bank that exists, matched exactly, case included. A row at any other bank id would be one that no
+   * check ever reads. Every endpoint that grants a Role or a Scope, or records a request for one, asks
+   * this, so that SYS is accepted in all of them and not only in the versions written after it.
+   */
+  def isBankIdWhereRolesCanBeHeld(bankId: String, callContext: Option[CallContext]): Boolean =
+    bankId.isEmpty || bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID || BankX(BankId(bankId), callContext).map(_._1).isDefined
+
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
     case role =>

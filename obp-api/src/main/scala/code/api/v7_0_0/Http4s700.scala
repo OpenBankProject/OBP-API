@@ -544,8 +544,7 @@ object Http4s700 {
             // Bank ids are matched exactly, case included: a grant at a bank id naming no bank is a
             // row no check will ever read. SYS is the system space of Dynamic Entities, not a bank.
             _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
-              body.bank_id.isEmpty || body.bank_id == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ||
-                code.model.BankX(BankId(body.bank_id), Some(cc)).map(_._1).isDefined
+              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
             }
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
@@ -881,8 +880,7 @@ object Http4s700 {
                    APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
                  }
             _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
-              body.bank_id.isEmpty || body.bank_id == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ||
-                code.model.BankX(BankId(body.bank_id), Some(cc)).map(_._1).isDefined
+              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
             }
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc)) {
               !APIUtil.hasScope(body.bank_id, consumer.id.get.toString, role)

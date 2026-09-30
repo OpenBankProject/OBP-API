@@ -123,7 +123,7 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
     matchExact(req.consentReferenceId, (jv \ "consent_reference_id").extractOrElse[String](""))
   }
 
-  private def jsonToMetricEvent(jv: JValue): MetricEvent = {
+  private[metricsstream] def jsonToMetricEvent(jv: JValue): MetricEvent = {
     MetricEvent(
       url                          = (jv \ "url").extractOrElse[String](""),
       date                         = (jv \ "date").extractOrElse[String](""),
@@ -142,7 +142,11 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
       targetIp                     = (jv \ "target_ip").extractOrElse[String](""),
       apiInstanceId                = (jv \ "api_instance_id").extractOrElse[String](""),
       operationId                  = (jv \ "operation_id").extractOrElse[String](""),
-      consentReferenceId           = (jv \ "consent_reference_id").extractOrElse[String]("")
+      consentReferenceId           = (jv \ "consent_reference_id").extractOrElse[String](""),
+      forwardedFor                 = (jv \ "forwarded_for").extractOrElse[String](""),
+      authType                     = (jv \ "auth_type").extractOrElse[String](""),
+      certificateTrust             = (jv \ "certificate_trust").extractOrElse[String](""),
+      certificateTrustDetail       = (jv \ "certificate_trust_detail").extractOrElse[String]("")
     )
   }
 }
