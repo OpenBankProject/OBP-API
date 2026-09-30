@@ -253,6 +253,120 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
     }
   }
 
+  feature("The metadata of a Dynamic Entity record at /obp/v7.0.0/banks/BANK_ID/dynamic-entities/...") {
+
+    def metadataOf(record: JValue, event: String): JValue = record \ "metadata" \ event
+
+    scenario("a record carries when it was created and updated, and by whom", VersionOfApi) {
+      val entityName = newEntityName()
+      val dynamicEntityId = createdWithFlags(SYS, entityName)
+      try {
+        When("user1 creates a record and reads it back")
+        val created = makePostRequest((dataAt(SYS) / entityName).POST <@ (user1), write(("name" -> "first"): JValue))
+        created.code should equal(201)
+        val recordId = idOf(created, entityName)
+        val one = makeGetRequest((dataAt(SYS) / entityName / recordId).GET <@ (user1))
+        one.code should equal(200)
+
+        Then("the record is followed by its metadata, naming user1 for both the call and whom it was made for")
+        (one.body \ entityName \ "name").extract[String] should equal("first")
+        for (event <- List("created", "updated")) {
+          (metadataOf(one.body, event) \ "at").extract[String] should fullyMatch regex """\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"""
+          (metadataOf(one.body, event) \ "user_id").extract[String] should equal(resourceUser1.userId)
+          (metadataOf(one.body, event) \ "on_behalf_of_user_id").extract[String] should equal(resourceUser1.userId)
+        }
+        And("the metadata is beside the record, never inside it")
+        (one.body \ entityName \ "metadata") should equal(JNothing)
+        (created.body \ "metadata" \ "created" \ "user_id").extract[String] should equal(resourceUser1.userId)
+
+        When("the records are listed")
+        val listed = makeGetRequest((dataAt(SYS) / entityName).GET <@ (user1))
+        listed.code should equal(200)
+        Then("each item is the record under the entity's name, with its metadata beside it")
+        val item = (listed.body \ s"${entityName}_list").extract[List[JObject]]
+          .find(o => (o \ entityName \ s"${entityName}_id").extract[String] == recordId)
+          .getOrElse(fail(s"record $recordId was not listed"))
+        (metadataOf(item, "created") \ "user_id").extract[String] should equal(resourceUser1.userId)
+        (metadataOf(item, "updated") \ "on_behalf_of_user_id").extract[String] should equal(resourceUser1.userId)
+      } finally cascadeDelete(SYS, dynamicEntityId)
+    }
+
+    scenario("an update moves the updated time and keeps the created time", VersionOfApi) {
+      val entityName = newEntityName()
+      val dynamicEntityId = createdWithFlags(SYS, entityName)
+      try {
+        val created = makePostRequest((dataAt(SYS) / entityName).POST <@ (user1), write(("name" -> "first"): JValue))
+        created.code should equal(201)
+        val recordId = idOf(created, entityName)
+        val createdAt = (metadataOf(created.body, "created") \ "at").extract[String]
+
+        val replaced = makePutRequest((dataAt(SYS) / entityName / recordId).PUT <@ (user1), write(("name" -> "second"): JValue))
+        replaced.code should equal(200)
+        (metadataOf(replaced.body, "created") \ "at").extract[String] should equal(createdAt)
+        (metadataOf(replaced.body, "updated") \ "at").extract[String] should be >= createdAt
+      } finally cascadeDelete(SYS, dynamicEntityId)
+    }
+
+    scenario("a public read shows the times only, not who wrote the record", VersionOfApi) {
+      val entityName = newEntityName()
+      val dynamicEntityId = createdWithFlags(SYS, entityName, "has_public_access" -> true)
+      try {
+        val created = makePostRequest((dataAt(SYS) / entityName).POST <@ (user1), write(("name" -> "open"): JValue))
+        created.code should equal(201)
+        val recordId = idOf(created, entityName)
+
+        val public = makeGetRequest((dataAt(SYS) / "public" / entityName / recordId).GET)
+        public.code should equal(200)
+        (metadataOf(public.body, "created") \ "at").extract[String] should not be empty
+        (metadataOf(public.body, "created") \ "user_id") should equal(JNothing)
+        (metadataOf(public.body, "updated") \ "on_behalf_of_user_id") should equal(JNothing)
+
+        val publicList = makeGetRequest((dataAt(SYS) / "public" / entityName).GET)
+        publicList.code should equal(200)
+        val items = (publicList.body \ s"${entityName}_list").extract[List[JObject]]
+        items should not be empty
+        all(items.map(item => metadataOf(item, "created") \ "user_id")) should equal(JNothing)
+      } finally cascadeDelete(SYS, dynamicEntityId)
+    }
+
+    scenario("the unversioned URLs return the record alone, with plain list items", VersionOfApi) {
+      val entityName = newEntityName()
+      val dynamicEntityId = createdWithFlags(SYS, entityName)
+      try {
+        val created = makePostRequest((dataAt(SYS) / entityName).POST <@ (user1), write(("name" -> "first"): JValue))
+        created.code should equal(201)
+        val recordId = idOf(created, entityName)
+
+        val one = makeGetRequest((dynamicEntityData / entityName / recordId).GET <@ (user1))
+        one.code should equal(200)
+        (one.body \ "metadata") should equal(JNothing)
+
+        val listed = makeGetRequest((dynamicEntityData / entityName).GET <@ (user1))
+        listed.code should equal(200)
+        (listed.body \ s"${entityName}_list").extract[List[JObject]].map(o => (o \ s"${entityName}_id").extract[String]) should contain(recordId)
+      } finally cascadeDelete(SYS, dynamicEntityId)
+    }
+
+    scenario("the OBPv7.0.0 listing documents the metadata", VersionOfApi) {
+      val entityName = newEntityName()
+      val dynamicEntityId = createdWithFlags(SYS, entityName, "has_public_access" -> true)
+      try {
+        val functions = List(s"dynamicEntity_getSingle${entityName}_", s"dynamicEntity_getSinglePublic${entityName}_")
+        val docsResponse = makeGetRequest((v7 / "resource-docs" / "OBPv7.0.0" / "obp") <<? List(("functions", functions.mkString(","))))
+        docsResponse.code should equal(200)
+        val docs = (docsResponse.body \ "resource_docs").children
+        def docWithId(id: String): JValue =
+          docs.find(d => (d \ "operation_id").extract[String] == id).getOrElse(fail(s"no resource doc $id"))
+
+        val getOne = docWithId(s"OBPv7.0.0-dynamicEntity_getSingle${entityName}_")
+        (getOne \ "success_response_body" \ "metadata" \ "created" \ "on_behalf_of_user_id") should not equal(JNothing)
+        val publicGetOne = docWithId(s"OBPv7.0.0-dynamicEntity_getSinglePublic${entityName}_")
+        (publicGetOne \ "success_response_body" \ "metadata" \ "created" \ "at") should not equal(JNothing)
+        (publicGetOne \ "success_response_body" \ "metadata" \ "created" \ "user_id") should equal(JNothing)
+      } finally cascadeDelete(SYS, dynamicEntityId)
+    }
+  }
+
   private def dataAt(bankId: String) = v7 / "banks" / bankId / "dynamic-entities"
 
   private def flaggedDefinition(entityName: String, flags: (String, Boolean)*): JValue =
@@ -287,7 +401,7 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
         val listed = makeGetRequest((dataAt(SYS) / entityName).GET <@ (user1))
         listed.code should equal(200)
         (listed.body \ "bank_id").extract[String] should equal(SYS)
-        (listed.body \ s"${entityName}_list").extract[List[JObject]].map(o => (o \ s"${entityName}_id").extract[String]) should contain(recordId)
+        (listed.body \ s"${entityName}_list").extract[List[JObject]].map(o => (o \ entityName \ s"${entityName}_id").extract[String]) should contain(recordId)
 
         val one = makeGetRequest((dataAt(SYS) / entityName / recordId).GET <@ (user1))
         one.code should equal(200)
@@ -321,7 +435,7 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
         (personal.body \ "bank_id").extract[String] should equal(SYS)
         val myList = makeGetRequest((dataAt(SYS) / "my" / entityName).GET <@ (user1))
         myList.code should equal(200)
-        (myList.body \ s"${entityName}_list").extract[List[JObject]].map(o => (o \ s"${entityName}_id").extract[String]) should contain(idOf(personal, entityName))
+        (myList.body \ s"${entityName}_list").extract[List[JObject]].map(o => (o \ entityName \ s"${entityName}_id").extract[String]) should contain(idOf(personal, entityName))
         makeDeleteRequest((dataAt(SYS) / "my" / entityName / idOf(personal, entityName)).DELETE <@ (user1)).code should equal(200)
 
         Then("the record can be deleted at SYS")

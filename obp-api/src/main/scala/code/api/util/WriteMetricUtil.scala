@@ -73,6 +73,7 @@ object WriteMetricUtil extends MdcLoggable {
                                    responseBodyToWrite: String,
                                    sourceIp: String,
                                    targetIp: String,
+                                   forwardedFor: String,
                                    authType: String)
 
   private def persistAndPublishMetric(responseBody: Any, cc: CallContextLight): Unit = {
@@ -85,8 +86,11 @@ object WriteMetricUtil extends MdcLoggable {
       implementedByPartialFunction = cc.partialFunctionName,
       duration = callDuration(cc),
       responseBodyToWrite = responseBodyForMetric(responseBody, cc),
-      sourceIp = requestHeaderValue(cc, "x-forwarded-for"),
+      // The client address OBP-API decided on, and the hops the request passed through
+      // (see RemoteIpUtil). The raw X-Forwarded-For header is not stored as the source address.
+      sourceIp = cc.ipAddress,
       targetIp = requestHeaderValue(cc, "x-forwarded-host"),
+      forwardedFor = cc.forwardedFor,
       authType = deriveAuthType(cc)
     )
 
@@ -166,6 +170,7 @@ object WriteMetricUtil extends MdcLoggable {
         responseBodyToWrite,
         sourceIp,
         targetIp,
+        forwardedFor,
         code.api.Constant.ApiInstanceId,
         cc.consentReferenceId.orNull,
         cc.certificateTrust.orNull,

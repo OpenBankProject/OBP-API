@@ -84,6 +84,9 @@ case class CallContext(
                         consentMyResources: Option[ConsentMyResources] = None,
                         consumer: Box[Consumer] = Empty,
                         ipAddress: String = "",
+                        // The hops the request passed through: the X-Forwarded-For chain it arrived
+                        // with, followed by the TCP peer. Recorded in API Metrics; see RemoteIpUtil.
+                        forwardedFor: String = "",
                         resourceDocument: Option[ResourceDoc] = None,
                         startTime: Option[Date] = Some(Helpers.now),
                         endTime: Option[Date] = None,
@@ -245,7 +248,9 @@ case class CallContext(
       paginationLimit = this.paginationLimit,
       consentReferenceId = this.consentReferenceId,
       certificateTrust = this.certificateTrust,
-      certificateTrustDetail = this.certificateTrustDetail
+      certificateTrustDetail = this.certificateTrustDetail,
+      ipAddress = this.ipAddress,
+      forwardedFor = this.forwardedFor
     )
   }
 
@@ -344,7 +349,11 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             paginationLimit : Option[String] = None,
                             consentReferenceId: Option[String] = None,
                             certificateTrust: Option[String] = None,
-                            certificateTrustDetail: Option[String] = None
+                            certificateTrustDetail: Option[String] = None,
+                            // The client address OBP-API decided on (CallContext.ipAddress)
+                            ipAddress: String = "",
+                            // The hops the request passed through (CallContext.forwardedFor)
+                            forwardedFor: String = ""
                            )
 
 trait LoginParam

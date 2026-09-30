@@ -41,7 +41,7 @@ object ElasticsearchMetrics extends APIMetrics {
   lazy val es = new elasticsearchMetrics
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String,
-                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String,
+                          responseBody: String, sourceIp: String, targetIp: String, forwardedFor: String, apiInstanceId: String, consentReferenceId: String,
                           certificateTrust: String, certificateTrustDetail: String,
                           authType: String): Unit = {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
@@ -53,6 +53,7 @@ object ElasticsearchMetrics extends APIMetrics {
                                   responseBody: String,
                                   sourceIp: String,
                                   targetIp: String,
+                                  forwardedFor: String,
                                   apiInstanceId: String,
                                   consentReferenceId: String,
                                   certificateTrust: String,

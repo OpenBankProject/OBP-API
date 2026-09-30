@@ -3,6 +3,31 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+30/09/2026    TBD           CHANGED in v7.0.0: a Dynamic Entity record at
+                            /obp/v7.0.0/banks/BANK_ID/dynamic-entities/... is followed by a metadata
+                            object: created and updated, each with at (UTC), user_id (the User who made
+                            the call, an agent's own id when an agent made it) and on_behalf_of_user_id
+                            (the User it was made for). List items change shape to
+                            {"<entity>": {...}, "metadata": {...}}. Public reads carry the times only.
+                            A record held by another connector has no metadata. The unversioned
+                            /obp/dynamic-entity/ URLs are unchanged.
+                            NEW columns on DynamicData: createdat, updatedat, createdbyuserid,
+                            createdbyonbehalfofuserid, updatedbyuserid, updatedbyonbehalfofuserid. They
+                            are null for records written before this change; updated* is filled on a
+                            record's next save, created* stays null.
+29/09/2026    TBD           CHANGED: the "you have been granted a Role" email is queued in the message
+                            outbox (outbox_type EMAIL, subject_id = the entitlement_id) in the granting
+                            transaction, and sent by the outbox relay. A grant that is rolled back (a
+                            request that fails or times out) emails nobody, and SMTP sends no longer run
+                            on the shared thread pool, where a burst of grants (e.g. a Group member sync)
+                            could stall the API. The relay now always runs (Open Corridor rows are still
+                            only relayed when open_corridor_enabled=true); an email not sent is retried
+                            with backoff and goes STICKY after 8 attempts, visible and retryable through
+                            GET /management/message-outbox?outbox_type=EMAIL. Each email row is claimed
+                            before it is sent, so several instances never send it twice, and relay
+                            passes no longer overlap. The relay interval prop has a new name:
+                            message_outbox.relay_interval_seconds (default 10), replacing
+                            open_corridor.outbox_relay_interval, which is no longer read.
 29/09/2026    TBD           NEW in v7.0.0: POST /management/groups/GROUP_ID/sync-members[?dry_run=true]
                             brings the Entitlements of a Group's members in line with its current Roles:
                             grants the Roles they lack, deletes those the Group granted but no longer

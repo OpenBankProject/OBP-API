@@ -140,7 +140,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
-                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String,
+                          responseBody: String, sourceIp: String, targetIp: String, forwardedFor: String, apiInstanceId: String, consentReferenceId: String,
                           certificateTrust: String, certificateTrustDetail: String,
                           authType: String): Unit = {
     // A correlation id is expected on every metric. Rows without one cannot be moved
@@ -167,6 +167,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         responseBody = responseBody,
         sourceIp = sourceIp,
         targetIp = targetIp,
+        forwardedFor = forwardedFor,
         apiInstanceId = apiInstanceId,
         consentReferenceId = consentReferenceId,
         certificateTrust = certificateTrust,
@@ -180,7 +181,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   appName: String, developerEmail: String, consumerId: String,
                                   implementedByPartialFunction: String, implementedInVersion: String,
                                   verb: String, httpCode: Option[Int], correlationId: String,
-                                  responseBody: String, sourceIp: String, targetIp: String,
+                                  responseBody: String, sourceIp: String, targetIp: String, forwardedFor: String,
                                   apiInstanceId: String, consentReferenceId: String,
                                   certificateTrust: String, certificateTrustDetail: String,
                                   authType: String): Boolean = {
@@ -207,6 +208,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .responseBody(responseBody)
       .sourceIp(sourceIp)
       .targetIp(targetIp)
+      .forwardedFor(forwardedFor)
       .apiInstanceId(apiInstanceId)
       .consentReferenceId(consentReferenceId)
       .certificateTrust(certificateTrust)
@@ -841,8 +843,17 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
     override def defaultValue = generateUUID()
   }
   object responseBody extends MappedText(this)
+  // The client address OBP-API decided on (CallContext.ipAddress, see RemoteIpUtil). Rows
+  // written before that change hold the raw X-Forwarded-For header instead.
   object sourceIp extends MappedString(this, 64)
   object targetIp extends MappedString(this, 64)
+  // The hops the request passed through: the X-Forwarded-For chain it arrived with, followed by
+  // the TCP peer. Client-controlled on the left, so it is cut to this width on write. The archive
+  // copy (MetricArchive.forwardedFor) MUST keep the same width.
+  object forwardedFor extends MappedString(this, 512) {
+    override def dbColumnName = "forwarded_for"
+    override def defaultValue = null
+  }
   object apiInstanceId extends MappedString(this, 255)
   // Set when the request was authenticated via a consent. Null otherwise.
   object consentReferenceId extends MappedString(this, 36) {
@@ -887,6 +898,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getResponseBody(): String = responseBody.get
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
+  override def getForwardedFor(): String = forwardedFor.get
   override def getApiInstanceId(): String = apiInstanceId.get
   override def getConsentReferenceId(): String = consentReferenceId.get
   override def getCertificateTrust(): String = certificateTrust.get
@@ -946,8 +958,17 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
     override def dbNotNull_? = true
   }
   object responseBody extends MappedText(this)
+  // The client address OBP-API decided on (CallContext.ipAddress, see RemoteIpUtil). Rows
+  // written before that change hold the raw X-Forwarded-For header instead.
   object sourceIp extends MappedString(this, 64)
   object targetIp extends MappedString(this, 64)
+  // The hops the request passed through: the X-Forwarded-For chain it arrived with, followed by
+  // the TCP peer. Client-controlled on the left, so it is cut to this width on write. The archive
+  // copy (MetricArchive.forwardedFor) MUST keep the same width.
+  object forwardedFor extends MappedString(this, 512) {
+    override def dbColumnName = "forwarded_for"
+    override def defaultValue = null
+  }
   object apiInstanceId extends MappedString(this, 255)
   // Set when the request was authenticated via a consent. Null otherwise.
   object consentReferenceId extends MappedString(this, 36) {
@@ -990,6 +1011,7 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getResponseBody(): String = responseBody.get
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
+  override def getForwardedFor(): String = forwardedFor.get
   override def getApiInstanceId(): String = apiInstanceId.get
   override def getConsentReferenceId(): String = consentReferenceId.get
   override def getCertificateTrust(): String = certificateTrust.get

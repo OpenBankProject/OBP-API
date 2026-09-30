@@ -141,6 +141,12 @@ long_endpoint_timeout = 55000
 ## Scheduler will be disabled if delay is not set.
 #transaction_status_scheduler_delay=300
 
+## Message outbox relay interval in seconds.
+## How often the relay sends the queued messages in the message outbox: emails (e.g. "you have been
+## granted a Role") and, where Open Corridor is enabled, Interface C messages to the banks. The relay
+## always runs. A message that cannot be delivered is retried with backoff, on top of this interval.
+#message_outbox.relay_interval_seconds=10
+
 
 ## Enable user authentication via the connector
 #connector.user.authentication=true
@@ -262,11 +268,14 @@ write_connector_trace=false
 ## per-IP limit, IP penalty and the busiest-callers view would then see one address. When a proxy sits
 ## in front, let it set a header with the client's address (it MUST overwrite any value the client sent,
 ## e.g. NGINX `proxy_set_header X-Real-IP $remote_addr;`) and trust that header here.
-## X-Forwarded-For is also accepted (its leftmost address is used) when the proxy sanitises the chain.
+## X-Forwarded-For is also accepted. It carries a chain to which each hop appends the address it received
+## the request from (NGINX `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`, and API Explorer II,
+## Opey and OBP-MCP do the same). OBP-API reads it from the right: it skips the addresses in trust.proxy.peers
+## and the first address that is not listed is the client, so every hop must be listed.
 ## trust.proxy.peers limits whose header is believed: the addresses or CIDR ranges of the proxies (and
 ## of server-side applications that pass on their users' addresses). A header from any other peer is
-## ignored. Unset, the header is believed from anyone, so a caller that reaches OBP-API directly can
-## name any address it likes. Deployment Checks (GET /obp/v7.0.0/management/system/diagnostics/deployment,
+## ignored. Unset, the header is believed from anyone (and for X-Forwarded-For the leftmost address, which
+## the client itself can write, is used), so a caller that reaches OBP-API directly can name any address it likes. Deployment Checks (GET /obp/v7.0.0/management/system/diagnostics/deployment,
 ## or Observe > Deployment Checks in API Manager) shows whether these are right for the traffic seen.
 # trust.proxy.enabled=false
 # trust.proxy.header=X-Real-IP

@@ -783,4 +783,56 @@ class AgentDelegationTest extends ServerSetup {
       storedField(row.mCreatedByOnBehalfOfUserId.get) shouldBe agent2.userId
     }
   }
+
+  feature("Dynamic Entity records record both ids (UserReference.DynamicData_CreatedByUserId and DynamicData_UpdatedByUserId)") {
+
+    val bankId = Some("agent-delegation-dynamic-data-bank")
+
+    /** A fresh entity name, so no two scenarios share records. */
+    def newEntityName(): String = s"agent_delegation_${generateUUID().take(8).replace("-", "")}"
+
+    def saveAs(callerUserId: String, entityName: String, recordId: String): code.DynamicData.DynamicDataT =
+      code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend
+        .save(bankId, entityName, (s"${entityName}_id" -> recordId) ~ ("name" -> "first"), Some(callerUserId), false)
+        .openOrThrowException("expected the record to be saved")
+
+    def updateAs(callerUserId: String, entityName: String, recordId: String): code.DynamicData.DynamicDataT =
+      code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend
+        .update(bankId, entityName, (s"${entityName}_id" -> recordId) ~ ("name" -> "second"), recordId, Some(callerUserId), false)
+        .openOrThrowException("expected the record to be updated")
+
+    scenario("a record created by an original user names that user in all four columns", AgentDelegationTag) {
+      val human = createUser()
+      val record = saveAs(human.userId, newEntityName(), "R1")
+      record.createdByUserId shouldBe Some(human.userId)
+      record.createdByOnBehalfOfUserId shouldBe Some(human.userId)
+      record.updatedByUserId shouldBe Some(human.userId)
+      record.updatedByOnBehalfOfUserId shouldBe Some(human.userId)
+    }
+
+    scenario("a record created by a consent user names the agent and its on-behalf-of user", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val record = saveAs(agent.userId, newEntityName(), "R1")
+      record.createdByUserId shouldBe Some(agent.userId)
+      record.createdByOnBehalfOfUserId shouldBe Some(human.userId)
+      record.updatedByUserId shouldBe Some(agent.userId)
+      record.updatedByOnBehalfOfUserId shouldBe Some(human.userId)
+    }
+
+    scenario("an update changes only the updated pair, and the created pair keeps the original writer", AgentDelegationTag) {
+      val human = createUser()
+      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val agent = createUser(createdByConsentId = Some(consent.consentId))
+      val entityName = newEntityName()
+      saveAs(agent.userId, entityName, "R1")
+
+      val updated = updateAs(human.userId, entityName, "R1")
+      updated.createdByUserId shouldBe Some(agent.userId)
+      updated.createdByOnBehalfOfUserId shouldBe Some(human.userId)
+      updated.updatedByUserId shouldBe Some(human.userId)
+      updated.updatedByOnBehalfOfUserId shouldBe Some(human.userId)
+    }
+  }
 }

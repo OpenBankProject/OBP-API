@@ -682,6 +682,10 @@ object Http4sCallContextBuilder {
       }
     } yield CallContext(
       url = request.uri.renderString,
+      forwardedFor = RemoteIpUtil.forwardedForPath(
+        request.remoteAddr.map(_.toUriString).getOrElse(""),
+        requestHeaderValues(request, "X-Forwarded-For")
+      ),
       verb = request.method.name,
       implementedInVersion = apiVersion,
       correlationId = extractCorrelationId(request),
@@ -726,8 +730,13 @@ object Http4sCallContextBuilder {
   def clientIpResolution(request: Request[IO]): RemoteIpUtil.Resolution =
     RemoteIpUtil.resolve(
       request.remoteAddr.map(_.toUriString).getOrElse(""),
-      name => request.headers.get(CIString(name)).map(_.head.value)
+      name => requestHeaderValues(request, name)
     )
+
+  /** A request header's value. A header sent on several lines is joined in order, so an
+   *  X-Forwarded-For line the client wrote cannot hide the lines the proxies added after it. */
+  private def requestHeaderValues(request: Request[IO], name: String): Option[String] =
+    request.headers.get(CIString(name)).map(_.toList.map(_.value).mkString(", "))
 
   private def extractIpAddress(request: Request[IO]): String = clientIpResolution(request).clientIp
   

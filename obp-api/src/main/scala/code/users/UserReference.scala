@@ -186,6 +186,8 @@ object UserReference {
   case object UserAuthContextUpdate_UserId                     extends UserReference(UseOnBehalfOfUserId   , "code.context.MappedUserAuthContextUpdate", List("mUserId"), "as UserAuthContext_UserId")
   case object DynamicEntity_UserId                             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicEntity.DynamicEntity", List("UserId"), "the definition's creator; a definition outlives the Consent that created it")
   case object DynamicData_UserId                               extends UserReference(UseOnBehalfOfUserId   , "code.DynamicData.DynamicData", List("UserId"), "personal rows, and the one reference where the redirect MUST be symmetric: MapppedDynamicDataProvider resolves on save/update/get/delete alike, because a row keyed by this column on both sides is otherwise written by an agent and then invisible to it")
+  case object DynamicData_CreatedByUserId                       extends UserReference(UseOnBehalfOfUserId   , "code.DynamicData.DynamicData", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both: who made the call that created the record, agent included, and the person it was made for; published in the v7.0.0 record metadata")
+  case object DynamicData_UpdatedByUserId                       extends UserReference(UseOnBehalfOfUserId   , "code.DynamicData.DynamicData", List("UpdatedByUserId", "UpdatedByOnBehalfOfUserId"), "record both: as DynamicData_CreatedByUserId, for the call that last saved the record")
   case object DynamicDataAccess_UserId                         extends UserReference(UseOnBehalfOfUserId   , "code.DynamicData.DynamicDataAccess", List("UserId"), "row-level ACL. Deliberately still on the consent user today, because the bootstrap grant and the allows check have to agree with each other -- rows strand, nothing leaks. A later Phase 2 row; see the plan")
   case object DynamicEndpoint_UserId                           extends UserReference(UseOnBehalfOfUserId   , "code.DynamicEndpoint.DynamicEndpoint", List("UserId"), "the dynamic endpoint's creator; outlives the Consent")
   case object DynamicResourceDoc_CreatedByUserId               extends UserReference(UseOnBehalfOfUserId   , "code.dynamicResourceDoc.DynamicResourceDoc", List("CreatedByUserId", "UpdatedByUserId"), "and UpdatedByUserId; a dynamic artefact outlives the Consent that created it")
@@ -273,6 +275,8 @@ object UserReference {
     UserAuthContextUpdate_UserId,
     DynamicEntity_UserId,
     DynamicData_UserId,
+    DynamicData_CreatedByUserId,
+    DynamicData_UpdatedByUserId,
     DynamicDataAccess_UserId,
     DynamicEndpoint_UserId,
     DynamicResourceDoc_CreatedByUserId,

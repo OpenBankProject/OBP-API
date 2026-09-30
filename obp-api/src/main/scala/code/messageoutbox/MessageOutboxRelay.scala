@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.messageoutbox
 
 import code.actorsystem.ObpActorSystem
+import code.api.util.CommonsEmailWrapper
 import code.bankconnectors.opencorridor.OpenCorridorPublisher
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Failure, Full}
@@ -35,6 +36,7 @@ import org.json4s._
 import org.json4s.native.Serialization
 
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -66,6 +68,11 @@ import scala.concurrent.duration._
  *    the bank's CBS refusing the credit itself (unknown account, name
  *    mismatch) — the asynchronous beneficiary refusal, distinct from the
  *    transient CBS-DELIVERY-FAILED.
+ *
+ * EMAIL: each row is first claimed (MessageOutbox.claimForDelivery), so with
+ * several instances only one sends it. Sent → DELIVERED. Not sent → stays
+ * PENDING and is retried with the same backoff, until maxEmailAttempts, then
+ * STICKY (an address or mail server an operator must look at).
  */
 object MessageOutboxRelay extends MdcLoggable {
 
@@ -76,6 +83,11 @@ object MessageOutboxRelay extends MdcLoggable {
   private val maxBackoff = 10.minutes
   /** Cap on how long one row's publish may block the (serial) relay pass. */
   private val perRowTimeout = 60.seconds
+  /** Attempts after which an EMAIL row that could not be sent goes STICKY. */
+  private val maxEmailAttempts = 8
+  /** A pass can outlast the interval (many emails, or a slow publish); the scheduler would then
+    * start another over the same PENDING rows and deliver them twice. */
+  private val passRunning = new AtomicBoolean(false)
 
   // OPEN_CORRIDOR errors retrying cannot fix. CBS-DELIVERY-FAILED is
   // deliberately NOT here: a CBS being down is transient, and with credit
@@ -98,8 +110,11 @@ object MessageOutboxRelay extends MdcLoggable {
       interval = scala.concurrent.duration.Duration(intervalSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
         def run(): Unit =
-          try relayOnePass()
-          catch { case e: Throwable => logger.error("message outbox relay pass failed", e) }
+          if (passRunning.compareAndSet(false, true)) {
+            try relayOnePass()
+            catch { case e: Throwable => logger.error("message outbox relay pass failed", e) }
+            finally passRunning.set(false)
+          }
       }
     )
     logger.info(s"message outbox relay started (interval ${intervalSeconds}s)")
@@ -108,7 +123,11 @@ object MessageOutboxRelay extends MdcLoggable {
   /** One pass over the PENDING rows that are due (backoff by attempts). */
   def relayOnePass(): Unit = {
     val now = System.currentTimeMillis()
-    val due = MessageOutbox.pending().filter { row =>
+    // Open Corridor rows are only relayed where Open Corridor is enabled; emails always are.
+    val openCorridorEnabled = code.api.util.APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
+    val due = MessageOutbox.pending()
+      .filter(row => row.outboxType != MessageOutbox.TYPE_OPEN_CORRIDOR || openCorridorEnabled)
+      .filter { row =>
       val backoff = (baseBackoff * math.pow(2, math.min(row.attempts, 6)).toLong).min(maxBackoff)
       row.UpdatedAt.get.getTime + backoff.toMillis <= now || row.attempts == 0
     }
@@ -118,11 +137,39 @@ object MessageOutboxRelay extends MdcLoggable {
 
   def relayRow(row: MessageOutbox): Unit = row.outboxType match {
     case MessageOutbox.TYPE_OPEN_CORRIDOR => relayOpenCorridorRow(row)
+    case MessageOutbox.TYPE_EMAIL => relayEmailRow(row)
     case other =>
       row.Status(MessageOutbox.STATUS_STICKY).Attempts(row.attempts + 1)
         .LastError(s"no publisher registered for outbox_type '$other'").saveMe()
       logger.error(s"message outbox row ${row.id.get}: unknown outbox_type '$other' — STICKY")
   }
+
+  private def relayEmailRow(read: MessageOutbox): Unit =
+    // Another instance's relay may have claimed it first; then it is theirs to send.
+    if (MessageOutbox.claimForDelivery(read)) {
+      val row = MessageOutbox.find(net.liftweb.mapper.By(MessageOutbox.id, read.id.get)).openOrThrowException("claimed row")
+      val sent: Box[String] =
+        try {
+          val email = MessageOutbox.emailPayload(row).toEmailContent
+          if (email.htmlContent.isDefined) CommonsEmailWrapper.sendHtmlEmail(email)
+          else CommonsEmailWrapper.sendTextEmail(email)
+        } catch { case e: Throwable => Failure(s"email send failed: ${e.getMessage}") }
+      sent match {
+        case Full(messageId) =>
+          row.Status(MessageOutbox.STATUS_DELIVERED).LastError("").LastReplyJson(messageId).saveMe()
+          logger.info(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} DELIVERED")
+        case failure =>
+          val error = failure match {
+            case Failure(msg, _, _) => msg
+            case _ => "not sent (see the email log)"
+          }
+          // The claim already counted this attempt.
+          val status = if (row.attempts >= maxEmailAttempts) MessageOutbox.STATUS_STICKY else MessageOutbox.STATUS_PENDING
+          row.Status(status).LastError(error.take(2000)).saveMe()
+          logger.warn(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} " +
+            s"not sent (attempt ${row.attempts}, now $status): $error")
+      }
+    }
 
   private def relayOpenCorridorRow(row: MessageOutbox): Unit = {
     val replyBox: Box[com.openbankproject.commons.dto.InBoundOpenCorridorReply] =

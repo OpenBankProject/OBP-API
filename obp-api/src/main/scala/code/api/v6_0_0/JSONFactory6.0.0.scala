@@ -468,8 +468,11 @@ case class MetricJsonV600(
     verb: String,
     correlation_id: String,
     duration: Long,
+    // The client address OBP-API decided on (see the Client IP Address glossary item)
     source_ip: String,
     target_ip: String,
+    // The hops the request passed through: the X-Forwarded-For chain it arrived with, then the TCP peer
+    forwarded_for: String,
     response_body: org.json4s.JValue,
     status_code: Int,
     operation_id: String,
@@ -1768,6 +1771,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       duration = metric.getDuration(),
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
+      forwarded_for = Option(metric.getForwardedFor()).getOrElse(""),
       response_body = com.openbankproject.commons.util.JsonAliases.parseOpt(metric.getResponseBody()).getOrElse(org.json4s.JString("Not enabled")),
       status_code = metric.getHttpCode(),
       operation_id = operationId,

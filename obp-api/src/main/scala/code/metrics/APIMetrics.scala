@@ -125,6 +125,7 @@ trait APIMetrics {
                  responseBody: String,
                  sourceIp: String,
                  targetIp: String,
+                 forwardedFor: String,
                  apiInstanceId: String,
                  consentReferenceId: String,
                  certificateTrust: String,
@@ -148,6 +149,7 @@ trait APIMetrics {
                          responseBody: String,
                          sourceIp: String,
                          targetIp: String,
+                         forwardedFor: String,
                          apiInstanceId: String,
                          consentReferenceId: String,
                          certificateTrust: String,
@@ -208,6 +210,7 @@ trait APIMetric {
   def getResponseBody(): String
   def getSourceIp(): String
   def getTargetIp(): String
+  def getForwardedFor(): String
   def getApiInstanceId(): String
   def getConsentReferenceId(): String
   def getCertificateTrust(): String
