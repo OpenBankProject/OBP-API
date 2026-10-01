@@ -33,8 +33,8 @@ import org.json4s.JsonAST.{JBool, JObject, JValue}
 
 /**
  * A join adds to each record of a page something about the records of another entity that are linked
- * to it by a `reference:` field. It is the join machinery Dynamic Views are built on (see
- * ideas/DYNAMIC_ENTITY_VIEWS.md); no endpoint accepts a join from a caller.
+ * to it by a `reference:` field. It is the join machinery Dynamic Queries are built on (see
+ * ideas/DYNAMIC_QUERIES.md); no endpoint accepts a join from a caller.
  *
  * A reference field links two entities, and it can be read from either end:
  *  - forward: the record's own field names the other record. An `activity` whose `operator_id` is

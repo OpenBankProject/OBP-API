@@ -9586,6 +9586,9 @@ object Http4s400 {
           cc = Some(cc)) {
           code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
         }
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicQueryInvalid${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+          code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(body.programmingLang, body.requestVerb)
+        }
       } yield ()
     }
 
@@ -9604,9 +9607,9 @@ object Http4s400 {
       code.util.Helper.booleanToFuture(s"$InvalidJsonFormat ${tooLong.mkString("; ")}", cc = Some(cc)) { tooLong.isEmpty }.map(_ => ())
     }
 
-    private def compileDynamicResourceDoc(body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
+    private def compileDynamicResourceDoc(bankId: Option[String], body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
       try {
-        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang).validateDependency()
+        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, bankId).validateDependency()
       } catch {
         case e: JsonResponseException => throw e
         case e: Exception =>
@@ -9633,14 +9636,17 @@ object Http4s400 {
 
     private def createDynamicResourceDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
-        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
           com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JsonDynamicResourceDoc]
         }
+        // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+          DynamicUtil.dynamicCodeExecutionEnabled || CompiledObjects.isQuery(body.programmingLang)
+        }
         _ <- validateDynamicResourceDocBody(body, cc)
-        _ = compileDynamicResourceDoc(body, cc)
+        _ = compileDynamicResourceDoc(bankId.orElse(body.bankId), body, cc)
         (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(
           bankId, body.requestVerb, body.requestUrl, Some(cc))
         _ <- code.util.Helper.booleanToFuture(
@@ -9654,14 +9660,17 @@ object Http4s400 {
 
     private def updateDynamicResourceDocImpl(bankId: Option[String], dynamicResourceDocId: String, rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
-        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
           com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JsonDynamicResourceDoc]
         }
+        // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+          DynamicUtil.dynamicCodeExecutionEnabled || CompiledObjects.isQuery(body.programmingLang)
+        }
         _ <- validateDynamicResourceDocBody(body, cc)
-        _ = compileDynamicResourceDoc(body, cc)
+        _ = compileDynamicResourceDoc(bankId.orElse(body.bankId), body, cc)
         (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.UPDATE, Some(dynamicResourceDocId), 200, cc) {
           NewStyle.function.updateJsonDynamicResourceDoc(

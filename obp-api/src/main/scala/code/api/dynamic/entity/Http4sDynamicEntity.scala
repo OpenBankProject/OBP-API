@@ -31,7 +31,7 @@ import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProv
 import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, DynamicEntitySpace, EntityAccessName, EntityName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, JoinTargetInfo, QueryParamParser, QueryPlan, QueryPlanner}
-import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionProvisioner}
+import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionReadiness}
 import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
@@ -439,28 +439,15 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def joinParamsPresent(req: Request[IO]): Boolean =
     queryParams(req).keys.exists(k => k.startsWith("obp_exists[") || k.startsWith("obp_not_exists["))
 
-  private def planFields(plan: QueryPlan): List[String] =
-    (plan.filters.map(_.field) ++ plan.sort.map(_.field)).distinct
-
   private def decideProjection(req: Request[IO], bankId: Option[String], entityName: String, plan: QueryPlan): ProjDecision =
     if (plan.joins.nonEmpty) {
       // Joins are projection-only. Legacy bare params can't combine with joins (they force in-memory).
       if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req)) JoinsNeedProjection
-      else {
-        val parentReady = ProjectionProvisioner.readyFields(bankId, entityName)
-        val parentFieldsReady = planFields(plan).forall(parentReady.contains)
-        val joinsReady = plan.joins.forall { j =>
-          val childReady = ProjectionProvisioner.readyFields(bankId, j.childEntity)
-          val linkReady  = if (j.onChild) childReady.contains(j.linkField) else parentReady.contains(j.linkField)
-          linkReady && j.predicate.map(_.field).forall(childReady.contains)
-        }
-        if (parentFieldsReady && joinsReady) UseProjection else PendingProjection
-      }
-    } else if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || planFields(plan).isEmpty) UseInMemory
-    else {
-      val ready = ProjectionProvisioner.readyFields(bankId, entityName)
-      if (planFields(plan).forall(ready.contains)) UseProjection else PendingProjection
-    }
+      else if (ProjectionReadiness.ready(bankId, entityName, plan)) UseProjection
+      else PendingProjection
+    } else if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || ProjectionReadiness.planFields(plan).isEmpty) UseInMemory
+    else if (ProjectionReadiness.ready(bankId, entityName, plan)) UseProjection
+    else PendingProjection
 
   private def projectionList(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): Future[JArray] =
     PostgresProjectionBackend.query(entityName, bankId, userId, isPersonalEntity, plan).map(JArray(_)).unsafeToFuture()(ioRuntime)

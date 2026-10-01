@@ -52,7 +52,25 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
 
   def name: String = "postgres-projection"
 
-  def query(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): IO[List[JObject]] = {
+  def query(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): IO[List[JObject]] =
+    statement(entityName, bankId, userId, isPersonalEntity, plan, counting = false) match {
+      case Some(q) => ProjectionDb.run(q.query[String].to[List]).map(_.map(s => com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[JObject]))
+      case None    => IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
+    }
+
+  /**
+   * How many records the plan's filters and joins match, ignoring its sort and page: the total a
+   * paged response can report alongside one page. Same statement as [[query]], counted.
+   */
+  def count(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): IO[Long] =
+    statement(entityName, bankId, userId, isPersonalEntity, plan, counting = true) match {
+      case Some(q) => ProjectionDb.run(q.query[Long].unique)
+      case None    => IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
+    }
+
+  /** The SELECT for a plan: the matching blobs in order and paged, or (`counting`) their number. None if a field cannot resolve. */
+  private def statement(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean,
+                        plan: QueryPlan, counting: Boolean): Option[Fragment] = {
     val indexed   = DynamicEntityHelper.definitionOf(bankId, entityName).map(_.indexedFields).getOrElse(Map.empty)
     val safeTable = ProjectionNaming.tableName(bankId, entityName)
     val P = "p"; val D = "d"
@@ -72,15 +90,14 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
         val whereAll  =
           if (condParts.isEmpty) fr"WHERE" ++ scope
           else fr"WHERE" ++ scope ++ fr"AND" ++ ProjectionSql.intercalate(condParts, fr"AND")
-        val q =
-          fr"SELECT" ++ Fragment.const(s"$D.${ProjectionStore.jsonColumn}") ++
+        val selected = if (counting) fr"count(*)" else Fragment.const(s"$D.${ProjectionStore.jsonColumn}")
+        Some(
+          fr"SELECT" ++ selected ++
           fr"FROM" ++ Fragment.const(s"$safeTable $P") ++
           fr"JOIN" ++ Fragment.const(s"${ProjectionStore.blobTable} $D") ++
           fr"ON" ++ Fragment.const(s"$D.${ProjectionStore.idColumn} = $P.data_id") ++
-          whereAll ++ ords ++ ProjectionSql.limitOffset(plan)
-        ProjectionDb.run(q.query[String].to[List]).map(_.map(s => com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[JObject]))
-      case _ =>
-        IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
+          whereAll ++ (if (counting) Fragment.empty else ords ++ ProjectionSql.limitOffset(plan)))
+      case _ => None
     }
   }
 

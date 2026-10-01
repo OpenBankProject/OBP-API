@@ -365,7 +365,7 @@ object MakerChecker extends MdcLoggable {
         for {
           body <- parseAs[JsonDynamicResourceDoc](request.proposedPayload)
           _ <- compileBox("dynamic resource doc") {
-            val compiled = CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang)
+            val compiled = CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, bankId)
             compiled.validateDependency()
             Full(compiled)
           }

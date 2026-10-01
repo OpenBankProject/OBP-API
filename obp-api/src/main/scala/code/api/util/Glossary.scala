@@ -3627,7 +3627,17 @@ object Glossary extends MdcLoggable  {
 |
 |**Supported field types:**
 |
-|STRING, INTEGER, DOUBLE, BOOLEAN, DATE_WITH_DAY (format: yyyy-MM-dd), JSON (objects and arrays), and reference types (foreign keys)
+|Type names are case-sensitive:
+|
+|* `string`
+|* `integer` - whole numbers of any size. A value written with a decimal point, such as 1.0, is rejected.
+|* `number` - any number. Decimals are stored as a 64-bit binary floating-point value (about 15 to 17 significant digits), so values such as 0.1 are rounded slightly. Whole numbers keep full precision.
+|* `boolean` - true/false, or the strings "true"/"false"
+|* `DATE_WITH_DAY` - a string in the format yyyy-MM-dd
+|* `json` - a JSON object or array
+|* `reference:<EntityName>` - a foreign key to another entity
+|
+|For values that must be exact, such as money, use `integer` in minor units (for example, cents) or a `string`, not `number`.
 |
 |**The hasPersonalEntity flag:**
 |
@@ -4164,6 +4174,68 @@ object Glossary extends MdcLoggable  {
 |To check a body before creating anything, `POST /obp/v7.0.0/management/dynamic-resource-docs/compile` compiles it the same way and returns the compiler's errors with line numbers relative to the body. The API Manager's Create page uses it for its Compile button and for the loop in which Opey rewrites the body until it compiles.
 |
 |See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks, and ${getGlossaryItemLink("Dynamic Change Request")} for how an operator can require a second person to approve each definition before it is compiled and served.
+|
+|The method body is Scala unless `programming_lang` says otherwise: `Java` for a Java class, or `Query` for a declaration that reads Dynamic Entity records instead of code (see ${getGlossaryItemLink("Dynamic Query")}).
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Query",
+		description =
+			s"""
+|A Dynamic Query is a ${getGlossaryItemLink("Dynamic Resource Doc")} whose body is a declaration rather than code: its `programming_lang` is `Query`. It reads the records of one Dynamic Entity, adds the records joined to them through `reference:` fields, and returns them as a named list. It is for the common case of an Endpoint that only reads Dynamic Entity data, which would otherwise need a Scala method body.
+|
+|Because nothing is compiled or run, a Dynamic Query is available even where user-supplied code is switched off, and a reviewer approving one (see ${getGlossaryItemLink("Dynamic Change Request")}) reads a declaration, not a program. A Dynamic Query only reads, so its `request_verb` must be `GET`.
+|
+|**The body**
+|
+|    {
+|      "from": "activity",
+|      "select": ["activity_id", "name", "city"],
+|      "where": { "city": "eq:Berlin" },
+|      "join": [
+|        { "entity": "operator", "on": "operator_id",
+|          "fields": { "operator_legal_name": "legal_name" } },
+|        { "entity": "certificate", "on": "activity_id",
+|          "cardinality": "at_most_one", "pick": "latest_by:issue_date",
+|          "fields": { "certificate_number": "number" } },
+|        { "entity": "inspection", "on": "activity_id",
+|          "cardinality": "exists", "as": "inspected" }
+|      ],
+|      "envelope": { "rows": "activities", "count": "count" }
+|    }
+|
+|* `from` (required): the Dynamic Entity whose records are returned.
+|* `select`: the fields of those records to return, in this order. All of them when absent.
+|* `where`: filters on them, written as the list Endpoint's `obp_filter` values (`"field": "eq:value"`, or a list of such strings for several filters on one field). Filtered fields must be declared `"indexed": true`.
+|* `join`: the related records to add to each record. See below.
+|* `envelope`: `rows` names the list (by default the entity's own list name) and `count`, when given, names a field holding how many records match in all, not only on this page.
+|
+|Keys that are not listed here are rejected, so a misspelt key is reported rather than ignored.
+|
+|**Joins**
+|
+|A `reference:` field links two entities, and a join can read it from either end. A *forward* join follows the record's own field to the record it names: an activity's `operator_id` names one operator. A *reverse* join finds the records of the other entity whose field names this record: certificates whose `activity_id` names the activity. The join only names the other `entity` and the field it is linked `on`; OBP sees which entity holds that field and works out the direction. Only for a self-reference, such as `employee.manager_id` of type `reference:employee` (the manager, or the direct reports?), must the join add `"direction": "forward"` or `"reverse"`.
+|
+|`cardinality` says what to do with the matching records:
+|
+|* `at_most_one` copies the fields of one record into the result (`fields` maps each result name to a field of that record). A forward join is `at_most_one` unless it says otherwise. A reverse join that is `at_most_one` must say how to choose when several records match, with `pick`: `latest_by:<field>` or `earliest_by:<field>`. A record without that field is never chosen ahead of one with it, and ties are broken by record id.
+|* `many` gives a list named `as`, one object per matching record with the `fields` given, ordered by `order` (`latest_by:` or `earliest_by:`), or by record id when absent. Only a reverse join can be `many`.
+|* `exists` gives one value named `as`: `true_value` if any record matches, `false_value` if none (JSON true and false by default).
+|
+|A join's `where` filters the other records before the cardinality applies, with the same operators as above. The field a reverse join is linked on must be declared `"indexed": true`.
+|
+|**Calling a Dynamic Query**
+|
+|A caller can narrow the result with the list Endpoint's own parameters: `obp_filter`, `obp_sort_by`, `obp_sort_direction`, `obp_limit`, `obp_offset`, `obp_exists` and `obp_not_exists`. They are added to the declaration's `where`, never replace it.
+|
+|**What a caller can see**
+|
+|A Dynamic Query never shows a caller more than they could read directly. On top of any Roles the Dynamic Resource Doc requires, the caller must be able to read every Dynamic Entity the query reads (its read Role, public access, or row-level access), or the answer is ${ErrorMessages.DynamicQueryEntityNotReadable.takeWhile(_ != ':')}. Only shared records are used, never a User's personal records. For an entity with row-level access only the records the caller's access list allows are used. A field that requires a read Role is null (or left out, when not selected) unless the caller holds that Role, and the caller cannot filter or sort on it. A joined value is null when there is no matching record, when the caller may not read it, or when it lacks the field: these cases look the same, so a join never reveals that a hidden record exists.
+|
+|**Checking a body**
+|
+|Creating, updating or validating a Dynamic Query checks it against the Dynamic Entity definitions of its space, and `POST /obp/v7.0.0/management/dynamic-resource-docs/compile` does the same with `programming_lang` `Query`. Problems are reported as ${ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}.
 |
 """.stripMargin)
 

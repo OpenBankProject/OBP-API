@@ -38,7 +38,7 @@ import net.liftweb.util.StringHelpers
 import org.json4s.JsonAST._
 
 /**
- * This suite checks the join machinery of Dynamic Views against the real record store: joins planned
+ * This suite checks the join machinery of Dynamic Queries against the real record store: joins planned
  * from stored definitions, in both directions (forward: the record's reference field names the other
  * record; reverse: the other records' reference field names this one), applied with the access rules:
  * shared records only, the row-level access list, and read-restricted fields.

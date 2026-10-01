@@ -33,7 +33,8 @@ import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, 
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
 import code.api.util.DynamicUtil.{DynamicCodeBody, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, Http4sEndpointIO, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
-import code.api.util.{APIUtil, CallContext, DynamicUtil}
+import code.api.util.{APIUtil, CallContext, DynamicUtil, ErrorMessages}
+import code.api.JsonResponseException
 import net.liftweb.common.{Box, Failure, Full}
 import org.json4s.{JNothing, JValue}
 import org.json4s.JsonAST.{JBool, JDouble, JInt, JString}
@@ -111,10 +112,23 @@ object CompiledObjects {
    * validate and the dry-run compile all check against it, and CompiledObjects chooses its compiler
    * from the same normalised value, so nothing that passes the check can reach the wrong compiler.
    */
-  val supportedLanguages: List[String] = List("scala", "java")
+  val supportedLanguages: List[String] = List("scala", "java", "query")
   def isSupportedLanguage(programmingLang: String): Boolean =
     supportedLanguages.contains(APIUtil.normaliseDynamicCodeLanguage(programmingLang))
-  val supportedLanguagesText: String = "Scala, Java"
+  val supportedLanguagesText: String = "Scala, Java, Query"
+
+  /**
+   * True when the body is a Dynamic Query (`programming_lang` `Query`): a declaration, not code. It
+   * runs no user code, so the switch for user-supplied code (`allow_user_generated_scala_code`) does
+   * not apply to it, and it is read-only, so its doc's request_verb must be GET.
+   */
+  def isQuery(programmingLang: String): Boolean = APIUtil.normaliseDynamicCodeLanguage(programmingLang) == "query"
+
+  /** A Dynamic Query only reads; every other language may use any verb. */
+  def verbAllowed(programmingLang: String, requestVerb: String): Boolean =
+    !isQuery(programmingLang) || requestVerb == "GET"
+
+  val queryVerbMessage: String = "A Dynamic Query only reads, so its request_verb must be GET."
 
   /**
    * The native http4s template a method body is inlined into. Returns the full source and the
@@ -167,13 +181,25 @@ object CompiledObjects {
    * diagnostics with line numbers relative to the method body the author wrote, in the body's
    * programming language (Scala or Java). Empty = compiles.
    */
-  def compileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String, programmingLang: String = "Scala"): List[DynamicUtil.CompileProblem] = {
+  def compileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String,
+                      programmingLang: String = "Scala", bankId: Option[String] = None): List[DynamicUtil.CompileProblem] = {
     val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
     // Java bodies are compiled as written (no template, no generated case classes), so the example
-    // bodies play no part, as they play none in CompiledObjects' own Java branch.
-    if (APIUtil.normaliseDynamicCodeLanguage(programmingLang) == "java") DynamicUtil.checkJavaCode(decodedMethodBody)
-    else scalaCompileProblems(exampleRequestBody, successResponseBody, decodedMethodBody)
+    // bodies play no part, as they play none in CompiledObjects' own Java branch. A Dynamic Query is
+    // not compiled at all: its problems are the declaration's, which have no line numbers.
+    APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
+      case "java" => DynamicUtil.checkJavaCode(decodedMethodBody)
+      case "query" => queryProblem(decodedMethodBody, bankId).map(message => DynamicUtil.CompileProblem(0, 0, "ERROR", message)).toList
+      case _ => scalaCompileProblems(exampleRequestBody, successResponseBody, decodedMethodBody)
+    }
   }
+
+  /** What is wrong with a Dynamic Query body, in full (error code included), or None when it is valid in `bankId`'s space. */
+  def queryProblem(decodedMethodBody: String, bankId: Option[String]): Option[String] =
+    code.api.dynamic.entity.query.DynamicQueryDeclaration.parse(decodedMethodBody) match {
+      case Left(error) => Some(s"${ErrorMessages.DynamicQueryInvalid}${error.message}")
+      case Right(declaration) => code.api.dynamic.entity.query.DynamicQuery.validate(bankId, declaration).left.toOption.map(_.message)
+    }
 
   private def scalaCompileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], decodedMethodBody: String): List[DynamicUtil.CompileProblem] = {
     val requestBody: Product = exampleRequestBody match {
@@ -205,17 +231,40 @@ object CompiledObjects {
   }
 }
 
-case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String, programmingLang: String = "Scala") {
+/**
+ * `bankId` is the Dynamic Entity space of the doc (None for the system space). Only a Dynamic Query
+ * uses it: its declaration names entities, which are looked up in that space.
+ */
+case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String,
+                           programmingLang: String = "Scala", bankId: Option[String] = None) {
   val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
+  private val isQuery = CompiledObjects.isQuery(programmingLang)
+  // The stored doc of a system-level Dynamic Resource Doc carries Some(null) here, not None.
+  private val space: Option[String] = bankId.flatMap(Option(_)).map(_.trim).filter(_.nonEmpty)
+
+  // A Dynamic Query compiles nothing, not even case classes for its examples: toCaseObject generates
+  // and compiles Scala, which is refused where user-supplied code is switched off. Its examples are
+  // carried as JSON, which the resource-docs serialisation renders as they are.
+  private def exampleOf(json: Option[JValue]): Product =
+    if (!isQuery) toCaseObject(json)
+    else json.filter(j => j != JNothing && j != JNull).map(code.api.berlin.group.v1_3.JvalueCaseClass(_)).getOrElse(EmptyBody)
+
   val requestBody: Product = exampleRequestBody match {
       //this case means, we accept the empty string "" from json post body, we need to map it to None.
-    case Some(JString(s)) if StringUtils.isBlank(s) => toCaseObject(None)
+    case Some(JString(s)) if StringUtils.isBlank(s) => exampleOf(None)
      // Here we will generate the object by the JValue (exampleRequestBody)
-    case _ => toCaseObject(exampleRequestBody)
+    case _ => exampleOf(exampleRequestBody)
   }
-  val successResponse: Product = toCaseObject(successResponseBody)
+  val successResponse: Product = exampleOf(successResponseBody)
 
   private val partialFunction: Http4sEndpointIO = APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
+    case "query" =>
+      // A declaration, not code: parsed here (a malformed body cannot be served), checked against the
+      // entity definitions by validateDependency, and run per request by DynamicQueryEndpoint.
+      code.api.dynamic.entity.query.DynamicQueryDeclaration.parse(decodedMethodBody) match {
+        case Right(declaration) => DynamicQueryEndpoint(declaration, space)
+        case Left(error) => throw JsonResponseException(s"${ErrorMessages.DynamicQueryInvalid}${error.message}", 400, "none")
+      }
     case "java" =>
       DynamicUtil.createJavaHttp4sEndpoint(decodedMethodBody) match {
         case Full(func) => func
@@ -286,6 +335,8 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    */
   def validateDependency() = APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
     case "java" => ()
+    // A Dynamic Query calls no methods; what it is checked against is the entity definitions of its space.
+    case "query" => CompiledObjects.queryProblem(decodedMethodBody, space).foreach(message => throw JsonResponseException(message, 400, "none"))
     case _ => Validation.validateDependency(this.partialFunction)
   }
 
@@ -294,7 +345,7 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    * author wrote (the wrapper's own lines are subtracted). Empty = compiles. Nothing is evaluated or cached.
    */
   def compileProblems(): List[DynamicUtil.CompileProblem] =
-    CompiledObjects.compileProblems(exampleRequestBody, successResponseBody, methodBody, programmingLang)
+    CompiledObjects.compileProblems(exampleRequestBody, successResponseBody, methodBody, programmingLang, space)
 
   /**
    * Wraps the compiled partial function as an endpoint. This used to bind a per-bank

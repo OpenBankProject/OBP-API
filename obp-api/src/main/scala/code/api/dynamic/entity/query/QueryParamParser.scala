@@ -115,7 +115,7 @@ object QueryParamParser {
     sequence(perKey).map(_.flatten)
   }
 
-  private def parseOneFilter(field: String, raw: String): Either[QueryError, Filter] = {
+  private[query] def parseOneFilter(field: String, raw: String): Either[QueryError, Filter] = {
     val idx = raw.indexOf(':')
     if (idx < 0)
       // No ':' — only a nullary operator (is_null / not_set) is valid in this form.

@@ -4674,25 +4674,42 @@ object Http4s600 {
               cc = Some(cc)) {
               code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
             }
-          } yield try {
-            code.api.dynamic.endpoint.helper.CompiledObjects(
-              body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang).validateDependency()
-            ValidateDynamicResourceDocSuccessJsonV600(
-              valid = true,
-              message = s"Dynamic Resource Doc method body is valid ${body.programmingLang} and uses allowed dependencies.")
-          } catch {
-            case e: code.api.JsonResponseException =>
-              val errorText = e.jsonResponse match {
-                case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
-                case _ => ""
-              }
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
-            case e: Exception =>
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            _ <- Helper.booleanToFuture(s"$DynamicQueryInvalid${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(body.programmingLang, body.requestVerb)
+            }
+          } yield {
+            val isQuery = code.api.dynamic.endpoint.helper.CompiledObjects.isQuery(body.programmingLang)
+            try {
+              code.api.dynamic.endpoint.helper.CompiledObjects(
+                body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, body.bankId).validateDependency()
+              ValidateDynamicResourceDocSuccessJsonV600(
+                valid = true,
+                message =
+                  if (isQuery) "Dynamic Query declaration is valid."
+                  else s"Dynamic Resource Doc method body is valid ${body.programmingLang} and uses allowed dependencies.")
+            } catch {
+              // A Dynamic Query is checked against the entity definitions, not a dependency allowlist.
+              case e: code.api.JsonResponseException if isQuery =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicQueryInvalid,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "QueryError"))
+              case e: code.api.JsonResponseException =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
+              case e: Exception =>
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            }
           }
         }
     }

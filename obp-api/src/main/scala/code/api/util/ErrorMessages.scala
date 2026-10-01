@@ -1017,6 +1017,8 @@ object ErrorMessages {
     "A payment started on somebody else's behalf is authorised by that person, not by the caller that started it."
   val PaymentChallengeHasNoOnBehalfOfUser = "OBP-40064: This payment needs Strong Customer Authentication, but the user it is being made for could not be determined, " +
     "so there is nobody who can be asked to authorise it. A consent that names the user it acts for is required before a payment of this size can be started."
+  val DynamicQueryInvalid = "OBP-40065: The Dynamic Query cannot be run as written. "
+  val DynamicQueryEntityNotReadable = "OBP-40066: This Dynamic Query reads a Dynamic Entity you may not read. "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
