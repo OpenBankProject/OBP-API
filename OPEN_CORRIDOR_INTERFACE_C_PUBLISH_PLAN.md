@@ -356,10 +356,11 @@ parts:
 > (`OBP-OUTGOING-SETTLEMENT-ACCOUNT` → `OBP-INCOMING-SETTLEMENT-ACCOUNT`),
 > writes `settled_by_transaction_ids` AND `settled_by_transaction_request_id`
 > (TR B's id — kept even at net zero) attributes on each covered promise,
-> flips them COMPLETED, and enqueues the messages into the `OpenCorridorOutbox`
-> Mapper table in the same request DB transaction. `OpenCorridorOutboxRelay`
-> (Boot-started when `open_corridor_enabled`, `open_corridor.outbox_relay_interval`
-> default 10s) publishes with exponential backoff and records each §4.2 reply:
+> flips them COMPLETED, and enqueues the messages into the `MessageOutbox`
+> Mapper table in the same request DB transaction. `MessageOutboxRelay`
+> (Boot-started on every instance, relaying Open Corridor rows only when
+> `open_corridor_enabled`; interval `message_outbox.relay_interval_seconds`,
+> default 10s, formerly `open_corridor.outbox_relay_interval`) publishes with exponential backoff and records each §4.2 reply:
 > settlement rows stay PENDING through SUBMITTED/SETTLING (redelivery-as-polling,
 > §4.4) until FINAL; refutable business errors (COMMITMENT-MISMATCH etc.) go
 > STICKY for operator reconciliation, never swallowed. Fails fast pre-mutation
