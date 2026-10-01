@@ -109,9 +109,10 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       .Tags(entity.tags)
       .Roles(entity.roles)
       .MethodBody(entity.methodBody)
+      .Lang(entity.programmingLang)
       // provenance is set here from the authenticated user + computed hash, not from `entity`
       .CreatedByUserId(createdByUserId.getOrElse(null))
-      .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
+      .MethodBodyHash(APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody))
       .saveMe()
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
@@ -134,9 +135,10 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
             .Tags(entity.tags)
             .Roles(entity.roles)
             .MethodBody(entity.methodBody)
+            .Lang(entity.programmingLang)
             // CreatedByUserId is left untouched; record who last changed the code + refresh the hash
             .UpdatedByUserId(updatedByUserId.getOrElse(null))
-            .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
+            .MethodBodyHash(APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody))
             .saveMe()
         }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
       case _ => Empty
