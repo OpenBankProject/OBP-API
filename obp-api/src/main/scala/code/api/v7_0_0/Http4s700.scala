@@ -5893,7 +5893,7 @@ object Http4s700 {
       "GET",
       "/management/dynamic-resource-docs",
       "Get Dynamic Resource Docs (with provenance)",
-      s"""Returns all Dynamic Resource Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+      s"""Returns all Dynamic Resource Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its programming language and method body.
         |
         |This is the v7.0.0 read view of the v4.0.0 Dynamic Resource Docs; create / update / delete remain on v4.0.0.
         |
@@ -5951,7 +5951,7 @@ object Http4s700 {
       "GET",
       "/management/connector-methods",
       "Get Connector Methods (with provenance)",
-      s"""Returns all Connector Methods, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+      s"""Returns all Connector Methods, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its programming language and method body.
         |
         |This is the v7.0.0 read view of the v4.0.0 Connector Methods; create / update remain on v4.0.0.
         |
@@ -6009,7 +6009,7 @@ object Http4s700 {
       "GET",
       "/management/dynamic-message-docs",
       "Get Dynamic Message Docs (with provenance)",
-      s"""Returns all Dynamic Message Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+      s"""Returns all Dynamic Message Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its programming language and method body.
         |
         |This is the v7.0.0 read view of the v4.0.0 Dynamic Message Docs; create / update / delete remain on v4.0.0.
         |
@@ -6821,15 +6821,21 @@ object Http4s700 {
             _ <- code.util.Helper.booleanToFuture(s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc = Some(cc)) {
               Set("POST", "PUT", "GET", "DELETE").contains(body.request_verb)
             }
+            programmingLang = body.programming_lang.getOrElse("Scala")
+            _ <- code.util.Helper.booleanToFuture(
+              s"""${code.api.util.ErrorMessages.DynamicCodeLangNotSupport} programming_lang $programmingLang, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
+              cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(programmingLang)
+            }
             result <- Future {
               val start = System.currentTimeMillis()
-              val problems = scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects.compileProblems(body.example_request_body, body.success_response_body, body.method_body)) match {
+              val problems = scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects.compileProblems(body.example_request_body, body.success_response_body, body.method_body, programmingLang)) match {
                 case scala.util.Success(ps) => ps
                 case scala.util.Failure(e) => List(code.api.util.DynamicUtil.CompileProblem(0, 0, "ERROR", Option(e.getMessage).getOrElse(e.toString)))
               }
               val dependencyError: Option[String] =
                 if (problems.nonEmpty) None
-                else scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects(body.example_request_body, body.success_response_body, body.method_body).validateDependency()) match {
+                else scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects(body.example_request_body, body.success_response_body, body.method_body, programmingLang).validateDependency()) match {
                   case scala.util.Success(_) => None
                   case scala.util.Failure(e: code.api.JsonResponseException) => Some(com.openbankproject.commons.util.JsonAliases.compactRender(e.jsonResponse.body))
                   case scala.util.Failure(e) => Some(Option(e.getMessage).getOrElse(e.toString))
@@ -6855,11 +6861,17 @@ object Http4s700 {
         |Send the fields that shape the compiled code: `request_verb`, `request_url`, the URL-encoded `method_body`, and the optional
         |`example_request_body` and `success_response_body` (they become the generated `RequestRootJsonClass` / `ResponseRootJsonClass`).
         |
-        |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's wrapper lines are
+        |`programming_lang` is the language of the method body, as on Create Dynamic Resource Doc: one of ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}.
+        |It is optional and defaults to Scala. Any other value is rejected with ${code.api.util.ErrorMessages.DynamicCodeLangNotSupport.takeWhile(_ != ':')}.
+        |A Java body is compiled as written, so `example_request_body` and `success_response_body` do not affect it. It must declare a public class
+        |implementing `Supplier<Function<Object[], Object>>`; the function receives the raw request body, the path parameters and the CallContext.
+        |
+        |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's added lines are
         |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_obp_calls_are_restricted` is on,
         |the dependency validator runs too and any forbidden call is reported in `dependency_error`. `compiles` is true only when both pass.
         |
-        |Nothing is evaluated or cached, but compiling is a full scalac run, so the same rules apply as for creating: the
+        |The compiler diagnostics are produced without running anything. When the body compiles, the dependency check builds it as Create would,
+        |so the same rules apply as for creating: the
         |`allow_user_generated_scala_code` kill switch, the create role, and at most $dynamicCompileCallsPerMinute calls per minute per user.
         |
         |Built for editors that let an author, or an assistant such as Opey, iterate on a body until it compiles before submitting it.
@@ -6867,7 +6879,7 @@ object Http4s700 {
         |${userAuthenticationMessage(true)}""".stripMargin,
       JSONFactory700.dynamicResourceDocCompileJsonV700Example,
       JSONFactory700.dynamicCompileResultJsonV700Example,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicCodeExecutionDisabled, code.api.util.ErrorMessages.TooManyRequests, UnknownError),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicCodeExecutionDisabled, code.api.util.ErrorMessages.DynamicCodeLangNotSupport, code.api.util.ErrorMessages.TooManyRequests, UnknownError),
       apiTagDynamicResourceDoc :: apiTagDynamic :: Nil,
       Some(List(ApiRole.canCreateDynamicResourceDoc)),
       http4sPartialFunction = Some(compileDynamicResourceDoc)

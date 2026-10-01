@@ -3411,6 +3411,29 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
+   * This is the hash stored as `MethodBodyHash` on runtime-compiled code (Dynamic Resource Docs,
+   * Dynamic Message Docs, Connector Methods), and therefore the value a maker/checker approval binds
+   * to (`ApprovedHash`).
+   *
+   * It covers the programming language as well as the body. The same text can be stored as Scala,
+   * Java or Javascript, and the runtime picks a compiler from the language, so an approval of a body
+   * as one language must not carry over when only the language is changed. The language is
+   * normalised (trimmed, lower case, blank meaning `scala`, the default every one of these types
+   * applies), because the runtime treats `Java` and `java` as the same language.
+   *
+   * The language version is deliberately not included: it is a property of the deployed runtime, not
+   * of the row, and including it would withdraw every approval at each compiler upgrade.
+   *
+   * Until 2026-10 the hash covered the body only; `MakerChecker.rehashDynamicCodeWithLanguage` moves
+   * existing rows to this form once.
+   */
+  def dynamicCodeHash(programmingLang: String, decodedMethodBody: String): String =
+    sha256Hex(normaliseDynamicCodeLanguage(programmingLang) + "\n" + Option(decodedMethodBody).getOrElse(""))
+
+  def normaliseDynamicCodeLanguage(programmingLang: String): String =
+    Option(programmingLang).map(_.trim.toLowerCase).filter(_.nonEmpty).getOrElse("scala")
+
+  /**
    *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
    *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
    */
@@ -4526,8 +4549,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * 
    * than the return value may be (getUserAndSessionContextFuture, ***,***),(map,***,***), (getOrElse,***,***) ......
    */ 
-  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
-    if (SHOW_USED_CONNECTOR_METHODS) {
+  // force bypasses the SHOW_USED_CONNECTOR_METHODS gate below -- see
+  // DynamicUtil.getDynamicCodeDependentMethods' doc comment for why security validation needs this.
+  def getDependentMethods(className: String, methodName:String, signature: String, force: Boolean = false): List[(String, String, String)] = {
+    if (SHOW_USED_CONNECTOR_METHODS || force) {
       val methods = ListBuffer[(String, String, String)]()
       //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
       //eg:  className == code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1

@@ -1857,7 +1857,6 @@ dynamic_code_allowed_obp_methods=[\
       ErrorMessages.getClass.getTypeName -> "*",\
       ExecutionContext.Implicits.getClass.getTypeName -> "global",\
       JSONFactory400.getClass.getTypeName -> "createBanksJson",\
-      classOf[Sandbox].getTypeName -> "runInSandbox",\
       classOf[CallContext].getTypeName -> "*",\
       classOf[ResourceDoc].getTypeName -> "getPathParams",\
       "scala.reflect.runtime.package\$" -> "universe",\

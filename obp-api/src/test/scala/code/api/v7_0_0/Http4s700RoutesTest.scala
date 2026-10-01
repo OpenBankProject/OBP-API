@@ -2788,7 +2788,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         Some(resourceUser1.userId)
       ).openOrThrowException("seed dynamic resource doc")
       val docId = seeded.dynamicResourceDocId.getOrElse(fail("seeded id"))
-      val expectedHash = code.api.util.APIUtil.sha256Hex(seeded.decodedMethodBody)
+      val expectedHash = code.api.util.APIUtil.dynamicCodeHash(seeded.programmingLang, seeded.decodedMethodBody)
 
       When("Unauthenticated GET of the list")
       val (unauthCode, _, _) = makeHttpRequest("/obp/v7.0.0/management/dynamic-resource-docs")
@@ -2834,7 +2834,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         Some(resourceUser1.userId)
       ).openOrThrowException("seed connector method")
       val id = seeded.connectorMethodId.getOrElse(fail("seeded id"))
-      val expectedHash = code.api.util.APIUtil.sha256Hex(seeded.decodedMethodBody)
+      val expectedHash = code.api.util.APIUtil.dynamicCodeHash(seeded.programmingLang, seeded.decodedMethodBody)
 
       addEntitlement("", resourceUser1.userId, code.api.util.ApiRole.canGetConnectorMethod.toString)
       val (code200, json, _) = makeHttpRequest(
@@ -2853,7 +2853,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         Some(resourceUser1.userId)
       ).openOrThrowException("seed dynamic message doc")
       val id = seeded.dynamicMessageDocId.getOrElse(fail("seeded id"))
-      val expectedHash = code.api.util.APIUtil.sha256Hex(seeded.decodedMethodBody)
+      val expectedHash = code.api.util.APIUtil.dynamicCodeHash(seeded.programmingLang, seeded.decodedMethodBody)
 
       addEntitlement("", resourceUser1.userId, code.api.util.ApiRole.canGetDynamicMessageDoc.toString)
       val (code200, json, _) = makeHttpRequest(

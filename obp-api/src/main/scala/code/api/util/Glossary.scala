@@ -4242,7 +4242,7 @@ object Glossary extends MdcLoggable  {
 |
 |2) The checker reads the request (`GET /obp/v7.0.0/management/dynamic-change-requests/CHANGE_REQUEST_ID`, which returns the proposed and the current payload side by side) and approves it by quoting its `payload_hash`, the SHA-256 of the exact body, on `POST .../approval`. Only then is the change applied. OBP refuses an approval from the User who made the request (`OBP-30279`).
 |
-|3) Content is approved, not records. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose body hash equals the hash a checker approved, so a row edited directly in the database does not run.
+|3) Content is approved, not records. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose code hash equals the hash a checker approved. The code hash covers the programming language as well as the method body, and is recomputed from the row each time, so a row whose body or language is edited directly in the database does not run.
 |
 |4) Deactivating an artefact is a direct action by a single checker (`POST .../deactivation`), with no request: four eyes to enable, one pair to disable. Enabling it again goes through a request.
 |
