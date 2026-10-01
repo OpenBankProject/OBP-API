@@ -3671,6 +3671,7 @@ field	code.dynamicResourceDoc.JsonDynamicResourceDoc	errorResponseBodies	String
 field	code.dynamicResourceDoc.JsonDynamicResourceDoc	exampleRequestBody	Option[org.json4s.JValue]
 field	code.dynamicResourceDoc.JsonDynamicResourceDoc	methodBody	String
 field	code.dynamicResourceDoc.JsonDynamicResourceDoc	partialFunctionName	String
+field	code.dynamicResourceDoc.JsonDynamicResourceDoc	programmingLang	String
 field	code.dynamicResourceDoc.JsonDynamicResourceDoc	requestUrl	String
 field	code.dynamicResourceDoc.JsonDynamicResourceDoc	requestVerb	String
 field	code.dynamicResourceDoc.JsonDynamicResourceDoc	roles	String
