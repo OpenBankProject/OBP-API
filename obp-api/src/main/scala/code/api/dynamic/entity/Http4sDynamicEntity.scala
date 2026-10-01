@@ -416,14 +416,8 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   // Remove any read-restricted field the caller lacks the read role for (anonymous => userIdOpt None => omit all).
   private def applyReadRestrictions(value: JValue, bankId: Option[String], entityName: String, userIdOpt: Option[String]): JValue = {
-    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
-    val readRestricted = info.map(_.readRestrictedFields).getOrElse(Nil)
-    val omit: Set[String] = readRestricted.filterNot { f =>
-      userIdOpt.exists { uid =>
-        val role = DynamicEntityInfo.fieldReadRole(entityName, f, bankId, info.flatMap(_.explicitReadRole(f)))
-        code.api.util.APIUtil.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), uid, role)
-      }
-    }.toSet
+    val readRestricted = DynamicEntityHelper.definitionOf(bankId, entityName).map(_.readRestrictedFields).getOrElse(Nil)
+    val omit: Set[String] = readRestricted.filterNot(f => DynamicEntityInfo.mayReadField(bankId, entityName, f, userIdOpt)).toSet
     if (omit.isEmpty) value else omitFields(value, omit)
   }
 

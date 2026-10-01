@@ -1151,6 +1151,24 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   }
 
   /**
+   * Every declared property whose type is a scalar type the query layer understands: name -> type.
+   * A `reference:<Target>` field reads as [[DynamicEntityFieldType.reference]]. Unlike [[indexedFields]]
+   * this covers fields whether or not they are indexed; a join's `where` filter and `pick` order are
+   * evaluated in memory on the fetched records, so they may use any of these fields.
+   */
+  lazy val declaredFieldTypes: Map[String, DynamicEntityFieldType] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) =>
+        val typeName = (propDef \ "type") match { case JString(s) => s; case _ => "" }
+        val fieldTypeOpt =
+          if (typeName.startsWith("reference:")) Some(DynamicEntityFieldType.reference)
+          else DynamicEntityFieldType.withNameOption(typeName)
+        fieldTypeOpt.map(name -> _)
+    }.flatten.toMap
+    case _ => Map.empty
+  }
+
+  /**
    * Every `reference:<Target>` field, indexed or not: fieldName -> target entity name (the part after
    * "reference:"). Only the indexed subset ([[referenceFields]]) forms a join edge; the rest
    * ([[unindexedReferenceFields]]) exist so the planner can tell a developer precisely which field to
@@ -1291,4 +1309,34 @@ object DynamicEntityInfo {
       case Some(role) => getOrCreateDynamicApiRole(role, true)
       case None => getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_${entityName}__${fieldName}", true)
     }
+
+  /**
+   * This says whether a caller may see one field of an entity's records. A field declared
+   * `read_role_required` is shown only to a caller holding its read Role in the entity's space; an
+   * anonymous caller (None) never sees it. Every other field is readable. It is the per-field rule
+   * that a GET applies when it omits restricted fields, and that a join applies when it copies
+   * a field from a referenced record.
+   */
+  /**
+   * This says whether a caller may read an entity's shared records, by the same rule a GET applies:
+   * an entity with public access is readable by anyone; a row-level entity is readable in principle,
+   * because its access list then decides row by row; otherwise the caller needs the entity's get
+   * Role in its space, judged by the entity's authentication mode (so a Consumer can qualify where
+   * the mode allows it). An unknown entity is not readable.
+   */
+  def mayReadRecords(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
+      info.hasPublicAccess || info.useRowLevelAccess ||
+        APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+    }
+
+  def mayReadField(bankId: Option[String], entityName: String, fieldName: String, userIdOpt: Option[String]): Boolean = {
+    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
+    if (!info.exists(_.readRestrictedFields.contains(fieldName))) true
+    else userIdOpt.exists { userId =>
+      val role = fieldReadRole(entityName, fieldName, bankId, info.flatMap(_.explicitReadRole(fieldName)))
+      APIUtil.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), userId, role)
+    }
+  }
 }

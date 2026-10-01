@@ -52,6 +52,17 @@ object InMemoryQueryExecutor {
     paginate(sorted, plan.page)
   }
 
+  /** True when the record satisfies every filter (AND), each judged by its field's declared type. */
+  def matchesAll(record: JObject, filters: List[Filter], fieldTypes: Map[String, DynamicEntityFieldType]): Boolean =
+    filters.forall(f => matches(f, record, typeOf(f.field, fieldTypes)))
+
+  /**
+   * Compare two field values of the given type: negative when `a` sorts first. A value that is present
+   * and of the declared type sorts before one that is missing or of another type, so comparing a
+   * value with JNothing says whether that value is usable.
+   */
+  def compareValues(fieldType: DynamicEntityFieldType, a: JValue, b: JValue): Int = cmp2(fieldType, a, b)
+
   private def typeOf(field: String, fieldTypes: Map[String, DynamicEntityFieldType]): DynamicEntityFieldType =
     fieldTypes.getOrElse(field, DynamicEntityFieldType.string)
 
