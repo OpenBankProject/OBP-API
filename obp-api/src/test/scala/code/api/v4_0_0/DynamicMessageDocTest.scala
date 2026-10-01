@@ -102,7 +102,7 @@ class DynamicMessageDocTest extends V400ServerSetup {
         .find(net.liftweb.mapper.By(code.dynamicMessageDoc.DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDoc.dynamicMessageDocId.getOrElse("")))
         .openOrThrowException("stored dynamic message doc not found")
       storedMessageDoc.CreatedByUserId.get should be (resourceUser1.userId)
-      storedMessageDoc.MethodBodyHash.get should be (code.api.util.APIUtil.sha256Hex(postDynamicMessageDoc.decodedMethodBody))
+      storedMessageDoc.MethodBodyHash.get should be (code.api.util.APIUtil.dynamicCodeHash(postDynamicMessageDoc.programmingLang, postDynamicMessageDoc.decodedMethodBody))
 
 
       Then(s"we test the $ApiEndpoint2")

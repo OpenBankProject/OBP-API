@@ -4670,9 +4670,9 @@ object Http4s600 {
             // recognise as Java, so an unsupported/misspelled language would otherwise still
             // "validate" successfully as Scala).
             _ <- Helper.booleanToFuture(
-              s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: Scala, Java""",
+              s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
               cc = Some(cc)) {
-              Set("", "scala", "Scala", "java", "Java").contains(body.programmingLang)
+              code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
             }
           } yield try {
             code.api.dynamic.endpoint.helper.CompiledObjects(

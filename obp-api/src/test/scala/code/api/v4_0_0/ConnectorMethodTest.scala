@@ -104,7 +104,7 @@ class ConnectorMethodTest extends V400ServerSetup {
         .find(net.liftweb.mapper.By(code.connectormethod.ConnectorMethod.ConnectorMethodId, connectorMethod.connectorMethodId.getOrElse("")))
         .openOrThrowException("stored connector method not found")
       storedConnectorMethod.CreatedByUserId.get should be (resourceUser1.userId)
-      storedConnectorMethod.MethodBodyHash.get should be (code.api.util.APIUtil.sha256Hex(postConnectorMethod.decodedMethodBody))
+      storedConnectorMethod.MethodBodyHash.get should be (code.api.util.APIUtil.dynamicCodeHash(postConnectorMethod.programmingLang, postConnectorMethod.decodedMethodBody))
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
       

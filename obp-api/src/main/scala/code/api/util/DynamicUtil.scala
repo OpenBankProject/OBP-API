@@ -84,21 +84,80 @@ object DynamicUtil extends MdcLoggable{
   /**
    * Compile `code` for diagnostics only: nothing is evaluated, nothing is cached. Empty list = compiles.
    * Toolboxes are not thread-safe, so checks are serialised. Callers must apply the kill switch and a role.
+   *
+   * The code is checked inside a method, because that is how it is really compiled: ToolBox.compile
+   * wraps the tree in a method before compiling it. Checked bare, a `return` in the code (which the
+   * documented example method body uses to answer early with an error) is reported as "return
+   * outside method definition", although a real create accepts it. The wrapper is added on the same
+   * line as the start of the code, so line numbers are unchanged; columns on that first line are
+   * corrected for it.
    */
   def checkScalaCode(code: String): List[CompileProblem] = checkToolBox.synchronized {
     checkFrontEnd.reset()
+    val wrapperStart = "{ def dryRunCompileWrapper(): Any = { "
+    val wrapperEnd = "\n}; () }"
     val failure: Option[String] = try {
-      checkToolBox.typecheck(checkToolBox.parse(code))
+      checkToolBox.typecheck(checkToolBox.parse(wrapperStart + code + wrapperEnd))
       None
     } catch {
       case e: ToolBoxError => Some(e.message)
     }
     val collected = checkFrontEnd.infos.toList.filter(_.severity == checkFrontEnd.ERROR).map { info =>
       val (line, column) = if (info.pos != null && info.pos.isDefined) (info.pos.line, info.pos.column) else (0, 0)
-      CompileProblem(line, column, "ERROR", info.msg)
+      val columnInCode = if (line == 1 && column > wrapperStart.length) column - wrapperStart.length else column
+      CompileProblem(line, columnInCode, "ERROR", info.msg)
     }
     if (collected.nonEmpty) collected
     else failure.map(m => CompileProblem(0, 0, "ERROR", m.stripPrefix("reflective typecheck has failed:").stripPrefix("reflective compilation has failed:").trim)).toList
+  }
+
+  /**
+   * This compiles a Java `method_body` for diagnostics only, the Java counterpart of
+   * [[checkScalaCode]]. Empty list = compiles. Line numbers are relative to the body the author
+   * wrote.
+   *
+   * The source is prepared exactly as createJavaHttp4sEndpoint prepares it (the author's `package`
+   * line replaced by a fresh generated package), and compiled by the same system Java compiler with
+   * the same in-memory file manager, so it reports what a real create would report. Unlike the real
+   * compile, nothing is loaded or constructed: java-scriptengine's own compile also instantiates the
+   * class, which would run the author's constructor and static initialisers. Nothing is cached.
+   * Callers must apply the kill switch and a role.
+   */
+  def checkJavaCode(methodBody: String): List[CompileProblem] = {
+    import javax.tools.{Diagnostic, DiagnosticCollector, JavaFileObject, ToolProvider}
+    import scala.jdk.CollectionConverters._
+
+    val compiler = ToolProvider.getSystemJavaCompiler
+    if (compiler == null) {
+      List(CompileProblem(0, 0, "ERROR", "No Java compiler is available: this server runs on a Java runtime without the compiler (a JRE rather than a JDK)."))
+    } else {
+      // One line is added above the author's code: the generated package statement.
+      val linesAdded = 1
+      val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
+      val packageName = "code.api.util.dynamic." + UUID.randomUUID().toString.replaceAll("^|-", "_")
+      val javaCode = s"package $packageName;\n${packageMatcher.replaceFirst("")}\n"
+
+      (Box tryo { new ch.obermuhlner.scriptengine.java.name.DefaultNameStrategy().getFullName(javaCode) }) match {
+        case Full(fullClassName) =>
+          val diagnostics = new DiagnosticCollector[JavaFileObject]
+          val fileManager = new ch.obermuhlner.scriptengine.java.MemoryFileManager(
+            compiler.getStandardFileManager(diagnostics, null, null), null)
+          val simpleClassName = StringUtils.substringAfterLast("." + fullClassName, ".")
+          val source = fileManager.createSourceFileObject(null, simpleClassName, javaCode)
+          val compiled: Boolean = compiler.getTask(null, fileManager, diagnostics, null, null, java.util.Arrays.asList(source)).call()
+          val problems = diagnostics.getDiagnostics.asScala.toList.filter(_.getKind == Diagnostic.Kind.ERROR).map { d =>
+            val line = if (d.getLineNumber > linesAdded) (d.getLineNumber - linesAdded).toInt else 0
+            val column = if (line > 0 && d.getColumnNumber > 0) d.getColumnNumber.toInt else 0
+            CompileProblem(line, column, "ERROR", d.getMessage(java.util.Locale.ENGLISH))
+          }
+          if (problems.nonEmpty || compiled) problems
+          else List(CompileProblem(0, 0, "ERROR", "The Java compiler rejected the method body without reporting why."))
+        case failure =>
+          // DefaultNameStrategy fails when there is no class declaration to name the source file after.
+          val reason = failure match { case f: Failure => f.msg; case _ => "no class declaration found" }
+          List(CompileProblem(0, 0, "ERROR", s"A Java method body must declare a public class implementing Supplier<Function<Object[], Object>>: $reason"))
+      }
+    }
   }
   // Neither this nor memoJavaCompiledScript below ever evicts, so each distinct ClassLoader (and
   // therefore each distinct compiled Java method_body -- java-scriptengine hands createJavaHttp4sEndpoint

@@ -9582,9 +9582,9 @@ object Http4s400 {
         // Fail fast with a clean 400 before attempting compilation, rather than surfacing an
         // unsupported programming_lang only as a generic DynamicCodeCompileFail.
         _ <- code.util.Helper.booleanToFuture(
-          s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: Scala, Java""",
+          s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
           cc = Some(cc)) {
-          Set("", "scala", "Scala", "java", "Java").contains(body.programmingLang)
+          code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
         }
       } yield ()
     }

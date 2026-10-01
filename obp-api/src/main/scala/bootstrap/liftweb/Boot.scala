@@ -315,6 +315,10 @@ class Boot extends MdcLoggable {
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
 
+    // Code hashes cover the programming language as well as the body; move existing rows (and the
+    // approvals still valid for them) to that form once. Must run before the seed below.
+    code.dynamicchangerequest.MakerChecker.rehashDynamicCodeWithLanguage()
+
     // Maker/checker for dynamic code: when first enabled, pre-existing code rows get their current
     // body hash recorded as approved so enabling the feature does not silently disable them.
     code.dynamicchangerequest.MakerChecker.seedApprovedHashesIfEnabled()

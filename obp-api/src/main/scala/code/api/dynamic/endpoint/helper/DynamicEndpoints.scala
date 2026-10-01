@@ -33,7 +33,7 @@ import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, 
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
 import code.api.util.DynamicUtil.{DynamicCodeBody, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, Http4sEndpointIO, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
-import code.api.util.{CallContext, DynamicUtil}
+import code.api.util.{APIUtil, CallContext, DynamicUtil}
 import net.liftweb.common.{Box, Failure, Full}
 import org.json4s.{JNothing, JValue}
 import org.json4s.JsonAST.{JBool, JDouble, JInt, JString}
@@ -106,6 +106,17 @@ trait EndpointGroup {
  */
 object CompiledObjects {
   /**
+   * This is the set of `programming_lang` values a Dynamic Resource Doc may have, compared after
+   * APIUtil.normaliseDynamicCodeLanguage (trimmed, lower case, blank meaning Scala). Create, update,
+   * validate and the dry-run compile all check against it, and CompiledObjects chooses its compiler
+   * from the same normalised value, so nothing that passes the check can reach the wrong compiler.
+   */
+  val supportedLanguages: List[String] = List("scala", "java")
+  def isSupportedLanguage(programmingLang: String): Boolean =
+    supportedLanguages.contains(APIUtil.normaliseDynamicCodeLanguage(programmingLang))
+  val supportedLanguagesText: String = "Scala, Java"
+
+  /**
    * The native http4s template a method body is inlined into. Returns the full source and the
    * 1-based line on which the method body starts, so compiler positions can be mapped back to it.
    * The compiled artifact is an `Http4sEndpointIO` (PartialFunction[Request[IO], CallContext => IO[Response[IO]]]).
@@ -153,10 +164,18 @@ object CompiledObjects {
 
   /**
    * Dry run without constructing a CompiledObjects (whose constructor compiles for real): compiler
-   * diagnostics with line numbers relative to the method body the author wrote. Empty = compiles.
+   * diagnostics with line numbers relative to the method body the author wrote, in the body's
+   * programming language (Scala or Java). Empty = compiles.
    */
-  def compileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String): List[DynamicUtil.CompileProblem] = {
+  def compileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String, programmingLang: String = "Scala"): List[DynamicUtil.CompileProblem] = {
     val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
+    // Java bodies are compiled as written (no template, no generated case classes), so the example
+    // bodies play no part, as they play none in CompiledObjects' own Java branch.
+    if (APIUtil.normaliseDynamicCodeLanguage(programmingLang) == "java") DynamicUtil.checkJavaCode(decodedMethodBody)
+    else scalaCompileProblems(exampleRequestBody, successResponseBody, decodedMethodBody)
+  }
+
+  private def scalaCompileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], decodedMethodBody: String): List[DynamicUtil.CompileProblem] = {
     val requestBody: Product = exampleRequestBody match {
       case Some(JString(s)) if StringUtils.isBlank(s) => toCaseObject(None)
       case _ => toCaseObject(exampleRequestBody)
@@ -196,15 +215,15 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
   }
   val successResponse: Product = toCaseObject(successResponseBody)
 
-  private val partialFunction: Http4sEndpointIO = programmingLang match {
-    case "java" | "Java" =>
+  private val partialFunction: Http4sEndpointIO = APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
+    case "java" =>
       DynamicUtil.createJavaHttp4sEndpoint(decodedMethodBody) match {
         case Full(func) => func
         case Failure(msg: String, exception: Box[Throwable], _) =>
           throw exception.getOrElse(new RuntimeException(msg))
         case _ => throw new RuntimeException("compiled code return nothing")
       }
-    case _ /* "Scala" | "scala" | "" | null, default */ =>
+    case _ /* "scala", the default; create and update reject anything else (isSupportedLanguage) */ =>
       scalaPartialFunction
   }
 
@@ -265,8 +284,8 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    * internally (see its own doc comment) before ever returning that wrapper, so re-validating the
    * wrapper here is both redundant and wrong -- it would reject every Java doc unconditionally.
    */
-  def validateDependency() = programmingLang match {
-    case "java" | "Java" => ()
+  def validateDependency() = APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
+    case "java" => ()
     case _ => Validation.validateDependency(this.partialFunction)
   }
 
@@ -275,7 +294,7 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    * author wrote (the wrapper's own lines are subtracted). Empty = compiles. Nothing is evaluated or cached.
    */
   def compileProblems(): List[DynamicUtil.CompileProblem] =
-    CompiledObjects.compileProblems(exampleRequestBody, successResponseBody, methodBody)
+    CompiledObjects.compileProblems(exampleRequestBody, successResponseBody, methodBody, programmingLang)
 
   /**
    * Wraps the compiled partial function as an endpoint. This used to bind a per-bank

@@ -399,7 +399,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
         .find(net.liftweb.mapper.By(code.dynamicResourceDoc.DynamicResourceDoc.DynamicResourceDocId, docId))
         .openOrThrowException("stored dynamic resource doc not found")
       storedRow.CreatedByUserId.get should be(resourceUser1.userId)
-      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(posted.decodedMethodBody))
+      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.dynamicCodeHash(posted.programmingLang, posted.decodedMethodBody))
 
       When("We update the doc with a changed method body")
       val changedMethodBody = URLEncoder.encode(
@@ -412,7 +412,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
       Then("created_by_user_id is preserved, updated_by_user_id is recorded, and the hash reflects the new body")
       storedRow.CreatedByUserId.get should be(resourceUser1.userId)
       storedRow.UpdatedByUserId.get should be(resourceUser1.userId)
-      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.sha256Hex(URLDecoder.decode(changedMethodBody, "UTF-8")))
+      storedRow.MethodBodyHash.get should be(code.api.util.APIUtil.dynamicCodeHash(posted.programmingLang, URLDecoder.decode(changedMethodBody, "UTF-8")))
     }
 
     // Regression guard: rows created before the Lang column existed have a genuine SQL NULL there

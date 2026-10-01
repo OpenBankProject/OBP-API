@@ -62,7 +62,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   // ─── Provenance for runtime-compiled dynamic code (v7.0.0 read-only exposure) ───
   // The v4.0.0 create/update endpoints capture who created / last updated a piece of runtime
-  // code and a SHA-256 of its (decoded) method body into DB columns, but the v4 response shape
+  // code and a SHA-256 of its programming language and (decoded) method body into DB columns, but the v4 response shape
   // is frozen (STABLE) and does not carry them. These v7 GET endpoints expose that provenance,
   // wrapping the unchanged v4 resource JSON alongside a `provenance` object.
   case class ProvenanceJsonV700(
@@ -1891,7 +1891,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     request_url: String,
     method_body: String,
     example_request_body: Option[JValue],
-    success_response_body: Option[JValue]
+    success_response_body: Option[JValue],
+    // "Scala" (the default when omitted) or "Java", as on Create Dynamic Resource Doc.
+    programming_lang: Option[String] = None
   )
   case class DynamicCompileErrorJsonV700(line: Int, column: Int, severity: String, message: String)
   case class DynamicCompileResultJsonV700(
@@ -1905,7 +1907,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     request_url = "/hello/world",
     method_body = java.net.URLEncoder.encode("Future.successful((Map(\"hello\" -> \"world\"), HttpCode.`200`(callContext)))", "UTF-8"),
     example_request_body = None,
-    success_response_body = Some(org.json4s.JsonAST.JObject(List(org.json4s.JsonAST.JField("hello", org.json4s.JsonAST.JString("world")))))
+    success_response_body = Some(org.json4s.JsonAST.JObject(List(org.json4s.JsonAST.JField("hello", org.json4s.JsonAST.JString("world"))))),
+    programming_lang = Some("Scala")
   )
   lazy val dynamicCompileResultJsonV700Example = DynamicCompileResultJsonV700(
     compiles = false,
