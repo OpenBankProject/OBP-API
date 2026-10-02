@@ -6896,6 +6896,86 @@ object Http4s700 {
       http4sPartialFunction = Some(compileDynamicResourceDoc)
     )
 
+    /**
+     * The value of a Right, or a failed Future carrying the Left's status and OBP error message, failed
+     * the way booleanToFuture fails one (an APIFailureNewStyle), so it is answered with that status.
+     */
+    private def answerOrFail[A](answer: Either[(Int, String), A], cc: CallContext): Future[A] = Future {
+      answer match {
+        case Right(value) => value
+        case Left((status, message)) =>
+          code.api.util.APIUtil.fullBoxOrException[A](
+            net.liftweb.common.Failure(message, net.liftweb.common.Empty, net.liftweb.common.Empty) ~> code.api.APIFailureNewStyle(message, status, Some(cc.toLight)))
+            .openOrThrowException(message)
+      }
+    }
+
+    // Route: POST /obp/v7.0.0/management/dynamic-resource-docs/explain
+    // For the author of a Dynamic Query: the statements it would run (SQL with ? for values) and the access
+    // it needs, for the requesting User or for an anonymous caller. Reads no record.
+    val explainDynamicQuery: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" / "explain" =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          import code.api.v7_0_0.JSONFactory700.{DynamicQueryExplainJsonV700, createDynamicQueryExplanationJsonV700}
+          import code.api.dynamic.entity.query.{DynamicQuery, DynamicQueryDeclaration}
+          for {
+            body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicQueryExplainJsonV700].getSimpleName}", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[DynamicQueryExplainJsonV700]
+            }
+            declaration <- answerOrFail(
+              DynamicQueryDeclaration.parse(java.net.URLDecoder.decode(body.method_body, "UTF-8"))
+                .left.map(error => (400, s"${code.api.util.ErrorMessages.DynamicQueryInvalid}${error.message}")), cc)
+            space = body.bank_id.map(_.trim).filter(_.nonEmpty).flatMap(code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem)
+            callerUserId = if (body.as_anonymous_caller.contains(true)) None else Some(u.userId)
+            callerParameters = body.caller_parameters.map(_.trim).filter(_.nonEmpty)
+              .map(text => org.http4s.Query.unsafeFromString(text).multiParams.map { case (name, values) => name -> values.toList })
+              .getOrElse(Map.empty[String, List[String]])
+            explanation <- Future {
+              DynamicQuery.explain(space, declaration, callerParameters, callerUserId,
+                if (callerUserId.isEmpty) "" else code.api.util.APIUtil.getConsumerPrimaryKey(Some(cc)))
+            }
+            explained <- answerOrFail(explanation.left.map(failure => (failure.status, failure.message)), cc)
+          } yield createDynamicQueryExplanationJsonV700(explained, callerUserId)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(explainDynamicQuery),
+      "POST",
+      "/management/dynamic-resource-docs/explain",
+      "Explain Dynamic Query",
+      s"""Explains how a Dynamic Query (a Dynamic Resource Doc whose `programming_lang` is `Query`) would be answered, without reading any record,
+        |so its author can check that the SQL is sane and that the access rules are the ones they expect.
+        |
+        |Send the URL-encoded declaration as `method_body`, as in a Dynamic Resource Doc. Optionally:
+        |
+        |* `bank_id`: the Dynamic Entity space to explain it in, a bank id or `SYS`. The system space when absent.
+        |* `caller_parameters`: the parameters a caller would add, as a query string, such as `obp_sort_by=name&obp_limit=10`.
+        |* `as_anonymous_caller`: true to explain it for a caller who is not logged in, rather than for you.
+        |
+        |The answer has two parts.
+        |
+        |`steps` are the reads the query would make, in order: the page, its count when the envelope names one, then each join. Each step
+        |says whether it goes through the query projection (with its SQL, every value shown as `?`), through the Dynamic Entity record
+        |provider (described in words: OBP does not build that SQL), or reuses an earlier step's records. The SQL comes from the same code
+        |that builds the statements a call runs, so it cannot differ from them.
+        |
+        |`entities`, `restricted_fields`, `rules`, `caller_may_run` and `refusal` describe access: every Dynamic Entity the query reads, with
+        |the Role that grants read access and whether the explained caller can read it; every read-restricted field it returns, copies,
+        |filters, sorts or picks by; the rules every Dynamic Query applies; and, when the caller could not run it, the exact refusal they
+        |would get (${code.api.util.ErrorMessages.DynamicQueryEntityNotReadable.takeWhile(_ != ':')} or ${code.api.util.ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}).
+        |
+        |A declaration that is not valid is answered with ${code.api.util.ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}, as Check would answer it. See the Glossary entry Dynamic Query.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.dynamicQueryExplainJsonV700Example,
+      JSONFactory700.dynamicQueryExplanationJsonV700Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, code.api.util.ErrorMessages.DynamicQueryInvalid, UnknownError),
+      apiTagDynamicResourceDoc :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canCreateDynamicResourceDoc)),
+      http4sPartialFunction = Some(explainDynamicQuery)
+    )
+
     // Route: GET /obp/v7.0.0/management/dynamic-code-approval-config
     // Lets a client (the API Manager create/edit pages) tell the maker up front whether a write will be
     // applied or queued for approval. Authenticated, no role: any user who can create an artefact needs this.

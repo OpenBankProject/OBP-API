@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.ResourceDocs1_4_0
 
-import code.api.Constant.{GET_DYNAMIC_RESOURCE_DOCS_TTL, GET_STATIC_RESOURCE_DOCS_TTL, HostName, PARAM_LOCALE}
+import code.api.Constant.{DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, GET_DYNAMIC_RESOURCE_DOCS_TTL, GET_STATIC_RESOURCE_DOCS_TTL, HostName, PARAM_LOCALE}
 import code.api.OBPRestHelper
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -297,6 +297,54 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
       List(apiTagDocumentation, apiTagApi)
     )
 
+    localResourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      "getBankLevelDynamicResourceDocsOpenAPI31",
+      "GET",
+      "/banks/BANK_ID/resource-docs/API_VERSION/openapi",
+      "Get Bank Level Dynamic OpenAPI 3.1 documentation",
+      s"""Returns OpenAPI 3.1 documentation for the dynamic resources of one bank: its Dynamic Entities,
+         |Dynamic Endpoints and Dynamic Resource Docs.
+         |
+         |BANK_ID is the bank whose dynamic resources you want. Use ${DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID} for the
+         |system level dynamic resources, the ones that belong to no bank.
+         |
+         |API_VERSION is the version you want documentation about e.g. v7.0.0
+         |
+         |Static endpoints belong to no bank, so this document only ever contains dynamic resources. To
+         |document every bank's dynamic resources at once, use /resource-docs/API_VERSION/openapi?content=dynamic
+         |
+         |## Query Parameters
+         |
+         |**tags** - Filter by endpoint tags (comma-separated list). Empty values will return error OBP-10053
+         |
+         |**functions** - Filter by function names (comma-separated list). Empty values will return error OBP-10054
+         |
+         |**locale** - Language for localized documentation, e.g. ?locale=en_GB. Invalid locales will return error OBP-10041
+         |
+         |For YAML format, use the corresponding endpoint: /banks/BANK_ID/resource-docs/API_VERSION/openapi.yaml
+         |
+         |Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+         |
+         |## Examples
+         |
+         |${getObpApiRoot}/v7.0.0/banks/${DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID}/resource-docs/v7.0.0/openapi
+         |${getObpApiRoot}/v7.0.0/banks/BANK_ID/resource-docs/v7.0.0/openapi.yaml
+         |
+      """,
+      EmptyBody,
+      EmptyBody,
+      BankNotFound ::
+      InvalidApiVersionString ::
+      ApiVersionNotSupported ::
+      InvalidLocale ::
+      InvalidTagsParameter ::
+      InvalidFunctionsParameter ::
+      UnknownError :: Nil,
+      List(apiTagDocumentation, apiTagApi),
+      Some(List(canReadDynamicResourceDocsAtOneBank))
+    )
+
     implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
 
     // avoid repeat execute method getSpecialInstructions, here save the calculate results.
@@ -507,7 +555,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
       // (don't keep a stale value left over from a different aggregated request that may have
       // overwritten this var on the shared ResourceDoc).
       val dynamicDocs = allDynamicResourceDocs
-        .filter(rd => if (bankId.isDefined) rd.createdByBankId == bankId else true)
+        .filter(rd => bankId.forall(space => APIUtil.dynamicResourceDocBelongsToSpace(rd, space)))
         .map { it =>
           it.specifiedUrl = if (it.partialFunctionName.startsWith("dynamicEntity")) Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}") else Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")
           it
@@ -1147,36 +1195,36 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
 
 
 
-    def convertResourceDocsToOpenAPI31YAMLAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : String = {
+    def convertResourceDocsToOpenAPI31YAMLAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson], setCache: (String, String) => Unit = Caching.setStaticSwaggerDocCache) : String = {
       logger.debug(s"Generating OpenAPI 3.1 YAML-convertResourceDocsToOpenAPI31YAMLAndSetCache requestedApiVersion is $requestedApiVersionString")
       val hostname = HostName
       val openApiDoc = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.createOpenAPI31Json(resourceDocsJson, requestedApiVersionString, hostname)
       val openApiJValue = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.OpenAPI31JsonFormats.toJValue(openApiDoc)
 
       val yamlString = YAMLUtils.jValueToYAMLSafe(openApiJValue, "# Error converting to YAML")
-      Caching.setStaticSwaggerDocCache(cacheKey, yamlString)
+      setCache(cacheKey, yamlString)
 
       yamlString
     }
 
-    def convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+    def convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson], setCache: (String, String) => Unit = Caching.setStaticSwaggerDocCache) : JValue = {
       logger.debug(s"Generating OpenAPI 3.1-convertResourceDocsToOpenAPI31JvalueAndSetCache requestedApiVersion is $requestedApiVersionString")
       val hostname = HostName
       val openApiDoc = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.createOpenAPI31Json(resourceDocsJson, requestedApiVersionString, hostname)
       val openApiJValue = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.OpenAPI31JsonFormats.toJValue(openApiDoc)
 
       val jsonString = json.compactRender(openApiJValue)
-      Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
+      setCache(cacheKey, jsonString)
 
       openApiJValue
     }
 
-    def convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+    def convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson], setCache: (String, String) => Unit = Caching.setStaticSwaggerDocCache) : JValue = {
       logger.debug(s"Generating Swagger-getResourceDocsSwaggerAndSetCache requestedApiVersion is $requestedApiVersionString")
       val swaggerDocJsonJValue = getResourceDocsSwagger(requestedApiVersionString, resourceDocsJson).head
 
       val jsonString = json.compactRender(swaggerDocJsonJValue)
-      Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
+      setCache(cacheKey, jsonString)
 
       swaggerDocJsonJValue
     }

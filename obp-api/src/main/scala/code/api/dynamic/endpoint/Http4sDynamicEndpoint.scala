@@ -127,12 +127,17 @@ object Http4sDynamicEndpoint extends MdcLoggable {
               case Some(jv) => Full(jv)
               case None     => Empty
             }
+            // Every outcome records an API metric, like any other endpoint: the handler's response
+            // under the authenticated call context (so the row names the User), and a failure to
+            // authenticate or authorise under the context the request arrived with.
             val io: IO[Response[IO]] = for {
               authedCcOpt <- IO.fromFuture(IO(doc.authCheckIO(partPath, bodyJValue, cc)))
               authedCc    = authedCcOpt.getOrElse(cc)
               resp        <- doc.dynamicHttp4sFunction.get.apply(req)(authedCc)
-            } yield resp
-            io.handleErrorWith(err => ErrorResponseConverter.toHttp4sResponse(err, cc))
+                               .handleErrorWith(err => ErrorResponseConverter.toHttp4sResponse(err, authedCc))
+              recorded    <- EndpointHelpers.recordMetricFor(resp)(authedCc)
+            } yield recorded
+            io.handleErrorWith(err => ErrorResponseConverter.toHttp4sResponse(err, cc).flatMap(EndpointHelpers.recordMetricFor(_)(cc)))
           }
         }
     }

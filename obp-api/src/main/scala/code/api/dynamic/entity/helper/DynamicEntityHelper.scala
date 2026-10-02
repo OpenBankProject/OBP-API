@@ -152,7 +152,7 @@ object DynamicEntityHelper {
    *
    * The stored rows stay valid when the entity name, the set of property names and each property's `type`
    * are unchanged and `required` does not grow. Everything else — `indexed`, `index`, `example`,
-   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*` — may change freely; in
+   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*`, `hide_field_from_public_access` — may change freely; in
    * particular this is what lets an operator switch indexing on for an existing, populated entity
    * (the projection backfill then does the rest). Unparseable input is treated as incompatible.
    */
@@ -1121,6 +1121,17 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   lazy val writeRestrictedFields: List[String] = restrictedFields("write_role_required", "write_role")
   /** Fields omitted from GET unless the caller holds the read role. */
   lazy val readRestrictedFields: List[String] = restrictedFields("read_role_required", "read_role")
+  /**
+   * Fields declared `"hide_field_from_public_access": true`: hidden from a caller whose access to this
+   * entity comes only from its public access, shown to a caller with other access (its read Role, or a
+   * row-level access list entry). See DynamicEntityInfo.readsViaPublicAccess.
+   */
+  lazy val publicHiddenFields: List[String] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) if (propDef \ "hide_field_from_public_access") == JBool(true) => name
+    }
+    case _ => Nil
+  }
   def explicitWriteRole(fieldName: String): Option[String] =
     (entity \ "properties" \ fieldName \ "write_role") match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
   def explicitReadRole(fieldName: String): Option[String] =
@@ -1324,6 +1335,30 @@ object DynamicEntityInfo {
    * Role in its space, judged by the entity's authentication mode (so a Consumer can qualify where
    * the mode allows it). An unknown entity is not readable.
    */
+  /**
+   * True when a caller's access to an entity comes only from its public access: the entity has public
+   * access, the caller does not hold its read Role (judged by its authentication mode), and the caller is
+   * not reaching it through a row-level access list (an anonymous caller never is). A field declared
+   * `hide_field_from_public_access` is hidden from such a caller.
+   */
+  def readsViaPublicAccess(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
+      info.hasPublicAccess && !(info.useRowLevelAccess && userIdOpt.isDefined) &&
+        !APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+    }
+
+  /**
+   * Whether one caller may read each field, as `(entity, field) => Boolean`, for reads that span
+   * several entities (joins, Dynamic Queries): [[mayReadField]], with each entity's public-access
+   * question answered once per entity.
+   */
+  def fieldReader(bankId: Option[String], userIdOpt: Option[String], consumerId: String): (String, String) => Boolean = {
+    val viaPublic = scala.collection.mutable.Map[String, Boolean]()
+    (entityName, fieldName) => mayReadField(bankId, entityName, fieldName, userIdOpt,
+      viaPublic.getOrElseUpdate(entityName, readsViaPublicAccess(bankId, entityName, userIdOpt, consumerId)))
+  }
+
   def mayReadRecords(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
     DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
       info.hasPublicAccess || info.useRowLevelAccess ||
@@ -1331,9 +1366,11 @@ object DynamicEntityInfo {
           List(canGetRole(entityName, bankId)), info.endpointAuthMode)
     }
 
-  def mayReadField(bankId: Option[String], entityName: String, fieldName: String, userIdOpt: Option[String]): Boolean = {
+  def mayReadField(bankId: Option[String], entityName: String, fieldName: String, userIdOpt: Option[String],
+                   viaPublicAccess: Boolean = false): Boolean = {
     val info = DynamicEntityHelper.definitionOf(bankId, entityName)
-    if (!info.exists(_.readRestrictedFields.contains(fieldName))) true
+    if (viaPublicAccess && info.exists(_.publicHiddenFields.contains(fieldName))) false
+    else if (!info.exists(_.readRestrictedFields.contains(fieldName))) true
     else userIdOpt.exists { userId =>
       val role = fieldReadRole(entityName, fieldName, bankId, info.flatMap(_.explicitReadRole(fieldName)))
       APIUtil.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), userId, role)

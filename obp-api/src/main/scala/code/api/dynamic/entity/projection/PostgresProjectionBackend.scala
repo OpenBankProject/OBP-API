@@ -68,6 +68,15 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
       case None    => IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
     }
 
+  /**
+   * The SQL text [[query]] (or, with `counting`, [[count]]) would send for this plan, with `?` for every
+   * bound value, without running it. None if a field cannot resolve. This is what an explain facility
+   * shows: the same builder as the statement that runs, so the two cannot differ.
+   */
+  def sqlFor(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean,
+             plan: QueryPlan, counting: Boolean = false): Option[String] =
+    statement(entityName, bankId, userId, isPersonalEntity, plan, counting).map(_.query[String].sql)
+
   /** The SELECT for a plan: the matching blobs in order and paged, or (`counting`) their number. None if a field cannot resolve. */
   private def statement(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean,
                         plan: QueryPlan, counting: Boolean): Option[Fragment] = {
@@ -140,10 +149,15 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
     }
   }
 
-  /** ACL restriction for a row-level child: only rows the caller can read count toward EXISTS / NOT EXISTS. */
+  /**
+   * ACL restriction for a row-level child: only rows the caller can read count toward EXISTS / NOT EXISTS.
+   * With no caller, no row of a row-level child is readable, so none counts: this fails closed rather than
+   * counting every row, which would reveal that rows the caller cannot read exist.
+   */
   private def childAclFragment(childEntity: String, bankId: Option[String], childBlobAlias: String, callerUserId: Option[String]): Fragment = {
     val isRowLevel = DynamicEntityHelper.definitionOf(bankId, childEntity).exists(_.useRowLevelAccess)
     (isRowLevel, callerUserId) match {
+      case (true, None) => fr"AND FALSE"
       case (true, Some(uid)) =>
         fr"AND EXISTS (SELECT 1 FROM" ++ Fragment.const(s"${ProjectionStore.aclTable} acl") ++
           fr"WHERE" ++ Fragment.const(s"acl.${ProjectionStore.aclDataIdColumn} = $childBlobAlias.${ProjectionStore.idColumn}") ++

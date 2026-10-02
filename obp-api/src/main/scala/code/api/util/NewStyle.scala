@@ -3528,14 +3528,15 @@ object NewStyle extends MdcLoggable{
     
     /**
      * Invalidate the Redis-backed resource-doc caches whose contents include
-     * dynamic-entity documentation (the `dynamic` and `all` views). Bumping the
+     * dynamic documentation (the `dynamic` and `all` views). Bumping the
      * namespace version orphans every cached key under that namespace, so the
      * next `/resource-docs` request regenerates from the database instead of
      * serving a pre-change snapshot (TTL is 1 hour by default).
      *
-     * Call after a dynamic entity is created, updated, or deleted. The static
-     * resource-doc / swagger caches are not touched because dynamic entities
-     * never appear in them.
+     * Call after a Dynamic Entity, Dynamic Endpoint or Dynamic Resource Doc is
+     * created, updated, or deleted: each one generates resource docs. The static
+     * resource-doc / swagger caches are not touched because dynamic docs only
+     * reach them through the content=all documents, which are left to their TTL.
      */
     private def invalidateDynamicResourceDocCaches(): Unit = {
       Constant.incrementCacheNamespaceVersion(Constant.RD_DYNAMIC_NAMESPACE)
@@ -3617,7 +3618,13 @@ object NewStyle extends MdcLoggable{
           }
         } yield {
           if (deleteEntitleMentResult) {
-            DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
+            // The Role names carry no bank, so while an entity of this name is left in another space
+            // they are still its Roles and stay registered.
+            val nameStillUsed = DynamicEntityProvider.connectorMethodProvider.vend
+              .getDynamicEntities(None, returnBothBankAndSystemLevel = true)
+              .exists(_.entityName == entity.entityName)
+            if (!nameStillUsed)
+              DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
             // Cascade row-level ACL rows for this entity (§7) — safety net for any rows not already
             // cleaned up by per-row delete; no-op for non-row-level entities.
             code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForEntity(entity.bankId, entity.entityName)
@@ -3894,7 +3901,9 @@ object NewStyle extends MdcLoggable{
     def createDynamicEndpoint(bankId:Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       validateBankId(bankId, callContext)
       Future {
-        (DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId: Option[String], userId, swaggerString), callContext)
+        val created = DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId: Option[String], userId, swaggerString)
+        if (created.isDefined) invalidateDynamicResourceDocCaches()
+        (created, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
@@ -3903,7 +3912,9 @@ object NewStyle extends MdcLoggable{
     def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       validateBankId(bankId, callContext)
       Future {
-        (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
+        val updated = DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString)
+        if (updated.isDefined) invalidateDynamicResourceDocCaches()
+        (updated, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
@@ -3958,6 +3969,7 @@ object NewStyle extends MdcLoggable{
             Full(false)
           }
         } yield {
+          if (deleteSuccess == Full(true)) invalidateDynamicResourceDocCaches()
           deleteSuccess
         }
     }
@@ -4587,6 +4599,7 @@ object NewStyle extends MdcLoggable{
         // provenance is taken from the authenticated CallContext user, never from the request body
         val createdByUserId = callContext.flatMap(_.user).map(_.userId)
         val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(bankId, dynamicResourceDoc, createdByUserId)
+        if (newInternalConnector.isDefined) invalidateDynamicResourceDocCaches()
         val errorMsg = s"$UnknownError Can not create Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
@@ -4595,6 +4608,7 @@ object NewStyle extends MdcLoggable{
       Future {
         val updatedByUserId = callContext.flatMap(_.user).map(_.userId)
         val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(bankId, entity, updatedByUserId)
+        if (updatedConnectorMethod.isDefined) invalidateDynamicResourceDocCaches()
         val errorMsg = s"$UnknownError Can not update Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
@@ -4620,6 +4634,7 @@ object NewStyle extends MdcLoggable{
     def deleteJsonDynamicResourceDocById(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
         val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(bankId, dynamicResourceDocId)
+        if (dynamicResourceDoc == Full(true)) invalidateDynamicResourceDocCaches()
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocDeleteError Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
       }
 

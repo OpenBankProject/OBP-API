@@ -27,7 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.entitlement
 
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.ApiRole.{
   CanCreateEntitlementAtAnyBank,
   CanCreateEntitlementAtOneBank
@@ -179,7 +180,20 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
       bankId: Option[String]
   ): Box[Boolean] = {
     val roleNames = DynamicEntityInfo.roleNames(entityName, bankId)
-    deleteEntitlements(roleNames)
+    // A Role name carries no bank (CanGetDynamicEntityRecord_country), so the same names serve an
+    // entity of this name in every space: deleting by name alone would take every bank's grants with
+    // it. Only the grants of the deleted entity's space go: its bank id, or for the system space SYS
+    // and the empty bank id older grants were written at.
+    val bankIds = DynamicEntitySpace.bankIdOrNoneForSystem(bankId.getOrElse("")) match {
+      case Some(bank) => List(bank)
+      case None => List(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, "")
+    }
+    Box.tryo {
+      MappedEntitlement.bulkDelete_!!(
+        ByList(MappedEntitlement.mRoleName, roleNames),
+        ByList(MappedEntitlement.mBankId, bankIds)
+      )
+    }
   }
 
   override def deleteEntitlements(entityNames: List[String]): Box[Boolean] = {

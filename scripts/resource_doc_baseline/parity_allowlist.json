@@ -1183,41 +1183,41 @@
       "version": "v6_0_0",
       "endpoint": "createBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "2177cf2f3d19eed21d73bacb62cf340e195298eb334857a67e24b4ccdaab61ce"
+      "http4s_digest": "6bf7d3278c575dfe04a64e3f20fe7bafbdfccfdc5aff61dafefd73563a20de56"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "a216f7033fb45112130ff7ae7acee56b02ee0443d428e60fcaee1415ba4083b4"
+      "http4s_digest": "afe200b33fc38afdb0a212a229e6cec6ccf7caa77b2ac7ff23633fd16638432b"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "0853c5554b070120aa477631bb4ce97f36b60e09acaad61f64199d407fd3d1da"
+      "http4s_digest": "67aea2489cfbaf7b62ab7fe4c1a7fa7c5ad904bb4bd5db5a0977eeb37298a1cb"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "c8b602bc69dc86b8eb92e52f18e0a2714ef0d14d5de560186da8a372c6af2ecf"
+      "http4s_digest": "b3d573ff89040298846a54f3ce897f96f6abac1de477c9ea4efe267e8c8f13ff"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "787e40986d922b9f0d28ce3f1b3f5110f8521bc2a26fab8b3923e6851c41bfc4"
+      "http4s_digest": "6f71dd7c0ad0fcbdc973f5bebbed11b75c57a7f6bef56613d92a999b12bf6821"
     },
     {
       "version": "v3_0_0",

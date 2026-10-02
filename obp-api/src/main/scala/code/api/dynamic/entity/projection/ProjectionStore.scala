@@ -91,14 +91,22 @@ object ProjectionStore {
    * `referencedIds` must not be empty; callers batch long lists.
    */
   def readByReference(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String,
-                      referencedIds: List[String]): ConnectionIO[List[(String, String)]] = {
+                      referencedIds: List[String]): ConnectionIO[List[(String, String)]] =
+    readByReferenceStatement(safeTable, linkColumn, bankId, entityName, referencedIds).query[(String, String)].to[List]
+
+  /** The SQL text of [[readByReferenceStatement]], with `?` for every bound value. */
+  def readByReferenceSql(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String, referencedIds: List[String]): String =
+    readByReferenceStatement(safeTable, linkColumn, bankId, entityName, referencedIds).query[(String, String)].sql
+
+  /** The statement [[readByReference]] runs, as a value, so it can be shown as well as run. */
+  def readByReferenceStatement(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String,
+                               referencedIds: List[String]): Fragment = {
     val idList = ProjectionSql.intercalate(referencedIds.map(id => fr0"$id"), fr",")
-    (fr"SELECT" ++ Fragment.const(s"d.$idColumn") ++ fr"," ++ Fragment.const(s"d.$jsonColumn") ++
+    fr"SELECT" ++ Fragment.const(s"d.$idColumn") ++ fr"," ++ Fragment.const(s"d.$jsonColumn") ++
       fr"FROM" ++ Fragment.const(s"$safeTable p") ++
       fr"JOIN" ++ Fragment.const(s"$blobTable d") ++ fr"ON" ++ Fragment.const(s"d.$idColumn = p.data_id") ++
       fr"WHERE" ++ scope(bankId, entityName, isPersonalEntity = false, None, "d") ++
-      fr"AND" ++ Fragment.const(s"p.$linkColumn") ++ fr"IN (" ++ idList ++ fr")")
-      .query[(String, String)].to[List]
+      fr"AND" ++ Fragment.const(s"p.$linkColumn") ++ fr"IN (" ++ idList ++ fr")"
   }
 
   /**

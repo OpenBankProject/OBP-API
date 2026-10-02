@@ -648,6 +648,41 @@ object Glossary extends MdcLoggable  {
 				 |```
 				 |(Default: 1000 requests per hour. `0` blocks all anonymous access, `-1` removes the limit.)
 				 |
+				 |### Three rate limiters
+				 |
+				 |OBP runs three independent rate limiters. They are checked in this order, and each answers **429** with its own error code so a client can tell which counter it hit:
+				 |
+				 |1. **Self-service limiter** (`self_service.rate_limit.*`) runs first, before routing and before any authentication, keyed by the client IP address. It covers the endpoints anyone can call before the bank has granted them anything. Trip code: `OBP-10060`.
+				 |2. **Authentication limiter** (`auth.rate_limit.*`) runs inside the credential check of Direct Login, DAuth, Gateway Login and SIWE, before the password or token is verified, keyed by IP address and by account. It defends against brute force, credential stuffing and lockout attacks. Trip code: `OBP-10061`.
+				 |3. **Consumer quota** (the limits described above) runs after authentication, keyed by Consumer, or by IP address with a single hourly ceiling for anonymous calls. It is the commercial and fair-use quota. Trip code: `OBP-10018`.
+				 |
+				 |Before all three, an operator can put a single IP address under a temporary **IP penalty**: a per-minute limit on every endpoint, for a set time, for example during a scan or denial-of-service attempt (`POST /obp/v7.0.0/management/ip-penalties`, Role CanCreateIpPenalty). A per-minute limit of 0 refuses every request. Penalties are always enforced, shared by every instance, and disappear when they expire; the penalty endpoints themselves are never refused, so a mistake can be undone. Trip code: `OBP-10062`.
+				 |
+				 |A login attempt is counted by the authentication limiter only; it is not a self-service scope, so no attempt is counted twice. Every limiter counts in Redis and fails open: a Redis outage never blocks a call.
+				 |
+				 |### Self-service rate limiting (per IP address, before any credential)
+				 |
+				 |The limits above are keyed by Consumer, so they cannot protect the calls a client makes before it has one. Those endpoints are covered by the self-service limiter, keyed by the client IP address, grouped in scopes:
+				 |
+				 |- **signup** — Create User (self-registration), Validate User Email, Get User Invitation Information
+				 |- **password_reset** — Request Password Reset Email, Complete Password Reset
+				 |- **consent_request** — Create Consent Request, Create Consent Request VRP
+				 |- **consumer_registration** — Create a Consumer (Dynamic Registration)
+				 |- **lookup** — Validate and check IBAN
+				 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel, over REST and gRPC alike (gRPC uses the socket peer address; if none is available it falls back to the Consumer)
+				 |
+				 |Each scope has per-minute, per-hour and per-day limits per IP, with built-in defaults chosen so that a person or a well-behaved agent never reaches them, plus an optional global per-hour cap across all addresses that acts as a circuit breaker. Every request is counted, whether or not it succeeds. Counters live in Redis and fail open.
+				 |
+				 |**Shadow mode (the default).** The limiter is on out of the box but does not block. A request over a limit is logged once per window (`event=self_service_rate_limit_shadow_trip`) and the response carries:
+				 |
+				 |    X-Rate-Limit-Warning: OBP-10059: Could conflict with a Future Rate Limit: This request might exceed the rate limit for signup (5 per hour) in the future.
+				 |
+				 |No enforcement date is claimed unless the operator sets `self_service.rate_limit.enforce_announced_from`, in which case ", from <date>" is appended. Every self-service response also carries `X-Rate-Limit-Limit`, `X-Rate-Limit-Remaining` and `X-Rate-Limit-Reset` for the window the caller is closest to exhausting, so a client can back off before enforcement starts.
+				 |
+				 |**Enforce mode.** Set `self_service.rate_limit.mode = enforce` and a trip answers **429** with `OBP-10060`, a `Retry-After` header and the same `X-Rate-Limit-*` headers, without running the endpoint.
+				 |
+				 |Limits are set with `self_service.rate_limit.<scope>.per_ip.per_minute|per_hour|per_day`, `self_service.rate_limit.<scope>.global.per_hour`, or the generic `self_service.rate_limit.per_ip.*`; -1 switches a window off and 0 blocks it. See the props template for the built-in numbers. Behind a proxy, configure `trust.proxy.enabled` and `trust.proxy.header` so the client address is the real one; otherwise every caller shares the proxy's counters.
+				 |
 				 |### Related Concepts
 				 |
 				 |- **Consumer**: The API client subject to rate limiting
@@ -786,41 +821,6 @@ object Glossary extends MdcLoggable  {
 |
 |This glossary item is Work In Progress.
 |
-				 |
-				 |### Three rate limiters
-				 |
-				 |OBP runs three independent rate limiters. They are checked in this order, and each answers **429** with its own error code so a client can tell which counter it hit:
-				 |
-				 |1. **Self-service limiter** (`self_service.rate_limit.*`) runs first, before routing and before any authentication, keyed by the client IP address. It covers the endpoints anyone can call before the bank has granted them anything. Trip code: `OBP-10060`.
-				 |2. **Authentication limiter** (`auth.rate_limit.*`) runs inside the credential check of Direct Login, DAuth, Gateway Login and SIWE, before the password or token is verified, keyed by IP address and by account. It defends against brute force, credential stuffing and lockout attacks. Trip code: `OBP-10061`.
-				 |3. **Consumer quota** (the limits described above) runs after authentication, keyed by Consumer, or by IP address with a single hourly ceiling for anonymous calls. It is the commercial and fair-use quota. Trip code: `OBP-10018`.
-				 |
-				 |Before all three, an operator can put a single IP address under a temporary **IP penalty**: a per-minute limit on every endpoint, for a set time, for example during a scan or denial-of-service attempt (`POST /obp/v7.0.0/management/ip-penalties`, Role CanCreateIpPenalty). A per-minute limit of 0 refuses every request. Penalties are always enforced, shared by every instance, and disappear when they expire; the penalty endpoints themselves are never refused, so a mistake can be undone. Trip code: `OBP-10062`.
-				 |
-				 |A login attempt is counted by the authentication limiter only; it is not a self-service scope, so no attempt is counted twice. Every limiter counts in Redis and fails open: a Redis outage never blocks a call.
-				 |
-				 |### Self-service rate limiting (per IP address, before any credential)
-				 |
-				 |The limits above are keyed by Consumer, so they cannot protect the calls a client makes before it has one. Those endpoints are covered by the self-service limiter, keyed by the client IP address, grouped in scopes:
-				 |
-				 |- **signup** — Create User (self-registration), Validate User Email, Get User Invitation Information
-				 |- **password_reset** — Request Password Reset Email, Complete Password Reset
-				 |- **consent_request** — Create Consent Request, Create Consent Request VRP
-				 |- **consumer_registration** — Create a Consumer (Dynamic Registration)
-				 |- **lookup** — Validate and check IBAN
-				 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel, over REST and gRPC alike (gRPC uses the socket peer address; if none is available it falls back to the Consumer)
-				 |
-				 |Each scope has per-minute, per-hour and per-day limits per IP, with built-in defaults chosen so that a person or a well-behaved agent never reaches them, plus an optional global per-hour cap across all addresses that acts as a circuit breaker. Every request is counted, whether or not it succeeds. Counters live in Redis and fail open.
-				 |
-				 |**Shadow mode (the default).** The limiter is on out of the box but does not block. A request over a limit is logged once per window (`event=self_service_rate_limit_shadow_trip`) and the response carries:
-				 |
-				 |    X-Rate-Limit-Warning: OBP-10059: Could conflict with a Future Rate Limit: This request might exceed the rate limit for signup (5 per hour) in the future.
-				 |
-				 |No enforcement date is claimed unless the operator sets `self_service.rate_limit.enforce_announced_from`, in which case ", from <date>" is appended. Every self-service response also carries `X-Rate-Limit-Limit`, `X-Rate-Limit-Remaining` and `X-Rate-Limit-Reset` for the window the caller is closest to exhausting, so a client can back off before enforcement starts.
-				 |
-				 |**Enforce mode.** Set `self_service.rate_limit.mode = enforce` and a trip answers **429** with `OBP-10060`, a `Retry-After` header and the same `X-Rate-Limit-*` headers, without running the endpoint.
-				 |
-				 |Limits are set with `self_service.rate_limit.<scope>.per_ip.per_minute|per_hour|per_day`, `self_service.rate_limit.<scope>.global.per_hour`, or the generic `self_service.rate_limit.per_ip.*`; -1 switches a window off and 0 blocks it. See the props template for the built-in numbers. Behind a proxy, configure `trust.proxy.enabled` and `trust.proxy.header` so the client address is the real one; otherwise every caller shares the proxy's counters.
 """)
 
 	glossaryItems += GlossaryItem(
@@ -3713,6 +3713,9 @@ object Glossary extends MdcLoggable  {
 |
 |* `write_role_required` (boolean) or `write_role` (explicit role name) — the field becomes **write-restricted**: it cannot be set via POST or PUT (its existing value is preserved), only via **PATCH** by a caller holding the field's write role.
 |* `read_role_required` (boolean) or `read_role` (explicit role name) — the field becomes **read-restricted**: it is omitted from GET responses unless the caller holds the field's read role (public/anonymous access omits it entirely).
+|* `hide_field_from_public_access` (boolean) — for an entity with public access: the field is hidden from a caller whose access comes only from that public access (a caller who is not logged in, or one without the entity's read role), and shown to a caller holding the entity's read role, with no field role needed. The public endpoint always omits it.
+|
+|A caller can never filter or sort by a field they may not read, whether with a plain `?field=value` parameter, `obp_filter`, `obp_sort_by`, or the filter of an `obp_exists` join: whether a record came back would reveal the field's value. Such a request is refused with ${ErrorMessages.DynamicEntityFieldNotReadable.takeWhile(_ != ':')}, naming the fields.
 |
 |Restriction is on if either the boolean is `true` or an explicit role name is given. When a boolean is used, OBP auto-generates the role; e.g. for entity 'FooBar' field 'owner':
 |
@@ -4148,7 +4151,9 @@ object Glossary extends MdcLoggable  {
 |
 |Authentication and Role checks are applied to the compiled endpoint exactly as for Static endpoints - including the checks that run inside the shared authentication step: Consumer disabled, User locked / deleted, Consent processing and Rate Limiting.
 |
-|Some cross-cutting features of the Static pipeline do *not* currently apply to runtime-compiled Dynamic Resource Doc endpoints: API Metrics are not recorded, the JSON Schema Validation and Force-Error interceptors are not run, the Idempotency-Key mechanism is unavailable, and handlers run on auto-commit (no request-scoped database transaction). Dynamic Endpoints created from Swagger (the proxy path) *do* record Metrics and *do* run the JSON Schema Validation interceptors.
+|Every call to a Dynamic Resource Doc endpoint is recorded as an API Metric, like a call to a Static endpoint: the response it gave, and also a call refused for missing authentication or Roles.
+|
+|Some other cross-cutting features of the Static pipeline do *not* currently apply to Dynamic Resource Doc endpoints: the JSON Schema Validation and Force-Error interceptors are not run, the Idempotency-Key mechanism is unavailable, and handlers run on auto-commit (no request-scoped database transaction). Dynamic Endpoints created from Swagger (the proxy path) *do* run the JSON Schema Validation interceptors.
 |
 |Because the method body is user-supplied code compiled at runtime, this feature is guarded by the `allow_user_generated_scala_code` prop (default: false) and the Roles CanCreateDynamicResourceDoc / CanCreateBankLevelDynamicResourceDoc etc.
 |
@@ -4229,13 +4234,17 @@ object Glossary extends MdcLoggable  {
 |
 |A caller can narrow the result with the list Endpoint's own parameters: `obp_filter`, `obp_sort_by`, `obp_sort_direction`, `obp_limit`, `obp_offset`, `obp_exists` and `obp_not_exists`. They are added to the declaration's `where`, never replace it.
 |
+|A Dynamic Query can be public: callable without logging in. That needs all three of: no Roles on the Dynamic Resource Doc, an error list that does not name ${ErrorMessages.AuthenticatedUserIsRequired.takeWhile(_ != ':')} (which is how a Dynamic Resource Doc says it requires login), and public access on every Dynamic Entity it reads. Whether data can be public is decided on the entity; a query cannot make an entity's records public.
+|
 |**What a caller can see**
 |
-|A Dynamic Query never shows a caller more than they could read directly. On top of any Roles the Dynamic Resource Doc requires, the caller must be able to read every Dynamic Entity the query reads (its read Role, public access, or row-level access), or the answer is ${ErrorMessages.DynamicQueryEntityNotReadable.takeWhile(_ != ':')}. Only shared records are used, never a User's personal records. For an entity with row-level access only the records the caller's access list allows are used. A field that requires a read Role is null (or left out, when not selected) unless the caller holds that Role, and the caller cannot filter or sort on it. A joined value is null when there is no matching record, when the caller may not read it, or when it lacks the field: these cases look the same, so a join never reveals that a hidden record exists.
+|A Dynamic Query never shows a caller more than they could read directly. The primary control is the Dynamic Entities' own access: the caller must be able to read every Dynamic Entity the query reads (its read Role, public access, or row-level access), exactly as through that entity's own Endpoints. Roles on the Dynamic Resource Doc itself are optional; they can only narrow who may call the query, never widen what a caller can read. Without that access the answer is ${ErrorMessages.DynamicQueryEntityNotReadable.takeWhile(_ != ':')} (403), naming every such entity with the Role that would let the caller read it and the bank it is needed at. Only shared records are used, never a User's personal records. For an entity with row-level access only the records the caller's access list allows are used. A field that requires a read Role is null (or left out, when not selected) unless the caller holds that Role, and the caller cannot filter or sort on it. A joined value is null when there is no matching record, when the caller may not read it, or when it lacks the field: these cases look the same, so a join never reveals that a hidden record exists.
 |
 |**Checking a body**
 |
 |Creating, updating or validating a Dynamic Query checks it against the Dynamic Entity definitions of its space, and `POST /obp/v7.0.0/management/dynamic-resource-docs/compile` does the same with `programming_lang` `Query`. Problems are reported as ${ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}.
+|
+|`POST /obp/v7.0.0/management/dynamic-resource-docs/explain` shows how a Dynamic Query would be answered, without reading any record, so its author can check that the SQL is sane and that access is what they expect: each read it would make, in order, with the SQL OBP builds for it (every value shown as `?`) or a description when it goes through the record provider; every Dynamic Entity it reads, with its read Role and whether the caller may read it; every read-restricted field it touches; and the refusal a caller would get. It can explain the query for the requesting User or for a caller who is not logged in, and with the parameters a caller would add. The API Manager's Explain button uses it.
 |
 """.stripMargin)
 
@@ -4306,7 +4315,7 @@ object Glossary extends MdcLoggable  {
 |
 |**Why**
 |
-|A Dynamic Resource Doc method body, a Connector Method or a Dynamic Message Doc is user-supplied code compiled and run inside the OBP-API JVM, with the connector credentials and reach of the whole instance. The sandbox is not a meaningful second line of defence, so the primary control is that the person who writes the code (the *maker*) can never make it live alone: a different User holding the Role `CanApproveDynamicChangeRequest` (the *checker*) reviews the exact definition and approves it.
+|A Dynamic Resource Doc method body, a Connector Method or a Dynamic Message Doc is user-supplied code compiled and run inside the OBP-API JVM, with the connector credentials and reach of the whole instance. The primary control is that the person who writes the code (the *maker*) can never make it live alone: a different User holding the Role `CanApproveDynamicChangeRequest` (the *checker*) reviews the exact definition and approves it.
 |
 |**How it works when approval is on**
 |
@@ -4314,7 +4323,7 @@ object Glossary extends MdcLoggable  {
 |
 |2) The checker reads the request (`GET /obp/v7.0.0/management/dynamic-change-requests/CHANGE_REQUEST_ID`, which returns the proposed and the current payload side by side) and approves it by quoting its `payload_hash`, the SHA-256 of the exact body, on `POST .../approval`. Only then is the change applied. OBP refuses an approval from the User who made the request (`OBP-30279`).
 |
-|3) Content is approved, not records. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose code hash equals the hash a checker approved. The code hash covers the programming language as well as the method body, and is recomputed from the row each time, so a row whose body or language is edited directly in the database does not run.
+|3) An approval covers the exact code. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose code hash equals the hash a checker approved. The code hash covers the programming language as well as the method body, and is recomputed from the row each time, so a row whose body or language is edited directly in the database does not run.
 |
 |4) Deactivating an artefact is a direct action by a single checker (`POST .../deactivation`), with no request: four eyes to enable, one pair to disable. Enabling it again goes through a request.
 |

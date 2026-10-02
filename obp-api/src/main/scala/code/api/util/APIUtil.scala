@@ -5043,6 +5043,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
 
   /**
+   * This function says whether a dynamic ResourceDoc belongs to one space, which is what the bank
+   * level resource-docs endpoints (/banks/BANK_ID/resource-docs/...) list.
+   *
+   * A space is a bank id, or Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ("SYS") for the system
+   * space. Dynamic docs record the system space as belonging to no bank at all (createdByBankId is
+   * None), so SYS matches those docs as well as any doc that names SYS explicitly.
+   */
+  def dynamicResourceDocBelongsToSpace(doc: ResourceDoc, space: String): Boolean =
+    doc.createdByBankId.filter(_.nonEmpty) match {
+      case None         => space == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+      case Some(bankId) => bankId == space
+    }
+
+  /**
    * The dynamic docs a versioned resource-docs listing shows. v7.0.0 documents Dynamic Entity records at
    * their v7.0.0 URLs (/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...); every other version at the
    * unversioned /obp/dynamic-entity/... URLs, as [[allDynamicResourceDocs]] does.

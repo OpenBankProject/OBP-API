@@ -120,7 +120,9 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
             StringUtils.split(it, ",")
               .map(ApiRole.getOrCreateDynamicApiRole(_))
               .toList
-        }
+        },
+      // The bank level resource-docs endpoints list a space's docs by this field.
+      createdByBankId = dynamicDoc.bankId.flatMap(Option(_)).filter(_.nonEmpty)
     )
   }
 }

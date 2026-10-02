@@ -29,7 +29,7 @@ package code.api.dynamic.entity.query
 
 import code.DynamicData.{DynamicDataAccessProvider, DynamicDataProvider}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
-import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionReadiness}
+import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionNaming, ProjectionProvisioner, ProjectionReadiness, ProjectionStore}
 import code.api.util.ErrorMessages.{DynamicEntityJoinRequiresProjection, DynamicQueryEntityNotReadable, DynamicQueryInvalid}
 import com.openbankproject.commons.util.JsonAliases
 import net.liftweb.util.StringHelpers
@@ -186,6 +186,23 @@ object DynamicQueryDeclaration {
     xs.foldRight(Right(Nil): Either[QueryError, List[B]]) { (a, acc) => for { b <- f(a); rest <- acc } yield b :: rest }
 }
 
+/** One entity a Dynamic Query reads, the access it needs, and whether the explained caller has it. */
+case class ExplainedEntity(entity: String, readRole: String, bankId: String, publicAccess: Boolean, rowLevelAccess: Boolean, callerMayRead: Boolean)
+
+/**
+ * One restricted field a Dynamic Query touches: the rule restricting it (`read_role_required`, or
+ * `hide_field_from_public_access`), the Role that lifts it, and whether the explained caller may read it.
+ */
+case class ExplainedField(entity: String, field: String, restriction: String, readRole: String, callerMayRead: Boolean)
+
+/** One read a Dynamic Query makes: what, how (`projection`, `record provider`, or `shared` with an earlier step), and its SQL when OBP builds it. */
+case class ExplainedStep(purpose: String, backend: String, sql: Option[String], notes: List[String])
+
+/** How a Dynamic Query would be answered for one caller: see [[DynamicQuery.explain]]. */
+case class DynamicQueryExplanation(space: String, anonymousCaller: Boolean, callerMayRun: Boolean, refusal: Option[String],
+                                   entities: List[ExplainedEntity], restrictedFields: List[ExplainedField], rules: List[String],
+                                   steps: List[ExplainedStep])
+
 /** Why a Dynamic Query could not answer: the HTTP status and the full message, error code included. */
 case class DynamicQueryFailure(status: Int, message: String)
 
@@ -231,26 +248,185 @@ object DynamicQuery {
           callerUserId: Option[String], consumerId: String): Either[DynamicQueryFailure, JObject] = {
     val from = declaration.from
     def mayReadEntity(entityName: String): Boolean = DynamicEntityInfo.mayReadRecords(bankId, entityName, callerUserId, consumerId)
-    def mayReadField(entityName: String, field: String): Boolean = DynamicEntityInfo.mayReadField(bankId, entityName, field, callerUserId)
+    val mayReadField: (String, String) => Boolean = DynamicEntityInfo.fieldReader(bankId, callerUserId, consumerId)
     for {
       parentDefinition <- DynamicEntityHelper.definitionOf(bankId, from).toRight(invalid(s"There is no Dynamic Entity '$from' in this space."))
       plan <- planPage(bankId, declaration, parentDefinition, callerParams)
-      readEntities = (from :: declaration.joins.map(_.entity) ++ plan.joins.map(_.childEntity)).distinct
-      _ <- readEntities.find(e => !mayReadEntity(e))
-             .map(e => DynamicQueryFailure(403, s"${DynamicQueryEntityNotReadable}It reads '$e', and you hold neither its read Role nor other access to it.")).toLeft(())
-      unreadable = (ProjectionReadiness.planFields(plan).filterNot(mayReadField(from, _)).map(from -> _) ++
-                    plan.joins.flatMap(j => j.predicate.map(_.field).filterNot(mayReadField(j.childEntity, _)).map(j.childEntity -> _))).headOption
-      _ <- unreadable.map { case (entity, field) => invalid(s"You may not read '$field' on '$entity', so it cannot be filtered or sorted on.") }.toLeft(())
-      joinPlan <- JoinPlanner.planFor(bankId, from, declaration.joins, callerUserId, mayReadEntity).left.map(e => invalid(e.message))
+      _ <- accessProblem(bankId, declaration, plan, mayReadEntity, mayReadField).toLeft(())
+      joinPlan <- JoinPlanner.planFor(bankId, from, declaration.joins, callerUserId, consumerId, mayReadEntity).left.map(e => invalid(e.message))
       pageAndTotal <- readPage(bankId, from, parentDefinition, plan, callerUserId, declaration.envelope.count.isDefined)
     } yield {
       val (page, total) = pageAndTotal
-      val joined = joinPlan(page, bankId, callerUserId)
+      val joined = joinPlan(page, bankId, callerUserId, consumerId)
       val joinedNames = joinPlan.joins.flatMap(_.resultNames)
       val rows = joined.map(record => project(record, declaration.select, joinedNames, parentDefinition, mayReadField(from, _)))
       JObject(JField(declaration.envelope.rows, JArray(rows)) :: declaration.envelope.count.map(name => JField(name, JInt(total))).toList)
     }
   }
+
+  /**
+   * This explains how a Dynamic Query would be answered for one caller, without reading any record:
+   * the statements it would run, in order (the SQL, with `?` for every value, when the step is SQL
+   * built by OBP; words when it goes through the record provider), and the access it needs, with
+   * whether this caller has it. It is for the author of a query, to check that the SQL is sane and
+   * that the access rules are what they expect.
+   *
+   * The SQL comes from the same builders as the statements a call runs, and the verdict from the same
+   * access check ([[accessProblem]]), so the explanation cannot differ from what a call does.
+   */
+  def explain(bankId: Option[String], declaration: DynamicQueryDeclaration, callerParams: Map[String, List[String]],
+              callerUserId: Option[String], consumerId: String): Either[DynamicQueryFailure, DynamicQueryExplanation] = {
+    val from = declaration.from
+    val space = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrSystem(bankId)
+    def definition(entityName: String): Option[DynamicEntityInfo] = DynamicEntityHelper.definitionOf(bankId, entityName)
+    def infoOf(entityName: String): Option[JoinEntityInfo] = definition(entityName).map(JoinEntityInfo.of)
+    def mayReadEntity(entityName: String): Boolean = DynamicEntityInfo.mayReadRecords(bankId, entityName, callerUserId, consumerId)
+    val mayReadField: (String, String) => Boolean = DynamicEntityInfo.fieldReader(bankId, callerUserId, consumerId)
+    for {
+      // The same checks as creating or Check: an invalid declaration is refused, not explained.
+      _ <- validate(bankId, declaration)
+      parentDefinition <- definition(from).toRight(invalid(s"There is no Dynamic Entity '$from' in this space."))
+      plan <- planPage(bankId, declaration, parentDefinition, callerParams)
+      // Planned without the caller's access, so the joins can be described even for a caller who may not run them.
+      joins <- JoinPlanner.plan(from, JoinEntityInfo.of(parentDefinition), declaration.joins, infoOf, _ => true, (_, _) => true)
+                 .left.map(e => invalid(e.message))
+    } yield {
+      val entities = entitiesRead(declaration, plan).map { entity =>
+        val info = definition(entity)
+        ExplainedEntity(entity, DynamicEntityInfo.canGetRole(entity, bankId).toString, space,
+          info.exists(_.hasPublicAccess), info.exists(_.useRowLevelAccess), mayReadEntity(entity))
+      }
+      // Read-restricted fields the query touches: those it returns or copies, and those it filters, sorts or picks by.
+      val touched: List[(String, String)] =
+        (declaration.select.getOrElse(parentDefinition.propertyNames).map(from -> _) ++ ProjectionReadiness.planFields(plan).map(from -> _) ++
+          joins.flatMap(j => (j.fields.map(_._2) ++ j.where.map(_.field) ++ j.order.map(_.field).toList).map(j.entity -> _)) ++
+          plan.joins.flatMap(j => j.predicate.map(_.field).map(j.childEntity -> _))).distinct
+      // A field can be restricted twice: by its own read Role, and (for a caller reaching the entity through
+      // public access) by hide_field_from_public_access, which the entity's read Role lifts.
+      val restricted = touched.flatMap { case (entity, field) =>
+        val info = definition(entity)
+        val byRole = info.filter(_.readRestrictedFields.contains(field)).map(i =>
+          ExplainedField(entity, field, "read_role_required",
+            DynamicEntityInfo.fieldReadRole(entity, field, bankId, i.explicitReadRole(field)).toString, mayReadField(entity, field)))
+        val fromPublic = info.filter(_.publicHiddenFields.contains(field)).map(_ =>
+          ExplainedField(entity, field, "hide_field_from_public_access",
+            DynamicEntityInfo.canGetRole(entity, bankId).toString, mayReadField(entity, field)))
+        byRole.toList ++ fromPublic.toList
+      }
+      val refusal = accessProblem(bankId, declaration, plan, mayReadEntity, mayReadField)
+        .orElse(if (parentDefinition.useRowLevelAccess && plan.joins.nonEmpty || !pageReadable(bankId, from, plan) && plan.joins.nonEmpty)
+          Some(DynamicQueryFailure(400, DynamicEntityJoinRequiresProjection)) else None)
+      DynamicQueryExplanation(space, callerUserId.isEmpty, refusal.isEmpty, refusal.map(_.message), entities, restricted,
+        rules(space), pageSteps(bankId, declaration, parentDefinition, plan, callerUserId) ++ joinSteps(bankId, from, joins))
+    }
+  }
+
+  /** True when the page would be read from the projection (see [[readPage]], which makes the same choice). */
+  private def pageReadable(bankId: Option[String], from: String, plan: QueryPlan): Boolean =
+    IndexingCapabilities.projectionEnabled && (ProjectionReadiness.planFields(plan).nonEmpty || plan.joins.nonEmpty) &&
+      ProjectionReadiness.ready(bankId, from, plan)
+
+  private def rules(space: String): List[String] = List(
+    s"Only Dynamic Entities of space $space are read, and only through their definitions: no other OBP data can be named.",
+    "Only shared records are used, never a User's personal records, whoever owns them.",
+    "For an entity with row-level access, only the records the caller's access list allows are used.",
+    "A field that requires a read Role is null (or left out, when not selected) unless the caller holds that Role, and the caller cannot filter or sort on it.",
+    "A joined value is null when there is no matching record, when the caller may not read it, or when it lacks the field, so a join never reveals a hidden record.",
+    "Every value is bound as a parameter (shown as ?); table and column names come from the definitions.")
+
+  private def pageSteps(bankId: Option[String], declaration: DynamicQueryDeclaration, parent: DynamicEntityInfo,
+                        plan: QueryPlan, callerUserId: Option[String]): List[ExplainedStep] = {
+    val from = declaration.from
+    val wantsCount = declaration.envelope.count.isDefined
+    if (parent.useRowLevelAccess)
+      List(ExplainedStep(s"Read the page of '$from'", "record provider", None, List(
+        s"'$from' uses row-level access: its shared records are read through the record provider, only those the caller's access list allows are kept, and they are filtered, sorted and paged in memory.")))
+    else if (pageReadable(bankId, from, plan))
+      ExplainedStep(s"Read the page of '$from'", "projection",
+        PostgresProjectionBackend.sqlFor(from, bankId, callerUserId, isPersonalEntity = false, plan),
+        List("Filters and the sort run on the projection's indexed columns; only the records of the page are read.")) ::
+        (if (wantsCount) List(ExplainedStep(s"Count every match of '$from', for the envelope's '${declaration.envelope.count.getOrElse("")}'", "projection",
+          PostgresProjectionBackend.sqlFor(from, bankId, callerUserId, isPersonalEntity = false, plan, counting = true), Nil)) else Nil)
+    else {
+      val reason =
+        if (!IndexingCapabilities.projectionEnabled) "This instance does not use the query projection"
+        else if (ProjectionReadiness.planFields(plan).isEmpty && plan.joins.isEmpty) "The page neither filters nor sorts on an indexed field"
+        else "A field the page filters or sorts on is indexed but its projection column is not ready yet"
+      List(ExplainedStep(s"Read the page of '$from'", "record provider", None, List(
+        s"$reason, so every shared record of '$from' is read through the record provider and filtered, sorted and paged in memory." +
+          (if (wantsCount) " The count is the number of matches before paging." else ""))))
+    }
+  }
+
+  private def joinSteps(bankId: Option[String], from: String, joins: List[Join]): List[ExplainedStep] = {
+    val firstUse = scala.collection.mutable.Map[RecordJoiner.Link, Int]()
+    joins.zipWithIndex.map { case (join, index) =>
+      val number = index + 1
+      val link = RecordJoiner.linkOf(join)
+      val described = join.direction match {
+        case JoinDirection.Forward => s"Join $number follows '$from.${join.on}' to '${join.entity}' (forward)"
+        case JoinDirection.Reverse => s"Join $number: '${join.entity}' records whose '${join.on}' names the '$from' (reverse)"
+      }
+      val afterRead = List(
+        Some(s"Cardinality ${join.cardinality.name}" + join.order.map(o => s", ordered ${if (o.descending) "latest" else "earliest"} first by '${o.field}'").getOrElse("") + "."),
+        if (join.where.nonEmpty) Some(s"Its where filter is applied in memory to the records read: ${join.where.map(f => s"${f.field} ${f.op.name} ${f.values.mkString(",")}").mkString(", ")}.") else None,
+        if (definitionRowLevel(bankId, join.entity)) Some(s"'${join.entity}' uses row-level access: only records the caller's access list allows are used.") else None
+      ).flatten
+      firstUse.get(link) match {
+        case Some(earlier) =>
+          ExplainedStep(described, "shared", None, s"Uses the records already read for Join $earlier; nothing more is read." :: afterRead)
+        case None =>
+          firstUse(link) = number
+          join.direction match {
+            case JoinDirection.Forward =>
+              ExplainedStep(described, "record provider", None,
+                s"One read for the whole page: the '${join.entity}' records whose id is one of the page's '${join.on}' values; personal records are dropped." :: afterRead)
+            case JoinDirection.Reverse if IndexingCapabilities.projectionEnabled && ProjectionProvisioner.readyFields(bankId, join.entity).contains(join.on) =>
+              ExplainedStep(described, "projection",
+                Some(ProjectionStore.readByReferenceSql(ProjectionNaming.tableName(bankId, join.entity), ProjectionNaming.columnName(join.on),
+                  bankId, join.entity, List("?"))),
+                s"One read for the whole page, through the index on '${join.on}': IN (...) holds one ? per record on the page, in batches of 1000." :: afterRead)
+            case JoinDirection.Reverse =>
+              ExplainedStep(described, "record provider", None,
+                s"The projection column for '${join.on}' is not in use here, so every shared record of '${join.entity}' is read and those whose '${join.on}' names a record of the page are kept." :: afterRead)
+          }
+      }
+    }
+  }
+
+  private def definitionRowLevel(bankId: Option[String], entityName: String): Boolean =
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.useRowLevelAccess)
+
+  /** Every entity a query reads for this plan: `from`, each join's entity, and each entity a caller's obp_exists names. */
+  private def entitiesRead(declaration: DynamicQueryDeclaration, plan: QueryPlan): List[String] =
+    (declaration.from :: declaration.joins.map(_.entity) ++ plan.joins.map(_.childEntity)).distinct
+
+  /**
+   * Why this caller may not run this query, or None. Shared by [[run]] and [[explain]], so the
+   * verdict an explanation shows is the one a call gets: first every entity the caller may not read
+   * (403, all of them named), then a filter or sort on a field the caller may not read (400).
+   */
+  private def accessProblem(bankId: Option[String], declaration: DynamicQueryDeclaration, plan: QueryPlan,
+                            mayReadEntity: String => Boolean, mayReadField: (String, String) => Boolean): Option[DynamicQueryFailure] =
+    notReadable(bankId, entitiesRead(declaration, plan).filterNot(mayReadEntity)).orElse {
+      val from = declaration.from
+      (ProjectionReadiness.planFields(plan).filterNot(mayReadField(from, _)).map(from -> _) ++
+        plan.joins.flatMap(j => j.predicate.map(_.field).filterNot(mayReadField(j.childEntity, _)).map(j.childEntity -> _))).headOption
+        .map { case (entity, field) => invalid(s"You may not read '$field' on '$entity', so it cannot be filtered or sorted on.") }
+    }
+
+  /**
+   * The 403 for the entities the caller may not read, all of them at once, each with the Role that
+   * would let the caller read it and the bank it is needed at, so a caller missing several learns of
+   * them in one answer. None when the list is empty.
+   */
+  private def notReadable(bankId: Option[String], entities: List[String]): Option[DynamicQueryFailure] =
+    if (entities.isEmpty) None
+    else {
+      val bank = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrSystem(bankId)
+      val missing = entities.map(entity => s"$entity (needs ${DynamicEntityInfo.canGetRole(entity, bankId)} at bank $bank)")
+      Some(DynamicQueryFailure(403, s"$DynamicQueryEntityNotReadable${missing.mkString(", ")}."))
+    }
 
   private def selectError(declaration: DynamicQueryDeclaration, parent: JoinEntityInfo): Option[DynamicQueryFailure] =
     declaration.select.flatMap { fields =>
@@ -285,8 +461,7 @@ object DynamicQuery {
 
     // The projection is used only when the plan filters, sorts or joins: an entity's projection table
     // exists only once a field is indexed, and a plan touching no field gains nothing from it.
-    val planTouchesFields = ProjectionReadiness.planFields(plan).nonEmpty || plan.joins.nonEmpty
-    val projectionReady = IndexingCapabilities.projectionEnabled && planTouchesFields && ProjectionReadiness.ready(bankId, from, plan)
+    val projectionReady = pageReadable(bankId, from, plan)
 
     if (parent.useRowLevelAccess) {
       if (plan.joins.nonEmpty) Left(DynamicQueryFailure(400, DynamicEntityJoinRequiresProjection))
@@ -296,8 +471,10 @@ object DynamicQuery {
       }
     } else if (projectionReady) {
       import cats.effect.unsafe.implicits.global
-      val page = PostgresProjectionBackend.query(from, bankId, None, isPersonalEntity = false, plan).unsafeRunSync()
-      val total = if (wantTotal) PostgresProjectionBackend.count(from, bankId, None, isPersonalEntity = false, plan).unsafeRunSync() else 0L
+      // The caller is passed so an obp_exists join onto a row-level entity counts only the rows the caller
+      // may read. (With isPersonalEntity = false it does not change which parent records are in scope.)
+      val page = PostgresProjectionBackend.query(from, bankId, callerUserId, isPersonalEntity = false, plan).unsafeRunSync()
+      val total = if (wantTotal) PostgresProjectionBackend.count(from, bankId, callerUserId, isPersonalEntity = false, plan).unsafeRunSync() else 0L
       Right((page, total))
     } else if (plan.joins.nonEmpty) {
       // obp_exists / obp_not_exists are evaluated only by the projection.
@@ -319,7 +496,7 @@ object DynamicQuery {
       case Some(fields) =>
         JObject(fields.map(f => JField(f, if (mayReadField(f)) record \ f match { case JNothing => JNull; case v => v } else JNull)) ++ joinedFields)
       case None =>
-        val restricted = parent.readRestrictedFields.toSet.filterNot(mayReadField)
+        val restricted = (parent.readRestrictedFields ++ parent.publicHiddenFields).toSet.filterNot(mayReadField)
         JObject(record.obj.filterNot { case (name, _) => restricted.contains(name) })
     }
   }

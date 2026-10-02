@@ -35,9 +35,10 @@ class DynamicQueryTest extends V400ServerSetup {
   private val Certificate = s"Certificate$sfx"
   private def idField(entity: String): String = StringHelpers.snakify(entity) + "_id"
 
-  private def createDef(entity: String, propsJson: String): Unit =
+  private def createDef(entity: String, propsJson: String, rowLevel: Boolean = false, publicAccess: Boolean = false): Unit =
     DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(
-      DynamicEntityCommons(entity, s"""{"$entity":{"properties":$propsJson}}""", None, owner, None, hasPersonalEntity = false)
+      DynamicEntityCommons(entity, s"""{"$entity":{"properties":$propsJson}}""", None, owner, None, hasPersonalEntity = false,
+        hasPublicAccess = publicAccess, useRowLevelAccess = rowLevel)
     ).openOrThrowException(s"failed to create definition for $entity")
 
   private def saveRec(entity: String, fields: (String, JValue)*): String = {
@@ -104,9 +105,11 @@ class DynamicQueryTest extends V400ServerSetup {
       Then("a caller who may not read the entities it reads is refused")
       val refused = makeGetRequest(call.GET <@ (user1))
       refused.code should equal(403)
-      messageOf(refused) should include(DynamicQueryEntityNotReadable)
+      def needs(entity: String) = s"$entity (needs CanGetDynamicEntityRecord_$entity at bank SYS)"
+      And("every entity it may not read is named in one answer, with the Role and bank it needs")
+      messageOf(refused) shouldBe s"$DynamicQueryEntityNotReadable${needs(Activity)}, ${needs(Operator)}, ${needs(Certificate)}."
       grantRecordRead(Activity); grantRecordRead(Operator)
-      messageOf(makeGetRequest(call.GET <@ (user1))) should include(s"It reads '$Certificate'")
+      messageOf(makeGetRequest(call.GET <@ (user1))) shouldBe s"$DynamicQueryEntityNotReadable${needs(Certificate)}."
       grantRecordRead(Certificate)
 
       When("the caller may read all three")
@@ -134,6 +137,20 @@ class DynamicQueryTest extends V400ServerSetup {
         Then("the page and the count are the same")
         makeGetRequest(call.GET <@ (user1) <<? List("obp_sort_by" -> "name")).body shouldBe answered.body
         makeGetRequest(call.GET <@ (user1) <<? List("obp_sort_by" -> "name", "obp_sort_direction" -> "DESC", "obp_limit" -> "1")).body shouldBe paged.body
+
+        Given("a row-level inspection of the first activity that the caller may not read")
+        val Inspection = s"Inspection$sfx"
+        createDef(Inspection, s"""{"${idField(Inspection)}":{"type":"string"},"activity_id":{"type":"reference:$Activity","indexed":true}}""", rowLevel = true)
+        val inspection = saveRec(Inspection, "activity_id" -> JString(first))
+        ProjectionProvisioner.ensureProvisioned(None, Inspection).unsafeRunSync()
+        val withInspection = List("obp_exists[" + Inspection + "]" -> "via:activity_id")
+        Then("filtering by it finds nothing: rows the caller cannot read never count")
+        (makeGetRequest(call.GET <@ (user1) <<? withInspection).body \ "count") shouldBe JInt(0)
+        When("the caller is allowed to read it")
+        code.DynamicData.DynamicDataAccessProvider.provider.vend.grant(bankId = None, entityName = Inspection, dynamicDataId = inspection,
+          userId = resourceUser1.userId, canRead = true, canUpdate = false, canDelete = false, canGrant = false, grantedBy = owner)
+        Then("the activity it inspects is found")
+        (makeGetRequest(call.GET <@ (user1) <<? withInspection).body \ "count") shouldBe JInt(1)
       }
 
       And("a filter on a field that is not indexed is refused with the list endpoint's message")
@@ -165,6 +182,62 @@ class DynamicQueryTest extends V400ServerSetup {
         programmingLang = "Scala", requestVerb = "POST", exampleRequestBody = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.exampleRequestBody))
       messageOf(scala) should include(DynamicCodeExecutionDisabled)
       userCodeAllowed(true)
+    }
+
+    scenario("every call to a Dynamic Resource Doc is recorded as an API metric, refused or answered") {
+      setPropsValues("write_metrics" -> "true")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanReadMetrics.toString)
+      val Audited = s"Audited$sfx"
+      createDef(Audited, s"""{"${idField(Audited)}":{"type":"string"},"name":{"type":"string"}}""")
+      saveRec(Audited, "name" -> JString("one"))
+      create(queryDoc(s"dq_audited_$sfx", s"""{ "from": "$Audited" }""")).code should equal(201)
+      val call = dynamicEndpoint_Request / "dynamic-resource-doc" / s"dq_audited_$sfx"
+
+      When("the query is called once without and once with read access to its entity")
+      makeGetRequest(call.GET <@ (user1)).code should equal(403)
+      grantRecordRead(Audited)
+      makeGetRequest(call.GET <@ (user1)).code should equal(200)
+      code.metrics.MetricBatchWriter.flush()
+
+      Then("both calls have a metric row, with their status, verb and the doc's function name")
+      val metrics = makeGetRequest((baseRequest / "obp" / "v6.0.0" / "management" / "metrics").GET <@ (user1) <<? List(
+        "url" -> s"/obp/dynamic-endpoint/dynamic-resource-doc/dq_audited_$sfx", "limit" -> "10"))
+      metrics.code should equal(200)
+      val rows = (metrics.body \ "metrics").children
+      rows.map(row => (row \ "status_code").extract[Int]).sorted shouldBe List(200, 403)
+      rows.foreach { row =>
+        (row \ "verb").extract[String] shouldBe "GET"
+        (row \ "user_id").extract[String] shouldBe resourceUser1.userId
+        (row \ "implemented_by_partial_function").extract[String] should startWith(s"dynamicQueryDq_audited_$sfx")
+      }
+    }
+
+    scenario("a Dynamic Query is public when its doc has no Roles and every entity it reads has public access") {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      val Published = s"Published$sfx"; val Internal = s"Internal$sfx"
+      createDef(Published, s"""{"${idField(Published)}":{"type":"string"},"name":{"type":"string"},"internal_id":{"type":"reference:$Internal"}}""",
+        publicAccess = true)
+      createDef(Internal, s"""{"${idField(Internal)}":{"type":"string"},"note":{"type":"string"}}""")
+      val internal = saveRec(Internal, "note" -> JString("staff only"))
+      saveRec(Published, "name" -> JString("open data"), "internal_id" -> JString(internal))
+      def publicDoc(segment: String, declaration: String) =
+        queryDoc(segment, declaration).copy(errorResponseBodies = "OBP-50000: Unknown Error.")
+
+      When("a query reads only the entity with public access, and its doc has no Roles")
+      create(publicDoc(s"dq_public_$sfx", s"""{ "from": "$Published", "select": ["name"] }""")).code should equal(201)
+      Then("anyone can call it, without logging in")
+      val anonymous = makeGetRequest(dynamicEndpoint_Request / "dynamic-resource-doc" / s"dq_public_$sfx")
+      anonymous.code should equal(200)
+      (anonymous.body \ StringHelpers.snakify(Published).concat("_list") \ "name") shouldBe JArray(List(JString("open data")))
+
+      When("a query also joins an entity without public access")
+      create(publicDoc(s"dq_public_join_$sfx",
+        s"""{ "from": "$Published", "join": [ { "entity": "$Internal", "on": "internal_id", "fields": { "note": "note" } } ] }""")).code should equal(201)
+      Then("an anonymous caller is refused, and told which entity and Role it would need")
+      val refused = makeGetRequest(dynamicEndpoint_Request / "dynamic-resource-doc" / s"dq_public_join_$sfx")
+      refused.code should equal(403)
+      messageOf(refused) shouldBe s"$DynamicQueryEntityNotReadable$Internal (needs CanGetDynamicEntityRecord_$Internal at bank SYS)."
     }
 
     scenario("the v7.0.0 dry-run compile checks a Dynamic Query") {

@@ -83,7 +83,7 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
   private def column(records: List[JObject], field: String): List[JValue] = records.map(_ \ field)
 
   private def plan(parent: String, joins: List[JoinRequest], caller: Option[String]): JoinPlan =
-    JoinPlanner.planFor(None, parent, joins, caller, _ => true).fold(e => fail(e.message), identity)
+    JoinPlanner.planFor(None, parent, joins, caller, "", _ => true).fold(e => fail(e.message), identity)
 
   feature("Forward joins: the record's reference field names the other record") {
     scenario("shared, personal, dangling and missing references, a row-level target, and a read-restricted field") {
@@ -110,12 +110,12 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
         JoinRequest(Licence, "licence_id", fields = List("licence_number" -> "number")))
 
       Then("a planning mistake is reported against the stored definition")
-      JoinPlanner.planFor(None, Activity, List(JoinRequest(Operator, "city", fields = List("x" -> "legal_name"))), Some(userA), _ => true)
+      JoinPlanner.planFor(None, Activity, List(JoinRequest(Operator, "city", fields = List("x" -> "legal_name"))), Some(userA), "", _ => true)
         .left.map(_.message) shouldBe Left(s"Join 1 ('$Operator' on 'city'): 'city' must be a reference field linking '$Activity' and '$Operator', " +
           s"on either of them, but '$Activity' has no field 'city' typed 'reference:$Operator' and '$Operator' has no field 'city' typed 'reference:$Activity'.")
 
       When("user A, who may read the licence but lacks the tax number's read role, expands the page")
-      val forA = plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA))
+      val forA = plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA), "")
       Then("shared operators are copied; another user's personal operator and a dangling reference give null")
       column(forA, "operator_legal_name") shouldBe List(JString("Acme Ltd"), JNull, JNull, JNull)
       And("the read-restricted tax number is null without its role")
@@ -124,7 +124,7 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
       column(forA, "licence_number").head shouldBe JString("L-1")
 
       When("user B expands the same page")
-      val forB = plan(Activity, joins, Some(userB))(page(Activity), None, Some(userB))
+      val forB = plan(Activity, joins, Some(userB))(page(Activity), None, Some(userB), "")
       Then("the licence is null for B, whose access list does not include it")
       column(forB, "licence_number").head shouldBe JNull
       And("B's own personal operator is still not copied: only shared records are used")
@@ -133,7 +133,7 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
       When("user A is granted the tax number's read role")
       Entitlement.entitlement.vend.addEntitlement(DynamicEntitySpace.bankIdOrSystem(None), userA, s"CanGetDynamicEntityField_${Operator}__tax_number")
       Then("the tax number is copied for A")
-      column(plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA)), "operator_tax_number").head shouldBe JString("DE-123")
+      column(plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA), ""), "operator_tax_number").head shouldBe JString("DE-123")
 
       And("the page keeps its records and order")
       forA.map(r => (r \ "name").values.toString) shouldBe List("1 acme", "2 private operator", "3 dangling", "4 no reference")
@@ -173,11 +173,11 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
         JoinRequest(Inspection, "activity_id", cardinality = Some("exists"), as = Some("inspected")))
 
       Then("a reference field that is not indexed is rejected with the field to fix")
-      JoinPlanner.planFor(None, Activity, List(JoinRequest(Certificate, "unindexed_activity_id", cardinality = Some("exists"), as = Some("x"))), Some(userA), _ => true)
+      JoinPlanner.planFor(None, Activity, List(JoinRequest(Certificate, "unindexed_activity_id", cardinality = Some("exists"), as = Some("x"))), Some(userA), "", _ => true)
         .left.map(_.message).left.getOrElse("") should include("'unindexed_activity_id' on '" + Certificate + "' must be declared \"indexed\": true")
 
       When("user A applies them to the page")
-      val forA = plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA))
+      val forA = plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA), "")
       Then("at_most_one picks the latest dated certificate; the undated one and another user's personal one are never chosen")
       column(forA, "latest_certificate_number") shouldBe List(JString("C-2"), JNull)
       column(forA, "latest_certificate_issue_date") shouldBe List(JString("2026-06-01"), JNull)
@@ -192,7 +192,7 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
       column(forA, "inspected") shouldBe List(JBool(true), JBool(false))
 
       When("user B applies the same")
-      val forB = plan(Activity, joins, Some(userB))(page(Activity), None, Some(userB))
+      val forB = plan(Activity, joins, Some(userB))(page(Activity), None, Some(userB), "")
       Then("B sees no inspection, and B's own personal certificate is still not used")
       column(forB, "inspected") shouldBe List(JBool(false), JBool(false))
       column(forB, "latest_certificate_number").head shouldBe JString("C-2")
@@ -201,7 +201,7 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
         When("the projection is enabled, provision it so the lookup goes through the indexed column")
         List(Certificate, Inspection).foreach(e => ProjectionProvisioner.ensureProvisioned(None, e).unsafeRunSync())
         Then("the indexed lookup gives exactly the same result")
-        plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA)) shouldBe forA
+        plan(Activity, joins, Some(userA))(page(Activity), None, Some(userA), "") shouldBe forA
       }
     }
   }
@@ -215,14 +215,14 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
       saveRec(Employee, None, "name" -> JString("3 bob"), "manager_id" -> JString(boss))
 
       Then("without a direction the join is refused, with both readings explained")
-      JoinPlanner.planFor(None, Employee, List(JoinRequest(Employee, "manager_id", fields = List("manager_name" -> "name"))), Some(userA), _ => true)
+      JoinPlanner.planFor(None, Employee, List(JoinRequest(Employee, "manager_id", fields = List("manager_name" -> "name"))), Some(userA), "", _ => true)
         .left.map(_.message).left.getOrElse("") should include("Say which with \"direction\"")
 
       When("both directions are given")
       val joined = plan(Employee, List(
         JoinRequest(Employee, "manager_id", direction = Some("forward"), fields = List("manager_name" -> "name")),
         JoinRequest(Employee, "manager_id", direction = Some("reverse"), cardinality = Some("many"), as = Some("reports"),
-          order = Some("earliest_by:name"), fields = List("name" -> "name"))), Some(userA))(page(Employee), None, Some(userA))
+          order = Some("earliest_by:name"), fields = List("name" -> "name"))), Some(userA))(page(Employee), None, Some(userA), "")
       Then("each employee gets their manager, and the boss gets their reports")
       column(joined, "manager_name") shouldBe List(JNull, JString("1 boss"), JString("1 boss"))
       (joined.head \ "reports" \ "name") shouldBe JArray(List(JString("2 alice"), JString("3 bob")))

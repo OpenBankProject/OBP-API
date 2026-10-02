@@ -53,7 +53,9 @@ import org.json4s.JsonAST._
  * What a caller can see through a join is no more than what it could read directly:
  *  - only shared records of the other entity are used, never a User's personal record, whoever owns it;
  *  - for an entity with row-level access, only the records the caller's access list lets them read;
- *  - a field declared `read_role_required` is copied only for a caller holding its read Role.
+ *  - a field declared `read_role_required` is copied only for a caller holding its read Role, and a field
+ *    declared `hide_field_from_public_access` only for a caller who reaches the entity other than
+ *    through its public access.
  * Whether the caller may read the other entity at all is checked by [[JoinPlanner]]. A copied value is
  * JSON null when there is no matching record, when it may not be read, when it lacks the field, or when
  * the field may not be read; these are deliberately indistinguishable, so a join never reveals that a
@@ -68,7 +70,7 @@ object RecordJoiner {
   type LinkedRecords = Map[Link, Map[String, List[JObject]]]
 
   def join(records: List[JObject], joins: List[Join], parentIdField: String,
-           bankId: Option[String], callerUserId: Option[String]): List[JObject] =
+           bankId: Option[String], callerUserId: Option[String], consumerId: String): List[JObject] =
     if (joins.isEmpty || records.isEmpty) records
     else {
       val links = joins.map(linkOf).distinct
@@ -78,7 +80,7 @@ object RecordJoiner {
           case JoinDirection.Reverse => fetchReverse(bankId, link, records.flatMap(idOf(_, parentIdField)).distinct, callerUserId)
         })
       }.toMap
-      merge(records, joins, parentIdField, linked, (entity, field) => DynamicEntityInfo.mayReadField(bankId, entity, field, callerUserId))
+      merge(records, joins, parentIdField, linked, DynamicEntityInfo.fieldReader(bankId, callerUserId, consumerId))
     }
 
   def linkOf(join: Join): Link = Link(join.entity, join.on, join.direction)

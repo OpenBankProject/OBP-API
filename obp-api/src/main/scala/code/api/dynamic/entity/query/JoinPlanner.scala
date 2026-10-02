@@ -156,9 +156,9 @@ object JoinEntityInfo {
 /** A checked set of joins for one parent entity, ready to apply to pages of its records. */
 case class JoinPlan(parentEntityName: String, parentIdField: String, joins: List[Join]) {
 
-  /** Add every join's result to each record of the page. */
-  def apply(records: List[JObject], bankId: Option[String], callerUserId: Option[String]): List[JObject] =
-    RecordJoiner.join(records, joins, parentIdField, bankId, callerUserId)
+  /** Add every join's result to each record of the page, for the caller identified by `callerUserId` and `consumerId`. */
+  def apply(records: List[JObject], bankId: Option[String], callerUserId: Option[String], consumerId: String): List[JObject] =
+    RecordJoiner.join(records, joins, parentIdField, bankId, callerUserId, consumerId)
 }
 
 /**
@@ -189,13 +189,14 @@ object JoinPlanner {
    * As [[plan]], reading the definitions from the stored Dynamic Entities of one space (`bankId`, None
    * for the system space). `callerMayReadEntity` decides whether the caller may read another entity at
    * all ([[DynamicEntityInfo.mayReadRecords]] is the rule a GET applies); field-level read restrictions
-   * are judged with [[DynamicEntityInfo.mayReadField]] for `callerUserId`.
+   * are judged with [[DynamicEntityInfo.fieldReader]] for the caller (`callerUserId`, `consumerId`).
    */
   def planFor(
     bankId: Option[String],
     parentEntityName: String,
     requests: List[JoinRequest],
     callerUserId: Option[String],
+    consumerId: String,
     callerMayReadEntity: String => Boolean
   ): Either[QueryError, JoinPlan] = {
     def infoOf(entityName: String): Option[JoinEntityInfo] =
@@ -203,7 +204,7 @@ object JoinPlanner {
     for {
       parent <- infoOf(parentEntityName).toRight(QueryError(s"There is no Dynamic Entity '$parentEntityName' in this space."))
       joins <- plan(parentEntityName, parent, requests, infoOf, callerMayReadEntity,
-                 (entity, field) => DynamicEntityInfo.mayReadField(bankId, entity, field, callerUserId))
+                 DynamicEntityInfo.fieldReader(bankId, callerUserId, consumerId))
     } yield JoinPlan(parentEntityName, parent.idFieldName, joins)
   }
 
