@@ -31,7 +31,7 @@ import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProv
 import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, DynamicEntitySpace, EntityAccessName, EntityName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, JoinTargetInfo, QueryParamParser, QueryPlan, QueryPlanner}
-import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionProvisioner}
+import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionReadiness}
 import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
@@ -414,17 +414,32 @@ object Http4sDynamicEntity extends MdcLoggable {
     case other        => other
   }
 
-  // Remove any read-restricted field the caller lacks the read role for (anonymous => userIdOpt None => omit all).
-  private def applyReadRestrictions(value: JValue, bankId: Option[String], entityName: String, userIdOpt: Option[String]): JValue = {
+  // Remove any read-restricted field the caller lacks the read role for (anonymous => userIdOpt None => omit all),
+  // and, on a read through public access, every field declared hide_field_from_public_access.
+  private def applyReadRestrictions(value: JValue, bankId: Option[String], entityName: String, userIdOpt: Option[String],
+                                    viaPublicAccess: Boolean = false): JValue = {
     val info = DynamicEntityHelper.definitionOf(bankId, entityName)
-    val readRestricted = info.map(_.readRestrictedFields).getOrElse(Nil)
-    val omit: Set[String] = readRestricted.filterNot { f =>
-      userIdOpt.exists { uid =>
-        val role = DynamicEntityInfo.fieldReadRole(entityName, f, bankId, info.flatMap(_.explicitReadRole(f)))
-        code.api.util.APIUtil.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), uid, role)
-      }
-    }.toSet
+    val restricted = info.map(_.readRestrictedFields).getOrElse(Nil) ++ info.map(_.publicHiddenFields).getOrElse(Nil)
+    val omit: Set[String] = restricted.filterNot(f => DynamicEntityInfo.mayReadField(bankId, entityName, f, userIdOpt, viaPublicAccess)).toSet
     if (omit.isEmpty) value else omitFields(value, omit)
+  }
+
+  /**
+   * A caller may not filter or sort on a field they may not read: whether a record comes back would
+   * reveal the field's value. This covers the legacy bare-parameter filter (`?field=value`),
+   * `obp_filter`, `obp_sort_by`, and the nested filters of `obp_exists` / `obp_not_exists`, which are
+   * judged on the joined entity. `viaPublicAccess` says whether this read of `entityName` is through
+   * its public access, which hides the fields declared `hide_field_from_public_access`.
+   */
+  private def refuseUnreadableQueryFields(req: Request[IO], plan: QueryPlan, bankId: Option[String], entityName: String,
+                                          userIdOpt: Option[String], viaPublicAccess: Boolean, cc: Option[CallContext]): Future[Box[Unit]] = {
+    val joinedEntityReader = DynamicEntityInfo.fieldReader(bankId, userIdOpt, code.api.util.APIUtil.getConsumerPrimaryKey(cc))
+    val legacyFields = queryParams(req).keys.filter(k => k != PARAM_LOCALE && !k.startsWith("obp_")).map(_.takeWhile(_ != '.'))
+    val ownFields = (legacyFields ++ ProjectionReadiness.planFields(plan)).toList.distinct
+      .filterNot(f => DynamicEntityInfo.mayReadField(bankId, entityName, f, userIdOpt, viaPublicAccess)).map(f => s"$entityName.$f")
+    val joinedFields = plan.joins.flatMap(j => j.predicate.map(_.field).distinct.filterNot(joinedEntityReader(j.childEntity, _)).map(f => s"${j.childEntity}.$f"))
+    val unreadable = ownFields ++ joinedFields
+    Helper.booleanToFuture(s"$DynamicEntityFieldNotReadable${unreadable.mkString(", ")}.", 400, cc = cc) { unreadable.isEmpty }
   }
 
   // ----- DE_indexing: read-path backend selection (projection vs in-memory) -----
@@ -445,28 +460,15 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def joinParamsPresent(req: Request[IO]): Boolean =
     queryParams(req).keys.exists(k => k.startsWith("obp_exists[") || k.startsWith("obp_not_exists["))
 
-  private def planFields(plan: QueryPlan): List[String] =
-    (plan.filters.map(_.field) ++ plan.sort.map(_.field)).distinct
-
   private def decideProjection(req: Request[IO], bankId: Option[String], entityName: String, plan: QueryPlan): ProjDecision =
     if (plan.joins.nonEmpty) {
       // Joins are projection-only. Legacy bare params can't combine with joins (they force in-memory).
       if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req)) JoinsNeedProjection
-      else {
-        val parentReady = ProjectionProvisioner.readyFields(bankId, entityName)
-        val parentFieldsReady = planFields(plan).forall(parentReady.contains)
-        val joinsReady = plan.joins.forall { j =>
-          val childReady = ProjectionProvisioner.readyFields(bankId, j.childEntity)
-          val linkReady  = if (j.onChild) childReady.contains(j.linkField) else parentReady.contains(j.linkField)
-          linkReady && j.predicate.map(_.field).forall(childReady.contains)
-        }
-        if (parentFieldsReady && joinsReady) UseProjection else PendingProjection
-      }
-    } else if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || planFields(plan).isEmpty) UseInMemory
-    else {
-      val ready = ProjectionProvisioner.readyFields(bankId, entityName)
-      if (planFields(plan).forall(ready.contains)) UseProjection else PendingProjection
-    }
+      else if (ProjectionReadiness.ready(bankId, entityName, plan)) UseProjection
+      else PendingProjection
+    } else if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || ProjectionReadiness.planFields(plan).isEmpty) UseInMemory
+    else if (ProjectionReadiness.ready(bankId, entityName, plan)) UseProjection
+    else PendingProjection
 
   private def projectionList(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): Future[JArray] =
     PostgresProjectionBackend.query(entityName, bankId, userId, isPersonalEntity, plan).map(JArray(_)).unsafeToFuture()(ioRuntime)
@@ -496,6 +498,8 @@ object Http4sDynamicEntity extends MdcLoggable {
       _ <- failIf(afterIntercept(callContext, operationId), callContext)
       // Row-level get-all is served in-memory (ACL-gated); joins require the projection backend.
       _ <- if (isGetAll && joinParamsPresent(req)) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
+           else Future.successful(true)
+      _ <- if (isGetAll) refuseUnreadableQueryFields(req, QueryPlan.empty, bankId, entityName, Some(u.userId), viaPublicAccess = false, callContext)
            else Future.successful(true)
       result <- if (isGetAll) Future {
                   // In-memory floor: fetch all rows (unscoped) and keep those the ACL marks readable.
@@ -681,6 +685,8 @@ object Http4sDynamicEntity extends MdcLoggable {
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        _ <- if (isGetAll) refuseUnreadableQueryFields(req, queryPlan, bankId, entityName, userIdOpt, viaPublicAccess = false, callContext)
+             else Future.successful(true)
         decision = if (isGetAll) decideProjection(req, bankId, entityName, queryPlan) else UseInMemory
         _ <- if (decision == JoinsNeedProjection) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
              else Future.successful(true)
@@ -840,6 +846,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         (_, callContext) <- anonymousAccess(callContext0)
         (_, callContext) <- bankCheck(bankId, callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        _ <- if (isGetAll) refuseUnreadableQueryFields(req, queryPlan, bankId, entityName, None, viaPublicAccess = true, callContext)
+             else Future.successful(true)
         // Public reads are in-memory only; joins require the projection backend.
         _ <- if (queryPlan.joins.nonEmpty) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
              else Future.successful(true)
@@ -850,10 +858,10 @@ object Http4sDynamicEntity extends MdcLoggable {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
           val legacyFiltered = filterDynamicObjects(resultList, queryParams(req))
           val filtered = applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
-          listResponse(req, bankId, entityName, applyReadRestrictions(filtered, bankId, entityName, None), showUserIds = false)
+          listResponse(req, bankId, entityName, applyReadRestrictions(filtered, bankId, entityName, None, viaPublicAccess = true), showUserIds = false)
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-          singleResponse(req, bankId, entityName, applyReadRestrictions(singleObject, bankId, entityName, None), showUserIds = false)
+          singleResponse(req, bankId, entityName, applyReadRestrictions(singleObject, bankId, entityName, None, viaPublicAccess = true), showUserIds = false)
         }
       }
     }
@@ -873,6 +881,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- NewStyle.function.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        _ <- if (isGetAll) refuseUnreadableQueryFields(req, queryPlan, bankId, entityName, Some(u.userId), viaPublicAccess = false, callContext)
+             else Future.successful(true)
         // Community reads are in-memory only; joins require the projection backend.
         _ <- if (queryPlan.joins.nonEmpty) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
              else Future.successful(true)

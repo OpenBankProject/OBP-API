@@ -64,9 +64,11 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
             case APIUtil.JsonResponseExtractor(msg, _) => msg
             case _ => Option(e.getMessage).getOrElse("")
           }
+          val rejectedBy =
+            if (CompiledObjects.isQuery(dynamicDoc.programmingLang)) "its Dynamic Query declaration is not valid"
+            else "rejected by dependency validation (dynamic_code_allowed_obp_methods)"
           logger.error(s"[DynamicResourceDocsEndpointGroup] skipping dynamic resource doc '${dynamicDoc.requestVerb} ${dynamicDoc.requestUrl}' " +
-            s"(id=${dynamicDoc.dynamicResourceDocId.getOrElse("")}, programming_lang=${dynamicDoc.programmingLang}): rejected by dependency " +
-            s"validation (dynamic_code_allowed_obp_methods). $reason")
+            s"(id=${dynamicDoc.dynamicResourceDocId.getOrElse("")}, programming_lang=${dynamicDoc.programmingLang}): $rejectedBy. $reason")
           None
         case e: Throwable =>
           logger.error(s"[DynamicResourceDocsEndpointGroup] skipping dynamic resource doc '${dynamicDoc.requestVerb} ${dynamicDoc.requestUrl}' " +
@@ -96,7 +98,8 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
    * 
    */
   private val toResourceDoc: JsonDynamicResourceDoc => ResourceDoc = { dynamicDoc =>
-    val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody, dynamicDoc.programmingLang)
+    val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody,
+      dynamicDoc.programmingLang, dynamicDoc.bankId)
     ResourceDoc(
       // partialFunction is a no-op stub — the runtime dispatch uses the native handler in
       // dynamicHttp4sFunction (the compiled artifact is OBPEndpointIO, not the Lift OBPEndpoint).
@@ -117,7 +120,9 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
             StringUtils.split(it, ",")
               .map(ApiRole.getOrCreateDynamicApiRole(_))
               .toList
-        }
+        },
+      // The bank level resource-docs endpoints list a space's docs by this field.
+      createdByBankId = dynamicDoc.bankId.flatMap(Option(_)).filter(_.nonEmpty)
     )
   }
 }

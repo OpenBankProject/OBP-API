@@ -6813,7 +6813,6 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (u, cc) =>
           import code.api.v7_0_0.JSONFactory700.{DynamicCompileErrorJsonV700, DynamicCompileResultJsonV700, DynamicResourceDocCompileJsonV700}
           for {
-            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { code.api.util.DynamicUtil.dynamicCodeExecutionEnabled }
             _ <- code.util.Helper.booleanToFuture(s"${code.api.util.ErrorMessages.TooManyRequests} at most $dynamicCompileCallsPerMinute dry-run compiles per minute per user", 429, Some(cc)) { allowDynamicCompile(u.userId) }
             body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicResourceDocCompileJsonV700].getSimpleName}", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[DynamicResourceDocCompileJsonV700]
@@ -6826,6 +6825,13 @@ object Http4s700 {
               s"""${code.api.util.ErrorMessages.DynamicCodeLangNotSupport} programming_lang $programmingLang, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
               cc = Some(cc)) {
               code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(programmingLang)
+            }
+            // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+              code.api.util.DynamicUtil.dynamicCodeExecutionEnabled || code.api.dynamic.endpoint.helper.CompiledObjects.isQuery(programmingLang)
+            }
+            _ <- code.util.Helper.booleanToFuture(s"${code.api.util.ErrorMessages.DynamicQueryInvalid}${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(programmingLang, body.request_verb)
             }
             result <- Future {
               val start = System.currentTimeMillis()
@@ -6866,6 +6872,10 @@ object Http4s700 {
         |A Java body is compiled as written, so `example_request_body` and `success_response_body` do not affect it. It must declare a public class
         |implementing `Supplier<Function<Object[], Object>>`; the function receives the raw request body, the path parameters and the CallContext.
         |
+        |A `Query` body is a Dynamic Query declaration, not code: nothing is compiled, and it is checked against the Dynamic Entity definitions
+        |instead, with any problem reported in `errors` without a line number. A Dynamic Query only reads, so its `request_verb` must be `GET`,
+        |and it does not need user-supplied code to be enabled. See the Glossary entry Dynamic Query.
+        |
         |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's added lines are
         |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_obp_calls_are_restricted` is on,
         |the dependency validator runs too and any forbidden call is reported in `dependency_error`. `compiles` is true only when both pass.
@@ -6879,10 +6889,91 @@ object Http4s700 {
         |${userAuthenticationMessage(true)}""".stripMargin,
       JSONFactory700.dynamicResourceDocCompileJsonV700Example,
       JSONFactory700.dynamicCompileResultJsonV700Example,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicCodeExecutionDisabled, code.api.util.ErrorMessages.DynamicCodeLangNotSupport, code.api.util.ErrorMessages.TooManyRequests, UnknownError),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicCodeExecutionDisabled, code.api.util.ErrorMessages.DynamicCodeLangNotSupport,
+        code.api.util.ErrorMessages.DynamicQueryInvalid, code.api.util.ErrorMessages.TooManyRequests, UnknownError),
       apiTagDynamicResourceDoc :: apiTagDynamic :: Nil,
       Some(List(ApiRole.canCreateDynamicResourceDoc)),
       http4sPartialFunction = Some(compileDynamicResourceDoc)
+    )
+
+    /**
+     * The value of a Right, or a failed Future carrying the Left's status and OBP error message, failed
+     * the way booleanToFuture fails one (an APIFailureNewStyle), so it is answered with that status.
+     */
+    private def answerOrFail[A](answer: Either[(Int, String), A], cc: CallContext): Future[A] = Future {
+      answer match {
+        case Right(value) => value
+        case Left((status, message)) =>
+          code.api.util.APIUtil.fullBoxOrException[A](
+            net.liftweb.common.Failure(message, net.liftweb.common.Empty, net.liftweb.common.Empty) ~> code.api.APIFailureNewStyle(message, status, Some(cc.toLight)))
+            .openOrThrowException(message)
+      }
+    }
+
+    // Route: POST /obp/v7.0.0/management/dynamic-resource-docs/explain
+    // For the author of a Dynamic Query: the statements it would run (SQL with ? for values) and the access
+    // it needs, for the requesting User or for an anonymous caller. Reads no record.
+    val explainDynamicQuery: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" / "explain" =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          import code.api.v7_0_0.JSONFactory700.{DynamicQueryExplainJsonV700, createDynamicQueryExplanationJsonV700}
+          import code.api.dynamic.entity.query.{DynamicQuery, DynamicQueryDeclaration}
+          for {
+            body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicQueryExplainJsonV700].getSimpleName}", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[DynamicQueryExplainJsonV700]
+            }
+            declaration <- answerOrFail(
+              DynamicQueryDeclaration.parse(java.net.URLDecoder.decode(body.method_body, "UTF-8"))
+                .left.map(error => (400, s"${code.api.util.ErrorMessages.DynamicQueryInvalid}${error.message}")), cc)
+            space = body.bank_id.map(_.trim).filter(_.nonEmpty).flatMap(code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem)
+            callerUserId = if (body.as_anonymous_caller.contains(true)) None else Some(u.userId)
+            callerParameters = body.caller_parameters.map(_.trim).filter(_.nonEmpty)
+              .map(text => org.http4s.Query.unsafeFromString(text).multiParams.map { case (name, values) => name -> values.toList })
+              .getOrElse(Map.empty[String, List[String]])
+            explanation <- Future {
+              DynamicQuery.explain(space, declaration, callerParameters, callerUserId,
+                if (callerUserId.isEmpty) "" else code.api.util.APIUtil.getConsumerPrimaryKey(Some(cc)))
+            }
+            explained <- answerOrFail(explanation.left.map(failure => (failure.status, failure.message)), cc)
+          } yield createDynamicQueryExplanationJsonV700(explained, callerUserId)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(explainDynamicQuery),
+      "POST",
+      "/management/dynamic-resource-docs/explain",
+      "Explain Dynamic Query",
+      s"""Explains how a Dynamic Query (a Dynamic Resource Doc whose `programming_lang` is `Query`) would be answered, without reading any record,
+        |so its author can check that the SQL is sane and that the access rules are the ones they expect.
+        |
+        |Send the URL-encoded declaration as `method_body`, as in a Dynamic Resource Doc. Optionally:
+        |
+        |* `bank_id`: the Dynamic Entity space to explain it in, a bank id or `SYS`. The system space when absent.
+        |* `caller_parameters`: the parameters a caller would add, as a query string, such as `obp_sort_by=name&obp_limit=10`.
+        |* `as_anonymous_caller`: true to explain it for a caller who is not logged in, rather than for you.
+        |
+        |The answer has two parts.
+        |
+        |`steps` are the reads the query would make, in order: the page, its count when the envelope names one, then each join. Each step
+        |says whether it goes through the query projection (with its SQL, every value shown as `?`), through the Dynamic Entity record
+        |provider (described in words: OBP does not build that SQL), or reuses an earlier step's records. The SQL comes from the same code
+        |that builds the statements a call runs, so it cannot differ from them.
+        |
+        |`entities`, `restricted_fields`, `rules`, `caller_may_run` and `refusal` describe access: every Dynamic Entity the query reads, with
+        |the Role that grants read access and whether the explained caller can read it; every read-restricted field it returns, copies,
+        |filters, sorts or picks by; the rules every Dynamic Query applies; and, when the caller could not run it, the exact refusal they
+        |would get (${code.api.util.ErrorMessages.DynamicQueryEntityNotReadable.takeWhile(_ != ':')} or ${code.api.util.ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}).
+        |
+        |A declaration that is not valid is answered with ${code.api.util.ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}, as Check would answer it. See the Glossary entry Dynamic Query.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.dynamicQueryExplainJsonV700Example,
+      JSONFactory700.dynamicQueryExplanationJsonV700Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, code.api.util.ErrorMessages.DynamicQueryInvalid, UnknownError),
+      apiTagDynamicResourceDoc :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canCreateDynamicResourceDoc)),
+      http4sPartialFunction = Some(explainDynamicQuery)
     )
 
     // Route: GET /obp/v7.0.0/management/dynamic-code-approval-config

@@ -150,9 +150,11 @@ object DynamicEntityHelper {
   /**
    * DE_indexing: may this definition update be applied to an entity that already has rows?
    *
-   * The stored rows stay valid when the entity name, the set of property names and each property's `type`
-   * are unchanged and `required` does not grow. Everything else — `indexed`, `index`, `example`,
-   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*` — may change freely; in
+   * The stored rows stay valid when the entity name is unchanged, every existing property keeps its name and
+   * `type`, and `required` does not grow. A new property may be added: the stored rows simply don't have it,
+   * which is valid as long as it is optional (a new required property grows `required`, so is refused).
+   * Removing a property or changing its type is refused. Everything else — `indexed`, `index`, `example`,
+   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*`, `hide_field_from_public_access` — may change freely; in
    * particular this is what lets an operator switch indexing on for an existing, populated entity
    * (the projection backfill then does the rest). Unparseable input is treated as incompatible.
    */
@@ -186,7 +188,9 @@ object DynamicEntityHelper {
     oldEntityName == newEntityName && {
       (definitionOf(oldMetadataJson, oldEntityName), definitionOf(newMetadataJson, newEntityName)) match {
         case (Some(oldDef), Some(newDef)) =>
-          propertyTypes(oldDef) == propertyTypes(newDef) && requiredNames(newDef).subsetOf(requiredNames(oldDef))
+          val newTypes = propertyTypes(newDef)
+          propertyTypes(oldDef).forall { case (name, oldType) => newTypes.get(name).contains(oldType) } &&
+            requiredNames(newDef).subsetOf(requiredNames(oldDef))
         case _ => false
       }
     }
@@ -1121,6 +1125,17 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   lazy val writeRestrictedFields: List[String] = restrictedFields("write_role_required", "write_role")
   /** Fields omitted from GET unless the caller holds the read role. */
   lazy val readRestrictedFields: List[String] = restrictedFields("read_role_required", "read_role")
+  /**
+   * Fields declared `"hide_field_from_public_access": true`: hidden from a caller whose access to this
+   * entity comes only from its public access, shown to a caller with other access (its read Role, or a
+   * row-level access list entry). See DynamicEntityInfo.readsViaPublicAccess.
+   */
+  lazy val publicHiddenFields: List[String] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) if (propDef \ "hide_field_from_public_access") == JBool(true) => name
+    }
+    case _ => Nil
+  }
   def explicitWriteRole(fieldName: String): Option[String] =
     (entity \ "properties" \ fieldName \ "write_role") match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
   def explicitReadRole(fieldName: String): Option[String] =
@@ -1146,6 +1161,24 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
           if (typeName.startsWith("reference:")) Some(DynamicEntityFieldType.reference)
           else DynamicEntityFieldType.withNameOption(typeName)
         fieldTypeOpt.map(ft => name -> FieldSpec(ft, kind))
+    }.flatten.toMap
+    case _ => Map.empty
+  }
+
+  /**
+   * Every declared property whose type is a scalar type the query layer understands: name -> type.
+   * A `reference:<Target>` field reads as [[DynamicEntityFieldType.reference]]. Unlike [[indexedFields]]
+   * this covers fields whether or not they are indexed; a join's `where` filter and `pick` order are
+   * evaluated in memory on the fetched records, so they may use any of these fields.
+   */
+  lazy val declaredFieldTypes: Map[String, DynamicEntityFieldType] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) =>
+        val typeName = (propDef \ "type") match { case JString(s) => s; case _ => "" }
+        val fieldTypeOpt =
+          if (typeName.startsWith("reference:")) Some(DynamicEntityFieldType.reference)
+          else DynamicEntityFieldType.withNameOption(typeName)
+        fieldTypeOpt.map(name -> _)
     }.flatten.toMap
     case _ => Map.empty
   }
@@ -1291,4 +1324,60 @@ object DynamicEntityInfo {
       case Some(role) => getOrCreateDynamicApiRole(role, true)
       case None => getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_${entityName}__${fieldName}", true)
     }
+
+  /**
+   * This says whether a caller may see one field of an entity's records. A field declared
+   * `read_role_required` is shown only to a caller holding its read Role in the entity's space; an
+   * anonymous caller (None) never sees it. Every other field is readable. It is the per-field rule
+   * that a GET applies when it omits restricted fields, and that a join applies when it copies
+   * a field from a referenced record.
+   */
+  /**
+   * This says whether a caller may read an entity's shared records, by the same rule a GET applies:
+   * an entity with public access is readable by anyone; a row-level entity is readable in principle,
+   * because its access list then decides row by row; otherwise the caller needs the entity's get
+   * Role in its space, judged by the entity's authentication mode (so a Consumer can qualify where
+   * the mode allows it). An unknown entity is not readable.
+   */
+  /**
+   * True when a caller's access to an entity comes only from its public access: the entity has public
+   * access, the caller does not hold its read Role (judged by its authentication mode), and the caller is
+   * not reaching it through a row-level access list (an anonymous caller never is). A field declared
+   * `hide_field_from_public_access` is hidden from such a caller.
+   */
+  def readsViaPublicAccess(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
+      info.hasPublicAccess && !(info.useRowLevelAccess && userIdOpt.isDefined) &&
+        !APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+    }
+
+  /**
+   * Whether one caller may read each field, as `(entity, field) => Boolean`, for reads that span
+   * several entities (joins, Dynamic Queries): [[mayReadField]], with each entity's public-access
+   * question answered once per entity.
+   */
+  def fieldReader(bankId: Option[String], userIdOpt: Option[String], consumerId: String): (String, String) => Boolean = {
+    val viaPublic = scala.collection.mutable.Map[String, Boolean]()
+    (entityName, fieldName) => mayReadField(bankId, entityName, fieldName, userIdOpt,
+      viaPublic.getOrElseUpdate(entityName, readsViaPublicAccess(bankId, entityName, userIdOpt, consumerId)))
+  }
+
+  def mayReadRecords(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
+      info.hasPublicAccess || info.useRowLevelAccess ||
+        APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+    }
+
+  def mayReadField(bankId: Option[String], entityName: String, fieldName: String, userIdOpt: Option[String],
+                   viaPublicAccess: Boolean = false): Boolean = {
+    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
+    if (viaPublicAccess && info.exists(_.publicHiddenFields.contains(fieldName))) false
+    else if (!info.exists(_.readRestrictedFields.contains(fieldName))) true
+    else userIdOpt.exists { userId =>
+      val role = fieldReadRole(entityName, fieldName, bankId, info.flatMap(_.explicitReadRole(fieldName)))
+      APIUtil.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), userId, role)
+    }
+  }
 }

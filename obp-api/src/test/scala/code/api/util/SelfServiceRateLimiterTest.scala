@@ -245,6 +245,8 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/resource-docs/v6.0.0/openapi")) shouldBe Some("documentation")
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/resource-docs/v6.0.0/openapi.yaml")) shouldBe Some("documentation")
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v4.0.0/banks/gh.29.uk/resource-docs/v4.0.0/obp")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/banks/SYS/resource-docs/v7.0.0/openapi")) shouldBe Some("documentation")
+      SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/banks/gh.29.uk/resource-docs/OBPv7.0.0/openapi.yaml")) shouldBe Some("documentation")
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v5.1.0/message-docs/rest_vMar2019/swagger2.0")) shouldBe Some("documentation")
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v2.2.0/message-docs/rest_vMar2019")) shouldBe Some("documentation")
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/message-docs/rest_vMar2019/json-schema")) shouldBe Some("documentation")

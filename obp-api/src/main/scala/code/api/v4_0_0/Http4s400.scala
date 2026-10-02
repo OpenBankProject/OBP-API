@@ -1826,8 +1826,9 @@ object Http4s400 {
       "Update System Level Dynamic Entity",
       s"""Update a system level DynamicEntity.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -1862,8 +1863,9 @@ object Http4s400 {
       "Update Bank Level Dynamic Entity",
       s"""Update a Bank Level DynamicEntity.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -1989,8 +1991,9 @@ object Http4s400 {
       "Update My Dynamic Entity",
       s"""Update my DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -9586,6 +9589,9 @@ object Http4s400 {
           cc = Some(cc)) {
           code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
         }
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicQueryInvalid${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+          code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(body.programmingLang, body.requestVerb)
+        }
       } yield ()
     }
 
@@ -9604,9 +9610,9 @@ object Http4s400 {
       code.util.Helper.booleanToFuture(s"$InvalidJsonFormat ${tooLong.mkString("; ")}", cc = Some(cc)) { tooLong.isEmpty }.map(_ => ())
     }
 
-    private def compileDynamicResourceDoc(body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
+    private def compileDynamicResourceDoc(bankId: Option[String], body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
       try {
-        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang).validateDependency()
+        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, bankId).validateDependency()
       } catch {
         case e: JsonResponseException => throw e
         case e: Exception =>
@@ -9633,14 +9639,17 @@ object Http4s400 {
 
     private def createDynamicResourceDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
-        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
           com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JsonDynamicResourceDoc]
         }
+        // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+          DynamicUtil.dynamicCodeExecutionEnabled || CompiledObjects.isQuery(body.programmingLang)
+        }
         _ <- validateDynamicResourceDocBody(body, cc)
-        _ = compileDynamicResourceDoc(body, cc)
+        _ = compileDynamicResourceDoc(bankId.orElse(body.bankId), body, cc)
         (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(
           bankId, body.requestVerb, body.requestUrl, Some(cc))
         _ <- code.util.Helper.booleanToFuture(
@@ -9654,14 +9663,17 @@ object Http4s400 {
 
     private def updateDynamicResourceDocImpl(bankId: Option[String], dynamicResourceDocId: String, rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
-        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
           com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JsonDynamicResourceDoc]
         }
+        // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+          DynamicUtil.dynamicCodeExecutionEnabled || CompiledObjects.isQuery(body.programmingLang)
+        }
         _ <- validateDynamicResourceDocBody(body, cc)
-        _ = compileDynamicResourceDoc(body, cc)
+        _ = compileDynamicResourceDoc(bankId.orElse(body.bankId), body, cc)
         (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.UPDATE, Some(dynamicResourceDocId), 200, cc) {
           NewStyle.function.updateJsonDynamicResourceDoc(

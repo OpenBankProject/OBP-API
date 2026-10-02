@@ -1917,6 +1917,73 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     duration_ms = 850
   )
 
+  // ─── Dynamic Query explain — the statements a Dynamic Query would run, and the access it needs ──
+
+  case class DynamicQueryExplainJsonV700(
+    // The declaration, URL-encoded as in a Dynamic Resource Doc's method_body.
+    method_body: String,
+    // The Dynamic Entity space to explain it in: a bank id, or SYS (the default) for the system space.
+    bank_id: Option[String] = None,
+    // Parameters a caller would add, as a query string, such as "obp_sort_by=name&obp_limit=10".
+    caller_parameters: Option[String] = None,
+    // Explain it for a caller who is not logged in, rather than for the User making this request.
+    as_anonymous_caller: Option[Boolean] = None
+  )
+  case class ExplainedEntityJsonV700(entity: String, read_role: String, bank_id: String, public_access: Boolean,
+                                     row_level_access: Boolean, caller_may_read: Boolean)
+  case class ExplainedFieldJsonV700(entity: String, field: String, restriction: String, read_role: String, caller_may_read: Boolean)
+  case class ExplainedStepJsonV700(step: Int, purpose: String, backend: String, sql: Option[String], parameter_count: Option[Int], notes: List[String])
+  case class DynamicQueryExplanationJsonV700(
+    space: String,
+    explained_for: String,
+    caller_may_run: Boolean,
+    refusal: Option[String],
+    entities: List[ExplainedEntityJsonV700],
+    restricted_fields: List[ExplainedFieldJsonV700],
+    rules: List[String],
+    steps: List[ExplainedStepJsonV700]
+  )
+
+  def createDynamicQueryExplanationJsonV700(explanation: code.api.dynamic.entity.query.DynamicQueryExplanation, callerUserId: Option[String]): DynamicQueryExplanationJsonV700 =
+    DynamicQueryExplanationJsonV700(
+      space = explanation.space,
+      explained_for = callerUserId.map(id => s"user $id").getOrElse("an anonymous caller"),
+      caller_may_run = explanation.callerMayRun,
+      refusal = explanation.refusal,
+      entities = explanation.entities.map(e => ExplainedEntityJsonV700(e.entity, e.readRole, e.bankId, e.publicAccess, e.rowLevelAccess, e.callerMayRead)),
+      restricted_fields = explanation.restrictedFields.map(f => ExplainedFieldJsonV700(f.entity, f.field, f.restriction, f.readRole, f.callerMayRead)),
+      rules = explanation.rules,
+      steps = explanation.steps.zipWithIndex.map { case (step, index) =>
+        ExplainedStepJsonV700(index + 1, step.purpose, step.backend, step.sql, step.sql.map(_.count(_ == '?')), step.notes)
+      }
+    )
+
+  lazy val dynamicQueryExplainJsonV700Example = DynamicQueryExplainJsonV700(
+    method_body = java.net.URLEncoder.encode(
+      """{"from":"activity","where":{"city":"eq:Berlin"},"join":[{"entity":"certificate","on":"activity_id","cardinality":"exists","as":"certified"}],"envelope":{"rows":"activities","count":"count"}}""",
+      "UTF-8"),
+    bank_id = None,
+    caller_parameters = Some("obp_sort_by=name&obp_limit=10"),
+    as_anonymous_caller = Some(false)
+  )
+  lazy val dynamicQueryExplanationJsonV700Example = DynamicQueryExplanationJsonV700(
+    space = "SYS",
+    explained_for = "user 9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+    caller_may_run = false,
+    refusal = Some("OBP-40066: This Dynamic Query reads Dynamic Entities you may not read: certificate (needs CanGetDynamicEntityRecord_certificate at bank SYS)."),
+    entities = List(
+      ExplainedEntityJsonV700("activity", "CanGetDynamicEntityRecord_activity", "SYS", public_access = true, row_level_access = false, caller_may_read = true),
+      ExplainedEntityJsonV700("certificate", "CanGetDynamicEntityRecord_certificate", "SYS", public_access = false, row_level_access = false, caller_may_read = false)),
+    restricted_fields = Nil,
+    rules = List("Only shared records are used, never a User's personal records, whoever owns them."),
+    steps = List(
+      ExplainedStepJsonV700(1, "Read the page of 'activity'", "projection",
+        Some("SELECT d.datajson FROM de_activity_ad1db27dae39 p JOIN dynamicdata d ON d.dynamicdataid = p.data_id WHERE d.dynamicentityname = ? AND d.bankid = ? AND d.ispersonalentity = ? AND p.c_city_11a62c23412b = CAST( ? AS text ) ORDER BY p.c_name_82a3537ff0db ASC LIMIT ?"),
+        Some(5), List("Filters and the sort run on the projection's indexed columns; only the records of the page are read.")),
+      ExplainedStepJsonV700(2, "Join 1: 'certificate' records whose 'activity_id' names the 'activity' (reverse)", "record provider", None, None,
+        List("Cardinality exists.")))
+  )
+
   // ─── Dynamic code approval config — whether maker/checker gates dynamic artefacts on this instance ──
 
   case class DynamicCodeApprovalConfigJsonV700(

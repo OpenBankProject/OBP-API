@@ -4674,25 +4674,42 @@ object Http4s600 {
               cc = Some(cc)) {
               code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
             }
-          } yield try {
-            code.api.dynamic.endpoint.helper.CompiledObjects(
-              body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang).validateDependency()
-            ValidateDynamicResourceDocSuccessJsonV600(
-              valid = true,
-              message = s"Dynamic Resource Doc method body is valid ${body.programmingLang} and uses allowed dependencies.")
-          } catch {
-            case e: code.api.JsonResponseException =>
-              val errorText = e.jsonResponse match {
-                case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
-                case _ => ""
-              }
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
-            case e: Exception =>
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            _ <- Helper.booleanToFuture(s"$DynamicQueryInvalid${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(body.programmingLang, body.requestVerb)
+            }
+          } yield {
+            val isQuery = code.api.dynamic.endpoint.helper.CompiledObjects.isQuery(body.programmingLang)
+            try {
+              code.api.dynamic.endpoint.helper.CompiledObjects(
+                body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, body.bankId).validateDependency()
+              ValidateDynamicResourceDocSuccessJsonV600(
+                valid = true,
+                message =
+                  if (isQuery) "Dynamic Query declaration is valid."
+                  else s"Dynamic Resource Doc method body is valid ${body.programmingLang} and uses allowed dependencies.")
+            } catch {
+              // A Dynamic Query is checked against the entity definitions, not a dependency allowlist.
+              case e: code.api.JsonResponseException if isQuery =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicQueryInvalid,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "QueryError"))
+              case e: code.api.JsonResponseException =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
+              case e: Exception =>
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            }
           }
         }
     }
@@ -7322,7 +7339,7 @@ object Http4s600 {
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -7395,7 +7412,7 @@ object Http4s600 {
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -7470,7 +7487,7 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -7534,7 +7551,7 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -7604,7 +7621,7 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).

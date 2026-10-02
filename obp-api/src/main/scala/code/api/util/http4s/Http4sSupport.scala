@@ -230,6 +230,21 @@ object Http4sRequestAttributes {
       }
 
     /**
+     * This records the endpoint metric for a response that was built outside these helpers, such as
+     * the handler of a Dynamic Resource Doc, which builds its own Response. Every other endpoint gets
+     * its metric from the helper it runs in; without this, calls to those handlers left no metric row.
+     *
+     * The body is read only when metrics are written at all. Those handlers build their bodies from
+     * in-memory strings, so reading it here does not consume what the client receives.
+     */
+    def recordMetricFor(response: Response[IO])(implicit cc: CallContext): IO[Response[IO]] =
+      if (!code.metrics.MetricsProps.writeMetrics) IO.pure(response)
+      else response.bodyText.compile.string.flatMap { text =>
+        val body: Any = scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(text)).getOrElse(text)
+        recordMetric(body, response)
+      }.as(response)
+
+    /**
      * Execute Future-based business logic and return JSON response.
      * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */

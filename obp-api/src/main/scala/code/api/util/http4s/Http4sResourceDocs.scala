@@ -29,7 +29,7 @@ package code.api.util.http4s
 
 import org.json4s._
 import cats.effect.IO
-import code.api.Constant.HostName
+import code.api.Constant.{DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, HostName}
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocs300, ResourceDocsAPIMethodsUtil}
 import code.api.ResponseHeader
 import code.api.cache.Caching
@@ -73,6 +73,8 @@ import code.api.util.ApiTag.ResourceDocTag
  *   GET /obp/&#42;/resource-docs/{API_VERSION}/openapi
  *   GET /obp/&#42;/resource-docs/{API_VERSION}/openapi.yaml
  *   GET /obp/&#42;/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp
+ *   GET /obp/&#42;/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi
+ *   GET /obp/&#42;/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi.yaml
  *   GET /obp/&#42;/message-docs/{CONNECTOR}/swagger2.0
  *
  * Wired into `Http4sApp.baseServices` BEFORE the Lift bridge, so requests are
@@ -229,6 +231,32 @@ object Http4sResourceDocs extends MdcLoggable {
       }
     }
   }
+
+  // ─── Cache for rendered swagger / OpenAPI documents ──────────────────────
+
+  /**
+   * This function picks the cache a rendered swagger or OpenAPI document is kept in, returned as a
+   * getter and a setter.
+   *
+   * A document of dynamic docs only (content=dynamic) goes in the dynamic resource docs cache. That
+   * cache's namespace is bumped whenever a Dynamic Entity is created, updated or deleted
+   * (NewStyle.function.invalidateDynamicResourceDocCaches), so the next request rebuilds the
+   * document. The static swagger cache is never bumped that way, and a dynamic document kept there
+   * went on omitting a new Dynamic Entity for the rest of its TTL. Every other document stays in the
+   * static swagger cache.
+   *
+   * The key is prefixed with the format in the dynamic cache, because the obp format keeps its own
+   * content=dynamic document there under a key built from the same arguments.
+   */
+  private def renderedDocCache(
+    format: String,
+    contentParam: Option[ContentParam]
+  ): (String => Option[String], (String, String) => Unit) =
+    if (contentParam.contains(DYNAMIC))
+      (key => Caching.getDynamicResourceDocCache(s"$format:$key"),
+        (key, value) => Caching.setDynamicResourceDocCache(s"$format:$key", value))
+    else
+      (Caching.getStaticSwaggerDocCache, Caching.setStaticSwaggerDocCache)
 
   // ─── Common parameter validation ─────────────────────────────────────────
   // Mirrors the parameter-validation branches in the Lift handlers.
@@ -407,7 +435,8 @@ object Http4sResourceDocs extends MdcLoggable {
         params.apiCollectionId,
         Some(isVersion4OrHigher)
       )
-      val cached = Caching.getStaticSwaggerDocCache(cacheKey)
+      val (renderedDocCacheGet, renderedDocCacheSet) = renderedDocCache("swagger", params.contentParam)
+      val cached = renderedDocCacheGet(cacheKey)
       val jv: JValue =
         if (cached.isDefined) json.parse(cached.get)
         else {
@@ -427,7 +456,7 @@ object Http4sResourceDocs extends MdcLoggable {
                   impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
-          impl.convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+          impl.convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered, renderedDocCacheSet)
         }
       Right(jv)
     } catch {
@@ -480,7 +509,8 @@ object Http4sResourceDocs extends MdcLoggable {
         params.apiCollectionId,
         Some(isVersion4OrHigher)
       )
-      val cached = Caching.getStaticSwaggerDocCache(cacheKey)
+      val (renderedDocCacheGet, renderedDocCacheSet) = renderedDocCache("openapi31", params.contentParam)
+      val cached = renderedDocCacheGet(cacheKey)
       val jv: JValue =
         if (cached.isDefined) json.parse(cached.get)
         else {
@@ -500,7 +530,7 @@ object Http4sResourceDocs extends MdcLoggable {
                   impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
-          impl.convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+          impl.convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered, renderedDocCacheSet)
         }
       Right(jv)
     } catch {
@@ -550,7 +580,8 @@ object Http4sResourceDocs extends MdcLoggable {
         params.apiCollectionId,
         Some(isVersion4OrHigher)
       )
-      val cached = Caching.getStaticSwaggerDocCache(cacheKey)
+      val (renderedDocCacheGet, renderedDocCacheSet) = renderedDocCache("openapi31yaml", params.contentParam)
+      val cached = renderedDocCacheGet(cacheKey)
       val yamlString: String =
         if (cached.isDefined) cached.get
         else {
@@ -570,7 +601,7 @@ object Http4sResourceDocs extends MdcLoggable {
                   impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
-          impl.convertResourceDocsToOpenAPI31YAMLAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+          impl.convertResourceDocsToOpenAPI31YAMLAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered, renderedDocCacheSet)
         }
       Right(yamlString)
     } catch {
@@ -578,6 +609,56 @@ object Http4sResourceDocs extends MdcLoggable {
         logger.error(s"Http4sResourceDocs.buildOpenApi31Yaml failed: ${e.getMessage}", e)
         Left(Status.BadRequest -> s"Invalid API version: $requestedApiVersionString")
     }
+  }
+
+  // ─── Bank level handlers: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/... ─
+  //
+  // These routes document the dynamic things that belong to one space: the Dynamic Entities,
+  // Dynamic Endpoints and Dynamic Resource Docs of one bank, or of the system space when BANK_ID
+  // is SYS (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID). Static endpoints belong to no bank, so
+  // a bank level document only ever holds dynamic docs, and the `content` parameter does not
+  // apply. The three formats (obp, openapi, openapi.yaml) share one gate, bankLevelGate.
+
+  /**
+   * This function runs the checks every bank level resource-docs route makes before building its
+   * document: the optional role check (only when resource_docs_requires_role=true), then the
+   * check that the space exists, then the route's own parameter checks (`validate`). An error
+   * from the last two is rendered with `errorResponse`, so the YAML route can answer in plain text.
+   */
+  private def bankLevelGate(
+    req: Request[IO],
+    prefix: String,
+    bankIdStr: String,
+    errorResponse: (Status, String) => IO[Response[IO]]
+  )(validate: => Option[(Status, String)])(body: => IO[Response[IO]]): IO[Response[IO]] =
+    withOptionalRoleCheck(req, prefix, bankIdStr, canReadDynamicResourceDocsAtOneBank :: Nil,
+      UserHasMissingRoles + canReadDynamicResourceDocsAtOneBank.toString) {
+      if (!spaceExists(bankIdStr)) errorResponse(Status.NotFound, s"$BankNotFound Current BANK_ID = $bankIdStr")
+      else validate match {
+        case Some((status, message)) => errorResponse(status, message)
+        case None => body
+      }
+    }
+
+  /**
+   * This function says whether a space exists. SYS is the system space rather than a bank row, so
+   * it exists without a bank lookup; any other value must be the id of a bank.
+   */
+  private def spaceExists(bankIdStr: String): Boolean =
+    bankIdStr == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ||
+      code.bankconnectors.Connector.connector.vend.getBankLegacy(BankId(bankIdStr), None).map(_._1).isDefined
+
+  /** The dynamic docs of one space, filtered by the request's tags and functions. */
+  private def bankLevelDynamicDocs(
+    params: ParsedParams,
+    prefix: String,
+    bankIdStr: String,
+    isVersion4OrHigher: Boolean
+  ): List[JSONFactory1_4_0.ResourceDocJson] = {
+    val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
+    implForPrefix(prefix)
+      .getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, Some(bankIdStr), isVersion4OrHigher)
+      .head.resource_docs
   }
 
   // ─── Handler: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp ─
@@ -589,30 +670,20 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): IO[Response[IO]] = {
     val params = parseParams(req)
-    withOptionalRoleCheck(req, prefix, bankIdStr, canReadDynamicResourceDocsAtOneBank :: Nil,
-      UserHasMissingRoles + canReadDynamicResourceDocsAtOneBank.toString) {
-      // Bank-level handler ALWAYS requires the bank to exist. Use the legacy connector lookup
-      // synchronously; it does its own 404 if absent.
-      val bankBox: Box[com.openbankproject.commons.model.Bank] =
-        code.bankconnectors.Connector.connector.vend.getBankLegacy(BankId(bankIdStr), None).map(_._1)
-      if (bankBox.isEmpty) errorJson(Status.NotFound, s"$BankNotFound Current BANK_ID = $bankIdStr")
-      else {
-        val localeError: Option[String] = params.locale match {
-          case Some(l) if APIUtil.obpLocaleValidation(l) != SILENCE_IS_GOLDEN =>
-            Some(s"$InvalidLocale Current Locale is $l")
-          case _ => None
-        }
-        val versionError: Option[String] =
-          try { ApiVersionUtils.valueOf(requestedApiVersionString); None }
-          catch { case _: Throwable => Some(s"$InvalidApiVersionString $requestedApiVersionString") }
-        localeError.orElse(versionError) match {
-          case Some(msg) => errorJson(Status.BadRequest, msg)
-          case None =>
-            IO(buildBankLevelResourceDocsJson(params, prefix, bankIdStr, requestedApiVersionString)).flatMap {
-              case Right(body) => jsonResponse(Status.Ok, body)
-              case Left((s, m)) => errorJson(s, m)
-            }
-        }
+    bankLevelGate(req, prefix, bankIdStr, errorJson) {
+      val localeError: Option[String] = params.locale match {
+        case Some(l) if APIUtil.obpLocaleValidation(l) != SILENCE_IS_GOLDEN =>
+          Some(s"$InvalidLocale Current Locale is $l")
+        case _ => None
+      }
+      val versionError: Option[String] =
+        try { ApiVersionUtils.valueOf(requestedApiVersionString); None }
+        catch { case _: Throwable => Some(s"$InvalidApiVersionString $requestedApiVersionString") }
+      localeError.orElse(versionError).map(Status.BadRequest -> _)
+    } {
+      IO(buildBankLevelResourceDocsJson(params, prefix, bankIdStr, requestedApiVersionString)).flatMap {
+        case Right(body) => jsonResponse(Status.Ok, body)
+        case Left((s, m)) => errorJson(s, m)
       }
     }
   }
@@ -639,7 +710,7 @@ object Http4sResourceDocs extends MdcLoggable {
       val jv: JValue =
         if (cached.isDefined) json.parse(cached.get)
         else {
-          val rdJson = impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher = false).head
+          val rdJson = impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, Some(bankIdStr), isVersion4OrHigher = false).head
           val response = resourceDocsJsonToJsonResponse(rdJson)
           Caching.setDynamicResourceDocCache(cacheKey, json.compactRender(response))
           response
@@ -649,6 +720,88 @@ object Http4sResourceDocs extends MdcLoggable {
       case e: Throwable =>
         logger.error(s"Http4sResourceDocs.buildBankLevelResourceDocsJson failed: ${e.getMessage}", e)
         Left(Status.BadRequest -> s"$UnknownError Can not create dynamic resource docs.")
+    }
+  }
+
+  // ─── Handler: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi ─
+
+  private def handleGetBankLevelDynamicResourceDocsOpenAPI31(
+    req: Request[IO],
+    prefix: String,
+    bankIdStr: String,
+    requestedApiVersionString: String
+  ): IO[Response[IO]] = {
+    val params = parseParams(req)
+    bankLevelGate(req, prefix, bankIdStr, errorJson) {
+      validateBasicParams(params).orElse(validateVersionAndLocale(requestedApiVersionString, params.locale).left.toOption)
+    } {
+      IO(buildBankLevelOpenApi31(params, prefix, bankIdStr, requestedApiVersionString, yaml = false)).flatMap {
+        case Right(body) => IO.pure(Response[IO](Status.Ok).withEntity(body).withContentType(jsonContentType))
+        case Left((s, m)) => errorJson(s, m)
+      }
+    }
+  }
+
+  // ─── Handler: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi.yaml ─
+
+  private def handleGetBankLevelDynamicResourceDocsOpenAPI31Yaml(
+    req: Request[IO],
+    prefix: String,
+    bankIdStr: String,
+    requestedApiVersionString: String
+  ): IO[Response[IO]] = {
+    val params = parseParams(req)
+    bankLevelGate(req, prefix, bankIdStr, plainTextResponse) {
+      validateBasicParams(params).orElse(validateVersionAndLocale(requestedApiVersionString, params.locale).left.toOption)
+    } {
+      IO(buildBankLevelOpenApi31(params, prefix, bankIdStr, requestedApiVersionString, yaml = true)).flatMap {
+        case Right(yamlString) => yamlResponse(yamlString)
+        case Left((s, m)) => plainTextResponse(s, m)
+      }
+    }
+  }
+
+  /**
+   * This function builds the OpenAPI 3.1 document of one space, as compact JSON or as YAML. The
+   * cache key carries the space and the format, so neither can be served the other's document.
+   * The document is cached with the dynamic resource docs TTL, not the static swagger one, because
+   * it changes whenever a Dynamic Entity, Dynamic Endpoint or Dynamic Resource Doc is added.
+   */
+  private def buildBankLevelOpenApi31(
+    params: ParsedParams,
+    prefix: String,
+    bankIdStr: String,
+    requestedApiVersionString: String,
+    yaml: Boolean
+  ): Either[(Status, String), String] = {
+    try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
+      val format = if (yaml) "openapi31yaml" else "openapi31"
+      val cacheKey = APIUtil.createResourceDocCacheKey(
+        Some(s"$format-bank:$bankIdStr"),
+        requestedApiVersionString,
+        filters,
+        params.locale,
+        None,
+        None,
+        Some(true)
+      )
+      val cached = Caching.getDynamicResourceDocCache(cacheKey)
+      if (cached.isDefined) Right(cached.get)
+      else {
+        val docs = bankLevelDynamicDocs(params, prefix, bankIdStr, isVersion4OrHigher = true)
+        val openApiDoc = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.createOpenAPI31Json(docs, requestedApiVersionString, HostName)
+        val openApiJValue = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.OpenAPI31JsonFormats.toJValue(openApiDoc)
+        val rendered =
+          if (yaml) YAMLUtils.jValueToYAMLSafe(openApiJValue, "# Error converting to YAML")
+          else json.compactRender(openApiJValue)
+        Caching.setDynamicResourceDocCache(cacheKey, rendered)
+        Right(rendered)
+      }
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Http4sResourceDocs.buildBankLevelOpenApi31 failed: ${e.getMessage}", e)
+        Left(Status.BadRequest -> s"$UnknownError Can not create the OpenAPI document for BANK_ID $bankIdStr.")
     }
   }
 
@@ -757,6 +910,14 @@ object Http4sResourceDocs extends MdcLoggable {
 
     case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "obp" =>
       timed(req, "getBankLevelDynamicResourceDocsObp")(handleGetBankLevelDynamicResourceDocsObp(req, prefix, bankIdStr, requestedApiVersionString))
+
+    case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "openapi" =>
+      timed(req, "getBankLevelDynamicResourceDocsOpenAPI31")(handleGetBankLevelDynamicResourceDocsOpenAPI31(req, prefix, bankIdStr, requestedApiVersionString))
+
+    // Like the instance wide YAML route, the YAML form has no ResourceDoc of its own (the openapi
+    // one describes both), so it has no operation id and is not timed.
+    case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "openapi.yaml" =>
+      handleGetBankLevelDynamicResourceDocsOpenAPI31Yaml(req, prefix, bankIdStr, requestedApiVersionString)
 
     case req @ GET -> Root / "obp" / _ / "message-docs" / connector / "swagger2.0" =>
       timedAs(req, APIUtil.buildOperationId(ApiVersion.v3_1_0, "getMessageDocsSwagger"), ApiVersion.v3_1_0.apiShortVersion)(

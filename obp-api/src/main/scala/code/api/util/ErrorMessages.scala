@@ -108,7 +108,8 @@ object ErrorMessages {
   val RowLevelAccessRequiresLocalBacking = "OBP-09020: use_row_level_access is only supported for locally-backed dynamic entities. This entity is routed to an external connector (a method routing for dynamicEntityProcess exists for it), where the row-level ACL cannot be enforced. Remove the method routing or disable use_row_level_access."
   val RowLevelAccessNotEnabled = "OBP-09021: The row-access endpoints are only available for dynamic entities created with use_row_level_access = true."
   val DynamicEntityJoinRequiresProjection = "OBP-09022: obp_exists / obp_not_exists join queries require the SQL projection backend (dynamic_entity.indexing.backend=auto on a supported database). This deployment serves Dynamic Entity reads in-memory, where joins are not supported."
-  val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name, the set of property names and each property's type must stay the same, and no property may be added to 'required'. Changing indexed, index, example, description, minLength, maxLength and the read/write role settings is allowed. Delete all the data before making a structural change."
+  val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name must stay the same, every existing property must keep its name and type, and no property may be added to 'required'. New optional properties may be added. Changing indexed, index, example, description, minLength, maxLength, the read/write role settings and hide_field_from_public_access is allowed. Delete all the data before making a structural change."
+  val DynamicEntityFieldNotReadable = "OBP-09025: These fields cannot be used to filter or sort, because you may not read them: "
   val DynamicEntityRecordIdTooLong = "OBP-09024: The id of this DynamicEntity record is too long. A record id is stored in a column of 255 characters. Please supply a shorter id, or leave the id field out of the request body and one will be generated."
 
 
@@ -1017,6 +1018,8 @@ object ErrorMessages {
     "A payment started on somebody else's behalf is authorised by that person, not by the caller that started it."
   val PaymentChallengeHasNoOnBehalfOfUser = "OBP-40064: This payment needs Strong Customer Authentication, but the user it is being made for could not be determined, " +
     "so there is nobody who can be asked to authorise it. A consent that names the user it acts for is required before a payment of this size can be started."
+  val DynamicQueryInvalid = "OBP-40065: The Dynamic Query cannot be run as written. "
+  val DynamicQueryEntityNotReadable = "OBP-40066: This Dynamic Query reads Dynamic Entities you may not read: "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

@@ -709,6 +709,10 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       if(readRoleRequired != JNothing) {
         checkFormat(readRoleRequired.isInstanceOf[JBool], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'read_role_required' field must be boolean.")
       }
+      val hideFromPublicAccess = value \ "hide_field_from_public_access"
+      if(hideFromPublicAccess != JNothing) {
+        checkFormat(hideFromPublicAccess.isInstanceOf[JBool], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'hide_field_from_public_access' field must be boolean.")
+      }
       val writeRole = value \ "write_role"
       if(writeRole != JNothing) {
         checkFormat(writeRole.isInstanceOf[JString] && writeRole.asInstanceOf[JString].s.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'write_role' field must be a non-empty string.")

@@ -94,7 +94,7 @@ object SelfServiceRateLimitMiddleware extends MdcLoggable {
     // monitoring polls it. Shadow mode unless the scope's own mode prop is set
     // (SelfServiceRateLimiter.shadowUnlessSetScopes).
     Entry("documentation", Method.GET, "^/obp/[^/]+/resource-docs/[^/]+/(obp|swagger|openapi|openapi\\.yaml)$".r),
-    Entry("documentation", Method.GET, "^/obp/[^/]+/banks/[^/]+/resource-docs/[^/]+/obp$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/banks/[^/]+/resource-docs/[^/]+/(obp|openapi|openapi\\.yaml)$".r),
     Entry("documentation", Method.GET, "^/obp/[^/]+/message-docs/[^/]+(/json-schema|/swagger2\\.0)?$".r),
     Entry("documentation", Method.GET, "^/obp/[^/]+/api/(glossary(/[^/]+)?|tags|versions|error-messages|popular-endpoints)$".r),
     Entry("documentation", Method.GET, "^/obp/[^/]+/endpoints/(json-schema-validations|authentication-type-validations)$".r)

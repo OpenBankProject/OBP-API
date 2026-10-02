@@ -75,6 +75,8 @@ trait EntitlementProvider {
       grantedByUserId: Option[String] = None,
       groupId: Option[String] = None
   ): Box[Entitlement]
+  /** Delete the grants of a Dynamic Entity's record Roles in its own space only (bankId None is the
+   * system space); an entity of the same name in another space keeps its grants. */
   def deleteDynamicEntityEntitlement(
       entityName: String,
       bankId: Option[String]

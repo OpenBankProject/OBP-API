@@ -85,6 +85,31 @@ object ProjectionStore {
       .query[(String, String)].to[List]
 
   /**
+   * Read (data_id, dataJson) for the shared records of an entity whose reference column `linkColumn`
+   * holds one of `referencedIds`, through the entity's projection table, so the lookup uses the
+   * column's index. Used to find the records that refer to a page of parent records (a reverse join).
+   * `referencedIds` must not be empty; callers batch long lists.
+   */
+  def readByReference(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String,
+                      referencedIds: List[String]): ConnectionIO[List[(String, String)]] =
+    readByReferenceStatement(safeTable, linkColumn, bankId, entityName, referencedIds).query[(String, String)].to[List]
+
+  /** The SQL text of [[readByReferenceStatement]], with `?` for every bound value. */
+  def readByReferenceSql(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String, referencedIds: List[String]): String =
+    readByReferenceStatement(safeTable, linkColumn, bankId, entityName, referencedIds).query[(String, String)].sql
+
+  /** The statement [[readByReference]] runs, as a value, so it can be shown as well as run. */
+  def readByReferenceStatement(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String,
+                               referencedIds: List[String]): Fragment = {
+    val idList = ProjectionSql.intercalate(referencedIds.map(id => fr0"$id"), fr",")
+    fr"SELECT" ++ Fragment.const(s"d.$idColumn") ++ fr"," ++ Fragment.const(s"d.$jsonColumn") ++
+      fr"FROM" ++ Fragment.const(s"$safeTable p") ++
+      fr"JOIN" ++ Fragment.const(s"$blobTable d") ++ fr"ON" ++ Fragment.const(s"d.$idColumn = p.data_id") ++
+      fr"WHERE" ++ scope(bankId, entityName, isPersonalEntity = false, None, "d") ++
+      fr"AND" ++ Fragment.const(s"p.$linkColumn") ++ fr"IN (" ++ idList ++ fr")"
+  }
+
+  /**
    * Scope predicate mirroring `MappedDynamicDataProvider`'s get-all: entity name always; bankId
    * always (a system-level record stores a sentinel, never NULL); personal flag; userId only when
    * personal, and that column IS still nullable so it keeps its null-safe comparison.
