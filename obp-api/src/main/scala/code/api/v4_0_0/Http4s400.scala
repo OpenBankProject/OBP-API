@@ -1826,8 +1826,9 @@ object Http4s400 {
       "Update System Level Dynamic Entity",
       s"""Update a system level DynamicEntity.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -1862,8 +1863,9 @@ object Http4s400 {
       "Update Bank Level Dynamic Entity",
       s"""Update a Bank Level DynamicEntity.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -1989,8 +1991,9 @@ object Http4s400 {
       "Update My Dynamic Entity",
       s"""Update my DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.

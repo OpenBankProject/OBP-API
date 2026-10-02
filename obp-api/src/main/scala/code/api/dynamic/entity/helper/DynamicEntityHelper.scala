@@ -150,8 +150,10 @@ object DynamicEntityHelper {
   /**
    * DE_indexing: may this definition update be applied to an entity that already has rows?
    *
-   * The stored rows stay valid when the entity name, the set of property names and each property's `type`
-   * are unchanged and `required` does not grow. Everything else — `indexed`, `index`, `example`,
+   * The stored rows stay valid when the entity name is unchanged, every existing property keeps its name and
+   * `type`, and `required` does not grow. A new property may be added: the stored rows simply don't have it,
+   * which is valid as long as it is optional (a new required property grows `required`, so is refused).
+   * Removing a property or changing its type is refused. Everything else — `indexed`, `index`, `example`,
    * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*`, `hide_field_from_public_access` — may change freely; in
    * particular this is what lets an operator switch indexing on for an existing, populated entity
    * (the projection backfill then does the rest). Unparseable input is treated as incompatible.
@@ -186,7 +188,9 @@ object DynamicEntityHelper {
     oldEntityName == newEntityName && {
       (definitionOf(oldMetadataJson, oldEntityName), definitionOf(newMetadataJson, newEntityName)) match {
         case (Some(oldDef), Some(newDef)) =>
-          propertyTypes(oldDef) == propertyTypes(newDef) && requiredNames(newDef).subsetOf(requiredNames(oldDef))
+          val newTypes = propertyTypes(newDef)
+          propertyTypes(oldDef).forall { case (name, oldType) => newTypes.get(name).contains(oldType) } &&
+            requiredNames(newDef).subsetOf(requiredNames(oldDef))
         case _ => false
       }
     }

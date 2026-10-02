@@ -1680,14 +1680,6 @@ class DynamicEntityTest extends V400ServerSetup {
       typeResponse.code should equal(400)
       typeResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
 
-      Then("adding a property is refused")
-      val propertyAdded = rightEntity.transformField { case JField("properties", JObject(fields)) =>
-        JField("properties", JObject(fields :+ JField("colour", JObject(List(JField("type", JString("string")), JField("example", JString("red")))))))
-      }
-      val addResponse = makePutRequest(updateRequest, write(propertyAdded))
-      addResponse.code should equal(400)
-      addResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
-
       Then("making an existing optional property required is refused")
       val requiredGrown = rightEntity.transformField { case JField("required", JArray(items)) =>
         JField("required", JArray(items :+ JString("number")))
@@ -1695,6 +1687,31 @@ class DynamicEntityTest extends V400ServerSetup {
       val requiredResponse = makePutRequest(updateRequest, write(requiredGrown))
       requiredResponse.code should equal(400)
       requiredResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
+
+      val colour = JField("colour", JObject(List(JField("type", JString("string")), JField("example", JString("red")))))
+      def withColour(entity: JValue): JValue = entity.transformField { case JField("properties", JObject(fields)) =>
+        JField("properties", JObject(fields :+ colour))
+      }
+
+      Then("adding a required property is refused: the stored record lacks it")
+      val requiredAdded = withColour(rightEntity).transformField { case JField("required", JArray(items)) =>
+        JField("required", JArray(items :+ JString("colour")))
+      }
+      val requiredAddedResponse = makePutRequest(updateRequest, write(requiredAdded))
+      requiredAddedResponse.code should equal(400)
+      requiredAddedResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
+
+      Then("adding an optional property is accepted, and the record is kept")
+      val addResponse = makePutRequest(updateRequest, write(withColour(rightEntity)))
+      addResponse.code should equal(200)
+      (addResponse.body \ "FooBar" \ "properties" \ "colour" \ "type") should equal(JString("string"))
+      val afterAdd = makeGetRequest((dynamicEntity_Request / "FooBar").GET <@(user1))
+      (afterAdd.body \ "foo_bar_list").asInstanceOf[JArray].arr.size should equal(1)
+
+      Then("removing that property again is refused")
+      val removeResponse = makePutRequest(updateRequest, write(rightEntity))
+      removeResponse.code should equal(400)
+      removeResponse.body.extract[ErrorMessage].message should include (DynamicEntityUpdateNotSchemaCompatible)
     }
   }
 
