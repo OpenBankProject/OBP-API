@@ -38,6 +38,23 @@ import scala.collection.immutable.List
 object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Helper.MdcLoggable {
   override lazy val urlPrefix: String = APIUtil.getPropsValue("url.prefix.dynamic.resourceDoc", "dynamic-resource-doc")
 
+  /** The space a doc belongs to, as its URL names it: its bank's id, or SYS for the system space. */
+  def spaceOf(doc: APIUtil.ResourceDoc): String = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrSystem(doc.createdByBankId)
+
+  /**
+   * Every doc is served under the space it belongs to: /banks/BANK_ID/dynamic-resource-doc/REQUEST_URL,
+   * with SYS as BANK_ID for the system space, as the v7.0.0 Dynamic Entity URLs and the Dynamic Endpoints
+   * created from Swagger name theirs. Without the space, two banks could each have a doc at the same URL
+   * and which one answered would not depend on anything the caller sent. (The URL without the space is
+   * still answered when it is unambiguous; see DynamicEndpoints.findEndpoint.)
+   */
+  override def docs: List[APIUtil.ResourceDoc] = resourceDocs map { doc =>
+    val newUrl = s"/banks/${spaceOf(doc)}/$urlPrefix/${doc.requestUrl}".replaceAll("/+", "/")
+    val newDoc = doc.copy(requestUrl = newUrl) // copy preserves dynamicHttp4sFunction
+    newDoc.connectorMethods = doc.connectorMethods // copy does not keep the var; reset it, as EndpointGroup.docs does
+    newDoc
+  }
+
 
   override protected def resourceDocs: List[APIUtil.ResourceDoc] =
     // Per-row isolation: a stored methodBody written against the deprecated Lift contract

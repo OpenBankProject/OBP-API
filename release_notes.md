@@ -3,6 +3,23 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+03/10/2026    TBD           CHANGED: a Dynamic Resource Doc is served under its space, at
+                            /obp/dynamic-endpoint/banks/BANK_ID/dynamic-resource-doc/REQUEST_URL, with
+                            SYS for the system space. A verb and URL are unique within a space instead of
+                            across every space, so the system space and several banks may each have a doc
+                            at the same URL. The URL without a space
+                            (/obp/dynamic-endpoint/dynamic-resource-doc/REQUEST_URL) still works while
+                            only one space has a doc there; when more than one does it returns 409 with
+                            the new error OBP-40067, naming the spaces to call it under. API Metrics
+                            record the URL with its space, also for a call made without it.
+                            CHANGED: a system level Dynamic Resource Doc stores SYS as its bank id
+                            instead of NULL, as a Dynamic Entity does. v4.0.0 responses for a system
+                            level doc no longer include "bank_id": null.
+                            CHANGED index on DynamicResourceDoc: the unique index on
+                            (RequestUrl, RequestVerb) is replaced by one on
+                            (BankId, RequestUrl, RequestVerb). On every start, before the tables are
+                            checked, existing NULL bank ids are set to SYS and the old index is dropped;
+                            this does not depend on the migration_scripts props.
 30/09/2026    TBD           CHANGED in v7.0.0: a Dynamic Entity record at
                             /obp/v7.0.0/banks/BANK_ID/dynamic-entities/... is followed by a metadata
                             object: created and updated, each with at (UTC), user_id (the User who made

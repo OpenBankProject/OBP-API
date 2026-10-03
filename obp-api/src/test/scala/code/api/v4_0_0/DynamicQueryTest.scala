@@ -200,9 +200,9 @@ class DynamicQueryTest extends V400ServerSetup {
       makeGetRequest(call.GET <@ (user1)).code should equal(200)
       code.metrics.MetricBatchWriter.flush()
 
-      Then("both calls have a metric row, with their status, verb and the doc's function name")
+      Then("both calls have a metric row, with their status, verb and the doc's function name, under the URL that names the doc's space")
       val metrics = makeGetRequest((baseRequest / "obp" / "v6.0.0" / "management" / "metrics").GET <@ (user1) <<? List(
-        "url" -> s"/obp/dynamic-endpoint/dynamic-resource-doc/dq_audited_$sfx", "limit" -> "10"))
+        "url" -> s"/obp/dynamic-endpoint/banks/SYS/dynamic-resource-doc/dq_audited_$sfx", "limit" -> "10"))
       metrics.code should equal(200)
       val rows = (metrics.body \ "metrics").children
       rows.map(row => (row \ "status_code").extract[Int]).sorted shouldBe List(200, 403)

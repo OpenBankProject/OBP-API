@@ -74,9 +74,14 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK w
 
 
 object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[DynamicResourceDoc] {
-  override def dbIndexes: List[BaseIndex[DynamicResourceDoc]] = UniqueIndex(DynamicResourceDocId) :: UniqueIndex(RequestUrl,RequestVerb) :: super.dbIndexes
+  // A verb and URL are unique within a space (BankId, which is SYS for the system space), not across spaces:
+  // a doc is served under its space. Databases that predate this had UniqueIndex(RequestUrl, RequestVerb) and
+  // stored NULL for a system level doc; Migration.database.prepareDynamicEntitySpaceScopedIndexes, which Boot
+  // runs on every start, drops that index and moves those NULLs to SYS.
+  override def dbIndexes: List[BaseIndex[DynamicResourceDoc]] = UniqueIndex(DynamicResourceDocId) :: UniqueIndex(BankId, RequestUrl, RequestVerb) :: super.dbIndexes
   def getJsonDynamicResourceDoc(dynamicResourceDoc: DynamicResourceDoc) = JsonDynamicResourceDoc(
-    bankId = Some(dynamicResourceDoc.BankId.get),
+    // The row stores SYS for the system space; in memory the system space is None, as for a Dynamic Entity.
+    bankId = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(dynamicResourceDoc.BankId.get),
     dynamicResourceDocId = Some(dynamicResourceDoc.DynamicResourceDocId.get),
     methodBody = dynamicResourceDoc.MethodBody.get,
     partialFunctionName = dynamicResourceDoc.PartialFunctionName.get,

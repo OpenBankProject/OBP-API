@@ -1019,6 +1019,7 @@ object ErrorMessages {
   val PaymentChallengeHasNoOnBehalfOfUser = "OBP-40064: This payment needs Strong Customer Authentication, but the user it is being made for could not be determined, " +
     "so there is nobody who can be asked to authorise it. A consent that names the user it acts for is required before a payment of this size can be started."
   val DynamicQueryInvalid = "OBP-40065: The Dynamic Query cannot be run as written. "
+  val DynamicResourceDocUrlAmbiguous = "OBP-40067: More than one Dynamic Resource Doc, in different spaces, answers this URL. Call it under its space, at /obp/dynamic-endpoint/banks/BANK_ID/dynamic-resource-doc/..., where BANK_ID is one of: "
   val DynamicQueryEntityNotReadable = "OBP-40066: This Dynamic Query reads Dynamic Entities you may not read: "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."

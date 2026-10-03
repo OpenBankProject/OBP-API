@@ -248,7 +248,13 @@ object Migration extends MdcLoggable {
         // for NULL silently found nothing once the writer had started using the sentinel.
         adoptSystemLevelBankIdSentinel("dynamicentity"),
         dropSupersededIndex("dynamicdata", "dynamicdata_dynamicdataid"),
-        dropSupersededIndex("dynamicdataaccess", "dynamicdataaccess_dynamicdataid_userid")
+        dropSupersededIndex("dynamicdataaccess", "dynamicdataaccess_dynamicdataid_userid"),
+        // Dynamic Resource Docs follow the same space model: a system level doc stores SYS, not NULL, and a
+        // verb and URL are unique within a space, so the index that made them unique across every space goes
+        // (Schemifier then creates the per space one on (BankId, RequestUrl, RequestVerb)). The NULLs must
+        // move before that index exists, or two system docs at one URL would both be NULL and both allowed.
+        adoptSystemLevelBankIdSentinel("dynamicresourcedoc"),
+        dropSupersededIndex("dynamicresourcedoc", "dynamicresourcedoc_requesturl_requestverb")
       )
       val endDate = System.currentTimeMillis()
       val didSomething = outcomes.exists(_.changedSomething)
