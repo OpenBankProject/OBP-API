@@ -4249,6 +4249,32 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Domain APIs",
+		description =
+			s"""
+|# Domain APIs
+|
+|A **Domain API** publishes the Dynamic Entities and Dynamic Resource Docs (Dynamic Queries included) of one space under a base path of its own, so that an API built on OBP can be offered without OBP's own URL structure in front of it. A space is a bank, or the system space, whose bank id is `SYS`.
+|
+|With the base path `carbon-registry/v1` over the system space:
+|
+|* `/carbon-registry/v1/activity` answers what `/obp/v7.0.0/banks/SYS/dynamic-entities/activity` answers, and likewise `activity/ACTIVITY_ID`, `my/activity`, `public/activity`, `community/activity` and `activity/ACTIVITY_ID/access`;
+|* `/carbon-registry/v1/registry/summary` answers what the Dynamic Resource Doc at `/obp/dynamic-endpoint/banks/SYS/dynamic-resource-doc/registry/summary` answers;
+|* `/carbon-registry/v1/openapi.yaml` and `/carbon-registry/v1/openapi.json` are its OpenAPI document, with the Domain API's own title, description, version and server, and only its own endpoints.
+|
+|Dynamic Entity names are not renamed: only the part of the URL before them is. The endpoints that create and change definitions stay at their OBP URLs; a Domain API publishes the endpoints that serve and take data. Dynamic Endpoints made from a Swagger file are not published under a Domain API yet.
+|
+|**It only renames.** A call under a base path is rewritten to the OBP URL and runs exactly as a call to that URL would: the same authentication, Roles, Consents, rate limits, row-level access and field restrictions, and the same API Metrics. A Domain API grants nothing. The one difference in a response is that a Dynamic Entity record response leaves out `bank_id`, because the base path already fixes the space; the OpenAPI document's examples leave it out too.
+|
+|**Base path and version.** The base path is two to five segments of lowercase letters, digits, hyphens and dots, ending with the major version as `vN`, for example `carbon-registry/v1`. It may not start with a segment OBP serves itself (such as `obp` or `open-banking`), and may not overlap another Domain API's base path. The Domain API's `version` is its full semantic version, MAJOR.MINOR.PATCH, whose MAJOR is the N of the base path. A compatible change, such as a new optional field or a new Dynamic Query, edits `version` (or leaves it) and keeps every URL; a breaking change gets a new Domain API with a new base path, for example `carbon-registry/v2`, which can run alongside the old one while clients move. OBP never changes the version itself. For Dynamic Entities OBP already keeps changes compatible once an entity holds records (only optional properties may be added); a Dynamic Resource Doc can be changed in any way, so keeping its changes compatible is up to its author.
+|
+|**Clashes.** Under a base path the Dynamic Entities and Dynamic Resource Docs of the space share one set of paths. A Domain API is refused (${ErrorMessages.DomainApiPathClash.takeWhile(_ != ':')}) while two of them would answer the same verb and path, or while a Dynamic Resource Doc's path starts with `my`, `public`, `community`, `openapi.json` or `openapi.yaml`. If a clash is created later, the Dynamic Entity answers.
+|
+|**Managing.** `/obp/v7.0.0/management/banks/BANK_ID/domain-apis` creates and lists a space's Domain APIs, and `/obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID` reads, updates and deletes one. BANK_ID is a bank's id or `SYS`. The Roles are CanCreateDomainApi, CanGetDomainApis, CanUpdateDomainApi and CanDeleteDomainApi, held at that BANK_ID.
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Dynamic Code Paths",
 		description =
 			s"""

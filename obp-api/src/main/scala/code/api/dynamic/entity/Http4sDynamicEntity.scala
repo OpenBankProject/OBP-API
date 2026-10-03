@@ -171,8 +171,12 @@ object Http4sDynamicEntity extends MdcLoggable {
   private val namesEverySpaceKey: org.typelevel.vault.Key[Boolean] =
     org.typelevel.vault.Key.newKey[IO, Boolean].unsafeRunSync()
 
+  // Under a Domain API the base path already fixes the space, so the response leaves bank_id out. The rule
+  // is DomainApiPaths.responseUnderDomainApi, which the Domain API's documented examples also go through.
   private def wrapBankId(req: Request[IO], bankId: Option[String], result: JObject): JObject =
-    if (bankId.isDefined || req.attributes.lookup(namesEverySpaceKey).contains(true))
+    if (req.attributes.lookup(code.api.dynamic.domainapi.DomainApiPaths.domainApiCallKey).isDefined)
+      code.api.dynamic.domainapi.DomainApiPaths.responseUnderDomainApi(result)
+    else if (bankId.isDefined || req.attributes.lookup(namesEverySpaceKey).contains(true))
       (("bank_id" -> DynamicEntitySpace.bankIdOrSystem(bankId)): JObject) merge result
     else result
 

@@ -161,7 +161,7 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
       case (true, Some(uid)) =>
         fr"AND EXISTS (SELECT 1 FROM" ++ Fragment.const(s"${ProjectionStore.aclTable} acl") ++
           fr"WHERE" ++ Fragment.const(s"acl.${ProjectionStore.aclDataIdColumn} = $childBlobAlias.${ProjectionStore.idColumn}") ++
-          fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclUserIdColumn}") ++ fr"=" ++ fr0"$uid" ++
+          fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclUserIdColumn}") ++ fr"=" ++ fr"$uid" ++
           fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclCanReadColumn} = true") ++ fr")"
       case _ => Fragment.empty
     }

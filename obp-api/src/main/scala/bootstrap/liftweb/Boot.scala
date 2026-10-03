@@ -1144,6 +1144,7 @@ object ToSchemify extends MdcLoggable {
     code.glossaryitem.DynamicGlossaryItem,
     code.platformapp.PlatformApp,
     code.platformapp.PlatformAppRequiredScope,
+    code.domainapi.DomainApi,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,
