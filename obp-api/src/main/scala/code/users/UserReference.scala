@@ -198,6 +198,7 @@ object UserReference {
   case object CounterpartyWhereTag_User                        extends UserReference(UseOnBehalfOfUserId   , "code.metadata.counterparties.MappedCounterpartyWhereTag", List("user"), "who tagged the counterparty's location")
   case object ApiProductSubscription_CreatedByUserId           extends UserReference(UseOnBehalfOfUserId   , "code.apiproductsubscription.ApiProductSubscription", List("CreatedByUserId"), "a subscription outlives the Consent that took it out")
   case object DynamicGlossaryItem_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.glossaryitem.DynamicGlossaryItem", List("CreatedByUserId"), "outlives the Consent that created it")
+  case object DomainApi_CreatedByUserId                        extends UserReference(UseOnBehalfOfUserId   , "code.domainapi.DomainApi", List("CreatedByUserId"), "the Domain API's creator; a published API outlives the Consent that created it")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
   case object Organisation_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.organisation.Organisation", List("CreatedByUserId"), "outlives the Consent that created it")
   case object PayeeLookup_CreatedByUserId                      extends UserReference(UseOnBehalfOfUserId   , "code.payeelookup.PayeeLookup", List("CreatedByUserId"), "outlives the Consent that created it")
@@ -287,6 +288,7 @@ object UserReference {
     CounterpartyWhereTag_User,
     ApiProductSubscription_CreatedByUserId,
     DynamicGlossaryItem_CreatedByUserId,
+    DomainApi_CreatedByUserId,
     Bank_CreatedByUserId,
     Organisation_CreatedByUserId,
     PayeeLookup_CreatedByUserId,

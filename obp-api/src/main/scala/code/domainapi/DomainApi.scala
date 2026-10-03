@@ -122,7 +122,8 @@ object DomainApiDbProvider extends DomainApiProvider {
         .Version(version)
         .Title(title)
         .Description(description)
-        .CreatedByUserId(createdByUserId)
+        // A consent user's Domain API belongs to the person the Consent is for (UserReference).
+        .CreatedByUserId(code.users.Users.users.vend.attributedUserId(createdByUserId, code.users.UserReference.DomainApi_CreatedByUserId).openOr(createdByUserId))
         .saveMe()
     }
     forget()
