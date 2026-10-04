@@ -674,6 +674,16 @@ object Http4s510 {
         }
     }
 
+    // For the Create Consumer docs: how an app the installation runs itself gets the Roles its own calls need.
+    private val platformAppConsumerText =
+      s"""**If this Consumer is for an app your installation runs itself** (such as the Portal, the API Manager,
+      |Opey or a monitoring service like OBP-Sentinel) and the app calls OBP with its own application token
+      |(OAuth2 client credentials, no User), those calls need Roles granted to the Consumer as Scopes. Have an
+      |administrator mark the Consumer as a Platform App (`POST /obp/v7.0.0/management/platform-apps`); the app
+      |then declares the Scopes it needs (`PUT /obp/v7.0.0/consumers/current/platform-app`), retrying until it is
+      |marked, and the administrator grants the missing ones. See ${Glossary.getGlossaryItemLink("Platform Apps")}
+      |""".stripMargin
+
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
       nameOf(createConsumer),
@@ -756,6 +766,8 @@ object Http4s510 {
       |- `bypass_tpp_signature_validation` - Emergency bypass (default: false, use only for testing)
       |
       |**Important**: The key and secret are only shown once in the response. Save them securely as they cannot be retrieved later.
+      |
+      |$platformAppConsumerText
       |
       |${consumerDisabledText()}
       |
@@ -3070,6 +3082,7 @@ object Http4s510 {
       "Create a Consumer",
       s"""Create a Consumer (Authenticated access).
       |
+      |$platformAppConsumerText
       |""",
       createConsumerRequestJsonV510,
       consumerJsonV510,

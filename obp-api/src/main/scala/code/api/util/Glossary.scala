@@ -1527,6 +1527,8 @@ object Glossary extends MdcLoggable  {
 			|
 			|There is a one to one relationship between a Consumer and its certificate. i.e. OBP does not (currently) store the history of certificates bound to a Consumer. If a certificate expires, the third party provider (TPP) must generate a new consumer using a new certificate. In this case, related resources such as rate limits and scopes must be copied from the old consumer to the new consumer. In the future, OBP may store multiple certificates for a consumer, but a certificate will always identify only one consumer record.
 			|
+			|A Consumer for an app the installation runs itself (the Portal, the API Manager, Opey, OBP-Sentinel or a bank's own service) that calls OBP with its own application token needs Roles granted to it as Scopes. An administrator marks it as a Platform App, the app declares the Scopes it needs, and the administrator grants them. See ${getGlossaryItemLink("Platform Apps")}
+			|
 		""")
 
 	  glossaryItems += GlossaryItem(
