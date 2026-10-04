@@ -94,6 +94,10 @@ starConnector_supported_types=mapped,internal
 ## DynamicEntity cache time-to-live in seconds, default is 30, the value is 0 at test environment
 ## no 0 value will cause new dynamic entity will be shown after that seconds
 dynamicEntity.cache.ttl.seconds=30
+## How long each node keeps the parsed map of every Dynamic Entity definition, which the access and
+## field checks consult many times per request. A definition created, updated or deleted on this node
+## is seen at once; on another node, within this many seconds. Default 300. Not kept in test mode.
+#dynamicEntity.definitions_map.cache.ttl.seconds=300
 ## no 0 value will cause new dynamic endpoints will be shown after that seconds, default is 32, the value is 0 at test environment
 ## DynamicEndpoint cache time-to-live in seconds, default is 0, should set a no 0 value at product environment
 dynamicEndpoint.cache.ttl.seconds=32

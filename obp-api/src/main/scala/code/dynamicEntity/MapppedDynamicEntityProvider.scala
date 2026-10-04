@@ -119,6 +119,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .UseRowLevelAccess(dynamicEntity.useRowLevelAccess)
           .AuthMode(DynamicEntityAuthMode.normalise(dynamicEntity.authMode))
           .saveMe()
+        code.api.dynamic.entity.helper.DynamicEntityHelper.forgetDefinitions()
         // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
         // Guarded by projectionEnabled (default off); best-effort (a failure leaves the definition saved
         // and queries reporting pending, not a broken create). Fields passed explicitly because the new
@@ -148,7 +149,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 
 
   override def delete(dynamicEntity: DynamicEntityT): Box[Boolean] = Box.tryo{
-    dynamicEntity match {
+    try dynamicEntity match {
       case v: DynamicEntity => DynamicEntity.delete_!(v)
       // Anything that is not one of our own rows is matched by name, and a name identifies an entity
       // only within one space: two spaces may each hold one called country. Without the bank id this
@@ -158,7 +159,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       case v => DynamicEntity.bulkDelete_!!(
         By(DynamicEntity.BankId, storedBankId(v.bankId)),
         By(DynamicEntity.EntityName, v.entityName))
-    }
+    } finally code.api.dynamic.entity.helper.DynamicEntityHelper.forgetDefinitions()
   }
 
   private[this] def getByDynamicEntityId(dynamicEntityId: String): Box[DynamicEntity] = DynamicEntity.find(By(DynamicEntity.DynamicEntityId, dynamicEntityId))

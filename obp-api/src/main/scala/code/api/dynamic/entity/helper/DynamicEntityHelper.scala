@@ -198,7 +198,40 @@ object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
   // Keyed by (bank id as published, entity name): SYS for the system space, never None or "".
-  def definitionsMap: Map[(String, String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((DynamicEntitySpace.bankIdOrSystem(it.bankId), it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
+  //
+  // It is asked for many times per request (the access checks, each field's read check, the resource
+  // docs), and building it reads every definition and parses each one's JSON: with 120 definitions
+  // that was ~5 ms a time, and a Dynamic Query returning 11 records spent ~0.5 s rebuilding it. So
+  // the built map is kept for dynamicEntity.definitions_map.cache.ttl.seconds (default 300), and
+  // forgotten the moment a definition is created, updated or deleted on this node
+  // (MappedDynamicEntityProvider calls forgetDefinitions). Another node sees such a change when its
+  // copy expires. Not kept in test mode, where a test may change the table behind the provider.
+  private val definitionsMapTtlMillis: Long =
+    if (net.liftweb.util.Props.testMode) 0L
+    else APIUtil.getPropsAsLongValue("dynamicEntity.definitions_map.cache.ttl.seconds", 300L) * 1000L
+  // (built at, map). The generation stops a build that started before a change from being kept after it.
+  @volatile private var definitionsMapCache: Option[(Long, Map[(String, String), DynamicEntityInfo])] = None
+  private val definitionsGeneration = new java.util.concurrent.atomic.AtomicLong(0)
+
+  /** Forget the kept definitions map, so the next use reads the definitions again. */
+  def forgetDefinitions(): Unit = {
+    definitionsGeneration.incrementAndGet()
+    definitionsMapCache = None
+  }
+
+  def definitionsMap: Map[(String, String), DynamicEntityInfo] = {
+    val now = System.currentTimeMillis()
+    definitionsMapCache match {
+      case Some((builtAt, map)) if now - builtAt < definitionsMapTtlMillis => map
+      case _ =>
+        val generation = definitionsGeneration.get()
+        val map = buildDefinitionsMap
+        if (definitionsMapTtlMillis > 0 && definitionsGeneration.get() == generation) definitionsMapCache = Some((now, map))
+        map
+    }
+  }
+
+  private def buildDefinitionsMap: Map[(String, String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((DynamicEntitySpace.bankIdOrSystem(it.bankId), it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
 
   /**
    * The definition of one entity in one space, or None when that space holds no such entity.
@@ -1355,12 +1388,19 @@ object DynamicEntityInfo {
   /**
    * Whether one caller may read each field, as `(entity, field) => Boolean`, for reads that span
    * several entities (joins, Dynamic Queries): [[mayReadField]], with each entity's public-access
-   * question answered once per entity.
+   * question answered once per entity, and each field's answer once per field.
+   *
+   * The answer doesn't depend on the record, and [[mayReadField]] looks the definition up through
+   * [[DynamicEntityHelper.definitionOf]], which rebuilds the map of every definition (and reads them
+   * all from the database when the definition cache is off, as in dev mode). A Dynamic Query asks
+   * once per field of every record it returns, so without remembering the answers a page of n
+   * records rebuilt that map n x fields times: about 0.5 s for 11 activities locally.
    */
   def fieldReader(bankId: Option[String], userIdOpt: Option[String], consumerId: String): (String, String) => Boolean = {
     val viaPublic = scala.collection.mutable.Map[String, Boolean]()
-    (entityName, fieldName) => mayReadField(bankId, entityName, fieldName, userIdOpt,
-      viaPublic.getOrElseUpdate(entityName, readsViaPublicAccess(bankId, entityName, userIdOpt, consumerId)))
+    val answers = scala.collection.mutable.Map[(String, String), Boolean]()
+    (entityName, fieldName) => answers.getOrElseUpdate((entityName, fieldName), mayReadField(bankId, entityName, fieldName, userIdOpt,
+      viaPublic.getOrElseUpdate(entityName, readsViaPublicAccess(bankId, entityName, userIdOpt, consumerId))))
   }
 
   def mayReadRecords(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =

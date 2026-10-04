@@ -897,6 +897,11 @@ class Token extends LongKeyedMapper[Token]{
   }
 }
 object Token extends Token with LongKeyedMetaMapper[Token]{
+  // Every authenticated request looks its token up by key (DirectLogin does twice), so without this
+  // index each request scanned the whole table: 2.8 ms a lookup at 23k tokens, growing with every login.
+  // Not unique, so a database that already holds a duplicate key still starts.
+  override def dbIndexes = Index(key) :: super.dbIndexes
+
   def gernerateVerifier(key : String) : Box[String] = {
     Token.find(key) match {
       case Full(tkn) => Full(tkn.gernerateVerifier)

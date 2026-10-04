@@ -67,7 +67,7 @@ import scala.concurrent.Future
  *
  * Notes on the port:
  *   - The dynamic-entity set is runtime-mutable (`DynamicEntityHelper.definitionsMap` is
- *     re-queried per request), so this service does NOT use `ResourceDocMiddleware`
+ *     kept only until a definition changes), so this service does NOT use `ResourceDocMiddleware`
  *     (whose ResourceDoc index is built once at startup).  Auth / role / bank checks are
  *     performed inline, exactly as the Lift handlers did.
  *   - The before/after authenticate interceptors carry auth-type / query-param / header-key
