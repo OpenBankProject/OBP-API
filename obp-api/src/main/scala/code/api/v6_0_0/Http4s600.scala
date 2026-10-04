@@ -7367,7 +7367,7 @@ object Http4s600 {
           personal_requires_role = false,
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         Some(canCreateDynamicEntityDefinition :: Nil),
         authMode = code.api.util.APIUtil.UserOrApplication,
@@ -7445,6 +7445,7 @@ object Http4s600 {
           $AuthenticatedUserIsRequired,
           UserHasMissingRoles,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -7511,7 +7512,7 @@ object Http4s600 {
           has_public_access = false,
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         Some(canUpdateDynamicEntityDefinition :: Nil),
         http4sPartialFunction = Some(updateSystemDynamicEntity)
@@ -7580,6 +7581,7 @@ object Http4s600 {
           $AuthenticatedUserIsRequired,
           UserHasMissingRoles,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -7648,6 +7650,7 @@ object Http4s600 {
         List(
           $AuthenticatedUserIsRequired,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,

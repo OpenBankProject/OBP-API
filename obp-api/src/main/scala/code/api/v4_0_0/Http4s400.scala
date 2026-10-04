@@ -53,6 +53,7 @@ import code.bankconnectors.LocalMappedConnectorInternal._
 import code.consent.ConsentStatus
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, UserInvitationPurpose}
 import java.util.Date
+import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.{ApiRole => ApiRoleObj}
@@ -1762,7 +1763,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createSystemDynamicEntity))
@@ -1799,7 +1800,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createBankLevelDynamicEntity))
@@ -1836,7 +1837,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateSystemDynamicEntity))
@@ -1873,7 +1874,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateBankLevelDynamicEntity))
@@ -2001,7 +2002,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi), None,
       http4sPartialFunction = Some(updateMyDynamicEntity))
 
@@ -9655,6 +9656,8 @@ object Http4s400 {
         _ <- code.util.Helper.booleanToFuture(
           s"$DynamicResourceDocAlreadyExists The combination of request_url(${body.requestUrl}) and request_verb(${body.requestVerb}) must be unique",
           cc = callContext) { !isExists }
+        pathProblems <- Future(DomainApiPaths.resourceDocProblemsIn(bankId, None, body.requestVerb, body.requestUrl, body.partialFunctionName))
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${pathProblems.mkString("; ")}", 409, callContext) { pathProblems.isEmpty }
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.CREATE, None, 201, cc) {
           NewStyle.function.createJsonDynamicResourceDoc(bankId, body, callContext).map(_._1)
         }
@@ -9674,7 +9677,13 @@ object Http4s400 {
         }
         _ <- validateDynamicResourceDocBody(body, cc)
         _ = compileDynamicResourceDoc(bankId.orElse(body.bankId), body, cc)
-        (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
+        (stored, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
+        // Only a new verb or path is checked, so a doc caught in an ambiguity that predates the rule can
+        // still have its body changed.
+        pathProblems <- Future(
+          if (stored.requestVerb == body.requestVerb && stored.requestUrl == body.requestUrl) Nil
+          else DomainApiPaths.resourceDocProblemsIn(bankId, Some(dynamicResourceDocId), body.requestVerb, body.requestUrl, body.partialFunctionName))
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${pathProblems.mkString("; ")}", 409, callContext) { pathProblems.isEmpty }
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.UPDATE, Some(dynamicResourceDocId), 200, cc) {
           NewStyle.function.updateJsonDynamicResourceDoc(
             bankId, body.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext).map(_._1)
@@ -9786,7 +9795,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canCreateDynamicResourceDoc)),
         http4sPartialFunction = Some(createDynamicResourceDoc)
@@ -9804,7 +9813,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canUpdateDynamicResourceDoc)),
         http4sPartialFunction = Some(updateDynamicResourceDoc)
@@ -9872,7 +9881,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canCreateBankLevelDynamicResourceDoc)),
         http4sPartialFunction = Some(createBankLevelDynamicResourceDoc)
@@ -9890,7 +9899,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canUpdateBankLevelDynamicResourceDoc)),
         http4sPartialFunction = Some(updateBankLevelDynamicResourceDoc)

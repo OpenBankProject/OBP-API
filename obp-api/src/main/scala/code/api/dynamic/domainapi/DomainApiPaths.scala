@@ -31,8 +31,10 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.Constant.ApiPathZero
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil.ResourceDoc
+import code.api.util.APIUtil.ResourceDoc.isPathVariable
 import code.domainapi.DomainApiRoute
+import code.dynamicEntity.DynamicEntityProvider
+import code.dynamicResourceDoc.DynamicResourceDocProvider
 import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards, ApiVersion}
 import org.json4s.JsonAST.{JObject, JValue}
 
@@ -78,7 +80,7 @@ object DomainApiPaths {
   /**
    * Path segments a Dynamic Entity URL already gives a meaning to right after the space, and the names of
    * the Domain API's own documentation. A Dynamic Resource Doc whose path starts with one of them would be
-   * hidden under a Domain API, so it counts as a clash.
+   * hidden under a Domain API, so it is refused, and so is a Dynamic Entity named one of them.
    */
   val reservedUnderBasePath: Set[String] = Set("my", "public", "community", "openapi.json", "openapi.yaml")
 
@@ -145,29 +147,91 @@ object DomainApiPaths {
     }
   }
 
-  /** A path template with each placeholder (an all-capitals segment) reduced to one form, for comparison. */
-  private def templateKey(path: String): String =
-    path.split("/").filter(_.nonEmpty).map(s => if (s.matches("[A-Z][A-Z0-9_]*")) "{}" else s).mkString("/", "/", "")
+  /** This is one Dynamic Resource Doc as the path rules below see it. */
+  case class ResourceDocPath(dynamicResourceDocId: Option[String], verb: String, path: String, name: String) {
+    def segments: List[String] = path.split("/").filter(_.nonEmpty).toList
+    def describe: String = s"${verb.toUpperCase} $path ($name)"
+  }
 
   /**
-   * The verb and path pairs that more than one endpoint of the space would publish, and the Dynamic
-   * Resource Docs whose path starts with a segment a Dynamic Entity URL or the documentation already uses.
-   * Each is described for the person who has to resolve it.
+   * Two paths are ambiguous when one request could match both: they have as many segments, and at each
+   * position the segments are equal or at least one of them is a path variable (an all-capitals segment).
    */
-  def clashes(space: String, docs: List[ResourceDoc]): List[String] = {
-    val published = docs.flatMap(doc => publishedPath(space, doc.requestUrl).map(path => (doc, path)))
-    val duplicates = published
-      .groupBy { case (doc, path) => (doc.requestVerb.toUpperCase, templateKey(path)) }
-      .collect { case ((verb, key), entries) if entries.length > 1 =>
-        s"$verb $key (${entries.map(_._1.partialFunctionName).sorted.mkString(", ")})"
-      }.toList
-    val hidden = published.collect {
-      case (doc, path) if doc.requestUrl.contains(s"/$dynamicResourceDocSegment/") &&
-        reservedUnderBasePath.contains(path.split("/").filter(_.nonEmpty).headOption.getOrElse("")) =>
-        s"${doc.requestVerb.toUpperCase} $path (${doc.partialFunctionName}) starts with a reserved segment"
+  def ambiguous(a: List[String], b: List[String]): Boolean =
+    a.length == b.length && a.zip(b).forall { case (x, y) => x == y || isPathVariable(x) || isPathVariable(y) }
+
+  /**
+   * This lists why a Dynamic Resource Doc's path would be ambiguous in its space, given the space's
+   * Dynamic Entity names and its other Dynamic Resource Docs; empty when it is not.
+   *
+   * The Dynamic Entities and Dynamic Resource Docs of one space share one set of paths when a Domain API
+   * publishes the space under its base path, where a Dynamic Entity owns every path that starts with its
+   * name. The rules hold in every space, with or without a Domain API, so that one can be registered over
+   * any space at any time. A path may not start with a path variable (it would match every entity name),
+   * with a segment a Dynamic Entity URL or the Domain API's documentation already uses, or with the name
+   * of one of the space's Dynamic Entities, and no other doc of the same verb may match a request it
+   * matches. A doc is never compared with itself (the same dynamicResourceDocId).
+   */
+  def resourceDocPathProblems(doc: ResourceDocPath, entityNames: List[String], otherDocs: List[ResourceDocPath]): List[String] =
+    doc.segments match {
+      case Nil => List(s"${doc.describe} has no path segment")
+      case first :: _ =>
+        val variableFirst =
+          if (isPathVariable(first)) List(s"${doc.describe} starts with the path variable $first, which would also match every Dynamic Entity name") else Nil
+        val reserved =
+          if (reservedUnderBasePath.contains(first)) List(s"${doc.describe} starts with $first, which a Dynamic Entity URL or a Domain API's documentation already uses") else Nil
+        val entities = entityNames.filter(_.equalsIgnoreCase(first))
+          .map(entityName => s"${doc.describe} starts with $first, the name of the Dynamic Entity $entityName")
+        val docs = otherDocs
+          .filterNot(other => doc.dynamicResourceDocId.isDefined && other.dynamicResourceDocId == doc.dynamicResourceDocId)
+          .filter(other => other.verb.equalsIgnoreCase(doc.verb) && ambiguous(other.segments, doc.segments))
+          .map(other => s"${doc.describe} and ${other.describe} would both match one request")
+        variableFirst ++ reserved ++ entities ++ docs
     }
-    (duplicates ++ hidden).sorted
+
+  /**
+   * This lists why a Dynamic Entity name would be ambiguous in its space, given the space's Dynamic
+   * Resource Docs: a doc whose path starts with the name (compared ignoring case), or a name that is a
+   * segment a Dynamic Entity URL or a Domain API's documentation already uses. Empty when it is neither.
+   */
+  def entityNameProblems(entityName: String, docs: List[ResourceDocPath]): List[String] = {
+    val reserved =
+      if (reservedUnderBasePath.contains(entityName.toLowerCase)) List(s"the Dynamic Entity name $entityName is a segment a Dynamic Entity URL or a Domain API's documentation already uses") else Nil
+    reserved ++ docs.filter(_.segments.headOption.exists(_.equalsIgnoreCase(entityName)))
+      .map(doc => s"${doc.describe} starts with $entityName, the name of the Dynamic Entity")
   }
+
+  /**
+   * This lists every ambiguity among a space's Dynamic Entities and Dynamic Resource Docs, each pair once.
+   * Writes are checked one at a time, so this finds only what predates the rules; a Domain API is
+   * refused over a space while the list is not empty.
+   */
+  def spaceProblems(entityNames: List[String], docs: List[ResourceDocPath]): List[String] = {
+    val docProblems = docs.zipWithIndex.flatMap { case (doc, index) => resourceDocPathProblems(doc, entityNames, docs.drop(index + 1)) }
+    val entityProblems = entityNames.flatMap(entityNameProblems(_, Nil))
+    (docProblems ++ entityProblems).distinct.sorted
+  }
+
+  /** The names of the Dynamic Entities of a space (None for the system space), read from the database. */
+  def entityNamesIn(space: Option[String]): List[String] =
+    DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(space, false).map(_.entityName)
+
+  /** The Dynamic Resource Docs of a space (None for the system space), read from the database, not a cache. */
+  def resourceDocPathsIn(space: Option[String]): List[ResourceDocPath] =
+    DynamicResourceDocProvider.provider.vend.getAllInSpace(space)
+      .map(doc => ResourceDocPath(doc.dynamicResourceDocId, doc.requestVerb, doc.requestUrl, doc.partialFunctionName))
+
+  /** [[resourceDocPathProblems]] for a doc about to be created (no id) or moved to a new verb or path (its id). */
+  def resourceDocProblemsIn(space: Option[String], dynamicResourceDocId: Option[String], verb: String, path: String, name: String): List[String] =
+    resourceDocPathProblems(ResourceDocPath(dynamicResourceDocId, verb, path, name), entityNamesIn(space), resourceDocPathsIn(space))
+
+  /** [[entityNameProblems]] for a Dynamic Entity about to be created or renamed in a space. */
+  def entityNameProblemsIn(space: Option[String], entityName: String): List[String] =
+    entityNameProblems(entityName, resourceDocPathsIn(space))
+
+  /** [[spaceProblems]] for a space as the database holds it now. */
+  def spaceProblemsIn(space: Option[String]): List[String] =
+    spaceProblems(entityNamesIn(space), resourceDocPathsIn(space))
 
   /** A Dynamic Entity record response as a Domain API returns it: without `bank_id`. */
   def responseUnderDomainApi(response: JObject): JObject =

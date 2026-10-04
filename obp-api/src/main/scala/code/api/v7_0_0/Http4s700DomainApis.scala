@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.dynamic.domainapi.{DomainApiPaths, Http4sDomainApi}
+import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.entity.helper.DynamicEntitySpace
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
 import code.api.util.ApiRole._
@@ -83,8 +83,9 @@ object Http4s700DomainApis {
   /**
    * The checks a registration must pass, on create and on update (`domainApiId` is the one being updated,
    * which may keep its own base path): the base path's shape, the version, the title, that no other
-   * Domain API's base path overlaps it, and that no two of the space's endpoints would publish the same
-   * verb and path.
+   * Domain API's base path overlaps it, and that none of the space's endpoints is ambiguous with another
+   * (see DomainApiPaths.spaceProblems). Dynamic Entity and Dynamic Resource Doc writes are refused when
+   * they would make one ambiguous, so this only finds what predates that rule.
    */
   private def check(spaceId: String, body: PostDomainApiJsonV700, domainApiId: Option[String], cc: CallContext): Future[Checked] = {
     val basePath = Option(body.base_path).map(_.trim).getOrElse("")
@@ -96,7 +97,7 @@ object Http4s700DomainApis {
       .filterNot(other => domainApiId.contains(other.domainApiId))
       .filter(other => DomainApiPaths.overlap(other.basePath, basePath))
       .map(other => s"${other.basePath} (bank_id ${other.bankId})")
-    lazy val clashes = DomainApiPaths.clashes(spaceId, Http4sDomainApi.spaceDocs(spaceId))
+    lazy val clashes = DomainApiPaths.spaceProblemsIn(DynamicEntitySpace.bankIdOrNoneForSystem(spaceId))
     for {
       _ <- Helper.booleanToFuture(s"$InvalidDomainApiBasePath${DomainApiPaths.reservedFirstSegments.toList.sorted.mkString(", ")}. Current base_path is $basePath: ${basePathProblem.getOrElse("")}.", 400, Some(cc)) {
         basePathProblem.isEmpty
@@ -138,9 +139,12 @@ object Http4s700DomainApis {
        |version, MAJOR.MINOR.PATCH, whose MAJOR is the N of the base path: a compatible change edits `version`
        |and leaves every URL alone, and a breaking change gets a new Domain API with a new base path.
        |
-       |A Domain API is refused while two endpoints of its space would answer the same verb and path under it,
-       |or while a Dynamic Resource Doc's path starts with a segment the Dynamic Entity URLs or the
-       |documentation use (`my`, `public`, `community`, `openapi.json`, `openapi.yaml`).
+       |A Domain API is refused while two endpoints of its space are ambiguous with each other under it: a
+       |Dynamic Resource Doc whose path starts with a path variable, with the name of one of the space's
+       |Dynamic Entities or with a segment the Dynamic Entity URLs or the documentation use (`my`, `public`,
+       |`community`, `openapi.json`, `openapi.yaml`), or two docs of one verb that would match one request.
+       |Creating or changing a Dynamic Entity or Dynamic Resource Doc that would cause one is refused in
+       |every space, so this only happens to a space that held one before that rule.
        |
        |On this instance a change is seen at once by the node that made it, and by the others within
        |${DomainApiDbProvider.cacheTtlSeconds} seconds.
