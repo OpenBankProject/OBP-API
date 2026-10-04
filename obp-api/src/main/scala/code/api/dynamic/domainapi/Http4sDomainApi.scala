@@ -93,7 +93,7 @@ object Http4sDomainApi extends MdcLoggable {
             case Nil => OptionT.none[IO, Response[IO]]
             case _ =>
               val marked = req.withAttribute(domainApiCallKey,
-                DomainApiCall(route.domainApiId, route.basePath, req.uri.path.renderString))
+                DomainApiCall(route.domainApiId, route.basePath, req.uri.renderString))
               Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint.run(withPath(marked, DomainApiPaths.dynamicResourceDocPath(route.bankId, rest)))
                 .orElse(Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(withPath(marked, DomainApiPaths.dynamicEntityPath(route.bankId, rest))))
           }

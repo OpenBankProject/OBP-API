@@ -146,7 +146,8 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
       forwardedFor                 = (jv \ "forwarded_for").extractOrElse[String](""),
       authType                     = (jv \ "auth_type").extractOrElse[String](""),
       certificateTrust             = (jv \ "certificate_trust").extractOrElse[String](""),
-      certificateTrustDetail       = (jv \ "certificate_trust_detail").extractOrElse[String]("")
+      certificateTrustDetail       = (jv \ "certificate_trust_detail").extractOrElse[String](""),
+      domainApiUrl                 = (jv \ "domain_api_url").extractOrElse[String]("")
     )
   }
 }

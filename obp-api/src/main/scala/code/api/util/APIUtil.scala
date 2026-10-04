@@ -1233,6 +1233,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "consent_id" => Full(OBPConsentId(values.head))
         case "consent_reference_id" => Full(OBPConsentReferenceId(values.head))
         case "certificate_trust" => Full(OBPCertificateTrust(values.head))
+        case "domain_api_url" => Full(OBPDomainApiUrl(values.head))
         case "user_id" => Full(OBPUserId(values.head))
         case "provider_provider_id" => Full(ProviderProviderId(values.head))
         case "bank_id" => Full(OBPBankId(values.head))
@@ -1315,6 +1316,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       username <- getHttpParamValuesByName(httpParams, "username")
       email <- getHttpParamValuesByName(httpParams, "email")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
+      // Read here so that the metrics endpoints actually apply these filters: getHttpParamValuesByName maps
+      // each name to its query param, but a name not read in this list never reaches a query.
+      consentReferenceId <- getHttpParamValuesByName(httpParams, "consent_reference_id")
+      certificateTrust <- getHttpParamValuesByName(httpParams, "certificate_trust")
+      domainApiUrl <- getHttpParamValuesByName(httpParams, "domain_api_url")
     }yield{
       // Extract the sort field name from the sort_by query param (e.g. "url", "date").
       // OBPOrdering expects Option[String], but sortBy is an OBPQueryParam.
@@ -1328,7 +1334,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, httpStatusCode, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
         includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions,
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, provider, username, email, deletedStatus
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, provider, username, email, deletedStatus,
+        consentReferenceId, certificateTrust, domainApiUrl
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1369,6 +1376,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val consentId =  getHttpRequestUrlParam(httpRequestUrl,"consent_id")
     val consentReferenceId =  getHttpRequestUrlParam(httpRequestUrl,"consent_reference_id")
     val certificateTrust =  getHttpRequestUrlParam(httpRequestUrl,"certificate_trust")
+    val domainApiUrl =  getHttpRequestUrlParam(httpRequestUrl,"domain_api_url")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val providerProviderId =  getHttpRequestUrlParam(httpRequestUrl, "provider_provider_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1404,7 +1412,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Full(List(
       HTTPParam("sort_by",sortBy), HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
-      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("certificate_trust", certificateTrust), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
+      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("certificate_trust", certificateTrust), HTTPParam("domain_api_url", domainApiUrl), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions), 

@@ -6957,6 +6957,7 @@ object Glossary extends MdcLoggable  {
 				 |- `source_ip`: the address of the client, as OBP-API decided it (see [Client IP Address](/glossary#Client-IP-Address)). Records written before this was introduced hold the raw `X-Forwarded-For` header instead
 				 |- `forwarded_for`: the hops the call passed through: the `X-Forwarded-For` list it arrived with, followed by the address of the machine that connected to OBP-API. Entries to the left of the first address OBP-API does not trust may have been written by the caller, so read them as a claim, not a fact
 				 |- `target_ip`: the `X-Forwarded-Host` request header, as sent
+				 |- `domain_api_url`: for a call made under a [Domain API](/glossary#Domain-APIs), the path and query string the caller used, such as `/carbon-registry/v1/activity?limit=10`; the URL above is then the OBP URL the call was served at. Absent for every other call. A Domain API's base paths never overlap, so the calls through one Domain API are those whose `domain_api_url` starts with its base path.
 				 |- the `api_instance_id` of the OBP-API instance that served the call
 				 |- the response body, for selected endpoints only
 				 |

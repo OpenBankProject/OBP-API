@@ -77,6 +77,7 @@ object MetricsStreamProto {
         .addField(stringField("auth_type", 20))
         .addField(stringField("certificate_trust", 21))
         .addField(stringField("certificate_trust_detail", 22))
+        .addField(stringField("domain_api_url", 23))
       )
       // MetricsStreamService
       .addService(ServiceDescriptorProto.newBuilder()

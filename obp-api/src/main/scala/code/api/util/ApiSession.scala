@@ -87,6 +87,9 @@ case class CallContext(
                         // The hops the request passed through: the X-Forwarded-For chain it arrived
                         // with, followed by the TCP peer. Recorded in API Metrics; see RemoteIpUtil.
                         forwardedFor: String = "",
+                        // The path and query string a caller used under a Domain API, before the request was
+                        // rewritten to the OBP URL in `url`; None for every other call. Recorded in API Metrics.
+                        domainApiUrl: Option[String] = None,
                         resourceDocument: Option[ResourceDoc] = None,
                         startTime: Option[Date] = Some(Helpers.now),
                         endTime: Option[Date] = None,
@@ -250,7 +253,8 @@ case class CallContext(
       certificateTrust = this.certificateTrust,
       certificateTrustDetail = this.certificateTrustDetail,
       ipAddress = this.ipAddress,
-      forwardedFor = this.forwardedFor
+      forwardedFor = this.forwardedFor,
+      domainApiUrl = this.domainApiUrl
     )
   }
 
@@ -353,7 +357,9 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             // The client address OBP-API decided on (CallContext.ipAddress)
                             ipAddress: String = "",
                             // The hops the request passed through (CallContext.forwardedFor)
-                            forwardedFor: String = ""
+                            forwardedFor: String = "",
+                            // The URL called under a Domain API (CallContext.domainApiUrl)
+                            domainApiUrl: Option[String] = None
                            )
 
 trait LoginParam

@@ -55,7 +55,8 @@ final case class MetricEvent(
     forwardedFor: _root_.scala.Predef.String = "",
     authType: _root_.scala.Predef.String = "",
     certificateTrust: _root_.scala.Predef.String = "",
-    certificateTrustDetail: _root_.scala.Predef.String = ""
+    certificateTrustDetail: _root_.scala.Predef.String = "",
+    domainApiUrl: _root_.scala.Predef.String = ""
     ) extends scalapb.GeneratedMessage with scalapb.Message[MetricEvent] with scalapb.lenses.Updatable[MetricEvent] {
     @transient
     private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
@@ -83,6 +84,7 @@ final case class MetricEvent(
       if (authType != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(20, authType) }
       if (certificateTrust != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(21, certificateTrust) }
       if (certificateTrustDetail != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(22, certificateTrustDetail) }
+      if (domainApiUrl != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(23, domainApiUrl) }
       __size
     }
     final override def serializedSize: _root_.scala.Int = {
@@ -116,6 +118,7 @@ final case class MetricEvent(
       { val __v = authType; if (__v != "") _output__.writeString(20, __v) };
       { val __v = certificateTrust; if (__v != "") _output__.writeString(21, __v) };
       { val __v = certificateTrustDetail; if (__v != "") _output__.writeString(22, __v) };
+      { val __v = domainApiUrl; if (__v != "") _output__.writeString(23, __v) };
     }
     def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.metricsstream.api.MetricEvent = {
       var __url = this.url
@@ -140,6 +143,7 @@ final case class MetricEvent(
       var __authType = this.authType
       var __certificateTrust = this.certificateTrust
       var __certificateTrustDetail = this.certificateTrustDetail
+      var __domainApiUrl = this.domainApiUrl
       var _done__ = false
       while (!_done__) {
         val _tag__ = _input__.readTag()
@@ -167,6 +171,7 @@ final case class MetricEvent(
           case 162 => __authType = _input__.readString()
           case 170 => __certificateTrust = _input__.readString()
           case 178 => __certificateTrustDetail = _input__.readString()
+          case 186 => __domainApiUrl = _input__.readString()
           case tag => _input__.skipField(tag)
         }
       }
@@ -192,7 +197,8 @@ final case class MetricEvent(
           forwardedFor = __forwardedFor,
           authType = __authType,
           certificateTrust = __certificateTrust,
-          certificateTrustDetail = __certificateTrustDetail
+          certificateTrustDetail = __certificateTrustDetail,
+          domainApiUrl = __domainApiUrl
       )
     }
     def withUrl(__v: _root_.scala.Predef.String): MetricEvent = copy(url = __v)
@@ -217,6 +223,7 @@ final case class MetricEvent(
     def withAuthType(__v: _root_.scala.Predef.String): MetricEvent = copy(authType = __v)
     def withCertificateTrust(__v: _root_.scala.Predef.String): MetricEvent = copy(certificateTrust = __v)
     def withCertificateTrustDetail(__v: _root_.scala.Predef.String): MetricEvent = copy(certificateTrustDetail = __v)
+    def withDomainApiUrl(__v: _root_.scala.Predef.String): MetricEvent = copy(domainApiUrl = __v)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => { val __t = url; if (__t != "") __t else null }
@@ -241,6 +248,7 @@ final case class MetricEvent(
         case 20 => { val __t = authType; if (__t != "") __t else null }
         case 21 => { val __t = certificateTrust; if (__t != "") __t else null }
         case 22 => { val __t = certificateTrustDetail; if (__t != "") __t else null }
+        case 23 => { val __t = domainApiUrl; if (__t != "") __t else null }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -268,6 +276,7 @@ final case class MetricEvent(
         case 20 => _root_.scalapb.descriptors.PString(authType)
         case 21 => _root_.scalapb.descriptors.PString(certificateTrust)
         case 22 => _root_.scalapb.descriptors.PString(certificateTrustDetail)
+        case 23 => _root_.scalapb.descriptors.PString(domainApiUrl)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -301,7 +310,8 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
       __fieldsMap.getOrElse(__fields.get(18), "").asInstanceOf[_root_.scala.Predef.String],
       __fieldsMap.getOrElse(__fields.get(19), "").asInstanceOf[_root_.scala.Predef.String],
       __fieldsMap.getOrElse(__fields.get(20), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(21), "").asInstanceOf[_root_.scala.Predef.String]
+      __fieldsMap.getOrElse(__fields.get(21), "").asInstanceOf[_root_.scala.Predef.String],
+      __fieldsMap.getOrElse(__fields.get(22), "").asInstanceOf[_root_.scala.Predef.String]
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.metricsstream.api.MetricEvent] = _root_.scalapb.descriptors.Reads{
@@ -329,7 +339,8 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(19).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(20).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         __fieldsMap.get(scalaDescriptor.findFieldByNumber(21).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(22).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        __fieldsMap.get(scalaDescriptor.findFieldByNumber(22).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        __fieldsMap.get(scalaDescriptor.findFieldByNumber(23).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -362,6 +373,7 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
     def authType: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.authType)((c_, f_) => c_.copy(authType = f_))
     def certificateTrust: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.certificateTrust)((c_, f_) => c_.copy(certificateTrust = f_))
     def certificateTrustDetail: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.certificateTrustDetail)((c_, f_) => c_.copy(certificateTrustDetail = f_))
+    def domainApiUrl: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.domainApiUrl)((c_, f_) => c_.copy(domainApiUrl = f_))
   }
   final val URL_FIELD_NUMBER = 1
   final val DATE_FIELD_NUMBER = 2
@@ -385,4 +397,5 @@ object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metri
   final val AUTH_TYPE_FIELD_NUMBER = 20
   final val CERTIFICATE_TRUST_FIELD_NUMBER = 21
   final val CERTIFICATE_TRUST_DETAIL_FIELD_NUMBER = 22
+  final val DOMAIN_API_URL_FIELD_NUMBER = 23
 }

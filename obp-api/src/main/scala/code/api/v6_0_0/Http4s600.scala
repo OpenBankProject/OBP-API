@@ -7830,6 +7830,8 @@ object Http4s600 {
            |
            |18 certificate_trust (if null ignore) - Returns calls by how the caller's certificate was established: direct (the TLS peer was the caller), forwarded (a trusted proxy forwarded the caller's certificate) or none (certificate material was present but no caller was identified). eg: certificate_trust=forwarded
            |
+           |19 domain_api_url (if null ignore) - Returns calls made under a Domain API whose called URL (the metric's domain_api_url) starts with this value: a base path gives every call through that Domain API, a longer value the calls to one of its paths. eg: domain_api_url=/carbon-registry/v1/
+           |
         """.stripMargin,
         EmptyBody,
         metricsJsonV600,

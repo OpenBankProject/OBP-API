@@ -219,6 +219,18 @@ class DomainApisTest extends V600ServerSetup {
       withClue(query.body) { query.code should equal(200) }
       valuesOf(query.body \ "names", "name") should contain("tree planting")
 
+      And("each call's API Metric keeps the OBP URL and records the called one in domain_api_url")
+      code.metrics.MetricBatchWriter.flush()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, code.api.util.ApiRole.canReadMetrics.toString)
+      val metrics = makeGetRequest((baseRequest / "obp" / "v6.0.0" / "management" / "metrics").GET <@ (user1) <<? List(
+        "domain_api_url" -> s"/$basePath/", "limit" -> "50"))
+      withClue(metrics.body) { metrics.code should equal(200) }
+      val rows = (metrics.body \ "metrics").children
+      val called = rows.map(row => ((row \ "domain_api_url").extract[String], (row \ "url").extract[String]))
+      called should contain((s"/$basePath/$entity", s"/obp/v7.0.0/banks/$SYS/dynamic-entities/$entity"))
+      called should contain((s"/$basePath/$queryPath/names", s"/obp/dynamic-endpoint/banks/$SYS/dynamic-resource-doc/$queryPath/names"))
+      called.foreach { case (domainApiUrl, _) => domainApiUrl should startWith(s"/$basePath/") }
+
       And("a path the space does not serve is a 404")
       makeGetRequest((under(basePath) / s"nothing_$suffix").GET <@ (user1)).code should equal(404)
 

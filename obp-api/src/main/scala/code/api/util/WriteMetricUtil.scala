@@ -103,7 +103,8 @@ object WriteMetricUtil extends MdcLoggable {
       publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
         developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
         cc.httpCode, cc.correlationId, sourceIp, targetIp, forwardedFor, cc.operationId.getOrElse(""),
-        cc.consentReferenceId.orNull, cc.certificateTrust.orNull, cc.certificateTrustDetail.orNull, authType)
+        cc.consentReferenceId.orNull, cc.certificateTrust.orNull, cc.certificateTrustDetail.orNull, authType,
+        cc.domainApiUrl.orNull)
     }
   }
 
@@ -175,7 +176,8 @@ object WriteMetricUtil extends MdcLoggable {
         cc.consentReferenceId.orNull,
         cc.certificateTrust.orNull,
         cc.certificateTrustDetail.orNull,
-        authType
+        authType,
+        cc.domainApiUrl.orNull
       )
     } catch {
       case NonFatal(e) =>
@@ -211,7 +213,8 @@ object WriteMetricUtil extends MdcLoggable {
                                  consentReferenceId: String,
                                  certificateTrust: String,
                                  certificateTrustDetail: String,
-                                 authType: String): Unit = {
+                                 authType: String,
+                                 domainApiUrl: String): Unit = {
     if (!MetricsEventBus.isEnabled) return
     try {
       implicit val fmts = metricFormats
@@ -240,7 +243,8 @@ object WriteMetricUtil extends MdcLoggable {
         "consent_reference_id"            -> Option(consentReferenceId).getOrElse(""),
         "certificate_trust"               -> Option(certificateTrust).getOrElse(""),
         "certificate_trust_detail"        -> Option(certificateTrustDetail).getOrElse(""),
-        "auth_type"                       -> Option(authType).getOrElse("")
+        "auth_type"                       -> Option(authType).getOrElse(""),
+        "domain_api_url"                  -> Option(domainApiUrl).getOrElse("")
       ))
       MetricsEventBus.publish(payload)
     } catch {

@@ -18,7 +18,8 @@ class MetricEventFieldsTest extends ServerSetup {
     19 -> "forwarded_for",
     20 -> "auth_type",
     21 -> "certificate_trust",
-    22 -> "certificate_trust_detail"
+    22 -> "certificate_trust_detail",
+    23 -> "domain_api_url"
   )
 
   private val event = MetricEvent(
@@ -28,10 +29,11 @@ class MetricEventFieldsTest extends ServerSetup {
     forwardedFor = "203.0.113.9, 10.0.0.2, 10.0.0.3",
     authType = "OAuth2",
     certificateTrust = "forwarded",
-    certificateTrustDetail = "CN=proxy,O=Example"
+    certificateTrustDetail = "CN=proxy,O=Example",
+    domainApiUrl = "/carbon-registry/v1/activity?limit=10"
   )
 
-  feature("MetricEvent fields 19 to 22") {
+  feature("MetricEvent fields 19 to 23") {
 
     scenario("the descriptor names them with the numbers the proto file gives them") {
       val descriptor = MetricsStreamProto.javaDescriptor.findMessageTypeByName("MetricEvent")
@@ -49,18 +51,21 @@ class MetricEventFieldsTest extends ServerSetup {
       event.getFieldByNumber(20) shouldBe "OAuth2"
       event.getFieldByNumber(21) shouldBe "forwarded"
       event.getFieldByNumber(22) shouldBe "CN=proxy,O=Example"
+      event.getFieldByNumber(23) shouldBe "/carbon-registry/v1/activity?limit=10"
     }
 
     scenario("the published JSON payload is read into them") {
       val payload = parse(
         """{"url":"/obp/v6.0.0/banks","source_ip":"203.0.113.9","forwarded_for":"203.0.113.9, 10.0.0.2",
-          |"auth_type":"Consent","certificate_trust":"direct","certificate_trust_detail":""}""".stripMargin)
+          |"auth_type":"Consent","certificate_trust":"direct","certificate_trust_detail":"",
+          |"domain_api_url":"/carbon-registry/v1/activity"}""".stripMargin)
       val fromPayload = MetricsStreamServiceImpl.jsonToMetricEvent(payload)
       fromPayload.sourceIp shouldBe "203.0.113.9"
       fromPayload.forwardedFor shouldBe "203.0.113.9, 10.0.0.2"
       fromPayload.authType shouldBe "Consent"
       fromPayload.certificateTrust shouldBe "direct"
       fromPayload.certificateTrustDetail shouldBe ""
+      fromPayload.domainApiUrl shouldBe "/carbon-registry/v1/activity"
     }
   }
 }
