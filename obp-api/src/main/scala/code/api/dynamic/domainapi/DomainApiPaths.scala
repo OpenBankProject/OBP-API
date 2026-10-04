@@ -172,7 +172,7 @@ object DomainApiPaths {
    * of one of the space's Dynamic Entities, and no other doc of the same verb may match a request it
    * matches. A doc is never compared with itself (the same dynamicResourceDocId).
    */
-  def resourceDocPathProblems(doc: ResourceDocPath, entityNames: List[String], otherDocs: List[ResourceDocPath]): List[String] =
+  def resourceDocAmbiguities(doc: ResourceDocPath, entityNames: List[String], otherDocs: List[ResourceDocPath]): List[String] =
     doc.segments match {
       case Nil => List(s"${doc.describe} has no path segment")
       case first :: _ =>
@@ -194,7 +194,7 @@ object DomainApiPaths {
    * Resource Docs: a doc whose path starts with the name (compared ignoring case), or a name that is a
    * segment a Dynamic Entity URL or a Domain API's documentation already uses. Empty when it is neither.
    */
-  def entityNameProblems(entityName: String, docs: List[ResourceDocPath]): List[String] = {
+  def entityNameAmbiguities(entityName: String, docs: List[ResourceDocPath]): List[String] = {
     val reserved =
       if (reservedUnderBasePath.contains(entityName.toLowerCase)) List(s"the Dynamic Entity name $entityName is a segment a Dynamic Entity URL or a Domain API's documentation already uses") else Nil
     reserved ++ docs.filter(_.segments.headOption.exists(_.equalsIgnoreCase(entityName)))
@@ -206,10 +206,10 @@ object DomainApiPaths {
    * Writes are checked one at a time, so this finds only what predates the rules; a Domain API is
    * refused over a space while the list is not empty.
    */
-  def spaceProblems(entityNames: List[String], docs: List[ResourceDocPath]): List[String] = {
-    val docProblems = docs.zipWithIndex.flatMap { case (doc, index) => resourceDocPathProblems(doc, entityNames, docs.drop(index + 1)) }
-    val entityProblems = entityNames.flatMap(entityNameProblems(_, Nil))
-    (docProblems ++ entityProblems).distinct.sorted
+  def ambiguitiesInSpace(entityNames: List[String], docs: List[ResourceDocPath]): List[String] = {
+    val docAmbiguities = docs.zipWithIndex.flatMap { case (doc, index) => resourceDocAmbiguities(doc, entityNames, docs.drop(index + 1)) }
+    val entityAmbiguities = entityNames.flatMap(entityNameAmbiguities(_, Nil))
+    (docAmbiguities ++ entityAmbiguities).distinct.sorted
   }
 
   /** The names of the Dynamic Entities of a space (None for the system space), read from the database. */
@@ -221,17 +221,17 @@ object DomainApiPaths {
     DynamicResourceDocProvider.provider.vend.getAllInSpace(space)
       .map(doc => ResourceDocPath(doc.dynamicResourceDocId, doc.requestVerb, doc.requestUrl, doc.partialFunctionName))
 
-  /** [[resourceDocPathProblems]] for a doc about to be created (no id) or moved to a new verb or path (its id). */
-  def resourceDocProblemsIn(space: Option[String], dynamicResourceDocId: Option[String], verb: String, path: String, name: String): List[String] =
-    resourceDocPathProblems(ResourceDocPath(dynamicResourceDocId, verb, path, name), entityNamesIn(space), resourceDocPathsIn(space))
+  /** [[resourceDocAmbiguities]] for a doc about to be created (no id) or moved to a new verb or path (its id). */
+  def storedResourceDocAmbiguities(space: Option[String], dynamicResourceDocId: Option[String], verb: String, path: String, name: String): List[String] =
+    resourceDocAmbiguities(ResourceDocPath(dynamicResourceDocId, verb, path, name), entityNamesIn(space), resourceDocPathsIn(space))
 
-  /** [[entityNameProblems]] for a Dynamic Entity about to be created or renamed in a space. */
-  def entityNameProblemsIn(space: Option[String], entityName: String): List[String] =
-    entityNameProblems(entityName, resourceDocPathsIn(space))
+  /** [[entityNameAmbiguities]] for a Dynamic Entity about to be created or renamed in a space. */
+  def storedEntityNameAmbiguities(space: Option[String], entityName: String): List[String] =
+    entityNameAmbiguities(entityName, resourceDocPathsIn(space))
 
-  /** [[spaceProblems]] for a space as the database holds it now. */
-  def spaceProblemsIn(space: Option[String]): List[String] =
-    spaceProblems(entityNamesIn(space), resourceDocPathsIn(space))
+  /** [[ambiguitiesInSpace]] for a space as the database holds it now. */
+  def storedAmbiguitiesInSpace(space: Option[String]): List[String] =
+    ambiguitiesInSpace(entityNamesIn(space), resourceDocPathsIn(space))
 
   /** A Dynamic Entity record response as a Domain API returns it: without `bank_id`. */
   def responseUnderDomainApi(response: JObject): JObject =

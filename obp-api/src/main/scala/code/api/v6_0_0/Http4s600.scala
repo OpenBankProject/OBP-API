@@ -509,13 +509,19 @@ object Http4s600 {
         !NewStyle.function.getMethodRoutings(Some("dynamicEntityProcess"))
           .exists(_.parameters.exists(p => p.key == "entityName" && p.value == dynamicEntity.entityName))
 
+    // A failure the checks already shaped, an OBP message or the encoded failure Helper.booleanToFuture
+    // raises (with its own code, such as 409 for an ambiguous path), passes through as it is; anything
+    // else is wrapped as a 400 InvalidJsonFormat below.
+    private def isOwnApiFailure(e: Throwable): Boolean =
+      Option(e.getMessage).map(_.trim).exists(message => message.startsWith("OBP-") || message.startsWith("{\"failMsg\""))
+
     private[api] def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       // Wrap the connector call so a thrown RuntimeException (bad schema, etc.)
       // becomes a 400 InvalidJsonFormat — matches v6 Lift's dispatch wrapper.
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
-          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+          case e: Throwable if !isOwnApiFailure(e) =>
             val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
             )(org.json4s.DefaultFormats)
@@ -553,7 +559,7 @@ object Http4s600 {
       _ <- NewStyle.function.getDynamicEntityById(dynamicEntity.bankId, dynamicEntity.dynamicEntityId.getOrElse(""), Some(cc))
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
-          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+          case e: Throwable if !isOwnApiFailure(e) =>
             val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
             )(org.json4s.DefaultFormats)

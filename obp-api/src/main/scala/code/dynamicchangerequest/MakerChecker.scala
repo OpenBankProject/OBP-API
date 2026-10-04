@@ -369,9 +369,9 @@ object MakerChecker extends MdcLoggable {
           _ <- {
             val unchangedPath = operation == UPDATE && p.getById(bankId, request.targetId)
               .exists(stored => stored.requestVerb == body.requestVerb && stored.requestUrl == body.requestUrl)
-            val pathProblems = if (unchangedPath) Nil else DomainApiPaths.resourceDocProblemsIn(
+            val ambiguities = if (unchangedPath) Nil else DomainApiPaths.storedResourceDocAmbiguities(
               bankId, Some(request.targetId).filter(_ => operation == UPDATE), body.requestVerb, body.requestUrl, body.partialFunctionName)
-            boolBox(pathProblems.isEmpty, s"${ErrorMessages.DynamicPathAmbiguous}${pathProblems.mkString("; ")}")
+            boolBox(ambiguities.isEmpty, s"${ErrorMessages.DynamicPathAmbiguous}${ambiguities.mkString("; ")}")
           }
           _ <- compileBox("dynamic resource doc") {
             val compiled = CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, bankId)

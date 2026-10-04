@@ -9656,8 +9656,8 @@ object Http4s400 {
         _ <- code.util.Helper.booleanToFuture(
           s"$DynamicResourceDocAlreadyExists The combination of request_url(${body.requestUrl}) and request_verb(${body.requestVerb}) must be unique",
           cc = callContext) { !isExists }
-        pathProblems <- Future(DomainApiPaths.resourceDocProblemsIn(bankId, None, body.requestVerb, body.requestUrl, body.partialFunctionName))
-        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${pathProblems.mkString("; ")}", 409, callContext) { pathProblems.isEmpty }
+        ambiguities <- Future(DomainApiPaths.storedResourceDocAmbiguities(bankId, None, body.requestVerb, body.requestUrl, body.partialFunctionName))
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, callContext) { ambiguities.isEmpty }
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.CREATE, None, 201, cc) {
           NewStyle.function.createJsonDynamicResourceDoc(bankId, body, callContext).map(_._1)
         }
@@ -9680,10 +9680,10 @@ object Http4s400 {
         (stored, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
         // Only a new verb or path is checked, so a doc caught in an ambiguity that predates the rule can
         // still have its body changed.
-        pathProblems <- Future(
+        ambiguities <- Future(
           if (stored.requestVerb == body.requestVerb && stored.requestUrl == body.requestUrl) Nil
-          else DomainApiPaths.resourceDocProblemsIn(bankId, Some(dynamicResourceDocId), body.requestVerb, body.requestUrl, body.partialFunctionName))
-        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${pathProblems.mkString("; ")}", 409, callContext) { pathProblems.isEmpty }
+          else DomainApiPaths.storedResourceDocAmbiguities(bankId, Some(dynamicResourceDocId), body.requestVerb, body.requestUrl, body.partialFunctionName))
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, callContext) { ambiguities.isEmpty }
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.UPDATE, Some(dynamicResourceDocId), 200, cc) {
           NewStyle.function.updateJsonDynamicResourceDoc(
             bankId, body.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext).map(_._1)

@@ -47,44 +47,44 @@ class DomainApiPathRulesSpec extends FlatSpec with Matchers {
     DomainApiPaths.ambiguous(List("registry"), List("registry", "summary")) shouldBe false
   }
 
-  "resourceDocPathProblems" should "accept a path that starts with a literal no entity or other doc uses" in {
-    DomainApiPaths.resourceDocPathProblems(doc("/registry/summary"), List("activity"), List(doc("/registry/totals"))) shouldBe empty
+  "resourceDocAmbiguities" should "accept a path that starts with a literal no entity or other doc uses" in {
+    DomainApiPaths.resourceDocAmbiguities(doc("/registry/summary"), List("activity"), List(doc("/registry/totals"))) shouldBe empty
   }
 
   it should "refuse a path that starts with the name of one of the space's Dynamic Entities, ignoring case" in {
-    DomainApiPaths.resourceDocPathProblems(doc("/customers/summary"), List("customers"), Nil) should have size 1
-    DomainApiPaths.resourceDocPathProblems(doc("/Customers/summary"), List("customers"), Nil) should have size 1
+    DomainApiPaths.resourceDocAmbiguities(doc("/customers/summary"), List("customers"), Nil) should have size 1
+    DomainApiPaths.resourceDocAmbiguities(doc("/Customers/summary"), List("customers"), Nil) should have size 1
   }
 
   it should "refuse a path that starts with a path variable, a reserved segment, or has no segment" in {
-    DomainApiPaths.resourceDocPathProblems(doc("/ITEM_ID/summary"), Nil, Nil) should have size 1
+    DomainApiPaths.resourceDocAmbiguities(doc("/ITEM_ID/summary"), Nil, Nil) should have size 1
     List("my", "public", "community", "openapi.json", "openapi.yaml").foreach { reserved =>
-      DomainApiPaths.resourceDocPathProblems(doc(s"/$reserved/summary"), Nil, Nil) should have size 1
+      DomainApiPaths.resourceDocAmbiguities(doc(s"/$reserved/summary"), Nil, Nil) should have size 1
     }
-    DomainApiPaths.resourceDocPathProblems(doc("/"), Nil, Nil) should have size 1
+    DomainApiPaths.resourceDocAmbiguities(doc("/"), Nil, Nil) should have size 1
   }
 
   it should "refuse a path another doc of the same verb would also match, and only of the same verb" in {
-    DomainApiPaths.resourceDocPathProblems(doc("/registry/summary"), Nil, List(doc("/registry/REGISTRY_ID"))) should have size 1
-    DomainApiPaths.resourceDocPathProblems(doc("/registry/SITE_ID"), Nil, List(doc("/registry/REGISTRY_ID"))) should have size 1
-    DomainApiPaths.resourceDocPathProblems(doc("/registry/summary", verb = "POST"), Nil, List(doc("/registry/REGISTRY_ID"))) shouldBe empty
+    DomainApiPaths.resourceDocAmbiguities(doc("/registry/summary"), Nil, List(doc("/registry/REGISTRY_ID"))) should have size 1
+    DomainApiPaths.resourceDocAmbiguities(doc("/registry/SITE_ID"), Nil, List(doc("/registry/REGISTRY_ID"))) should have size 1
+    DomainApiPaths.resourceDocAmbiguities(doc("/registry/summary", verb = "POST"), Nil, List(doc("/registry/REGISTRY_ID"))) shouldBe empty
   }
 
   it should "not compare a doc with itself when it is moved to a new path" in {
     val stored = doc("/registry/REGISTRY_ID", id = Some("doc-1"))
-    DomainApiPaths.resourceDocPathProblems(doc("/registry/SITE_ID", id = Some("doc-1")), Nil, List(stored)) shouldBe empty
+    DomainApiPaths.resourceDocAmbiguities(doc("/registry/SITE_ID", id = Some("doc-1")), Nil, List(stored)) shouldBe empty
   }
 
-  "entityNameProblems" should "refuse a name that a doc's path starts with, or a reserved segment" in {
-    DomainApiPaths.entityNameProblems("customers", List(doc("/customers/summary"))) should have size 1
-    DomainApiPaths.entityNameProblems("customers", List(doc("/registry/customers"))) shouldBe empty
-    DomainApiPaths.entityNameProblems("public", Nil) should have size 1
+  "entityNameAmbiguities" should "refuse a name that a doc's path starts with, or a reserved segment" in {
+    DomainApiPaths.entityNameAmbiguities("customers", List(doc("/customers/summary"))) should have size 1
+    DomainApiPaths.entityNameAmbiguities("customers", List(doc("/registry/customers"))) shouldBe empty
+    DomainApiPaths.entityNameAmbiguities("public", Nil) should have size 1
   }
 
-  "spaceProblems" should "list each ambiguity in a space once" in {
-    val problems = DomainApiPaths.spaceProblems(List("customers"),
+  "ambiguitiesInSpace" should "list each ambiguity in a space once" in {
+    val ambiguities = DomainApiPaths.ambiguitiesInSpace(List("customers"),
       List(doc("/customers/summary", name = "a"), doc("/registry/REGISTRY_ID", name = "b"), doc("/registry/summary", name = "c")))
-    problems should have size 2
-    DomainApiPaths.spaceProblems(List("customers"), List(doc("/registry/summary"))) shouldBe empty
+    ambiguities should have size 2
+    DomainApiPaths.ambiguitiesInSpace(List("customers"), List(doc("/registry/summary"))) shouldBe empty
   }
 }

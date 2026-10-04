@@ -3556,9 +3556,9 @@ object NewStyle extends MdcLoggable{
         return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
-      val pathProblems = DomainApiPaths.entityNameProblemsIn(dynamicEntity.bankId, dynamicEntity.entityName)
-      if (pathProblems.nonEmpty) {
-        return Helper.booleanToFuture(s"$DynamicPathAmbiguous${pathProblems.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
+      val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+      if (ambiguities.nonEmpty) {
+        return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
       Future {
@@ -3593,9 +3593,9 @@ object NewStyle extends MdcLoggable{
 
         // Only a new name is checked, so an entity caught in an ambiguity that predates the rule can
         // still have its definition changed.
-        val pathProblems = DomainApiPaths.entityNameProblemsIn(dynamicEntity.bankId, dynamicEntity.entityName)
-        if (pathProblems.nonEmpty) {
-          return Helper.booleanToFuture(s"$DynamicPathAmbiguous${pathProblems.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
+        val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+        if (ambiguities.nonEmpty) {
+          return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
         }
       }
 

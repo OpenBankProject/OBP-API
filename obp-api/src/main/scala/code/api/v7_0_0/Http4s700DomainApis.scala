@@ -84,7 +84,7 @@ object Http4s700DomainApis {
    * The checks a registration must pass, on create and on update (`domainApiId` is the one being updated,
    * which may keep its own base path): the base path's shape, the version, the title, that no other
    * Domain API's base path overlaps it, and that none of the space's endpoints is ambiguous with another
-   * (see DomainApiPaths.spaceProblems). Dynamic Entity and Dynamic Resource Doc writes are refused when
+   * (see DomainApiPaths.ambiguitiesInSpace). Dynamic Entity and Dynamic Resource Doc writes are refused when
    * they would make one ambiguous, so this only finds what predates that rule.
    */
   private def check(spaceId: String, body: PostDomainApiJsonV700, domainApiId: Option[String], cc: CallContext): Future[Checked] = {
@@ -97,7 +97,7 @@ object Http4s700DomainApis {
       .filterNot(other => domainApiId.contains(other.domainApiId))
       .filter(other => DomainApiPaths.overlap(other.basePath, basePath))
       .map(other => s"${other.basePath} (bank_id ${other.bankId})")
-    lazy val clashes = DomainApiPaths.spaceProblemsIn(DynamicEntitySpace.bankIdOrNoneForSystem(spaceId))
+    lazy val ambiguities = DomainApiPaths.storedAmbiguitiesInSpace(DynamicEntitySpace.bankIdOrNoneForSystem(spaceId))
     for {
       _ <- Helper.booleanToFuture(s"$InvalidDomainApiBasePath${DomainApiPaths.reservedFirstSegments.toList.sorted.mkString(", ")}. Current base_path is $basePath: ${basePathProblem.getOrElse("")}.", 400, Some(cc)) {
         basePathProblem.isEmpty
@@ -111,8 +111,8 @@ object Http4s700DomainApis {
       _ <- Helper.booleanToFuture(s"$DomainApiBasePathAlreadyExists${overlapping.mkString(", ")}", 409, Some(cc)) {
         overlapping.isEmpty
       }
-      _ <- Helper.booleanToFuture(s"$DomainApiPathClash${clashes.mkString("; ")}", 409, Some(cc)) {
-        clashes.isEmpty
+      _ <- Helper.booleanToFuture(s"$DomainApiPathClash${ambiguities.mkString("; ")}", 409, Some(cc)) {
+        ambiguities.isEmpty
       }
     } yield Checked(basePath, version, title, description)
   }

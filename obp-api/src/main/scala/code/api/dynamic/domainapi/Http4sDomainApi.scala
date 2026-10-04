@@ -57,7 +57,7 @@ import org.json4s.native.JsonMethods.compact
  * exactly as the same call to the OBP URL would be.
  *
  * A Dynamic Resource Doc of the space is tried first, then a Dynamic Entity of the space. Every space is
- * kept free of ambiguous paths (see [[DomainApiPaths.resourceDocPathProblems]]), with or without a Domain
+ * kept free of ambiguous paths (see [[DomainApiPaths.resourceDocAmbiguities]]), with or without a Domain
  * API, so at most one of them matches a call and the order does not change which one answers. Should an
  * ambiguity that predates those rules remain, the Dynamic Resource Doc wins: its path names a literal
  * segment where the Dynamic Entity's has a record id, so it is the more specific of the two.

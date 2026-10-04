@@ -1698,6 +1698,78 @@
       "reason": "Group memberships are recorded in the GroupMembership table (2026-09-29): the description says the membership is recorded even when every Role is skipped, and that removal keeps a Role another of the user's Groups still grants.",
       "lift_digest": "2ea4d8ed48487fd253cf1633a68deb7a0ce5b2a6b554ecfb64ee798f4887297c",
       "http4s_digest": "2766a28acb728f97343d2de181f5ddbe89ff62dfdf61d191453a1ce4b6cf602f"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createBankLevelDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateBankLevelDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createBankLevelDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createSystemDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "728dbf8a2667f373ad58c3ecaed8aa2bf972b841211dbf0e07717cb26d358e4e"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
     }
   ]
 }
