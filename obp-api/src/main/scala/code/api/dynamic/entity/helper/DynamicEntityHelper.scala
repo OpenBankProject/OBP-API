@@ -209,13 +209,14 @@ object DynamicEntityHelper {
   private val definitionsMapTtlMillis: Long =
     if (net.liftweb.util.Props.testMode) 0L
     else APIUtil.getPropsAsLongValue("dynamicEntity.definitions_map.cache.ttl.seconds", 300L) * 1000L
-  // (built at, map). The generation stops a build that started before a change from being kept after it.
+  // (built at, map). Each change replaces the token, and a build keeps its map only while the token it
+  // started under is still the current one, so a build that started before a change is not kept after it.
   @volatile private var definitionsMapCache: Option[(Long, Map[(String, String), DynamicEntityInfo])] = None
-  private val definitionsGeneration = new java.util.concurrent.atomic.AtomicLong(0)
+  @volatile private var definitionsToken: AnyRef = new Object
 
   /** Forget the kept definitions map, so the next use reads the definitions again. */
   def forgetDefinitions(): Unit = {
-    definitionsGeneration.incrementAndGet()
+    definitionsToken = new Object
     definitionsMapCache = None
   }
 
@@ -224,9 +225,9 @@ object DynamicEntityHelper {
     definitionsMapCache match {
       case Some((builtAt, map)) if now - builtAt < definitionsMapTtlMillis => map
       case _ =>
-        val generation = definitionsGeneration.get()
+        val token = definitionsToken
         val map = buildDefinitionsMap
-        if (definitionsMapTtlMillis > 0 && definitionsGeneration.get() == generation) definitionsMapCache = Some((now, map))
+        if (definitionsMapTtlMillis > 0 && (definitionsToken eq token)) definitionsMapCache = Some((now, map))
         map
     }
   }
