@@ -191,6 +191,8 @@ class DomainApisTest extends V600ServerSetup {
   feature("The Domain API front door") {
 
     scenario("a Dynamic Entity and a Dynamic Query answer under the base path as at their OBP URLs, without bank_id") {
+      // The test props set write_metrics=false; the metric assertions below need the calls recorded.
+      setPropsValues("write_metrics" -> "true")
       entityWithRecord(None, entity, "tree planting")
       queryDoc(None, s"/$queryPath/names", entity, s"domainApiSummary$suffix")
       grantAllAt(SYS)
