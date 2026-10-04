@@ -590,6 +590,20 @@ object ApiRole extends MdcLoggable{
   case class CanDeletePlatformApp(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeletePlatformApp = CanDeletePlatformApp()
 
+  // Domain APIs: a space's dynamic endpoints published under a base path of its own. Held at a bank id, or at
+  // SYS for the system space, like the other Roles of the dynamic spaces.
+  case class CanCreateDomainApi(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateDomainApi = CanCreateDomainApi()
+
+  case class CanGetDomainApis(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetDomainApis = CanGetDomainApis()
+
+  case class CanUpdateDomainApi(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateDomainApi = CanUpdateDomainApi()
+
+  case class CanDeleteDomainApi(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteDomainApi = CanDeleteDomainApi()
+
   // Shows which Consumers and client IP addresses are sending the most traffic to the instance
   // (TrafficSources). About the instance, so held at the empty bank id. It names Consumers and IP
   // addresses, which is why it is a Role of its own and not part of CanGetTelemetry.

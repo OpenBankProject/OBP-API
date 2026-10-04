@@ -7461,6 +7461,9 @@ object Http4s700 {
     // Platform Apps: the Consumers this installation runs as part of its own deployment, and the Scopes they need.
     resourceDocs ++= Http4s700PlatformApps.resourceDocs
 
+    // Domain APIs: a space's Dynamic Entities and Dynamic Resource Docs published under a base path of its own.
+    resourceDocs ++= Http4s700DomainApis.resourceDocs
+
     // Groups: bring the members of a Group in line with its current Roles.
     resourceDocs ++= Http4s700Groups.resourceDocs
 

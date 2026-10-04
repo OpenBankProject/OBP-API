@@ -183,6 +183,9 @@ object Http4sApp extends MdcLoggable {
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
         .orElse(code.api.SIWERoutes.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
+        // Domain APIs: a space's dynamic endpoints under a base path of its own. Last, so no OBP route can be
+        // hidden by a base path.
+        .orElse(code.api.dynamic.domainapi.Http4sDomainApi.routes.run(req))
         .orElse(notFoundCatchAll.run(req))
     }
   }

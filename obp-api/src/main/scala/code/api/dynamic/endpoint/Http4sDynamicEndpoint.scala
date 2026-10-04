@@ -28,6 +28,7 @@ package code.api.dynamic.endpoint
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
+import code.api.dynamic.endpoint.helper.DynamicEndpointMatch
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.util.CustomJsonFormats
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
@@ -117,8 +118,19 @@ object Http4sDynamicEndpoint extends MdcLoggable {
    */
   private def pieceC(req: Request[IO]): OptionT[IO, Response[IO]] =
     DynamicEndpoints.findEndpoint(req) match {
-      case None => OptionT.none[IO, Response[IO]]
-      case Some(doc) =>
+      case DynamicEndpointMatch.NotFound => OptionT.none[IO, Response[IO]]
+      case DynamicEndpointMatch.Ambiguous(spaces) =>
+        OptionT.liftF {
+          Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc =>
+            ErrorResponseConverter.toHttp4sResponse(
+              code.api.JsonResponseException(s"${code.api.util.ErrorMessages.DynamicResourceDocUrlAmbiguous}${spaces.mkString(", ")}.", 409, cc.correlationId), cc)
+              .flatMap(EndpointHelpers.recordMetricFor(_)(cc))
+          }
+        }
+      case DynamicEndpointMatch.Found(doc, matchedReq) =>
+        // matchedReq is the request with the URL that names the doc's space, also when the caller used the
+        // older URL without it, so the handler, its path parameters and the metric all see one URL.
+        val req = matchedReq
         OptionT.liftF {
           Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc0 =>
             val cc = cc0.copy(resourceDocument = Some(doc), operationId = Some(doc.operationId))

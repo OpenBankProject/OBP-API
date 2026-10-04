@@ -111,6 +111,13 @@ object ErrorMessages {
   val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name must stay the same, every existing property must keep its name and type, and no property may be added to 'required'. New optional properties may be added. Changing indexed, index, example, description, minLength, maxLength, the read/write role settings and hide_field_from_public_access is allowed. Delete all the data before making a structural change."
   val DynamicEntityFieldNotReadable = "OBP-09025: These fields cannot be used to filter or sort, because you may not read them: "
   val DynamicEntityRecordIdTooLong = "OBP-09024: The id of this DynamicEntity record is too long. A record id is stored in a column of 255 characters. Please supply a shorter id, or leave the id field out of the request body and one will be generated."
+  // Domain APIs: a space's dynamic endpoints published under a base path of its own.
+  val InvalidDomainApiBasePath = "OBP-09026: Invalid base_path. It must be two to five segments of lowercase letters, digits, hyphens or dots, separated by /, with no leading or trailing /, ending with the major version as vN (for example carbon-registry/v1), and its first segment must not be one OBP itself serves: "
+  val DomainApiBasePathAlreadyExists = "OBP-09027: Another Domain API already uses this base_path, or one that starts with it or that it starts with: "
+  val InvalidDomainApiVersion = "OBP-09028: Invalid version. It must be a semantic version, MAJOR.MINOR.PATCH (for example 1.0.0), whose MAJOR equals the N of the vN that ends base_path."
+  val DomainApiNotFound = "OBP-09029: Domain API not found in this space. Please specify a valid value for DOMAIN_API_ID."
+  val InvalidDomainApiTitle = "OBP-09030: Invalid title or description. title must be 1 to 255 characters and description at most 2000."
+  val DomainApiPathClash = "OBP-09031: Two endpoints of this space would answer the same verb and path under a Domain API, so it cannot be published until one of them is renamed or removed: "
 
 
   // General messages (OBP-10XXX)
@@ -1019,6 +1026,7 @@ object ErrorMessages {
   val PaymentChallengeHasNoOnBehalfOfUser = "OBP-40064: This payment needs Strong Customer Authentication, but the user it is being made for could not be determined, " +
     "so there is nobody who can be asked to authorise it. A consent that names the user it acts for is required before a payment of this size can be started."
   val DynamicQueryInvalid = "OBP-40065: The Dynamic Query cannot be run as written. "
+  val DynamicResourceDocUrlAmbiguous = "OBP-40067: More than one Dynamic Resource Doc, in different spaces, answers this URL. Call it under its space, at /obp/dynamic-endpoint/banks/BANK_ID/dynamic-resource-doc/..., where BANK_ID is one of: "
   val DynamicQueryEntityNotReadable = "OBP-40066: This Dynamic Query reads Dynamic Entities you may not read: "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."

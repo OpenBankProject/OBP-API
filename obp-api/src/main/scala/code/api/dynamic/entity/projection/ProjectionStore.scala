@@ -121,9 +121,10 @@ object ProjectionStore {
     // to no bank, never a SQL NULL, so this is a plain equality. It used to bind an Option and
     // compare with IS NOT DISTINCT FROM; that stopped matching the moment the sentinel replaced the
     // NULL, and this is the one place outside the Mapper queries that reads the column directly.
-    val byEntity   = Fragment.const(p + entityNameColumn) ++ fr"=" ++ fr0"$entityName"
-    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"=" ++ fr0"${bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)}"
-    val byPersonal = Fragment.const(p + personalColumn) ++ fr"=" ++ fr0"$isPersonalEntity"
+    // fr, not fr0: each value is followed by AND, and `$1AND` is refused by PostgreSQL 16+.
+    val byEntity   = Fragment.const(p + entityNameColumn) ++ fr"=" ++ fr"$entityName"
+    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"=" ++ fr"${bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)}"
+    val byPersonal = Fragment.const(p + personalColumn) ++ fr"=" ++ fr"$isPersonalEntity"
     val base = byEntity ++ fr"AND" ++ byBank ++ fr"AND" ++ byPersonal
     if (isPersonalEntity) base ++ fr"AND" ++ Fragment.const(p + userIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${userId: Option[String]}"
     else base

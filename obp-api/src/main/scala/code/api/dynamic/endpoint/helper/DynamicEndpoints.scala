@@ -44,6 +44,18 @@ import org.http4s.{Request, Response}
 import java.net.URLDecoder
 import scala.collection.immutable.List
 
+/**
+ * What a request under /obp/dynamic-endpoint/ names: one runtime-compiled endpoint (with the request it
+ * should be run as, which may be the canonical form of the URL the caller used), several that the URL
+ * cannot tell apart, or none.
+ */
+sealed trait DynamicEndpointMatch
+object DynamicEndpointMatch {
+  case class Found(doc: ResourceDoc, request: Request[IO]) extends DynamicEndpointMatch
+  case class Ambiguous(spaces: List[String]) extends DynamicEndpointMatch
+  case object NotFound extends DynamicEndpointMatch
+}
+
 object DynamicEndpoints {
   //TODO, better put all other dynamic endpoints into this list. eg: dynamicEntityEndpoints, dynamicSwaggerDocsEndpoints ....
   val disabledEndpointOperationIds = getDisabledEndpointOperationIds
@@ -66,12 +78,35 @@ object DynamicEndpoints {
    * (ResourceDoc.authCheckIO) and the handler. Replaces the former Lift `dynamicEndpoint`
    * (PartialFunction[Req, CallContext => Box[JsonResponse]]) that ran through the Lift dispatch.
    */
-  def findEndpoint(req: Request[IO]): Option[ResourceDoc] = {
+  def findEndpoint(req: Request[IO]): DynamicEndpointMatch = {
     val partPath = req.uri.path.segments.drop(2).map(_.encoded).toList // segments after /obp/dynamic-endpoint
     val verb = req.method.name
-    endpointGroups.iterator
-      .flatMap(_.docs.iterator)
-      .find(doc => doc.requestVerb == verb && doc.dynamicHttp4sFunction.isDefined && doc.matchesPartPath(partPath))
+    def servable(doc: ResourceDoc): Boolean = doc.requestVerb == verb && doc.dynamicHttp4sFunction.isDefined
+    val otherGroups = endpointGroups.filterNot(_ == DynamicResourceDocsEndpointGroup)
+    val resourceDocs = if (endpointGroups.contains(DynamicResourceDocsEndpointGroup)) DynamicResourceDocsEndpointGroup.docs.filter(servable) else Nil
+
+    otherGroups.iterator.flatMap(_.docs.iterator).find(doc => servable(doc) && doc.matchesPartPath(partPath)) match {
+      case Some(doc) => DynamicEndpointMatch.Found(doc, req)
+      case None => partPath match {
+        // The URL names its space: /banks/BANK_ID/dynamic-resource-doc/..., BANK_ID being a bank's id or SYS.
+        // The space segment is compared exactly first: matchesPartPath alone would read an upper-case
+        // space such as SYS as a path variable, and so match it against any bank id.
+        case "banks" :: space :: _ =>
+          resourceDocs.find(doc => DynamicResourceDocsEndpointGroup.spaceOf(doc) == space && doc.matchesPartPath(partPath))
+            .map(doc => DynamicEndpointMatch.Found(doc, req)).getOrElse(DynamicEndpointMatch.NotFound)
+        // The URL that names no space, kept so existing callers keep working: it is served only when exactly
+        // one doc, in any space, answers it, and then as if the caller had used that doc's own URL.
+        case first :: _ if first == DynamicResourceDocsEndpointGroup.urlPrefix =>
+          resourceDocs.filter(doc => doc.matchesPartPath("banks" :: DynamicResourceDocsEndpointGroup.spaceOf(doc) :: partPath)) match {
+            case doc :: Nil =>
+              val canonical = req.uri.path.segments.take(2).map(_.encoded).toList ++ ("banks" :: DynamicResourceDocsEndpointGroup.spaceOf(doc) :: partPath)
+              DynamicEndpointMatch.Found(doc, req.withUri(req.uri.withPath(org.http4s.Uri.Path.unsafeFromString(canonical.mkString("/", "/", "")))))
+            case Nil => DynamicEndpointMatch.NotFound
+            case several => DynamicEndpointMatch.Ambiguous(several.map(DynamicResourceDocsEndpointGroup.spaceOf).distinct.sorted)
+          }
+        case _ => DynamicEndpointMatch.NotFound
+      }
+    }
   }
 
   def dynamicResourceDocs: List[ResourceDoc] = endpointGroups.flatMap(_.docs)

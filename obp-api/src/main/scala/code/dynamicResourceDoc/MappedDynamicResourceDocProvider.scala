@@ -42,6 +42,14 @@ import scala.concurrent.duration.DurationInt
 
 object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
 
+  /**
+   * The bank id a doc's row stores. A system level doc stores the SYS sentinel rather than a SQL NULL, as a
+   * Dynamic Entity does: a NULL is never equal to another NULL in a unique index on Postgres or H2, so the
+   * index on (BankId, RequestUrl, RequestVerb) could not keep two system level docs off the same URL.
+   */
+  private def storedBankId(bankId: Option[String]): String =
+    code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrSystem(bankId)
+
   private val getDynamicResourceDocTTL : Int = {
     if(Props.testMode) 0 //make the scala test work
     else APIUtil.getPropsValue(s"dynamicResourceDoc.cache.ttl.seconds", "40").toInt
@@ -62,19 +70,15 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     }
   }
 
+  // A verb and URL are unique within one space, so this looks in the given space only; the system space
+  // (bankId None) is the rows stored with the SYS bank id.
   override def getByVerbAndUrl(bankId: Option[String], requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc] =
-    if(bankId.isEmpty){
-      DynamicResourceDoc
-        .find(By(DynamicResourceDoc.RequestVerb, requestVerb), By(DynamicResourceDoc.RequestUrl, requestUrl))
-        .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
-    } else{
-      DynamicResourceDoc
-        .find(
-          By(DynamicResourceDoc.BankId, bankId.getOrElse("")), 
-          By(DynamicResourceDoc.RequestVerb, requestVerb), 
-          By(DynamicResourceDoc.RequestUrl, requestUrl))
-        .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
-    }
+    DynamicResourceDoc
+      .find(
+        By(DynamicResourceDoc.BankId, storedBankId(bankId)),
+        By(DynamicResourceDoc.RequestVerb, requestVerb),
+        By(DynamicResourceDoc.RequestUrl, requestUrl))
+      .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
   
   override def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T] = {
     val cacheKey = (bankId.toString+transform.toString()).intern()
@@ -96,7 +100,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       val responseBody = entity.successResponseBody.map(json.compactRender(_)).orNull
 
       DynamicResourceDoc.create
-      .BankId(bankId.getOrElse(null))
+      .BankId(storedBankId(bankId))
       .DynamicResourceDocId(APIUtil.generateUUID())
       .PartialFunctionName(entity.partialFunctionName)
       .RequestVerb(entity.requestVerb)
@@ -124,7 +128,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
           val requestBody = entity.exampleRequestBody.map(json.compactRender(_)).orNull
           val responseBody = entity.successResponseBody.map(json.compactRender(_)).orNull
           v.PartialFunctionName(entity.partialFunctionName)
-            .BankId(bankId.getOrElse(null))
+            .BankId(storedBankId(bankId))
             .RequestVerb(entity.requestVerb)
             .RequestUrl(entity.requestUrl)
             .Summary(entity.summary)
