@@ -303,8 +303,60 @@ object DynamicEntityHelper {
 
   def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = docsIn(implementedInApiVersion)
 
+  /**
+   * This cache keeps the ResourceDocs that Dynamic Entities generate, so that a request does not
+   * rebuild them.
+   *
+   * The problem it solves: every Dynamic Entity call finds its own ResourceDoc by looking its operation
+   * up in [[operationToResourceDoc]] (Http4sDynamicEntity calls it for each request). Without this
+   * cache that lookup built the docs from scratch: for every entity in every space, one doc per
+   * operation (get all, get one, create, update, patch, delete, and the my, public and community
+   * variants), each with its description and example bodies, on every request, only to pick one.
+   *
+   * What it keeps: one entry per API version, because the same entities are documented twice. v4.0.0
+   * documents the unversioned /obp/dynamic-entity/... URLs, and v7.0.0 documents the
+   * /obp/v7.0.0/banks/BANK_ID/dynamic-entities/... URLs (see [[v700Doc]]). Each entry holds the built
+   * docs together with the definitions map they were built from.
+   *
+   * How it knows when to rebuild: [[docsIn]] asks for the current [[definitionsMap]] and reuses the
+   * kept docs only if that is the very same object they were built from (`eq`: the same instance, not
+   * equal contents). So the docs have no expiry of their own; they follow the definitions map cache.
+   * definitionsMap returns the same object until its time-to-live runs out
+   * (dynamicEntity.definitions_map.cache.ttl.seconds) or until [[forgetDefinitions]] runs because a
+   * definition was created, updated or deleted on this node. Either way a new map object appears, the
+   * identity check fails, and the docs are rebuilt once. In test mode the time-to-live is 0, so every
+   * call builds a new map and the docs are never reused: tests always see current docs, and never
+   * exercise this cache.
+   *
+   * The docs are shared, as static ones are. ResourceDoc has mutable fields, such as specifiedUrl.
+   * When every caller got freshly built docs, writing to one affected nobody else; now every request
+   * gets the same objects, so a write is seen by every other request. The only writer is the
+   * resource-docs listing (ResourceDocsAPIMethods), which sets specifiedUrl afresh each time. Two
+   * listings running at once may write the same doc concurrently, which is harmless because a given doc
+   * always gets the same value: a v7.0.0 doc its v7.0.0 URL, a v4.0.0 doc its dynamic-entity URL. Code
+   * that sets another field per request, or sets specifiedUrl to a value that depends on the request,
+   * would leak between requests and must copy the doc first.
+   *
+   * Concurrency: two requests that miss at the same moment both build and both store; the last store
+   * wins, and both are correct. A request still holding an older map may store docs built from it after
+   * a newer entry; the next caller then fails the identity check and rebuilds, so the stale docs are not
+   * served for long.
+   */
+  private val docsCache = new java.util.concurrent.ConcurrentHashMap[ScannedApiVersion, (Map[(String, String), DynamicEntityInfo], Map[(DynamicEntityOperation, String), ResourceDoc])]()
+
   /** Every entity's docs in one API version: v4.0.0 for the unversioned URLs, v7.0.0 for the v7.0.0 ones. */
   private def docsIn(apiVersion: ScannedApiVersion): Map[(DynamicEntityOperation, String), ResourceDoc] = {
+    val definitions = definitionsMap
+    Option(docsCache.get(apiVersion)) match {
+      case Some((builtFrom, docs)) if builtFrom eq definitions => docs
+      case _ =>
+        val docs = buildDocsIn(apiVersion, definitions)
+        docsCache.put(apiVersion, (definitions, docs))
+        docs
+    }
+  }
+
+  private def buildDocsIn(apiVersion: ScannedApiVersion, definitions: Map[(String, String), DynamicEntityInfo]): Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
 
     // record exists tag names, to avoid duplicated dynamic tag name.
@@ -345,7 +397,7 @@ object DynamicEntityHelper {
       ApiTag(tagName)
     }
     val fun: DynamicEntityInfo => mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = createDocs(apiTag, apiVersion)
-    val docs: Iterable[((DynamicEntityOperation, String), ResourceDoc)] = definitionsMap.values.flatMap(fun)
+    val docs: Iterable[((DynamicEntityOperation, String), ResourceDoc)] = definitions.values.flatMap(fun)
     docs.toMap
   }
 
