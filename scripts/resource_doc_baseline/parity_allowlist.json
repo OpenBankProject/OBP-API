@@ -1069,14 +1069,6 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "getMetrics",
-      "field": "description",
-      "reason": "Documents real new filter params (consent_reference_id, certificate_trust) verified present in MappedMetrics.scala.",
-      "lift_digest": "04c081020abb8a0f0bfe1b9a850c30151dac9a1cd69f4ea1cbb896388b4237f2",
-      "http4s_digest": "3e6c35656f1605ba23ae225187a4038f9f4ae48195824e5f4166840c325ec81a"
-    },
-    {
-      "version": "v6_0_0",
       "endpoint": "getPersonalDataFieldById",
       "field": "description",
       "reason": "Additive clarification.",
@@ -1770,6 +1762,30 @@
       "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
       "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
       "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getMetrics",
+      "field": "description",
+      "reason": "Documents real filter params verified present in MappedMetrics.scala: consent_reference_id and certificate_trust, and domain_api_url (the URL a caller used under a Domain API, matched as starts with).",
+      "lift_digest": "04c081020abb8a0f0bfe1b9a850c30151dac9a1cd69f4ea1cbb896388b4237f2",
+      "http4s_digest": "dced69f475028b8f030c52d1ef469e632e916c91ae3343c780aa24515381a0c9"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createConsumer",
+      "field": "description",
+      "reason": "Adds a paragraph pointing the developer of an app the installation runs itself (Portal, API Manager, Opey, OBP-Sentinel) to Platform Apps, so its Consumer can be granted Roles as Scopes.",
+      "lift_digest": "7e639520852912f5fbb9938d9d3f65943054eb8a158dfa7105416a43870d3ce4",
+      "http4s_digest": "983ad12ac6c61fc5637ee32d4fbc95592ed259c2588b8b50feab0376fec554a6"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createMyConsumer",
+      "field": "description",
+      "reason": "Adds a paragraph pointing the developer of an app the installation runs itself (Portal, API Manager, Opey, OBP-Sentinel) to Platform Apps, so its Consumer can be granted Roles as Scopes.",
+      "lift_digest": "bba5099d62c01e4fd03073a2c54ef3f5669d0cb0f756d8c2556dd48c9dc8cbc2",
+      "http4s_digest": "fb85fa76f84dab2e7a328d65e38b2d1ecf9eabe90ca99efdd7e8d24ff9bcd152"
     }
   ]
 }
