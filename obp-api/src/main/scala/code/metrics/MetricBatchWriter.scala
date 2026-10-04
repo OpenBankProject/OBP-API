@@ -169,8 +169,13 @@ object MetricBatchWriter extends MdcLoggable {
 
   /**
    * Drain the queue and batch-insert all pending metrics via Doobie.
+   *
+   * This is synchronized so that one flush finishes before the next starts. The background scheduler
+   * and a caller (a test that flushes before reading the metric table) may flush at the same time.
+   * Without the lock, a caller could find the queue empty because the scheduler had just drained it,
+   * and return while those rows were still being inserted, so a read straight after saw none of them.
    */
-  private[code] def flush(): Unit = {
+  private[code] def flush(): Unit = synchronized {
     val flushStart = System.nanoTime()
     // Rows taken off the queue by this flush. If the write fails they are lost, so Telemetry counts them.
     var drainedRows = 0
