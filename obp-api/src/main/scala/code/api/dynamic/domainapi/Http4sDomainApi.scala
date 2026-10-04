@@ -53,9 +53,14 @@ import org.json4s.native.JsonMethods.compact
  * A call under a base path is rewritten to the OBP URL of the same endpoint (see [[DomainApiPaths]]) and
  * handed to the handler that serves that URL, so authentication, Roles, Consents, rate limiting,
  * row-level access, field restrictions, Dynamic Query checks and metrics all run exactly as they do for
- * the OBP URL. A Domain API grants nothing. A Dynamic Entity of the space is tried first, then a Dynamic
- * Resource Doc of the space; registering or updating a Domain API is refused while two of the space's
- * endpoints would answer the same verb and path, so the order only matters for a clash created later.
+ * the OBP URL. A Domain API adds no access of its own: a call under its base path is allowed or refused
+ * exactly as the same call to the OBP URL would be.
+ *
+ * A Dynamic Resource Doc of the space is tried first, then a Dynamic Entity of the space. Every space is
+ * kept free of ambiguous paths (see [[DomainApiPaths.resourceDocAmbiguities]]), with or without a Domain
+ * API, so at most one of them matches a call and the order does not change which one answers. Should an
+ * ambiguity that predates those rules remain, the Dynamic Resource Doc wins: its path names a literal
+ * segment where the Dynamic Entity's has a record id, so it is the more specific of the two.
  *
  * `BASE_PATH/openapi.json` and `BASE_PATH/openapi.yaml` serve the Domain API's own OpenAPI document.
  *
@@ -89,8 +94,8 @@ object Http4sDomainApi extends MdcLoggable {
             case _ =>
               val marked = req.withAttribute(domainApiCallKey,
                 DomainApiCall(route.domainApiId, route.basePath, req.uri.path.renderString))
-              Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(withPath(marked, DomainApiPaths.dynamicEntityPath(route.bankId, rest)))
-                .orElse(Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint.run(withPath(marked, DomainApiPaths.dynamicResourceDocPath(route.bankId, rest))))
+              Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint.run(withPath(marked, DomainApiPaths.dynamicResourceDocPath(route.bankId, rest)))
+                .orElse(Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(withPath(marked, DomainApiPaths.dynamicEntityPath(route.bankId, rest))))
           }
       }
     }

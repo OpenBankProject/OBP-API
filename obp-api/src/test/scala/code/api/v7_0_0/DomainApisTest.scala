@@ -31,7 +31,7 @@ import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.dynamic.domainapi.Http4sDomainApi
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{canCreateDomainApi, canDeleteDomainApi, canGetDomainApis, canUpdateDomainApi}
+import code.api.util.ApiRole.{canCreateBankLevelDynamicResourceDoc, canCreateDomainApi, canCreateDynamicEntityDefinition, canDeleteDomainApi, canGetDomainApis, canUpdateBankLevelDynamicResourceDoc, canUpdateDomainApi}
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
 import code.domainapi.DomainApis
@@ -43,6 +43,7 @@ import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import java.net.URLEncoder
@@ -105,6 +106,16 @@ class DomainApisTest extends V600ServerSetup {
       requestVerb = "GET", requestUrl = url, exampleRequestBody = None, errorResponseBodies = "OBP-50000: Unknown Error.",
       methodBody = URLEncoder.encode(s"""{ "from": "$entityName", "select": ["name"], "envelope": { "rows": "names" } }""", "UTF-8"),
       programmingLang = "Query"), Some(owner)).openOrThrowException(s"doc in $space")
+
+  private def dynamicResourceDocsAt(bankId: String) = baseRequest / "obp" / "v4.0.0" / "management" / "banks" / bankId / "dynamic-resource-docs"
+
+  /** The body of a Dynamic Query at `url` in a bank, reading `entityName`, as the management endpoints take it. */
+  private def queryDocBody(bankId: String, url: String, entityName: String, functionName: String): String =
+    write(SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+      dynamicResourceDocId = None, bankId = Some(bankId), roles = "", partialFunctionName = functionName,
+      requestVerb = "GET", requestUrl = url, exampleRequestBody = None, errorResponseBodies = "OBP-50000: Unknown Error.",
+      methodBody = URLEncoder.encode(s"""{ "from": "$entityName", "select": ["name"], "envelope": { "rows": "names" } }""", "UTF-8"),
+      programmingLang = "Query"))
 
   feature("Managing Domain APIs") {
 
@@ -261,6 +272,101 @@ class DomainApisTest extends V600ServerSetup {
       refused.code should equal(409)
       message(refused) should include(DomainApiPathClash)
       message(refused) should include(s"/$clashing")
+    }
+  }
+
+  feature("Keeping a space's paths unambiguous, with or without a Domain API") {
+
+    scenario("a Dynamic Resource Doc whose path starts with a Dynamic Entity's name is refused, in a space with no Domain API") {
+      val bankId = testBankId1.value
+      val name = s"owned_$suffix"
+      entityWithRecord(Some(bankId), name, "owned")
+      grantAt(bankId, canCreateBankLevelDynamicResourceDoc)
+
+      When("a Dynamic Query is created at /<entity>/summary")
+      val refused = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/$name/summary", name, s"ownedSummary$suffix"))
+      Then("it is refused, naming the entity")
+      withClue(refused.body) { refused.code should equal(409) }
+      message(refused) should include(DynamicPathAmbiguous)
+      message(refused) should include(s"the Dynamic Entity $name")
+
+      When("the same query is created at a path of its own")
+      val accepted = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/report_$suffix/summary", name, s"ownedReport$suffix"))
+      Then("it is accepted")
+      withClue(accepted.body) { accepted.code should equal(201) }
+    }
+
+    scenario("two Dynamic Resource Docs of one verb that would match one request are refused") {
+      val bankId = testBankId1.value
+      val name = s"listed_$suffix"
+      entityWithRecord(Some(bankId), name, "listed")
+      grantAt(bankId, canCreateBankLevelDynamicResourceDoc)
+      grantAt(bankId, canUpdateBankLevelDynamicResourceDoc)
+      val first = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/sites_$suffix/SITE_ID", name, s"siteById$suffix"))
+      withClue(first.body) { first.code should equal(201) }
+
+      When("a second doc is created whose literal segment the first one's path variable also matches")
+      val refused = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/sites_$suffix/summary", name, s"siteSummary$suffix"))
+      Then("it is refused, naming the first")
+      withClue(refused.body) { refused.code should equal(409) }
+      message(refused) should include(DynamicPathAmbiguous)
+      message(refused) should include(s"siteById$suffix")
+
+      When("a doc is moved onto such a path by an update")
+      val other = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/regions_$suffix/summary", name, s"regionSummary$suffix"))
+      withClue(other.body) { other.code should equal(201) }
+      val otherId = (other.body \ "dynamic_resource_doc_id").extract[String]
+      val moved = makePutRequest((dynamicResourceDocsAt(bankId) / otherId).PUT <@ (user1), queryDocBody(bankId, s"/sites_$suffix/summary", name, s"regionSummary$suffix"))
+      Then("it is refused too")
+      withClue(moved.body) { moved.code should equal(409) }
+      message(moved) should include(DynamicPathAmbiguous)
+    }
+
+    scenario("a Dynamic Entity named after the first segment of a Dynamic Resource Doc's path is refused") {
+      val bankId = testBankId1.value
+      val name = s"source_$suffix"
+      val taken = s"taken_$suffix"
+      entityWithRecord(Some(bankId), name, "source")
+      grantAt(bankId, canCreateBankLevelDynamicResourceDoc)
+      grantAt(bankId, canCreateDynamicEntityDefinition)
+      val doc = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/$taken/names", name, s"takenNames$suffix"))
+      withClue(doc.body) { doc.code should equal(201) }
+
+      When(s"a Dynamic Entity named $taken is created")
+      val definition = compact(render(("entity_name" -> taken) ~ ("has_personal_entity" -> false) ~
+        ("schema" -> (("description" -> "Taken.") ~ ("required" -> List("name")) ~
+          ("properties" -> ("name" -> (("type" -> "string") ~ ("example" -> "a name"))))))))
+      val refused = makePostRequest((baseRequest / "obp" / "v6.0.0" / "management" / "banks" / bankId / "dynamic-entities").POST <@ (user1), definition)
+      Then("it is refused, naming the doc")
+      withClue(refused.body) { refused.code should equal(409) }
+      message(refused) should include(DynamicPathAmbiguous)
+      message(refused) should include(s"/$taken/names")
+    }
+
+    scenario("under a Domain API a Dynamic Resource Doc is tried before a Dynamic Entity") {
+      val bankId = testBankId1.value
+      grantAllAt(bankId)
+      val basePath = s"precedence-$suffix/v1"
+      val created = makePostRequest(domainApis(bankId).POST <@ (user1), registration(basePath, "1.0.0"))
+      withClue(created.body) { created.code should equal(201) }
+
+      Given("an ambiguity written straight to the database, as one that predates the rules would be")
+      val name = s"older_$suffix"
+      entityWithRecord(Some(bankId), name, "older record")
+      queryDoc(Some(bankId), s"/$name/summary", name, s"olderSummary$suffix")
+
+      try {
+        When("the doc's path is called under the base path, which the entity would read as a record id")
+        val response = makeGetRequest((under(basePath) / name / "summary").GET <@ (user1))
+        Then("the Dynamic Resource Doc answers")
+        withClue(response.body) { response.code should equal(200) }
+        valuesOf(response.body \ "names", "name") should contain("older record")
+        And("the entity still answers its own paths")
+        makeGetRequest((under(basePath) / name).GET <@ (user1)).code should equal(200)
+      } finally {
+        DynamicResourceDocProvider.provider.vend.getByVerbAndUrl(Some(bankId), "GET", s"/$name/summary")
+          .foreach(doc => DynamicResourceDocProvider.provider.vend.deleteById(Some(bankId), doc.dynamicResourceDocId.getOrElse("")))
+      }
     }
   }
 }

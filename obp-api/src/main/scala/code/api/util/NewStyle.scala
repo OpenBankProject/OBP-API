@@ -33,6 +33,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID}
 // checkPaymentServerTypeError was inlined from the retired BG v1.3 PIS builder (see PaymentInitiationServicePISApi.scala)
 import code.api.cache.{Caching, Redis}
+import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.util.APIUtil._
@@ -3555,6 +3556,11 @@ object NewStyle extends MdcLoggable{
         return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
+      val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+      if (ambiguities.nonEmpty) {
+        return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
+      }
+
       Future {
         val result = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
         if (result.isDefined) invalidateDynamicResourceDocCaches()
@@ -3583,6 +3589,13 @@ object NewStyle extends MdcLoggable{
             s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
             
           return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
+        }
+
+        // Only a new name is checked, so an entity caught in an ambiguity that predates the rule can
+        // still have its definition changed.
+        val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+        if (ambiguities.nonEmpty) {
+          return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
         }
       }
 

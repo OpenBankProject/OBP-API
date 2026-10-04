@@ -79,6 +79,12 @@ trait DynamicResourceDocProvider {
 
   def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T]
 
+  /**
+   * The docs of one space (None for the system space), read from the database every time. Unlike
+   * [[getAll]], which is cached and treats None as every space, this is what a check before a write needs.
+   */
+  def getAllInSpace(bankId: Option[String]): List[JsonDynamicResourceDoc]
+
   def create(bankId: Option[String], entity: JsonDynamicResourceDoc, createdByUserId: Option[String]): Box[JsonDynamicResourceDoc]
   def update(bankId: Option[String], entity: JsonDynamicResourceDoc, updatedByUserId: Option[String]): Box[JsonDynamicResourceDoc]
   def deleteById(bankId: Option[String], dynamicResourceDocId: String): Box[Boolean]

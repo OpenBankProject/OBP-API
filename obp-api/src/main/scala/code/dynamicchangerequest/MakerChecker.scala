@@ -32,6 +32,7 @@ import java.util.Date
 
 import code.abacrule.{AbacRule, AbacRuleEngine, MappedAbacRuleProvider}
 import code.api.Constant
+import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.endpoint.helper.CompiledObjects
 import code.api.util.APIUtil.{dynamicCodeHash, getPropsAsBoolValue, getPropsAsIntValue, getPropsValue, sha256Hex}
 import code.api.util.DynamicUtil.Validation
@@ -364,6 +365,14 @@ object MakerChecker extends MdcLoggable {
       case CREATE | UPDATE =>
         for {
           body <- parseAs[JsonDynamicResourceDoc](request.proposedPayload)
+          // Checked again here, as the space may have changed since the request was made.
+          _ <- {
+            val unchangedPath = operation == UPDATE && p.getById(bankId, request.targetId)
+              .exists(stored => stored.requestVerb == body.requestVerb && stored.requestUrl == body.requestUrl)
+            val ambiguities = if (unchangedPath) Nil else DomainApiPaths.storedResourceDocAmbiguities(
+              bankId, Some(request.targetId).filter(_ => operation == UPDATE), body.requestVerb, body.requestUrl, body.partialFunctionName)
+            boolBox(ambiguities.isEmpty, s"${ErrorMessages.DynamicPathAmbiguous}${ambiguities.mkString("; ")}")
+          }
           _ <- compileBox("dynamic resource doc") {
             val compiled = CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, bankId)
             compiled.validateDependency()

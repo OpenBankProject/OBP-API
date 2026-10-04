@@ -117,7 +117,8 @@ object ErrorMessages {
   val InvalidDomainApiVersion = "OBP-09028: Invalid version. It must be a semantic version, MAJOR.MINOR.PATCH (for example 1.0.0), whose MAJOR equals the N of the vN that ends base_path."
   val DomainApiNotFound = "OBP-09029: Domain API not found in this space. Please specify a valid value for DOMAIN_API_ID."
   val InvalidDomainApiTitle = "OBP-09030: Invalid title or description. title must be 1 to 255 characters and description at most 2000."
-  val DomainApiPathClash = "OBP-09031: Two endpoints of this space would answer the same verb and path under a Domain API, so it cannot be published until one of them is renamed or removed: "
+  val DomainApiPathClash = "OBP-09031: Endpoints of this space are ambiguous with each other, so a Domain API cannot publish the space until one of them is renamed or removed: "
+  val DynamicPathAmbiguous = "OBP-09032: This would make a path ambiguous in its space. The Dynamic Entities and Dynamic Resource Docs of a space share one set of paths, which a Domain API can publish under its base path at any time, so a Dynamic Resource Doc's path may not start with a path variable, with my, public, community, openapi.json or openapi.yaml, or with the name of one of the space's Dynamic Entities; a Dynamic Entity may not be named my, public, community, openapi.json or openapi.yaml, nor after the first segment of one of the space's Dynamic Resource Docs; and two Dynamic Resource Docs of one verb may not both match one request. Rename one of them: "
 
 
   // General messages (OBP-10XXX)

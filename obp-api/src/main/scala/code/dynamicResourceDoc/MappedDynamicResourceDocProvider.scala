@@ -94,6 +94,10 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       }
   }
 
+  override def getAllInSpace(bankId: Option[String]): List[JsonDynamicResourceDoc] =
+    DynamicResourceDoc.findAll(By(DynamicResourceDoc.BankId, storedBankId(bankId)))
+      .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+
   override def create(bankId: Option[String], entity: JsonDynamicResourceDoc, createdByUserId: Option[String]): Box[JsonDynamicResourceDoc]=
     tryo {
       val requestBody = entity.exampleRequestBody.map(json.compactRender(_)).orNull
