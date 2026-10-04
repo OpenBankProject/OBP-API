@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -64,7 +64,7 @@ object Http4s700Telemetry {
   // Route: GET /obp/v7.0.0/management/telemetry
   lazy val getTelemetry: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `prefixPath` / "management" / "telemetry" =>
-      EndpointHelpers.withUser(req) { (_, _) =>
+      EndpointHelpers.executeFuture(req) {
         val namePrefix = req.uri.query.params.get("name_prefix").filter(_.nonEmpty)
         Future(JSONFactory700Operations.createTelemetryJson(namePrefix))
       }
@@ -110,12 +110,16 @@ object Http4s700Telemetry {
        |
        |**Filter.** `name_prefix` limits the list to meters whose name starts with it,
        |for example `?name_prefix=obp.api.endpoint`.
+       |
+       |**Who may call it.** A User with the Role CanGetTelemetry, or an application whose Consumer holds it
+       |as a Scope, such as a monitoring service run as a Platform App (see ${Glossary.getGlossaryItemLink("Platform Apps")}).
        |""".stripMargin,
     EmptyBody,
     JSONFactory700Operations.telemetryJsonV700Example,
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     List(apiTagApi, apiTagSystem),
     Some(List(canGetTelemetry)),
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(getTelemetry)
   )
 }

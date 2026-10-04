@@ -1199,6 +1199,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheTraceEndpoint)
     )
 
@@ -1225,6 +1226,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheDebugEndpoint)
     )
 
@@ -1251,6 +1253,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheInfoEndpoint)
     )
 
@@ -1277,6 +1280,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheWarningEndpoint)
     )
 
@@ -1303,6 +1307,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheErrorEndpoint)
     )
 
@@ -1329,6 +1334,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 

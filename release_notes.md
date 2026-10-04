@@ -3,6 +3,13 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+04/10/2026    TBD           CHANGED: GET /obp/v5.1.0/system/log-cache/LEVEL (trace, debug, info, warning,
+                            error, all) and GET /obp/v7.0.0/management/telemetry accept a Consumer that
+                            holds the Role as a Scope, as well as a User who holds it as an Entitlement
+                            (authMode UserOrApplication), so a monitoring service can read them as a
+                            Platform App with its own application token. A call with no credentials
+                            still gets 401, now with ApplicationNotIdentified instead of
+                            AuthenticatedUserIsRequired. Response bodies are unchanged.
 03/10/2026    TBD           CHANGED: a Dynamic Resource Doc is served under its space, at
                             /obp/dynamic-endpoint/banks/BANK_ID/dynamic-resource-doc/REQUEST_URL, with
                             SYS for the system space. A verb and URL are unique within a space instead of
