@@ -2359,6 +2359,24 @@ object Consent extends MdcLoggable {
       unusable.isEmpty
     }
 
+  /**
+   * The PSU-ID request header, resolved to the user id it names.
+   *
+   * Berlin Group makes the header conditional rather than mandatory, so absent is a conforming
+   * answer and gives None -- the caller may be identifying the PSU some other way, which
+   * resolveBerlinGroupPsu works out. A value the ASPSP cannot resolve is a different matter and is
+   * refused with the code the standard reserves for exactly it: PSU_CREDENTIALS_INVALID, 401,
+   * "PSU-ID cannot be found by ASPSP".
+   */
+  def resolvePsuIdHeader(cc: CallContext, callContext: Option[CallContext]): Future[Option[String]] =
+    Option(APIUtil.getRequestHeader(RequestHeader.`PSU-ID`, cc.requestHeaders)).map(_.trim).filter(_.nonEmpty) match {
+      case None => Future.successful(None)
+      case Some(psuId) =>
+        Future(findPsuByPsuId(psuId)) map { psu =>
+          Some(APIUtil.unboxFullOrFail(psu, callContext, UserNotFoundByProviderAndUsername, 401).userId)
+        }
+    }
+
   def createUKConsentJWT(
     user: Option[User],
     bankId: Option[String],
