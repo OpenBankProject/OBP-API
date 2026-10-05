@@ -43,12 +43,31 @@ trait SigningBasketProvider extends MdcLoggable {
   def getSigningBaskets(): List[SigningBasketTrait]
 
   def getSigningBasketByBasketId(entityId: String): Box[SigningBasketContent]
+  // Unconditional writers, being replaced by transitionSigningBasketStatus.
   def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent]
+  def deleteSigningBasket(id: String): Box[Boolean]
 
+  /**
+   * Creates the basket and its members together, owned by the consumer that creates it. A failure
+   * part way leaves nothing behind. `psuUserId` is the PSU the request already names, if any.
+   */
   def createSigningBasket(paymentIds: Option[List[String]],
                           consentIds: Option[List[String]],
+                          consumerId: String,
+                          psuUserId: Option[String]
                          ): Box[SigningBasketTrait]
 
-  def deleteSigningBasket(id: String): Box[Boolean]
+  /**
+   * Moves a basket from one status to another only if it still has the status the caller read.
+   * One conditional update, so two callers racing for the same transition have exactly one winner.
+   * Returns whether this call made the move.
+   */
+  def transitionSigningBasketStatus(basketId: String, from: String, to: String): Box[Boolean]
+
+  /**
+   * Binds the PSU to the basket if none is bound yet. Returns whether the basket is now bound to
+   * this PSU, which is also true when it already was.
+   */
+  def bindSigningBasketPsu(basketId: String, psuUserId: String): Box[Boolean]
 
 }

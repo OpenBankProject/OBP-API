@@ -113,10 +113,15 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
           _ <- booleanToFuture(failMsg, cc = callContext) {
             idLists.nonEmpty && idLists.forall(ids => ids.nonEmpty && ids.distinct.size == ids.size)
           }
+          // The basket belongs to the TPP that creates it; nothing else identifies who may address it later.
+          consumerId <- Future.successful(cc.consumer.map(_.consumerId.get))
+            .map(unboxFullOrFail(_, callContext, AuthenticatedUserIsRequired, 401))
           signingBasket <- Future {
             SigningBasketX.signingBasketProvider.vend.createSigningBasket(
               postJson.paymentIds,
               postJson.consentIds,
+              consumerId,
+              None
             )
           }.map(connectorEmptyResponse(_, callContext))
         } yield {

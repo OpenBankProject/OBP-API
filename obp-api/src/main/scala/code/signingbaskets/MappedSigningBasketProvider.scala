@@ -32,58 +32,37 @@ import code.util.MappedUUID
 import com.openbankproject.commons.model.{SigningBasketConsentTrait, SigningBasketContent, SigningBasketPaymentTrait, SigningBasketTrait}
 import net.liftweb.common.Box
 import net.liftweb.common.Box.tryo
+import net.liftweb.db.DB
 import net.liftweb.mapper._
+import net.liftweb.util.DefaultConnectionIdentifier
 
 object MappedSigningBasketProvider extends SigningBasketProvider {
   def getSigningBaskets(): List[SigningBasketTrait] = {
     MappedSigningBasket.findAll()
   }
 
+  private def membersOf(basketId: String): (Option[List[String]], Option[List[String]]) = {
+    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, basketId)).map(_.paymentId) match {
+      case Nil => None
+      case members => Some(members)
+    }
+    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, basketId)).map(_.consentId) match {
+      case Nil => None
+      case members => Some(members)
+    }
+    (payments, consents)
+  }
+
   override def getSigningBasketByBasketId(entityId: String): Box[SigningBasketContent] = {
     val basket: Box[MappedSigningBasket] = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, entityId))
-    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, entityId)).map(_.paymentId) match {
-      case Nil => None
-      case head :: tail => Some(head :: tail)
-    }
-    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, entityId)).map(_.consentId) match {
-      case Nil => None
-      case head :: tail => Some(head :: tail)
-    }
-    basket.map( i => SigningBasketContent(basket = i, payments = payments, consents = consents))
+    val (payments, consents) = membersOf(entityId)
+    basket.map(i => SigningBasketContent(basket = i, payments = payments, consents = consents))
   }
+
   override def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent] = {
     val basket: Box[MappedSigningBasket] = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, entityId)).map(_.Status(status).saveMe)
-    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, entityId)).map(_.paymentId) match {
-      case Nil => None
-      case head :: tail => Some(head :: tail)
-    }
-    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, entityId)).map(_.consentId) match {
-      case Nil => None
-      case head :: tail => Some(head :: tail)
-    }
-    basket.map( i => SigningBasketContent(basket = i, payments = payments, consents = consents))
-  }
-
-  override def createSigningBasket(paymentIds: Option[List[String]],
-                                   consentIds: Option[List[String]]
-                                  ): Box[SigningBasketTrait] = {
-    tryo {
-      val entity = MappedSigningBasket.create
-      entity.Status(ConstantsBG.SigningBasketsStatus.RCVD.toString)
-
-      if (entity.validate.isEmpty) {
-        entity.saveMe()
-      } else {
-        throw new Error(entity.validate.map(_.msg.toString()).mkString(";"))
-      }
-      paymentIds.getOrElse(Nil).map { paymentId =>
-        MappedSigningBasketPayment.create.BasketId(entity.basketId).PaymentId(paymentId).saveMe()
-      }
-      consentIds.getOrElse(Nil).map { consentId =>
-        MappedSigningBasketConsent.create.BasketId(entity.basketId).ConsentId(consentId).saveMe()
-      }
-      entity
-    }
+    val (payments, consents) = membersOf(entityId)
+    basket.map(i => SigningBasketContent(basket = i, payments = payments, consents = consents))
   }
 
   override def deleteSigningBasket(id: String): Box[Boolean] = {
@@ -92,17 +71,82 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     }
   }
 
+  override def createSigningBasket(paymentIds: Option[List[String]],
+                                   consentIds: Option[List[String]],
+                                   consumerId: String,
+                                   psuUserId: Option[String]
+                                  ): Box[SigningBasketTrait] = {
+    // The basket and every member row are written inside one DB.use. Inside an HTTP request the
+    // connection is the request's own, whose rollback is not ours to call, so a failure part way is
+    // also undone by hand: nothing of a basket that was not fully created is left behind.
+    var created: Option[MappedSigningBasket] = None
+    val result = tryo {
+      DB.use(DefaultConnectionIdentifier) { _ =>
+        val entity = MappedSigningBasket.create
+          .Status(ConstantsBG.SigningBasketsStatus.RCVD.toString)
+          .ConsumerId(consumerId)
+          .PsuUserId(psuUserId.getOrElse(""))
+        if (entity.validate.isEmpty) {
+          entity.saveMe()
+        } else {
+          throw new Error(entity.validate.map(_.msg.toString()).mkString(";"))
+        }
+        created = Some(entity)
+        paymentIds.getOrElse(Nil).foreach { paymentId =>
+          MappedSigningBasketPayment.create.BasketId(entity.basketId).PaymentId(paymentId).saveMe()
+        }
+        consentIds.getOrElse(Nil).foreach { consentId =>
+          MappedSigningBasketConsent.create.BasketId(entity.basketId).ConsentId(consentId).saveMe()
+        }
+        entity: SigningBasketTrait
+      }
+    }
+    if (result.isEmpty) created.foreach { basket =>
+      tryo {
+        MappedSigningBasketPayment.bulkDelete_!!(By(MappedSigningBasketPayment.BasketId, basket.basketId))
+        MappedSigningBasketConsent.bulkDelete_!!(By(MappedSigningBasketConsent.BasketId, basket.basketId))
+        basket.delete_!
+      }
+    }
+    result
+  }
+
+  override def transitionSigningBasketStatus(basketId: String, from: String, to: String): Box[Boolean] =
+    tryo {
+      DB.runUpdate(
+        s"UPDATE ${MappedSigningBasket.dbTableName} " +
+          s"SET ${MappedSigningBasket.Status._dbColumnNameLC} = ?, ${MappedSigningBasket.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP " +
+          s"WHERE ${MappedSigningBasket.BasketId._dbColumnNameLC} = ? AND ${MappedSigningBasket.Status._dbColumnNameLC} = ?",
+        List(to, basketId, from)) == 1
+    }
+
+  override def bindSigningBasketPsu(basketId: String, psuUserId: String): Box[Boolean] =
+    tryo {
+      val bound = DB.runUpdate(
+        s"UPDATE ${MappedSigningBasket.dbTableName} " +
+          s"SET ${MappedSigningBasket.PsuUserId._dbColumnNameLC} = ?, ${MappedSigningBasket.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP " +
+          s"WHERE ${MappedSigningBasket.BasketId._dbColumnNameLC} = ? " +
+          s"AND (${MappedSigningBasket.PsuUserId._dbColumnNameLC} IS NULL OR ${MappedSigningBasket.PsuUserId._dbColumnNameLC} = '')",
+        List(psuUserId, basketId)) == 1
+      // Not bound by this call: that is only a success if the basket was already bound to this PSU.
+      bound || MappedSigningBasket.find(By(MappedSigningBasket.BasketId, basketId)).exists(_.psuUserId.contains(psuUserId))
+    }
+
 }
 
-class MappedSigningBasket extends SigningBasketTrait with LongKeyedMapper[MappedSigningBasket] with IdPK {
+class MappedSigningBasket extends SigningBasketTrait with LongKeyedMapper[MappedSigningBasket] with IdPK with CreatedUpdated {
   override def getSingleton = MappedSigningBasket
   object BasketId extends MappedUUID(this)
   object Status extends MappedString(this, 50)
-
-
+  // The consumer (TPP) that created the basket. Empty, or null, on a basket created before this was recorded.
+  object ConsumerId extends MappedString(this, 255)
+  // The PSU the basket is for, once known (named on creation, or bound when an authorisation starts).
+  object PsuUserId extends MappedString(this, 255)
 
   override def basketId: String = BasketId.get
   override def status: String = Status.get
+  override def consumerId: Option[String] = Option(ConsumerId.get).map(_.trim).filter(_.nonEmpty)
+  override def psuUserId: Option[String] = Option(PsuUserId.get).map(_.trim).filter(_.nonEmpty)
 
 }
 
