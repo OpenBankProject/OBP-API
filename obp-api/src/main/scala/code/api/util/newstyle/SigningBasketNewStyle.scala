@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util.newstyle
 
-import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, passesPsd2Aisp, passesPsd2Pisp, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.BerlinGroupPaymentAccess
@@ -115,6 +115,27 @@ object SigningBasketNewStyle extends MdcLoggable {
   } map {
     case Right(content) => (content, callContext)
     case Left(_) => unboxFullOrFail(Empty: Box[(SigningBasketContent, Option[CallContext])], callContext, SigningBasketNotFound, 403)
+  } flatMap { case (content, cc) =>
+    // Only once the caller is known to be entitled to the basket, so a role check cannot be used to
+    // tell a basket that exists from one that does not.
+    passesRolesOfMembers(content, access, callContext).map(_ => (content, cc))
+  }
+
+  /**
+   * The PSP roles the members of a basket call for: PISP for payments, AISP for consents, both for a
+   * mix. The ASPSP's own SCA front end is not a payment or account information service provider, and
+   * acts on the authorisation under Redirect without a certificate of its own.
+   */
+  private def passesRolesOfMembers(content: SigningBasketContent,
+                                   access: BasketAccess,
+                                   callContext: Option[CallContext]): Future[Unit] = {
+    val frontEnd = access == AuthorisationOperation &&
+      Consent.isScaFrontEnd(callContext.flatMap(_.consumer.map(_.consumerId.get)))
+    if (frontEnd) Future.successful(())
+    else for {
+      _ <- if (content.payments.exists(_.nonEmpty)) passesPsd2Pisp(callContext) else Future.successful(())
+      _ <- if (content.consents.exists(_.nonEmpty)) passesPsd2Aisp(callContext) else Future.successful(())
+    } yield ()
   }
 
   private def refuseMember(message: String, code: Int, callContext: Option[CallContext]): Future[Nothing] =

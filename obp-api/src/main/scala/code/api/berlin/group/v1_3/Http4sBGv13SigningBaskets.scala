@@ -192,7 +192,6 @@ The resource identifications of these transactions are contained in the  payload
       EndpointHelpers.executeDelete(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
           (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
           // Deleting a basket that is already cancelled changes nothing and is not an error.
           alreadyCancelled = basket.basket.status == ConstantsBG.SigningBasketsStatus.CANC.toString
@@ -244,7 +243,6 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
           (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
         } yield {
           getSigningBasketResponseJson(basket)
@@ -277,7 +275,6 @@ Returns the content of an signing basket object.""",
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
           _ <- SigningBasketNewStyle.getOwnBasket(basketid, AuthorisationOperation, callContext)
           (challenges, _) <- NewStyle.function.getChallengesByBasketId(basketid, callContext)
         } yield {
@@ -312,7 +309,6 @@ This function returns an array of hyperlinks to all generated authorisation sub-
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
           _ <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
           (challenge, _) <- SigningBasketNewStyle.getBasketAuthorisation(basketId, authorisationId, callContext)
         } yield {
@@ -345,7 +341,6 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
           (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
         } yield {
           getSigningBasketStatusResponseJson(basket)
@@ -378,7 +373,6 @@ Returns the status of a signing basket object.
         val cc = req.callContext
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
           (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
           _ <- requireSupportedAuthorisationBody(
             cc.httpBody.getOrElse(""), answering = false,
@@ -505,7 +499,6 @@ This applies in the following scenarios:
         val callContext = Some(cc)
         val provider = SigningBasketX.signingBasketProvider.vend
         for {
-          _ <- passesPsd2Pisp(callContext)
           (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
           (startedChallenge, _) <- SigningBasketNewStyle.getBasketAuthorisation(basketId, authorisationId, callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
