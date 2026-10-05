@@ -712,7 +712,7 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/management/aggregate-metrics
     lazy val getAggregateMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "aggregate-metrics" =>
-        EndpointHelpers.withUser(req) { (_, cc) =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             _ <- NewStyle.function.tryons(ExcludeParametersNotSupported, 400, Some(cc)) {
@@ -7852,7 +7852,8 @@ object Http4s600 {
         "Get Aggregate Metrics",
         s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
            |
-           |require CanReadAggregateMetrics role
+           |**Who may call it.** A User with the Role CanReadAggregateMetrics, or an application whose Consumer holds it
+           |as a Scope, such as a monitoring service run as a Platform App (see ${Glossary.getGlossaryItemLink("Platform Apps")}).
            |
            |**NOTE: Automatic from_date Default**
            |
@@ -7950,6 +7951,7 @@ object Http4s600 {
         ),
         List(apiTagMetric, apiTagAggregateMetrics),
         Some(canReadAggregateMetrics :: Nil),
+        authMode = code.api.util.APIUtil.UserOrApplication,
         http4sPartialFunction = Some(getAggregateMetrics)
       )
       resourceDocs += ResourceDoc(
