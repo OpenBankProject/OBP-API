@@ -116,6 +116,10 @@ object BerlinGroupError {
 
       case "400" if message.contains("OBP-10034") => "PARAMETER_NOT_CONSISTENT"
       case "400" if message.contains("OBP-35050") => "SERVICE_INVALID"
+      // One answer for a signing basket that does not exist and one the caller may not address, so the
+      // endpoint is not a way to learn which basket ids exist.
+      case "403" if message.contains("OBP-35051") => "RESOURCE_UNKNOWN"
+      case "404" if message.contains("OBP-35052") => "RESOURCE_UNKNOWN"
 
       case "400" if message.contains("OBP-35018") => "CONSENT_UNKNOWN"
       case "400" if message.contains("OBP-35001") => "CONSENT_UNKNOWN"

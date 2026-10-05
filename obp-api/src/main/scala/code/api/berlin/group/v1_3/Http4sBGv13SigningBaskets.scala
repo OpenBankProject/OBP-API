@@ -39,6 +39,7 @@ import code.api.util.CustomJsonFormats
 import code.api.util.{ApiTag, CallContext, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.SigningBasketNewStyle
+import code.api.util.newstyle.SigningBasketNewStyle.{AuthorisationOperation, CreatorOnly}
 import code.bankconnectors.Connector
 import code.signingbaskets.SigningBasketX
 import code.util.Helper.{MdcLoggable, booleanToFuture}
@@ -182,6 +183,7 @@ The resource identifications of these transactions are contained in the  payload
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
+          _ <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
           _ <- Future {
             SigningBasketX.signingBasketProvider.vend.deleteSigningBasket(basketid)
           }.map(connectorEmptyResponse(_, callContext))
@@ -216,9 +218,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
-          basket <- Future {
-            SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketid)
-          }.map(connectorEmptyResponse(_, callContext))
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
         } yield {
           getSigningBasketResponseJson(basket)
         }
@@ -251,6 +251,7 @@ Returns the content of an signing basket object.""",
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
+          _ <- SigningBasketNewStyle.getOwnBasket(basketid, AuthorisationOperation, callContext)
           (challenges, _) <- NewStyle.function.getChallengesByBasketId(basketid, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(challenges.map(_.challengeId))
@@ -285,13 +286,10 @@ This function returns an array of hyperlinks to all generated authorisation sub-
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
-          _ <- Future(SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId))
-                 .map(unboxFullOrFail(_, callContext, s"$ConsentNotFound ($basketId)", 403))
-          (challenges, _) <- NewStyle.function.getChallengesByBasketId(basketId, callContext)
+          _ <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
+          (challenge, _) <- SigningBasketNewStyle.getBasketAuthorisation(basketId, authorisationId, callContext)
         } yield {
-          val challengeStatus = challenges.filter(_.challengeId == authorisationId)
-            .flatMap(_.scaStatus).headOption.map(_.toString).getOrElse("None")
-          JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challengeStatus)
+          JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse(""))
         }
       }
   }
@@ -321,9 +319,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
-          basket <- Future {
-            SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketid)
-          }.map(connectorEmptyResponse(_, callContext))
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
         } yield {
           getSigningBasketStatusResponseJson(basket)
         }
@@ -356,6 +352,7 @@ Returns the status of a signing basket object.
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
+          _ <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
           _ <- requireSupportedAuthorisationBody(
             cc.httpBody.getOrElse(""), answering = false,
             s"$InvalidJsonFormat The Json body should be empty, or the transactionAuthorisation body. ", callContext)
@@ -442,6 +439,8 @@ This applies in the following scenarios:
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
+          _ <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
+          _ <- SigningBasketNewStyle.getBasketAuthorisation(basketId, authorisationId, callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
           _ <- requireSupportedAuthorisationBody(cc.httpBody.getOrElse(""), answering = true, failMsg, callContext)
           updateBasketPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
