@@ -47,12 +47,21 @@ trait SigningBasketProvider extends MdcLoggable {
   /**
    * Creates the basket and its members together, owned by the consumer that creates it. A failure
    * part way leaves nothing behind. `psuUserId` is the PSU the request already names, if any.
+   *
+   * A payment or consent may be held by one active basket at a time. Creating a basket that names one
+   * already held fails with SigningBasketMemberStatusInvalid and leaves nothing behind.
    */
   def createSigningBasket(paymentIds: Option[List[String]],
                           consentIds: Option[List[String]],
                           consumerId: String,
                           psuUserId: Option[String]
                          ): Box[SigningBasketTrait]
+
+  /**
+   * Frees the payments and consents a basket was holding, so they can join another basket. Called when
+   * a basket reaches a final status.
+   */
+  def releaseSigningBasketMembers(basketId: String): Box[Boolean]
 
   /**
    * Moves a basket from one status to another only if it still has the status the caller read.

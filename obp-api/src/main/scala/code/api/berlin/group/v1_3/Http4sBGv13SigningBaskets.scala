@@ -47,7 +47,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.TransactionRequestStatus.{COMPLETED, REJECTED}
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
-import com.openbankproject.commons.model.{ChallengeTrait, TransactionRequestId}
+import com.openbankproject.commons.model.{ChallengeTrait, SigningBasketTrait, TransactionRequestId}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.util.json
 import org.json4s.Formats
@@ -124,7 +124,12 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
               consumerId,
               None
             )
-          }.map(connectorEmptyResponse(_, callContext))
+          }.map {
+            // A member that another active basket already holds: the standard's REFERENCE_STATUS_INVALID.
+            case Failure(SigningBasketMemberStatusInvalid, _, _) =>
+              unboxFullOrFail(Empty: Box[SigningBasketTrait], callContext, SigningBasketMemberStatusInvalid, 409)
+            case created => connectorEmptyResponse(created, callContext)
+          }
         } yield {
           createSigningBasketResponseJson(signingBasket)
         }
@@ -201,6 +206,8 @@ The resource identifications of these transactions are contained in the  payload
             cancelled <- Future(SigningBasketX.signingBasketProvider.vend.transitionSigningBasketStatus(
               basketid, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.CANC.toString))
             _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext)(cancelled.openOr(false))
+            // The members are free to join another basket.
+            _ <- Future(SigningBasketX.signingBasketProvider.vend.releaseSigningBasketMembers(basketid))
           } yield true
         } yield ()
       }
@@ -550,6 +557,7 @@ This applies in the following scenarios:
           _ = startPaymentExecution(paymentIds, callContext)
           _ <- Future(provider.transitionSigningBasketStatus(
             basketId, ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL, ConstantsBG.SigningBasketsStatus.ACTC.toString))
+          _ <- Future(provider.releaseSigningBasketMembers(basketId))
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.createUpdateSigningBasketPsuDataJson(basketId, challenge)
         }

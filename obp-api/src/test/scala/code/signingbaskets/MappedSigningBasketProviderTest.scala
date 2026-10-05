@@ -37,19 +37,25 @@ class MappedSigningBasketProviderTest extends ServerSetup {
 
   private val provider = MappedSigningBasketProvider
 
-  private def newBasket(consumerId: String = "consumer-1", psuUserId: Option[String] = None) =
-    provider.createSigningBasket(Some(List("payment-1", "payment-2")), Some(List("consent-1")), consumerId, psuUserId)
+  // Members are unique per basket: a payment or consent can be held by one active basket at a time.
+  private def uuid() = java.util.UUID.randomUUID().toString
+
+  private def newBasket(consumerId: String = "consumer-1", psuUserId: Option[String] = None,
+                        payments: List[String] = List(uuid(), uuid()), consents: List[String] = List(uuid())) =
+    provider.createSigningBasket(Some(payments), Some(consents), consumerId, psuUserId)
       .openOrThrowException("the basket must be created")
 
   feature("a signing basket records who created it") {
     scenario("the creating consumer, the named PSU, the creation time and the members are stored") {
-      val basket = newBasket("consumer-a", Some("psu-a"))
+      val payments = List(uuid(), uuid())
+      val consents = List(uuid())
+      val basket = newBasket("consumer-a", Some("psu-a"), payments, consents)
       val stored = provider.getSigningBasketByBasketId(basket.basketId).openOrThrowException("stored")
       stored.basket.status should equal("RCVD")
       stored.basket.consumerId should equal(Some("consumer-a"))
       stored.basket.psuUserId should equal(Some("psu-a"))
-      stored.payments should equal(Some(List("payment-1", "payment-2")))
-      stored.consents should equal(Some(List("consent-1")))
+      stored.payments should equal(Some(payments))
+      stored.consents should equal(Some(consents))
       MappedSigningBasket.find(By(MappedSigningBasket.BasketId, basket.basketId)).map(_.createdAt.get.getTime > 0) should equal(net.liftweb.common.Full(true))
     }
 
@@ -105,6 +111,51 @@ class MappedSigningBasketProviderTest extends ServerSetup {
       val basket = newBasket(psuUserId = Some("psu-named"))
       provider.bindSigningBasketPsu(basket.basketId, "psu-other").openOrThrowException("x") should be(false)
       provider.getSigningBasketByBasketId(basket.basketId).map(_.basket.psuUserId) should equal(net.liftweb.common.Full(Some("psu-named")))
+    }
+  }
+
+  feature("a payment or consent is held by one active basket at a time") {
+    scenario("a second basket naming a held member is refused and leaves nothing behind") {
+      val (heldPayment, heldConsent, freePayment) = (uuid(), uuid(), uuid())
+      val first = provider.createSigningBasket(Some(List(heldPayment)), Some(List(heldConsent)), "consumer-1", None)
+        .openOrThrowException("the first basket must be created")
+      val basketsBefore = MappedSigningBasket.count()
+      val claimsBefore = MappedSigningBasketMemberClaim.count()
+
+      val refused = provider.createSigningBasket(Some(List(freePayment, heldPayment)), None, "consumer-1", None)
+      refused should equal(net.liftweb.common.Failure(code.api.util.ErrorMessages.SigningBasketMemberStatusInvalid))
+
+      MappedSigningBasket.count() should equal(basketsBefore)
+      MappedSigningBasketMemberClaim.count() should equal(claimsBefore)
+      MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.PaymentId, freePayment)) shouldBe empty
+      provider.getSigningBasketByBasketId(first.basketId).map(_.payments) should equal(net.liftweb.common.Full(Some(List(heldPayment))))
+    }
+
+    scenario("releasing a basket's members lets another basket take them") {
+      val released = uuid()
+      val first = provider.createSigningBasket(Some(List(released)), None, "consumer-1", None).openOrThrowException("x")
+      provider.createSigningBasket(Some(List(released)), None, "consumer-1", None).isEmpty should be(true)
+      provider.releaseSigningBasketMembers(first.basketId).openOrThrowException("x")
+      provider.createSigningBasket(Some(List(released)), None, "consumer-1", None).isDefined should be(true)
+    }
+
+    scenario("a payment and a consent that share an id do not collide") {
+      val sameId = uuid()
+      provider.createSigningBasket(Some(List(sameId)), None, "consumer-1", None).isDefined should be(true)
+      provider.createSigningBasket(None, Some(List(sameId)), "consumer-1", None).isDefined should be(true)
+    }
+
+    scenario("two requests racing for the same member: exactly one basket is created") {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      (1 to 10).foreach { round =>
+        val member = uuid()
+        val callers = (1 to 6).map(_ => Future(provider.createSigningBasket(Some(List(member)), None, "consumer-1", None).isDefined))
+        val created = Await.result(Future.sequence(callers), 60.seconds)
+        withClue(s"round $round: ") {
+          created.count(identity) should equal(1)
+          MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.PaymentId, member)).size should equal(1)
+        }
+      }
     }
   }
 }

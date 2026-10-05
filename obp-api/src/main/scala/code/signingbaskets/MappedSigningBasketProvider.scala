@@ -30,23 +30,26 @@ package code.signingbaskets
 import code.api.berlin.group.ConstantsBG
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{SigningBasketConsentTrait, SigningBasketContent, SigningBasketPaymentTrait, SigningBasketTrait}
-import net.liftweb.common.Box
+import code.api.util.ErrorMessages.SigningBasketMemberStatusInvalid
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.common.Box.tryo
 import net.liftweb.db.DB
 import net.liftweb.mapper._
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MappedSigningBasketProvider extends SigningBasketProvider {
+  private class MemberAlreadyHeld extends RuntimeException("A member of the basket is already held by another basket")
+
   def getSigningBaskets(): List[SigningBasketTrait] = {
     MappedSigningBasket.findAll()
   }
 
   private def membersOf(basketId: String): (Option[List[String]], Option[List[String]]) = {
-    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, basketId)).map(_.paymentId) match {
+    val payments = MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.BasketId, basketId), OrderBy(MappedSigningBasketPayment.id, Ascending)).map(_.paymentId) match {
       case Nil => None
       case members => Some(members)
     }
-    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, basketId)).map(_.consentId) match {
+    val consents = MappedSigningBasketConsent.findAll(By(MappedSigningBasketConsent.BasketId, basketId), OrderBy(MappedSigningBasketConsent.id, Ascending)).map(_.consentId) match {
       case Nil => None
       case members => Some(members)
     }
@@ -68,6 +71,8 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     // connection is the request's own, whose rollback is not ours to call, so a failure part way is
     // also undone by hand: nothing of a basket that was not fully created is left behind.
     var created: Option[MappedSigningBasket] = None
+    val memberKeys =
+      paymentIds.getOrElse(Nil).map(id => s"payment:$id") ::: consentIds.getOrElse(Nil).map(id => s"consent:$id")
     val result = tryo {
       DB.use(DefaultConnectionIdentifier) { _ =>
         val entity = MappedSigningBasket.create
@@ -80,6 +85,13 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
           throw new Error(entity.validate.map(_.msg.toString()).mkString(";"))
         }
         created = Some(entity)
+        // Held by one active basket at a time. The check is the usual answer; the unique index on the
+        // claim is what holds if two requests get past it together.
+        memberKeys.foreach { key =>
+          if (MappedSigningBasketMemberClaim.find(By(MappedSigningBasketMemberClaim.MemberKey, key)).isDefined)
+            throw new MemberAlreadyHeld
+          MappedSigningBasketMemberClaim.create.MemberKey(key).BasketId(entity.basketId).saveMe()
+        }
         paymentIds.getOrElse(Nil).foreach { paymentId =>
           MappedSigningBasketPayment.create.BasketId(entity.basketId).PaymentId(paymentId).saveMe()
         }
@@ -91,13 +103,20 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     }
     if (result.isEmpty) created.foreach { basket =>
       tryo {
+        MappedSigningBasketMemberClaim.bulkDelete_!!(By(MappedSigningBasketMemberClaim.BasketId, basket.basketId))
         MappedSigningBasketPayment.bulkDelete_!!(By(MappedSigningBasketPayment.BasketId, basket.basketId))
         MappedSigningBasketConsent.bulkDelete_!!(By(MappedSigningBasketConsent.BasketId, basket.basketId))
         basket.delete_!
       }
     }
-    result
+    result match {
+      case Failure(_, Full(_: MemberAlreadyHeld), _) => Failure(SigningBasketMemberStatusInvalid)
+      case other => other
+    }
   }
+
+  override def releaseSigningBasketMembers(basketId: String): Box[Boolean] =
+    tryo { MappedSigningBasketMemberClaim.bulkDelete_!!(By(MappedSigningBasketMemberClaim.BasketId, basketId)) }
 
   override def transitionSigningBasketStatus(basketId: String, from: String, to: String): Box[Boolean] =
     tryo {
@@ -174,3 +193,18 @@ object MappedSigningBasketConsent extends MappedSigningBasketConsent with LongKe
   override def dbIndexes = Index(BasketId, ConsentId) :: super.dbIndexes
 }
 
+/**
+ * Which basket is holding a payment or consent. A row exists while the basket is active and is deleted
+ * when it reaches a final status, so a member can be in one active basket at a time without a permanent
+ * unique constraint on the member itself.
+ */
+class MappedSigningBasketMemberClaim extends LongKeyedMapper[MappedSigningBasketMemberClaim] with IdPK with CreatedUpdated {
+  override def getSingleton = MappedSigningBasketMemberClaim
+  // "payment:<id>" or "consent:<id>"
+  object MemberKey extends MappedString(this, 255)
+  object BasketId extends MappedUUID(this)
+}
+object MappedSigningBasketMemberClaim extends MappedSigningBasketMemberClaim with LongKeyedMetaMapper[MappedSigningBasketMemberClaim] {
+  override def dbTableName = "SigningBasketMemberClaim"
+  override def dbIndexes = UniqueIndex(MemberKey) :: Index(BasketId) :: super.dbIndexes
+}
