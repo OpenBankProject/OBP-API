@@ -843,12 +843,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     xml
   }
 
-  /** check the currency ISO code from the ISOCurrencyCodes.xml file */
-  def isValidCurrencyISOCode(currencyCode: String): Boolean = {
-    // Note: We add BTC bitcoin as XBT (the ISO compliant varient)
-    val currencyIsoCodeArray = (CurrencyIsoCodeFromXmlFile \"CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+") :+ "XBT"
-    currencyIsoCodeArray.contains(currencyCode)
-  }
+  /** Checks that OBP knows the currency code. The answer comes from the asset registry; see code.asset.AssetLookup. */
+  def isValidCurrencyISOCode(currencyCode: String): Boolean = code.asset.AssetLookup.isKnownCode(currencyCode)
+
+  /**
+   * These are the currency codes OBP accepted before the asset registry existed: every code in the
+   * ISOCurrencyCodes.xml file, plus XBT (bitcoin under its ISO-style code). AssetLookup falls back to
+   * them when the registry cannot be read. Use isValidCurrencyISOCode everywhere else.
+   */
+  lazy val builtInCurrencyCodes: Set[String] =
+    ((CurrencyIsoCodeFromXmlFile \"CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+") :+ "XBT").toSet
 
   /** Check the id values from GUI, such as ACCOUNT_ID, BANK_ID ...  */
   def isValidID(id :String):Boolean= {

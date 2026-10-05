@@ -7207,6 +7207,46 @@ object Glossary extends MdcLoggable  {
 """)
 
 
+	glossaryItems += GlossaryItem(
+		title = "Asset",
+		description =
+			s"""
+				 |# Asset
+				 |
+				 |An **Asset** is a unit that amounts can be held in: a currency such as EUR, a precious metal such as gold (XAU), an accounting unit such as the IMF's Special Drawing Right (XDR), a crypto asset such as ETH, or an asset a bank issues, such as a deposit token, a stablecoin, a bond or a fund share. Each Asset has a code, and that code is the value that appears in the `currency` field of an account, a transaction or a product fee.
+				 |
+				 |The **asset registry** lists the Assets an OBP instance knows. It is filled automatically with every currency, metal and accounting unit in ISO 4217 and with the crypto assets XBT, ADA and ETH. Banks will be able to add the assets they issue.
+				 |
+				 |## What the registry records about an Asset
+				 |
+				 |- **Code**: 3 to 10 letters or digits, held upper case. The registry matches codes ignoring letter case, so looking up `eur` finds `EUR`.
+				 |- **Type**: `FIAT`, `PRECIOUS_METAL`, `ACCOUNTING_UNIT`, `CRYPTO`, or one of the types a bank issues: `DEPOSIT_TOKEN`, `STABLECOIN`, `DEBT_SECURITY`, `EQUITY`, `FUND_SHARE`, `OTHER`.
+				 |- **Decimal places**: how many digits an amount may have after the decimal point, from 0 to 18. EUR has 2, JPY has 0.
+				 |- **Issuer**: the bank that issued it, for the types a bank issues. Currencies, metals, accounting units and crypto assets have no issuer.
+				 |- **Chain identity**: for a token recorded on a blockchain, the chain and network (for example `CARDANO_MAINNET`) and the token's identity there. A chain's own currency, such as ADA or ETH, has none.
+				 |- **Status**: `ACTIVE` (usable), `SUSPENDED` (for example frozen by a regulator; existing holdings stay visible) or `RETIRED` (for example a bond that has matured). `RETIRED` is final.
+				 |
+				 |## Assets, Products and Accounts
+				 |
+				 |These are three separate things. The **Asset** says what the units are. A **Product** says what a bank offers and on what terms; an issuing bank describes an instrument, such as a bond's coupon and maturity date, with a Product and its attributes. An **Account** says who holds how many units: its `currency` is the Asset's code, and its product is the holding bank's own Product. A customer at bank B holding a bond issued by bank A has an account at B, in the bond's Asset code, under one of B's Products.
+				 |
+				 |## Administering bank
+				 |
+				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else. Changes to an Asset will be made at its administering bank, so the Roles that allow them can always name one bank.
+				 |
+				 |## Current state
+				 |
+				 |The registry decides which currency codes OBP accepts and how many decimal places it gives them. For now it gives the same answers as the built-in list OBP used before: codes are matched exactly as written, so `EUR` is accepted and `eur` is not, and an Asset's status is not yet checked. Each code has the same number of decimal places as in that list. The registry does not hold `lovelace` or `wei`, which OBP still accepts: they are the smallest units of ADA and ETH, not Assets of their own. OBP also still accepts `ada` as well as `ADA`.
+				 |
+				 |## Endpoints
+				 |
+				 |These need no authentication.
+				 |
+				 |- [Get Assets](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssets): `GET /obp/v7.0.0/assets`
+				 |- [Get Asset](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAsset): `GET /obp/v7.0.0/assets/ASSET_CODE`
+				 |- [Get Asset by Chain Identity](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssetByChainIdentity): `GET /obp/v7.0.0/assets/chain/CHAIN_SCHEME/CHAIN_ASSET_ID`
+				 |""".stripMargin)
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////

@@ -151,11 +151,16 @@ object Helper extends Loggable {
 
   /**
    * Returns the number of decimal places a currency has. E.g. "EUR" -> 2, "JPY" -> 0
-    *
-    * @param currencyCode
-   * @return
+   * The answer comes from the asset registry; see code.asset.AssetLookup.
    */
-  def currencyDecimalPlaces(currencyCode : String) = {
+  def currencyDecimalPlaces(currencyCode : String): Int = code.asset.AssetLookup.decimalPlaces(currencyCode)
+
+  /**
+   * This is the list of decimal places OBP used before the asset registry existed. The registry is
+   * seeded from it (code.asset.AssetSeed), and AssetLookup falls back to it when the registry cannot
+   * be read or does not hold a code. Use currencyDecimalPlaces everywhere else.
+   */
+  def builtInCurrencyDecimalPlaces(currencyCode : String): Int = {
     //this data was sourced from Wikipedia, so it might not all be correct,
     //and some banking systems may still retain different units (e.g. CZK?)
     //notable it doesn't cover non-traditional currencies (e.g. cryptocurrencies)
