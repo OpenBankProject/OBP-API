@@ -97,7 +97,7 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
   // ── POST /signing-baskets ──────────────────────────────────────────────
   val createSigningBasket: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `bgV13Prefix` / "signing-baskets" =>
-      EndpointHelpers.executeFutureCreated(req) {
+      EndpointHelpers.executeFutureCreatedWithHeaders(req) {
         val cc = req.callContext
         val callContext = Some(cc)
         for {
@@ -122,6 +122,9 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
         } yield {
           createSigningBasketResponseJson(signingBasket)
         }
+      } { created =>
+        // Location of the created resource (IG 8.1, Mandatory), under the path the request came in on.
+        List("Location" -> s"${req.callContext.url.takeWhile(_ != '?').stripSuffix("/")}/${created.basketId}")
       }
   }
 

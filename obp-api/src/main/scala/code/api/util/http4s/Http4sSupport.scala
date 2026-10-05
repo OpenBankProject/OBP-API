@@ -581,6 +581,25 @@ object Http4sRequestAttributes {
     }
 
     /**
+     * executeFutureCreated for a response that has to carry headers derived from the created resource
+     * (Berlin Group's `Location`, for one), which only exist once the handler has produced it.
+     */
+    def executeFutureCreatedWithHeaders[A](req: Request[IO])(f: => Future[A])(headersFor: A => List[(String, String)])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      RequestScopeConnection.fromFuture(f).attempt.flatMap {
+        case Right(result) =>
+          val jsonString = renderJson(result)
+          Created(jsonString, jsonContentType)
+            .map(withCallContextHeaders)
+            .map(response => headersFor(result).foldLeft(response) {
+              case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
+            })
+            .flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
      * Execute Future-based business logic that returns a (result, statusCode) pair, rendering the
      * result JSON with the caller-supplied HTTP status. Converts errors via ErrorResponseConverter.
      *

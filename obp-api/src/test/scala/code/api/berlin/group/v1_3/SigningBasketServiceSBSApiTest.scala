@@ -449,6 +449,9 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       response.code should equal(201)
       val authorisationId = (response.body \ "authorisationId").extract[String]
       (response.body \ "scaStatus").extract[String] should equal("received")
+      withClue("ASPSP-SCA-Approach is sent when the authorisation resource is created (IG §7.1): ") {
+        Option(response.headers.getOrElse(fail("the response has no headers")).get("ASPSP-SCA-Approach")) should not be empty
+      }
       (response.body \ "_links" \ "scaStatus" \ "href").extract[String] should endWith(s"/signing-baskets/$basketId/authorisations/$authorisationId")
     }
 
