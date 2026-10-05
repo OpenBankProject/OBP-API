@@ -465,7 +465,7 @@ This applies in the following scenarios:
               Future(unboxFullOrFail(Empty, updatedCC, s"$InvalidConnectorResponse getChallenge"))
           }
         } yield {
-          JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge)
+          JSONFactory_BERLIN_GROUP_1_3.createUpdateSigningBasketPsuDataJson(basketId, challenge)
         }
       }
   }
@@ -521,10 +521,11 @@ There are the following request types on this access path:
     JvalueCaseClass(json.parse("""{"scaAuthenticationData":"123"}""")),
     JvalueCaseClass(json.parse("""{
                   "scaStatus":"finalised",
-                  "authorisationId":"4f4a8b7f-9968-4183-92ab-ca512b396bfc",
                   "psuMessage":"Please check your SMS at a mobile device.",
                   "_links":{
-                    "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
+                    "scaStatus":{
+                      "href":"/v1.3/signing-baskets/1234-basket-567/authorisations/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
+                    }
                   }
                 }""")),
     List(AuthenticatedUserIsRequired, UnknownError),

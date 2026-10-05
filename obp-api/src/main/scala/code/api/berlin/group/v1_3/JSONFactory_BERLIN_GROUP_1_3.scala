@@ -893,6 +893,16 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     )
   }
 
+  /** The 200 answer to a transaction authorisation on a signing basket: a scaStatusResponse whose link names the basket's authorisation. */
+  def createUpdateSigningBasketPsuDataJson(basketId: String, challenge: ChallengeTrait) = {
+    ScaStatusResponse(
+      scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+      psuMessage = Some("Please check your SMS at a mobile device."),
+      _links = Some(LinksAll(scaStatus = Some(HrefType(Some(
+        s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")))))
+    )
+  }
+
   def createSigningBasketResponseJson(basket: SigningBasketTrait): SigningBasketResponseJson = {
     SigningBasketResponseJson(
       basketId = basket.basketId,
