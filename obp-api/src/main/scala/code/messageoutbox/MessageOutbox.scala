@@ -70,8 +70,9 @@ case class OutboxEmailPayload(
  * Row lifecycle:
  *   PENDING   — not yet delivered; the relay keeps publishing with backoff.
  *   DELIVERED — the receiver replied success.
- *   STICKY    — the receiver replied with an error that retrying cannot fix.
- *               Needs operator reconciliation: visible via
+ *   STICKY    — the receiver replied with an error that retrying cannot fix,
+ *               or the relay used up the type's attempt limit without
+ *               delivering it. Needs operator reconciliation: visible via
  *               GET /management/message-outbox, re-queued via its /retry.
  */
 class MessageOutbox extends LongKeyedMapper[MessageOutbox] with IdPK {

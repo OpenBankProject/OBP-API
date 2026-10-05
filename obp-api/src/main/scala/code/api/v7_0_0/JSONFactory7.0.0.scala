@@ -1679,7 +1679,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
    *   SETTLING / SUBMITTED — the node's last reported rail state (with
    *                `settlement_depth` = confirmation depth when reported)
    *   FINAL      — the node reported finality; the instruction row is DELIVERED
-   *   ERROR      — the node replied with a non-retryable error (row STICKY);
+   *   ERROR      — the node replied with a non-retryable error, or the relay
+   *                gave up after its attempt limit (row STICKY);
    *                operator reconciliation required, see the message's last_error
    */
   case class OpenCorridorSettlementStatusJsonV700(

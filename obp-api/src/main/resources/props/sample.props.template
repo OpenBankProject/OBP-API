@@ -1363,6 +1363,13 @@ featured_apis=elasticSearchWarehouseV300
 # Only relevant on an instance that has Open Corridor turned on and settles platform fees.
 # open_corridor.platform_bank_id=
 
+# How many delivery attempts an Open Corridor outbox message gets before the relay stops resending
+# it and marks it STICKY for operator reconciliation (GET /management/message-outbox, then its
+# /retry). Every attempt that leaves the message undelivered counts: a broker that cannot be reached,
+# a retryable error reply, and a settlement instruction whose settlement is not yet FINAL. The wait
+# between attempts doubles up to 10 minutes, so the default gives up after roughly a day.
+# open_corridor.outbox_max_attempts=144
+
 
 # -- Scopes -----------------------------------------------------
 # Scopes can be used to limit the APIs a Consumer can call.
