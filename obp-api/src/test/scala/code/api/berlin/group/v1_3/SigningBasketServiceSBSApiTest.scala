@@ -38,6 +38,7 @@ import code.api.util.ErrorMessages._
 import code.model.TokenType
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.APIResponse
+import com.openbankproject.commons.model.User
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketPayment, SigningBasketX}
 import code.token.Tokens
 import code.transactionChallenge.Challenges
@@ -107,11 +108,11 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
    * a payment in. A payment of 10 is booked on creation (ACCP) and can no longer be authorised by
    * anything.
    */
-  private def lodgePayment(amount: String = "2001"): String = {
+  private def lodgePayment(amount: String = "2001", as: Option[(Consumer, Token)] = user1, initiator: User = resourceUser1): String = {
     val ibanFrom = ibanAccounts.head
     val ibanTo = ibanAccounts.last
     Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)).foreach(view =>
-      Views.views.vend.grantAccessToSystemView(ibanFrom.bankId, ibanFrom.accountId, view, resourceUser1)
+      Views.views.vend.grantAccessToSystemView(ibanFrom.bankId, ibanFrom.accountId, view, initiator)
     )
     val initiatePaymentJson =
       s"""{
@@ -120,11 +121,15 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
          | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
          | "creditorName": "TestCreditor"
          |}""".stripMargin
-    val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
+    val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (as)
     val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
-    response.code should equal(201)
+    withClue(s"lodging a payment of $amount: ") { response.code should equal(201) }
     response.body.extract[InitiatePaymentResponseJson].paymentId
   }
+
+  /** A payment lodged the way a client-credentials TPP lodges one: on its own session, with no PSU in it. */
+  private def lodgePaymentAsClientCredentialsTpp(): String =
+    lodgePayment(as = clientCredentialsSession, initiator = pseudoUserOfTestConsumer)
 
   private def createRealPaymentId(): String = lodgePayment()
 
@@ -680,7 +685,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
   feature("BG v1.3 signing baskets - an authorisation is minted for the PSU, which is where the one-time password goes") {
     scenario("S1: a client-credentials TPP naming the PSU in PSU-ID gets a challenge for that PSU, and the basket binds to them", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
-      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
       val response = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name)))
       response.code should equal(201)
       val authorisationId = (response.body \ "authorisationId").extract[String]
@@ -689,7 +694,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
 
     scenario("S1: a client-credentials TPP that names nobody gets no challenge (L11597, IG §14.11 PSU_CREDENTIALS_INVALID)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
-      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
       expectRefusal(startAuthorisation(basketId, as = clientCredentialsSession), 401, "PSU_CREDENTIALS_INVALID", "no PSU anywhere")
       expectRefusal(makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", "nobody-by-this-name"))), 401, "PSU_CREDENTIALS_INVALID", "an unknown PSU-ID")
       storedChallengeCount(basketId) should equal(0)
@@ -697,7 +702,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
     scenario("S1: once a PSU is bound, a PSU-ID naming someone else is refused like any other refusal to address the basket", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
-      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
       makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name))).code should equal(201)
       val challengesBefore = storedChallengeCount(basketId)
       expectRefusal(makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser2.name))), 403, "RESOURCE_UNKNOWN", "another PSU")
@@ -742,6 +747,21 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
+  feature("BG v1.3 signing baskets - a consent joins a basket only if its TPP is the basket's and it is still to be authorised") {
+    scenario("D8: an unauthorised consent of the same TPP is admitted; an authorised one, or another TPP's, is not", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val own = createUnclaimedBerlinGroupConsent().consentId
+      postBasket(s"""{"consentIds":${idList(List(own))}}""").code should equal(201)
+
+      val authorised = createUnclaimedBerlinGroupConsent().consentId
+      code.consent.Consents.consentProvider.vend.updateConsentStatus(authorised, code.consent.ConsentStatus.valid)
+      expectRefusal(postBasket(s"""{"consentIds":${idList(List(authorised))}}"""), 409, "REFERENCE_STATUS_INVALID", "an authorised consent")
+
+      val anotherTpp = createUnclaimedBerlinGroupConsent().consentId
+      expectRefusal(postBasket(s"""{"consentIds":${idList(List(anotherTpp))}}""", as = user2), 400, "RESOURCE_UNKNOWN", "another TPP's consent")
+      expectRefusal(postBasket(s"""{"consentIds":${idList(List(UUID.randomUUID().toString))}}"""), 400, "RESOURCE_UNKNOWN", "a consent nobody created")
+    }
+  }
+
   // ───────────────────────── challenge binding and ordering: S3 ─────────────────────────
 
   feature("BG v1.3 signing baskets - an authorisation can only be answered through the basket it was issued for") {
@@ -773,7 +793,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
     scenario("S3: a client-credentials TPP relays the PSU's answer, and it is checked as the PSU the challenge names", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
-      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
       val started = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name)))
       started.code should equal(201)
       val authorisationId = (started.body \ "authorisationId").extract[String]

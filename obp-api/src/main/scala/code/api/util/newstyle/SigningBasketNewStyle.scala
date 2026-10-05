@@ -29,14 +29,18 @@ package code.api.util.newstyle
 
 import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail}
 import code.api.util.CallContext
+import code.api.berlin.group.ConstantsBG
+import code.api.berlin.group.v1_3.BerlinGroupPaymentAccess
 import code.api.util.Consent
-import code.api.util.ErrorMessages.{ConsentDoesNotMatchUser, SigningBasketAuthorisationNotFound, SigningBasketNotFound}
+import code.consent.{ConsentStatus, Consents}
+import code.api.util.ErrorMessages.{ConsentDoesNotMatchUser, SigningBasketAuthorisationNotFound, SigningBasketMemberMixInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, SigningBasketNotFound}
 import code.bankconnectors.Connector
 import code.signingbaskets.SigningBasketX
+import code.users.Users
 import code.util.Helper.{MdcLoggable, booleanToFuture}
-import com.openbankproject.commons.model.enums.ChallengeType
+import com.openbankproject.commons.model.enums.{ChallengeType, TransactionRequestTypes}
 import com.openbankproject.commons.model.{ChallengeTrait, SigningBasketContent}
-import net.liftweb.common.{Box, Empty}
+import net.liftweb.common.{Box, Empty, Full}
 
 import scala.concurrent.Future
 
@@ -112,6 +116,93 @@ object SigningBasketNewStyle extends MdcLoggable {
     case Right(content) => (content, callContext)
     case Left(_) => unboxFullOrFail(Empty: Box[(SigningBasketContent, Option[CallContext])], callContext, SigningBasketNotFound, 403)
   }
+
+  private def refuseMember(message: String, code: Int, callContext: Option[CallContext]): Future[Nothing] =
+    booleanToFuture(message, failCode = code, cc = callContext)(false).map(_ => throw new IllegalStateException(message))
+
+  /**
+   * A payment may join a basket if the caller may address it, it is a single SEPA payment still
+   * waiting for SCA. Whether the caller may is BerlinGroupPaymentAccess's rule, the same one the
+   * payment routes apply; a payment that does not exist and one that is not the caller's are answered
+   * alike, so the endpoint does not reveal which payment ids exist. Returns the PSU the payment names,
+   * if it names one.
+   */
+  private def admitPayment(paymentId: String, cc: CallContext, callContext: Option[CallContext]): Future[Option[String]] =
+    for {
+      (payment, _) <- BerlinGroupPaymentAccess.getOwnPayment(paymentId, callContext)
+        .recoverWith { case _ => refuseMember(SigningBasketMemberNotFound, 400, callContext) }
+      // Only single SEPA credit transfers. A periodic payment cannot be told apart once stored: the
+      // routes pass the service as periodic_payments and the provider compares it to periodic-payments,
+      // so the recurrence of a periodic payment is never recorded (and bulk payments are not offered).
+      _ <- booleanToFuture(SigningBasketMemberMixInvalid, failCode = 400, cc = callContext) {
+        payment.`type` == TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString
+      }
+      _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
+        awaitingScaPaymentStatuses.contains(payment.status)
+      }
+    } yield payment.on_behalf_of_user_id.flatMap(Consent.present).filter(isPerson(_, cc))
+
+  /**
+   * Whether this user is a person rather than the calling TPP's own pseudo-user. A client-credentials
+   * token resolves to an auto-created user keyed on the consumer's own key, and a payment lodged on one
+   * records it as the user it was made for; it names nobody a basket could be bound to.
+   */
+  private def isPerson(userId: String, cc: CallContext): Boolean =
+    Users.users.vend.getUserByUserId(userId).toOption
+      .forall(user => !cc.consumer.map(_.key.get).contains(user.idGivenByProvider))
+
+  // A payment lodged for SCA is stored RCVD (BG initiation) or INITIATED; anything else has been booked,
+  // rejected or cancelled, or is being authorised some other way.
+  private val awaitingScaPaymentStatuses = Set("RCVD", "INITIATED")
+
+  /**
+   * A consent may join a basket if the caller may address it under the rule consents use, it was
+   * created through the Berlin Group API, and it has not been authorised or ended. Returns the PSU the
+   * consent is bound to, if it is.
+   */
+  private def admitConsent(consentId: String, cc: CallContext, callContext: Option[CallContext]): Future[Option[String]] =
+    for {
+      consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)).flatMap {
+        case Full(found) => Future.successful(found)
+        case _ => refuseMember(SigningBasketMemberNotFound, 400, callContext)
+      }
+      refusal = Consent.checkBerlinGroupConsentAccess(
+        consent.userId, consent.consumerId,
+        Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get),
+        callerIsScaFrontEnd = false)
+      _ <- booleanToFuture(SigningBasketMemberNotFound, failCode = 400, cc = callContext) {
+        refusal.isEmpty && consent.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard
+      }
+      _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
+        consent.status == ConsentStatus.received.toString
+      }
+    } yield Consent.present(consent.userId)
+
+  /**
+   * Admit the members of a new basket, and say whom the basket is for.
+   *
+   * Every member must be one the caller may address, in a state SCA can still authorise. All members
+   * must be for the same PSU where they name one, and that must be the PSU the request names (a genuine
+   * PSU in the session, or PSU-ID) where it names one. Members that name nobody leave the PSU to be bound
+   * when an authorisation is started.
+   */
+  def admitMembers(paymentIds: List[String],
+                   consentIds: List[String],
+                   cc: CallContext,
+                   callContext: Option[CallContext]): Future[Option[String]] =
+    for {
+      paymentPsus <- paymentIds.foldLeft(Future.successful(List.empty[Option[String]])) { (acc, id) =>
+        acc.flatMap(done => admitPayment(id, cc, callContext).map(done :+ _))
+      }
+      consentPsus <- consentIds.foldLeft(Future.successful(List.empty[Option[String]])) { (acc, id) =>
+        acc.flatMap(done => admitConsent(id, cc, callContext).map(done :+ _))
+      }
+      namedPsu <- Consent.resolvePsuIdHeader(cc, callContext).map(_.orElse(Consent.genuinePsu(cc).map(_.userId)))
+      memberPsus = (paymentPsus ++ consentPsus).flatten.toSet
+      _ <- booleanToFuture(SigningBasketMemberMixInvalid, failCode = 400, cc = callContext) {
+        memberPsus.size <= 1 && namedPsu.forall(named => memberPsus.forall(_ == named))
+      }
+    } yield namedPsu.orElse(memberPsus.headOption)
 
   /**
    * The PSU an authorisation on this basket is for, bound to the basket.

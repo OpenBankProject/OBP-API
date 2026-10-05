@@ -32,7 +32,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, getPropsAsBoolValue, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Pisp, unboxFullOrFail}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, getPropsAsBoolValue, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, passesPsd2Pisp, unboxFullOrFail}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -101,9 +101,8 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
       EndpointHelpers.executeFutureCreatedWithHeaders(req) {
         val cc = req.callContext
         val callContext = Some(cc)
+        val failMsg = s"$InvalidJsonFormat The Json body should be the $PostSigningBasketJsonV13 "
         for {
-          _ <- passesPsd2Pisp(callContext)
-          failMsg = s"$InvalidJsonFormat The Json body should be the $PostSigningBasketJsonV13 "
           postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
             json.parse(cc.httpBody.getOrElse("")).extract[PostSigningBasketJsonV13]
           }
@@ -114,15 +113,21 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
           _ <- booleanToFuture(failMsg, cc = callContext) {
             idLists.nonEmpty && idLists.forall(ids => ids.nonEmpty && ids.distinct.size == ids.size)
           }
+          // Which role the TPP needs follows from what it names: payments need PISP, consents AISP, both for a mix.
+          _ <- if (postJson.paymentIds.exists(_.nonEmpty)) passesPsd2Pisp(callContext) else Future.successful(())
+          _ <- if (postJson.consentIds.exists(_.nonEmpty)) passesPsd2Aisp(callContext) else Future.successful(())
           // The basket belongs to the TPP that creates it; nothing else identifies who may address it later.
           consumerId <- Future.successful(cc.consumer.map(_.consumerId.get))
             .map(unboxFullOrFail(_, callContext, AuthenticatedUserIsRequired, 401))
+          // Every member must be one this TPP may address and SCA can still authorise.
+          psuUserId <- SigningBasketNewStyle.admitMembers(
+            postJson.paymentIds.getOrElse(Nil), postJson.consentIds.getOrElse(Nil), cc, callContext)
           signingBasket <- Future {
             SigningBasketX.signingBasketProvider.vend.createSigningBasket(
               postJson.paymentIds,
               postJson.consentIds,
               consumerId,
-              None
+              psuUserId
             )
           }.map {
             // A member that another active basket already holds: the standard's REFERENCE_STATUS_INVALID.
