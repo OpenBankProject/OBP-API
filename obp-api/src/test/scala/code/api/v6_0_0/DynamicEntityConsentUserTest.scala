@@ -41,6 +41,7 @@ import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
  * Personal ("my") dynamic entity endpoints and consent users. ON_BEHALF_OF_USER_ID_PLAN.md Phase 2 and
@@ -56,7 +57,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
 
   private val entityName = "test_consent_personal"
   private val roleEntityName = "test_consent_personal_role"
-  private val createRole = s"CanCreateDynamicEntity_System$roleEntityName"
+  private val createRole = s"CanCreateDynamicEntityRecord_$roleEntityName"
 
   private def definition(name: String, personalRequiresRole: Boolean): JValue =
     ("entity_name" -> name) ~
@@ -69,25 +70,29 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
   private val consumerKeyHeader = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
 
   private def createSystemEntity(name: String, personalRequiresRole: Boolean = false): String = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
     val response = makePostRequest((v6_0_0_Request / "management" / "system-dynamic-entities").POST <@ (user1), write(definition(name, personalRequiresRole)))
     response.code should equal(201)
     (response.body \ "dynamic_entity_id").extract[String]
   }
 
   private def deleteSystemEntity(dynamicEntityId: String): Unit = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
     makeDeleteRequest((v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@ (user1))
   }
 
-  private def personalEntity(name: String, actions: List[String]): JValue =
-    ("bank_id" -> "") ~ ("entity_name" -> name) ~ ("actions" -> actions)
+  /** A my_resources entry for a system-level entity. SYS names the system space; the empty string is the older form. */
+  private def personalEntity(name: String, actions: List[String], bankId: String = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID): JValue =
+    ("bank_id" -> bankId) ~ ("entity_name" -> name) ~ ("actions" -> actions)
 
   private def consentBody(roleNames: List[String], myResources: Option[JValue]): JValue = {
     val base: JObject =
       ("everything" -> false) ~
       ("views" -> JArray(Nil)) ~
-      ("entitlements" -> roleNames.map(role => ("bank_id" -> "") ~ ("role_name" -> role))) ~
+      // A Dynamic Entity Record Role names its space, and these entities are system level, so the
+      // consent has to carry SYS as the bank id; an entitlement offered at the empty bank id would be
+      // written where no check reads it. ConsentUtil honours the Role's own requiresBankId.
+      ("entitlements" -> roleNames.map(role => ("bank_id" -> DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) ~ ("role_name" -> role))) ~
       ("consumer_id" -> testConsumer.consumerId.get) ~
       ("time_to_live" -> 3600)
     myResources.map(mr => base ~ ("my_resources" -> mr)).getOrElse(base)
@@ -96,7 +101,8 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
   /** POST a consent as user1 carrying `roleNames` and the given my_resources block; returns the raw response. */
   private def postConsent(roleNames: List[String], myResources: Option[JValue]) = {
     setPropsValues("consents.allowed" -> "true", "consumer_validation_method_for_consent" -> "CONSUMER_KEY_VALUE")
-    roleNames.foreach(role => Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role))
+    // The granting human must hold the Role before a consent may carry it, and at the same space.
+    roleNames.foreach(role => Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, role))
     makePostRequest((v6_0_0_Request / "my" / "consents" / "IMPLICIT").POST <@ (user1), write(consentBody(roleNames, myResources)), consumerKeyHeader)
   }
 
@@ -130,7 +136,7 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
     scenario("a consent that does not list the entity is refused on /my, roles or not", VersionOfApi, ConsentUserTag) {
       val dynamicEntityId = createSystemEntity(entityName)
       try {
-        val headers = consentHeaders(List(s"CanCreateDynamicEntity_System$entityName", s"CanGetDynamicEntity_System$entityName"), None)
+        val headers = consentHeaders(List(s"CanCreateDynamicEntityRecord_$entityName", s"CanGetDynamicEntityRecord_$entityName"), None)
         val create = makePostRequest((dynamicEntity_Request / "my" / entityName).POST, write(record), headers)
         create.code should equal(403)
         create.body.extract[ErrorMessage].message should include(ConsentMyResourcesMissing)
@@ -167,6 +173,27 @@ class DynamicEntityConsentUserTest extends V600ServerSetup {
         val current = makeGetRequest((v6_0_0_Request / "users" / "current").GET, headers)
         current.code should equal(200)
         ((current.body \ "my_resources" \ "personal_dynamic_entities")(0) \ "entity_name").extract[String] should equal(entityName)
+      } finally deleteSystemEntity(dynamicEntityId)
+    }
+
+    scenario("a consent naming the system space with the older empty bank_id still covers the entity", VersionOfApi, ConsentUserTag) {
+      val dynamicEntityId = createSystemEntity(entityName)
+      try {
+        val headers = consentHeaders(Nil, Some(("personal_dynamic_entities" -> List(personalEntity(entityName, List("read", "write"), bankId = "")))))
+        val create = makePostRequest((dynamicEntity_Request / "my" / entityName).POST, write(record), headers)
+        create.code should equal(201)
+        val list = makeGetRequest((dynamicEntity_Request / "my" / entityName).GET, headers)
+        list.code should equal(200)
+      } finally deleteSystemEntity(dynamicEntityId)
+    }
+
+    scenario("the missing-entry error names SYS as the bank_id of a system-level entity", VersionOfApi, ConsentUserTag) {
+      val dynamicEntityId = createSystemEntity(entityName)
+      try {
+        val headers = consentHeaders(Nil, Some(("personal_dynamic_entities" -> List(personalEntity(entityName, List("read"))))))
+        val create = makePostRequest((dynamicEntity_Request / "my" / entityName).POST, write(record), headers)
+        create.code should equal(403)
+        create.body.extract[ErrorMessage].message should include(s"bank_id '$DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID'")
       } finally deleteSystemEntity(dynamicEntityId)
     }
 

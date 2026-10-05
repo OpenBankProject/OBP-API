@@ -82,11 +82,18 @@ object ConnectorMetricBatchWriter extends MdcLoggable {
     }
   }
 
+  // Rows queued, written and lost, and the queue depth, for Telemetry.
+  private lazy val telemetry = new code.telemetry.BatchWriterTelemetry("connector_metrics")
+
   def enqueue(row: ConnectorMetricRow): Unit = {
     queue.add(row)
+    telemetry.queued()
   }
 
   private[code] def flush(): Unit = {
+    val flushStart = System.nanoTime()
+    // Rows taken off the queue by this flush. If the write fails they are lost, so Telemetry counts them.
+    var drainedRows = 0
     try {
       val batch = new java.util.ArrayList[ConnectorMetricRow]()
       var item = queue.poll()
@@ -94,6 +101,7 @@ object ConnectorMetricBatchWriter extends MdcLoggable {
         batch.add(item)
         item = queue.poll()
       }
+      drainedRows = batch.size()
 
       if (!batch.isEmpty) {
         val rows = {
@@ -136,10 +144,12 @@ object ConnectorMetricBatchWriter extends MdcLoggable {
         } yield n
         val count = DoobieUtil.runQuery(program)
         logger.debug(s"ConnectorMetricBatchWriter says: flushed $count connector metrics via doobie-pool")
+        telemetry.written(drainedRows, System.nanoTime() - flushStart)
       }
     } catch {
       case e: Exception =>
         logger.error(s"ConnectorMetricBatchWriter says: flush failed", e)
+        if (drainedRows > 0) telemetry.lost(drainedRows, System.nanoTime() - flushStart)
     }
   }
 }

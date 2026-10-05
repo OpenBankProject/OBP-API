@@ -80,6 +80,17 @@ class RateLimitersTest extends ServerSetupWithTestData {
       selfServiceScopes should contain allOf ("signup", "password_reset", "consumer_registration")
       selfServiceScopes should not contain "login"
 
+      Then("every self-service scope says what it covers and its own mode; documentation is shadow unless set")
+      val selfServiceRows = (limiters.head \ "limits").asInstanceOf[JArray].arr
+      selfServiceRows.foreach { row =>
+        str(row, "covers") should not be empty
+        List("shadow", "enforce") should contain(str(row, "mode"))
+      }
+      val documentation = selfServiceRows.find(row => str(row, "scope") == "documentation")
+      documentation should not be empty
+      str(documentation.get, "mode") should equal("shadow")
+      str(documentation.get, "covers") should include("api/glossary")
+
       Then("the authentication limiter reports an ip and an account window")
       val authScopes = (limiters(1) \ "limits").asInstanceOf[JArray].arr.map(l => str(l, "scope"))
       authScopes should equal(List("ip", "account"))

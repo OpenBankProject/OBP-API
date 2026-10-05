@@ -73,6 +73,10 @@ object MetricsStreamProto {
         .addField(stringField("api_instance_id", 16))
         .addField(stringField("operation_id", 17))
         .addField(stringField("consent_reference_id", 18))
+        .addField(stringField("forwarded_for", 19))
+        .addField(stringField("auth_type", 20))
+        .addField(stringField("certificate_trust", 21))
+        .addField(stringField("certificate_trust_detail", 22))
       )
       // MetricsStreamService
       .addService(ServiceDescriptorProto.newBuilder()

@@ -27,7 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.entitlement
 
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.ApiRole.{
   CanCreateEntitlementAtAnyBank,
   CanCreateEntitlementAtOneBank
@@ -169,12 +170,30 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
     }
   }
 
+  override def setEntitlementGroupId(entitlementId: String, groupId: String): Box[Entitlement] =
+    MappedEntitlement.find(By(MappedEntitlement.mEntitlementId, entitlementId)).flatMap { e =>
+      tryo(e.mGroupId(groupId).saveMe())
+    }
+
   override def deleteDynamicEntityEntitlement(
       entityName: String,
       bankId: Option[String]
   ): Box[Boolean] = {
     val roleNames = DynamicEntityInfo.roleNames(entityName, bankId)
-    deleteEntitlements(roleNames)
+    // A Role name carries no bank (CanGetDynamicEntityRecord_country), so the same names serve an
+    // entity of this name in every space: deleting by name alone would take every bank's grants with
+    // it. Only the grants of the deleted entity's space go: its bank id, or for the system space SYS
+    // and the empty bank id older grants were written at.
+    val bankIds = DynamicEntitySpace.bankIdOrNoneForSystem(bankId.getOrElse("")) match {
+      case Some(bank) => List(bank)
+      case None => List(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, "")
+    }
+    Box.tryo {
+      MappedEntitlement.bulkDelete_!!(
+        ByList(MappedEntitlement.mRoleName, roleNames),
+        ByList(MappedEntitlement.mBankId, bankIds)
+      )
+    }
   }
 
   override def deleteEntitlements(entityNames: List[String]): Box[Boolean] = {
@@ -207,8 +226,8 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
     // (ConsentEntitlementUser); every other grant is written to the on-behalf-of user
     // (EntitlementUser). The resolver logs the redirect. ON_BEHALF_OF_USER_ID_PLAN.md.
     val ref =
-      if (createdByProcess == code.api.Constant.consent_user) code.users.UserReference.ConsentEntitlementUser
-      else code.users.UserReference.EntitlementUser
+      if (createdByProcess == code.api.Constant.consent_user) code.users.UserReference.Entitlement_UserId_ConsentScope
+      else code.users.UserReference.Entitlement_UserId
     val targetUserId = code.users.Users.users.vend.attributedUserId(userId, ref) match {
       case Full(id) => id
       case f: Failure => return f

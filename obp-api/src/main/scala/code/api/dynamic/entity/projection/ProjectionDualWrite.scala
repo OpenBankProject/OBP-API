@@ -64,7 +64,7 @@ object ProjectionDualWrite extends MdcLoggable {
     if (!IndexingCapabilities.projectionEnabled) return
     val ready = ProjectionProvisioner.readyFields(bankId, entityName)
     if (ready.isEmpty) return
-    val indexed = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.indexedFields).getOrElse(Map.empty)
+    val indexed = DynamicEntityHelper.definitionOf(bankId, entityName).map(_.indexedFields).getOrElse(Map.empty)
     val scalarReady = indexed.toList.filter { case (name, spec) => spec.indexKind != OperatorMatrix.SPATIAL && ready.contains(name) }
     if (scalarReady.nonEmpty) f(ProjectionNaming.tableName(bankId, entityName), scalarReady)
   }

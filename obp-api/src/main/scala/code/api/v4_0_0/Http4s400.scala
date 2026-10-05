@@ -53,8 +53,9 @@ import code.bankconnectors.LocalMappedConnectorInternal._
 import code.consent.ConsentStatus
 import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, UserInvitationPurpose}
 import java.util.Date
+import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.{ApiRole => ApiRoleObj}
 import code.api.util.newstyle.ViewNewStyle
 import code.users.Users
@@ -1531,7 +1532,7 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "management" / "system-dynamic-entities" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemLevelDynamicEntities, Some(cc))
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canGetDynamicEntityDefinitions, cc)
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
@@ -1562,9 +1563,9 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canGetSystemLevelDynamicEntities)),
+      Some(List(canGetDynamicEntityDefinitions)),
       http4sPartialFunction = Some(getSystemDynamicEntities)
-    )
+    ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── getBankLevelDynamicEntities ──────────────────────────────────────────
 
@@ -1572,8 +1573,6 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "management" / "banks" / _ / "dynamic-entities" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(bank.bankId.value, user.userId,
-              List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities), Some(cc))
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bank.bankId.value), false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
@@ -1605,7 +1604,7 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities)),
+      Some(List(canGetDynamicEntityDefinitions)),
       http4sPartialFunction = Some(getBankLevelDynamicEntities)
     )
 
@@ -1690,9 +1689,12 @@ object Http4s400 {
           DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
         )
       } yield {
+        // The Record Roles name a space, and a definition with no bank belongs to the system space, so
+        // the creator's grants go to DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty bank id.
+        // Granting at "" would write rows nothing reads, locking the creator out of the entity they
+        // had just defined. Same rule as the v6.0.0 creation path.
         crudRoles.foreach(role =>
-          Entitlement.entitlement.vend.addEntitlement(
-            dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
+          Entitlement.entitlement.vend.addEntitlement(DynamicEntitySpace.bankIdOrSystem(dynamicEntity.bankId), cc.userId, role.toString()))
         val commonsData: DynamicEntityCommons = result
         commonsData.jValue
       }
@@ -1718,7 +1720,7 @@ object Http4s400 {
         commonsData.jValue
       }
 
-    private def deleteDynamicEntityImpl(bankId: Option[String], dynamicEntityId: String, cc: CallContext): Future[Box[Boolean]] =
+    private[api] def deleteDynamicEntityImpl(bankId: Option[String], dynamicEntityId: String, cc: CallContext): Future[Box[Boolean]] =
       for {
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankId, dynamicEntityId, Some(cc))
         (box, _) <- NewStyle.function.invokeDynamicConnector(
@@ -1741,6 +1743,7 @@ object Http4s400 {
             jsonObj <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).asInstanceOf[JObject]
             }
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canCreateDynamicEntityDefinition, cc)
             dynamicEntity <- tryOrApiFail(cc) {
               DynamicEntityCommons(jsonObj, None, cc.userId, None)
             }
@@ -1760,10 +1763,11 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateSystemLevelDynamicEntity)),
+      Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createSystemDynamicEntity))
+      .disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── createBankLevelDynamicEntity ─────────────────────────────────────────
 
@@ -1796,9 +1800,9 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canCreateBankLevelDynamicEntity, canCreateAnyBankLevelDynamicEntity)),
+      Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createBankLevelDynamicEntity))
 
     // ─── updateSystemDynamicEntity ────────────────────────────────────────────
@@ -1811,6 +1815,7 @@ object Http4s400 {
             json <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody)
             }
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canUpdateDynamicEntityDefinition, cc)
             result <- updateDynamicEntityImpl(None, dynamicEntityId, json, cc)
           } yield result
         }
@@ -1822,8 +1827,9 @@ object Http4s400 {
       "Update System Level Dynamic Entity",
       s"""Update a system level DynamicEntity.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -1831,10 +1837,11 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canUpdateSystemDynamicEntity)),
+      Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateSystemDynamicEntity))
+      .disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── updateBankLevelDynamicEntity ─────────────────────────────────────────
 
@@ -1857,8 +1864,9 @@ object Http4s400 {
       "Update Bank Level Dynamic Entity",
       s"""Update a Bank Level DynamicEntity.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -1866,9 +1874,9 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canUpdateBankLevelDynamicEntity)),
+      Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateBankLevelDynamicEntity))
 
     // ─── deleteSystemDynamicEntity (200) ─────────────────────────────────────
@@ -1876,7 +1884,10 @@ object Http4s400 {
     lazy val deleteSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          deleteDynamicEntityImpl(None, dynamicEntityId, cc).map(_ => JObject(Nil))
+          for {
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canDeleteDynamicEntityDefinition, cc)
+            _ <- deleteDynamicEntityImpl(None, dynamicEntityId, cc)
+          } yield JObject(Nil)
         }
     }
 
@@ -1901,9 +1912,9 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canDeleteSystemLevelDynamicEntity)),
+      Some(List(canDeleteDynamicEntityDefinition)),
       http4sPartialFunction = Some(deleteSystemDynamicEntity)
-    )
+    ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
 
     // ─── deleteBankLevelDynamicEntity (200) ──────────────────────────────────
 
@@ -1936,7 +1947,7 @@ object Http4s400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi),
-      Some(List(canDeleteBankLevelDynamicEntity)),
+      Some(List(canDeleteDynamicEntityDefinition)),
       http4sPartialFunction = Some(deleteBankLevelDynamicEntity)
     )
 
@@ -1981,8 +1992,9 @@ object Http4s400 {
       "Update My Dynamic Entity",
       s"""Update my DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
-         |If the entity already has data, only schema-compatible changes are accepted: the entity name, the set of
-         |property names and each property's `type` must stay the same, and `required` may not grow. Changing
+         |If the entity already has data, only schema-compatible changes are accepted: the entity name must stay the
+         |same, every existing property must keep its name and `type`, and `required` may not grow. New optional
+         |properties may be added. Changing
          |`indexed`, `index`, `example`, `description`, `minLength`, `maxLength` and the read/write role settings is
          |allowed — this is how indexing is switched on for an existing entity (see DE_indexing). A structural change
          |returns `$DynamicEntityUpdateNotSchemaCompatible` until the data is deleted.
@@ -1990,7 +2002,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi), None,
       http4sPartialFunction = Some(updateMyDynamicEntity))
 
@@ -3194,6 +3206,7 @@ object Http4s400 {
         InvalidNumber,
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
+        PaymentChallengeHasNoOnBehalfOfUser,
         TransactionDisabled,
         UnknownError
       ),
@@ -3235,6 +3248,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3269,6 +3283,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3310,6 +3325,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3351,6 +3367,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3379,6 +3396,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3413,6 +3431,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3454,6 +3473,7 @@ object Http4s400 {
           InvalidNumber,
           NotPositiveAmount,
           InvalidTransactionRequestCurrency,
+          PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
           UnknownError
         ),
@@ -3517,6 +3537,7 @@ object Http4s400 {
         InvalidNumber,
         NotPositiveAmount,
         InvalidTransactionRequestCurrency,
+        PaymentChallengeHasNoOnBehalfOfUser,
         TransactionDisabled,
         UnknownError
       ),
@@ -3623,6 +3644,15 @@ object Http4s400 {
       val isOwnChallenge = challenges.find(_.challengeId == challengeAnswerJson.id)
         .exists(_.expectedUserId == user.userId)
       for {
+        // Where the challenge is somebody else's, the branch below drops the user check, so that
+        // an account with several required answers can be worked through. That latitude is for
+        // people who share an account. It is not extended to an agent: a payment started on a
+        // person's behalf is authorised by that person, otherwise the agent would only have to
+        // get the code read out to it, which is the relay Strong Customer Authentication exists
+        // to prevent. See ON_BEHALF_OF_USER_ID_PLAN.md, Decision 9.
+        _ <- code.util.Helper.booleanToFuture(ChallengeNotAddressedToCaller, failCode = 403, cc = Some(cc)) {
+          isOwnChallenge || user.isOriginalUser
+        }
         (isValidated, _) <- if (isOwnChallenge)
           NewStyle.function.validateChallengeAnswer(
             challengeAnswerJson.id, challengeAnswerJson.answer, SuppliedAnswerType.PLAIN_TEXT_VALUE, Some(cc))
@@ -3749,6 +3779,7 @@ object Http4s400 {
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
         AllowedAttemptsUsedUp,
+        ChallengeNotAddressedToCaller,
         TransactionDisabled,
         UnknownError
       ),
@@ -6304,7 +6335,7 @@ object Http4s400 {
         atmJsonV400,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        Some(List(canUpdateAtm, canCreateAtmAtAnyBank)),
+        Some(List(canUpdateAtm)),
         http4sPartialFunction = Some(updateAtm)
       )
     }
@@ -9552,6 +9583,16 @@ object Http4s400 {
         }
         // Column widths: say which field is too long instead of letting the database answer OBP-50000.
         _ <- checkDynamicResourceDocFieldLengths(body, cc)
+        // Fail fast with a clean 400 before attempting compilation, rather than surfacing an
+        // unsupported programming_lang only as a generic DynamicCodeCompileFail.
+        _ <- code.util.Helper.booleanToFuture(
+          s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
+          cc = Some(cc)) {
+          code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
+        }
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicQueryInvalid${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+          code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(body.programmingLang, body.requestVerb)
+        }
       } yield ()
     }
 
@@ -9570,9 +9611,9 @@ object Http4s400 {
       code.util.Helper.booleanToFuture(s"$InvalidJsonFormat ${tooLong.mkString("; ")}", cc = Some(cc)) { tooLong.isEmpty }.map(_ => ())
     }
 
-    private def compileDynamicResourceDoc(body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
+    private def compileDynamicResourceDoc(bankId: Option[String], body: JsonDynamicResourceDoc, cc: CallContext): Unit = {
       try {
-        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody).validateDependency()
+        CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, bankId).validateDependency()
       } catch {
         case e: JsonResponseException => throw e
         case e: Exception =>
@@ -9599,19 +9640,24 @@ object Http4s400 {
 
     private def createDynamicResourceDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
-        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
           com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JsonDynamicResourceDoc]
         }
+        // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+          DynamicUtil.dynamicCodeExecutionEnabled || CompiledObjects.isQuery(body.programmingLang)
+        }
         _ <- validateDynamicResourceDocBody(body, cc)
-        _ = compileDynamicResourceDoc(body, cc)
+        _ = compileDynamicResourceDoc(bankId.orElse(body.bankId), body, cc)
         (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(
           bankId, body.requestVerb, body.requestUrl, Some(cc))
         _ <- code.util.Helper.booleanToFuture(
           s"$DynamicResourceDocAlreadyExists The combination of request_url(${body.requestUrl}) and request_verb(${body.requestVerb}) must be unique",
           cc = callContext) { !isExists }
+        ambiguities <- Future(DomainApiPaths.storedResourceDocAmbiguities(bankId, None, body.requestVerb, body.requestUrl, body.partialFunctionName))
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, callContext) { ambiguities.isEmpty }
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.CREATE, None, 201, cc) {
           NewStyle.function.createJsonDynamicResourceDoc(bankId, body, callContext).map(_._1)
         }
@@ -9620,15 +9666,24 @@ object Http4s400 {
 
     private def updateDynamicResourceDocImpl(bankId: Option[String], dynamicResourceDocId: String, rawBody: String, cc: CallContext): Future[(Any, Int)] = {
       for {
-        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
           com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JsonDynamicResourceDoc]
         }
+        // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+          DynamicUtil.dynamicCodeExecutionEnabled || CompiledObjects.isQuery(body.programmingLang)
+        }
         _ <- validateDynamicResourceDocBody(body, cc)
-        _ = compileDynamicResourceDoc(body, cc)
-        (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
+        _ = compileDynamicResourceDoc(bankId.orElse(body.bankId), body, cc)
+        (stored, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(bankId, dynamicResourceDocId, Some(cc))
+        // Only a new verb or path is checked, so a doc caught in an ambiguity that predates the rule can
+        // still have its body changed.
+        ambiguities <- Future(
+          if (stored.requestVerb == body.requestVerb && stored.requestUrl == body.requestUrl) Nil
+          else DomainApiPaths.storedResourceDocAmbiguities(bankId, Some(dynamicResourceDocId), body.requestVerb, body.requestUrl, body.partialFunctionName))
+        _ <- code.util.Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, callContext) { ambiguities.isEmpty }
         result <- interceptOrApply(DYNAMIC_RESOURCE_DOC, ChangeOp.UPDATE, Some(dynamicResourceDocId), 200, cc) {
           NewStyle.function.updateJsonDynamicResourceDoc(
             bankId, body.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext).map(_._1)
@@ -9740,7 +9795,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canCreateDynamicResourceDoc)),
         http4sPartialFunction = Some(createDynamicResourceDoc)
@@ -9758,7 +9813,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canUpdateDynamicResourceDoc)),
         http4sPartialFunction = Some(updateDynamicResourceDoc)
@@ -9826,7 +9881,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canCreateBankLevelDynamicResourceDoc)),
         http4sPartialFunction = Some(createBankLevelDynamicResourceDoc)
@@ -9844,7 +9899,7 @@ object Http4s400 {
         |""",
         jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
         jsonDynamicResourceDoc,
-        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canUpdateBankLevelDynamicResourceDoc)),
         http4sPartialFunction = Some(updateBankLevelDynamicResourceDoc)

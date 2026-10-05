@@ -80,8 +80,15 @@ trait SweepFixtures { self: DefaultUsers =>
       // roles whose backing entity may not exist in this database -- a grant that cannot be
       // made is not a reason to abandon the other several hundred.
       try {
-        val bankId = if (ApiRole.valueOf(role).requiresBankId) realBankId.getOrElse("") else ""
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, role)
+        if (ApiRole.valueOf(role).requiresBankId) {
+          Entitlement.entitlement.vend.addEntitlement(realBankId.getOrElse(""), resourceUser1.userId, role)
+          // Dynamic Entity endpoints that name no bank check their Roles at the system space, SYS,
+          // so a caller holding every role must hold the bank-scoped ones there as well.
+          Entitlement.entitlement.vend.addEntitlement(
+            code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, role)
+        } else {
+          Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role)
+        }
       } catch { case _: Exception => () }
     }
     Map("DirectLogin" -> s"token=${token1.value}")

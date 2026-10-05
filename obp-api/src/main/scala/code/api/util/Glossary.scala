@@ -105,7 +105,31 @@ object Glossary extends MdcLoggable  {
 		 |""".stripMargin
 
 	// We use the requested title rather than the found item's, because anchors are case sensitive.
-	private def renderGlossaryItemLink(title: String): String = s"""[here](/glossary#${title})"""
+	// A space would end the markdown link's destination, so it is encoded; browsers decode it when
+	// they look for the anchor.
+	private def renderGlossaryItemLink(title: String): String =
+		s"""[here](${apiExplorerUrl}/glossary#${title.replace(" ", "%20")})"""
+
+	/** Where the API Explorer runs: the Glossary, Resource Docs and Message Docs are shown there. */
+	def apiExplorerUrl: String = APIUtil.getPropsValue("webui_api_explorer_url", "http://localhost:5174").stripSuffix("/")
+
+	/** Where the OBP Portal runs. */
+	def portalUrl: String = APIUtil.getPropsValue("webui_obp_portal_url", "http://localhost:5174").stripSuffix("/")
+
+	// A markdown link destination or an href that is a path on the API Explorer, without its host.
+	private val SiteRelativeExplorerLink = """(\]\(|href=")(/(?:glossary|index|resource-docs|message-docs|operationid)\b|/\?)""".r
+
+	/**
+	 * Makes the links in Glossary text to the API Explorer's own pages (other Glossary Items, Resource
+	 * Docs, Message Docs) fully qualified, so they work wherever the text is shown: the API Explorer,
+	 * the Portal, the API Manager, Opey or any other client. Every Glossary Item passes through here,
+	 * so an item written with a site-relative link is still served correctly. External links are
+	 * already absolute and are left alone.
+	 */
+	def qualifyExplorerLinks(text: String): String =
+		if (text == null) text
+		else SiteRelativeExplorerLink.replaceAllIn(text, m =>
+			java.util.regex.Matcher.quoteReplacement(m.group(1) + apiExplorerUrl + m.group(2)))
 
 	/**
 	 * Expands any Glossary placeholders in the given markdown. Text with no placeholder is returned
@@ -168,7 +192,11 @@ object Glossary extends MdcLoggable  {
 		val (checkedAt, version, byTitle) = cachedItemsByTitle.get()
 		if (checkedAt != 0L && now - checkedAt < GlossaryCacheRecheckMillis) (version, byTitle)
 		else {
-			val currentVersion = dynamicGlossaryItemsVersion
+			// The glossary cache namespace version is part of the token: bumping it (for example from
+			// the cache page in API Manager) reloads the Glossary here and, because the token is in
+			// every resource-docs cache key, rebuilds every cached document that embeds Glossary text.
+			val currentVersion =
+				s"$dynamicGlossaryItemsVersion-ns${code.api.Constant.recentCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE)}"
 			if (checkedAt != 0L && currentVersion == version) {
 				cachedItemsByTitle.set((now, version, byTitle))
 				(version, byTitle)
@@ -187,6 +215,9 @@ object Glossary extends MdcLoggable  {
 	}
 
 	private def glossaryItemsByTitle: Map[String, GlossaryItem] = glossaryState._2
+
+	/** Glossary items this instance holds in memory now (static and dynamic), for the cache page. */
+	def loadedItemCount: Int = glossaryItemsByTitle.size
 
 	/**
 	 * A token for Resource Doc cache keys. It changes whenever a Dynamic Glossary Item is added,
@@ -231,8 +262,11 @@ object Glossary extends MdcLoggable  {
 		// Constructs a GlossaryItem from just two parameters.
 		def apply(title: String, description: => String): GlossaryItem = {
 
+			// Links to the API Explorer's own pages are served fully qualified (see qualifyExplorerLinks).
+			def qualifiedDescription: String = qualifyExplorerLinks(description)
+
 			// Convert markdown to HTML
-			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(description)
+			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(qualifiedDescription)
 
 			// Try and generate a plain text string (requires valid HTML)
 			val textDescription: String = try {
@@ -244,7 +278,7 @@ object Glossary extends MdcLoggable  {
 
 			new GlossaryItem(
 				title,
-				() => description,
+				() => qualifiedDescription,
 				htmlDescription,
 				textDescription
 			)
@@ -406,11 +440,9 @@ object Glossary extends MdcLoggable  {
 		s"""<a href="$apiExplorerPrefix/operationid/$operationId">$title</a>"""
 	}
 
-	// Consumer registration URL helper
-	def getConsumerRegistrationUrl(): String = {
-		val apiExplorerUrl = APIUtil.getPropsValue("webui_api_explorer_url", "http://localhost:5174")
-		s"$apiExplorerUrl/consumers/register"
-	}
+	// Consumer registration URL helper: registration is a Portal page, unless the installation sends it elsewhere.
+	def getConsumerRegistrationUrl(): String =
+		APIUtil.getPropsValue("webui_external_consumer_registration_url").openOr(s"$portalUrl/consumers/register")
 
 	glossaryItems += GlossaryItem(
 		title = "Cheat Sheet",
@@ -616,6 +648,41 @@ object Glossary extends MdcLoggable  {
 				 |```
 				 |(Default: 1000 requests per hour. `0` blocks all anonymous access, `-1` removes the limit.)
 				 |
+				 |### Three rate limiters
+				 |
+				 |OBP runs three independent rate limiters. They are checked in this order, and each answers **429** with its own error code so a client can tell which counter it hit:
+				 |
+				 |1. **Self-service limiter** (`self_service.rate_limit.*`) runs first, before routing and before any authentication, keyed by the client IP address. It covers the endpoints anyone can call before the bank has granted them anything. Trip code: `OBP-10060`.
+				 |2. **Authentication limiter** (`auth.rate_limit.*`) runs inside the credential check of Direct Login, DAuth, Gateway Login and SIWE, before the password or token is verified, keyed by IP address and by account. It defends against brute force, credential stuffing and lockout attacks. Trip code: `OBP-10061`.
+				 |3. **Consumer quota** (the limits described above) runs after authentication, keyed by Consumer, or by IP address with a single hourly ceiling for anonymous calls. It is the commercial and fair-use quota. Trip code: `OBP-10018`.
+				 |
+				 |Before all three, an operator can put a single IP address under a temporary **IP penalty**: a per-minute limit on every endpoint, for a set time, for example during a scan or denial-of-service attempt (`POST /obp/v7.0.0/management/ip-penalties`, Role CanCreateIpPenalty). A per-minute limit of 0 refuses every request. Penalties are always enforced, shared by every instance, and disappear when they expire; the penalty endpoints themselves are never refused, so a mistake can be undone. Trip code: `OBP-10062`.
+				 |
+				 |A login attempt is counted by the authentication limiter only; it is not a self-service scope, so no attempt is counted twice. Every limiter counts in Redis and fails open: a Redis outage never blocks a call.
+				 |
+				 |### Self-service rate limiting (per IP address, before any credential)
+				 |
+				 |The limits above are keyed by Consumer, so they cannot protect the calls a client makes before it has one. Those endpoints are covered by the self-service limiter, keyed by the client IP address, grouped in scopes:
+				 |
+				 |- **signup** — Create User (self-registration), Validate User Email, Get User Invitation Information
+				 |- **password_reset** — Request Password Reset Email, Complete Password Reset
+				 |- **consent_request** — Create Consent Request, Create Consent Request VRP
+				 |- **consumer_registration** — Create a Consumer (Dynamic Registration)
+				 |- **lookup** — Validate and check IBAN
+				 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel, over REST and gRPC alike (gRPC uses the socket peer address; if none is available it falls back to the Consumer)
+				 |
+				 |Each scope has per-minute, per-hour and per-day limits per IP, with built-in defaults chosen so that a person or a well-behaved agent never reaches them, plus an optional global per-hour cap across all addresses that acts as a circuit breaker. Every request is counted, whether or not it succeeds. Counters live in Redis and fail open.
+				 |
+				 |**Shadow mode (the default).** The limiter is on out of the box but does not block. A request over a limit is logged once per window (`event=self_service_rate_limit_shadow_trip`) and the response carries:
+				 |
+				 |    X-Rate-Limit-Warning: OBP-10059: Could conflict with a Future Rate Limit: This request might exceed the rate limit for signup (5 per hour) in the future.
+				 |
+				 |No enforcement date is claimed unless the operator sets `self_service.rate_limit.enforce_announced_from`, in which case ", from <date>" is appended. Every self-service response also carries `X-Rate-Limit-Limit`, `X-Rate-Limit-Remaining` and `X-Rate-Limit-Reset` for the window the caller is closest to exhausting, so a client can back off before enforcement starts.
+				 |
+				 |**Enforce mode.** Set `self_service.rate_limit.mode = enforce` and a trip answers **429** with `OBP-10060`, a `Retry-After` header and the same `X-Rate-Limit-*` headers, without running the endpoint.
+				 |
+				 |Limits are set with `self_service.rate_limit.<scope>.per_ip.per_minute|per_hour|per_day`, `self_service.rate_limit.<scope>.global.per_hour`, or the generic `self_service.rate_limit.per_ip.*`; -1 switches a window off and 0 blocks it. See the props template for the built-in numbers. Behind a proxy, configure `trust.proxy.enabled` and `trust.proxy.header` so the client address is the real one; otherwise every caller shares the proxy's counters.
+				 |
 				 |### Related Concepts
 				 |
 				 |- **Consumer**: The API client subject to rate limiting
@@ -754,39 +821,6 @@ object Glossary extends MdcLoggable  {
 |
 |This glossary item is Work In Progress.
 |
-				 |
-				 |### Three rate limiters
-				 |
-				 |OBP runs three independent rate limiters. They are checked in this order, and each answers **429** with its own error code so a client can tell which counter it hit:
-				 |
-				 |1. **Self-service limiter** (`self_service.rate_limit.*`) runs first, before routing and before any authentication, keyed by the client IP address. It covers the endpoints anyone can call before the bank has granted them anything. Trip code: `OBP-10060`.
-				 |2. **Authentication limiter** (`auth.rate_limit.*`) runs inside the credential check of Direct Login, DAuth, Gateway Login and SIWE, before the password or token is verified, keyed by IP address and by account. It defends against brute force, credential stuffing and lockout attacks. Trip code: `OBP-10061`.
-				 |3. **Consumer quota** (the limits described above) runs after authentication, keyed by Consumer, or by IP address with a single hourly ceiling for anonymous calls. It is the commercial and fair-use quota. Trip code: `OBP-10018`.
-				 |
-				 |A login attempt is counted by the authentication limiter only; it is not a self-service scope, so no attempt is counted twice. Every limiter counts in Redis and fails open: a Redis outage never blocks a call.
-				 |
-				 |### Self-service rate limiting (per IP address, before any credential)
-				 |
-				 |The limits above are keyed by Consumer, so they cannot protect the calls a client makes before it has one. Those endpoints are covered by the self-service limiter, keyed by the client IP address, grouped in scopes:
-				 |
-				 |- **signup** — Create User (self-registration), Validate User Email, Get User Invitation Information
-				 |- **password_reset** — Request Password Reset Email, Complete Password Reset
-				 |- **consent_request** — Create Consent Request, Create Consent Request VRP
-				 |- **consumer_registration** — Create a Consumer (Dynamic Registration)
-				 |- **lookup** — Validate and check IBAN
-				 |- **signal_channel_create** — Publish Signal Message, counted only when it creates a new channel, over REST and gRPC alike (gRPC uses the socket peer address; if none is available it falls back to the Consumer)
-				 |
-				 |Each scope has per-minute, per-hour and per-day limits per IP, with built-in defaults chosen so that a person or a well-behaved agent never reaches them, plus an optional global per-hour cap across all addresses that acts as a circuit breaker. Every request is counted, whether or not it succeeds. Counters live in Redis and fail open.
-				 |
-				 |**Shadow mode (the default).** The limiter is on out of the box but does not block. A request over a limit is logged once per window (`event=self_service_rate_limit_shadow_trip`) and the response carries:
-				 |
-				 |    X-Rate-Limit-Warning: OBP-10059: Could conflict with a Future Rate Limit: This request might exceed the rate limit for signup (5 per hour) in the future.
-				 |
-				 |No enforcement date is claimed unless the operator sets `self_service.rate_limit.enforce_announced_from`, in which case ", from <date>" is appended. Every self-service response also carries `X-Rate-Limit-Limit`, `X-Rate-Limit-Remaining` and `X-Rate-Limit-Reset` for the window the caller is closest to exhausting, so a client can back off before enforcement starts.
-				 |
-				 |**Enforce mode.** Set `self_service.rate_limit.mode = enforce` and a trip answers **429** with `OBP-10060`, a `Retry-After` header and the same `X-Rate-Limit-*` headers, without running the endpoint.
-				 |
-				 |Limits are set with `self_service.rate_limit.<scope>.per_ip.per_minute|per_hour|per_day`, `self_service.rate_limit.<scope>.global.per_hour`, or the generic `self_service.rate_limit.per_ip.*`; -1 switches a window off and 0 blocks it. See the props template for the built-in numbers. Behind a proxy, configure `trust.proxy.enabled` and `trust.proxy.header` so the client address is the real one; otherwise every caller shares the proxy's counters.
 """)
 
 	glossaryItems += GlossaryItem(
@@ -1234,6 +1268,7 @@ object Glossary extends MdcLoggable  {
 				 |  - CanCreateEntitlementAtOneBank
 				 |  - CanCreateEntitlementAtAnyBank
 				 |Consent users (the principal a Consent-JWT authenticates as) never receive Just in Time Entitlements: their Roles come only from the Consent, even if the Consent carries CanCreateEntitlementAtOneBank.
+				 |Nothing is ever granted this way in the system space either, the space whose bank id is the literal SYS. Reaching that space is meant to be a deliberate act, so a Role there is granted by hand by someone holding the system space granting Role; holding the ordinary per bank granting Role at the bank id SYS grants nothing and the request is refused with the usual missing Role error.
 				 |If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 				 |Note: In the entitlements model we set createdbyprocess=create_just_in_time_entitlements. For manual operations we set createdbyprocess=manual
 				 |
@@ -1715,7 +1750,7 @@ object Glossary extends MdcLoggable  {
 || `entitlements` | Roles at a Bank or the system (granted) | the User holds the stored Entitlement; virtual Entitlements do not count |
 || `my_resources` | the User's own personal resources (owned), one typed list per kind, e.g. `personal_dynamic_entities` | the kind and instance exist; no Role, the User owns these rows |
 |
-|`my_resources` is accepted by the Create Consent endpoint from v6.0.0 (older create-consent bodies are frozen). Example: `{"personal_dynamic_entities": [{"bank_id": "", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
+|`my_resources` is accepted by the Create Consent endpoint from v6.0.0 (older create-consent bodies are frozen). Example: `{"personal_dynamic_entities": [{"bank_id": "SYS", "entity_name": "FooBar", "actions": ["read", "write"]}]}`. The `bank_id` of an entry is the space the entity lives in: `SYS` for a system-level entity, or the id of the Bank. An empty `bank_id` also means the system space. An entry names what the consent user may act on for the granting User; rows it writes belong to that User. Absent or empty means none, and `everything: true` does not include it. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
 |
 |
 |
@@ -3592,7 +3627,17 @@ object Glossary extends MdcLoggable  {
 |
 |**Supported field types:**
 |
-|STRING, INTEGER, DOUBLE, BOOLEAN, DATE_WITH_DAY (format: yyyy-MM-dd), JSON (objects and arrays), and reference types (foreign keys)
+|Type names are case-sensitive:
+|
+|* `string`
+|* `integer` - whole numbers of any size. A value written with a decimal point, such as 1.0, is rejected.
+|* `number` - any number. Decimals are stored as a 64-bit binary floating-point value (about 15 to 17 significant digits), so values such as 0.1 are rounded slightly. Whole numbers keep full precision.
+|* `boolean` - true/false, or the strings "true"/"false"
+|* `DATE_WITH_DAY` - a string in the format yyyy-MM-dd
+|* `json` - a JSON object or array
+|* `reference:<EntityName>` - a foreign key to another entity
+|
+|For values that must be exact, such as money, use `integer` in minor units (for example, cents) or a `string`, not `number`.
 |
 |**The hasPersonalEntity flag:**
 |
@@ -3668,6 +3713,9 @@ object Glossary extends MdcLoggable  {
 |
 |* `write_role_required` (boolean) or `write_role` (explicit role name) — the field becomes **write-restricted**: it cannot be set via POST or PUT (its existing value is preserved), only via **PATCH** by a caller holding the field's write role.
 |* `read_role_required` (boolean) or `read_role` (explicit role name) — the field becomes **read-restricted**: it is omitted from GET responses unless the caller holds the field's read role (public/anonymous access omits it entirely).
+|* `hide_field_from_public_access` (boolean) — for an entity with public access: the field is hidden from a caller whose access comes only from that public access (a caller who is not logged in, or one without the entity's read role), and shown to a caller holding the entity's read role, with no field role needed. The public endpoint always omits it.
+|
+|A caller can never filter or sort by a field they may not read, whether with a plain `?field=value` parameter, `obp_filter`, `obp_sort_by`, or the filter of an `obp_exists` join: whether a record came back would reveal the field's value. Such a request is refused with ${ErrorMessages.DynamicEntityFieldNotReadable.takeWhile(_ != ':')}, naming the fields.
 |
 |Restriction is on if either the boolean is `true` or an explicit role name is given. When a boolean is used, OBP auto-generates the role; e.g. for entity 'FooBar' field 'owner':
 |
@@ -3691,12 +3739,56 @@ object Glossary extends MdcLoggable  {
 |
 |**Management endpoints:**
 |
+|From v7.0.0 one set of URLs manages the definitions in every space. BANK_ID is a bank's id, or `SYS` for the system space, and each Role is checked at that BANK_ID:
+|
+|* GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities - List the definitions in the space, with record counts (CanGetDynamicEntityDefinitions)
+|* POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities - Create a definition (CanCreateDynamicEntityDefinition)
+|* PUT /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition (CanUpdateDynamicEntityDefinition)
+|* DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID - Delete a definition that has no records (CanDeleteDynamicEntityDefinition)
+|* POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup - Copy a definition and its records to a `_BAK` entity (CanBackupDynamicEntityDefinition)
+|* DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/cascade/DYNAMIC_ENTITY_ID - Delete a definition and its records, after copying both to a `ZZ_BAK_` entity (CanDeleteCascadeDynamicEntityDefinition)
+|
+|**Record endpoints from v7.0.0:**
+|
+|A Dynamic Entity's records are served at `/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...`, with BANK_ID a bank's id or `SYS` for the system space. What follows `dynamic-entities/` is the same as after `/obp/dynamic-entity/`:
+|
+|* ENTITY_NAME and ENTITY_NAME/RECORD_ID - list, create, read, update (PUT and PATCH) and delete
+|* my/ENTITY_NAME[/RECORD_ID] - the caller's own records
+|* public/ENTITY_NAME[/RECORD_ID] and community/ENTITY_NAME[/RECORD_ID] - the read-only forms
+|* ENTITY_NAME/RECORD_ID/access[/USER_ID] - the access list of a row-level entity
+|
+|Every v7.0.0 response carries `bank_id`, `SYS` included. The unversioned `/obp/dynamic-entity/[banks/BANK_ID/]...` URLs serve the same records with the same checks, and keep omitting `bank_id` for the system space.
+|
+|**Record metadata from v7.0.0:**
+|
+|In a v7.0.0 response each record is followed by a `metadata` object, which says when the record was created and last updated, and for each, which User made the call (`user_id`) and which User it was made for (`on_behalf_of_user_id`). The two ids are the same when a User acted for themselves, and differ when an agent acted for somebody through a Consent. The metadata sits beside the record rather than inside it, so it can never collide with a field of the entity:
+|
+|```
+|{
+|  "bank_id": "SYS",
+|  "soil_sample": { "soil_sample_id": "8f1c2d9e-...", "ph": 6.7 },
+|  "metadata": {
+|    "created": { "at": "2026-09-30T10:12:00Z", "user_id": "a9f2c7e1-...", "on_behalf_of_user_id": "e1a4b6c8-..." },
+|    "updated": { "at": "2026-09-30T11:40:00Z", "user_id": "e1a4b6c8-...", "on_behalf_of_user_id": "e1a4b6c8-..." }
+|  }
+|}
+|```
+|
+|In a list, each item has that same shape without `bank_id`: `{"soil_sample": {...}, "metadata": {...}}`. Times are in UTC, to the second.
+|
+|* The public reads, which need no login, carry the times only, and never say who wrote a record.
+|* A value that was never recorded is null. A record written before this metadata existed has null in `created` for good, and `updated` is filled the next time the record is saved.
+|* A record held by another connector (a method routing for `dynamicEntityProcess` names its entity) has no `metadata`, because OBP does not hold that information.
+|* The unversioned `/obp/dynamic-entity/...` URLs return the record alone, and their list items stay plain records.
+|
+|Earlier versions keep their separate management URLs for the system space; their Roles are the same ones, granted at `SYS`:
+|
 |* POST /management/system-dynamic-entities - Create system level entity
 |* POST /management/banks/BANK_ID/dynamic-entities - Create bank level entity
 |* GET /management/system-dynamic-entities - List all system level entities
 |* GET /management/banks/BANK_ID/dynamic-entities - List bank level entities
 |* PUT /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Update entity definition
-|* DELETE /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Delete entity (and all its data)
+|* DELETE /management/system-dynamic-entities/DYNAMIC_ENTITY_ID - Delete an entity that has no records
 |
 |**Discovering Dynamic Entity Endpoints (for application developers):**
 |
@@ -3719,8 +3811,8 @@ object Glossary extends MdcLoggable  {
 |
 |**Required roles to manage Dynamic Entities:**
 |
-|* CanCreateSystemLevelDynamicEntity
-|* CanCreateBankLevelDynamicEntity
+|* CanCreateDynamicEntityDefinition, granted at the bank id of the space: `SYS` for the system space, or a bank's id
+|* CanUpdateDynamicEntityDefinition, CanDeleteDynamicEntityDefinition, CanGetDynamicEntityDefinitions, CanBackupDynamicEntityDefinition and CanDeleteCascadeDynamicEntityDefinition, granted the same way
 |
 |**Use cases:**
 |
@@ -3825,7 +3917,7 @@ object Glossary extends MdcLoggable  {
 || Call | Does |
 ||---|---|
 || `GET /obp/dynamic-entity/ENTITY/RECORD_ID/access` | lists who may read, update, delete and grant this record, and who granted them |
-|| `POST /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them: `user_id` is required, `can_read`, `can_update` and `can_delete` default to `false`, `can_grant` defaults to `true` |
+|| `PUT /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them: `user_id` is required, `can_read`, `can_update` and `can_delete` default to `false`, `can_grant` defaults to `true` |
 || `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/USER_ID` | revokes that User, cascading to every grant they passed on |
 |
 |Bank level entities take the same paths under `/banks/BANK_ID/`. The caller needs `can_grant` on the record — the User who created it has it — or `CanGrantDynamicEntityRowAccess_SystemENTITY` (`CanGrantDynamicEntityRowAccess_ENTITY` at a bank), which administers any record. The calls return 400 on an entity that is not row level. Creating a record still takes the entity's Create role, and `useRowLevelAccess` is only supported for locally-backed entities.
@@ -3982,8 +4074,7 @@ object Glossary extends MdcLoggable  {
 |
 |**Required roles:**
 |
-|* CanCreateSystemLevelDynamicEntity - To create system level dynamic entities
-|* CanCreateBankLevelDynamicEntity - To create bank level dynamic entities
+|* CanCreateDynamicEntityDefinition - To create dynamic entities. Granted at `SYS` it covers the system space; granted at a bank's id it covers that bank.
 |
 |For general information about Dynamic Entities, see ${getGlossaryItemLink("Dynamic-Entities")}
 |
@@ -4060,7 +4151,9 @@ object Glossary extends MdcLoggable  {
 |
 |Authentication and Role checks are applied to the compiled endpoint exactly as for Static endpoints - including the checks that run inside the shared authentication step: Consumer disabled, User locked / deleted, Consent processing and Rate Limiting.
 |
-|Some cross-cutting features of the Static pipeline do *not* currently apply to runtime-compiled Dynamic Resource Doc endpoints: API Metrics are not recorded, the JSON Schema Validation and Force-Error interceptors are not run, the Idempotency-Key mechanism is unavailable, and handlers run on auto-commit (no request-scoped database transaction). Dynamic Endpoints created from Swagger (the proxy path) *do* record Metrics and *do* run the JSON Schema Validation interceptors.
+|Every call to a Dynamic Resource Doc endpoint is recorded as an API Metric, like a call to a Static endpoint: the response it gave, and also a call refused for missing authentication or Roles.
+|
+|Some other cross-cutting features of the Static pipeline do *not* currently apply to Dynamic Resource Doc endpoints: the JSON Schema Validation and Force-Error interceptors are not run, the Idempotency-Key mechanism is unavailable, and handlers run on auto-commit (no request-scoped database transaction). Dynamic Endpoints created from Swagger (the proxy path) *do* run the JSON Schema Validation interceptors.
 |
 |Because the method body is user-supplied code compiled at runtime, this feature is guarded by the `allow_user_generated_scala_code` prop (default: false) and the Roles CanCreateDynamicResourceDoc / CanCreateBankLevelDynamicResourceDoc etc.
 |
@@ -4086,6 +4179,98 @@ object Glossary extends MdcLoggable  {
 |To check a body before creating anything, `POST /obp/v7.0.0/management/dynamic-resource-docs/compile` compiles it the same way and returns the compiler's errors with line numbers relative to the body. The API Manager's Create page uses it for its Compile button and for the loop in which Opey rewrites the body until it compiles.
 |
 |See ${getGlossaryItemLink("Dynamic Code Paths")} for how Dynamic Resource Docs relate to the other runtime-defined building blocks, and ${getGlossaryItemLink("Dynamic Change Request")} for how an operator can require a second person to approve each definition before it is compiled and served.
+|
+|The method body is Scala unless `programming_lang` says otherwise: `Java` for a Java class, or `Query` for a declaration that reads Dynamic Entity records instead of code (see ${getGlossaryItemLink("Dynamic Query")}).
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Query",
+		description =
+			s"""
+|A Dynamic Query is a ${getGlossaryItemLink("Dynamic Resource Doc")} whose body is a declaration rather than code: its `programming_lang` is `Query`. It reads the records of one Dynamic Entity, adds the records joined to them through `reference:` fields, and returns them as a named list. It is for the common case of an Endpoint that only reads Dynamic Entity data, which would otherwise need a Scala method body.
+|
+|Because nothing is compiled or run, a Dynamic Query is available even where user-supplied code is switched off, and a reviewer approving one (see ${getGlossaryItemLink("Dynamic Change Request")}) reads a declaration, not a program. A Dynamic Query only reads, so its `request_verb` must be `GET`.
+|
+|**The body**
+|
+|    {
+|      "from": "activity",
+|      "select": ["activity_id", "name", "city"],
+|      "where": { "city": "eq:Berlin" },
+|      "join": [
+|        { "entity": "operator", "on": "operator_id",
+|          "fields": { "operator_legal_name": "legal_name" } },
+|        { "entity": "certificate", "on": "activity_id",
+|          "cardinality": "at_most_one", "pick": "latest_by:issue_date",
+|          "fields": { "certificate_number": "number" } },
+|        { "entity": "inspection", "on": "activity_id",
+|          "cardinality": "exists", "as": "inspected" }
+|      ],
+|      "envelope": { "rows": "activities", "count": "count" }
+|    }
+|
+|* `from` (required): the Dynamic Entity whose records are returned.
+|* `select`: the fields of those records to return, in this order. All of them when absent.
+|* `where`: filters on them, written as the list Endpoint's `obp_filter` values (`"field": "eq:value"`, or a list of such strings for several filters on one field). Filtered fields must be declared `"indexed": true`.
+|* `join`: the related records to add to each record. See below.
+|* `envelope`: `rows` names the list (by default the entity's own list name) and `count`, when given, names a field holding how many records match in all, not only on this page.
+|
+|Keys that are not listed here are rejected, so a misspelt key is reported rather than ignored.
+|
+|**Joins**
+|
+|A `reference:` field links two entities, and a join can read it from either end. A *forward* join follows the record's own field to the record it names: an activity's `operator_id` names one operator. A *reverse* join finds the records of the other entity whose field names this record: certificates whose `activity_id` names the activity. The join only names the other `entity` and the field it is linked `on`; OBP sees which entity holds that field and works out the direction. Only for a self-reference, such as `employee.manager_id` of type `reference:employee` (the manager, or the direct reports?), must the join add `"direction": "forward"` or `"reverse"`.
+|
+|`cardinality` says what to do with the matching records:
+|
+|* `at_most_one` copies the fields of one record into the result (`fields` maps each result name to a field of that record). A forward join is `at_most_one` unless it says otherwise. A reverse join that is `at_most_one` must say how to choose when several records match, with `pick`: `latest_by:<field>` or `earliest_by:<field>`. A record without that field is never chosen ahead of one with it, and ties are broken by record id.
+|* `many` gives a list named `as`, one object per matching record with the `fields` given, ordered by `order` (`latest_by:` or `earliest_by:`), or by record id when absent. Only a reverse join can be `many`.
+|* `exists` gives one value named `as`: `true_value` if any record matches, `false_value` if none (JSON true and false by default).
+|
+|A join's `where` filters the other records before the cardinality applies, with the same operators as above. The field a reverse join is linked on must be declared `"indexed": true`.
+|
+|**Calling a Dynamic Query**
+|
+|A caller can narrow the result with the list Endpoint's own parameters: `obp_filter`, `obp_sort_by`, `obp_sort_direction`, `obp_limit`, `obp_offset`, `obp_exists` and `obp_not_exists`. They are added to the declaration's `where`, never replace it.
+|
+|A Dynamic Query can be public: callable without logging in. That needs all three of: no Roles on the Dynamic Resource Doc, an error list that does not name ${ErrorMessages.AuthenticatedUserIsRequired.takeWhile(_ != ':')} (which is how a Dynamic Resource Doc says it requires login), and public access on every Dynamic Entity it reads. Whether data can be public is decided on the entity; a query cannot make an entity's records public.
+|
+|**What a caller can see**
+|
+|A Dynamic Query never shows a caller more than they could read directly. The primary control is the Dynamic Entities' own access: the caller must be able to read every Dynamic Entity the query reads (its read Role, public access, or row-level access), exactly as through that entity's own Endpoints. Roles on the Dynamic Resource Doc itself are optional; they can only narrow who may call the query, never widen what a caller can read. Without that access the answer is ${ErrorMessages.DynamicQueryEntityNotReadable.takeWhile(_ != ':')} (403), naming every such entity with the Role that would let the caller read it and the bank it is needed at. Only shared records are used, never a User's personal records. For an entity with row-level access only the records the caller's access list allows are used. A field that requires a read Role is null (or left out, when not selected) unless the caller holds that Role, and the caller cannot filter or sort on it. A joined value is null when there is no matching record, when the caller may not read it, or when it lacks the field: these cases look the same, so a join never reveals that a hidden record exists.
+|
+|**Checking a body**
+|
+|Creating, updating or validating a Dynamic Query checks it against the Dynamic Entity definitions of its space, and `POST /obp/v7.0.0/management/dynamic-resource-docs/compile` does the same with `programming_lang` `Query`. Problems are reported as ${ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}.
+|
+|`POST /obp/v7.0.0/management/dynamic-resource-docs/explain` shows how a Dynamic Query would be answered, without reading any record, so its author can check that the SQL is sane and that access is what they expect: each read it would make, in order, with the SQL OBP builds for it (every value shown as `?`) or a description when it goes through the record provider; every Dynamic Entity it reads, with its read Role and whether the caller may read it; every read-restricted field it touches; and the refusal a caller would get. It can explain the query for the requesting User or for a caller who is not logged in, and with the parameters a caller would add. The API Manager's Explain button uses it.
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Domain APIs",
+		description =
+			s"""
+|# Domain APIs
+|
+|A **Domain API** publishes the Dynamic Entities and Dynamic Resource Docs (Dynamic Queries included) of one space under a base path of its own, so that an API built on OBP can be offered without OBP's own URL structure in front of it. A space is a bank, or the system space, whose bank id is `SYS`.
+|
+|With the base path `carbon-registry/v1` over the system space:
+|
+|* `/carbon-registry/v1/activity` answers what `/obp/v7.0.0/banks/SYS/dynamic-entities/activity` answers, and likewise `activity/ACTIVITY_ID`, `my/activity`, `public/activity`, `community/activity` and `activity/ACTIVITY_ID/access`;
+|* `/carbon-registry/v1/registry/summary` answers what the Dynamic Resource Doc at `/obp/dynamic-endpoint/banks/SYS/dynamic-resource-doc/registry/summary` answers;
+|* `/carbon-registry/v1/openapi.yaml` and `/carbon-registry/v1/openapi.json` are its OpenAPI document, with the Domain API's own title, description, version and server, and only its own endpoints.
+|
+|Dynamic Entity names are not renamed: only the part of the URL before them is. The endpoints that create and change definitions stay at their OBP URLs; a Domain API publishes the endpoints that serve and take data. Dynamic Endpoints made from a Swagger file are not published under a Domain API yet.
+|
+|**It only renames.** A call under a base path is rewritten to the OBP URL and runs exactly as a call to that URL would: the same authentication, Roles, Consents, rate limits, row-level access and field restrictions, and the same API Metrics. A Domain API gives no access the OBP URL would not give. The one difference in a response is that a Dynamic Entity record response leaves out `bank_id`, because the base path already fixes the space; the OpenAPI document's examples leave it out too.
+|
+|**Base path and version.** The base path is two to five segments of lowercase letters, digits, hyphens and dots, ending with the major version as `vN`, for example `carbon-registry/v1`. It may not start with a segment OBP serves itself (such as `obp` or `open-banking`), and may not overlap another Domain API's base path. The Domain API's `version` is its full semantic version, MAJOR.MINOR.PATCH, whose MAJOR is the N of the base path. A compatible change, such as a new optional field or a new Dynamic Query, edits `version` (or leaves it) and keeps every URL; a breaking change gets a new Domain API with a new base path, for example `carbon-registry/v2`, which can run alongside the old one while clients move. OBP never changes the version itself. For Dynamic Entities OBP already keeps changes compatible once an entity holds records (only optional properties may be added); a Dynamic Resource Doc can be changed in any way, so keeping its changes compatible is up to its author.
+|
+|**No ambiguous paths.** Under a base path the Dynamic Entities and Dynamic Resource Docs of the space share one set of paths, and a Dynamic Entity owns every path that starts with its name. Because a Domain API may be registered over any space at any time, OBP keeps every space unambiguous, with or without a Domain API: creating or changing a Dynamic Resource Doc is refused (${ErrorMessages.DynamicPathAmbiguous.takeWhile(_ != ':')}) when its path would start with a path variable, with `my`, `public`, `community`, `openapi.json` or `openapi.yaml`, or with the name of one of the space's Dynamic Entities, or when another doc of the same verb would match a request it matches (`/registry/REGISTRY_ID` and `/registry/summary` both match `/registry/summary`). Creating or renaming a Dynamic Entity is refused when one of the space's Dynamic Resource Docs starts with its name, or when it would be named one of those reserved segments. A space holding an ambiguity from before these rules can't have a Domain API (${ErrorMessages.DomainApiPathClash.takeWhile(_ != ':')}) until it is resolved. Under a base path a Dynamic Resource Doc is tried first, then a Dynamic Entity; with the rules above, at most one of them can answer a request.
+|
+|**Managing.** `/obp/v7.0.0/management/banks/BANK_ID/domain-apis` creates and lists a space's Domain APIs, and `/obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID` reads, updates and deletes one. BANK_ID is a bank's id or `SYS`. The Roles are CanCreateDomainApi, CanGetDomainApis, CanUpdateDomainApi and CanDeleteDomainApi, held at that BANK_ID.
 |
 """.stripMargin)
 
@@ -4156,7 +4341,7 @@ object Glossary extends MdcLoggable  {
 |
 |**Why**
 |
-|A Dynamic Resource Doc method body, a Connector Method or a Dynamic Message Doc is user-supplied code compiled and run inside the OBP-API JVM, with the connector credentials and reach of the whole instance. The sandbox is not a meaningful second line of defence, so the primary control is that the person who writes the code (the *maker*) can never make it live alone: a different User holding the Role `CanApproveDynamicChangeRequest` (the *checker*) reviews the exact definition and approves it.
+|A Dynamic Resource Doc method body, a Connector Method or a Dynamic Message Doc is user-supplied code compiled and run inside the OBP-API JVM, with the connector credentials and reach of the whole instance. The primary control is that the person who writes the code (the *maker*) can never make it live alone: a different User holding the Role `CanApproveDynamicChangeRequest` (the *checker*) reviews the exact definition and approves it.
 |
 |**How it works when approval is on**
 |
@@ -4164,7 +4349,7 @@ object Glossary extends MdcLoggable  {
 |
 |2) The checker reads the request (`GET /obp/v7.0.0/management/dynamic-change-requests/CHANGE_REQUEST_ID`, which returns the proposed and the current payload side by side) and approves it by quoting its `payload_hash`, the SHA-256 of the exact body, on `POST .../approval`. Only then is the change applied. OBP refuses an approval from the User who made the request (`OBP-30279`).
 |
-|3) Content is approved, not records. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose body hash equals the hash a checker approved, so a row edited directly in the database does not run.
+|3) An approval covers the exact code. Any later edit produces a new hash and needs a new approval. The runtime compiles and serves only rows whose code hash equals the hash a checker approved. The code hash covers the programming language as well as the method body, and is recomputed from the row each time, so a row whose body or language is edited directly in the database does not run.
 |
 |4) Deactivating an artefact is a direct action by a single checker (`POST .../deactivation`), with no request: four eyes to enable, one pair to disable. Enabling it again goes through a request.
 |
@@ -6320,6 +6505,8 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |OBP provides a built-in Chat / Messaging API that allows users and applications to communicate within the platform.
 				 |
+				 |Chat is the persistent, human-facing side of messaging: rooms, threads, reactions and read markers, all stored in the database. Messages between AI agents belong somewhere else. For short-lived agent-to-agent messages, discovery and presence, see [Signal Channels](/glossary#Signal-Channels), which are Redis-backed, are never written to the database, and expire when a channel goes quiet.
+				 |
 				 |Chat Rooms can be scoped to a specific Bank (bank-level) or be system-wide (system-level).
 				 |
 				 |## Key Concepts
@@ -6461,7 +6648,7 @@ object Glossary extends MdcLoggable  {
 				 |The Glossary is one resource and it reads without a token.
 				 |
 				 |* `GET /obp/v7.0.0/api/glossary/TITLE` — **one Item**. Ask for what you need by title; the whole Glossary is about a megabyte and you rarely want all of it. The title is matched case insensitively, with hyphens, underscores, slashes and spaces all treated alike, so the `Signal-Channels` form you meet in a `/glossary#Signal-Channels` link finds the Item titled `Signal Channels`. Titles contain spaces, so url-encode the segment.
-				 |* `GET /obp/v7.0.0/api/glossary` — the whole Glossary when you do want it. `?search=consent` narrows by title, `?limit=` and `?offset=` page, and `total_count` says how many matched.
+				 |* `GET /obp/v7.0.0/api/glossary` — the whole Glossary when you do want it. `?search=consent` narrows to the Items that mention it, looking at both the title and the text of each Item, so you can search for what a thing does when you do not know what it is called here: `?search=agent messages` finds the Item titled `Signal Channels`. Every word you type has to appear, and Items matching in the title are listed first. `?limit=` and `?offset=` page, and `total_count` says how many matched.
 				 |* Each entry says where it came from: `is_dynamic` is false for Items shipped with the API and true for Items an operator added to this instance. An Item's `description` arrives as both `markdown` and rendered `html`.
 				 |
 				 |Same path, same version, for the Items an operator maintains: `POST /obp/v7.0.0/api/glossary` adds one, `PUT` and `DELETE` on `/obp/v7.0.0/api/glossary/TITLE` change or remove it. Those need a Role, which you will not have; they are listed here so you can tell a human what to ask for.
@@ -6506,6 +6693,8 @@ object Glossary extends MdcLoggable  {
 				 |**Signal Channels** are short-lived, Redis-backed message channels for lightweight coordination between AI agents and other OBP consumers — service discovery, task hand-off, presence announcements. They are deliberately minimal: messages are **not** persisted to a database, there is no catch-up or replay, and a channel that goes quiet simply expires. Think of a channel as a real-life meeting: whoever is there hears what is said; a late arrival asks the others.
 				 |
 				 |Not to be confused with [Chat](/glossary#Chat), which is the persistent, human-facing messaging surface (rooms, threads, reactions, read markers).
+				 |
+				 |**Other names for the same thing.** People and agents arrive here looking for agent messages, agent messaging, agent-to-agent (A2A) communication, inter-agent messaging, a message bus, a pub/sub or publish and subscribe channel, broadcast messages, agent discovery, or agent presence. Signal Channels are what the Open Bank Project calls all of those. If you are an agent meeting this instance for the first time, read [Hello AI Agents](/glossary#Hello-AI-Agents) first; it says how to get credentials and where to announce yourself.
 				 |
 				 |## Lifecycle
 				 |- Channels are auto-created on first publish; no registration step. Creating channels is rate limited per caller (scope `signal_channel_create`, see [Rate Limiting](/glossary#Rate-Limiting)); publishing to an existing channel is not.
@@ -6743,6 +6932,274 @@ object Glossary extends MdcLoggable  {
 				 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
 				 |
 				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "API Metrics",
+		description =
+			s"""
+				 |# API Metrics
+				 |
+				 |**API Metrics** are OBP-API's record of the calls made to it: one record for every API call, saying who made the call, which endpoint it reached, when, how long it took and what status it returned. They are used to see how the API is being used (which endpoints, which Consumers, which Users), to follow up a particular call, and to review the calls made by a Consumer or by an agent acting under a Consent.
+				 |
+				 |On this instance, API Metrics are ${if (code.metrics.MetricsProps.writeMetrics) "being recorded" else "not being recorded"}.
+				 |
+				 |## What each record contains
+				 |
+				 |- the date and time of the call, and its duration in milliseconds
+				 |- the URL, the HTTP verb and the HTTP status code returned
+				 |- the endpoint that handled the call and the API version it is implemented in
+				 |- the User (user id and username) and the Consumer (consumer id, application name and developer email)
+				 |- how the caller authenticated (for example DirectLogin, OAuth2, Consent or Anonymous) and, for a call made under a Consent, the Consent reference id
+				 |- the correlation id, which is also returned to the caller in the `Correlation-Id` response header and is shared by every Connector call made while serving the call (see [Connector Metrics](/glossary#Connector-Metrics))
+				 |- `source_ip`: the address of the client, as OBP-API decided it (see [Client IP Address](/glossary#Client-IP-Address)). Records written before this was introduced hold the raw `X-Forwarded-For` header instead
+				 |- `forwarded_for`: the hops the call passed through: the `X-Forwarded-For` list it arrived with, followed by the address of the machine that connected to OBP-API. Entries to the left of the first address OBP-API does not trust may have been written by the caller, so read them as a claim, not a fact
+				 |- `target_ip`: the `X-Forwarded-Host` request header, as sent
+				 |- the `api_instance_id` of the OBP-API instance that served the call
+				 |- the response body, for selected endpoints only
+				 |
+				 |## How long records are kept
+				 |
+				 |Records are written to the database in batches. ${if (code.metrics.MetricsProps.enableMetricsScheduler) s"On this instance, records stay in the live metrics table for ${code.metrics.MetricsProps.retainMetricsDays} days, are then moved to the metrics archive, and are deleted from the archive after ${code.metrics.MetricsProps.retainArchiveMetricsDays} days." else "On this instance, records are not moved to the archive or deleted automatically."}
+				 |
+				 |## Reading API Metrics
+				 |
+				 |- `GET /management/metrics`: search the records, filtered by date, User, Consumer, endpoint, verb, status and more. Requires the Role CanReadMetrics.
+				 |- `GET /management/aggregate-metrics`: counts and durations over a filtered set of records. Requires the Role CanReadAggregateMetrics.
+				 |- `GET /management/metrics/top-apis`, `/top-consumers` and `/top-users`: the most used endpoints, the most active Consumers and the most active Users. Require the Role CanReadMetrics.
+				 |- `GET /management/metrics/banks/BANK_ID`: the records for calls about one bank. Requires the Role CanGetMetricsAtOneBank at that bank.
+				 |- `GET /my/metrics`: the calling User's own calls, together with the calls made by agents under Consents that User granted. No Role is required.
+				 |- `GET /management/system/diagnostics/metrics`: the state of the metrics table and its archive. Requires the Role CanGetMetricsDiagnostics.
+				 |
+				 |## API Metrics are not Telemetry
+				 |
+				 |API Metrics record individual calls and who made them. [Telemetry](/glossary#Telemetry) is aggregated numbers about how an instance is behaving (request rates, durations, cache hit ratios, memory, threads) and never records who made a call. Use API Metrics to answer "who called what"; use Telemetry to answer "is this instance healthy".
+				 |
+				 |See also: [Connector Metrics](/glossary#Connector-Metrics), [Telemetry](/glossary#Telemetry), [Rate Limiting](/glossary#Rate-Limiting), [Consent](/glossary#Consent).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Client IP Address",
+		description =
+			s"""
+				 |# Client IP Address
+				 |
+				 |The **Client IP Address** is the address of the person or program that really made a call, as opposed to the address of whatever passed the call on to OBP-API. OBP-API uses it for per-address [Rate Limiting](/glossary#Rate-Limiting) (including the documentation limit for callers who are not logged in), for IP penalties, and for the busiest-callers view.
+				 |
+				 |## The problem
+				 |
+				 |OBP-API only sees the machine that opened the connection to it. When a browser talks to API Explorer II, API Explorer II talks to OBP-API; when a User chats with Opey, Opey asks OBP-MCP, and OBP-MCP calls OBP-API. Without help, every one of those calls would appear to come from the same server, so one busy User could use up everyone's limit, and a penalty would lock out everyone at once.
+				 |
+				 |## How the address is passed on: X-Forwarded-For
+				 |
+				 |Each hop adds the address it received the request from to the `X-Forwarded-For` header before passing the request on. The header therefore reads "client, first hop, second hop, ...". For a chat with Opey behind NGINX, the chain that reaches OBP-API looks like this:
+				 |
+				 || Hop | Receives the request from | Appends |
+				 ||---|---|---|
+				 || NGINX in front of API Explorer II | the browser | the browser's address |
+				 || API Explorer II | NGINX | NGINX's address |
+				 || Opey | API Explorer II | API Explorer II's address |
+				 || OBP-MCP | Opey | Opey's address |
+				 || OBP-API | OBP-MCP (the TCP peer) | nothing: it reads the chain |
+				 |
+				 |API Explorer II, Opey and OBP-MCP each append the address of the machine they received the request from, the same way NGINX does. Opey keeps the chain outside the conversation, so it never reaches the language model, and it replaces any address header the model writes into a tool call. On the Berlin Group endpoints, API Explorer II also sends the browser's address as `PSU-IP-Address`.
+				 |
+				 |## How OBP-API stops a false address
+				 |
+				 |Anyone can write anything at the left end of the chain, so OBP-API never simply takes the first entry. It reads the chain **from the right**: it skips every address it trusts, and the first address it does not trust is the client. A caller that OBP-API does not trust cannot name a false address, because the walk stops at that caller's own address. For this to work, every hop (NGINX, API Explorer II, Opey, OBP-MCP) must be on OBP-API's list of trusted addresses, and it must not be possible to reach the services behind NGINX except through the hops in front of them.
+				 |
+				 |OBP-API also accepts an `X-Real-IP` header holding a single address, for a deployment with one proxy that overwrites it.
+				 |
+				 |## Where the address is recorded
+				 |
+				 |Each [API Metrics](/glossary#API-Metrics) record keeps the client address OBP-API decided on (`source_ip`) and the whole list of hops (`forwarded_for`), so a call can be traced back through the apps it passed through.
+				 |
+				 |## What the address does and does not tell you
+				 |
+				 |The client address is the address that opened a connection to the outermost trusted proxy. It cannot be faked by writing a false sending address on the network packets, because opening a connection needs the caller to receive the proxy's reply. It may, however, belong to a home router, a company's or mobile network's shared address, a VPN or Tor exit, rather than to the person's own device.
+				 |
+				 |## On this instance
+				 |
+				 |- Client addresses ${if (APIUtil.getPropsAsBoolValue("trust.proxy.enabled", false)) s"are taken from the `${APIUtil.getPropsValue("trust.proxy.header", "X-Real-IP")}` header" else "are not taken from any header: the machine that opened the connection is treated as the client"}.
+				 |- ${APIUtil.getPropsValue("trust.proxy.peers").toOption.map(_.trim).filter(_.nonEmpty) match {
+				      case Some(peers) => s"The header is believed only from these addresses: $peers."
+				      case None => "The header is believed from any caller, and for `X-Forwarded-For` the leftmost address is used, which the client itself can write."
+				    }}
+				 |
+				 |Deployment Checks (`GET /obp/v7.0.0/management/system/diagnostics/deployment`, Role CanGetConfig) show whether requests arrive with a forwarding header, which machines send it, and whether any were ignored because they came from an address that is not trusted.
+				 |
+				 |See also: [Rate Limiting](/glossary#Rate-Limiting), [API Metrics](/glossary#API-Metrics), [OBP-MCP](/glossary#OBP-MCP).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Connector Metrics",
+		description =
+			s"""
+				 |# Connector Metrics
+				 |
+				 |**Connector Metrics** are OBP-API's record of the calls it makes to the [Connector](/glossary#Connector), the component that talks to the bank's systems: one record for every Connector call. A single API call can lead to several Connector calls, so Connector Metrics show where the time of an API call went and which calls to the bank's systems failed.
+				 |
+				 |On this instance, Connector Metrics are ${if (APIUtil.getPropsAsBoolValue("write_connector_metrics", false)) "being recorded" else "not being recorded"}.
+				 |
+				 |## What each record contains
+				 |
+				 |- the Connector name and the Connector method called (for example `getBankAccount`)
+				 |- the date and time of the call, and its duration in milliseconds
+				 |- whether the call succeeded
+				 |- the key request parameters of the call
+				 |- the correlation id of the API call it was made for, so the Connector calls behind one API call can be found from its [API Metrics](/glossary#API-Metrics) record
+				 |- the `api_instance_id` of the OBP-API instance that made the call
+				 |
+				 |Records are written to the database in batches.
+				 |
+				 |## Reading Connector Metrics
+				 |
+				 |- `GET /management/connector/metrics`: search the records, filtered by date, Connector name, method and correlation id. Requires the Role CanGetConnectorMetrics.
+				 |
+				 |## Related records
+				 |
+				 |- **Connector call counts** are per-hour counters of Connector calls made and of successful and failed responses, per Connector method, held in Redis rather than in the database. On this instance they are ${if (code.metrics.ConnectorCountsRedis.isEnabled) "being counted" else "not being counted"}. Read them with `GET /management/connector/metrics/counts` (Role CanReadMetrics).
+				 |- **Connector Traces** hold the complete messages sent to and received from the Connector for each call, for debugging. They are much larger than Connector Metrics and can contain customer and account data. On this instance they are ${if (APIUtil.getPropsAsBoolValue("write_connector_trace", false)) "being recorded" else "not being recorded"}. Read them with `GET /management/connector/traces`.
+				 |
+				 |## Connector Metrics are not Telemetry
+				 |
+				 |Connector Metrics record individual Connector calls. [Telemetry](/glossary#Telemetry) reports aggregated numbers about how an instance is behaving, including the rate, errors and duration of Connector calls per method, without keeping a record of each call.
+				 |
+				 |See also: [API Metrics](/glossary#API-Metrics), [Connector](/glossary#Connector), [Connector Method](/glossary#Connector-Method), [Telemetry](/glossary#Telemetry).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Platform Apps",
+		description =
+			s"""
+				 |# Platform Apps
+				 |
+				 |A **Platform App** is an application an installation runs as part of its own OBP deployment, such as the Portal, the API Manager, Opey or one of the bank's own services. Like any application it calls OBP as a Consumer, and some of its calls are made with its own application token (OAuth2 client credentials) rather than for a logged-in User: reading published pages for anonymous visitors, or creating the Dynamic Entities it depends on at startup. Those calls need Roles granted to its Consumer as Scopes.
+				 |
+				 |## How it works
+				 |
+				 |1. An administrator marks the app's Consumer as a Platform App (Role CanCreatePlatformApp), giving it the name administrators know it by.
+				 |2. The app declares, as itself, the Scopes it needs and what each is needed for. It does this whenever it starts or checks itself, so the list follows the version that is running. An app whose Consumer has not been marked cannot declare anything, so an arbitrary Consumer cannot ask to be granted Scopes this way.
+				 |3. OBP compares each declaration with the Scopes the Consumer holds. An administrator with CanGetPlatformApps sees, for every Platform App, which Scopes are held and which are missing, and grants the missing ones (CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at the Scope's bank id).
+				 |
+				 |A Scope declared as optional is one the app can manage without, for example because another Platform App does the same work. It is shown, but does not count as missing.
+				 |
+				 |Each app can also check its own Consumer: GET /obp/v7.0.0/consumers/current/scopes returns the Scopes the calling Consumer holds, without any Role.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Platform App](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createPlatformApp): `POST /obp/v7.0.0/management/platform-apps`, to mark a Consumer as a Platform App.
+				 |- [Get Platform Apps](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPlatformApps): `GET /obp/v7.0.0/management/platform-apps`, to list them, with each declared Scope held or not.
+				 |- [Delete Platform App](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deletePlatformApp): `DELETE /obp/v7.0.0/management/platform-apps/CONSUMER_ID`, to unmark one.
+				 |- [Update Current Consumer Platform App](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateCurrentConsumerPlatformApp): `PUT /obp/v7.0.0/consumers/current/platform-app`, for an app to declare the Scopes it needs.
+				 |- [Get Current Consumer Scopes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getCurrentConsumerScopes): `GET /obp/v7.0.0/consumers/current/scopes`, for an app to read the Scopes its Consumer holds.
+				 |- [Create Scope for a Consumer](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-addScope): `POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes`, to grant a missing Scope.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Groups",
+		description =
+			s"""
+				 |# Groups
+				 |
+				 |A **Group** is a named list of Roles at one bank id (or at system level), used to give the same Roles to many Users. A Group has a name, a description, its list of Roles, and whether it is enabled.
+				 |
+				 |A Group is not itself checked when a User calls an endpoint. Adding a User to a Group grants them the Group's Roles as ordinary Entitlements, at the Group's bank id, and those Entitlements are what every Role check reads.
+				 |
+				 |## Adding a User to a Group
+				 |
+				 |Each of the Group's Roles the User does not already hold at that bank id is granted to them (the User is emailed about each one), and the Entitlement records the Group that granted it (its `group_id`). A Role they already hold, however it was granted, is not granted again: a User holds a Role at a bank id once. The membership itself is recorded as well, so a User is a member of a Group even when the Group granted them nothing because they already held all its Roles.
+				 |
+				 |Only an enabled Group can have Users added to it.
+				 |
+				 |## Groups that share Roles
+				 |
+				 |Two Groups may list the same Role. A member of both holds it once, recorded against the Group that granted it first. When that Group stops granting it to the User, because the User is removed from it or the Role is taken out of it, the Role is kept if another Group the User is in, at the same bank id, still grants it: the Entitlement is then recorded against that Group instead. Nothing is emailed, because the User's Roles do not change.
+				 |
+				 |## Changing a Group's Roles
+				 |
+				 |Updating a Group changes its list of Roles, but not what its existing members hold. To bring them in line, sync the Group's members: each member is granted the Group's Roles they lack, and loses the Entitlements the Group granted for Roles it no longer has (subject to the sharing rule above). A dry run shows what would change without changing anything. Entitlements granted by hand, or by other Groups, are never touched.
+				 |
+				 |## Removing a User from a Group
+				 |
+				 |Removing a User from a Group ends the membership and deletes the Entitlements the Group granted them, except those another of their Groups still grants (see above). Deleting a Group ends all its memberships; the Entitlements it granted are left in place.
+				 |
+				 |## Roles
+				 |
+				 |Managing Groups needs CanCreateGroupAtOneBank, CanGetGroupsAtOneBank, CanUpdateGroupAtOneBank and CanDeleteGroupAtOneBank at the Group's bank id, or the AllBanks version of each (required for a system level Group). Adding and removing members needs CanAddUserToGroupAtOneBank and CanRemoveUserFromGroupAtOneBank, or their AllBanks versions; syncing a Group's members, or a user's Groups, needs both.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-createGroup): `POST /obp/v6.0.0/management/groups`
+				 |- [Get Groups](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getGroups): `GET /obp/v6.0.0/management/groups`
+				 |- [Update Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-updateGroup): `PUT /obp/v6.0.0/management/groups/GROUP_ID`
+				 |- [Delete Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-deleteGroup): `DELETE /obp/v6.0.0/management/groups/GROUP_ID`
+				 |- [Get Group Entitlements](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getGroupEntitlements): `GET /obp/v6.0.0/management/groups/GROUP_ID/entitlements`, the Entitlements a Group has granted.
+				 |- [Add User to Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-addUserToGroup): `POST /obp/v6.0.0/users/USER_ID/group-entitlements`
+				 |- [Remove User from Group](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-removeUserFromGroup): `DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID`
+				 |- [Get User's Group Memberships](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getUserGroupMemberships): `GET /obp/v6.0.0/users/USER_ID/group-entitlements`
+				 |- [Sync Group Members](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncGroupMembers): `POST /obp/v7.0.0/management/groups/GROUP_ID/sync-members`
+				 |- [Sync Group Member](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncGroupMember): `POST /obp/v7.0.0/management/groups/GROUP_ID/users/USER_ID/sync`, the same for one member.
+				 |- [Sync User Groups](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-syncUserGroups): `POST /obp/v7.0.0/management/users/USER_ID/sync-groups`, one user in every Group they are in, and the Entitlements left by Groups since deleted.
+				 |
+				 |How Roles and Entitlements control access is described ${getGlossaryItemLink("API.Access Control")}.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Telemetry",
+		description =
+			s"""
+				 |# Telemetry
+				 |
+				 |**Telemetry** is the set of aggregated numbers that describe how a running OBP-API instance is behaving: how many requests it serves and how long they take, how often its caches answer without recomputing, how full its queues and connection pools are, how much memory it uses and how many threads it runs. Operators use it to see trouble building up (a heap filling, a queue backing up, a cache that has stopped hitting) and to find its cause once something has gone wrong.
+				 |
+				 |## Telemetry is not API Metrics
+				 |
+				 |OBP already uses the word "metrics" for two kinds of per-call record. Telemetry is a different thing and deliberately has a different name:
+				 |
+				 || | What it is | Where it lives | Carries identities? |
+				 ||---|---|---|---|
+				 || **API Metrics** | one record per API call: who called what, when, and how long it took | the OBP database, read through the metrics endpoints | yes: consumer and user |
+				 || **Connector Metrics** | one record per call from OBP-API to the Connector | the OBP database, read through the connector metrics endpoint | per call |
+				 || **Telemetry** | aggregated numbers about the running instance: counts, rates, durations, sizes, current levels | collected from each instance by a monitoring system such as Prometheus and viewed in a tool such as Grafana; never stored in the OBP database | never |
+				 |
+				 |API Metrics answer "who used the API, and how". Telemetry answers "is this instance healthy, and if not, why not". Because Telemetry never records who made a call, it can be collected on every request without writing to the database.
+				 |
+				 |## What Telemetry measures
+				 |
+				 |Telemetry uses four types of measurement:
+				 |
+				 |- **Counters** count how often something happened, for example cache hits and cache misses.
+				 |- **Gauges** report a current level, for example the depth of a queue or the number of live threads.
+				 |- **Distribution summaries** describe how large something is and how widely that varies, for example the size of response bodies or the number of items in a returned list.
+				 |- **Timers** describe how long something takes, for example the duration of an endpoint or a Connector call.
+				 |
+				 |It covers each endpoint (request rate, errors and duration), each Connector method, the caches, Redis, the database connection pool, the log dispatch queue, and the Java virtual machine itself (memory, garbage collection, threads).
+				 |
+				 |## Naming
+				 |
+				 |OBP-API's own Telemetry series start with `obp_api_`, for example `obp_api_cache_gets_total` with a `cache` label naming the cache and a `result` label of `hit` or `miss`. Other Open Bank Project products use their own prefixes. Standard series from the Java virtual machine and the database connection pool keep their usual names (`jvm_*`, `hikaricp_*`), so that standard dashboards work with them.
+				 |
+				 |Telemetry labels only ever take values from small, fixed sets (an operation id, an API version, a status class, a cache name). They never contain a user id, consumer id, consent id, account id or any other identifier of a person or a record.
+				 |
+				 |## Which instance is reporting
+				 |
+				 |Each running OBP-API process has its own `api_instance_id`, the same id that appears on every API Metrics record it writes. Telemetry reports it alongside the build commit, so figures from one instance can be matched with that instance's API Metrics.
+				 |
+				 |## Reading Telemetry
+				 |
+				 |- **Prometheus** collects Telemetry from a separate port of each OBP-API instance, at the path `/telemetry`, in the Prometheus text format. Reading each instance directly keeps figures from different instances apart, and the port keeps answering when the API itself is overloaded. ${if (code.telemetry.Telemetry.portSettings.enabled) s"On this instance the port is open, on port ${code.telemetry.Telemetry.portSettings.port}." else "On this instance the port is not open."}
+				 |- **People** can read the same figures with `GET /obp/v7.0.0/management/telemetry`, which requires the Role CanGetTelemetry. Its response names the instance that answered.
+				 |
+				 |See also: [API Metrics](/glossary#API-Metrics), [Connector Metrics](/glossary#Connector-Metrics), [Rate Limiting](/glossary#Rate-Limiting), [Connector](/glossary#Connector), [Resource Doc](/glossary#Resource-Doc).
 				 |
 """)
 

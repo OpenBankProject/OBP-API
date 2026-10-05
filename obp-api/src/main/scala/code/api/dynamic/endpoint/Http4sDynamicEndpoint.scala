@@ -28,6 +28,7 @@ package code.api.dynamic.endpoint
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
+import code.api.dynamic.endpoint.helper.DynamicEndpointMatch
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.util.CustomJsonFormats
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
@@ -58,7 +59,7 @@ import org.http4s.{HttpRoutes, Request, Response}
  *     `code.api.dynamic.endpoint.helper.DynamicEndpoints.CompiledObjects` / `DynamicCompileEndpoint`).
  *     The doc's auth/validation chain (`ResourceDoc.authCheckIO`, the native mirror of
  *     `wrappedWithAuthCheck`) runs first, then the handler runs inside the dynamic-code security
- *     sandbox (`Sandbox.runInSandboxIO`, applied inside the compiled handler).
+ *     body forcing / early-return recovery (`DynamicCodeBody.force`, inside the compiled handler).
  *
  * Piece B is tried first; a non-match falls through to Piece C; a non-match there returns
  * `OptionT.none`, so the request falls through the Http4sApp chain (the Lift bridge produces the
@@ -117,8 +118,19 @@ object Http4sDynamicEndpoint extends MdcLoggable {
    */
   private def pieceC(req: Request[IO]): OptionT[IO, Response[IO]] =
     DynamicEndpoints.findEndpoint(req) match {
-      case None => OptionT.none[IO, Response[IO]]
-      case Some(doc) =>
+      case DynamicEndpointMatch.NotFound => OptionT.none[IO, Response[IO]]
+      case DynamicEndpointMatch.Ambiguous(spaces) =>
+        OptionT.liftF {
+          Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc =>
+            ErrorResponseConverter.toHttp4sResponse(
+              code.api.JsonResponseException(s"${code.api.util.ErrorMessages.DynamicResourceDocUrlAmbiguous}${spaces.mkString(", ")}.", 409, cc.correlationId), cc)
+              .flatMap(EndpointHelpers.recordMetricFor(_)(cc))
+          }
+        }
+      case DynamicEndpointMatch.Found(doc, matchedReq) =>
+        // matchedReq is the request with the URL that names the doc's space, also when the caller used the
+        // older URL without it, so the handler, its path parameters and the metric all see one URL.
+        val req = matchedReq
         OptionT.liftF {
           Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc0 =>
             val cc = cc0.copy(resourceDocument = Some(doc), operationId = Some(doc.operationId))
@@ -127,12 +139,17 @@ object Http4sDynamicEndpoint extends MdcLoggable {
               case Some(jv) => Full(jv)
               case None     => Empty
             }
+            // Every outcome records an API metric, like any other endpoint: the handler's response
+            // under the authenticated call context (so the row names the User), and a failure to
+            // authenticate or authorise under the context the request arrived with.
             val io: IO[Response[IO]] = for {
               authedCcOpt <- IO.fromFuture(IO(doc.authCheckIO(partPath, bodyJValue, cc)))
               authedCc    = authedCcOpt.getOrElse(cc)
               resp        <- doc.dynamicHttp4sFunction.get.apply(req)(authedCc)
-            } yield resp
-            io.handleErrorWith(err => ErrorResponseConverter.toHttp4sResponse(err, cc))
+                               .handleErrorWith(err => ErrorResponseConverter.toHttp4sResponse(err, authedCc))
+              recorded    <- EndpointHelpers.recordMetricFor(resp)(authedCc)
+            } yield recorded
+            io.handleErrorWith(err => ErrorResponseConverter.toHttp4sResponse(err, cc).flatMap(EndpointHelpers.recordMetricFor(_)(cc)))
           }
         }
     }

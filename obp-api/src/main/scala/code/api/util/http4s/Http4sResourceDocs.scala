@@ -29,13 +29,13 @@ package code.api.util.http4s
 
 import org.json4s._
 import cats.effect.IO
-import code.api.Constant.HostName
+import code.api.Constant.{DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, HostName}
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocs300, ResourceDocsAPIMethodsUtil}
 import code.api.ResponseHeader
 import code.api.cache.Caching
 import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CustomJsonFormats, YAMLUtils}
+import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CustomJsonFormats, ResourceDocFilters, YAMLUtils}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.bankconnectors.rest.RestConnector_vMar2019
@@ -73,6 +73,8 @@ import code.api.util.ApiTag.ResourceDocTag
  *   GET /obp/&#42;/resource-docs/{API_VERSION}/openapi
  *   GET /obp/&#42;/resource-docs/{API_VERSION}/openapi.yaml
  *   GET /obp/&#42;/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp
+ *   GET /obp/&#42;/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi
+ *   GET /obp/&#42;/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi.yaml
  *   GET /obp/&#42;/message-docs/{CONNECTOR}/swagger2.0
  *
  * Wired into `Http4sApp.baseServices` BEFORE the Lift bridge, so requests are
@@ -112,8 +114,10 @@ object Http4sResourceDocs extends MdcLoggable {
   // `req.uri.query.params` instead of Lift's `ObpS.param` / `S.request`.
 
   private final case class ParsedParams(
-    tags: Option[List[ResourceDocTag]],
-    partialFunctions: Option[List[String]],
+    // The raw filter values. They never reach a cache key or a filter directly: each handler turns
+    // them into a ResourceDocFilters first (see ResourceDocFilters for why).
+    tagValues: Option[List[String]],
+    functionValues: Option[List[String]],
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionId: Option[String],
@@ -133,7 +137,7 @@ object Http4sResourceDocs extends MdcLoggable {
     val tags = rawTags match {
       case None | Some("") => None
       case Some(s)         =>
-        val list = s.trim.split(",").toList.map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_))
+        val list = s.trim.split(",").toList.map(_.trim).filter(_.nonEmpty)
         if (list.nonEmpty) Some(list) else None
     }
     val partialFunctions = rawFunctions match {
@@ -228,6 +232,32 @@ object Http4sResourceDocs extends MdcLoggable {
     }
   }
 
+  // ─── Cache for rendered swagger / OpenAPI documents ──────────────────────
+
+  /**
+   * This function picks the cache a rendered swagger or OpenAPI document is kept in, returned as a
+   * getter and a setter.
+   *
+   * A document of dynamic docs only (content=dynamic) goes in the dynamic resource docs cache. That
+   * cache's namespace is bumped whenever a Dynamic Entity is created, updated or deleted
+   * (NewStyle.function.invalidateDynamicResourceDocCaches), so the next request rebuilds the
+   * document. The static swagger cache is never bumped that way, and a dynamic document kept there
+   * went on omitting a new Dynamic Entity for the rest of its TTL. Every other document stays in the
+   * static swagger cache.
+   *
+   * The key is prefixed with the format in the dynamic cache, because the obp format keeps its own
+   * content=dynamic document there under a key built from the same arguments.
+   */
+  private def renderedDocCache(
+    format: String,
+    contentParam: Option[ContentParam]
+  ): (String => Option[String], (String, String) => Unit) =
+    if (contentParam.contains(DYNAMIC))
+      (key => Caching.getDynamicResourceDocCache(s"$format:$key"),
+        (key, value) => Caching.setDynamicResourceDocCache(s"$format:$key", value))
+    else
+      (Caching.getStaticSwaggerDocCache, Caching.setStaticSwaggerDocCache)
+
   // ─── Common parameter validation ─────────────────────────────────────────
   // Mirrors the parameter-validation branches in the Lift handlers.
 
@@ -311,13 +341,13 @@ object Http4sResourceDocs extends MdcLoggable {
     isVersion4OrHigher: Boolean
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val includeTech = includeTechnologyForPrefix(prefix)
       val cacheKey = APIUtil.createResourceDocCacheKey(
         None,
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -334,7 +364,7 @@ object Http4sResourceDocs extends MdcLoggable {
           val cached = Caching.getDynamicResourceDocCache(cacheKey)
           if (cached.isDefined) json.parse(cached.get)
           else {
-            val rdJson = impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher = false).head
+            val rdJson = impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher = false).head
             val jv = resourceDocsJsonToJsonResponse(rdJson)
             Caching.setDynamicResourceDocCache(cacheKey, json.compactRender(jv))
             jv
@@ -343,7 +373,7 @@ object Http4sResourceDocs extends MdcLoggable {
           val cached = Caching.getStaticResourceDocCache(cacheKey)
           if (cached.isDefined) json.parse(cached.get)
           else {
-            val rdJson = impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head
+            val rdJson = impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head
             val jv = resourceDocsJsonToJsonResponse(rdJson)
             Caching.setStaticResourceDocCache(cacheKey, json.compactRender(jv))
             jv
@@ -352,7 +382,7 @@ object Http4sResourceDocs extends MdcLoggable {
           val cached = Caching.getAllResourceDocCache(cacheKey)
           if (cached.isDefined) json.parse(cached.get)
           else {
-            val rdJson = impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head
+            val rdJson = impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head
             val jv = resourceDocsJsonToJsonResponse(rdJson)
             Caching.setAllResourceDocCache(cacheKey, json.compactRender(jv))
             jv
@@ -393,19 +423,20 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val isVersion4OrHigher = true
       val cacheKey = APIUtil.createResourceDocCacheKey(
         None,
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
         Some(isVersion4OrHigher)
       )
-      val cached = Caching.getStaticSwaggerDocCache(cacheKey)
+      val (renderedDocCacheGet, renderedDocCacheSet) = renderedDocCache("swagger", params.contentParam)
+      val cached = renderedDocCacheGet(cacheKey)
       val jv: JValue =
         if (cached.isDefined) json.parse(cached.get)
         else {
@@ -418,14 +449,14 @@ object Http4sResourceDocs extends MdcLoggable {
             case None =>
               params.contentParam match {
                 case Some(DYNAMIC) =>
-                  impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher).head.resource_docs
+                  impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher).head.resource_docs
                 case Some(STATIC) =>
-                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head.resource_docs
+                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head.resource_docs
                 case _ =>
-                  impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
+                  impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
-          impl.convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+          impl.convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered, renderedDocCacheSet)
         }
       Right(jv)
     } catch {
@@ -466,19 +497,20 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val isVersion4OrHigher = true
       val cacheKey = APIUtil.createResourceDocCacheKey(
         Some("openapi31"),
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
         Some(isVersion4OrHigher)
       )
-      val cached = Caching.getStaticSwaggerDocCache(cacheKey)
+      val (renderedDocCacheGet, renderedDocCacheSet) = renderedDocCache("openapi31", params.contentParam)
+      val cached = renderedDocCacheGet(cacheKey)
       val jv: JValue =
         if (cached.isDefined) json.parse(cached.get)
         else {
@@ -491,14 +523,14 @@ object Http4sResourceDocs extends MdcLoggable {
             case None =>
               params.contentParam match {
                 case Some(DYNAMIC) =>
-                  impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher).head.resource_docs
+                  impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher).head.resource_docs
                 case Some(STATIC) =>
-                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head.resource_docs
+                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head.resource_docs
                 case _ =>
-                  impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
+                  impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
-          impl.convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+          impl.convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered, renderedDocCacheSet)
         }
       Right(jv)
     } catch {
@@ -536,19 +568,20 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), String] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val isVersion4OrHigher = true
       val cacheKey = APIUtil.createResourceDocCacheKey(
         Some("openapi31yaml"),
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
         Some(isVersion4OrHigher)
       )
-      val cached = Caching.getStaticSwaggerDocCache(cacheKey)
+      val (renderedDocCacheGet, renderedDocCacheSet) = renderedDocCache("openapi31yaml", params.contentParam)
+      val cached = renderedDocCacheGet(cacheKey)
       val yamlString: String =
         if (cached.isDefined) cached.get
         else {
@@ -561,14 +594,14 @@ object Http4sResourceDocs extends MdcLoggable {
             case None =>
               params.contentParam match {
                 case Some(DYNAMIC) =>
-                  impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher).head.resource_docs
+                  impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, None, isVersion4OrHigher).head.resource_docs
                 case Some(STATIC) =>
-                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, isVersion4OrHigher).head.resource_docs
+                  impl.getStaticResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, isVersion4OrHigher).head.resource_docs
                 case _ =>
-                  impl.getAllResourceDocsObpCached(requestedApiVersionString, params.tags, params.partialFunctions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
+                  impl.getAllResourceDocsObpCached(requestedApiVersionString, filters.tags, filters.functions, params.locale, params.contentParam, isVersion4OrHigher).head.resource_docs
               }
           }
-          impl.convertResourceDocsToOpenAPI31YAMLAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+          impl.convertResourceDocsToOpenAPI31YAMLAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered, renderedDocCacheSet)
         }
       Right(yamlString)
     } catch {
@@ -576,6 +609,56 @@ object Http4sResourceDocs extends MdcLoggable {
         logger.error(s"Http4sResourceDocs.buildOpenApi31Yaml failed: ${e.getMessage}", e)
         Left(Status.BadRequest -> s"Invalid API version: $requestedApiVersionString")
     }
+  }
+
+  // ─── Bank level handlers: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/... ─
+  //
+  // These routes document the dynamic things that belong to one space: the Dynamic Entities,
+  // Dynamic Endpoints and Dynamic Resource Docs of one bank, or of the system space when BANK_ID
+  // is SYS (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID). Static endpoints belong to no bank, so
+  // a bank level document only ever holds dynamic docs, and the `content` parameter does not
+  // apply. The three formats (obp, openapi, openapi.yaml) share one gate, bankLevelGate.
+
+  /**
+   * This function runs the checks every bank level resource-docs route makes before building its
+   * document: the optional role check (only when resource_docs_requires_role=true), then the
+   * check that the space exists, then the route's own parameter checks (`validate`). An error
+   * from the last two is rendered with `errorResponse`, so the YAML route can answer in plain text.
+   */
+  private def bankLevelGate(
+    req: Request[IO],
+    prefix: String,
+    bankIdStr: String,
+    errorResponse: (Status, String) => IO[Response[IO]]
+  )(validate: => Option[(Status, String)])(body: => IO[Response[IO]]): IO[Response[IO]] =
+    withOptionalRoleCheck(req, prefix, bankIdStr, canReadDynamicResourceDocsAtOneBank :: Nil,
+      UserHasMissingRoles + canReadDynamicResourceDocsAtOneBank.toString) {
+      if (!spaceExists(bankIdStr)) errorResponse(Status.NotFound, s"$BankNotFound Current BANK_ID = $bankIdStr")
+      else validate match {
+        case Some((status, message)) => errorResponse(status, message)
+        case None => body
+      }
+    }
+
+  /**
+   * This function says whether a space exists. SYS is the system space rather than a bank row, so
+   * it exists without a bank lookup; any other value must be the id of a bank.
+   */
+  private def spaceExists(bankIdStr: String): Boolean =
+    bankIdStr == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ||
+      code.bankconnectors.Connector.connector.vend.getBankLegacy(BankId(bankIdStr), None).map(_._1).isDefined
+
+  /** The dynamic docs of one space, filtered by the request's tags and functions. */
+  private def bankLevelDynamicDocs(
+    params: ParsedParams,
+    prefix: String,
+    bankIdStr: String,
+    isVersion4OrHigher: Boolean
+  ): List[JSONFactory1_4_0.ResourceDocJson] = {
+    val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
+    implForPrefix(prefix)
+      .getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, Some(bankIdStr), isVersion4OrHigher)
+      .head.resource_docs
   }
 
   // ─── Handler: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp ─
@@ -587,30 +670,20 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): IO[Response[IO]] = {
     val params = parseParams(req)
-    withOptionalRoleCheck(req, prefix, bankIdStr, canReadDynamicResourceDocsAtOneBank :: Nil,
-      UserHasMissingRoles + canReadDynamicResourceDocsAtOneBank.toString) {
-      // Bank-level handler ALWAYS requires the bank to exist. Use the legacy connector lookup
-      // synchronously; it does its own 404 if absent.
-      val bankBox: Box[com.openbankproject.commons.model.Bank] =
-        code.bankconnectors.Connector.connector.vend.getBankLegacy(BankId(bankIdStr), None).map(_._1)
-      if (bankBox.isEmpty) errorJson(Status.NotFound, s"$BankNotFound Current BANK_ID = $bankIdStr")
-      else {
-        val localeError: Option[String] = params.locale match {
-          case Some(l) if APIUtil.obpLocaleValidation(l) != SILENCE_IS_GOLDEN =>
-            Some(s"$InvalidLocale Current Locale is $l")
-          case _ => None
-        }
-        val versionError: Option[String] =
-          try { ApiVersionUtils.valueOf(requestedApiVersionString); None }
-          catch { case _: Throwable => Some(s"$InvalidApiVersionString $requestedApiVersionString") }
-        localeError.orElse(versionError) match {
-          case Some(msg) => errorJson(Status.BadRequest, msg)
-          case None =>
-            IO(buildBankLevelResourceDocsJson(params, prefix, bankIdStr, requestedApiVersionString)).flatMap {
-              case Right(body) => jsonResponse(Status.Ok, body)
-              case Left((s, m)) => errorJson(s, m)
-            }
-        }
+    bankLevelGate(req, prefix, bankIdStr, errorJson) {
+      val localeError: Option[String] = params.locale match {
+        case Some(l) if APIUtil.obpLocaleValidation(l) != SILENCE_IS_GOLDEN =>
+          Some(s"$InvalidLocale Current Locale is $l")
+        case _ => None
+      }
+      val versionError: Option[String] =
+        try { ApiVersionUtils.valueOf(requestedApiVersionString); None }
+        catch { case _: Throwable => Some(s"$InvalidApiVersionString $requestedApiVersionString") }
+      localeError.orElse(versionError).map(Status.BadRequest -> _)
+    } {
+      IO(buildBankLevelResourceDocsJson(params, prefix, bankIdStr, requestedApiVersionString)).flatMap {
+        case Right(body) => jsonResponse(Status.Ok, body)
+        case Left((s, m)) => errorJson(s, m)
       }
     }
   }
@@ -622,12 +695,12 @@ object Http4sResourceDocs extends MdcLoggable {
     requestedApiVersionString: String
   ): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
       val impl = implForPrefix(prefix)
       val cacheKey = APIUtil.createResourceDocCacheKey(
         Some(bankIdStr),
         requestedApiVersionString,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -637,7 +710,7 @@ object Http4sResourceDocs extends MdcLoggable {
       val jv: JValue =
         if (cached.isDefined) json.parse(cached.get)
         else {
-          val rdJson = impl.getResourceDocsObpDynamicCached(params.tags, params.partialFunctions, params.locale, None, isVersion4OrHigher = false).head
+          val rdJson = impl.getResourceDocsObpDynamicCached(filters.tags, filters.functions, params.locale, Some(bankIdStr), isVersion4OrHigher = false).head
           val response = resourceDocsJsonToJsonResponse(rdJson)
           Caching.setDynamicResourceDocCache(cacheKey, json.compactRender(response))
           response
@@ -647,6 +720,88 @@ object Http4sResourceDocs extends MdcLoggable {
       case e: Throwable =>
         logger.error(s"Http4sResourceDocs.buildBankLevelResourceDocsJson failed: ${e.getMessage}", e)
         Left(Status.BadRequest -> s"$UnknownError Can not create dynamic resource docs.")
+    }
+  }
+
+  // ─── Handler: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi ─
+
+  private def handleGetBankLevelDynamicResourceDocsOpenAPI31(
+    req: Request[IO],
+    prefix: String,
+    bankIdStr: String,
+    requestedApiVersionString: String
+  ): IO[Response[IO]] = {
+    val params = parseParams(req)
+    bankLevelGate(req, prefix, bankIdStr, errorJson) {
+      validateBasicParams(params).orElse(validateVersionAndLocale(requestedApiVersionString, params.locale).left.toOption)
+    } {
+      IO(buildBankLevelOpenApi31(params, prefix, bankIdStr, requestedApiVersionString, yaml = false)).flatMap {
+        case Right(body) => IO.pure(Response[IO](Status.Ok).withEntity(body).withContentType(jsonContentType))
+        case Left((s, m)) => errorJson(s, m)
+      }
+    }
+  }
+
+  // ─── Handler: GET /obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi.yaml ─
+
+  private def handleGetBankLevelDynamicResourceDocsOpenAPI31Yaml(
+    req: Request[IO],
+    prefix: String,
+    bankIdStr: String,
+    requestedApiVersionString: String
+  ): IO[Response[IO]] = {
+    val params = parseParams(req)
+    bankLevelGate(req, prefix, bankIdStr, plainTextResponse) {
+      validateBasicParams(params).orElse(validateVersionAndLocale(requestedApiVersionString, params.locale).left.toOption)
+    } {
+      IO(buildBankLevelOpenApi31(params, prefix, bankIdStr, requestedApiVersionString, yaml = true)).flatMap {
+        case Right(yamlString) => yamlResponse(yamlString)
+        case Left((s, m)) => plainTextResponse(s, m)
+      }
+    }
+  }
+
+  /**
+   * This function builds the OpenAPI 3.1 document of one space, as compact JSON or as YAML. The
+   * cache key carries the space and the format, so neither can be served the other's document.
+   * The document is cached with the dynamic resource docs TTL, not the static swagger one, because
+   * it changes whenever a Dynamic Entity, Dynamic Endpoint or Dynamic Resource Doc is added.
+   */
+  private def buildBankLevelOpenApi31(
+    params: ParsedParams,
+    prefix: String,
+    bankIdStr: String,
+    requestedApiVersionString: String,
+    yaml: Boolean
+  ): Either[(Status, String), String] = {
+    try {
+      val filters = ResourceDocFilters.forResourceDocs(params.tagValues, params.functionValues)
+      val format = if (yaml) "openapi31yaml" else "openapi31"
+      val cacheKey = APIUtil.createResourceDocCacheKey(
+        Some(s"$format-bank:$bankIdStr"),
+        requestedApiVersionString,
+        filters,
+        params.locale,
+        None,
+        None,
+        Some(true)
+      )
+      val cached = Caching.getDynamicResourceDocCache(cacheKey)
+      if (cached.isDefined) Right(cached.get)
+      else {
+        val docs = bankLevelDynamicDocs(params, prefix, bankIdStr, isVersion4OrHigher = true)
+        val openApiDoc = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.createOpenAPI31Json(docs, requestedApiVersionString, HostName)
+        val openApiJValue = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.OpenAPI31JsonFormats.toJValue(openApiDoc)
+        val rendered =
+          if (yaml) YAMLUtils.jValueToYAMLSafe(openApiJValue, "# Error converting to YAML")
+          else json.compactRender(openApiJValue)
+        Caching.setDynamicResourceDocCache(cacheKey, rendered)
+        Right(rendered)
+      }
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Http4sResourceDocs.buildBankLevelOpenApi31 failed: ${e.getMessage}", e)
+        Left(Status.BadRequest -> s"$UnknownError Can not create the OpenAPI document for BANK_ID $bankIdStr.")
     }
   }
 
@@ -665,11 +820,11 @@ object Http4sResourceDocs extends MdcLoggable {
 
   private def buildMessageDocsSwagger(params: ParsedParams, connector: String): Either[(Status, String), JValue] = {
     try {
+      val filters = ResourceDocFilters.normalisedOnly(params.tagValues, params.functionValues)
       val cacheKey = APIUtil.createResourceDocCacheKey(
         None,
         connector,
-        params.tags,
-        params.partialFunctions,
+        filters,
         params.locale,
         params.contentParam,
         params.apiCollectionId,
@@ -680,7 +835,7 @@ object Http4sResourceDocs extends MdcLoggable {
         if (cached.isDefined) json.parse(cached.get)
         else {
           val convertedToResourceDocs = RestConnector_vMar2019.messageDocs.map(APIUtil.toResourceDoc).toList
-          val resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, params.tags, params.partialFunctions)
+          val resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, filters.tags, filters.functions)
           val resourceDocJsonList = JSONFactory1_4_0.createResourceDocsJson(resourceDocListFiltered, isVersion4OrHigher = true, None).resource_docs
           val swaggerResourceDoc = code.api.ResourceDocs1_4_0.SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)
           val allSwaggerDefinitionCaseClasses =
@@ -705,6 +860,22 @@ object Http4sResourceDocs extends MdcLoggable {
   // along the path. The Lift dispatch did the same thing (one dispatcher per
   // version prefix, all calling the same handlers).
 
+  /**
+   * Records Telemetry for one of these routes under its ResourceDoc's operation id. These routes
+   * answer outside ResourceDocMiddleware, which is where every other endpoint is timed; their docs
+   * are declared in ResourceDocs1_4_0, at v1.4.0, whatever version prefix the request used.
+   */
+  private def timed(req: Request[IO], handlerName: String)(response: IO[Response[IO]]): IO[Response[IO]] =
+    timedAs(req, APIUtil.buildOperationId(ApiVersion.v1_4_0, handlerName), ApiVersion.v1_4_0.apiShortVersion)(response)
+
+  private def timedAs(req: Request[IO], operationId: String, apiVersion: String)(response: IO[Response[IO]]): IO[Response[IO]] = {
+    Http4sRequestAttributes.trafficNote(req).foreach { note =>
+      note.operationId = Some(operationId)
+      note.apiVersion = Some(apiVersion)
+    }
+    code.telemetry.Telemetry.timeEndpoint(operationId, apiVersion)(response)
+  }
+
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "obp" =>
       // Match the Lift dispatchers' `isVersion4OrHigher` setting per prefix —
@@ -714,10 +885,10 @@ object Http4sResourceDocs extends MdcLoggable {
         case "v4.0.0" | "v5.0.0" | "v5.1.0" | "v6.0.0" => true
         case _                                          => false
       }
-      handleGetResourceDocsObp(req, prefix, requestedApiVersionString, isVersion4OrHigher = isV4OrHigher)
+      timed(req, "getResourceDocsObp")(handleGetResourceDocsObp(req, prefix, requestedApiVersionString, isVersion4OrHigher = isV4OrHigher))
 
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "swagger" =>
-      handleGetResourceDocsSwagger(req, prefix, requestedApiVersionString)
+      timed(req, "getResourceDocsSwagger")(handleGetResourceDocsSwagger(req, prefix, requestedApiVersionString))
 
     // OpenAPI 3.1 JSON and YAML — served for every URL prefix.
     //
@@ -731,15 +902,25 @@ object Http4sResourceDocs extends MdcLoggable {
     // for non-v6 prefixes; `isVersion4OrHigher` is hardcoded `true` inside the
     // handlers because the OpenAPI converter always consumes the v4-shape input.
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi" =>
-      handleGetResourceDocsOpenAPI31(req, prefix, requestedApiVersionString)
+      timed(req, "getResourceDocsOpenAPI31")(handleGetResourceDocsOpenAPI31(req, prefix, requestedApiVersionString))
 
+    // No ResourceDoc describes the YAML form, so it has no operation id and is not timed.
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi.yaml" =>
       handleGetResourceDocsOpenAPI31Yaml(req, prefix, requestedApiVersionString)
 
     case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "obp" =>
-      handleGetBankLevelDynamicResourceDocsObp(req, prefix, bankIdStr, requestedApiVersionString)
+      timed(req, "getBankLevelDynamicResourceDocsObp")(handleGetBankLevelDynamicResourceDocsObp(req, prefix, bankIdStr, requestedApiVersionString))
+
+    case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "openapi" =>
+      timed(req, "getBankLevelDynamicResourceDocsOpenAPI31")(handleGetBankLevelDynamicResourceDocsOpenAPI31(req, prefix, bankIdStr, requestedApiVersionString))
+
+    // Like the instance wide YAML route, the YAML form has no ResourceDoc of its own (the openapi
+    // one describes both), so it has no operation id and is not timed.
+    case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "openapi.yaml" =>
+      handleGetBankLevelDynamicResourceDocsOpenAPI31Yaml(req, prefix, bankIdStr, requestedApiVersionString)
 
     case req @ GET -> Root / "obp" / _ / "message-docs" / connector / "swagger2.0" =>
-      handleGetMessageDocsSwagger(req, connector)
+      timedAs(req, APIUtil.buildOperationId(ApiVersion.v3_1_0, "getMessageDocsSwagger"), ApiVersion.v3_1_0.apiShortVersion)(
+        handleGetMessageDocsSwagger(req, connector))
   }
 }

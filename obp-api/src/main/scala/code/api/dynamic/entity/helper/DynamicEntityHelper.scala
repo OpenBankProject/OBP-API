@@ -33,7 +33,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired, ConsentMyResourcesMissing}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.json4s.JsonDSL._
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
@@ -45,102 +45,82 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 
+/**
+ * The path segments a Dynamic Entity URL may start with, and the space they name.
+ *
+ * A URL either names a bank — `/banks/BANK_ID/...` — or names nothing, which means the system space.
+ * Every extractor below used to write both forms out, once with `None` and once with `Some(bankId)`,
+ * which is why there were twice as many cases as shapes. Splitting the space off first leaves one
+ * case per shape, and is the same collapse the Roles and the storage have already had.
+ */
+private object SpaceSegments {
+  /** Split a leading `banks/BANK_ID` off the path. None as the space means the system space. */
+  def unapply(url: List[String]): Option[(Option[String], List[String])] = url match {
+    case "banks" :: bankId :: rest => Some((Some(bankId), rest))
+    case rest                      => Some((None, rest))
+  }
+}
+
+/** Does a definition for this entity exist in this space? */
+private object DefinitionIn {
+  def apply(space: Option[String], entityName: String): Boolean =
+    DynamicEntityHelper.definitionOf(space, entityName).isDefined
+
+  /** As above, and the definition must also satisfy `predicate` — a flag such as hasPublicAccess. */
+  def apply(space: Option[String], entityName: String, predicate: DynamicEntityInfo => Boolean): Boolean =
+    DynamicEntityHelper.definitionOf(space, entityName).exists(predicate)
+}
+
 object EntityName {
   // unapply result structure: (BankId, entityName, id, isPersonalEntity)
   def unapply(url: List[String]): Option[(Option[String], String, String, Boolean)] = url match {
-
-    //eg: /my/FooBar21
-    case "my" :: entityName ::  Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasPersonalEntity)
-        .map(_ => (None, entityName, "", true))
-    //eg: /my/FooBar21/FOO_BAR21_ID
-    case "my" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasPersonalEntity)
-        .map(_ => (None, entityName, id, true))
-
-    //eg: /FooBar21
-    case entityName ::  Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
-        .map(_ => (None, entityName, "", false))
-    //eg: /FooBar21/FOO_BAR21_ID
-    case entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
-        .map(_ => (None, entityName, id, false))
-
-
-    //eg: /Banks/BANK_ID/my/FooBar21
-    case "banks" :: bankId :: "my" :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasPersonalEntity)
-        .map(_ => (Some(bankId), entityName, "", true))
-    //eg: /Banks/BANK_ID/my/FooBar21/FOO_BAR21_ID
-    case "banks" :: bankId :: "my" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasPersonalEntity)
-        .map(_ => (Some(bankId),entityName, id, true))
-
-    //contains Bank:
-    //eg: /Banks/BANK_ID/FooBar21
-    case "banks" :: bankId :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
-        .map(_ => (Some(bankId), entityName, "", false))
-    //eg: /Banks/BANK_ID/FooBar21/FOO_BAR21_ID
-    case "banks" :: bankId :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
-        .map(_ => (Some(bankId),entityName, id, false))//no bank:
-
+    case SpaceSegments(space, rest) => rest match {
+      //eg: /FooBar21 or /banks/BANK_ID/FooBar21
+      case entityName :: Nil if DefinitionIn(space, entityName) =>
+        Some((space, entityName, "", false))
+      //eg: /FooBar21/FOO_BAR21_ID or /banks/BANK_ID/FooBar21/FOO_BAR21_ID
+      case entityName :: id :: Nil if DefinitionIn(space, entityName) =>
+        Some((space, entityName, id, false))
+      //eg: /my/FooBar21 or /banks/BANK_ID/my/FooBar21
+      case "my" :: entityName :: Nil if DefinitionIn(space, entityName, _.hasPersonalEntity) =>
+        Some((space, entityName, "", true))
+      //eg: /my/FooBar21/FOO_BAR21_ID or /banks/BANK_ID/my/FooBar21/FOO_BAR21_ID
+      case "my" :: entityName :: id :: Nil if DefinitionIn(space, entityName, _.hasPersonalEntity) =>
+        Some((space, entityName, id, true))
+      case _ => None
+    }
     case _ => None
   }
 }
 
 object PublicEntityName {
-  // unapply result structure: (BankId, entityName, id)
-  // Only matches entities where hasPublicAccess = true
+  // unapply result structure: (BankId, entityName, id). Only matches hasPublicAccess = true
   def unapply(url: List[String]): Option[(Option[String], String, String)] = url match {
-
-    //eg: /public/FooBar21
-    case "public" :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasPublicAccess)
-        .map(_ => (None, entityName, ""))
-    //eg: /public/FooBar21/FOO_BAR21_ID
-    case "public" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasPublicAccess)
-        .map(_ => (None, entityName, id))
-
-    //eg: /banks/BANK_ID/public/FooBar21
-    case "banks" :: bankId :: "public" :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasPublicAccess)
-        .map(_ => (Some(bankId), entityName, ""))
-    //eg: /banks/BANK_ID/public/FooBar21/FOO_BAR21_ID
-    case "banks" :: bankId :: "public" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasPublicAccess)
-        .map(_ => (Some(bankId), entityName, id))
-
+    case SpaceSegments(space, rest) => rest match {
+      //eg: /public/FooBar21 or /banks/BANK_ID/public/FooBar21
+      case "public" :: entityName :: Nil if DefinitionIn(space, entityName, _.hasPublicAccess) =>
+        Some((space, entityName, ""))
+      //eg: /public/FooBar21/FOO_BAR21_ID or /banks/BANK_ID/public/FooBar21/FOO_BAR21_ID
+      case "public" :: entityName :: id :: Nil if DefinitionIn(space, entityName, _.hasPublicAccess) =>
+        Some((space, entityName, id))
+      case _ => None
+    }
     case _ => None
   }
 }
 
 object CommunityEntityName {
-  // unapply result structure: (BankId, entityName, id)
-  // Only matches entities where hasCommunityAccess = true
+  // unapply result structure: (BankId, entityName, id). Only matches hasCommunityAccess = true
   def unapply(url: List[String]): Option[(Option[String], String, String)] = url match {
-
-    //eg: /community/FooBar21
-    case "community" :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasCommunityAccess)
-        .map(_ => (None, entityName, ""))
-    //eg: /community/FooBar21/FOO_BAR21_ID
-    case "community" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasCommunityAccess)
-        .map(_ => (None, entityName, id))
-
-    //eg: /banks/BANK_ID/community/FooBar21
-    case "banks" :: bankId :: "community" :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasCommunityAccess)
-        .map(_ => (Some(bankId), entityName, ""))
-    //eg: /banks/BANK_ID/community/FooBar21/FOO_BAR21_ID
-    case "banks" :: bankId :: "community" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasCommunityAccess)
-        .map(_ => (Some(bankId), entityName, id))
-
+    case SpaceSegments(space, rest) => rest match {
+      //eg: /community/FooBar21 or /banks/BANK_ID/community/FooBar21
+      case "community" :: entityName :: Nil if DefinitionIn(space, entityName, _.hasCommunityAccess) =>
+        Some((space, entityName, ""))
+      //eg: /community/FooBar21/FOO_BAR21_ID or /banks/BANK_ID/community/FooBar21/FOO_BAR21_ID
+      case "community" :: entityName :: id :: Nil if DefinitionIn(space, entityName, _.hasCommunityAccess) =>
+        Some((space, entityName, id))
+      case _ => None
+    }
     case _ => None
   }
 }
@@ -151,22 +131,16 @@ object CommunityEntityName {
  * (row-level or not); the handler returns 400 when the entity isn't row-level. See §6.
  */
 object EntityAccessName {
-  private def entityExists(bankId: Option[String], entityName: String): Boolean =
-    DynamicEntityHelper.definitionsMap.exists { case ((b, n), info) => b == bankId && n == entityName && info.bankId == bankId }
-
   def unapply(url: List[String]): Option[(Option[String], String, String, Option[String])] = url match {
-    //eg: /FooBar21/FOO_BAR21_ID/access
-    case entityName :: id :: "access" :: Nil if entityExists(None, entityName) =>
-      Some((None, entityName, id, None))
-    //eg: /FooBar21/FOO_BAR21_ID/access/USER_ID
-    case entityName :: id :: "access" :: userId :: Nil if entityExists(None, entityName) =>
-      Some((None, entityName, id, Some(userId)))
-    //eg: /banks/BANK_ID/FooBar21/FOO_BAR21_ID/access
-    case "banks" :: bankId :: entityName :: id :: "access" :: Nil if entityExists(Some(bankId), entityName) =>
-      Some((Some(bankId), entityName, id, None))
-    //eg: /banks/BANK_ID/FooBar21/FOO_BAR21_ID/access/USER_ID
-    case "banks" :: bankId :: entityName :: id :: "access" :: userId :: Nil if entityExists(Some(bankId), entityName) =>
-      Some((Some(bankId), entityName, id, Some(userId)))
+    case SpaceSegments(space, rest) => rest match {
+      //eg: /FooBar21/FOO_BAR21_ID/access or /banks/BANK_ID/FooBar21/FOO_BAR21_ID/access
+      case entityName :: id :: "access" :: Nil if DefinitionIn(space, entityName) =>
+        Some((space, entityName, id, None))
+      //eg: /FooBar21/FOO_BAR21_ID/access/USER_ID (with or without the bank segment)
+      case entityName :: id :: "access" :: userId :: Nil if DefinitionIn(space, entityName) =>
+        Some((space, entityName, id, Some(userId)))
+      case _ => None
+    }
     case _ => None
   }
 }
@@ -176,9 +150,11 @@ object DynamicEntityHelper {
   /**
    * DE_indexing: may this definition update be applied to an entity that already has rows?
    *
-   * The stored rows stay valid when the entity name, the set of property names and each property's `type`
-   * are unchanged and `required` does not grow. Everything else — `indexed`, `index`, `example`,
-   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*` — may change freely; in
+   * The stored rows stay valid when the entity name is unchanged, every existing property keeps its name and
+   * `type`, and `required` does not grow. A new property may be added: the stored rows simply don't have it,
+   * which is valid as long as it is optional (a new required property grows `required`, so is refused).
+   * Removing a property or changing its type is refused. Everything else — `indexed`, `index`, `example`,
+   * `description`, `minLength`, `maxLength`, `read_role*`, `write_role*`, `hide_field_from_public_access` — may change freely; in
    * particular this is what lets an operator switch indexing on for an existing, populated entity
    * (the projection backfill then does the rest). Unparseable input is treated as incompatible.
    */
@@ -212,15 +188,61 @@ object DynamicEntityHelper {
     oldEntityName == newEntityName && {
       (definitionOf(oldMetadataJson, oldEntityName), definitionOf(newMetadataJson, newEntityName)) match {
         case (Some(oldDef), Some(newDef)) =>
-          propertyTypes(oldDef) == propertyTypes(newDef) && requiredNames(newDef).subsetOf(requiredNames(oldDef))
+          val newTypes = propertyTypes(newDef)
+          propertyTypes(oldDef).forall { case (name, oldType) => newTypes.get(name).contains(oldType) } &&
+            requiredNames(newDef).subsetOf(requiredNames(oldDef))
         case _ => false
       }
     }
   }
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
-  //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
+  // Keyed by (bank id as published, entity name): SYS for the system space, never None or "".
+  //
+  // It is asked for many times per request (the access checks, each field's read check, the resource
+  // docs), and building it reads every definition and parses each one's JSON: with 120 definitions
+  // that was ~5 ms a time, and a Dynamic Query returning 11 records spent ~0.5 s rebuilding it. So
+  // the built map is kept for dynamicEntity.definitions_map.cache.ttl.seconds (default 300), and
+  // forgotten the moment a definition is created, updated or deleted on this node
+  // (MappedDynamicEntityProvider calls forgetDefinitions). Another node sees such a change when its
+  // copy expires. Not kept in test mode, where a test may change the table behind the provider.
+  private val definitionsMapTtlMillis: Long =
+    if (net.liftweb.util.Props.testMode) 0L
+    else APIUtil.getPropsAsLongValue("dynamicEntity.definitions_map.cache.ttl.seconds", 300L) * 1000L
+  // (built at, map). Each change replaces the token, and a build keeps its map only while the token it
+  // started under is still the current one, so a build that started before a change is not kept after it.
+  @volatile private var definitionsMapCache: Option[(Long, Map[(String, String), DynamicEntityInfo])] = None
+  @volatile private var definitionsToken: AnyRef = new Object
+
+  /** Forget the kept definitions map, so the next use reads the definitions again. */
+  def forgetDefinitions(): Unit = {
+    definitionsToken = new Object
+    definitionsMapCache = None
+  }
+
+  def definitionsMap: Map[(String, String), DynamicEntityInfo] = {
+    val now = System.currentTimeMillis()
+    definitionsMapCache match {
+      case Some((builtAt, map)) if now - builtAt < definitionsMapTtlMillis => map
+      case _ =>
+        val token = definitionsToken
+        val map = buildDefinitionsMap
+        if (definitionsMapTtlMillis > 0 && (definitionsToken eq token)) definitionsMapCache = Some((now, map))
+        map
+    }
+  }
+
+  private def buildDefinitionsMap: Map[(String, String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((DynamicEntitySpace.bankIdOrSystem(it.bankId), it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
+
+  /**
+   * The definition of one entity in one space, or None when that space holds no such entity.
+   *
+   * Callers ask by space and name rather than reaching into [[definitionsMap]], so that the shape of
+   * the key stays an implementation detail. `bankId` is the space, with None for the system space; the
+   * map itself is keyed by the published form, SYS.
+   */
+  def definitionOf(bankId: Option[String], entityName: String): Option[DynamicEntityInfo] =
+    definitionsMap.get((DynamicEntitySpace.bankIdOrSystem(bankId), entityName))
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap { dEntity =>
     val baseRoles = DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId)
@@ -237,6 +259,41 @@ object DynamicEntityHelper {
     collection.mutable.ArrayBuffer(docs:_*)
   }
 
+  /**
+   * The v7.0.0 docs of every entity's endpoints, at `/banks/BANK_ID/dynamic-entities/...` with the
+   * entity's own bank id, SYS for the system space. The same operations as [[doc]], with ids of the
+   * form `OBPv7.0.0-dynamicEntity_create<entity>_<bank id>`.
+   *
+   * These are kept out of [[doc]] on purpose. [[doc]] is what the rest of OBP resolves operation ids
+   * and partial function names against (request dispatch, interceptors, metrics, validations), and a
+   * v7.0.0 doc shares its partial function name with the v4.0.0 one, so mixing them in would change
+   * which id those lookups return. Only the v7.0.0 resource-docs listing serves these.
+   */
+  def v700Doc: List[ResourceDoc] = docsIn(ApiVersion.v7_0_0).values.toList
+
+  /**
+   * The v7.0.0 URL of an entity's endpoints as a doc template: `/banks/BANK_ID/dynamic-entities`
+   * followed by what follows `/obp/dynamic-entity/[banks/BANK_ID/]` in the unversioned URL.
+   */
+  def v700UrlPrefix(bankId: Option[String]): String =
+    s"/banks/${DynamicEntitySpace.bankIdOrSystem(bankId)}/dynamic-entities"
+
+  /**
+   * This is the example of a record's metadata block in the v7.0.0 docs: an agent created the record
+   * for a person, and the person then updated it themselves. Without user ids, as the public reads
+   * return it, it carries the times only.
+   */
+  def exampleRecordMetadata(showUserIds: Boolean): JObject = {
+    val personUserId = ExampleValue.userIdExample.value
+    val agentUserId = "a9f2c7e1-3d4b-4a5c-8e6f-7a8b9c0d1e2f"
+    def event(at: String, userId: String, onBehalfOfUserId: String): JObject =
+      if (showUserIds) JObject(JField("at", JString(at)) :: JField("user_id", JString(userId)) :: JField("on_behalf_of_user_id", JString(onBehalfOfUserId)) :: Nil)
+      else JObject(JField("at", JString(at)) :: Nil)
+    JObject(
+      JField("created", event("2026-09-30T10:12:00Z", agentUserId, personUserId)) ::
+      JField("updated", event("2026-09-30T11:40:00Z", personUserId, personUserId)) :: Nil)
+  }
+
   def createEntityId(entityName: String) = {
     // (?<=[a-z0-9])(?=[A-Z]) --> mean `Positive Lookbehind (?<=[a-z0-9])` && Positive Lookahead (?=[A-Z]) --> So we can find the space to replace to  `_`
     val regexPattern = "(?<=[a-z0-9])(?=[A-Z])|-"
@@ -244,7 +301,10 @@ object DynamicEntityHelper {
     s"${entityName}_Id".replaceAll(regexPattern, "_").toLowerCase
   }
 
-  def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = {
+  def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = docsIn(implementedInApiVersion)
+
+  /** Every entity's docs in one API version: v4.0.0 for the unversioned URLs, v7.0.0 for the v7.0.0 ones. */
+  private def docsIn(apiVersion: ScannedApiVersion): Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
 
     // record exists tag names, to avoid duplicated dynamic tag name.
@@ -284,7 +344,7 @@ object DynamicEntityHelper {
       existsTagNames += tagName
       ApiTag(tagName)
     }
-    val fun: DynamicEntityInfo => mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = createDocs(apiTag)
+    val fun: DynamicEntityInfo => mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = createDocs(apiTag, apiVersion)
     val docs: Iterable[((DynamicEntityOperation, String), ResourceDoc)] = definitionsMap.values.flatMap(fun)
     docs.toMap
   }
@@ -296,7 +356,7 @@ object DynamicEntityHelper {
    * @param dynamicEntityInfo dynamicEntityInfo
    * @return all ResourceDoc of given dynamicEntity
    */
-  private def createDocs(fun: (String, String) => ResourceDocTag)
+  private def createDocs(fun: (String, String) => ResourceDocTag, apiVersion: ScannedApiVersion)
                 (dynamicEntityInfo: DynamicEntityInfo): mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
     val hasPersonalEntity = dynamicEntityInfo.hasPersonalEntity
@@ -312,8 +372,30 @@ object DynamicEntityHelper {
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
     val bankId = dynamicEntityInfo.bankId
-    val resourceDocUrl = if(bankId.isDefined)  s"/banks/${bankId.getOrElse("")}/$entityName" else  s"/$entityName"
-    val myResourceDocUrl = if(bankId.isDefined)  s"/banks/${bankId.getOrElse("")}/my/$entityName" else  s"/my/$entityName"
+    // What comes before the entity name: in v7.0.0 the space, always named (SYS included); in the
+    // unversioned URLs a bank when there is one, and nothing for the system space.
+    val urlPrefix =
+      if (apiVersion == ApiVersion.v7_0_0) v700UrlPrefix(bankId)
+      else bankId.map(b => s"/banks/$b").getOrElse("")
+    val resourceDocUrl = s"$urlPrefix/$entityName"
+    // Response examples. A v7.0.0 response always names its space, `"bank_id": "SYS"` included, where
+    // the unversioned URLs name a bank only for a bank level entity. A v7.0.0 record is also followed
+    // by its metadata, and each list item has the shape of a single record response without bank_id
+    // (see Http4sDynamicEntity.singleResponse and listResponse). The public reads show the times only.
+    def v700Examples(showUserIds: Boolean): (JObject, JObject) = {
+      val record = JObject(JField(dynamicEntityInfo.idName, JString(ExampleValue.idExample.value)) :: dynamicEntityInfo.getSingleExampleWithoutId.obj)
+      val recordWithMetadata = List(JField(dynamicEntityInfo.singleName, record), JField("metadata", exampleRecordMetadata(showUserIds)))
+      val space = JField("bank_id", JString(DynamicEntitySpace.bankIdOrSystem(bankId)))
+      (JObject(space :: recordWithMetadata),
+       JObject(space :: JField(listName, JArray(List(JObject(recordWithMetadata)))) :: Nil))
+    }
+    val (singleExample, listExample) =
+      if (apiVersion == ApiVersion.v7_0_0) v700Examples(showUserIds = true)
+      else (dynamicEntityInfo.getSingleExample, dynamicEntityInfo.getExampleList)
+    val (publicSingleExample, publicListExample) =
+      if (apiVersion == ApiVersion.v7_0_0) v700Examples(showUserIds = false)
+      else (singleExample, listExample)
+    val myResourceDocUrl = s"$urlPrefix/my/$entityName"
 
 
     // (operationType, entityName) -> ResourceDoc
@@ -321,7 +403,7 @@ object DynamicEntityHelper {
     val apiTag: ResourceDocTag = fun(entityName,splitNameWithBankId)
 
     resourceDocs += (DynamicEntityOperation.GET_ALL, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildGetAllFunctionName(bankId, entityName),
       "GET",
       s"$resourceDocUrl",
@@ -338,7 +420,7 @@ object DynamicEntityHelper {
          |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
          |""".stripMargin,
       EmptyBody,
-      dynamicEntityInfo.getExampleList,
+      listExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -351,7 +433,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.GET_ONE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildGetOneFunctionName(bankId, entityName),
       "GET",
       s"$resourceDocUrl/$idNameInUrl",
@@ -366,7 +448,7 @@ object DynamicEntityHelper {
          |${userAuthenticationMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -379,7 +461,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildCreateFunctionName(bankId, entityName),
       "POST",
       s"$resourceDocUrl",
@@ -395,7 +477,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -409,7 +491,7 @@ object DynamicEntityHelper {
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildUpdateFunctionName(bankId, entityName),
       "PUT",
       s"$resourceDocUrl/$idNameInUrl",
@@ -425,7 +507,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -439,7 +521,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.PATCH, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildPatchFunctionName(bankId, entityName),
       "PATCH",
       s"$resourceDocUrl/$idNameInUrl",
@@ -462,7 +544,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutId,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -476,7 +558,7 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, splitNameWithBankId) -> ResourceDoc(
-      implementedInApiVersion,
+      apiVersion,
       buildDeleteFunctionName(bankId, entityName),
       "DELETE",
       s"$resourceDocUrl/$idNameInUrl",
@@ -489,7 +571,7 @@ object DynamicEntityHelper {
          |
          |""",
       dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-      dynamicEntityInfo.getSingleExample,
+      singleExample,
       List(
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
@@ -511,7 +593,7 @@ object DynamicEntityHelper {
         (if (personalRequiresRole) " The role is required in addition." else "")
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetAllFunctionName(bankId, s"My$entityName"),
         "GET",
         s"$myResourceDocUrl",
@@ -530,7 +612,7 @@ object DynamicEntityHelper {
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getExampleList,
+        listExample,
         myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canGetRole)) else None,
@@ -538,7 +620,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetOneFunctionName(bankId, s"My$entityName"),
         "GET",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -555,7 +637,7 @@ object DynamicEntityHelper {
            |$myConsentUserNote
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canGetRole)) else None,
@@ -563,7 +645,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.CREATE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildCreateFunctionName(bankId, s"My$entityName"),
         "POST",
         s"$myResourceDocUrl",
@@ -581,7 +663,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canCreateRole)) else None,
@@ -589,7 +671,7 @@ object DynamicEntityHelper {
         )
 
       resourceDocs += (DynamicEntityOperation.UPDATE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildUpdateFunctionName(bankId, s"My$entityName"),
         "PUT",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -607,7 +689,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canUpdateRole)) else Some(List(dynamicEntityInfo.canUpdateRole)),
@@ -615,7 +697,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.PATCH, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildPatchFunctionName(bankId, s"My$entityName"),
         "PATCH",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -636,7 +718,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutId,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canUpdateRole)) else Some(List(dynamicEntityInfo.canUpdateRole)),
@@ -644,7 +726,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.DELETE, mySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildDeleteFunctionName(bankId, s"My$entityName"),
         "DELETE",
         s"$myResourceDocUrl/$idNameInUrl",
@@ -659,7 +741,7 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         myErrorMessages,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         if(personalRequiresRole) Some(List(dynamicEntityInfo.canDeleteRole)) else None,
@@ -669,11 +751,11 @@ object DynamicEntityHelper {
 
     val hasPublicAccess = dynamicEntityInfo.hasPublicAccess
     if(hasPublicAccess) {
-      val publicResourceDocUrl = if(bankId.isDefined) s"/banks/${bankId.getOrElse("")}/public/$entityName" else s"/public/$entityName"
+      val publicResourceDocUrl = s"$urlPrefix/public/$entityName"
       val publicSplitNameWithBankId = s"Public$splitNameWithBankId"
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, publicSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetAllFunctionName(bankId, s"Public$entityName"),
         "GET",
         s"$publicResourceDocUrl",
@@ -690,7 +772,7 @@ object DynamicEntityHelper {
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = false)}
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getExampleList,
+        publicListExample,
         List(
           UnknownError
         ),
@@ -699,7 +781,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, publicSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetOneFunctionName(bankId, s"Public$entityName"),
         "GET",
         s"$publicResourceDocUrl/$idNameInUrl",
@@ -714,7 +796,7 @@ object DynamicEntityHelper {
            |Authentication is Optional
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getSingleExample,
+        publicSingleExample,
         List(
           UnknownError
         ),
@@ -725,11 +807,11 @@ object DynamicEntityHelper {
 
     val hasCommunityAccess = dynamicEntityInfo.hasCommunityAccess
     if(hasCommunityAccess) {
-      val communityResourceDocUrl = if(bankId.isDefined) s"/banks/${bankId.getOrElse("")}/community/$entityName" else s"/community/$entityName"
+      val communityResourceDocUrl = s"$urlPrefix/community/$entityName"
       val communitySplitNameWithBankId = s"Community$splitNameWithBankId"
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, communitySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetAllFunctionName(bankId, s"Community$entityName"),
         "GET",
         s"$communityResourceDocUrl",
@@ -746,7 +828,7 @@ object DynamicEntityHelper {
            |${dynamicEntityInfo.listQueryDoc(joinsSupported = false)}
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getExampleList,
+        listExample,
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
@@ -758,7 +840,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, communitySplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetOneFunctionName(bankId, s"Community$entityName"),
         "GET",
         s"$communityResourceDocUrl/$idNameInUrl",
@@ -773,7 +855,7 @@ object DynamicEntityHelper {
            |Authentication is Required
            |""".stripMargin,
         EmptyBody,
-        dynamicEntityInfo.getSingleExample,
+        singleExample,
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
@@ -809,7 +891,7 @@ object DynamicEntityHelper {
            |""".stripMargin
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, accessSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGetRowAccessFunctionName(bankId, entityName),
         "GET",
         s"$accessResourceDocUrl",
@@ -833,9 +915,9 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.UPDATE, accessSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildGrantRowAccessFunctionName(bankId, entityName),
-        "POST",
+        "PUT",
         s"$accessResourceDocUrl",
         s"Grant Access to a $splitName Record",
         s"""Grant (or update) another User's access to one $splitName record.
@@ -862,7 +944,7 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.DELETE, accessSplitNameWithBankId) -> ResourceDoc(
-        implementedInApiVersion,
+        apiVersion,
         buildRevokeRowAccessFunctionName(bankId, entityName),
         "DELETE",
         s"$accessResourceDocUrl/USER_ID",
@@ -1035,7 +1117,8 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
     if (restricted.isEmpty) getSingleExampleWithoutId
     else JObject(getSingleExampleWithoutId.obj.filterNot(f => restricted.contains(f.name)))
   }
-  val bankIdJObject: JObject = ("bank-id" -> ExampleValue.bankIdExample.value)
+  // A bank level entity's responses name its bank, as `bank_id`; see Http4sDynamicEntity.wrapBankId.
+  val bankIdJObject: JObject = ("bank_id" -> bankId.getOrElse(ExampleValue.bankIdExample.value))
 
   def getSingleExample: JObject = if (bankId.isDefined){
     val SingleObject: JObject = (singleName -> (JObject(JField(idName, JString(ExampleValue.idExample.value)) :: getSingleExampleWithoutId.obj)))
@@ -1076,6 +1159,17 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   lazy val writeRestrictedFields: List[String] = restrictedFields("write_role_required", "write_role")
   /** Fields omitted from GET unless the caller holds the read role. */
   lazy val readRestrictedFields: List[String] = restrictedFields("read_role_required", "read_role")
+  /**
+   * Fields declared `"hide_field_from_public_access": true`: hidden from a caller whose access to this
+   * entity comes only from its public access, shown to a caller with other access (its read Role, or a
+   * row-level access list entry). See DynamicEntityInfo.readsViaPublicAccess.
+   */
+  lazy val publicHiddenFields: List[String] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) if (propDef \ "hide_field_from_public_access") == JBool(true) => name
+    }
+    case _ => Nil
+  }
   def explicitWriteRole(fieldName: String): Option[String] =
     (entity \ "properties" \ fieldName \ "write_role") match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
   def explicitReadRole(fieldName: String): Option[String] =
@@ -1101,6 +1195,24 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
           if (typeName.startsWith("reference:")) Some(DynamicEntityFieldType.reference)
           else DynamicEntityFieldType.withNameOption(typeName)
         fieldTypeOpt.map(ft => name -> FieldSpec(ft, kind))
+    }.flatten.toMap
+    case _ => Map.empty
+  }
+
+  /**
+   * Every declared property whose type is a scalar type the query layer understands: name -> type.
+   * A `reference:<Target>` field reads as [[DynamicEntityFieldType.reference]]. Unlike [[indexedFields]]
+   * this covers fields whether or not they are indexed; a join's `where` filter and `pick` order are
+   * evaluated in memory on the fetched records, so they may use any of these fields.
+   */
+  lazy val declaredFieldTypes: Map[String, DynamicEntityFieldType] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) =>
+        val typeName = (propDef \ "type") match { case JString(s) => s; case _ => "" }
+        val fieldTypeOpt =
+          if (typeName.startsWith("reference:")) Some(DynamicEntityFieldType.reference)
+          else DynamicEntityFieldType.withNameOption(typeName)
+        fieldTypeOpt.map(name -> _)
     }.flatten.toMap
     case _ => Map.empty
   }
@@ -1195,37 +1307,35 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 }
 
 object DynamicEntityInfo {
+
+  /**
+   * The Roles that gate a Dynamic Entity's **records** — the rows, not the schema. The schema is
+   * gated by the Definition Roles in ApiRole, and the two were called the same thing until this
+   * change, which hid the difference between being allowed to define `country` and being allowed to
+   * put `FR` in it.
+   *
+   * A Role names an operation and an entity; the space it applies to is the Entitlement's bank id,
+   * `SYS` for the system space or a real bank id. The name no longer carries the space, which is why
+   * there is one name per operation here rather than a pair. Every one of them requires a bank id,
+   * so a single grant can never reach more than the space it names.
+   */
   def canCreateRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanCreateDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanCreateDynamicEntityRecord_" + entityName, true)
+
   def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanUpdateDynamicEntityRecord_" + entityName, true)
 
   def canGetRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanGetDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanGetDynamicEntityRecord_" + entityName, true)
 
   def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanDeleteDynamicEntityRecord_" + entityName, true)
 
   // Admin override for row-level access (§3): a holder may grant/list/revoke per-row ACL
   // on any row of the entity, even rows they cannot read. Ordinary owner-driven sharing
   // does not need this role — it goes through the row's own ACL CanGrant (§8.1).
   def canGrantRowAccessRole(entityName: String, bankId:Option[String]): ApiRole =
-    if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_" + entityName, true)
-    else
-      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_System" + entityName, false)
+    getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_" + entityName, true)
 
   def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
     canCreateRole(entityName, bankId),
@@ -1239,17 +1349,76 @@ object DynamicEntityInfo {
   // (so many fields/entities can share one role); otherwise auto-generate a per-field role.
   def fieldWriteRole(entityName: String, fieldName: String, bankId: Option[String], explicit: Option[String]): ApiRole =
     explicit match {
-      case Some(role) => getOrCreateDynamicApiRole(role, bankId.isDefined)
-      case None =>
-        if(bankId.isDefined) getOrCreateDynamicApiRole(s"CanWriteDynamicEntityField_${entityName}__${fieldName}", true)
-        else getOrCreateDynamicApiRole(s"CanWriteDynamicEntityField_System${entityName}__${fieldName}", false)
+      case Some(role) => getOrCreateDynamicApiRole(role, true)
+      case None => getOrCreateDynamicApiRole(s"CanWriteDynamicEntityField_${entityName}__${fieldName}", true)
     }
 
   def fieldReadRole(entityName: String, fieldName: String, bankId: Option[String], explicit: Option[String]): ApiRole =
     explicit match {
-      case Some(role) => getOrCreateDynamicApiRole(role, bankId.isDefined)
-      case None =>
-        if(bankId.isDefined) getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_${entityName}__${fieldName}", true)
-        else getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_System${entityName}__${fieldName}", false)
+      case Some(role) => getOrCreateDynamicApiRole(role, true)
+      case None => getOrCreateDynamicApiRole(s"CanGetDynamicEntityField_${entityName}__${fieldName}", true)
     }
+
+  /**
+   * This says whether a caller may see one field of an entity's records. A field declared
+   * `read_role_required` is shown only to a caller holding its read Role in the entity's space; an
+   * anonymous caller (None) never sees it. Every other field is readable. It is the per-field rule
+   * that a GET applies when it omits restricted fields, and that a join applies when it copies
+   * a field from a referenced record.
+   */
+  /**
+   * This says whether a caller may read an entity's shared records, by the same rule a GET applies:
+   * an entity with public access is readable by anyone; a row-level entity is readable in principle,
+   * because its access list then decides row by row; otherwise the caller needs the entity's get
+   * Role in its space, judged by the entity's authentication mode (so a Consumer can qualify where
+   * the mode allows it). An unknown entity is not readable.
+   */
+  /**
+   * True when a caller's access to an entity comes only from its public access: the entity has public
+   * access, the caller does not hold its read Role (judged by its authentication mode), and the caller is
+   * not reaching it through a row-level access list (an anonymous caller never is). A field declared
+   * `hide_field_from_public_access` is hidden from such a caller.
+   */
+  def readsViaPublicAccess(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
+      info.hasPublicAccess && !(info.useRowLevelAccess && userIdOpt.isDefined) &&
+        !APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+    }
+
+  /**
+   * Whether one caller may read each field, as `(entity, field) => Boolean`, for reads that span
+   * several entities (joins, Dynamic Queries): [[mayReadField]], with each entity's public-access
+   * question answered once per entity, and each field's answer once per field.
+   *
+   * The answer doesn't depend on the record, and [[mayReadField]] looks the definition up through
+   * [[DynamicEntityHelper.definitionOf]], which rebuilds the map of every definition (and reads them
+   * all from the database when the definition cache is off, as in dev mode). A Dynamic Query asks
+   * once per field of every record it returns, so without remembering the answers a page of n
+   * records rebuilt that map n x fields times: about 0.5 s for 11 activities locally.
+   */
+  def fieldReader(bankId: Option[String], userIdOpt: Option[String], consumerId: String): (String, String) => Boolean = {
+    val viaPublic = scala.collection.mutable.Map[String, Boolean]()
+    val answers = scala.collection.mutable.Map[(String, String), Boolean]()
+    (entityName, fieldName) => answers.getOrElseUpdate((entityName, fieldName), mayReadField(bankId, entityName, fieldName, userIdOpt,
+      viaPublic.getOrElseUpdate(entityName, readsViaPublicAccess(bankId, entityName, userIdOpt, consumerId))))
+  }
+
+  def mayReadRecords(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
+      info.hasPublicAccess || info.useRowLevelAccess ||
+        APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+    }
+
+  def mayReadField(bankId: Option[String], entityName: String, fieldName: String, userIdOpt: Option[String],
+                   viaPublicAccess: Boolean = false): Boolean = {
+    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
+    if (viaPublicAccess && info.exists(_.publicHiddenFields.contains(fieldName))) false
+    else if (!info.exists(_.readRestrictedFields.contains(fieldName))) true
+    else userIdOpt.exists { userId =>
+      val role = fieldReadRole(entityName, fieldName, bankId, info.flatMap(_.explicitReadRole(fieldName)))
+      APIUtil.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), userId, role)
+    }
+  }
 }

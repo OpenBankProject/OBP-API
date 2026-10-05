@@ -27,11 +27,11 @@ package code.api.dynamic.entity
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProvider, DynamicDataAccessPermission}
+import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProvider, DynamicDataAccessPermission, DynamicDataT}
 import code.api.Constant.PARAM_LOCALE
-import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityAccessName, EntityName, PublicEntityName}
+import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, DynamicEntitySpace, EntityAccessName, EntityName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, JoinTargetInfo, QueryParamParser, QueryPlan, QueryPlanner}
-import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionProvisioner}
+import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionReadiness}
 import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
@@ -67,7 +67,7 @@ import scala.concurrent.Future
  *
  * Notes on the port:
  *   - The dynamic-entity set is runtime-mutable (`DynamicEntityHelper.definitionsMap` is
- *     re-queried per request), so this service does NOT use `ResourceDocMiddleware`
+ *     kept only until a definition changes), so this service does NOT use `ResourceDocMiddleware`
  *     (whose ResourceDoc index is built once at startup).  Auth / role / bank checks are
  *     performed inline, exactly as the Lift handlers did.
  *   - The before/after authenticate interceptors carry auth-type / query-param / header-key
@@ -109,17 +109,17 @@ object Http4sDynamicEntity extends MdcLoggable {
   // declared `indexed` fields. Phase 1 backend = in-memory portable floor (projection backend later).
 
   private def deIndexedFields(bankId: Option[String], entityName: String): Map[String, FieldSpec] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.indexedFields).getOrElse(Map.empty)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.indexedFields).getOrElse(Map.empty)
 
   private def deReferenceFields(bankId: Option[String], entityName: String): Map[String, String] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.referenceFields).getOrElse(Map.empty)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.referenceFields).getOrElse(Map.empty)
 
   private def deUnindexedReferenceFields(bankId: Option[String], entityName: String): Map[String, String] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.unindexedReferenceFields).getOrElse(Map.empty)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.unindexedReferenceFields).getOrElse(Map.empty)
 
   /** Resolve a join-target (child) entity's indexed + reference fields for the planner (same bank scope). */
   private def childJoinInfo(bankId: Option[String])(child: String): Option[JoinTargetInfo] =
-    DynamicEntityHelper.definitionsMap.get((bankId, child))
+    DynamicEntityHelper.definitionOf(bankId, child)
       .map(i => JoinTargetInfo(i.indexedFields, i.referenceFields, i.unindexedReferenceFields))
 
   /** Parse + validate list-read query params into a QueryPlan; fail 400 (clear message) on any error. */
@@ -163,8 +163,107 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def listName(entityName: String): String = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
   private def singleName(entityName: String): String = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
 
-  private def wrapBankId(bankId: Option[String], result: JObject): JObject =
-    if (bankId.isDefined) (("bank_id" -> bankId.getOrElse("")): JObject) merge result else result
+  /**
+   * Set on a request that arrived at a v7.0.0 URL. From v7.0.0 every response names the space it
+   * came from, the system space included (as SYS); the unversioned `/obp/dynamic-entity/` URLs name
+   * only a bank, and keep doing so because their callers may rely on the field being absent.
+   */
+  private val namesEverySpaceKey: org.typelevel.vault.Key[Boolean] =
+    org.typelevel.vault.Key.newKey[IO, Boolean].unsafeRunSync()
+
+  // Under a Domain API the base path already fixes the space, so the response leaves bank_id out. The rule
+  // is DomainApiPaths.responseUnderDomainApi, which the Domain API's documented examples also go through.
+  private def wrapBankId(req: Request[IO], bankId: Option[String], result: JObject): JObject =
+    if (req.attributes.lookup(code.api.dynamic.domainapi.DomainApiPaths.domainApiCallKey).isDefined)
+      code.api.dynamic.domainapi.DomainApiPaths.responseUnderDomainApi(result)
+    else if (bankId.isDefined || req.attributes.lookup(namesEverySpaceKey).contains(true))
+      (("bank_id" -> DynamicEntitySpace.bankIdOrSystem(bankId)): JObject) merge result
+    else result
+
+  private def namesEverySpace(req: Request[IO]): Boolean =
+    req.attributes.lookup(namesEverySpaceKey).contains(true)
+
+  /**
+   * This says whether an entity's records are held in OBP's own records table. They are not when a
+   * method routing sends dynamicEntityProcess for the entity to another connector, which is the same
+   * test the row-level access guard applies (Http4s600.localBackingOkForRowLevel). Metadata is only
+   * shown for a locally held record: for one held elsewhere, a leftover local row with the same id
+   * would describe a different write.
+   */
+  private def isLocallyBacked(entityName: String): Boolean =
+    !NewStyle.function.getMethodRoutings(Some("dynamicEntityProcess"))
+      .exists(_.parameters.exists(parameter => parameter.key == "entityName" && parameter.value == entityName))
+
+  private def recordIdOf(entityName: String, record: JValue): Option[String] =
+    record \ DynamicEntityHelper.createEntityId(entityName) match {
+      case JString(recordId) => Some(recordId)
+      case _ => None
+    }
+
+  /** The stored rows behind `records`, by record id, for reading their metadata. Empty for an
+   *  entity whose records are not held locally. */
+  private def storedRowsByRecordId(bankId: Option[String], entityName: String, records: List[JValue]): Map[String, DynamicDataT] = {
+    val recordIds = records.flatMap(recordIdOf(entityName, _))
+    if (recordIds.isEmpty || !isLocallyBacked(entityName)) Map.empty
+    else dataVend.getByIds(bankId, entityName, recordIds).flatMap(row => row.dynamicDataId.map(_ -> row)).toMap
+  }
+
+  private def utcSeconds(date: java.util.Date): String =
+    java.time.format.DateTimeFormatter.ISO_INSTANT.format(date.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS))
+
+  /**
+   * This is the metadata block of a record in a v7.0.0 response: when it was created and last
+   * updated, and for each, the user who made the call and the user it was made for. The two ids
+   * differ only when an agent acted for somebody. A value that was never recorded, because the
+   * record was written before the columns existed, is null. `showUserIds` is false on the public
+   * reads, which anyone may call, so they carry the times only.
+   */
+  private def metadataJson(row: DynamicDataT, showUserIds: Boolean): JObject = {
+    def orNull(value: Option[String]): JValue = value.map(JString(_)).getOrElse(JNull)
+    def event(at: Option[java.util.Date], userId: Option[String], onBehalfOfUserId: Option[String]): JObject = {
+      val atField = JField("at", orNull(at.map(utcSeconds)))
+      if (showUserIds) JObject(atField :: JField("user_id", orNull(userId)) :: JField("on_behalf_of_user_id", orNull(onBehalfOfUserId)) :: Nil)
+      else JObject(atField :: Nil)
+    }
+    JObject(
+      JField("created", event(row.createdDate, row.createdByUserId, row.createdByOnBehalfOfUserId)) ::
+      JField("updated", event(row.updatedDate, row.updatedByUserId, row.updatedByOnBehalfOfUserId)) :: Nil)
+  }
+
+  /**
+   * This builds the response for one record. At a v7.0.0 URL the record is followed by its
+   * metadata, when it is held locally; the unversioned URLs return the record alone, as before.
+   */
+  private def singleResponse(req: Request[IO], bankId: Option[String], entityName: String, record: JValue, showUserIds: Boolean = true): JObject = {
+    val recordField = JField(singleName(entityName), record)
+    val metadataField =
+      if (!namesEverySpace(req)) None
+      else recordIdOf(entityName, record).flatMap(storedRowsByRecordId(bankId, entityName, List(record)).get)
+        .map(row => JField("metadata", metadataJson(row, showUserIds)))
+    wrapBankId(req, bankId, JObject(recordField :: metadataField.toList))
+  }
+
+  /**
+   * This builds the response for a list of records. At a v7.0.0 URL each item has the same shape as
+   * a single record response without bank_id, the record under the entity's name and its metadata
+   * beside it, so that no record field can collide with the metadata. The unversioned URLs keep
+   * their items as plain records.
+   */
+  private def listResponse(req: Request[IO], bankId: Option[String], entityName: String, records: JValue, showUserIds: Boolean = true): JObject =
+    if (!namesEverySpace(req)) wrapBankId(req, bankId, (listName(entityName) -> records))
+    else {
+      val items = records match {
+        case JArray(values) => values
+        case _ => Nil
+      }
+      val storedRows = storedRowsByRecordId(bankId, entityName, items)
+      val wrappedItems = items.map { record =>
+        val metadataField = recordIdOf(entityName, record).flatMap(storedRows.get)
+          .map(row => JField("metadata", metadataJson(row, showUserIds)))
+        JObject(JField(singleName(entityName), record) :: metadataField.toList)
+      }
+      wrapBankId(req, bankId, (listName(entityName) -> JArray(wrappedItems)))
+    }
 
   private def notFoundMsg(entityName: String, id: String, bankId: Option[String]): String =
     s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(b => s", bank_id: '$b'").getOrElse("")
@@ -207,7 +306,7 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   // ----- Field-level write permissions: POST/PUT never write write-restricted fields -----
   private def writeRestrictedFieldsOf(bankId: Option[String], entityName: String): List[String] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.writeRestrictedFields).getOrElse(Nil)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.writeRestrictedFields).getOrElse(Nil)
 
   private def stripFields(obj: JObject, fields: List[String]): JObject =
     if (fields.isEmpty) obj else JObject(obj.obj.filterNot(f => fields.contains(f.name)))
@@ -238,7 +337,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   // a Consumer's Scopes, either, or both. Personal ("my") endpoints and row-level (ACL) entities
   // always need a User: their rows belong to one.
   private def authModeOf(bankId: Option[String], entityName: String): EndpointAuthMode =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.endpointAuthMode).getOrElse(UserOnly)
+    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.endpointAuthMode).getOrElse(UserOnly)
 
   /** authenticatedAccess for user modes, applicationAccess (User optional, Consumer required) for application modes. */
   private def entityAccess(cc: CallContext, bankId: Option[String], entityName: String, isPersonalEntity: Boolean): Future[(Box[User], Option[CallContext])] =
@@ -250,7 +349,7 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   /**
    * Personal ("my") endpoints and consent users. A consent user's rows resolve to the User its
-   * consent names (UserReference.DynamicDataUser in the provider), so without a scope check any
+   * consent names (UserReference.DynamicData_UserId in the provider), so without a scope check any
    * consent, however narrow, would reach that User's personal rows. The scope is the consent's
    * `my_resources` claim: the consent user passes only if the claim lists this entity with the
    * needed action. The entity role is then required exactly as for anyone else (only when the
@@ -260,22 +359,22 @@ object Http4sDynamicEntity extends MdcLoggable {
                                             boxUser: Box[User], callContext: Option[CallContext]): Future[Box[Unit]] =
     if (!isPersonalEntity || !boxUser.exists(_.isConsentUser)) Future.successful(Full(()))
     else Helper.booleanToFuture(
-      s"$ConsentMyResourcesMissing personal_dynamic_entities entry needed: bank_id '${bankId.getOrElse("")}', entity_name '$entityName', action '$action'",
+      s"$ConsentMyResourcesMissing personal_dynamic_entities entry needed: bank_id '${DynamicEntitySpace.bankIdOrSystem(bankId)}', entity_name '$entityName', action '$action'",
       403, cc = callContext) {
       callContext.flatMap(_.consentMyResources).exists(_.coversPersonalDynamicEntity(bankId, entityName, action))
     }
 
   /** The user personal rows are read for: the caller, or the user its consent names. Same rule as the provider. */
   private def personalRowOwner(userIdOpt: Option[String], isPersonalEntity: Boolean): Option[String] =
-    if (isPersonalEntity) userIdOpt.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicDataUser).openOr(id))
+    if (isPersonalEntity) userIdOpt.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicData_UserId).openOr(id))
     else userIdOpt
 
   /** The entity's role, checked per the entity's auth mode (entitlements, scopes, either or both). */
   private def checkEntityRole(bankId: Option[String], entityName: String, boxUser: Box[User], role: ApiRole, callContext: Option[CallContext]): Future[Box[Unit]] = {
-    val bankIdStr = bankId.getOrElse("")
+    val bankIdStr = DynamicEntitySpace.bankIdOrSystem(bankId)
     val userId = boxUser.map(_.userId).openOr("")
     val consumerId = code.api.util.APIUtil.getConsumerPrimaryKey(callContext)
-    val errorMessage = if (bankIdStr.isEmpty) UserHasMissingRoles + role.toString else UserHasMissingRoles + role.toString + s" at Bank($bankIdStr)"
+    val errorMessage = UserHasMissingRoles + role.toString + s" at Bank($bankIdStr)"
     Helper.booleanToFuture(errorMessage, cc = callContext) {
       code.api.util.APIUtil.handleAccessControlWithAuthMode(bankIdStr, userId, consumerId, List(role), authModeOf(bankId, entityName))
     }
@@ -284,14 +383,14 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def missingPatchRoleNames(
     bodyFieldNames: List[String], bankId: Option[String], entityName: String, userId: String, consumerId: String, requireEntityRole: Boolean
   ): List[String] = {
-    val info = DynamicEntityHelper.definitionsMap.get((bankId, entityName))
+    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
     // Only declared schema fields are meaningful (id/audit/unknown fields are ignored by the merge).
     val schemaFields = info.map(_.propertyNames).getOrElse(bodyFieldNames)
     val touched = bodyFieldNames.intersect(schemaFields)
     val writeRestricted = info.map(_.writeRestrictedFields).getOrElse(Nil).toSet
     val authMode = authModeOf(bankId, entityName)
     def has(role: code.api.util.ApiRole): Boolean =
-      code.api.util.APIUtil.handleAccessControlWithAuthMode(bankId.getOrElse(""), userId, consumerId, List(role), authMode)
+      code.api.util.APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userId, consumerId, List(role), authMode)
     touched.flatMap { f =>
       if (writeRestricted.contains(f)) {
         val role = DynamicEntityInfo.fieldWriteRole(entityName, f, bankId, info.flatMap(_.explicitWriteRole(f)))
@@ -319,17 +418,32 @@ object Http4sDynamicEntity extends MdcLoggable {
     case other        => other
   }
 
-  // Remove any read-restricted field the caller lacks the read role for (anonymous => userIdOpt None => omit all).
-  private def applyReadRestrictions(value: JValue, bankId: Option[String], entityName: String, userIdOpt: Option[String]): JValue = {
-    val info = DynamicEntityHelper.definitionsMap.get((bankId, entityName))
-    val readRestricted = info.map(_.readRestrictedFields).getOrElse(Nil)
-    val omit: Set[String] = readRestricted.filterNot { f =>
-      userIdOpt.exists { uid =>
-        val role = DynamicEntityInfo.fieldReadRole(entityName, f, bankId, info.flatMap(_.explicitReadRole(f)))
-        code.api.util.APIUtil.hasEntitlement(bankId.getOrElse(""), uid, role)
-      }
-    }.toSet
+  // Remove any read-restricted field the caller lacks the read role for (anonymous => userIdOpt None => omit all),
+  // and, on a read through public access, every field declared hide_field_from_public_access.
+  private def applyReadRestrictions(value: JValue, bankId: Option[String], entityName: String, userIdOpt: Option[String],
+                                    viaPublicAccess: Boolean = false): JValue = {
+    val info = DynamicEntityHelper.definitionOf(bankId, entityName)
+    val restricted = info.map(_.readRestrictedFields).getOrElse(Nil) ++ info.map(_.publicHiddenFields).getOrElse(Nil)
+    val omit: Set[String] = restricted.filterNot(f => DynamicEntityInfo.mayReadField(bankId, entityName, f, userIdOpt, viaPublicAccess)).toSet
     if (omit.isEmpty) value else omitFields(value, omit)
+  }
+
+  /**
+   * A caller may not filter or sort on a field they may not read: whether a record comes back would
+   * reveal the field's value. This covers the legacy bare-parameter filter (`?field=value`),
+   * `obp_filter`, `obp_sort_by`, and the nested filters of `obp_exists` / `obp_not_exists`, which are
+   * judged on the joined entity. `viaPublicAccess` says whether this read of `entityName` is through
+   * its public access, which hides the fields declared `hide_field_from_public_access`.
+   */
+  private def refuseUnreadableQueryFields(req: Request[IO], plan: QueryPlan, bankId: Option[String], entityName: String,
+                                          userIdOpt: Option[String], viaPublicAccess: Boolean, cc: Option[CallContext]): Future[Box[Unit]] = {
+    val joinedEntityReader = DynamicEntityInfo.fieldReader(bankId, userIdOpt, code.api.util.APIUtil.getConsumerPrimaryKey(cc))
+    val legacyFields = queryParams(req).keys.filter(k => k != PARAM_LOCALE && !k.startsWith("obp_")).map(_.takeWhile(_ != '.'))
+    val ownFields = (legacyFields ++ ProjectionReadiness.planFields(plan)).toList.distinct
+      .filterNot(f => DynamicEntityInfo.mayReadField(bankId, entityName, f, userIdOpt, viaPublicAccess)).map(f => s"$entityName.$f")
+    val joinedFields = plan.joins.flatMap(j => j.predicate.map(_.field).distinct.filterNot(joinedEntityReader(j.childEntity, _)).map(f => s"${j.childEntity}.$f"))
+    val unreadable = ownFields ++ joinedFields
+    Helper.booleanToFuture(s"$DynamicEntityFieldNotReadable${unreadable.mkString(", ")}.", 400, cc = cc) { unreadable.isEmpty }
   }
 
   // ----- DE_indexing: read-path backend selection (projection vs in-memory) -----
@@ -350,28 +464,15 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def joinParamsPresent(req: Request[IO]): Boolean =
     queryParams(req).keys.exists(k => k.startsWith("obp_exists[") || k.startsWith("obp_not_exists["))
 
-  private def planFields(plan: QueryPlan): List[String] =
-    (plan.filters.map(_.field) ++ plan.sort.map(_.field)).distinct
-
   private def decideProjection(req: Request[IO], bankId: Option[String], entityName: String, plan: QueryPlan): ProjDecision =
     if (plan.joins.nonEmpty) {
       // Joins are projection-only. Legacy bare params can't combine with joins (they force in-memory).
       if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req)) JoinsNeedProjection
-      else {
-        val parentReady = ProjectionProvisioner.readyFields(bankId, entityName)
-        val parentFieldsReady = planFields(plan).forall(parentReady.contains)
-        val joinsReady = plan.joins.forall { j =>
-          val childReady = ProjectionProvisioner.readyFields(bankId, j.childEntity)
-          val linkReady  = if (j.onChild) childReady.contains(j.linkField) else parentReady.contains(j.linkField)
-          linkReady && j.predicate.map(_.field).forall(childReady.contains)
-        }
-        if (parentFieldsReady && joinsReady) UseProjection else PendingProjection
-      }
-    } else if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || planFields(plan).isEmpty) UseInMemory
-    else {
-      val ready = ProjectionProvisioner.readyFields(bankId, entityName)
-      if (planFields(plan).forall(ready.contains)) UseProjection else PendingProjection
-    }
+      else if (ProjectionReadiness.ready(bankId, entityName, plan)) UseProjection
+      else PendingProjection
+    } else if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || ProjectionReadiness.planFields(plan).isEmpty) UseInMemory
+    else if (ProjectionReadiness.ready(bankId, entityName, plan)) UseProjection
+    else PendingProjection
 
   private def projectionList(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): Future[JArray] =
     PostgresProjectionBackend.query(entityName, bankId, userId, isPersonalEntity, plan).map(JArray(_)).unsafeToFuture()(ioRuntime)
@@ -386,7 +487,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def aclVend = DynamicDataAccessProvider.provider.vend
   private def dataVend = DynamicDataProvider.connectorMethodProvider.vend
   private def isRowLevel(bankId: Option[String], entityName: String): Boolean =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.useRowLevelAccess)
+    DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.useRowLevelAccess)
 
   private def rowLevelGet(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
     val isGetAll = StringUtils.isBlank(id)
@@ -402,25 +503,27 @@ object Http4sDynamicEntity extends MdcLoggable {
       // Row-level get-all is served in-memory (ACL-gated); joins require the projection backend.
       _ <- if (isGetAll && joinParamsPresent(req)) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
            else Future.successful(true)
+      _ <- if (isGetAll) refuseUnreadableQueryFields(req, QueryPlan.empty, bankId, entityName, Some(u.userId), viaPublicAccess = false, callContext)
+           else Future.successful(true)
       result <- if (isGetAll) Future {
                   // In-memory floor: fetch all rows (unscoped) and keep those the ACL marks readable.
                   // (The projection EXISTS backend for row-level get-all is a documented follow-up; the
                   // in-memory path is always correct, just not index-accelerated.)
-                  val readable = aclVend.getReadableDynamicDataIds(u.userId, entityName, bankId).toSet
+                  val readable = aclVend.getReadableDynamicDataIds(bankId, entityName, u.userId).toSet
                   val readableRows = dataVend.getAllCommunity(bankId, entityName).filter(_.dynamicDataId.exists(readable.contains))
                   val readableJson: JArray = JArray(readableRows.map(r => parse(r.dataJson)))
                   val filtered = filterDynamicObjects(readableJson, queryParams(req))
-                  wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
+                  listResponse(req, bankId, entityName, applyReadRestrictions(filtered, bankId, entityName, Some(u.userId)))
                 } else {
                   val box: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
                   for {
                     // Hide existence: a row you cannot read is indistinguishable from a missing row (404).
                     _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) {
-                           box.isDefined && aclVend.allows(id, u.userId, DynamicDataAccessPermission.Read)
+                           box.isDefined && aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Read)
                          }
                   } yield {
                     val singleObject: JValue = unboxResult(box, entityName)
-                    wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId))))
+                    singleResponse(req, bankId, entityName, applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId)))
                   }
                 }
     } yield result
@@ -438,12 +541,12 @@ object Http4sDynamicEntity extends MdcLoggable {
       existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles update access on this row", 403, cc = callContext) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Update) }
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Update) }
       // Field-level write roles still apply on top of the row ACL.
       updateJson = preserveRestrictedOnPut(json.asInstanceOf[JObject], existing, writeRestrictedFieldsOf(bankId, entityName))
-      box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, updateJson, id).map(it => parse(it.dataJson))
+      box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, updateJson, id, Some(u.userId)).map(it => parse(it.dataJson))
       singleObject: JValue = unboxResult(box, entityName)
-    } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+    } yield singleResponse(req, bankId, entityName, singleObject)
   }
 
   private def rowLevelPatch(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
@@ -458,15 +561,15 @@ object Http4sDynamicEntity extends MdcLoggable {
       bodyObj = json.asInstanceOf[JObject]
       // Row ACL replaces the entity-update role; per-field write roles still apply (requireEntityRole = false).
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles update access on this row", 403, cc = callContext) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Update) }
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Update) }
       missingRoles = missingPatchRoleNames(bodyObj.obj.map(_.name), bankId, entityName, u.userId, code.api.util.APIUtil.getConsumerPrimaryKey(callContext), requireEntityRole = false)
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles ${missingRoles.mkString(", ")}", 403, cc = callContext) { missingRoles.isEmpty }
       existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
-      mergedJson = mergePatch(DynamicEntityHelper.definitionsMap.get((bankId, entityName)), existing, bodyObj)
-      box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, mergedJson, id).map(it => parse(it.dataJson))
+      mergedJson = mergePatch(DynamicEntityHelper.definitionOf(bankId, entityName), existing, bodyObj)
+      box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, mergedJson, id, Some(u.userId)).map(it => parse(it.dataJson))
       singleObject: JValue = unboxResult(box, entityName)
-    } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+    } yield singleResponse(req, bankId, entityName, singleObject)
   }
 
   private def rowLevelDelete(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
@@ -480,9 +583,9 @@ object Http4sDynamicEntity extends MdcLoggable {
       existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles delete access on this row", 403, cc = callContext) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Delete) }
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Delete) }
       _ = dataVend.deleteCommunity(bankId, entityName, id)
-      _ = aclVend.deleteAllForRow(id) // cascade the ACL rows for the deleted data row
+      _ = aclVend.deleteAllForRow(bankId, entityName, id) // cascade the ACL rows for the deleted data row
     } yield JObject(Nil)
   }
 
@@ -503,8 +606,8 @@ object Http4sDynamicEntity extends MdcLoggable {
     ("can_grant" -> a.canGrant) ~
     ("granted_by" -> a.grantedBy)
 
-  private def rowAccessListJson(dataId: String): JObject =
-    ("access" -> JArray(aclVend.getAccessForRow(dataId).map(rowAccessRowJson)))
+  private def rowAccessListJson(bankId: Option[String], entityName: String, dataId: String): JObject =
+    ("access" -> JArray(aclVend.getAccessForRow(bankId, entityName, dataId).map(rowAccessRowJson)))
 
   // Shared preamble: before-intercept, auth, bank, flag-off (400), grant authorisation (403).
   private def rowAccessAuthorise(cc: CallContext, bankId: Option[String], entityName: String, id: String,
@@ -517,8 +620,8 @@ object Http4sDynamicEntity extends MdcLoggable {
       (_, callContext2) <- bankCheck(bankId, callContext)
       _ <- Helper.booleanToFuture(RowLevelAccessNotEnabled, 400, cc = callContext2) { isRowLevel(bankId, entityName) }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles grant access on this row", 403, cc = callContext2) {
-             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Grant) ||
-               hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId))
+             aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Grant) ||
+               hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), u.userId, DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId))
            }
     } yield (u, callContext2)
   }
@@ -527,7 +630,7 @@ object Http4sDynamicEntity extends MdcLoggable {
     EndpointHelpers.executeAndRespond(req) { cc =>
       for {
         _ <- rowAccessAuthorise(cc, bankId, entityName, id, GET_ALL)
-      } yield rowAccessListJson(id)
+      } yield rowAccessListJson(bankId, entityName, id)
     }
 
   private def upsertRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] =
@@ -544,21 +647,21 @@ object Http4sDynamicEntity extends MdcLoggable {
                entries.nonEmpty && entries.forall(o => strField(o, "user_id").isDefined)
              }
         _ = entries.foreach { o =>
-              aclVend.grant(id, strField(o, "user_id").get,
+              aclVend.grant(bankId, entityName, id, strField(o, "user_id").get,
                 canRead = boolField(o, "can_read", default = false),
                 canUpdate = boolField(o, "can_update", default = false),
                 canDelete = boolField(o, "can_delete", default = false),
                 canGrant = boolField(o, "can_grant", default = true), // §8.1: re-share by default
-                entityName, bankId, grantedBy = granter.userId)
+                grantedBy = granter.userId)
             }
-      } yield rowAccessListJson(id)
+      } yield rowAccessListJson(bankId, entityName, id)
     }
 
   private def revokeRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String, grantUserId: String): IO[Response[IO]] =
     EndpointHelpers.executeAndRespond(req) { cc =>
       for {
         _ <- rowAccessAuthorise(cc, bankId, entityName, id, DELETE)
-        removed = aclVend.revoke(id, grantUserId).getOrElse(0) // cascades to downstream grants (§7)
+        removed = aclVend.revoke(bankId, entityName, id, grantUserId).getOrElse(0) // cascades to downstream grants (§7)
       } yield (("revoked_count" -> removed): JObject)
     }
 
@@ -580,12 +683,14 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "read", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        _ <- if (isGetAll) refuseUnreadableQueryFields(req, queryPlan, bankId, entityName, userIdOpt, viaPublicAccess = false, callContext)
+             else Future.successful(true)
         decision = if (isGetAll) decideProjection(req, bankId, entityName, queryPlan) else UseInMemory
         _ <- if (decision == JoinsNeedProjection) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
              else Future.successful(true)
@@ -605,10 +710,10 @@ object Http4sDynamicEntity extends MdcLoggable {
             val legacyFiltered = filterDynamicObjects(resultList, queryParams(req))
             applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
           }
-          wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, userIdOpt)))
+          listResponse(req, bankId, entityName, applyReadRestrictions(filtered, bankId, entityName, userIdOpt))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-          wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, userIdOpt)))
+          singleResponse(req, bankId, entityName, applyReadRestrictions(singleObject, bankId, entityName, userIdOpt))
         }
       }
     }
@@ -623,7 +728,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "write", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
@@ -637,10 +742,10 @@ object Http4sDynamicEntity extends MdcLoggable {
         // edit, and share their own record with no role and no meta-admin hop (§4 / §8.1).
         _ = if (isRowLevel(bankId, entityName)) (singleObject \ DynamicEntityHelper.createEntityId(entityName)) match {
               case JString(rid) =>
-                userIdOpt.foreach(uid => aclVend.grant(rid, uid, canRead = true, canUpdate = true, canDelete = true, canGrant = true, entityName, bankId, grantedBy = uid))
+                userIdOpt.foreach(uid => aclVend.grant(bankId, entityName, rid, uid, canRead = true, canUpdate = true, canDelete = true, canGrant = true, grantedBy = uid))
               case _ =>
             }
-      } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+      } yield singleResponse(req, bankId, entityName, singleObject)
     }
 
   private def genericPut(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
@@ -657,7 +762,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "write", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
@@ -669,7 +774,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         updateJson = preserveRestrictedOnPut(json.asInstanceOf[JObject], existing.asInstanceOf[Box[JValue]], writeRestrictedFieldsOf(bankId, entityName))
         (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(updateJson), Some(id), bankId, None, userIdOpt, isPersonalEntity, Some(cc))
         singleObject: JValue = unboxResult(box, entityName)
-      } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+      } yield singleResponse(req, bankId, entityName, singleObject)
     }
 
   private def genericPatch(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
@@ -686,7 +791,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")) }
         bodyObj = json.asInstanceOf[JObject]
@@ -700,10 +805,10 @@ object Http4sDynamicEntity extends MdcLoggable {
         (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, userIdOpt, isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
         // PATCH = partial update: merge incoming fields over the existing record.
-        mergedJson = mergePatch(DynamicEntityHelper.definitionsMap.get((bankId, entityName)), existing.asInstanceOf[Box[JValue]], bodyObj)
+        mergedJson = mergePatch(DynamicEntityHelper.definitionOf(bankId, entityName), existing.asInstanceOf[Box[JValue]], bodyObj)
         (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(mergedJson), Some(id), bankId, None, userIdOpt, isPersonalEntity, Some(cc))
         singleObject: JValue = unboxResult(box, entityName)
-      } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+      } yield singleResponse(req, bankId, entityName, singleObject)
     }
 
   private def genericDelete(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
@@ -720,7 +825,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
-        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
         _ <- consentCoversPersonalResource(bankId, entityName, isPersonalEntity, "write", boxUser, callContext)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else checkEntityRole(bankId, entityName, boxUser, DynamicEntityInfo.canDeleteRole(entityName, bankId), callContext)
@@ -745,6 +850,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         (_, callContext) <- anonymousAccess(callContext0)
         (_, callContext) <- bankCheck(bankId, callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        _ <- if (isGetAll) refuseUnreadableQueryFields(req, queryPlan, bankId, entityName, None, viaPublicAccess = true, callContext)
+             else Future.successful(true)
         // Public reads are in-memory only; joins require the projection backend.
         _ <- if (queryPlan.joins.nonEmpty) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
              else Future.successful(true)
@@ -755,10 +862,10 @@ object Http4sDynamicEntity extends MdcLoggable {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
           val legacyFiltered = filterDynamicObjects(resultList, queryParams(req))
           val filtered = applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
-          wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, None)))
+          listResponse(req, bankId, entityName, applyReadRestrictions(filtered, bankId, entityName, None, viaPublicAccess = true), showUserIds = false)
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-          wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, None)))
+          singleResponse(req, bankId, entityName, applyReadRestrictions(singleObject, bankId, entityName, None, viaPublicAccess = true), showUserIds = false)
         }
       }
     }
@@ -775,9 +882,11 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
         (Full(u), callContext) <- authenticatedAccess(callContext0)
         (_, callContext) <- bankCheck(bankId, callContext)
-        _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
+        _ <- NewStyle.function.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(bankId), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        _ <- if (isGetAll) refuseUnreadableQueryFields(req, queryPlan, bankId, entityName, Some(u.userId), viaPublicAccess = false, callContext)
+             else Future.successful(true)
         // Community reads are in-memory only; joins require the projection backend.
         _ <- if (queryPlan.joins.nonEmpty) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
              else Future.successful(true)
@@ -787,14 +896,14 @@ object Http4sDynamicEntity extends MdcLoggable {
           val resultArray = JArray(resultList)
           val legacyFiltered = filterDynamicObjects(resultArray, queryParams(req))
           val filtered = applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
-          wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
+          listResponse(req, bankId, entityName, applyReadRestrictions(filtered, bankId, entityName, Some(u.userId)))
         } else {
           val singleResult = DynamicDataProvider.connectorMethodProvider.vend.getCommunity(bankId, entityName, id)
           val singleObject: JValue = singleResult match {
             case Full(data) => com.openbankproject.commons.util.JsonAliases.parse(data.dataJson)
             case _ => throw new RuntimeException(notFoundMsg(entityName, id, bankId))
           }
-          wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId))))
+          singleResponse(req, bankId, entityName, applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId)))
         }
       }
     }
@@ -806,7 +915,7 @@ object Http4sDynamicEntity extends MdcLoggable {
    * extractors the Lift dispatcher used.  Order public -> community -> generic mirrors
    * OBPAPIDynamicEntity.routes.  No match -> OptionT.none (request falls through the chain).
    */
-  private def dispatch(req: Request[IO], rest: List[String]): OptionT[IO, Response[IO]] = {
+  private def dispatch(req: Request[IO], rest: List[String], apiVersion: String): OptionT[IO, Response[IO]] = {
     val handlerOpt: Option[Request[IO] => IO[Response[IO]]] = (req.method, rest) match {
       case (Method.GET, PublicEntityName(bankId, entityName, id)) =>
         Some(r => publicGet(r, bankId, entityName, id))
@@ -835,7 +944,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       case None => OptionT.none[IO, Response[IO]]
       case Some(handler) =>
         OptionT.liftF {
-          Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc =>
+          Http4sCallContextBuilder.fromRequest(req, apiVersion).flatMap { cc =>
             val reqWithCc = req.withAttribute(Http4sRequestAttributes.callContextKey, cc)
             val io = handler(reqWithCc)
             if (req.method == Method.GET || req.method == Method.HEAD) io
@@ -850,7 +959,36 @@ object Http4sDynamicEntity extends MdcLoggable {
     Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       req.uri.path.segments.map(_.encoded).toList match {
         case standard :: version :: rest if standard == apiStandard && version == apiVersionString =>
-          dispatch(req, rest)
+          dispatch(req, rest, apiVersionString)
+        case _ =>
+          OptionT.none[IO, Response[IO]]
+      }
+    }
+
+  private val v700String = com.openbankproject.commons.util.ApiVersion.v7_0_0.toString // "v7.0.0"
+
+  /**
+   * The v7.0.0 data URLs: `/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...`, where BANK_ID is a bank's
+   * id or SYS for the system space, and what follows is the same as after `/obp/dynamic-entity/`
+   * (`ENTITY[/ID]`, `my/ENTITY[/ID]`, `public/...`, `community/...`, `ENTITY/ID/access[/USER_ID]`).
+   *
+   * One URL shape serves every space, so the space comes first and is always named. The path is
+   * rewritten into the unversioned shape and handed to the same dispatcher, so both URL families run
+   * the same checks against the same storage; the only difference is that a v7.0.0 response names its
+   * space even when it is SYS. The `dynamic-entities` segment keeps an entity called, say, `accounts`
+   * from colliding with `/banks/BANK_ID/accounts`. Wired into Http4s700 ahead of its bridge to v6.0.0.
+   * See DYNAMIC_ENTITY_SPACE_MODEL_PLAN.md, phase 6.
+   */
+  lazy val wrappedRoutesDynamicEntityV700: HttpRoutes[IO] =
+    Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
+      req.uri.path.segments.map(_.encoded).toList match {
+        case standard :: version :: "banks" :: bankIdInUrl :: "dynamic-entities" :: rest
+          if standard == apiStandard && version == v700String =>
+          val unversionedRest = DynamicEntitySpace.bankIdOrNoneForSystem(bankIdInUrl) match {
+            case Some(bankId) => "banks" :: bankId :: rest
+            case None         => rest
+          }
+          dispatch(req.withAttribute(namesEverySpaceKey, true), unversionedRest, v700String)
         case _ =>
           OptionT.none[IO, Response[IO]]
       }

@@ -235,7 +235,7 @@ object Http4s210 {
     val commonTxReqErrors = List(AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat,
       InvalidJsonFormat, BankNotFound, AccountNotFound, InsufficientAuthorisationToCreateTransactionRequest,
       InvalidTransactionRequestType, InvalidNumber, NotPositiveAmount, InvalidTransactionRequestCurrency,
-      TransactionDisabled, UnknownError)
+      PaymentChallengeHasNoOnBehalfOfUser, TransactionDisabled, UnknownError)
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(createTransactionRequest) + "SandboxTan", "POST",
@@ -460,7 +460,7 @@ object Http4s210 {
       AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat, InvalidJsonFormat,
       BankNotFound, UserNoPermissionAccessView, TransactionRequestStatusNotInitiated,
       TransactionRequestTypeHasChanged, InvalidTransactionRequestChallengeId,
-      AllowedAttemptsUsedUp, TransactionDisabled, UnknownError)
+      AllowedAttemptsUsedUp, ChallengeNotAddressedToCaller, TransactionDisabled, UnknownError)
 
     private val answerChallengeTags = List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)
 

@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util.http4s
 
 import cats.effect.IO
-import code.api.util.SelfServiceRateLimiter
+import code.api.util.{IpPenalties, SelfServiceRateLimiter}
 import code.api.util.SelfServiceRateLimiter.{Blocked, Outcome, Skipped, Warned, Window}
 import code.util.Helper.MdcLoggable
 import org.http4s.{Header, Headers, Method, Request, Response, Status}
@@ -85,7 +85,32 @@ object SelfServiceRateLimitMiddleware extends MdcLoggable {
     // signal_channel_create: the one unbounded write into Redis. Counted only when the
     // channel named in the path does not exist yet, so ordinary publishing is untouched.
     Entry("signal_channel_create", Method.POST, s"^$V/signal-channels/([^/]+)/messages$$".r,
-      (_, m) => code.api.cache.RedisMessaging.channelInfo(m.group(1)).isEmpty)
+      (_, m) => code.api.cache.RedisMessaging.channelInfo(m.group(1)).isEmpty),
+    // documentation: every public documentation read, for any version prefix. Public and
+    // anonymous by design, and some are expensive when not cached (rendering the whole API,
+    // or working out popular endpoints from usage records). The resource-docs routes are served
+    // outside ResourceDocMiddleware, so the per-IP limit for anonymous calls never reaches them;
+    // for them this entry is the only per-IP limit. `/root` is left out: it is cheap, and
+    // monitoring polls it. Shadow mode unless the scope's own mode prop is set
+    // (SelfServiceRateLimiter.shadowUnlessSetScopes).
+    Entry("documentation", Method.GET, "^/obp/[^/]+/resource-docs/[^/]+/(obp|swagger|openapi|openapi\\.yaml)$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/banks/[^/]+/resource-docs/[^/]+/(obp|openapi|openapi\\.yaml)$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/message-docs/[^/]+(/json-schema|/swagger2\\.0)?$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/api/(glossary(/[^/]+)?|tags|versions|error-messages|popular-endpoints)$".r),
+    Entry("documentation", Method.GET, "^/obp/[^/]+/endpoints/(json-schema-validations|authentication-type-validations)$".r)
+  )
+
+  /** What each scope counts, in words, for the rate limiter configuration endpoint and API Manager. */
+  val scopeDescriptions: Map[String, String] = Map(
+    "signup" -> "POST /users, /users/email-validation, /banks/BANK_ID/user-invitations",
+    "password_reset" -> "POST /users/password-reset-url, /users/password",
+    "consent_request" -> "POST /consumer/consent-requests, /consumer/vrp-consent-requests",
+    "consumer_registration" -> "POST /dynamic-registration/consumers",
+    "lookup" -> "POST /account/check/scheme/iban",
+    "signal_channel_create" -> "POST /signal-channels/CHANNEL_NAME/messages, when the channel does not exist yet",
+    "documentation" -> ("GET of the public documentation: resource-docs (obp, swagger, openapi, openapi.yaml, bank level), " +
+      "message-docs (plain, json-schema, swagger2.0), api/glossary, api/tags, api/versions, api/error-messages, " +
+      "api/popular-endpoints, endpoints/json-schema-validations, endpoints/authentication-type-validations")
   )
 
   def scopeFor(req: Request[IO]): Option[String] = {
@@ -103,12 +128,45 @@ object SelfServiceRateLimitMiddleware extends MdcLoggable {
     }
 
   /** Wrap the application. */
-  def apply(req: Request[IO])(run: Request[IO] => IO[Response[IO]]): IO[Response[IO]] =
+  /**
+   * The penalty management endpoints are never refused because of a penalty, so an operator who
+   * penalised the wrong address (their own, or a proxy's) can always undo it.
+   */
+  private val ipPenaltyManagementPath = "^/obp/[^/]+/management/ip-penalties(/.*)?$".r
+
+  def apply(req: Request[IO])(run: Request[IO] => IO[Response[IO]]): IO[Response[IO]] = {
+    val penaltyRefusal: IO[Option[IpPenalties.Refusal]] =
+      if (ipPenaltyManagementPath.findFirstIn(req.uri.path.renderString).isDefined) IO.pure(None)
+      else IO.blocking(IpPenalties.check(Http4sCallContextBuilder.clientIp(req)))
+    penaltyRefusal.flatMap {
+      case Some(refusal) =>
+        Http4sRequestAttributes.trafficNote(req).foreach(_.refusedBy = Some("ip_penalty"))
+        IO.pure(penaltyResponse(refusal))
+      case None => applyScopes(req)(run)
+    }
+  }
+
+  private def penaltyResponse(refusal: IpPenalties.Refusal): Response[IO] = {
+    val escaped = IpPenalties.refusedMessage(refusal).replace("\\", "\\\\").replace("\"", "\\\"")
+    Response[IO](status = Status.TooManyRequests)
+      .withEntity(s"""{"code":429,"message":"$escaped"}""".getBytes("UTF-8"))
+      .withHeaders(Headers(
+        Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8"),
+        Header.Raw(CIString("Retry-After"), refusal.retryAfterSeconds.toString),
+        Header.Raw(CIString(LimitHeader), refusal.penalty.perMinuteLimit.toString),
+        Header.Raw(CIString(RemainingHeader), "0"),
+        Header.Raw(CIString(ResetHeader), refusal.retryAfterSeconds.toString)
+      ))
+  }
+
+  private def applyScopes(req: Request[IO])(run: Request[IO] => IO[Response[IO]]): IO[Response[IO]] =
     scopeFor(req) match {
       case None => run(req)
       case Some(scope) =>
         IO.blocking(SelfServiceRateLimiter.check(scope, Http4sCallContextBuilder.clientIp(req), "ip")).flatMap {
-          case Blocked(s, _, exceeded) => IO.pure(blockedResponse(s, exceeded))
+          case Blocked(s, _, exceeded) =>
+            Http4sRequestAttributes.trafficNote(req).foreach(_.refusedBy = Some(s))
+            IO.pure(blockedResponse(s, exceeded))
           case outcome                 => run(req).map(resp => decorate(resp, outcome))
         }
     }

@@ -1764,6 +1764,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * requests.
      */
     def isAutoValidateRoles: Boolean = _autoValidateRoles
+
+    private var _allowsSystemSpace = false
+
+    /**
+     * Let the system space's bank id, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS), stand in for BANK_ID.
+     *
+     * The middleware looks every BANK_ID up as a real bank and answers 404 when there is none, and no
+     * bank is called SYS. A Dynamic Entity lives in a space, which is either a bank or the system space,
+     * so its endpoints need SYS to get through; every other endpoint needs a real bank and must keep
+     * the 404. This is the opt-in that tells them apart. With it, a request naming SYS reaches the
+     * handler with no bank resolved, and the declared Roles are checked at SYS.
+     */
+    def allowSystemSpace(): ResourceDoc = {
+      _allowsSystemSpace = true
+      this
+    }
+
+    def allowsSystemSpace: Boolean = _allowsSystemSpace
     private var _autoValidateAuthenticate = true
     def disableAutoValidateAuthenticate(): ResourceDoc = {
       _autoValidateAuthenticate = false
@@ -2238,7 +2256,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // Virtual roles granted by super_admin_user_ids prop
   val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
   // Virtual roles granted by oidc_operator_user_ids prop
-  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient")
+  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanGetConsumers", "CanCreateConsumer")
 
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
@@ -2269,6 +2287,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def isConsentUser(userId: String): Boolean =
     Users.users.vend.getUserByUserId(userId).exists(_.isConsentUser)
+
+  /**
+   * This says whether an Entitlement or a Scope may be written at `bankId`.
+   *
+   * Three values are allowed: the empty bank id, where a system Role is held; SYS, the system space
+   * of Dynamic Entities, whose Roles are granted there although no Bank has that id; and the id of a
+   * Bank that exists, matched exactly, case included. A row at any other bank id would be one that no
+   * check ever reads. Every endpoint that grants a Role or a Scope, or records a request for one, asks
+   * this, so that SYS is accepted in all of them and not only in the versions written after it.
+   */
+  def isBankIdWhereRolesCanBeHeld(bankId: String, callContext: Option[CallContext]): Boolean =
+    bankId.isEmpty || bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID || BankX(BankId(bankId), callContext).map(_._1).isDefined
 
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
@@ -2318,6 +2348,100 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
   
+  /**
+   * Grant a caller the Roles they are missing, at the moment they first need them.
+   *
+   * This is the "just in time" entitlement described in the Glossary and switched on with the
+   * create_just_in_time_entitlements prop. The idea is that a caller who could have granted
+   * themselves a Role by hand, because they hold one of the granting Roles, should not have to make
+   * that second call: OBP writes the Entitlement for them and lets the request through. The row is
+   * an ordinary Entitlement, marked with created_by_process = "create_just_in_time_entitlements" so
+   * that an operator reading the table later can tell it apart from a hand granted one.
+   *
+   * Two callers are never granted anything this way. A consent user is refused because a Role held
+   * by a per-consent identity would be stranded there rather than belonging to the human. And the
+   * system space is refused because reaching it is meant to be a deliberate act: a Dynamic Entity
+   * at the bank id DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID is the instance wide space, and granting
+   * anything in it requires the system space granting Role rather than the ordinary per bank one.
+   * Without this second exclusion, holding the per bank granting Role at that one bank id would be
+   * enough to collect system space Roles silently, one endpoint call at a time.
+   *
+   * Returns true only when every missing Role was granted, which is what lets the caller through.
+   */
+  /**
+   * The two Roles that hand out Roles are never granted automatically. Granting one of them to a
+   * caller who is already using this automation would let a caller widen their own granting reach
+   * without anybody deciding to let them, which is the one thing the manual process is there for.
+   * The Glossary Item Entitlement and sample.props.template both state this exclusion.
+   */
+  private val rolesNeverGrantedJustInTime: Set[String] =
+    Set(ApiRole.canCreateEntitlementAtOneBank.toString, ApiRole.canCreateEntitlementAtAnyBank.toString)
+
+  /**
+   * Grant a caller the Roles they are missing, at the moment they first need them.
+   *
+   * This is the "just in time" entitlement described in the Glossary and switched on with the
+   * create_just_in_time_entitlements prop. The idea is that a caller who could have granted
+   * themselves a Role by hand, because they hold one of the granting Roles, should not have to make
+   * that second call: OBP writes the Entitlement for them and lets the request through. The row is
+   * an ordinary Entitlement, marked with created_by_process = "create_just_in_time_entitlements" so
+   * that an operator reading the table later can tell it apart from a hand granted one.
+   *
+   * "Could have granted it by hand" is meant literally, and is what the checks below reproduce.
+   * Add Entitlement writes a Role at the scope the Role itself declares: a Role with
+   * requiresBankId = false lives at the system scope and is refused if a bank id is supplied, and a
+   * Role with requiresBankId = true is refused without one. The granting Role needed differs the
+   * same way, because only a holder of CanCreateEntitlementAtAnyBank can write at the system scope.
+   * So a caller who may grant Entitlements at one bank gets bank Roles at that bank and nothing
+   * else, and in particular gets no system scoped Role, however the endpoint they called was
+   * addressed. Whether the caller may then proceed is decided by reading the Entitlements back at
+   * the scope the check uses, never by the write having succeeded: a row written at the wrong scope
+   * is a row no check will ever read, so treating the write as the answer would let a caller past a
+   * Role they do not hold and cannot obtain.
+   *
+   * Two callers are never granted anything this way. A consent user is refused because a Role held
+   * by a per-consent identity would be stranded there rather than belonging to the human. And the
+   * system space is refused because reaching it is meant to be a deliberate act: a Dynamic Entity
+   * at the bank id DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID is the instance wide space, and granting
+   * anything in it requires the system space granting Role rather than the ordinary per bank one.
+   * Without this second exclusion, holding the per bank granting Role at that one bank id would be
+   * enough to collect system space Roles silently, one endpoint call at a time.
+   */
+  private def grantJustInTimeEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
+    if (!getPropsAsBoolValue("create_just_in_time_entitlements", false) ||
+      isConsentUser(userId) ||
+      bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) {
+      false
+    } else {
+      val mayGrantAtThisBank = hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank)
+      val mayGrantAtEveryBankAndAtTheSystemScope = hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)
+
+      roles.foreach { role =>
+        val scopeAddEntitlementWouldUse = if (role.requiresBankId) bankId else ""
+        val couldHaveBeenGrantedByHand = role match {
+          // A combination is a way of writing "all of these at once" for a check; it is not a Role
+          // anybody can hold, so there is no row to write for it.
+          case _: RoleCombination => false
+          case _ if rolesNeverGrantedJustInTime.contains(role.toString) => false
+          case _ if role.requiresBankId => bankId.nonEmpty && (mayGrantAtThisBank || mayGrantAtEveryBankAndAtTheSystemScope)
+          case _ => mayGrantAtEveryBankAndAtTheSystemScope
+        }
+        if (couldHaveBeenGrantedByHand && !hasEntitlement(bankId, userId, role)) {
+          val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
+            scopeAddEntitlementWouldUse,
+            userId,
+            role.toString,
+            "create_just_in_time_entitlements",
+            grantedByUserId = Some(userId)
+          )
+          logger.info(s"Just in Time Entitlements: $addedEntitlement")
+        }
+      }
+
+      roles.exists(hasEntitlement(bankId, userId, _))
+    }
+  }
+
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
@@ -2338,25 +2462,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       def userHasTheRoles: Boolean = {
         val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-        userHasTheRole || {
-          getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
-            // If a user is trying to use a Role and the user could grant them selves the required Role(s),
-            // then just automatically grant the Role(s)!
-            (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
-              hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
-              roles.forall { role =>
-                val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                  bankId,
-                  userId,
-                  role.toString,
-                  "create_just_in_time_entitlements",
-                  grantedByUserId = Some(userId)
-                )
-                logger.info(s"Just in Time Entitlements: $addedEntitlement")
-                addedEntitlement.isDefined
-              }
-          }
-        }
+        userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
       }
 
       // Consumer AND User has the Role
@@ -2399,20 +2505,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
         def userHasTheRoles: Boolean = {
           val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-          userHasTheRole || {
-            getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
-              (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
-                hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
-                roles.forall { role =>
-                  val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                    bankId, userId, role.toString, "create_just_in_time_entitlements",
-                    grantedByUserId = Some(userId)
-                  )
-                  logger.info(s"Just in Time Entitlements: $addedEntitlement")
-                  addedEntitlement.isDefined
-                }
-            }
-          }
+          userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
         }
 
         def consumerHasTheScopes: Boolean =
@@ -3318,6 +3411,29 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
+   * This is the hash stored as `MethodBodyHash` on runtime-compiled code (Dynamic Resource Docs,
+   * Dynamic Message Docs, Connector Methods), and therefore the value a maker/checker approval binds
+   * to (`ApprovedHash`).
+   *
+   * It covers the programming language as well as the body. The same text can be stored as Scala,
+   * Java or Javascript, and the runtime picks a compiler from the language, so an approval of a body
+   * as one language must not carry over when only the language is changed. The language is
+   * normalised (trimmed, lower case, blank meaning `scala`, the default every one of these types
+   * applies), because the runtime treats `Java` and `java` as the same language.
+   *
+   * The language version is deliberately not included: it is a property of the deployed runtime, not
+   * of the row, and including it would withdraw every approval at each compiler upgrade.
+   *
+   * Until 2026-10 the hash covered the body only; `MakerChecker.rehashDynamicCodeWithLanguage` moves
+   * existing rows to this form once.
+   */
+  def dynamicCodeHash(programmingLang: String, decodedMethodBody: String): String =
+    sha256Hex(normaliseDynamicCodeLanguage(programmingLang) + "\n" + Option(decodedMethodBody).getOrElse(""))
+
+  def normaliseDynamicCodeLanguage(programmingLang: String): String =
+    Option(programmingLang).map(_.trim.toLowerCase).filter(_.nonEmpty).getOrElse("scala")
+
+  /**
    *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
    *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
    */
@@ -3772,8 +3888,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   // Convention-based public app URL props.
-  // Any prop starting with "public_" and ending with "_url" is included in the App Directory.
-  // Register known defaults so they appear in getConfigPropsPairs when set.
+  // Every key registered here appears in getConfigPropsPairs and so in the App Directory.
+  // The set is fixed in code: an operator-added public_*_url prop is NOT picked up
+  // automatically, because getConfigPropsPairs reads getRegisteredDefaults rather than
+  // scanning the props file.
   // Note: public_obp_api_url falls back to hostname prop if not explicitly set.
   // Note: public_obp_portal_url falls back to portal_external_url if not explicitly set.
   val publicAppUrlDefaults: Map[String, String] = Map(
@@ -3785,7 +3903,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
     "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
     "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:48123"),
-    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
+    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9101"),
+    "public_obp_mcp_internal_url" -> getPropsValue("public_obp_mcp_internal_url").openOr("http://localhost:9100"),
     "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
     "public_obp_stripe_url" -> getPropsValue("public_obp_stripe_url").openOr("http://localhost:4242"),
     "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")
@@ -4430,8 +4549,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * 
    * than the return value may be (getUserAndSessionContextFuture, ***,***),(map,***,***), (getOrElse,***,***) ......
    */ 
-  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
-    if (SHOW_USED_CONNECTOR_METHODS) {
+  // force bypasses the SHOW_USED_CONNECTOR_METHODS gate below -- see
+  // DynamicUtil.getDynamicCodeDependentMethods' doc comment for why security validation needs this.
+  def getDependentMethods(className: String, methodName:String, signature: String, force: Boolean = false): List[(String, String, String)] = {
+    if (SHOW_USED_CONNECTOR_METHODS || force) {
       val methods = ListBuffer[(String, String, String)]()
       //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
       //eg:  className == code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
@@ -4920,6 +5041,30 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   lazy val allStaticResourceDocs: List[ResourceDoc] = ResourceDocRegistry.allStaticResourceDocs
 
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+
+  /**
+   * This function says whether a dynamic ResourceDoc belongs to one space, which is what the bank
+   * level resource-docs endpoints (/banks/BANK_ID/resource-docs/...) list.
+   *
+   * A space is a bank id, or Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ("SYS") for the system
+   * space. Dynamic docs record the system space as belonging to no bank at all (createdByBankId is
+   * None), so SYS matches those docs as well as any doc that names SYS explicitly.
+   */
+  def dynamicResourceDocBelongsToSpace(doc: ResourceDoc, space: String): Boolean =
+    doc.createdByBankId.filter(_.nonEmpty) match {
+      case None         => space == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+      case Some(bankId) => bankId == space
+    }
+
+  /**
+   * The dynamic docs a versioned resource-docs listing shows. v7.0.0 documents Dynamic Entity records at
+   * their v7.0.0 URLs (/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...); every other version at the
+   * unversioned /obp/dynamic-entity/... URLs, as [[allDynamicResourceDocs]] does.
+   */
+  def allDynamicResourceDocsIn(requestedApiVersion: ScannedApiVersion): List[ResourceDoc] =
+    if (requestedApiVersion == ApiVersion.v7_0_0)
+      (DynamicEntityHelper.v700Doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+    else allDynamicResourceDocs
   
   def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs
 
@@ -5061,16 +5206,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
   }
 
+  /**
+   * The cache key of a rendered documentation response. The filters are a [[ResourceDocFilters]],
+   * never raw request values: that type can only be built sorted, de-duplicated and (for ResourceDoc
+   * listings) limited to values some ResourceDoc carries, so a caller cannot multiply cache entries
+   * by varying the filters. The key text keeps its earlier shape.
+   */
   def createResourceDocCacheKey(
     bankId : Option[String],
     requestedApiVersionString: String,
-    tags: Option[List[ResourceDocTag]],
-    partialFunctions: Option[List[String]],
+    filters: ResourceDocFilters,
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean]
-  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
+  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:${filters.tags}-partialFunctions:${filters.functions}-locale:${locale.toString}" +
     // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
     // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
     // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that

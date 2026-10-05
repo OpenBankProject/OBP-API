@@ -108,7 +108,17 @@ object ErrorMessages {
   val RowLevelAccessRequiresLocalBacking = "OBP-09020: use_row_level_access is only supported for locally-backed dynamic entities. This entity is routed to an external connector (a method routing for dynamicEntityProcess exists for it), where the row-level ACL cannot be enforced. Remove the method routing or disable use_row_level_access."
   val RowLevelAccessNotEnabled = "OBP-09021: The row-access endpoints are only available for dynamic entities created with use_row_level_access = true."
   val DynamicEntityJoinRequiresProjection = "OBP-09022: obp_exists / obp_not_exists join queries require the SQL projection backend (dynamic_entity.indexing.backend=auto on a supported database). This deployment serves Dynamic Entity reads in-memory, where joins are not supported."
-  val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name, the set of property names and each property's type must stay the same, and no property may be added to 'required'. Changing indexed, index, example, description, minLength, maxLength and the read/write role settings is allowed. Delete all the data before making a structural change."
+  val DynamicEntityUpdateNotSchemaCompatible = "OBP-09023: Operation is not allowed, because this DynamicEntity already has data. The definition of a populated entity can only be changed in schema-compatible ways: the entity name must stay the same, every existing property must keep its name and type, and no property may be added to 'required'. New optional properties may be added. Changing indexed, index, example, description, minLength, maxLength, the read/write role settings and hide_field_from_public_access is allowed. Delete all the data before making a structural change."
+  val DynamicEntityFieldNotReadable = "OBP-09025: These fields cannot be used to filter or sort, because you may not read them: "
+  val DynamicEntityRecordIdTooLong = "OBP-09024: The id of this DynamicEntity record is too long. A record id is stored in a column of 255 characters. Please supply a shorter id, or leave the id field out of the request body and one will be generated."
+  // Domain APIs: a space's dynamic endpoints published under a base path of its own.
+  val InvalidDomainApiBasePath = "OBP-09026: Invalid base_path. It must be two to five segments of lowercase letters, digits, hyphens or dots, separated by /, with no leading or trailing /, ending with the major version as vN (for example carbon-registry/v1), and its first segment must not be one OBP itself serves: "
+  val DomainApiBasePathAlreadyExists = "OBP-09027: Another Domain API already uses this base_path, or one that starts with it or that it starts with: "
+  val InvalidDomainApiVersion = "OBP-09028: Invalid version. It must be a semantic version, MAJOR.MINOR.PATCH (for example 1.0.0), whose MAJOR equals the N of the vN that ends base_path."
+  val DomainApiNotFound = "OBP-09029: Domain API not found in this space. Please specify a valid value for DOMAIN_API_ID."
+  val InvalidDomainApiTitle = "OBP-09030: Invalid title or description. title must be 1 to 255 characters and description at most 2000."
+  val DomainApiPathClash = "OBP-09031: Endpoints of this space are ambiguous with each other, so a Domain API cannot publish the space until one of them is renamed or removed: "
+  val DynamicPathAmbiguous = "OBP-09032: This would make a path ambiguous in its space. The Dynamic Entities and Dynamic Resource Docs of a space share one set of paths, which a Domain API can publish under its base path at any time, so a Dynamic Resource Doc's path may not start with a path variable, with my, public, community, openapi.json or openapi.yaml, or with the name of one of the space's Dynamic Entities; a Dynamic Entity may not be named my, public, community, openapi.json or openapi.yaml, nor after the first segment of one of the space's Dynamic Resource Docs; and two Dynamic Resource Docs of one verb may not both match one request. Rename one of them: "
 
 
   // General messages (OBP-10XXX)
@@ -137,6 +147,13 @@ object ErrorMessages {
   //  OBP-10061 the authentication limiter (AuthRateLimiter, inside the credential check, keyed by IP and account)
   val TooManyRequestsSelfService = "OBP-10060: Too Many Requests for a self-service endpoint."
   val TooManyRequestsAuth = "OBP-10061: Too Many Requests for authentication. Too many login attempts from this address or for this account."
+  //  OBP-10062 an IP penalty (IpPenalties, before everything else, an operator's temporary limit on one address)
+  val TooManyRequestsIpPenalty = "OBP-10062: Too Many Requests. This address is under a temporary rate limit set by an operator."
+  val InvalidIpAddress = "OBP-10063: Invalid IP address. Give an IPv4 or IPv6 address, not a host name."
+  val IpPenaltyAlreadyExists = "OBP-10064: This IP address already has a penalty. Remove it first to change it."
+  val IpPenaltyNotFound = "OBP-10065: This IP address has no penalty."
+  val InvalidTrafficWindow = "OBP-10067: Invalid window. Use window=1, 5 or 15 (minutes)."
+  val InvalidIpPenalty = "OBP-10066: Invalid IP penalty. per_minute_limit must be 0 or more, duration_minutes between 1 and 10080 (one week), and reason between 1 and 255 characters."
   // Not an error: the text of the X-Rate-Limit-Warning header a self-service endpoint returns in
   // shadow mode. SCOPE and LIMIT are replaced at runtime, e.g. "signup" and "5 per hour".
   // See SelfServiceRateLimiter.warningMessage.
@@ -467,6 +484,8 @@ object ErrorMessages {
   val CreateCustomerLinkError = "OBP-30148: Could not create the Customer Link."
   val UpdateCustomerLinkError = "OBP-30149: Could not update the Customer Link."
   val InvestigationReportNotAvailable = "OBP-30150: Investigation Report is only available in mapped mode (connector=mapped)."
+  val NotificationWebhookNotFound = "OBP-30151: Account Notification Webhook not found. Please specify a valid value for WEBHOOK_ID."
+  val DeleteWebhookError = "OBP-30152: Could not delete the Webhook."
 
   val CreateWebhookError = "OBP-30047: Cannot create Webhook"
   val GetWebhooksError = "OBP-30048: Cannot get Webhooks"
@@ -861,6 +880,10 @@ object ErrorMessages {
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "
   val ConsentConsumerIsRequired = "OBP-35044: A Consent must name a Consumer. Send consumer_id in the request body naming the Consumer the Consent is for, or make the call as that Consumer. "
+  val PlatformAppAlreadyExists = "OBP-35045: This Consumer is already a Platform App."
+  val PlatformAppNotFound = "OBP-35046: This Consumer is not a Platform App. An administrator marks a Consumer as a Platform App first (POST /management/platform-apps)."
+  val InvalidPlatformApp = "OBP-35047: Invalid Platform App. label must be between 1 and 100 characters."
+  val InvalidPlatformAppDeclaration = "OBP-35048: Invalid Platform App declaration. Send at most 100 required_scopes, each with a known role_name, a bank_id that suits the Role (empty for a system Role), and needed_for between 1 and 1000 characters; version is at most 100 characters."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -999,6 +1022,13 @@ object ErrorMessages {
   // the published side. Both call sites name the constant rather than the literal, so nothing but
   // the number moves.
   val PaymentNotInitiatedByCaller = "OBP-40062: The addressed payment was not initiated by you. "
+  val ChallengeNotAddressedToCaller = "OBP-40063: This Strong Customer Authentication challenge is addressed to another user and cannot be answered by you. " +
+    "A payment started on somebody else's behalf is authorised by that person, not by the caller that started it."
+  val PaymentChallengeHasNoOnBehalfOfUser = "OBP-40064: This payment needs Strong Customer Authentication, but the user it is being made for could not be determined, " +
+    "so there is nobody who can be asked to authorise it. A consent that names the user it acts for is required before a payment of this size can be started."
+  val DynamicQueryInvalid = "OBP-40065: The Dynamic Query cannot be run as written. "
+  val DynamicResourceDocUrlAmbiguous = "OBP-40067: More than one Dynamic Resource Doc, in different spaces, answers this URL. Call it under its space, at /obp/dynamic-endpoint/banks/BANK_ID/dynamic-resource-doc/..., where BANK_ID is one of: "
+  val DynamicQueryEntityNotReadable = "OBP-40066: This Dynamic Query reads Dynamic Entities you may not read: "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

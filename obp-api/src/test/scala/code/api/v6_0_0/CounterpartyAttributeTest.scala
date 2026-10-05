@@ -62,7 +62,7 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
   }
 
   def createMockAttribute(counterpartyId: String): String = {
-    val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
+    val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
     val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST <@ user1
     val response = makePostRequest(request, write(counterpartyAttributeRequestJsonV600))
     Entitlement.entitlement.vend.deleteEntitlement(entitlement)
@@ -86,7 +86,7 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("201 Success + Field Echo", Create, VersionOfApi) {
-      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST <@ user1
       val response = makePostRequest(request, write(counterpartyAttributeRequestJsonV600))
       response.code should equal(201)
@@ -97,9 +97,22 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
 
+    scenario("403 Forbidden when the Role was granted at a different bank", Create, VersionOfApi) {
+      // A Counterparty Attribute belongs to one bank's account, so the Role that writes one belongs
+      // to that bank too. Granting it at some other bank must authorise nothing here.
+      val otherBankId = testBankId2.value
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(
+        otherBankId, resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
+      val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST <@ user1
+      val response = makePostRequest(request, write(counterpartyAttributeRequestJsonV600))
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserHasMissingRoles + CanCreateCounterpartyAttribute)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
+
     scenario("400 Invalid Type", Create, VersionOfApi) {
       val badJson = counterpartyAttributeRequestJsonV600.copy(attribute_type = "UNSUPPORTED")
-      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").POST <@ user1
       val response = makePostRequest(request, write(badJson))
       response.code should equal(400)
@@ -126,7 +139,7 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
       lazy val counterpartyId = createMockCounterparty()
       lazy val attributeId = createMockAttribute(counterpartyId)
 
-      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateCounterpartyAttribute.toString)
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCounterpartyAttribute.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).PUT <@ user1
       val response = makePutRequest(request, write(counterpartyAttributeRequestJsonV600))
       response.code should equal(200)
@@ -153,7 +166,7 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
       lazy val counterpartyId = createMockCounterparty()
       lazy val attributeId = createMockAttribute(counterpartyId)
 
-      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteCounterpartyAttribute.toString)
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteCounterpartyAttribute.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).DELETE <@ user1
       val response = makeDeleteRequest(request)
       response.code should equal(204)
@@ -178,7 +191,7 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
 
     scenario("200 Success", GetAll, VersionOfApi) {
       lazy val counterpartyId = createMockCounterparty()
-      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCounterpartyAttributes.toString)
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCounterpartyAttributes.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").GET <@ user1
       val response = makeGetRequest(request)
       response.code should equal(200)
@@ -204,7 +217,7 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
     scenario("200 Success", GetOne, VersionOfApi) {
       lazy val counterpartyId = createMockCounterparty()
       lazy val attributeId = createMockAttribute(counterpartyId)
-      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCounterpartyAttribute.toString)
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCounterpartyAttribute.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).GET <@ user1
       val response = makeGetRequest(request)
       response.code should equal(200)

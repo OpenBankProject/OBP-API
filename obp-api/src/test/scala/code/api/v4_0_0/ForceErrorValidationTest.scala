@@ -444,7 +444,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   feature(s"test dynamic entity endpoints Force-Error, version $VersionOfApi - authenticated access") {
     scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error have wrong format header", VersionOfApi) {
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1
@@ -460,7 +460,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error header value not support by current endpoint", VersionOfApi) {
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1
@@ -475,7 +475,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with Response-Code header value is not Int", VersionOfApi) {
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1
@@ -490,7 +490,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value", VersionOfApi) {
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1
@@ -507,7 +507,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value and Response-Code value", VersionOfApi) {
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1
@@ -525,7 +525,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
       addSystemDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
+      addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
 
       When("We make a request v4.0.0")
       val request = (dynamicEntity_Request / "FooBar").POST <@ user1
@@ -664,7 +664,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
   // prepare one dynamic entity FooBar
   private def addSystemDynamicEntity(): APIResponse = {
-    addEntitlement(canCreateSystemLevelDynamicEntity)
+    addEntitlement(canCreateDynamicEntityDefinition, code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
     val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ user1
     val fooBar =
       s"""

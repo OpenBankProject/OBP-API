@@ -73,6 +73,7 @@ object WriteMetricUtil extends MdcLoggable {
                                    responseBodyToWrite: String,
                                    sourceIp: String,
                                    targetIp: String,
+                                   forwardedFor: String,
                                    authType: String)
 
   private def persistAndPublishMetric(responseBody: Any, cc: CallContextLight): Unit = {
@@ -85,8 +86,11 @@ object WriteMetricUtil extends MdcLoggable {
       implementedByPartialFunction = cc.partialFunctionName,
       duration = callDuration(cc),
       responseBodyToWrite = responseBodyForMetric(responseBody, cc),
-      sourceIp = requestHeaderValue(cc, "x-forwarded-for"),
+      // The client address OBP-API decided on, and the hops the request passed through
+      // (see RemoteIpUtil). The raw X-Forwarded-For header is not stored as the source address.
+      sourceIp = cc.ipAddress,
       targetIp = requestHeaderValue(cc, "x-forwarded-host"),
+      forwardedFor = cc.forwardedFor,
       authType = deriveAuthType(cc)
     )
 
@@ -98,8 +102,8 @@ object WriteMetricUtil extends MdcLoggable {
       import fields._
       publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
         developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
-        cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
-        cc.consentReferenceId.orNull, cc.certificateTrust.orNull, cc.certificateTrustDetail.orNull)
+        cc.httpCode, cc.correlationId, sourceIp, targetIp, forwardedFor, cc.operationId.getOrElse(""),
+        cc.consentReferenceId.orNull, cc.certificateTrust.orNull, cc.certificateTrustDetail.orNull, authType)
     }
   }
 
@@ -166,6 +170,7 @@ object WriteMetricUtil extends MdcLoggable {
         responseBodyToWrite,
         sourceIp,
         targetIp,
+        forwardedFor,
         code.api.Constant.ApiInstanceId,
         cc.consentReferenceId.orNull,
         cc.certificateTrust.orNull,
@@ -201,10 +206,12 @@ object WriteMetricUtil extends MdcLoggable {
                                  correlationId: String,
                                  sourceIp: String,
                                  targetIp: String,
+                                 forwardedFor: String,
                                  operationId: String,
                                  consentReferenceId: String,
                                  certificateTrust: String,
-                                 certificateTrustDetail: String): Unit = {
+                                 certificateTrustDetail: String,
+                                 authType: String): Unit = {
     if (!MetricsEventBus.isEnabled) return
     try {
       implicit val fmts = metricFormats
@@ -227,11 +234,13 @@ object WriteMetricUtil extends MdcLoggable {
         "correlation_id"                  -> Option(correlationId).getOrElse(""),
         "source_ip"                       -> Option(sourceIp).getOrElse(""),
         "target_ip"                       -> Option(targetIp).getOrElse(""),
+        "forwarded_for"                   -> Option(forwardedFor).getOrElse(""),
         "api_instance_id"                 -> code.api.Constant.ApiInstanceId,
         "operation_id"                    -> Option(operationId).getOrElse(""),
         "consent_reference_id"            -> Option(consentReferenceId).getOrElse(""),
         "certificate_trust"               -> Option(certificateTrust).getOrElse(""),
-        "certificate_trust_detail"        -> Option(certificateTrustDetail).getOrElse("")
+        "certificate_trust_detail"        -> Option(certificateTrustDetail).getOrElse(""),
+        "auth_type"                       -> Option(authType).getOrElse("")
       ))
       MetricsEventBus.publish(payload)
     } catch {

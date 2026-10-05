@@ -54,6 +54,8 @@ trait EntitlementProvider {
   ): Future[Box[List[Entitlement]]]
   def getEntitlementsByBankId(bankId: String): Future[Box[List[Entitlement]]]
   def deleteEntitlement(entitlement: Box[Entitlement]): Box[Boolean]
+  /** Record that the Entitlement is now granted by another Group. No email: the user's Roles do not change. */
+  def setEntitlementGroupId(entitlementId: String, groupId: String): Box[Entitlement]
   def getEntitlements(): Box[List[Entitlement]]
   def getEntitlementsByRole(roleName: String): Box[List[Entitlement]]
   def getEntitlementsFuture(): Future[Box[List[Entitlement]]]
@@ -73,6 +75,8 @@ trait EntitlementProvider {
       grantedByUserId: Option[String] = None,
       groupId: Option[String] = None
   ): Box[Entitlement]
+  /** Delete the grants of a Dynamic Entity's record Roles in its own space only (bankId None is the
+   * system space); an entity of the same name in another space keeps its grants. */
   def deleteDynamicEntityEntitlement(
       entityName: String,
       bankId: Option[String]

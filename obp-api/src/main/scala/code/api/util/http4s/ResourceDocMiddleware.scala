@@ -177,6 +177,10 @@ object ResourceDocMiddleware extends MdcLoggable {
             // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
             OptionT.none[IO, Response[IO]]
           case Some(resourceDoc) =>
+            Http4sRequestAttributes.trafficNote(req).foreach { note =>
+              note.operationId = Some(resourceDoc.operationId)
+              note.apiVersion = Some(resourceDoc.implementedInApiVersion.apiShortVersion)
+            }
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
             // Validate first (read-only, outside any transaction), then run business logic.
@@ -188,6 +192,18 @@ object ResourceDocMiddleware extends MdcLoggable {
                 case Left(errorResponse) =>
                   IO.pure(Option(errorResponse))
                 case Right(enrichedReq) =>
+                  // The caller is known now: record its Consumer for TrafficSources.
+                  for {
+                    note <- Http4sRequestAttributes.trafficNote(req)
+                    consumer <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.consumer.toOption)
+                  } {
+                    note.consumerId = Some(consumer.consumerId.get)
+                    note.consumerName = Some(consumer.name.get)
+                  }
+                  for {
+                    note <- Http4sRequestAttributes.trafficNote(req)
+                    user <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.user.toOption)
+                  } note.userId = Some(user.userId)
                   val routeIO =
                     routes.run(enrichedReq)
                       .map(ensureJsonContentType)
@@ -197,7 +213,8 @@ object ResourceDocMiddleware extends MdcLoggable {
                     else RequestScopeConnection.withBusinessDBTransaction(routeIO)
                   executed.map(Option(_))
               }
-            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)))
+            val startNanos = System.nanoTime()
+            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)).flatTap(recordTelemetry(resourceDoc, startNanos)))
 
           case None =>
             // This group has no ResourceDoc for the request. Almost always the request is simply
@@ -221,6 +238,22 @@ object ResourceDocMiddleware extends MdcLoggable {
       }
     }
   }
+
+  /**
+   * Records Telemetry for a request this group served: its duration, status class and, when the
+   * response states its length, its size. Only the hop that matched a ResourceDoc records, so a
+   * request that crossed several version hops is counted once. A request that fell through (a
+   * disabled endpoint) returned no response here and is not recorded.
+   */
+  private def recordTelemetry(resourceDoc: ResourceDoc, startNanos: Long)(response: Option[Response[IO]]): IO[Unit] =
+    response match {
+      case Some(served) => IO {
+        code.telemetry.Telemetry.recordEndpoint(
+          resourceDoc.operationId, resourceDoc.implementedInApiVersion.apiShortVersion,
+          served.status.code, System.nanoTime() - startNanos, served.contentLength)
+      }
+      case None => IO.unit
+    }
 
   /**
    * Resolve the caller for a hop that has no ResourceDoc for the request, once per request.
@@ -322,7 +355,7 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- validateDuplicateQueryParams(cc, initialContext)
       context <- authenticate(req, resourceDoc, context)
       context <- refuseUnresolvedUKConsent(resourceDoc, context)
-      context <- validateBank(pathParams, context)
+      context <- validateBank(resourceDoc, pathParams, context)
       context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
       context <- validateView(pathParams, context)
@@ -610,10 +643,18 @@ object ResourceDocMiddleware extends MdcLoggable {
       success(ctx)
   }
 
-  /** Bank validation: checks BANK_ID and fetches bank */
-  private def validateBank(pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
+  /**
+   * Bank validation: checks BANK_ID and fetches the bank.
+   *
+   * The one exception is the system space. A ResourceDoc that declares allowSystemSpace() accepts
+   * DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS) as BANK_ID, and the request goes on with no bank
+   * resolved. Every other endpoint still answers 404 for SYS, because no bank has that id.
+   */
+  private def validateBank(resourceDoc: ResourceDoc, pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
 
     pathParams.get("BANK_ID") match {
+      case Some(bankId) if bankId == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID && resourceDoc.allowsSystemSpace =>
+        DSL.success(ctx)
       case Some(bankId) =>
         EitherT(
           IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext))))

@@ -3224,6 +3224,7 @@ object SwaggerDefinitionsJSON {
     duration = 39,
     source_ip = ExampleValue.ipAddressExample.value,
     target_ip = ExampleValue.ipAddressExample.value,
+    forwarded_for = s"${ExampleValue.ipAddressExample.value}, 10.0.0.2, 10.0.0.3",
     response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}"""),
     status_code = 401,
     operation_id = "OBPv4.0.0-getBanks",
@@ -4736,7 +4737,7 @@ object SwaggerDefinitionsJSON {
     consent_request_id = None,
     valid_from = Some(new Date()),
     time_to_live = Some(3600),
-    my_resources = Some(code.api.v6_0_0.PostConsentMyResourcesJson(Some(List(code.api.v6_0_0.PostConsentPersonalDynamicEntityJson("", "FooBar", List("read", "write"))))))
+    my_resources = Some(code.api.v6_0_0.PostConsentMyResourcesJson(Some(List(code.api.v6_0_0.PostConsentPersonalDynamicEntityJson("SYS", "FooBar", List("read", "write"))))))
   )
   
   lazy val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
@@ -6390,7 +6391,8 @@ object SwaggerDefinitionsJSON {
       ConfigPropJsonV600("public_obp_oidc_url", "http://localhost:9000"),
       ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),
       ConfigPropJsonV600("public_obp_hola_url", "http://localhost:48123"),
-      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9100"),
+      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9101"),
+      ConfigPropJsonV600("public_obp_mcp_internal_url", "http://localhost:9100"),
       ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000"),
       ConfigPropJsonV600("public_obp_stripe_url", "http://localhost:4242")
     )

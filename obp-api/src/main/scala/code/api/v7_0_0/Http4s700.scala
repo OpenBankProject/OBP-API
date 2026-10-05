@@ -35,7 +35,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
@@ -541,6 +541,11 @@ object Http4s700 {
                    UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
                    APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
                  }
+            // Bank ids are matched exactly, case included: a grant at a bank id naming no bank is a
+            // row no check will ever read. SYS is the system space of Dynamic Entities, not a bank.
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
+              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
+            }
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
             entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(
@@ -557,10 +562,11 @@ object Http4s700 {
       "POST",
       "/users/USER_ID/entitlements",
       "Add Entitlement for a User",
-      """Grant a Role to a User. Set bank_id to "" for system-level roles, or a valid bank_id for bank-level roles.""",
+      """Grant a Role to a User. Set bank_id to "" for system-level roles, or a valid bank_id for bank-level roles.
+        |The bank_id must name an existing Bank (matched exactly, case included), or be SYS, the system space of Dynamic Entities.""".stripMargin,
       CreateEntitlementJSON("gh.29.uk", "CanGetAnyUser"),
       EmptyBody,
-      List($AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, EntitlementAlreadyExists, UnknownError),
+      List($AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, BankNotFound, EntitlementAlreadyExists, UnknownError),
       apiTagEntitlement :: apiTagRole :: apiTagUser :: Nil,
       Some(List(canCreateEntitlementAtOneBank, canCreateEntitlementAtAnyBank)),
       http4sPartialFunction = Some(addEntitlement)
@@ -807,6 +813,106 @@ object Http4s700 {
       authMode = UserOrApplication,
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
+
+    // Route: GET /obp/v7.0.0/consumers/current/scopes
+    // The Roles the calling Consumer holds as Scopes. No Role, like the identity above: a service may always
+    // learn what it has been granted, so its status page can say which Scopes it still needs.
+    val getCurrentConsumerScopes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consumers" / "current" / "scopes" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            consumer <- Future(cc.consumer match {
+              case Full(c) => Full(c)
+              case _ => net.liftweb.common.Empty
+            }).map(unboxFullOrFail(_, Some(cc), ApplicationNotIdentified, 401))
+            scopes <- Future(code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.get.toString).openOr(Nil))
+          } yield JSONFactory700.createCurrentConsumerScopesJsonV700(consumer, scopes)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getCurrentConsumerScopes),
+      "GET",
+      "/consumers/current/scopes",
+      "Get Current Consumer Scopes",
+      s"""Returns the Roles the Consumer making this call holds as Scopes, each with its `bank_id`
+        |(a bank id, SYS for the system space, or empty for a system Role).
+        |
+        |No Role is required. The caller must be identifiable as a Consumer, either through a logged-in User (whose
+        |Consumer this is) or as an Application on its own (OAuth2 client credentials, or a Consumer Key).
+        |A call with no credentials gets ${ApplicationNotIdentified}
+        |
+        |Use it from a service (for example the Portal or the API Manager) to check that its Consumer holds the Scopes
+        |it needs. To list another Consumer's Scopes, see Get Scopes for Consumer.
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.currentConsumerScopesJsonV700Example,
+      List(ApplicationNotIdentified, UnknownError),
+      apiTagConsumer :: apiTagScope :: apiTagApi :: Nil,
+      None,
+      authMode = UserOrApplication,
+      http4sPartialFunction = Some(getCurrentConsumerScopes)
+    )
+
+    // Route: POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes (201)
+    // As v4.0.0's, with two differences: bank_id may be SYS, the system space of Dynamic Entities, where
+    // the Definition and Record Roles live (v4.0.0 refuses it as an unknown bank); and the duplicate check
+    // looks the Scope up by the Consumer's primary key, the key Scopes are stored under.
+    val addScope: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "consumers" / consumerId / "scopes" =>
+        EndpointHelpers.withUserAndBodyCreated[code.api.v3_0_0.CreateScopeJson, AnyRef](req) { (user, body, cc) =>
+          for {
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            role <- NewStyle.function.tryons(
+              s"$IncorrectRoleName ${body.role_name}. Possible roles are ${ApiRole.availableRoles.sorted.mkString(", ")}",
+              400, Some(cc)) { ApiRole.valueOf(body.role_name) }
+            _ <- Helper.booleanToFuture(
+              failMsg = if (role.requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
+              cc = Some(cc))(role.requiresBankId == body.bank_id.nonEmpty)
+            // The granting Role is held at the body's bank_id (SYS included), which the middleware cannot
+            // see: the doc keeps the Roles for the catalogue but disableAutoValidateRoles.
+            grantingRoles = ApiRole.canCreateScopeAtOneBank :: ApiRole.canCreateScopeAtAnyBank :: Nil
+            _ <- if (APIUtil.isSuperAdmin(user.userId)) Future.successful(())
+                 else Helper.booleanToFuture(
+                   UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
+                   APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
+                 }
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
+              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
+            }
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc)) {
+              !APIUtil.hasScope(body.bank_id, consumer.id.get.toString, role)
+            }
+            scope <- Future(code.scope.Scope.scope.vend.addScope(body.bank_id, consumer.id.get.toString, body.role_name))
+              .map(unboxFull(_))
+          } yield code.api.v3_0_0.JSONFactory300.createScopeJson(scope)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(addScope),
+      "POST",
+      "/consumers/CONSUMER_ID/scopes",
+      "Create Scope for a Consumer",
+      s"""Grant a Role to a Consumer (App), as a Scope.
+        |
+        |For a system Role (e.g. CanGetAnyUser) set `bank_id` to an empty string. For a bank Role set it to a
+        |bank id, or to SYS for the system space of Dynamic Entities, where the Definition Roles
+        |(e.g. CanGetDynamicEntityDefinitions) and the Record Roles of system entities are held.
+        |
+        |The caller needs CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at that `bank_id`.
+        |""".stripMargin,
+      code.api.v3_0_0.CreateScopeJson("SYS", "CanGetDynamicEntityDefinitions"),
+      code.api.v3_0_0.ScopeJson("88f52c12-38ab-4c5f-8ef1-8a0f63a84a44", "CanGetDynamicEntityDefinitions", "SYS"),
+      List($AuthenticatedUserIsRequired, ConsumerNotFoundByConsumerId, InvalidJsonFormat, IncorrectRoleName,
+        EntitlementIsBankRole, EntitlementIsSystemRole, UserHasMissingRoles, BankNotFound, EntitlementAlreadyExists, UnknownError),
+      apiTagScope :: apiTagConsumer :: Nil,
+      Some(List(ApiRole.canCreateScopeAtOneBank, ApiRole.canCreateScopeAtAnyBank)),
+      http4sPartialFunction = Some(addScope)
+    ).disableAutoValidateRoles() // roles are bank-scoped by body.bank_id; checked in the handler
 
     // Route: GET /obp/v7.0.0/public/password-config
     // Anonymous: clients need the policy before they hold credentials, to validate
@@ -3400,6 +3506,87 @@ object Http4s700 {
       http4sPartialFunction = Some(deleteRoutingScheme)
     )
 
+    // ─── Account Notification Webhooks: delete ───────────────────────────────
+    //
+    // The two create endpoints arrived in v4.0.0 with no way to remove what they made, so a
+    // notification webhook was permanent for everyone, by every route: the provider's delete
+    // methods existed but nothing called them. These are that missing half.
+
+    val deleteSystemAccountNotificationWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "web-hooks" / "account" / "notifications" / "on-create-transaction" / webhookId =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          val provider = code.webhook.SystemAccountNotificationWebhookTrait.systemAccountNotificationWebhook.vend
+          for {
+            _ <- provider.getSystemAccountNotificationWebhookByIdFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), NotificationWebhookNotFound, 404))
+            _ <- provider.deleteSystemAccountNotificationWebhookFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), DeleteWebhookError, 400))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteSystemAccountNotificationWebhook),
+      "DELETE",
+      "/web-hooks/account/notifications/on-create-transaction/WEBHOOK_ID",
+      "Delete system level Account Notification Webhook",
+      """Delete a system level account notification webhook, so that it stops firing for transactions created anywhere on this instance.
+        |
+        |The webhook id is the `webhook_id` returned when the webhook was created.
+        |
+        |Deletion is permanent: the row is removed rather than deactivated, so a webhook deleted in error has to be created again.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, NotificationWebhookNotFound,
+           DeleteWebhookError, UnknownError),
+      apiTagWebhook :: apiTagBank :: Nil,
+      Some(List(canDeleteSystemAccountNotificationWebhook)),
+      http4sPartialFunction = Some(deleteSystemAccountNotificationWebhook)
+    )
+
+    val deleteBankAccountNotificationWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "web-hooks" / "account" / "notifications" / "on-create-transaction" / webhookId =>
+        EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
+          val provider = code.webhook.BankAccountNotificationWebhookTrait.bankAccountNotificationWebhook.vend
+          for {
+            webhook <- provider.getBankAccountNotificationWebhookByIdFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), NotificationWebhookNotFound, 404))
+            // A webhook belonging to another bank is reported as not found rather than forbidden.
+            // The role is held per bank, so answering 403 here would let a caller with the role at
+            // one bank discover which webhook ids exist at every other bank.
+            _ <- Future(if (webhook.bankId == bank.bankId.value) Full(true) else net.liftweb.common.Empty)
+              .map(unboxFullOrFail(_, Some(cc), NotificationWebhookNotFound, 404))
+            _ <- provider.deleteBankAccountNotificationWebhookFuture(webhookId)
+              .map(unboxFullOrFail(_, Some(cc), DeleteWebhookError, 400))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteBankAccountNotificationWebhook),
+      "DELETE",
+      "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction/WEBHOOK_ID",
+      "Delete bank level Account Notification Webhook",
+      """Delete a bank level account notification webhook, so that it stops firing for transactions created on the specified bank.
+        |
+        |The webhook id is the `webhook_id` returned when the webhook was created. A webhook belonging to a different bank is reported as not found.
+        |
+        |Deletion is permanent: the row is removed rather than deactivated, so a webhook deleted in error has to be created again.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
+           NotificationWebhookNotFound, DeleteWebhookError, UnknownError),
+      apiTagWebhook :: apiTagBank :: Nil,
+      Some(List(canDeleteAccountNotificationWebhookAtOneBank)),
+      http4sPartialFunction = Some(deleteBankAccountNotificationWebhook)
+    )
+
     val getBankSupportedRoutingSchemes: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / _ / "supported-routing-schemes" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
@@ -3560,13 +3747,32 @@ object Http4s700 {
             _ <- glossaryReadIsAllowed(cc)
             _ <- Helper.booleanToFuture(InvalidGlossarySource, 400, Some(cc))(Set("all", "static", "dynamic")(source))
           } yield {
-            val matching = glossaryEntries.filter { case (item, _) =>
-              (source match {
+            // Search looks at the text of an Item as well as its title, and takes the words of the
+            // search separately rather than as one string. Someone who does not yet know what a
+            // thing is called here cannot guess its title, so a search for "agent messages" has to
+            // find the Item titled "Signal Channels"; matching the whole phrase against titles
+            // alone found nothing at all. Every word must appear somewhere in the Item, and the
+            // Items whose titles hold all of them are listed first, so an exact title still leads.
+            val searchWords: List[String] = search.toList.flatMap(_.split("\\s+")).filter(_.nonEmpty)
+            val inSource = glossaryEntries.filter { case (item, _) =>
+              source match {
                 case "static"  => !item.isDynamic
                 case "dynamic" => item.isDynamic
                 case _         => true
-              }) && search.forall(s => item.title.toLowerCase.contains(s))
+              }
             }
+            val matching =
+              if (searchWords.isEmpty) inSource
+              else {
+                val (titleMatches, bodyMatches) = inSource.filter { case (item, _) =>
+                  val titleAndText = s"${item.title}\n${item.textDescription}".toLowerCase
+                  searchWords.forall(titleAndText.contains)
+                }.partition { case (item, _) =>
+                  val title = item.title.toLowerCase
+                  searchWords.forall(title.contains)
+                }
+                titleMatches ++ bodyMatches
+              }
             // Paging is opt in: without limit the Glossary answers whole, as it has for years.
             val page = limit match {
               case Some(n) => matching.slice(offset, offset + n.max(0))
@@ -3603,7 +3809,7 @@ object Http4s700 {
         |
         |**Optional query parameters:**
         |
-        |* `search` — only Items whose title contains this value, case insensitively.
+        |* `search` — only Items that contain what you type, case insensitively, looking at the title and at the text of the Item. The words are matched one by one and an Item has to contain all of them, so `search=agent messages` finds the Item titled `Signal Channels` even though neither word is in its title. Items whose titles contain every word are listed before those that only match on their text.
         |* `source` — `all` (default), `static` or `dynamic`.
         |* `limit` and `offset` — page the result. Without `limit` the whole Glossary is returned, as it always has been. `total_count` counts what matched before paging.
         |
@@ -5687,7 +5893,7 @@ object Http4s700 {
       "GET",
       "/management/dynamic-resource-docs",
       "Get Dynamic Resource Docs (with provenance)",
-      s"""Returns all Dynamic Resource Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+      s"""Returns all Dynamic Resource Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its programming language and method body.
         |
         |This is the v7.0.0 read view of the v4.0.0 Dynamic Resource Docs; create / update / delete remain on v4.0.0.
         |
@@ -5745,7 +5951,7 @@ object Http4s700 {
       "GET",
       "/management/connector-methods",
       "Get Connector Methods (with provenance)",
-      s"""Returns all Connector Methods, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+      s"""Returns all Connector Methods, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its programming language and method body.
         |
         |This is the v7.0.0 read view of the v4.0.0 Connector Methods; create / update remain on v4.0.0.
         |
@@ -5803,7 +6009,7 @@ object Http4s700 {
       "GET",
       "/management/dynamic-message-docs",
       "Get Dynamic Message Docs (with provenance)",
-      s"""Returns all Dynamic Message Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its method body.
+      s"""Returns all Dynamic Message Docs, each wrapped with a `provenance` object recording who created / last updated the runtime-compiled code and a SHA-256 of its programming language and method body.
         |
         |This is the v7.0.0 read view of the v4.0.0 Dynamic Message Docs; create / update / delete remain on v4.0.0.
         |
@@ -6607,7 +6813,6 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (u, cc) =>
           import code.api.v7_0_0.JSONFactory700.{DynamicCompileErrorJsonV700, DynamicCompileResultJsonV700, DynamicResourceDocCompileJsonV700}
           for {
-            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { code.api.util.DynamicUtil.dynamicCodeExecutionEnabled }
             _ <- code.util.Helper.booleanToFuture(s"${code.api.util.ErrorMessages.TooManyRequests} at most $dynamicCompileCallsPerMinute dry-run compiles per minute per user", 429, Some(cc)) { allowDynamicCompile(u.userId) }
             body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicResourceDocCompileJsonV700].getSimpleName}", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[DynamicResourceDocCompileJsonV700]
@@ -6615,15 +6820,28 @@ object Http4s700 {
             _ <- code.util.Helper.booleanToFuture(s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc = Some(cc)) {
               Set("POST", "PUT", "GET", "DELETE").contains(body.request_verb)
             }
+            programmingLang = body.programming_lang.getOrElse("Scala")
+            _ <- code.util.Helper.booleanToFuture(
+              s"""${code.api.util.ErrorMessages.DynamicCodeLangNotSupport} programming_lang $programmingLang, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
+              cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(programmingLang)
+            }
+            // A Dynamic Query runs no user code, so only the other languages need dynamic code to be enabled.
+            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) {
+              code.api.util.DynamicUtil.dynamicCodeExecutionEnabled || code.api.dynamic.endpoint.helper.CompiledObjects.isQuery(programmingLang)
+            }
+            _ <- code.util.Helper.booleanToFuture(s"${code.api.util.ErrorMessages.DynamicQueryInvalid}${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(programmingLang, body.request_verb)
+            }
             result <- Future {
               val start = System.currentTimeMillis()
-              val problems = scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects.compileProblems(body.example_request_body, body.success_response_body, body.method_body)) match {
+              val problems = scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects.compileProblems(body.example_request_body, body.success_response_body, body.method_body, programmingLang)) match {
                 case scala.util.Success(ps) => ps
                 case scala.util.Failure(e) => List(code.api.util.DynamicUtil.CompileProblem(0, 0, "ERROR", Option(e.getMessage).getOrElse(e.toString)))
               }
               val dependencyError: Option[String] =
                 if (problems.nonEmpty) None
-                else scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects(body.example_request_body, body.success_response_body, body.method_body).validateDependency()) match {
+                else scala.util.Try(code.api.dynamic.endpoint.helper.CompiledObjects(body.example_request_body, body.success_response_body, body.method_body, programmingLang).validateDependency()) match {
                   case scala.util.Success(_) => None
                   case scala.util.Failure(e: code.api.JsonResponseException) => Some(com.openbankproject.commons.util.JsonAliases.compactRender(e.jsonResponse.body))
                   case scala.util.Failure(e) => Some(Option(e.getMessage).getOrElse(e.toString))
@@ -6649,11 +6867,21 @@ object Http4s700 {
         |Send the fields that shape the compiled code: `request_verb`, `request_url`, the URL-encoded `method_body`, and the optional
         |`example_request_body` and `success_response_body` (they become the generated `RequestRootJsonClass` / `ResponseRootJsonClass`).
         |
-        |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's wrapper lines are
-        |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_compile_validate_enable` is on,
+        |`programming_lang` is the language of the method body, as on Create Dynamic Resource Doc: one of ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}.
+        |It is optional and defaults to Scala. Any other value is rejected with ${code.api.util.ErrorMessages.DynamicCodeLangNotSupport.takeWhile(_ != ':')}.
+        |A Java body is compiled as written, so `example_request_body` and `success_response_body` do not affect it. It must declare a public class
+        |implementing `Supplier<Function<Object[], Object>>`; the function receives the raw request body, the path parameters and the CallContext.
+        |
+        |A `Query` body is a Dynamic Query declaration, not code: nothing is compiled, and it is checked against the Dynamic Entity definitions
+        |instead, with any problem reported in `errors` without a line number. A Dynamic Query only reads, so its `request_verb` must be `GET`,
+        |and it does not need user-supplied code to be enabled. See the Glossary entry Dynamic Query.
+        |
+        |`errors` carry the compiler's messages with `line` and `column` relative to the method body you sent (the server's added lines are
+        |subtracted; 0 when the compiler gave no position). When the body compiles and `dynamic_code_obp_calls_are_restricted` is on,
         |the dependency validator runs too and any forbidden call is reported in `dependency_error`. `compiles` is true only when both pass.
         |
-        |Nothing is evaluated or cached, but compiling is a full scalac run, so the same rules apply as for creating: the
+        |The compiler diagnostics are produced without running anything. When the body compiles, the dependency check builds it as Create would,
+        |so the same rules apply as for creating: the
         |`allow_user_generated_scala_code` kill switch, the create role, and at most $dynamicCompileCallsPerMinute calls per minute per user.
         |
         |Built for editors that let an author, or an assistant such as Opey, iterate on a body until it compiles before submitting it.
@@ -6661,10 +6889,91 @@ object Http4s700 {
         |${userAuthenticationMessage(true)}""".stripMargin,
       JSONFactory700.dynamicResourceDocCompileJsonV700Example,
       JSONFactory700.dynamicCompileResultJsonV700Example,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicCodeExecutionDisabled, code.api.util.ErrorMessages.TooManyRequests, UnknownError),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, DynamicCodeExecutionDisabled, code.api.util.ErrorMessages.DynamicCodeLangNotSupport,
+        code.api.util.ErrorMessages.DynamicQueryInvalid, code.api.util.ErrorMessages.TooManyRequests, UnknownError),
       apiTagDynamicResourceDoc :: apiTagDynamic :: Nil,
       Some(List(ApiRole.canCreateDynamicResourceDoc)),
       http4sPartialFunction = Some(compileDynamicResourceDoc)
+    )
+
+    /**
+     * The value of a Right, or a failed Future carrying the Left's status and OBP error message, failed
+     * the way booleanToFuture fails one (an APIFailureNewStyle), so it is answered with that status.
+     */
+    private def answerOrFail[A](answer: Either[(Int, String), A], cc: CallContext): Future[A] = Future {
+      answer match {
+        case Right(value) => value
+        case Left((status, message)) =>
+          code.api.util.APIUtil.fullBoxOrException[A](
+            net.liftweb.common.Failure(message, net.liftweb.common.Empty, net.liftweb.common.Empty) ~> code.api.APIFailureNewStyle(message, status, Some(cc.toLight)))
+            .openOrThrowException(message)
+      }
+    }
+
+    // Route: POST /obp/v7.0.0/management/dynamic-resource-docs/explain
+    // For the author of a Dynamic Query: the statements it would run (SQL with ? for values) and the access
+    // it needs, for the requesting User or for an anonymous caller. Reads no record.
+    val explainDynamicQuery: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" / "explain" =>
+        EndpointHelpers.withUser(req) { (u, cc) =>
+          import code.api.v7_0_0.JSONFactory700.{DynamicQueryExplainJsonV700, createDynamicQueryExplanationJsonV700}
+          import code.api.dynamic.entity.query.{DynamicQuery, DynamicQueryDeclaration}
+          for {
+            body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[DynamicQueryExplainJsonV700].getSimpleName}", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[DynamicQueryExplainJsonV700]
+            }
+            declaration <- answerOrFail(
+              DynamicQueryDeclaration.parse(java.net.URLDecoder.decode(body.method_body, "UTF-8"))
+                .left.map(error => (400, s"${code.api.util.ErrorMessages.DynamicQueryInvalid}${error.message}")), cc)
+            space = body.bank_id.map(_.trim).filter(_.nonEmpty).flatMap(code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem)
+            callerUserId = if (body.as_anonymous_caller.contains(true)) None else Some(u.userId)
+            callerParameters = body.caller_parameters.map(_.trim).filter(_.nonEmpty)
+              .map(text => org.http4s.Query.unsafeFromString(text).multiParams.map { case (name, values) => name -> values.toList })
+              .getOrElse(Map.empty[String, List[String]])
+            explanation <- Future {
+              DynamicQuery.explain(space, declaration, callerParameters, callerUserId,
+                if (callerUserId.isEmpty) "" else code.api.util.APIUtil.getConsumerPrimaryKey(Some(cc)))
+            }
+            explained <- answerOrFail(explanation.left.map(failure => (failure.status, failure.message)), cc)
+          } yield createDynamicQueryExplanationJsonV700(explained, callerUserId)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(explainDynamicQuery),
+      "POST",
+      "/management/dynamic-resource-docs/explain",
+      "Explain Dynamic Query",
+      s"""Explains how a Dynamic Query (a Dynamic Resource Doc whose `programming_lang` is `Query`) would be answered, without reading any record,
+        |so its author can check that the SQL is sane and that the access rules are the ones they expect.
+        |
+        |Send the URL-encoded declaration as `method_body`, as in a Dynamic Resource Doc. Optionally:
+        |
+        |* `bank_id`: the Dynamic Entity space to explain it in, a bank id or `SYS`. The system space when absent.
+        |* `caller_parameters`: the parameters a caller would add, as a query string, such as `obp_sort_by=name&obp_limit=10`.
+        |* `as_anonymous_caller`: true to explain it for a caller who is not logged in, rather than for you.
+        |
+        |The answer has two parts.
+        |
+        |`steps` are the reads the query would make, in order: the page, its count when the envelope names one, then each join. Each step
+        |says whether it goes through the query projection (with its SQL, every value shown as `?`), through the Dynamic Entity record
+        |provider (described in words: OBP does not build that SQL), or reuses an earlier step's records. The SQL comes from the same code
+        |that builds the statements a call runs, so it cannot differ from them.
+        |
+        |`entities`, `restricted_fields`, `rules`, `caller_may_run` and `refusal` describe access: every Dynamic Entity the query reads, with
+        |the Role that grants read access and whether the explained caller can read it; every read-restricted field it returns, copies,
+        |filters, sorts or picks by; the rules every Dynamic Query applies; and, when the caller could not run it, the exact refusal they
+        |would get (${code.api.util.ErrorMessages.DynamicQueryEntityNotReadable.takeWhile(_ != ':')} or ${code.api.util.ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}).
+        |
+        |A declaration that is not valid is answered with ${code.api.util.ErrorMessages.DynamicQueryInvalid.takeWhile(_ != ':')}, as Check would answer it. See the Glossary entry Dynamic Query.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      JSONFactory700.dynamicQueryExplainJsonV700Example,
+      JSONFactory700.dynamicQueryExplanationJsonV700Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserHasMissingRoles, code.api.util.ErrorMessages.DynamicQueryInvalid, UnknownError),
+      apiTagDynamicResourceDoc :: apiTagDynamic :: Nil,
+      Some(List(ApiRole.canCreateDynamicResourceDoc)),
+      http4sPartialFunction = Some(explainDynamicQuery)
     )
 
     // Route: GET /obp/v7.0.0/management/dynamic-code-approval-config
@@ -7010,7 +7319,7 @@ object Http4s700 {
       "Get Rate Limiter Config",
       s"""Returns the live configuration of the three rate limiters on this instance, in the order they are checked:
          |
-         |1. **self_service** runs before routing and authentication, keyed by client IP address, on the endpoints anyone can call before the bank has granted them anything. A trip answers 429 `OBP-10060`.
+         |1. **self_service** runs before routing and authentication, keyed by client IP address, on the endpoints anyone can call before the bank has granted them anything, and on the public documentation. A trip answers 429 `OBP-10060`. Each of its `limits` rows is a scope, with the endpoints it `covers` and its own `mode`: a scope can stay in shadow mode while the limiter's `mode` is enforce (the `documentation` scope does, unless its own mode is set).
          |2. **authentication** runs inside the credential check, keyed by IP address and account. A trip answers 429 `OBP-10061`.
          |3. **consumer** runs after authentication, keyed by Consumer, or by IP address for anonymous calls. A trip answers 429 `OBP-10018`.
          |
@@ -7057,7 +7366,7 @@ object Http4s700 {
     /** The User whose links are read: the caller, or the User its Consent acts for. Same rule as the provider. */
     private def linkedCustomerOwnerId(userId: String): String =
       code.users.Users.users.vend
-        .attributedUserId(userId, code.users.UserReference.UserCustomerLinkUser).openOr(userId)
+        .attributedUserId(userId, code.users.UserReference.UserCustomerLink_UserId).openOr(userId)
 
     val getMyCustomersAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / _ / "my" / "customers" =>
@@ -7139,6 +7448,31 @@ object Http4s700 {
       http4sPartialFunction = Some(getMyCustomers)
     )
 
+    // Dynamic Entity definitions, one set of URLs for every space (SYS included). Declared in their own
+    // object to keep this initialiser under the JVM's 64KB method limit.
+    resourceDocs ++= Http4s700DynamicEntityDefinitions.resourceDocs
+
+    // Telemetry, for people; Prometheus reads the separate Telemetry port instead.
+    resourceDocs ++= Http4s700Telemetry.resourceDocs
+
+    // IP penalties: an operator's temporary per-minute limit on one address.
+    resourceDocs ++= Http4s700IpPenalties.resourceDocs
+
+    // Platform Apps: the Consumers this installation runs as part of its own deployment, and the Scopes they need.
+    resourceDocs ++= Http4s700PlatformApps.resourceDocs
+
+    // Domain APIs: a space's Dynamic Entities and Dynamic Resource Docs published under a base path of its own.
+    resourceDocs ++= Http4s700DomainApis.resourceDocs
+
+    // Groups: bring the members of a Group in line with its current Roles.
+    resourceDocs ++= Http4s700Groups.resourceDocs
+
+    // Where traffic is coming from: the busiest Consumers, addresses, and callers and endpoints.
+    resourceDocs ++= Http4s700TrafficSources.resourceDocs
+
+    // Deployment Checks: is this instance, and what sits in front of it, set up correctly.
+    resourceDocs ++= Http4s700DeploymentChecks.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
@@ -7182,6 +7516,9 @@ object Http4s700 {
   lazy val wrappedRoutesV700Services: HttpRoutes[IO] =
     Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       Implementations7_0_0.allRoutesWithMiddleware.run(req)
+        // Dynamic Entity records at /banks/BANK_ID/dynamic-entities/...: the entity set changes at
+        // runtime, so these have no static ResourceDoc and must be tried before the bridge claims the path.
+        .orElse(code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(req))
         .orElse(v700ToV600Bridge.run(req))
     }
 }

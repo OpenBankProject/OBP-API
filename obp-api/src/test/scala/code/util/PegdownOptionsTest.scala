@@ -384,14 +384,6 @@ class PegdownOptionsTest extends FlatSpec with Matchers {
     val html = PegdownOptions.convertGitHubDocMarkdownToHtml(markdownText)
   }
 
-  it should "render typographic dashes as XML-safe characters" taggedAs FunctionsTag in {
-    val html = convertPegdownToHtmlTweaked("A consent -- and a longer --- separator")
-
-    html should not include "&ndash;"
-    html should not include "&mdash;"
-    stringToNodeSeq(html)
-  }
-
   "description string" should "test the markdown * -> html <li> tag" taggedAs FunctionsTag in {
 
     // This string is from Foobar Property List: format
@@ -492,5 +484,17 @@ Authentication is Mandatory""".stripMargin
 
     descriptionHtml3 contains("<p>Authentication is Mandatory</p>") should be (true)
 
+  }
+
+  "dashes, ellipses and quotes" should "be served as written, not as typographic entities" taggedAs FunctionsTag in {
+    val descriptionHtml = convertPegdownToHtmlTweaked(
+      """Only that Consumer can present the Consent JWT -- any other gets "ConsentNotFound"... it's pinned.""")
+
+    // An XML parse is what failed on &ndash;, so it is the check that matters.
+    stringToNodeSeq(descriptionHtml)
+    descriptionHtml should include ("JWT -- any other")
+    descriptionHtml should include ("...")
+    descriptionHtml should not include ("&ndash;")
+    descriptionHtml should not include ("&ldquo;")
   }
 }

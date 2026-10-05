@@ -75,8 +75,15 @@ class SchemaCompatibleChangeSpec extends FlatSpec with Matchers {
     ok("""{"required":["name"],"properties":{"name":{"type":"string","example":"x"},"number":{"type":"integer","example":1},"site_ref":{"type":"reference:Plot","example":"a"}}}""") shouldBe false
   }
 
-  it should "reject an added or removed property" in {
-    ok("""{"required":["name"],"properties":{"name":{"type":"string","example":"x"},"number":{"type":"integer","example":1},"site_ref":{"type":"reference:Site","example":"a"},"extra":{"type":"string","example":"e"}}}""") shouldBe false
+  it should "accept an added optional property: the stored rows simply don't have it" in {
+    ok("""{"required":["name"],"properties":{"name":{"type":"string","example":"x"},"number":{"type":"integer","example":1},"site_ref":{"type":"reference:Site","example":"a"},"extra":{"type":"string","example":"e"}}}""") shouldBe true
+  }
+
+  it should "reject an added required property, which the stored rows would lack" in {
+    ok("""{"required":["name","extra"],"properties":{"name":{"type":"string","example":"x"},"number":{"type":"integer","example":1},"site_ref":{"type":"reference:Site","example":"a"},"extra":{"type":"string","example":"e"}}}""") shouldBe false
+  }
+
+  it should "reject a removed property" in {
     ok("""{"required":["name"],"properties":{"name":{"type":"string","example":"x"},"number":{"type":"integer","example":1}}}""") shouldBe false
   }
 

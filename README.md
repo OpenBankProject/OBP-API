@@ -304,9 +304,12 @@ Note: Your Java environment may need to be set up correctly to use SSL.
 
 Restart OBP-API, if you get an error, check your Java environment can connect to the host over SSL.
 
-Note: You can copy the following example files to prepare your own configurations:
+Note: `/obp-api/src/main/resources/logback.xml` ships ready to use, defaulting to INFO. Set the
+`LOG_LEVEL` environment variable (e.g. `LOG_LEVEL=DEBUG` or `LOG_LEVEL=TRACE`) to override it per
+environment without editing the file.
 
-- `/obp-api/src/main/resources/logback.xml.example` -> `/obp-api/src/main/resources/logback.xml` (try TRACE or DEBUG).
+You can also copy the following example file to prepare your own test-run configuration:
+
 - `/obp-api/src/main/resources/logback-test.xml.example` -> `/obp-api/src/main/resources/logback-test.xml` (try TRACE or DEBUG).
 
 There is a gist/tool which is useful for this. Search the web for SSLPoke. Note this is an external repository.

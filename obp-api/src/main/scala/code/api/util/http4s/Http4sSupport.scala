@@ -83,6 +83,17 @@ object Http4sRequestAttributes {
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
   /**
+   * Vault key for the traffic note of a request: what inner layers learn about it (its endpoint, its
+   * Consumer, a refusal) for TrafficSources, which Http4sApp records once the response is ready.
+   * Installed by Http4sApp on every request; bridge hops keep it, because `withUri` keeps attributes.
+   */
+  val trafficNoteKey: Key[code.telemetry.TrafficSources.Note] =
+    Key.newKey[IO, code.telemetry.TrafficSources.Note].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  /** The request's traffic note, when Http4sApp installed one (tests that call routes directly have none). */
+  def trafficNote(req: Request[IO]): Option[code.telemetry.TrafficSources.Note] = req.attributes.lookup(trafficNoteKey)
+
+  /**
    * Vault key for caching the (already-read) request body across bridge cascade hops.
    *
    * Http4s body streams are single-shot: `request.bodyText.compile.string` drains the stream.
@@ -181,8 +192,22 @@ object Http4sRequestAttributes {
         case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
       }
 
+    /**
+     * Renders a handler's result as JSON. On the way it records, for Telemetry, how many items a
+     * list response carried. The count is taken from the JSON this method builds for rendering, so
+     * the result is not decomposed a second time. What counting does cost, on a list response, is
+     * one walk of the list (json4s holds array elements in a linked List, whose size is counted),
+     * a registry lookup of the operation's meter, and an atomic update: small next to decomposing
+     * and rendering the same list, but not nothing.
+     */
+    private def renderJson[A](result: A)(implicit formats: Formats, cc: CallContext): String = {
+      val json = Extraction.decompose(result)
+      cc.operationId.foreach(operationId => code.telemetry.Telemetry.recordResponseItems(operationId, json))
+      prettyRender(json)
+    }
+
     private def toJsonOk[A](result: A)(implicit formats: Formats, cc: CallContext): IO[Response[IO]] = {
-      val jsonString = prettyRender(Extraction.decompose(result))
+      val jsonString = renderJson(result)
       Ok(jsonString, jsonContentType).map(withCallContextHeaders)
     }
 
@@ -203,6 +228,21 @@ object Http4sRequestAttributes {
         logger.info(s"Endpoint (${cc.verb}) ${cc.url} returned ${response.status.code}, took $duration Milliseconds")
         WriteMetricUtil.writeEndpointMetric(responseBody, Some(ccLight))
       }
+
+    /**
+     * This records the endpoint metric for a response that was built outside these helpers, such as
+     * the handler of a Dynamic Resource Doc, which builds its own Response. Every other endpoint gets
+     * its metric from the helper it runs in; without this, calls to those handlers left no metric row.
+     *
+     * The body is read only when metrics are written at all. Those handlers build their bodies from
+     * in-memory strings, so reading it here does not consume what the client receives.
+     */
+    def recordMetricFor(response: Response[IO])(implicit cc: CallContext): IO[Response[IO]] =
+      if (!code.metrics.MetricsProps.writeMetrics) IO.pure(response)
+      else response.bodyText.compile.string.flatMap { text =>
+        val body: Any = scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(text)).getOrElse(text)
+        recordMetric(body, response)
+      }.as(response)
 
     /**
      * Execute Future-based business logic and return JSON response.
@@ -278,7 +318,7 @@ object Http4sRequestAttributes {
       } yield result
       io.attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -322,7 +362,7 @@ object Http4sRequestAttributes {
         case Right(body) =>
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -364,7 +404,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -408,7 +448,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -446,7 +486,7 @@ object Http4sRequestAttributes {
       } yield result
       io.attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -469,7 +509,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -534,7 +574,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -554,7 +594,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right((result, code)) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           val status = Status.fromInt(code).getOrElse(Status.Ok)
           IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
@@ -576,7 +616,7 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right((_, 204)) => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Right((result, code)) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           val status = Status.fromInt(code).getOrElse(Status.Ok)
           IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
@@ -657,6 +697,10 @@ object Http4sCallContextBuilder {
       }
     } yield CallContext(
       url = request.uri.renderString,
+      forwardedFor = RemoteIpUtil.forwardedForPath(
+        request.remoteAddr.map(_.toUriString).getOrElse(""),
+        requestHeaderValues(request, "X-Forwarded-For")
+      ),
       verb = request.method.name,
       implementedInVersion = apiVersion,
       correlationId = extractCorrelationId(request),
@@ -697,13 +741,19 @@ object Http4sCallContextBuilder {
    *  request-level middleware (SelfServiceRateLimitMiddleware) keys on the same value. */
   def clientIp(request: Request[IO]): String = extractIpAddress(request)
 
-  private def extractIpAddress(request: Request[IO]): String = {
-    val socketPeer = request.remoteAddr.map(_.toUriString).getOrElse("")
-    RemoteIpUtil.resolveClientIp(
-      socketPeer,
-      name => request.headers.get(CIString(name)).map(_.head.value)
+  /** How the request's client address was decided (for TrafficSources and Deployment Checks). */
+  def clientIpResolution(request: Request[IO]): RemoteIpUtil.Resolution =
+    RemoteIpUtil.resolve(
+      request.remoteAddr.map(_.toUriString).getOrElse(""),
+      name => requestHeaderValues(request, name)
     )
-  }
+
+  /** A request header's value. A header sent on several lines is joined in order, so an
+   *  X-Forwarded-For line the client wrote cannot hide the lines the proxies added after it. */
+  private def requestHeaderValues(request: Request[IO], name: String): Option[String] =
+    request.headers.get(CIString(name)).map(_.toList.map(_.value).mkString(", "))
+
+  private def extractIpAddress(request: Request[IO]): String = clientIpResolution(request).clientIp
   
   /**
    * Extract Authorization header value as Box[String]

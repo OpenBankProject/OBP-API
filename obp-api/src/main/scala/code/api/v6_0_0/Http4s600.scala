@@ -82,7 +82,7 @@ import code.api.cache.Redis
 import code.bankconnectors.{Connector => BankConnector}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.APIUtil.{HTTPParam, createQueriesByHttpParamsFuture, unboxFull, unboxFullOrFail}
 import code.api.util.{ApiVersionUtils, CertificateUtil, CommonsEmailWrapper, RateLimitingUtil}
 import code.api.v2_0_0.{BasicViewJson, JSONFactory200}
@@ -121,7 +121,7 @@ import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
 import code.views.Views
-import net.liftweb.mapper.{By, NullRef}
+import net.liftweb.mapper.By
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{BankId, BankIdAccountId, CustomerId, ListResult, ViewId}
@@ -345,8 +345,9 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/management/system-dynamic-entities
     lazy val getSystemDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "management" / "system-dynamic-entities" =>
-        EndpointHelpers.withUser(req) { (_, _) =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
           for {
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canGetDynamicEntityDefinitions, cc)
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
@@ -354,7 +355,8 @@ object Http4s600 {
               val recordCount = DynamicData.count(
                 By(DynamicData.DynamicEntityName, entity.entityName),
                 By(DynamicData.IsPersonalEntity, false),
-                if (entity.bankId.isEmpty) NullRef(DynamicData.BankId) else By(DynamicData.BankId, entity.bankId.get)
+                // Records store SYS for the system space, never a NULL bank id.
+                By(DynamicData.BankId, DynamicEntitySpace.bankIdOrSystem(entity.bankId))
               )
               (entity, recordCount)
             }
@@ -495,7 +497,7 @@ object Http4s600 {
 
     // Inlined helpers — match the v6 Lift private versions in APIMethods600.
     private val validEntityNamePattern = "^[a-z][a-z0-9_]*$".r.pattern
-    private def validateEntityNameV600(entityName: String, cc: CallContext): Future[Unit] =
+    private[api] def validateEntityNameV600(entityName: String, cc: CallContext): Future[Unit] =
       if (validEntityNamePattern.matcher(entityName).matches()) Future.successful(())
       else Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
 
@@ -507,13 +509,19 @@ object Http4s600 {
         !NewStyle.function.getMethodRoutings(Some("dynamicEntityProcess"))
           .exists(_.parameters.exists(p => p.key == "entityName" && p.value == dynamicEntity.entityName))
 
-    private def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+    // A failure the checks already shaped, an OBP message or the encoded failure Helper.booleanToFuture
+    // raises (with its own code, such as 409 for an ambiguous path), passes through as it is; anything
+    // else is wrapped as a 400 InvalidJsonFormat below.
+    private def isOwnApiFailure(e: Throwable): Boolean =
+      Option(e.getMessage).map(_.trim).exists(message => message.startsWith("OBP-") || message.startsWith("{\"failMsg\""))
+
+    private[api] def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       // Wrap the connector call so a thrown RuntimeException (bad schema, etc.)
       // becomes a 400 InvalidJsonFormat — matches v6 Lift's dispatch wrapper.
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
-          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+          case e: Throwable if !isOwnApiFailure(e) =>
             val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
             )(org.json4s.DefaultFormats)
@@ -533,17 +541,25 @@ object Http4s600 {
     } yield {
       // Creator grants target the HUMAN (see createBank): a per-consent shadow principal
       // must not end up owning the entity's admin roles.
+      // The Record Roles name a space, and a definition with no bank belongs to the system space, so
+      // the creator's grants go to DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty bank id.
+      // Granting at "" would write rows nothing reads, and the creator would be locked out of the
+      // entity they had just defined.
       crudRoles.foreach(role =>
-        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.onBehalfOfUserId, role.toString(),
+        Entitlement.entitlement.vend.addEntitlement(DynamicEntitySpace.bankIdOrSystem(dynamicEntity.bankId), cc.onBehalfOfUserId, role.toString(),
           grantedByUserId = Some(cc.userId)))
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }
 
-    private def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+    private[api] def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
+      // Look the definition up in its own space first, so that an id from another space, or no id at
+      // all, is a 404. Left to the update below, the not-found error is caught by the recoverWith and
+      // reported as a 400 InvalidJsonFormat.
+      _ <- NewStyle.function.getDynamicEntityById(dynamicEntity.bankId, dynamicEntity.dynamicEntityId.getOrElse(""), Some(cc))
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
-          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+          case e: Throwable if !isOwnApiFailure(e) =>
             val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
             )(org.json4s.DefaultFormats)
@@ -564,6 +580,7 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canCreateDynamicEntityDefinition, cc, code.api.util.APIUtil.UserOrApplication)
             dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               DynamicEntityCommons(JSONFactory600.convertV600RequestToInternal(request), None, cc.userId, None)
             }
@@ -605,6 +622,7 @@ object Http4s600 {
             _ <- validateEntityNameV600(request.entity_name, cc)
             internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
             dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, None)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canUpdateDynamicEntityDefinition, cc)
             result <- updateDynamicEntityV600(cc, dynamicEntity)
           } yield result
         }
@@ -1226,6 +1244,7 @@ object Http4s600 {
               (Constant.STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Static resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, "All resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, "Swagger documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.MESSAGE_DOCS_CACHE_KEY_PREFIX, "Message docs and connector JSON Schemas", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.CONNECTOR_PREFIX, "Connector method names and metadata", "3600", "Connector"),
               (Constant.METRICS_STABLE_PREFIX, "Stable metrics (historical)", "86400", "Metrics"),
               (Constant.METRICS_RECENT_PREFIX, "Recent metrics", "7", "Metrics"),
@@ -1932,10 +1951,8 @@ object Http4s600 {
             val orphaned = code.api.util.DiagnosticDynamicEntityCheck.checkOrphanedRecords(definitions)
             var totalDeleted: Long = 0
             orphaned.foreach { orphan =>
-              val records = if (orphan.bankId.isEmpty)
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), NullRef(DynamicData.BankId))
-              else
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), By(DynamicData.BankId, orphan.bankId))
+              // orphan.bankId is the stored form, SYS for the system space, so it matches the column as is.
+              val records = DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), By(DynamicData.BankId, orphan.bankId))
               records.foreach { r => r.delete_!; totalDeleted += 1 }
             }
             val orphanedJson = orphaned.map(o => JSONFactory600.OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount))
@@ -2222,6 +2239,9 @@ object Http4s600 {
               .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(group.bankId, user.userId, canAddUserToGroupAtOneBank, canAddUserToGroupAtAllBanks, cc)
             _ <- Helper.booleanToFuture(s"$UnknownError Group is not enabled", 400, Some(cc))(group.isEnabled)
+            // Recorded even when every Role is skipped below: the Entitlements alone would not show it.
+            _ <- Future(code.group.GroupMemberships.addMembership(group.groupId, userIdStr, Some(user.userId)))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot record the group membership", 400))
             existingEntitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
             entitlementResults <- Future.sequence(group.listOfRoles.map { roleName =>
               Future {
@@ -2259,13 +2279,20 @@ object Http4s600 {
             group <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
               .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(group.bankId, user.userId, canRemoveUserFromGroupAtOneBank, canRemoveUserFromGroupAtAllBanks, cc)
+            _ <- Future(code.group.GroupMemberships.removeMembership(groupId, userIdStr))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot remove the group membership", 400))
             entitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
             // group_id alone identifies group-born rows (only group grants set it) and holds
             // for legacy rows too; the old `process == GROUP_MEMBERSHIP` conjunct was redundant.
             groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(e =>
               e.groupId == Some(groupId))
-            _ <- Future.sequence(groupEntitlements.map(e =>
-              Future(Entitlement.entitlement.vend.deleteEntitlement(Full(e)))))
+            // A Role another of the user's Groups also grants is kept, and recorded against that Group.
+            _ <- Future.sequence(groupEntitlements.map(e => Future {
+              code.group.GroupMemberships.otherGroupGranting(userIdStr, e.bankId, e.roleName, groupId) match {
+                case Some(other) => Entitlement.entitlement.vend.setEntitlementGroupId(e.entitlementId, other.groupId)
+                case None => Entitlement.entitlement.vend.deleteEntitlement(Full(e))
+              }
+            }))
           } yield ""
         }
     }
@@ -2300,7 +2327,9 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "management" / "dynamic-entities" / "reference-types" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
-            val referenceTypeNames = code.dynamicEntity.ReferenceType.referenceTypeNames
+            // The catalogue of every reference type on the instance. A definition is validated against
+            // the types of its own space (ReferenceType.referenceTypeNames), which is the narrower list.
+            val referenceTypeNames = code.dynamicEntity.ReferenceType.allReferenceTypeNames
             val dynamicEntityNames = NewStyle.function.getDynamicEntities(None, true)
               .map(e => s"reference:${e.entityName}").toSet
             val exampleId1 = APIUtil.generateUUID()
@@ -2531,7 +2560,7 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "message-docs" / connector / "json-schema" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val cacheKey = s"message-docs-json-schema-$connector"
-          val cacheValueFromRedis = code.api.cache.Caching.getStaticSwaggerDocCache(cacheKey)
+          val cacheValueFromRedis = code.api.cache.Caching.getMessageDocsCache(cacheKey)
           for {
             jsonSchema <- if (cacheValueFromRedis.isDefined) {
               NewStyle.function.tryons(s"$UnknownError Cannot parse cached JSON Schema.", 400, Some(cc)) {
@@ -2547,7 +2576,7 @@ object Http4s600 {
                 val schema = code.api.util.JsonSchemaGenerator.messageDocsToJsonSchema(
                   connectorObject.messageDocs.toList, connector)
                 val schemaString = com.openbankproject.commons.util.JsonAliases.compactRender(schema)
-                code.api.cache.Caching.setStaticSwaggerDocCache(cacheKey, schemaString)
+                code.api.cache.Caching.setMessageDocsCache(cacheKey, schemaString)
                 schema
               }
             }
@@ -4640,25 +4669,53 @@ object Http4s600 {
                 case _ => true
               }
             }
-          } yield try {
-            code.api.dynamic.endpoint.helper.CompiledObjects(
-              body.exampleRequestBody, body.successResponseBody, body.methodBody).validateDependency()
-            ValidateDynamicResourceDocSuccessJsonV600(
-              valid = true,
-              message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies.")
-          } catch {
-            case e: code.api.JsonResponseException =>
-              val errorText = e.jsonResponse match {
-                case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
-                case _ => ""
-              }
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
-            case e: Exception =>
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            // Mirrors Http4s400's validateDynamicResourceDocBody: fail fast on an unsupported
+            // programming_lang here too, rather than reporting `valid = true` for a language
+            // create would actually reject with 400 DynamicCodeLangNotSupport (CompiledObjects
+            // silently falls through to the Scala compile path for any value it doesn't
+            // recognise as Java, so an unsupported/misspelled language would otherwise still
+            // "validate" successfully as Scala).
+            _ <- Helper.booleanToFuture(
+              s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
+              cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
+            }
+            _ <- Helper.booleanToFuture(s"$DynamicQueryInvalid${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(body.programmingLang, body.requestVerb)
+            }
+          } yield {
+            val isQuery = code.api.dynamic.endpoint.helper.CompiledObjects.isQuery(body.programmingLang)
+            try {
+              code.api.dynamic.endpoint.helper.CompiledObjects(
+                body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, body.bankId).validateDependency()
+              ValidateDynamicResourceDocSuccessJsonV600(
+                valid = true,
+                message =
+                  if (isQuery) "Dynamic Query declaration is valid."
+                  else s"Dynamic Resource Doc method body is valid ${body.programmingLang} and uses allowed dependencies.")
+            } catch {
+              // A Dynamic Query is checked against the entity definitions, not a dependency allowlist.
+              case e: code.api.JsonResponseException if isQuery =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicQueryInvalid,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "QueryError"))
+              case e: code.api.JsonResponseException =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
+              case e: Exception =>
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            }
           }
         }
     }
@@ -4726,7 +4783,8 @@ object Http4s600 {
             entitlements <- Future(code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(userId))
             // group_id alone identifies group-born rows (see removeUserFromGroup).
             groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(_.groupId.isDefined)
-            groupIds = groupEntitlements.flatMap(_.groupId).distinct
+            // Includes Groups that granted the user nothing because they already held every Role.
+            groupIds = code.group.GroupMemberships.groupIdsOfUser(userId)
             _ <- Future.sequence {
               groupIds.flatMap { gid =>
                 code.group.GroupTrait.group.vend.getGroup(gid).toOption.map { g =>
@@ -5362,7 +5420,7 @@ object Http4s600 {
       }
     }
 
-    private def backupDynamicEntityFut(
+    private[api] def backupDynamicEntityFut(
         bankIdOpt: Option[String],
         dynamicEntityId: String,
         cc: CallContext
@@ -5370,7 +5428,7 @@ object Http4s600 {
       for {
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankIdOpt, dynamicEntityId, Some(cc))
         canGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(entity.entityName, entity.bankId)
-        _ <- NewStyle.function.hasEntitlement(entity.bankId.getOrElse(""), cc.userId, canGetRole, Some(cc))
+        _ <- NewStyle.function.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(entity.bankId), cc.userId, canGetRole, Some(cc))
         (box, _) <- NewStyle.function.invokeDynamicConnector(
           com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
           entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
@@ -5382,7 +5440,7 @@ object Http4s600 {
         _ <- Future(backupDynamicEntityIo(entity, backupName, resultList))
         backupCanGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(backupName, entity.bankId)
         _ <- Future(code.entitlement.Entitlement.entitlement.vend.addEntitlement(
-          entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString(),
+          DynamicEntitySpace.bankIdOrSystem(entity.bankId), cc.userId, backupCanGetRole.toString(),
           grantedByUserId = Some(cc.userId)))
         backupEntity <- Future {
           code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
@@ -5399,7 +5457,8 @@ object Http4s600 {
       case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId / "backup" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
-          backupDynamicEntityFut(None, dynamicEntityId, cc)
+          DynamicEntitySpace.requireRoleAtSystemSpace(canBackupDynamicEntityDefinition, cc)
+            .flatMap(_ => backupDynamicEntityFut(None, dynamicEntityId, cc))
         }
     }
 
@@ -5411,35 +5470,46 @@ object Http4s600 {
         }
     }
 
+    /**
+     * This function deletes a Dynamic Entity together with all its records, after copying both to a
+     * `ZZ_BAK_` entity. `bankIdOpt` is the space, None for the system space. It is shared by the v6.0.0
+     * system endpoint and the v7.0.0 endpoint, which names the space in its URL.
+     */
+    private[api] def deleteDynamicEntityCascadeFut(bankIdOpt: Option[String], dynamicEntityId: String, cc: CallContext): Future[JObject] =
+      for {
+        (entity, _) <- NewStyle.function.getDynamicEntityById(bankIdOpt, dynamicEntityId, Some(cc))
+        _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
+          !entity.hasPersonalEntity
+        }
+        (box, _) <- NewStyle.function.invokeDynamicConnector(
+          com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
+          entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
+        resultList <- Future {
+          box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
+            .openOrThrowException(s"$UnknownError ")
+        }
+        _ <- Future {
+          if (!entity.entityName.startsWith("ZZ_BAK_"))
+            backupDynamicEntityIo(entity, s"ZZ_BAK_${entity.entityName}", resultList)
+        }
+        _ <- Future.sequence {
+          resultList.arr.map { record =>
+            val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
+            val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
+            Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
+              entity.bankId, entity.entityName, recordId, None, false))
+          }
+        }
+        _ <- NewStyle.function.deleteDynamicEntity(bankIdOpt, dynamicEntityId)
+      } yield JObject(Nil)
+
     lazy val deleteSystemDynamicEntityCascade: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / "cascade" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
-            (entity, _) <- NewStyle.function.getDynamicEntityById(None, dynamicEntityId, Some(cc))
-            _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
-              !entity.hasPersonalEntity
-            }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(
-              com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
-              entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
-            resultList <- Future {
-              box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
-                .openOrThrowException(s"$UnknownError ")
-            }
-            _ <- Future {
-              if (!entity.entityName.startsWith("ZZ_BAK_"))
-                backupDynamicEntityIo(entity, s"ZZ_BAK_${entity.entityName}", resultList)
-            }
-            _ <- Future.sequence {
-              resultList.arr.map { record =>
-                val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
-                val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
-                Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
-                  entity.bankId, entity.entityName, recordId, None, false))
-              }
-            }
-            _ <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
-          } yield JObject(Nil)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canDeleteCascadeDynamicEntityDefinition, cc)
+            result <- deleteDynamicEntityCascadeFut(None, dynamicEntityId, cc)
+          } yield result
         }
     }
 
@@ -5859,6 +5929,8 @@ object Http4s600 {
             _ <- groupRoleCheck(existing.bankId, user.userId, canDeleteGroupAtOneBank, canDeleteGroupAtAllBanks, cc)
             _ <- Future(code.group.GroupTrait.group.vend.deleteGroup(groupId))
               .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete group", 400))
+            _ <- Future(code.group.GroupMemberships.removeMembershipsOfGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete the group's memberships", 400))
           } yield ""
         }
     }
@@ -6997,9 +7069,9 @@ object Http4s600 {
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canGetSystemLevelDynamicEntities :: Nil),
+        Some(canGetDynamicEntityDefinitions :: Nil),
         http4sPartialFunction = Some(getSystemDynamicEntities)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getBankLevelDynamicEntities),
@@ -7036,7 +7108,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canGetBankLevelDynamicEntities :: canGetAnyBankLevelDynamicEntities :: Nil),
+        Some(canGetDynamicEntityDefinitions :: Nil),
         http4sPartialFunction = Some(getBankLevelDynamicEntities)
       )
       resourceDocs += ResourceDoc(
@@ -7273,12 +7345,12 @@ object Http4s600 {
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
-        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         CreateDynamicEntityRequestJsonV600(
@@ -7301,12 +7373,12 @@ object Http4s600 {
           personal_requires_role = false,
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canCreateSystemLevelDynamicEntity :: Nil),
+        Some(canCreateDynamicEntityDefinition :: Nil),
         authMode = code.api.util.APIUtil.UserOrApplication,
         http4sPartialFunction = Some(createSystemDynamicEntity)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(createBankLevelDynamicEntity),
@@ -7346,12 +7418,12 @@ object Http4s600 {
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
-        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         CreateDynamicEntityRequestJsonV600(
@@ -7379,10 +7451,11 @@ object Http4s600 {
           $AuthenticatedUserIsRequired,
           UserHasMissingRoles,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canCreateBankLevelDynamicEntity :: Nil),
+        Some(canCreateDynamicEntityDefinition :: Nil),
         authMode = code.api.util.APIUtil.UserOrApplication,
         http4sPartialFunction = Some(createBankLevelDynamicEntity)
       )
@@ -7421,12 +7494,12 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
-        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
@@ -7445,11 +7518,11 @@ object Http4s600 {
           has_public_access = false,
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canUpdateSystemDynamicEntity :: Nil),
+        Some(canUpdateDynamicEntityDefinition :: Nil),
         http4sPartialFunction = Some(updateSystemDynamicEntity)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(updateBankLevelDynamicEntity),
@@ -7485,12 +7558,12 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
-        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
@@ -7514,10 +7587,11 @@ object Http4s600 {
           $AuthenticatedUserIsRequired,
           UserHasMissingRoles,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canUpdateBankLevelDynamicEntity :: Nil),
+        Some(canUpdateDynamicEntityDefinition :: Nil),
         http4sPartialFunction = Some(updateBankLevelDynamicEntity)
       )
       resourceDocs += ResourceDoc(
@@ -7555,12 +7629,12 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
-        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/POST /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
         |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
@@ -7582,6 +7656,7 @@ object Http4s600 {
         List(
           $AuthenticatedUserIsRequired,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -9140,7 +9215,7 @@ object Http4s600 {
           UnknownError
         ),
         List(apiTagMetric, apiTagApi),
-        None,
+        Some(List(canGetConnectorTrace)),
         http4sPartialFunction = Some(getConnectorTraces)
       )
       resourceDocs += ResourceDoc(
@@ -9643,6 +9718,9 @@ object Http4s600 {
         |This endpoint creates entitlements for every Role in the Group. If the user
         |already has a particular role at the same bank, that entitlement is skipped (not duplicated).
         |
+        |The membership itself is recorded too, so the user is a member of the Group even when every
+        |Role was skipped.
+        |
         |Each entitlement created will have:
         |- group_id set to the group ID
         |- process set to "GROUP_MEMBERSHIP"
@@ -9693,6 +9771,9 @@ object Http4s600 {
         |
         |Only removes entitlements with:
         |- group_id matching GROUP_ID
+        |
+        |An entitlement for a Role that another Group the user is in (at the same bank) also grants is kept,
+        |and recorded against that Group instead.
         |
         |Requires either:
         |- CanRemoveUserFromGroupAtAllBanks (for any group)
@@ -12745,14 +12826,14 @@ object Http4s600 {
           s"""Dry-run validation of a Dynamic Resource Doc. Send the same payload you would send to `Create Dynamic Resource Doc` and this endpoint will:
           |
           |- Parse `method_body` (URL-decoded) as Scala code and run the ToolBox compiler against it, wrapped in the same template used at runtime (request/response case classes generated from `example_request_body` / `success_response_body`).
-          |- Run the OBP compilation-dependency guard (when the OBP prop `dynamic_code_compile_validate_enable` is set to `true`).
+          |- Run the OBP call allowlist guard (when the OBP prop `dynamic_code_obp_calls_are_restricted` is set to `true`).
           |
           |Always returns HTTP 200. Inspect the `valid` field in the response:
           |
           |* `true`  — the Scala compiles and all referenced OBP methods are on the allowlist.
           |* `false` — the response includes `error` (raw compiler / guard message), `message` (OBP error constant) and `details.error_type` — one of:
           |  * `CompilationError` — `method_body` failed to compile.
-          |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_compile_validate_dependencies`.
+          |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_allowed_obp_methods`.
           |  * `UnknownError` — any other unexpected exception.
           |
           |Nothing is persisted and no endpoint is served as a result of calling this.
@@ -12905,7 +12986,7 @@ object Http4s600 {
           "Get User's Group Memberships",
           s"""Get all groups a user is a member of.
           |
-          |Returns groups where the user has entitlements carrying a group_id.
+          |Returns the groups the user was added to, and groups where the user has entitlements carrying a group_id.
           |
           |The response includes:
           |- list_of_entitlements: entitlements the user currently has from this group membership
@@ -13374,9 +13455,9 @@ object Http4s600 {
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canBackupSystemDynamicEntity :: Nil),
+          Some(canBackupDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(backupSystemDynamicEntity)
-        )
+        ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
         resourceDocs += ResourceDoc(
           implementedInApiVersion,
           nameOf(backupBankLevelDynamicEntity),
@@ -13407,7 +13488,7 @@ object Http4s600 {
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canBackupBankLevelDynamicEntity :: Nil),
+          Some(canBackupDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(backupBankLevelDynamicEntity)
         )
     }
@@ -13448,9 +13529,9 @@ object Http4s600 {
             UnknownError
           ),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canDeleteCascadeSystemDynamicEntity :: Nil),
+          Some(canDeleteCascadeDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(deleteSystemDynamicEntityCascade)
-        )
+        ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getCustomerInvestigationReport),
@@ -13750,7 +13831,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagApi :: Nil,
-        None,
+        Some(List(canGetConfigProps)),
         http4sPartialFunction = Some(getConfigProps)
       )
       // Intentional drift from Lift's APIMethods600.scala source-of-truth:

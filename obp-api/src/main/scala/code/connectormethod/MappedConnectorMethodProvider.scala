@@ -78,7 +78,7 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
       .Lang(entity.programmingLang)
       // provenance is set here from the authenticated user + computed hash, not from `entity`
       .CreatedByUserId(createdByUserId.getOrElse(null))
-      .MethodBodyHash(APIUtil.sha256Hex(entity.decodedMethodBody))
+      .MethodBodyHash(APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody))
       .saveMe()
     }.map(ConnectorMethod.getJsonConnectorMethod)
 
@@ -91,7 +91,7 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
             .Lang(programmingLang)
             // CreatedByUserId is left untouched; record who last changed the code + refresh the hash
             .UpdatedByUserId(updatedByUserId.getOrElse(null))
-            .MethodBodyHash(APIUtil.sha256Hex(java.net.URLDecoder.decode(connectorMethodBody, "UTF-8")))
+            .MethodBodyHash(APIUtil.dynamicCodeHash(programmingLang, java.net.URLDecoder.decode(connectorMethodBody, "UTF-8")))
             .saveMe()
         }.map(ConnectorMethod.getJsonConnectorMethod)
       case _ => Empty

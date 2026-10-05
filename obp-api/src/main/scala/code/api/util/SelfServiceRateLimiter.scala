@@ -87,8 +87,20 @@ object SelfServiceRateLimiter extends MdcLoggable {
     "consent_request"       -> ScopeDefaults(perMinute = 10, perHour = 30,  perDay = 100, globalPerHour = -1),
     "consumer_registration" -> ScopeDefaults(perMinute = 5,  perHour = 10,  perDay = 20,  globalPerHour = 500),
     "lookup"                -> ScopeDefaults(perMinute = 20, perHour = 60,  perDay = 200, globalPerHour = -1),
-    "signal_channel_create" -> ScopeDefaults(perMinute = 5,  perHour = 20,  perDay = 50,  globalPerHour = -1)
+    "signal_channel_create" -> ScopeDefaults(perMinute = 5,  perHour = 20,  perDay = 50,  globalPerHour = -1),
+    // Public documentation (resource docs, Swagger, OpenAPI). Generous, because one API Explorer
+    // session loads several documents and many users may reach OBP-API from one proxy address;
+    // the NMB scan of 2026-09-23 ran at about 13,000 requests an hour.
+    "documentation"         -> ScopeDefaults(perMinute = 60, perHour = 1000, perDay = 10000, globalPerHour = -1)
   )
+
+  /**
+   * Scopes that stay in shadow mode unless their own mode prop says otherwise, even when
+   * `self_service.rate_limit.mode` is enforce. Documentation is here so that switching on
+   * enforcement for sign-ups and password resets cannot start refusing documentation to API
+   * Explorer before the documentation limits have been checked against real traffic.
+   */
+  val shadowUnlessSetScopes: Set[String] = Set("documentation")
 
   /** One counter window after this request was counted. */
   final case class Window(name: String, period: LimitCallPeriod, limit: Long, current: Long, resetSeconds: Long) {
@@ -127,6 +139,18 @@ object SelfServiceRateLimiter extends MdcLoggable {
   }
 
   def isEnforcing: Boolean = mode == ModeEnforce
+
+  /**
+   * The mode for one scope: `self_service.rate_limit.<scope>.mode` when set, otherwise shadow
+   * for the scopes in [[shadowUnlessSetScopes]], otherwise the general mode.
+   */
+  def modeFor(scope: String): String =
+    APIUtil.getPropsValue(s"$PropsPrefix.$scope.mode").toOption.map(_.trim.toLowerCase).filter(_.nonEmpty) match {
+      case Some(ModeEnforce) => ModeEnforce
+      case Some(_)           => ModeShadow
+      case None if shadowUnlessSetScopes.contains(scope) => ModeShadow
+      case None              => mode
+    }
 
   /** Optional operator text naming when enforcement is planned, e.g. "2026-10-01". Only
    *  appended to the warning when set; nothing about timing is claimed otherwise. */
@@ -192,12 +216,21 @@ object SelfServiceRateLimiter extends MdcLoggable {
       }
     }
 
-    if (windows.isEmpty) return Skipped(safeScope)
+    val outcome: Outcome =
+      if (windows.isEmpty) Skipped(safeScope)
+      else decide(safeScope, keyKind, safeKey, windows)
+    // Telemetry: how often each scope is allowed, warned (shadow trip) or blocked. In shadow mode
+    // this is what shows whether a scope's limits would hurt real traffic before enforcing them.
+    code.telemetry.Telemetry.counter("obp.api.self_service_rate_limit.checks",
+      "scope" -> safeScope, "outcome" -> outcome.getClass.getSimpleName.toLowerCase).increment()
+    outcome
+  }
 
+  private def decide(safeScope: String, keyKind: String, safeKey: String, windows: List[Window]): Outcome = {
     // Report the shortest exceeded window first, matching the consumer limiter's precedence.
     windows.find(_.exceeded) match {
       case None => Allowed(safeScope, windows)
-      case Some(exceeded) if isEnforcing =>
+      case Some(exceeded) if modeFor(safeScope) == ModeEnforce =>
         logger.warn(logLine("trip", safeScope, keyKind, safeKey, exceeded))
         Blocked(safeScope, windows, exceeded)
       case Some(exceeded) =>

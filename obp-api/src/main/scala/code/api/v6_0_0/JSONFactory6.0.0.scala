@@ -468,8 +468,11 @@ case class MetricJsonV600(
     verb: String,
     correlation_id: String,
     duration: Long,
+    // The client address OBP-API decided on (see the Client IP Address glossary item)
     source_ip: String,
     target_ip: String,
+    // The hops the request passed through: the X-Forwarded-For chain it arrived with, then the TCP peer
+    forwarded_for: String,
     response_body: org.json4s.JValue,
     status_code: Int,
     operation_id: String,
@@ -1768,6 +1771,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       duration = metric.getDuration(),
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
+      forwarded_for = Option(metric.getForwardedFor()).getOrElse(""),
       response_body = com.openbankproject.commons.util.JsonAliases.parseOpt(metric.getResponseBody()).getOrElse(org.json4s.JString("Not enabled")),
       status_code = metric.getHttpCode(),
       operation_id = operationId,
@@ -2424,7 +2428,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       Constant.CALL_COUNTER_NAMESPACE -> ("Rate limit call counters", "Rate Limiting"),
       Constant.RL_ACTIVE_NAMESPACE -> ("Active rate limit states", "Rate Limiting"),
       Constant.RD_LOCALISED_NAMESPACE -> ("Localized resource docs", "API Documentation"),
-      Constant.RD_DYNAMIC_NAMESPACE -> ("Dynamic resource docs", "API Documentation"),
+      Constant.RD_DYNAMIC_NAMESPACE -> (s"Dynamic resource docs. ${code.api.util.ResourceDocVocabulary.describe()}", "API Documentation"),
       Constant.RD_STATIC_NAMESPACE -> ("Static resource docs", "API Documentation"),
       Constant.RD_ALL_NAMESPACE -> ("All resource docs", "API Documentation"),
       Constant.SWAGGER_STATIC_NAMESPACE -> ("Static Swagger docs", "API Documentation"),
@@ -2433,7 +2437,16 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       Constant.METRICS_RECENT_NAMESPACE -> ("Recent metrics data", "Metrics"),
       Constant.ABAC_RULE_NAMESPACE -> ("ABAC rule cache", "Authorization"),
       Constant.FINANCIAL_PRODUCTS_NAMESPACE -> ("Financial product list (bank-scoped and all-banks)", "Products"),
-      Constant.API_PRODUCTS_NAMESPACE -> ("Api product list (all banks)", "Products")
+      Constant.API_PRODUCTS_NAMESPACE -> ("Api product list (all banks)", "Products"),
+      Constant.MESSAGE_DOCS_NAMESPACE -> ("Message docs and connector JSON Schemas (Redis, and each instance's memory)", "API Documentation"),
+      Constant.GLOSSARY_NAMESPACE -> ("Glossary items held in each instance's memory; bumping also rebuilds cached resource docs", "API Documentation")
+    )
+
+    // Caches held in this instance's memory outside the shared in-memory store, which follow their
+    // namespace's version through their own keys. Counted here so the page shows their real size.
+    val inProcessEntries: Map[String, () => Long] = Map(
+      Constant.MESSAGE_DOCS_NAMESPACE -> (() => code.api.v2_2_0.MessageDocsJsonCache.size + code.api.util.JsonSchemaGenerator.cacheSize),
+      Constant.GLOSSARY_NAMESPACE -> (() => code.api.util.Glossary.loadedItemCount.toLong)
     )
 
     var redisAvailable = true
@@ -2481,7 +2494,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       }
 
       try {
-        memoryKeyCount = InMemory.countKeys(pattern)
+        memoryKeyCount = InMemory.countKeys(pattern) + inProcessEntries.get(namespaceId).map(count => count().toInt).getOrElse(0)
         totalKeys += memoryKeyCount
 
         if (memoryKeyCount > 0 && redisKeyCount == 0) {
@@ -3376,8 +3389,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
 }
 
-/** One personal dynamic entity the Consent may act on for the granting User: bank_id "" for a
- *  system-level entity; actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
+/** One personal dynamic entity the Consent may act on for the granting User: bank_id "SYS" for a
+ *  system-level entity (the empty string is still accepted for it); actions are "read" and/or "write".
+ *  ideas/CONSENT_MY_RESOURCES.md */
 case class PostConsentPersonalDynamicEntityJson(bank_id: String, entity_name: String, actions: List[String])
 /** The granting User's linked Customers at one Bank that the Consent may act on. bank_id is required:
  *  a Customer belongs to a Bank, and naming it keeps the grant as narrow as the User meant it.

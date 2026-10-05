@@ -82,6 +82,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       .responseBody("body")
       .sourceIp("127.0.0.1")
       .targetIp("127.0.0.1")
+      .forwardedFor("203.0.113.9, 127.0.0.1")
       .apiInstanceId("test")
       .consentReferenceId("")
       .saveMe()
@@ -120,7 +121,8 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
 
       Then("the old row is gone from metric and present in the archive")
       MappedMetric.find(By(MappedMetric.id, oldRow.id.get)).isDefined should equal(false)
-      MetricArchive.find(By(MetricArchive.metricId, oldRow.id.get)).isDefined should equal(true)
+      MetricArchive.find(By(MetricArchive.metricId, oldRow.id.get)).map(_.getForwardedFor()) should equal(
+        net.liftweb.common.Full("203.0.113.9, 127.0.0.1"))
 
       And("the recent row is untouched")
       MappedMetric.find(By(MappedMetric.id, recentRow.id.get)).isDefined should equal(true)

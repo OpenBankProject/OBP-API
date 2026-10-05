@@ -8,7 +8,7 @@
 .settings
 .metals
 .vscode
-.claude/settings.local.json
+.claude/
 *.code-workspace
 .zed
 .cursor

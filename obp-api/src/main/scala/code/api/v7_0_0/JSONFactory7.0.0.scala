@@ -62,7 +62,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   // ─── Provenance for runtime-compiled dynamic code (v7.0.0 read-only exposure) ───
   // The v4.0.0 create/update endpoints capture who created / last updated a piece of runtime
-  // code and a SHA-256 of its (decoded) method body into DB columns, but the v4 response shape
+  // code and a SHA-256 of its programming language and (decoded) method body into DB columns, but the v4 response shape
   // is frozen (STABLE) and does not carry them. These v7 GET endpoints expose that provenance,
   // wrapping the unchanged v4 resource JSON alongside a `provenance` object.
   case class ProvenanceJsonV700(
@@ -235,7 +235,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     per_day: Option[Long] = None,
     per_week: Option[Long] = None,
     per_month: Option[Long] = None,
-    global_per_hour: Option[Long] = None
+    global_per_hour: Option[Long] = None,
+    // Self-service scopes only: the scope's own mode (it can differ from the limiter's), and what it counts.
+    mode: Option[String] = None,
+    covers: Option[String] = None
   )
   /** One of the three rate limiters, in the order they are checked. `mode` is shadow or enforce. */
   case class RateLimiterJsonV700(
@@ -254,7 +257,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   val rateLimitersJsonV700Example: RateLimitersJsonV700 = RateLimitersJsonV700(List(
     RateLimiterJsonV700("self_service", 1, "OBP-10060", enabled = true, "shadow", "client IP address",
       "before routing and before authentication, on the self-service endpoints", "self_service.rate_limit",
-      List(RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500)))),
+      List(
+        RateLimiterLimitJsonV700("documentation", per_minute = Some(60), per_hour = Some(1000), per_day = Some(10000), global_per_hour = Some(-1),
+          mode = Some("shadow"), covers = Some("GET of the public documentation: resource-docs, message-docs, api/glossary, api/tags, api/versions, ...")),
+        RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500),
+          mode = Some("shadow"), covers = Some("POST /users, /users/email-validation, /banks/BANK_ID/user-invitations")))),
     RateLimiterJsonV700("authentication", 2, "OBP-10061", enabled = false, "shadow", "client IP address and account",
       "inside the credential check of Direct Login, DAuth, Gateway Login and SIWE", "auth.rate_limit",
       List(RateLimiterLimitJsonV700("ip", per_minute = Some(10), per_hour = Some(100)), RateLimiterLimitJsonV700("account", per_minute = Some(6)))),
@@ -273,14 +280,16 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       name = "self_service", order = 1, error_code = errorCode(ErrorMessages.TooManyRequestsSelfService),
       enabled = SelfServiceRateLimiter.enabled, mode = SelfServiceRateLimiter.mode,
       keyed_by = "client IP address",
-      runs = "before routing and before authentication, on the self-service endpoints",
+      runs = "before routing and before authentication, on the self-service endpoints and the public documentation",
       props_prefix = SelfServiceRateLimiter.PropsPrefix,
       limits = SelfServiceRateLimiter.scopeDefaults.keys.toList.sorted.map { scope =>
         RateLimiterLimitJsonV700(scope,
           per_minute = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_minute")),
           per_hour = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_hour")),
           per_day = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_day")),
-          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)))
+          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)),
+          mode = Some(SelfServiceRateLimiter.modeFor(scope)),
+          covers = code.api.util.http4s.SelfServiceRateLimitMiddleware.scopeDescriptions.get(scope))
       }
     )
     val authentication = RateLimiterJsonV700(
@@ -1882,7 +1891,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     request_url: String,
     method_body: String,
     example_request_body: Option[JValue],
-    success_response_body: Option[JValue]
+    success_response_body: Option[JValue],
+    // "Scala" (the default when omitted) or "Java", as on Create Dynamic Resource Doc.
+    programming_lang: Option[String] = None
   )
   case class DynamicCompileErrorJsonV700(line: Int, column: Int, severity: String, message: String)
   case class DynamicCompileResultJsonV700(
@@ -1896,13 +1907,81 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     request_url = "/hello/world",
     method_body = java.net.URLEncoder.encode("Future.successful((Map(\"hello\" -> \"world\"), HttpCode.`200`(callContext)))", "UTF-8"),
     example_request_body = None,
-    success_response_body = Some(org.json4s.JsonAST.JObject(List(org.json4s.JsonAST.JField("hello", org.json4s.JsonAST.JString("world")))))
+    success_response_body = Some(org.json4s.JsonAST.JObject(List(org.json4s.JsonAST.JField("hello", org.json4s.JsonAST.JString("world"))))),
+    programming_lang = Some("Scala")
   )
   lazy val dynamicCompileResultJsonV700Example = DynamicCompileResultJsonV700(
     compiles = false,
     errors = List(DynamicCompileErrorJsonV700(1, 24, "ERROR", "not found: value Full")),
     dependency_error = None,
     duration_ms = 850
+  )
+
+  // ─── Dynamic Query explain — the statements a Dynamic Query would run, and the access it needs ──
+
+  case class DynamicQueryExplainJsonV700(
+    // The declaration, URL-encoded as in a Dynamic Resource Doc's method_body.
+    method_body: String,
+    // The Dynamic Entity space to explain it in: a bank id, or SYS (the default) for the system space.
+    bank_id: Option[String] = None,
+    // Parameters a caller would add, as a query string, such as "obp_sort_by=name&obp_limit=10".
+    caller_parameters: Option[String] = None,
+    // Explain it for a caller who is not logged in, rather than for the User making this request.
+    as_anonymous_caller: Option[Boolean] = None
+  )
+  case class ExplainedEntityJsonV700(entity: String, read_role: String, bank_id: String, public_access: Boolean,
+                                     row_level_access: Boolean, caller_may_read: Boolean)
+  case class ExplainedFieldJsonV700(entity: String, field: String, restriction: String, read_role: String, caller_may_read: Boolean)
+  case class ExplainedStepJsonV700(step: Int, purpose: String, backend: String, sql: Option[String], parameter_count: Option[Int], notes: List[String])
+  case class DynamicQueryExplanationJsonV700(
+    space: String,
+    explained_for: String,
+    caller_may_run: Boolean,
+    refusal: Option[String],
+    entities: List[ExplainedEntityJsonV700],
+    restricted_fields: List[ExplainedFieldJsonV700],
+    rules: List[String],
+    steps: List[ExplainedStepJsonV700]
+  )
+
+  def createDynamicQueryExplanationJsonV700(explanation: code.api.dynamic.entity.query.DynamicQueryExplanation, callerUserId: Option[String]): DynamicQueryExplanationJsonV700 =
+    DynamicQueryExplanationJsonV700(
+      space = explanation.space,
+      explained_for = callerUserId.map(id => s"user $id").getOrElse("an anonymous caller"),
+      caller_may_run = explanation.callerMayRun,
+      refusal = explanation.refusal,
+      entities = explanation.entities.map(e => ExplainedEntityJsonV700(e.entity, e.readRole, e.bankId, e.publicAccess, e.rowLevelAccess, e.callerMayRead)),
+      restricted_fields = explanation.restrictedFields.map(f => ExplainedFieldJsonV700(f.entity, f.field, f.restriction, f.readRole, f.callerMayRead)),
+      rules = explanation.rules,
+      steps = explanation.steps.zipWithIndex.map { case (step, index) =>
+        ExplainedStepJsonV700(index + 1, step.purpose, step.backend, step.sql, step.sql.map(_.count(_ == '?')), step.notes)
+      }
+    )
+
+  lazy val dynamicQueryExplainJsonV700Example = DynamicQueryExplainJsonV700(
+    method_body = java.net.URLEncoder.encode(
+      """{"from":"activity","where":{"city":"eq:Berlin"},"join":[{"entity":"certificate","on":"activity_id","cardinality":"exists","as":"certified"}],"envelope":{"rows":"activities","count":"count"}}""",
+      "UTF-8"),
+    bank_id = None,
+    caller_parameters = Some("obp_sort_by=name&obp_limit=10"),
+    as_anonymous_caller = Some(false)
+  )
+  lazy val dynamicQueryExplanationJsonV700Example = DynamicQueryExplanationJsonV700(
+    space = "SYS",
+    explained_for = "user 9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+    caller_may_run = false,
+    refusal = Some("OBP-40066: This Dynamic Query reads Dynamic Entities you may not read: certificate (needs CanGetDynamicEntityRecord_certificate at bank SYS)."),
+    entities = List(
+      ExplainedEntityJsonV700("activity", "CanGetDynamicEntityRecord_activity", "SYS", public_access = true, row_level_access = false, caller_may_read = true),
+      ExplainedEntityJsonV700("certificate", "CanGetDynamicEntityRecord_certificate", "SYS", public_access = false, row_level_access = false, caller_may_read = false)),
+    restricted_fields = Nil,
+    rules = List("Only shared records are used, never a User's personal records, whoever owns them."),
+    steps = List(
+      ExplainedStepJsonV700(1, "Read the page of 'activity'", "projection",
+        Some("SELECT d.datajson FROM de_activity_ad1db27dae39 p JOIN dynamicdata d ON d.dynamicdataid = p.data_id WHERE d.dynamicentityname = ? AND d.bankid = ? AND d.ispersonalentity = ? AND p.c_city_11a62c23412b = CAST( ? AS text ) ORDER BY p.c_name_82a3537ff0db ASC LIMIT ?"),
+        Some(5), List("Filters and the sort run on the projection's indexed columns; only the records of the page are read.")),
+      ExplainedStepJsonV700(2, "Join 1: 'certificate' records whose 'activity_id' names the 'activity' (reverse)", "record provider", None, None,
+        List("Cardinality exists.")))
   )
 
   // ─── Dynamic code approval config — whether maker/checker gates dynamic artefacts on this instance ──
@@ -2151,6 +2230,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   lazy val currentConsumerIdentityJsonV700Example = CurrentConsumerIdentityJsonV700(
     consumer_id = ExampleValue.consumerIdExample.value,
     consumer_name = "OBP Portal"
+  )
+
+  /** One Role the calling Consumer holds as a Scope, and where: a bank id, SYS, or "" for a system Role. */
+  case class CurrentConsumerScopeJsonV700(
+    role_name: String,
+    bank_id: String
+  )
+
+  /** The calling Consumer's own Scopes. */
+  case class CurrentConsumerScopesJsonV700(
+    consumer_id: String,
+    scopes: List[CurrentConsumerScopeJsonV700]
+  )
+
+  def createCurrentConsumerScopesJsonV700(consumer: code.model.Consumer, scopes: List[code.scope.Scope]): CurrentConsumerScopesJsonV700 =
+    CurrentConsumerScopesJsonV700(
+      consumer_id = consumer.consumerId.get,
+      scopes = scopes.map(s => CurrentConsumerScopeJsonV700(role_name = s.roleName, bank_id = s.bankId))
+        .sortBy(s => (s.role_name, s.bank_id))
+    )
+
+  lazy val currentConsumerScopesJsonV700Example = CurrentConsumerScopesJsonV700(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    scopes = List(CurrentConsumerScopeJsonV700(role_name = "CanGetDynamicEntityDefinitions", bank_id = "SYS"))
   )
 
   case class PasswordPolicyJsonV700(

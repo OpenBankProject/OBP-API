@@ -17,7 +17,7 @@ The technical sandbox no longer provides a meaningful second line of defence:
   enforces nothing (`DynamicUtil.scala:253-259` logs this).
 - The GraalVM JavaScript context is created with `HostAccess.ALL`, `PolyglotAccess.ALL` and
   unrestricted host class lookup (`DynamicUtil.scala:486-529`).
-- The dependency validator (`dynamic_code_compile_validate_enable`) is off by default and only
+- The OBP call allowlist (`dynamic_code_obp_calls_are_restricted`) is off by default and only
   blocks reflection and `ExecutionContext`; it has no notion of file, network or process access.
 
 So a single holder of `CanCreateDynamicResourceDoc` or `CanCreateConnectorMethod` has remote code
@@ -125,8 +125,11 @@ request. Rows are never deleted; the table is the audit log.
 - `ApprovedHash` on DynamicResourceDoc, DynamicMessageDoc, ConnectorMethod, AbacRule.
 - `IsActive` (default `true`) on every runtime-loaded dynamic model that lacks it.
 
-The runtime loads a row only if `IsActive` is true and, for code, only if `MethodBodyHash ==
-ApprovedHash`. When maker/checker is disabled for a target type the hash check is skipped.
+The runtime loads a row only if `IsActive` is true and, for code, only if the row's code hash
+equals `ApprovedHash`. The code hash is recomputed from the row (its programming language and its
+decoded method body, `APIUtil.dynamicCodeHash`) rather than read from the stored `MethodBodyHash`, so
+an edit made directly in the database, to the body or to the language, withdraws the approval. When
+maker/checker is disabled for a target type the hash check is skipped.
 
 ## 4. Endpoints (v7.0.0)
 
@@ -193,8 +196,14 @@ fail loudly. On approval the server, in order:
 Rejection and withdrawal take `{ "comment": "…" }`. Withdrawal is by the requestor only.
 *(impl)* Hashes are bare SHA-256 hex, matching the existing `MethodBodyHash` column; a `sha256:`
 prefix is accepted on approval. `payload_hash` is over the canonical JSON of the request body;
-`current_payload_hash` and `ApprovedHash` are the target's decoded method body hash (for ABAC
-rules, the hash of `rule_code`).
+`current_payload_hash` and `ApprovedHash` are the target's code hash: SHA-256 of its programming
+language (trimmed, lower case, blank meaning `scala`), a newline, and its decoded method body (for
+ABAC rules, the hash of `rule_code`). The language is included because the same text can be stored
+as Scala, Java or Javascript and is compiled by the language's compiler, so approving a body as one
+language must not approve it as another. The language version is not included: it belongs to the
+deployed runtime, and including it would withdraw every approval at each compiler upgrade. Until
+2026-10 the hash covered the body only; `MakerChecker.rehashDynamicCodeWithLanguage` moves existing
+rows once at boot, carrying over only the approvals still valid for the row's current body.
 
 ### Reading
 

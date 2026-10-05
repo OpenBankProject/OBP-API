@@ -1103,9 +1103,9 @@
       "version": "v6_0_0",
       "endpoint": "getUserGroupMemberships",
       "field": "description",
-      "reason": "Deliberate, reasoned simplification (documented in a matching code comment): filtering by group_id alone is functionally equivalent to the old group_id + process==\"GROUP_MEMBERSHIP\" conjunct, since group_id is only ever set for that process.",
+      "reason": "Deliberate, reasoned simplification (documented in a matching code comment): filtering by group_id alone is functionally equivalent to the old group_id + process==\"GROUP_MEMBERSHIP\" conjunct, since group_id is only ever set for that process. Group memberships are recorded in the GroupMembership table (2026-09-29): the description says the membership is recorded even when every Role is skipped, and that removal keeps a Role another of the user's Groups still grants.",
       "lift_digest": "00695d674cb901c588ec78f9a5c33e065363fa0a5ea55ae23bde960ac464aec4",
-      "http4s_digest": "cd76da70acd6a5991f43506b12bbdd5c4c07416e092afe8ff293c0d1ed1a889c"
+      "http4s_digest": "54312a80eabf953dcfcb0b4c1b6e0135a4d432506dcd7e09bba188e755bc3571"
     },
     {
       "version": "v6_0_0",
@@ -1143,9 +1143,9 @@
       "version": "v6_0_0",
       "endpoint": "removeUserFromGroup",
       "field": "description",
-      "reason": "Same deliberate group_id-only simplification as getUserGroupMemberships, verified via the same matching code comment.",
+      "reason": "Same deliberate group_id-only simplification as getUserGroupMemberships, verified via the same matching code comment. Group memberships are recorded in the GroupMembership table (2026-09-29): the description says the membership is recorded even when every Role is skipped, and that removal keeps a Role another of the user's Groups still grants.",
       "lift_digest": "7ed803789f6d7fb0ee0622523f4e3835ab7cbc166efd9c2454882836224db13f",
-      "http4s_digest": "9e2a740a07e70eb3bdd0b54afe2406fa70aab3a7941fa88d02970657d5f8ee21"
+      "http4s_digest": "d73d70b3a441279c03890e68bcc7cd754c8a9ed4419d1e43b85e01bbee52a3ae"
     },
     {
       "version": "v6_0_0",
@@ -1183,41 +1183,41 @@
       "version": "v6_0_0",
       "endpoint": "createBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "a520ce22176587451f8d8d6bf6886bff796789885d37954bcf3229e1d8eb3f07"
+      "http4s_digest": "6bf7d3278c575dfe04a64e3f20fe7bafbdfccfdc5aff61dafefd73563a20de56"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "da38d765f6c3d2d20e3ee1926b694379992f3516bbd216eb577ea87a31f05ff1"
+      "http4s_digest": "afe200b33fc38afdb0a212a229e6cec6ccf7caa77b2ac7ff23633fd16638432b"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "deb202032cdb70e656bba7d2b1ccce8e684040028cfa9a8dca5af32899d15919"
+      "http4s_digest": "67aea2489cfbaf7b62ab7fe4c1a7fa7c5ad904bb4bd5db5a0977eeb37298a1cb"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "c416426234c796ac9b38889b4672ba90e20f956e3fc0bf198353d423cc9ece23"
+      "http4s_digest": "b3d573ff89040298846a54f3ce897f96f6abac1de477c9ea4efe267e8c8f13ff"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: description further extended with write_role_required/read_role_required/write_role/read_role field-level access control docs (real feature, per DynamicEntityAuthModeTest.scala/DynamicEntityProvider.scala) on top of the indexed/index docs already reviewed in Card 2.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
       "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "5412357d39eff3acd773dcccb1d2675253d1261424c3d9aa37bf28fd99a37a10"
+      "http4s_digest": "6f71dd7c0ad0fcbdc973f5bebbed11b75c57a7f6bef56613d92a999b12bf6821"
     },
     {
       "version": "v3_0_0",
@@ -1602,6 +1602,174 @@
       "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only.",
       "lift_digest": "7397560b818a5d9f4eb31a701499aea10c0ecd8d89d15496c0904d90984b84a6",
       "http4s_digest": "881b4fe9e74e92efbe1177f1548d7ad4aa85be90f0ec44789ecf779267335f6b"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "answerTransactionRequestChallenge",
+      "field": "errorResponseBodies",
+      "reason": "Adds ChallengeNotAddressedToCaller (OBP-40063): a payment challenge is answered by the person the payment is for, so an agent acting under a Consent is refused rather than allowed to relay a code it was never sent. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "13648f17562c1654881963b4978024f82e1edcdb92729397a2b015b291939ddb",
+      "http4s_digest": "c584fa1579db6b30ed7c21cf3dc7da57f50dcad7abba332ea1a58dd4c37808c4"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAccount",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAccountOtp",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAgentCashWithDrawal",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCard",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCounterparty",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestFreeForm",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestRefund",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestSepa",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestSimple",
+      "field": "errorResponseBodies",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
+      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "validateDynamicResourceDoc",
+      "field": "description",
+      "reason": "The props named in this description were renamed: dynamic_code_compile_validate_enable is now dynamic_code_obp_calls_are_restricted, and dynamic_code_compile_validate_dependencies is now dynamic_code_allowed_obp_methods. The old names read as a compile check, which is not what they do; both old names are still honoured at runtime with a deprecation warning.",
+      "lift_digest": "047ea29aa10e0000c66a13b908ff679defb15226fd931f00b723cacd66a12928",
+      "http4s_digest": "f326a54473e63b08e1b47763d2bdbd7b5574bc4906f067072898ec32c58c6954"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "addUserToGroup",
+      "field": "description",
+      "reason": "Group memberships are recorded in the GroupMembership table (2026-09-29): the description says the membership is recorded even when every Role is skipped, and that removal keeps a Role another of the user's Groups still grants.",
+      "lift_digest": "2ea4d8ed48487fd253cf1633a68deb7a0ce5b2a6b554ecfb64ee798f4887297c",
+      "http4s_digest": "2766a28acb728f97343d2de181f5ddbe89ff62dfdf61d191453a1ce4b6cf602f"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createBankLevelDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateBankLevelDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateDynamicResourceDoc",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or moving a Dynamic Resource Doc onto a path that would be ambiguous in its space is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createBankLevelDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createSystemDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "9cbf4cf58ff9d965002032d8c2c75def1b679635d77e9f3247ae9c82900cb9fc",
+      "http4s_digest": "51bd74398ede5b040dbe38d6c95e6c47469f36036cd90e906dba444d5c4726be"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "728dbf8a2667f373ad58c3ecaed8aa2bf972b841211dbf0e07717cb26d358e4e"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "errorResponseBodies",
+      "reason": "Lists DynamicPathAmbiguous (OBP-09032): creating or renaming a Dynamic Entity after the first segment of a Dynamic Resource Doc of its space, or after a reserved segment, is refused with 409, so a Domain API can publish any space.",
+      "lift_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd",
+      "http4s_digest": "ac8b5ea3a96b50a33022bfe6226e57f996a2d313d7568eafa396273522140a6a"
     }
   ]
 }

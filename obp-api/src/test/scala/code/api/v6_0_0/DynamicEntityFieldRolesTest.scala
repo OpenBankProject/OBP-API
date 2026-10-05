@@ -35,6 +35,7 @@ import org.json4s.native.Serialization.write
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
  * Field-level write/read role permissions on Dynamic Entities.
@@ -49,24 +50,27 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
 
   // ==================== Helpers ====================
 
+  // Every Role this suite grants belongs to a system level entity, and every Dynamic Entity Role --
+  // Definition, Record and field alike -- names its space: the system space is
+  // DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, not the empty bank id.
   private def grant(role: String): Unit =
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, role)
 
   // Grant to a specific user. Creating a dynamic entity auto-grants its CRUD roles to the *creator*
   // (resourceUser1, via createSystemEntity), so the "no entity update role" scenarios use resourceUser2 —
   // a user who did not create the entity and therefore only holds what we explicitly grant here.
   private def grantTo(userId: String, role: String): Unit =
-    Entitlement.entitlement.vend.addEntitlement("", userId, role)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, userId, role)
 
   private def createSystemEntity(entityJson: JValue): (Int, JValue) = {
-    grant(CanCreateSystemLevelDynamicEntity.toString)
+    grant(CanCreateDynamicEntityDefinition.toString)
     val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
     val response = makePostRequest(request, write(entityJson))
     (response.code, response.body)
   }
 
   private def deleteSystemEntity(dynamicEntityId: String): Unit = {
-    grant(CanDeleteSystemLevelDynamicEntity.toString)
+    grant(CanDeleteDynamicEntityDefinition.toString)
     val deleteRequest = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
     makeDeleteRequest(deleteRequest)
   }
@@ -78,12 +82,12 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
   private val idName = "field_roles_test_id"
 
   // Auto-generated (system-level) field roles
-  private val writeInternalRole = "CanWriteDynamicEntityField_Systemfield_roles_test__internal_note"
-  private val readSecretRole    = "CanGetDynamicEntityField_Systemfield_roles_test__secret_note"
+  private val writeInternalRole = "CanWriteDynamicEntityField_field_roles_test__internal_note"
+  private val readSecretRole    = "CanGetDynamicEntityField_field_roles_test__secret_note"
   // Entity-level (system-level) roles
-  private val createRole = "CanCreateDynamicEntity_Systemfield_roles_test"
-  private val getRole    = "CanGetDynamicEntity_Systemfield_roles_test"
-  private val updateRole = "CanUpdateDynamicEntity_Systemfield_roles_test"
+  private val createRole = "CanCreateDynamicEntityRecord_field_roles_test"
+  private val getRole    = "CanGetDynamicEntityRecord_field_roles_test"
+  private val updateRole = "CanUpdateDynamicEntityRecord_field_roles_test"
 
   private val schema: JValue = parse(
     """
@@ -108,10 +112,10 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
   // ---- Per-entity fixtures for the per-field authorisation scenarios ----
   // Each scenario uses a UNIQUE entity name so the (entity-scoped) role names don't collide with grants
   // accumulated by earlier scenarios on resourceUser1 — that's what lets us test "role X alone".
-  private def createRoleFor(n: String)    = s"CanCreateDynamicEntity_System$n"
-  private def getRoleFor(n: String)       = s"CanGetDynamicEntity_System$n"
-  private def updateRoleFor(n: String)    = s"CanUpdateDynamicEntity_System$n"
-  private def writeNoteRoleFor(n: String) = s"CanWriteDynamicEntityField_System${n}__internal_note"
+  private def createRoleFor(n: String)    = s"CanCreateDynamicEntityRecord_$n"
+  private def getRoleFor(n: String)       = s"CanGetDynamicEntityRecord_$n"
+  private def updateRoleFor(n: String)    = s"CanUpdateDynamicEntityRecord_$n"
+  private def writeNoteRoleFor(n: String) = s"CanWriteDynamicEntityField_${n}__internal_note"
 
   private def fieldRolesEntity(n: String): JValue =
     ("entity_name" -> n) ~

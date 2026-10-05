@@ -114,6 +114,15 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       response300.body.toString contains EntitlementIsSystemRole should be (true)
     }
     
+    scenario("create entitlement request at SYS, the system space of Dynamic Entities", VersionOfApi, ApiEndpoint1) {
+      When("We request a Dynamic Entity Role at SYS, where such Roles are granted although no Bank has that id")
+      val postJson = s"""{"bank_id":"${code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID}", "role_name":"CanGetDynamicEntityDefinitions"}"""
+      val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
+      val response300 = makePostRequest(request300, postJson)
+      Then("We should get a 201, not a 404 for an unknown bank")
+      response300.code should equal(201)
+    }
+
     scenario("create entitlement request- successfully", VersionOfApi, ApiEndpoint1) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""

@@ -30,7 +30,11 @@ package code.api.util
 import org.json4s._
 import code.api.util.APIUtil.MessageDoc
 import com.openbankproject.commons.util.ReflectUtils
+import com.google.common.cache.{Cache, CacheBuilder, CacheStats}
 import org.json4s.JsonDSL._
+
+import java.util.concurrent.Callable
+import java.util.concurrent.atomic.AtomicLong
 
 import scala.reflect.runtime.universe._
 
@@ -42,9 +46,57 @@ import scala.reflect.runtime.universe._
 object JsonSchemaGenerator {
 
   /**
-   * Convert a list of MessageDoc to a complete JSON Schema document
+   * Convert a list of MessageDoc to a complete JSON Schema document.
+   *
+   * Memoized in-process, keyed by connectorName: for a given connector the message docs
+   * (and therefore the schema) are static for the lifetime of the JVM, but building it
+   * walks every message type's full field tree via Scala runtime reflection (`<:<`/`=:=`
+   * subtype checks), which is expensive and -- unlike a plain field lookup -- leaves behind
+   * long-lived reflection bookkeeping objects (TypeConstraint/UndoPair/Symbol) that don't
+   * get reclaimed promptly. Recomputing this on every request under sustained polling keeps
+   * adding them and grows old-gen heap usage. The caller (Http4s600) also has a
+   * Redis-backed cache in front of this, but that one silently falls through to a full
+   * recompute if Redis is unreachable or slow -- this in-memory layer doesn't depend on
+   * Redis at all, so it stays a working safety net even when Redis is the one struggling.
+   *
+   * The key is the connector name (plus the `message_docs` cache namespace version, see
+   * `localKey`). It must not be derived from `messageDocs`: turning the whole list (with every
+   * example message) into a key string costs megabytes per call. Callers always pass the named
+   * connector's own message docs.
    */
-  def messageDocsToJsonSchema(messageDocs: List[MessageDoc], connectorName: String): JObject = {
+  def messageDocsToJsonSchema(messageDocs: List[MessageDoc], connectorName: String): JObject =
+    try schemaCache.get(localKey(connectorName), new Callable[JObject] {
+      def call(): JObject = {
+        generatorCallsCounter.incrementAndGet()
+        messageDocsToJsonSchemaUncached(messageDocs, connectorName)
+      }
+    })
+    catch {
+      // Surface the generator's own exception, not Guava's wrapper.
+      case e: java.util.concurrent.ExecutionException if e.getCause != null => throw e.getCause
+      case e: com.google.common.util.concurrent.UncheckedExecutionException if e.getCause != null => throw e.getCause
+    }
+
+  // The key also carries the `message_docs` cache namespace version, so bumping that namespace
+  // rebuilds the schema on every instance (the version is re-read at most once a second).
+  private def localKey(connectorName: String): String =
+    s"${code.api.Constant.recentCacheNamespaceVersion(code.api.Constant.MESSAGE_DOCS_NAMESPACE)}|$connectorName"
+
+  private val schemaCache: Cache[String, JObject] = code.telemetry.Telemetry.monitorCache(
+    CacheBuilder.newBuilder().maximumSize(64L).recordStats().build[String, JObject](), "json_schema")
+
+  private val generatorCallsCounter = new AtomicLong(0)
+
+  /** Schemas held in this instance's memory. */
+  def cacheSize: Long = schemaCache.size()
+
+  /** Cache hits and misses, for tests and monitoring. */
+  def cacheStats: CacheStats = schemaCache.stats()
+
+  /** Times a schema was actually built (cache misses that reached the reflection walk). */
+  def generatorCalls: Long = generatorCallsCounter.get()
+
+  private def messageDocsToJsonSchemaUncached(messageDocs: List[MessageDoc], connectorName: String): JObject = {
     val allDefinitions = scala.collection.mutable.Map[String, JObject]()
     
     val messages = messageDocs.map { messageDoc =>

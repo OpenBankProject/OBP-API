@@ -52,6 +52,9 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK w
   object Tags extends MappedText(this)
   object Roles extends MappedText(this)
   object MethodBody extends MappedText(this)
+  // Source language of MethodBody: "Scala" (default) or "Java". Mirrors DynamicMessageDoc.Lang /
+  // ConnectorMethod.programmingLang — same field name/width convention, see DynamicEndpoints.
+  object Lang extends MappedString(this, 50)
   // Provenance: who created / last updated this runtime-compiled endpoint, and a SHA-256 of the
   // (decoded) method body so tampering / drift is detectable. Set server-side from the CallContext
   // user — never from the request body. createdAt / updatedAt come from the CreatedUpdated trait.
@@ -71,9 +74,14 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK w
 
 
 object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[DynamicResourceDoc] {
-  override def dbIndexes: List[BaseIndex[DynamicResourceDoc]] = UniqueIndex(DynamicResourceDocId) :: UniqueIndex(RequestUrl,RequestVerb) :: super.dbIndexes
+  // A verb and URL are unique within a space (BankId, which is SYS for the system space), not across spaces:
+  // a doc is served under its space. Databases that predate this had UniqueIndex(RequestUrl, RequestVerb) and
+  // stored NULL for a system level doc; Migration.database.prepareDynamicEntitySpaceScopedIndexes, which Boot
+  // runs on every start, drops that index and moves those NULLs to SYS.
+  override def dbIndexes: List[BaseIndex[DynamicResourceDoc]] = UniqueIndex(DynamicResourceDocId) :: UniqueIndex(BankId, RequestUrl, RequestVerb) :: super.dbIndexes
   def getJsonDynamicResourceDoc(dynamicResourceDoc: DynamicResourceDoc) = JsonDynamicResourceDoc(
-    bankId = Some(dynamicResourceDoc.BankId.get),
+    // The row stores SYS for the system space; in memory the system space is None, as for a Dynamic Entity.
+    bankId = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(dynamicResourceDoc.BankId.get),
     dynamicResourceDocId = Some(dynamicResourceDoc.DynamicResourceDocId.get),
     methodBody = dynamicResourceDoc.MethodBody.get,
     partialFunctionName = dynamicResourceDoc.PartialFunctionName.get,
@@ -85,7 +93,12 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     successResponseBody = Option(dynamicResourceDoc.SuccessResponseBody.get).filter(StringUtils.isNotBlank).map(json.parse),
     errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
     tags = dynamicResourceDoc.Tags.get,
-    roles = dynamicResourceDoc.Roles.get
+    roles = dynamicResourceDoc.Roles.get,
+    // Rows created before the Lang column existed have NULL there, not "Scala" -- a bare
+    // Lang.get would surface that as an empty/null programming_lang instead of falling back to
+    // JsonDynamicResourceDoc's own "Scala" default, since an explicit null argument bypasses a
+    // case class default (that only applies when the argument is omitted entirely).
+    programmingLang = Option(dynamicResourceDoc.Lang.get).filter(StringUtils.isNotBlank).getOrElse("Scala")
   )
 }
 

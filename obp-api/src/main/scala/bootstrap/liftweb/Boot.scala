@@ -234,14 +234,23 @@ class Boot extends MdcLoggable {
     }
 
     if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
+    // Make the effective root log level visible at start-up. DEBUG/TRACE is expensive on this
+    // code base and is only meant to be enabled deliberately (LOG_LEVEL), so say so loudly.
+    try {
+      org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) match {
+        case l: ch.qos.logback.classic.Logger =>
+          val level = l.getEffectiveLevel
+          if (level.levelInt <= ch.qos.logback.classic.Level.DEBUG_INT)
+            logger.warn(s"Effective root log level is $level (LOG_LEVEL override); expect higher CPU and log volume")
+          else logger.info(s"Effective root log level is $level")
+        case _ => ()
+      }
+    } catch { case _: Throwable => () }
     logger.info("external props folder: " + propsPath)
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     logger.info("Current Project TimeZone: " + TimeZone.getDefault)
 
 
-    // set dynamic_code_sandbox_enable to System.properties, so com.openbankproject.commons.ExecutionContext can read this value
-    APIUtil.getPropsValue("dynamic_code_sandbox_enable")
-      .foreach(it => System.setProperty("dynamic_code_sandbox_enable", it))
   }
 
 
@@ -280,6 +289,10 @@ class Boot extends MdcLoggable {
     // The method self-guards (skips when the table is absent or has no duplicates), so running it
     // on every boot is a cheap no-op on fresh/clean/test databases.
     Migration.database.deduplicateBeforeUniqueIndexSchemify()
+    // Same reasoning, for the Dynamic Entity tables: their unique indexes are becoming
+    // space-scoped, which needs the system level rows off SQL NULL and the superseded
+    // single-column indexes dropped, both before Schemifier issues the new index DDL.
+    Migration.database.prepareDynamicEntitySpaceScopedIndexes()
     schemifyAll()
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
@@ -301,6 +314,10 @@ class Boot extends MdcLoggable {
 
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
+
+    // Code hashes cover the programming language as well as the body; move existing rows (and the
+    // approvals still valid for them) to that form once. Must run before the seed below.
+    code.dynamicchangerequest.MakerChecker.rehashDynamicCodeWithLanguage()
 
     // Maker/checker for dynamic code: when first enabled, pre-existing code rows get their current
     // body hash recorded as approved so enabling the feature does not silently disable them.
@@ -396,6 +413,8 @@ class Boot extends MdcLoggable {
     warnAboutSuperAdminUsers()
 
     warnAboutEmailDeliveryConfiguration()
+
+    warnAboutRemovedProps()
 
     OAuth2Login.logConfigWarnings()
 
@@ -563,6 +582,11 @@ class Boot extends MdcLoggable {
     // Sandbox account creation menu removed - API-only mode, no portal pages
 
 
+    // Telemetry (aggregated numbers about this instance, for Prometheus). Not API Metrics: see
+    // docs/telemetry_conventions.md. Recording is always on; the prop telemetry.port.enabled
+    // decides whether the separate port is opened.
+    code.telemetry.Telemetry.start()
+
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
     if (code.metrics.MetricsProps.writeMetrics) {
@@ -603,11 +627,10 @@ class Boot extends MdcLoggable {
       val delay = APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_request_status_scheduler_delay, please provide number of seconds.")
       TransactionRequestStatusScheduler.start(delay)
     }
-    // Open Corridor: the transactional-outbox relay publishing Interface C messages
-    // (credit notifications + settlement instructions) to the banks' own vhosts.
-    if (APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)) {
-      MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("open_corridor.outbox_relay_interval", 10L))
-    }
+    // The transactional-outbox relay: sends queued emails (e.g. "you have been granted a Role") and,
+    // when Open Corridor is enabled, publishes Interface C messages (credit notifications +
+    // settlement instructions) to the banks' own vhosts.
+    MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("message_outbox.relay_interval_seconds", 10L))
     // Chat: emails users an occasional digest of unread messages (computed at
     // send time from read markers — see ChatEmailDigestScheduler for why this
     // is not the transactional message outbox).
@@ -776,6 +799,38 @@ class Boot extends MdcLoggable {
   }
 
   /**
+   * Warn at startup about props that this instance still sets but that OBP no longer reads.
+   *
+   * A prop that has been removed from the code is simply ignored, so an operator who set it
+   * deliberately gets a silent change of behaviour on upgrade and no way to find out. Naming it
+   * here turns that into one line in the boot log. Entries are (prop name, what to know now).
+   */
+  private def warnAboutRemovedProps(): Unit = {
+    val removedProps = List(
+      "experimental_become_user_that_created_consent" ->
+        ("A Consent-JWT now always authenticates as the consent user (the agent identity the " +
+          "Consent minted), never as the human who created the Consent. Setting this to true used " +
+          "to log that human on instead. The human is still recorded on what the call creates - " +
+          "see on_behalf_of_user_id - but the caller's own permissions are the Consent's.")
+    )
+    val stillSet = removedProps.filter { case (name, _) =>
+      APIUtil.getPropsValue(name).exists(_.trim.nonEmpty)
+    }
+    if (stillSet.nonEmpty) {
+      logger.warn("========================================================================")
+      logger.warn("WARNING: this instance sets props that OBP no longer reads:")
+      stillSet.foreach { case (name, explanation) =>
+        logger.warn("")
+        logger.warn(s"  $name")
+        logger.warn(s"    $explanation")
+      }
+      logger.warn("")
+      logger.warn("Remove them from your props file; they have no effect.")
+      logger.warn("========================================================================")
+    }
+  }
+
+  /**
    * Warn at startup about email-delivery configuration that would silently break
    * signup-validation and password-reset flows. Both flows embed a link built from
    * `portal_external_url`; if the prop is missing the signup endpoint skips the
@@ -813,7 +868,7 @@ class Boot extends MdcLoggable {
   /**
    * Bootstrap OIDC Operator User
    * Given the following credentials, OBP will create a user *if it does not exist already*.
-   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
    */
   private def createBootstrapOidcOperatorUser() = {
 
@@ -853,7 +908,8 @@ class Boot extends MdcLoggable {
           CanVerifyUserCredentials,
           CanVerifyOidcClient,
           CanGetOidcClient,
-          CanGetConsumers
+          CanGetConsumers,
+          CanCreateConsumer
         )
 
         userBox match {
@@ -1081,10 +1137,14 @@ object ToSchemify extends MdcLoggable {
     CounterpartyAttributeMapper,
     BankAccountBalance,
     Group,
+    code.group.GroupMembership,
     Organisation,
     RoutingScheme,
     BankSupportedRoutingScheme,
     code.glossaryitem.DynamicGlossaryItem,
+    code.platformapp.PlatformApp,
+    code.platformapp.PlatformAppRequiredScope,
+    code.domainapi.DomainApi,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,

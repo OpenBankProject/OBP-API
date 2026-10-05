@@ -84,7 +84,7 @@ object ProjectionProvisioner extends MdcLoggable {
   // ----- internals -----
 
   private def indexedScalarFields(bankId: Option[String], entityName: String): List[(String, FieldSpec)] =
-    DynamicEntityHelper.definitionsMap.get((bankId, entityName))
+    DynamicEntityHelper.definitionOf(bankId, entityName)
       .map(_.indexedFields).getOrElse(Map.empty)
       .toList.filter(_._2.indexKind != OperatorMatrix.SPATIAL)
 
