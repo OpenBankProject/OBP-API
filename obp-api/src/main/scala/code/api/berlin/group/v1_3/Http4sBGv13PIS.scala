@@ -101,44 +101,11 @@ object Http4sBGv13PIS extends MdcLoggable {
   }.isDefined
 
   /**
-   * Fetch a payment the caller is entitled to address.
-   *
-   * Berlin Group names a payment by its id alone — there is no account in the path — so nothing in
-   * the route ties the payment to whoever is calling. Fetching one must therefore also establish
-   * that the caller is the party that lodged it; otherwise any authenticated TPP holding a paymentId
-   * could read another TPP's payment, list or start authorisations on it, or cancel it. Under
-   * NextGenPSD2 a payment initiation resource belongs to the TPP that created it, and only that TPP
-   * addresses it afterwards.
-   *
-   * Two things have to line up, because Berlin Group binds a payment to the TPP and the ASPSP
-   * separately knows which PSU it is for.
-   *
-   *  - The TPP. The consumer that lodged the payment is recorded on it, and a caller presenting a
-   *    different one is refused even when it is acting for the same PSU: one TPP's mandate over a
-   *    payment is not another's. Payments lodged before the consumer was recorded carry none, and
-   *    fall back to the person check alone rather than becoming unaddressable.
-   *  - The person. A payment records the principal that lodged it and, when it was lodged under a
-   *    consent, the PSU it was lodged for; a caller presents the same two. Any overlap is enough, so
-   *    a payment lodged on a client-credentials token can still be authorised under the PSU's token
-   *    and the other way round. A payment carrying neither identity belongs to nobody.
+   * Fetch a payment the caller is entitled to address: the TPP that lodged it, acting as a principal
+   * that is party to it. The rule lives in BerlinGroupPaymentAccess, which the signing basket shares.
    */
   private def getOwnPaymentImpl(paymentId: String, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
-    for {
-      (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-      initiators = Set(transactionRequest.user_id, transactionRequest.on_behalf_of_user_id).flatten.filter(_.nonEmpty)
-      callers = callContext.toSet[CallContext].flatMap(cc => cc.user.toOption.map(_.userId) ++ Consent.actingPsu(cc).map(_.userId))
-      callingConsumer = callContext.flatMap(_.consumer.map(_.consumerId.get))
-      // Read straight off the stored row rather than through the TransactionRequest model: which
-      // TPP lodged a payment is this guard's business, not something every REST connector needs on
-      // the wire, and that model's shape is a frozen contract.
-      lodgedByConsumer = TransactionRequests.transactionRequestProvider.vend
-        .getMappedTransactionRequest(TransactionRequestId(paymentId))
-        .toOption.flatMap(tr => Consent.present(tr.mConsumerId.get))
-      sameTpp = lodgedByConsumer.forall(lodgedBy => callingConsumer.contains(lodgedBy))
-      _ <- Helper.booleanToFuture(s"$PaymentNotInitiatedByCaller Payment id: $paymentId.", 403, callContext) {
-        sameTpp && initiators.exists(callers)
-      }
-    } yield (transactionRequest, callContext)
+    BerlinGroupPaymentAccess.getOwnPayment(paymentId, callContext)
 
   /**
    * Shared business logic for all three initiate-payment variants (payments / periodic-payments /
