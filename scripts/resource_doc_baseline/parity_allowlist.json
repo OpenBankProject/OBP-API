@@ -951,9 +951,9 @@
       "version": "v6_0_0",
       "endpoint": "createPersonalDataField",
       "field": "description",
-      "reason": "Additive clarification (USER_ATTRIBUTE_ID identity, non-unique name, PUT-to-update guidance); nothing removed.",
+      "reason": "Additive clarification (USER_ATTRIBUTE_ID identity, non-unique name, PUT-to-update guidance); nothing removed. Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
       "lift_digest": "4cc47e93f3737a605729f4aaf7b439d5ee8e99b737185fe1239487b30980d412",
-      "http4s_digest": "ae08eb6afbbace39d0834e20610b06ac5d4e50422f84dad91c471a3370267788"
+      "http4s_digest": "c86601a7e5d2479744e33a91b2d566540935706e61497c12d1444e2fafdfdea9"
     },
     {
       "version": "v6_0_0",
@@ -1159,9 +1159,9 @@
       "version": "v6_0_0",
       "endpoint": "updatePersonalDataField",
       "field": "description",
-      "reason": "Additive clarification.",
+      "reason": "Additive clarification. Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
       "lift_digest": "b2a8abcba137c01ec9e67c4c58eb5d7c6596508a12219f87092c5773c29916b3",
-      "http4s_digest": "85090153d93338f56d26c549900bdba3c2467269c740ef4f9752c7ad88d806dc"
+      "http4s_digest": "a2b33fe0126d6c9f9891c16de40e54b4f0bf493f9be136c8cd90a5cd99f265ab"
     },
     {
       "version": "v6_0_0",
@@ -1786,6 +1786,126 @@
       "reason": "Adds a paragraph pointing the developer of an app the installation runs itself (Portal, API Manager, Opey, OBP-Sentinel) to Platform Apps, so its Consumer can be granted Roles as Scopes.",
       "lift_digest": "bba5099d62c01e4fd03073a2c54ef3f5669d0cb0f756d8c2556dd48c9dc8cbc2",
       "http4s_digest": "fb85fa76f84dab2e7a328d65e38b2d1ecf9eabe90ca99efdd7e8d24ff9bcd152"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createAccountAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "ea71aaf30771429dd1dba1a35b08622499620caab6e141361048d8a324bd4f92",
+      "http4s_digest": "26d7abef135592d998b55bfece976bdfd6747f14308e20d3fccf29409dfc12e3"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createCardAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "7341e2dccb77c534cd3e64c56bbf4e64d00717a575a4850615ef7b4d300a018f",
+      "http4s_digest": "8649a7fcca672819b3f712bd7387ac3cc25270e89cca5aecf19d68f87e6c3306"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createProductAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "33f42a59104c9bdbf82e51517cd01b20979d532ff0e577fd6cd4d6b8822bf905",
+      "http4s_digest": "bd886174a46b8ca2c7da5cb67491f74a51a135b983b072e27dbabf16686ed7b8"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createBankAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "cbee89f0568558ddce0d49b2c6f369d2c9add0287fca8e05aa670e4b27c811e2",
+      "http4s_digest": "512620dbf99d8a55ce360fa89db6cd79c6f688b539203e1e44fcdf30160d6e5f"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createCustomerAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "dfdc89076573354b9884be82fb8db0eae35a40201b9337840f780bc5b0fb3195",
+      "http4s_digest": "7d27d4c20e94fd14ce92b916eecd567062076f547070059a1713598653fb3ae5"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createMyPersonalUserAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "8681aa4237cc47800556a4e27ddd90c425428cfee130786891f41752a5b975e5",
+      "http4s_digest": "588ce232ed371a3442cbd6ecdcd07b21e2771650f3261cb5e62bbf964091d379"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createProductAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "33f42a59104c9bdbf82e51517cd01b20979d532ff0e577fd6cd4d6b8822bf905",
+      "http4s_digest": "bd886174a46b8ca2c7da5cb67491f74a51a135b983b072e27dbabf16686ed7b8"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "d62af3cc634e1e06bf681dd52cada616e2b94eda105cbb753ca3f48f6a614ad5",
+      "http4s_digest": "b88a1528bcacfb05158b145be868f65e925221c09c374e3befe872473c170560"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "fbefcdc67a49bf25ee1dd27cbd12a3bb306a053183be0a951540a1924a377b88",
+      "http4s_digest": "9c97d6d411b54282b0bc60a2b3079fabf6751b5032187094644cea2db5ba2e18"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateMyPersonalUserAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "93519b3e3cdcf2e85c316c983d1c80adfe7ebd8efed5dc52a8525c6b1bf21e69",
+      "http4s_digest": "026008e77d930cb83d2309c5e8fc1de2cd0b12e2b54628b3ff6ffa28aec647bd"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createAtmAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "1b8f1f9a466a4daa57c1729b5b384b0df6d318b5ce201e0337f333e333c202c0",
+      "http4s_digest": "e93f30b9ba37efbbecd02cfc9580eb481bf6a4628e62554936ad89f69fd6b387"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createNonPersonalUserAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "c887f3d002ffe1214c28ed98a6c5e73a69db00a6e6fb1b7364be3b66eb8c2b38",
+      "http4s_digest": "c2eefbe2760556dbeaef55e58c8a38be6e5df7f1068a72200bdc43744462944e"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createRegulatedEntityAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "36de16b1bbd7e6f575402e76e6ef58f3beee45529fc5f881dd2684934ca1b309",
+      "http4s_digest": "a941e5049f4d8f044b450a7d07468a523d1b2c14b93dba4afe3b4794f4e47b5e"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCounterpartyAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "9b2c5bdc886c56134e569942e28eb9ec39504341ff6968f0e4fd9f3021684d8f",
+      "http4s_digest": "bb3c66265123795f508806f23a166c9f68aca7f52337598b62cee80c9ab6b7e8"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createUserAttribute",
+      "field": "description",
+      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
+      "lift_digest": "d2f72f200b8c01cb57f1e07c608a160c125d3e210f9282fbbfa532c72f802248",
+      "http4s_digest": "789c5598a7af5691282a4192dc5d38199bb068928a392b08314aab3b96d5b6af"
     }
   ]
 }
