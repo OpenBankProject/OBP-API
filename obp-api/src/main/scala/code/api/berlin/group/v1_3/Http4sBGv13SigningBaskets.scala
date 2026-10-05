@@ -181,7 +181,7 @@ The resource identifications of these transactions are contained in the  payload
   "transactionStatus" : "RCVD",
   "psuMessage" : { }
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, SigningBasketMemberMixInvalid, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(createSigningBasket)
   )
@@ -225,14 +225,16 @@ The resource identifications of these transactions are contained in the  payload
     "Delete the signing basket",
     s"""${mockedDataText(false)}
 Delete the signing basket structure as long as no (partial) authorisation has yet been applied.
-The undlerying transactions are not affected by this deletion.
+The underlying transactions are not affected by this deletion.
+
+Only the TPP that created the basket may delete it. A basket that is already cancelled answers 204 again.
 
 Remark: The signing basket as such is not deletable after a first (partial) authorisation has been applied.
 Nevertheless, single transactions might be cancelled on an individual basis on the XS2A interface.
 """,
     EmptyBody,
     EmptyBody,
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, SigningBasketStatusInvalid, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(deleteSigningBasket)
   )
@@ -264,7 +266,7 @@ Returns the content of an signing basket object.""",
   "payments" : "",
   "consents" : ""
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasket)
   )
@@ -298,7 +300,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
     JvalueCaseClass(json.parse("""{
   "authorisationIds" : ""
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketAuthorisation)
   )
@@ -330,7 +332,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
     JvalueCaseClass(json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, SigningBasketAuthorisationNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketScaStatus)
   )
@@ -361,7 +363,7 @@ Returns the status of a signing basket object.
     JvalueCaseClass(json.parse("""{
   "transactionStatus" : "RCVD"
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketStatus)
   )
@@ -454,7 +456,7 @@ This applies in the following scenarios:
     }
   }
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketNotFound, SigningBasketStatusInvalid, SigningBasketAuthorisationVariantNotSupported, BerlinGroupPsuNotIdentified, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(startSigningBasketAuthorisation)
   )
@@ -620,7 +622,7 @@ There are the following request types on this access path:
                     }
                   }
                 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketNotFound, SigningBasketAuthorisationNotFound, SigningBasketAuthorisationVariantNotSupported, SigningBasketAuthorisationDisabled, SigningBasketConsentNotSupported, SigningBasketStatusInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, InvalidChallengeAnswer, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(updateSigningBasketPsuData)
   )
