@@ -115,6 +115,7 @@ object BerlinGroupError {
       case "403" if message.contains("OBP-20060") => "ROLE_INVALID"
 
       case "400" if message.contains("OBP-10034") => "PARAMETER_NOT_CONSISTENT"
+      case "400" if message.contains("OBP-35050") => "SERVICE_INVALID"
 
       case "400" if message.contains("OBP-35018") => "CONSENT_UNKNOWN"
       case "400" if message.contains("OBP-35001") => "CONSENT_UNKNOWN"

@@ -36,7 +36,7 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, ge
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiTag, CallContext, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.SigningBasketNewStyle
 import code.bankconnectors.Connector
@@ -72,6 +72,27 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
   val bgV13Prefix = Root / ConstantsBG.berlinGroupVersion1.urlPrefix / ConstantsBG.berlinGroupVersion1.apiShortVersion
+
+  /**
+   * Berlin Group hangs several request bodies off the authorisation paths (L3653, L3867). Baskets
+   * support the two that need no data this ASPSP holds back: an empty body, which starts the
+   * authorisation, and `transactionAuthorisation`, which answers it. The others are Embedded-approach
+   * steps (PSU authentication, authentication method selection, confirmation code) that are not
+   * implemented for any Berlin Group resource here. They are refused by name rather than answered
+   * as if the credential or the choice had been processed, and a body that matches no variant is a
+   * format error.
+   */
+  private def requireSupportedAuthorisationBody(rawBody: String, answering: Boolean, failMsg: String, callContext: Option[CallContext]): Future[Boolean] = {
+    val parsed = scala.util.Try(json.parse(rawBody)).getOrElse(json.JNothing)
+    val supported = if (answering) checkTransactionAuthorisation(parsed) else startsAuthorisation(parsed)
+    val knownButUnsupported = !supported && (
+      checkUpdatePsuAuthentication(parsed) || checkSelectPsuAuthenticationMethod(parsed) ||
+        checkAuthorisationConfirmation(parsed) || (answering && parsed == json.JObject(Nil)))
+    for {
+      _ <- booleanToFuture(SigningBasketAuthorisationVariantNotSupported, cc = callContext)(!knownButUnsupported)
+      _ <- booleanToFuture(failMsg, cc = callContext)(supported)
+    } yield true
+  }
 
   // ── POST /signing-baskets ──────────────────────────────────────────────
   val createSigningBasket: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -327,6 +348,9 @@ Returns the status of a signing basket object.
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
+          _ <- requireSupportedAuthorisationBody(
+            cc.httpBody.getOrElse(""), answering = false,
+            s"$InvalidJsonFormat The Json body should be empty, or the transactionAuthorisation body. ", callContext)
           (challenges, _) <- NewStyle.function.createChallengesC3(
             List(cc.user.map(_.userId).openOr("")),
             ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
@@ -411,6 +435,7 @@ This applies in the following scenarios:
         for {
           _ <- passesPsd2Pisp(callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
+          _ <- requireSupportedAuthorisationBody(cc.httpBody.getOrElse(""), answering = true, failMsg, callContext)
           updateBasketPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
             json.parse(cc.httpBody.getOrElse("")).extract[UpdatePaymentPsuDataJson]
           }
