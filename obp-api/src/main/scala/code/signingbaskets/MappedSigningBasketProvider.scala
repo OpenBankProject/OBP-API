@@ -59,18 +59,6 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     basket.map(i => SigningBasketContent(basket = i, payments = payments, consents = consents))
   }
 
-  override def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent] = {
-    val basket: Box[MappedSigningBasket] = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, entityId)).map(_.Status(status).saveMe)
-    val (payments, consents) = membersOf(entityId)
-    basket.map(i => SigningBasketContent(basket = i, payments = payments, consents = consents))
-  }
-
-  override def deleteSigningBasket(id: String): Box[Boolean] = {
-    MappedSigningBasket.find(By(MappedSigningBasket.BasketId, id)) map {
-      _.Status(ConstantsBG.SigningBasketsStatus.CANC.toString).save
-    }
-  }
-
   override def createSigningBasket(paymentIds: Option[List[String]],
                                    consentIds: Option[List[String]],
                                    consumerId: String,

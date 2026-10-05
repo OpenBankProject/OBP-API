@@ -43,9 +43,6 @@ trait SigningBasketProvider extends MdcLoggable {
   def getSigningBaskets(): List[SigningBasketTrait]
 
   def getSigningBasketByBasketId(entityId: String): Box[SigningBasketContent]
-  // Unconditional writers, being replaced by transitionSigningBasketStatus.
-  def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent]
-  def deleteSigningBasket(id: String): Box[Boolean]
 
   /**
    * Creates the basket and its members together, owned by the consumer that creates it. A failure

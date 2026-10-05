@@ -183,10 +183,25 @@ The resource identifications of these transactions are contained in the  payload
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
-          _ <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
-          _ <- Future {
-            SigningBasketX.signingBasketProvider.vend.deleteSigningBasket(basketid)
-          }.map(connectorEmptyResponse(_, callContext))
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
+          // Deleting a basket that is already cancelled changes nothing and is not an error.
+          alreadyCancelled = basket.basket.status == ConstantsBG.SigningBasketsStatus.CANC.toString
+          _ <- if (alreadyCancelled) Future.successful(true) else for {
+            // "As long as no (partial) authorisation has yet been applied" (L3399): the basket must
+            // still be RCVD and none of its authorisations may be finalised.
+            _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+              basket.basket.status == ConstantsBG.SigningBasketsStatus.RCVD.toString
+            }
+            (challenges, _) <- NewStyle.function.getChallengesByBasketId(basketid, callContext)
+            _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+              !challenges.exists(_.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised))
+            }
+            // One conditional update. A final answer racing this delete claims the basket first or
+            // loses to it, and the loser is told so; never both.
+            cancelled <- Future(SigningBasketX.signingBasketProvider.vend.transitionSigningBasketStatus(
+              basketid, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.CANC.toString))
+            _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext)(cancelled.openOr(false))
+          } yield true
         } yield ()
       }
   }
@@ -356,6 +371,10 @@ Returns the status of a signing basket object.
           _ <- requireSupportedAuthorisationBody(
             cc.httpBody.getOrElse(""), answering = false,
             s"$InvalidJsonFormat The Json body should be empty, or the transactionAuthorisation body. ", callContext)
+          // An authorisation can only be started on a basket still waiting for one.
+          _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+            basket.basket.status == ConstantsBG.SigningBasketsStatus.RCVD.toString
+          }
           // Whose challenge this is, which is also where the OTP goes: the PSU, not the calling TPP.
           psuUserId <- SigningBasketNewStyle.bindAuthorisingPsu(basket, cc, callContext)
           (challenges, _) <- NewStyle.function.createChallengesC3(
