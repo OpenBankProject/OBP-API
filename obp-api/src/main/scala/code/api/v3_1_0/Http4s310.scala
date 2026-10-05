@@ -41,7 +41,7 @@ import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CertificateUtil
-import code.api.util.{ApiTrigger, Consent, Glossary, SecureRandomUtil}
+import code.api.util.{ApiTrigger, AttributeTypeDocs, Consent, Glossary, SecureRandomUtil}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.http4s.IdempotencyMiddleware
@@ -2400,7 +2400,7 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             productAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), None,
@@ -2433,7 +2433,7 @@ object Http4s310 {
       |See [FPML](http://www.fpml.org/) for more examples.
       |
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |
       |
@@ -2715,7 +2715,7 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             productAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
@@ -3261,7 +3261,7 @@ object Http4s310 {
           for {
             accountAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AccountAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             (_, _) <- NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
@@ -3298,7 +3298,7 @@ object Http4s310 {
       |
       |See [FPML](http://www.fpml.org/) for more examples.
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |
@@ -3321,7 +3321,7 @@ object Http4s310 {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canUpdateAccountAttribute, Some(cc))
             accountAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AccountAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
@@ -3688,7 +3688,7 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getPhysicalCardForBank(BankId(bankIdStr), cardIdStr, Some(cc))
             cardAttrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { CardAttributeType.withName(postedData.`type`) }
             (cardAttribute, _) <- NewStyle.function.createOrUpdateCardAttribute(
               Some(BankId(bankIdStr)), Some(cardIdStr), None,
@@ -3709,7 +3709,7 @@ object Http4s310 {
       |
       |Each Card Attribute is linked to its Card by CARD_ID
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |
@@ -3743,7 +3743,7 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getCardAttributeById(cardAttributeIdStr, Some(cc))
             cardAttrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { CardAttributeType.withName(postedData.`type`) }
             (cardAttribute, _) <- NewStyle.function.createOrUpdateCardAttribute(
               Some(BankId(bankIdStr)), Some(cardIdStr), Some(cardAttributeIdStr),

@@ -45,7 +45,7 @@ import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.{APIUtil, Consent, ConsentJWT, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, OBPLimit, OBPOffset, OBPSortBy, SecureRandomUtil, X509}
-import code.api.util.{ExampleValue, Glossary}
+import code.api.util.{AttributeTypeDocs, ExampleValue, Glossary}
 import code.api.v2_0_0.AccountsHelper
 import code.api.v2_0_0.AccountsHelper.accountTypeFilterText
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{
@@ -1418,7 +1418,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AtmAttributeType.withName(postedData.`type`) }
             (atmAttribute, _) <- NewStyle.function.createOrUpdateAtmAttribute(
               bankId, atmId, None, postedData.name, attrType, postedData.value, postedData.is_active, Some(cc))
@@ -1433,7 +1433,7 @@ object Http4s510 {
       "Create ATM Attribute",
       s""" Create ATM Attribute
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |
@@ -1518,7 +1518,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AtmAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getAtmAttributeById(atmAttributeId, Some(cc))
             (atmAttribute, _) <- NewStyle.function.createOrUpdateAtmAttribute(
@@ -1722,7 +1722,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${RegulatedEntityAttributeType.DOUBLE}(12.1234), ${RegulatedEntityAttributeType.STRING}(TAX_NUMBER), ${RegulatedEntityAttributeType.INTEGER}(123) and ${RegulatedEntityAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { RegulatedEntityAttributeType.withName(postedData.attribute_type) }
             (attribute, _) <- RegulatedEntityAttributeNewStyle.createOrUpdateRegulatedEntityAttribute(
               regulatedEntityId = RegulatedEntityId(entityIdStr),
@@ -1742,7 +1742,7 @@ object Http4s510 {
       s"""
           | Create a new Regulated Entity Attribute for a given REGULATED_ENTITY_ID.
           |
-          | The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+          | ${AttributeTypeDocs.typeFieldDescription}
           | ${userAuthenticationMessage(true)}
           |
       """.stripMargin,
@@ -1854,7 +1854,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${RegulatedEntityAttributeType.DOUBLE}(12.1234), ${RegulatedEntityAttributeType.STRING}(TAX_NUMBER), ${RegulatedEntityAttributeType.INTEGER}(123) and ${RegulatedEntityAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { RegulatedEntityAttributeType.withName(postedData.attribute_type) }
             (_, _) <- getRegulatedEntityByEntityIdNewStyle(entityIdStr, Some(cc))
             (updated, _) <- RegulatedEntityAttributeNewStyle.createOrUpdateRegulatedEntityAttribute(
@@ -2148,7 +2148,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${UserAttributeType.DOUBLE}(12.1234), ${UserAttributeType.STRING}(TAX_NUMBER), ${UserAttributeType.INTEGER} (123)and ${UserAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { UserAttributeType.withName(postedData.`type`) }
             (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
               user.userId, None, postedData.name, attrType, postedData.value, false, Some(cc))
@@ -2163,7 +2163,7 @@ object Http4s510 {
       "Create Non Personal User Attribute",
       s""" Create Non Personal User Attribute
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |

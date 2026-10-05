@@ -49,7 +49,7 @@ import code.api.util.APIUtil.{
   urlParametersDocument,
   userAuthenticationMessage
 }
-import code.api.util.{ExampleValue, Glossary}
+import code.api.util.{AttributeTypeDocs, ExampleValue, Glossary}
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.dynamicchangerequest.MakerChecker
@@ -2391,10 +2391,7 @@ object Http4s600 {
 
     private val counterpartyAttributeTypeErrorMsg =
       s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.DOUBLE}(12.1234), " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.STRING}(TAX_NUMBER), " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.INTEGER}(123) and " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.DATE_WITH_DAY}(2012-04-23)"
+        AttributeTypeDocs.typesWithExamples
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes (201)
     lazy val createCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -5248,7 +5245,7 @@ object Http4s600 {
         AbacObjectTypeJsonV600("UserAttributeTrait", "User attribute", List(
           AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
           AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
-          AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type (STRING, INTEGER, DOUBLE, DATE_WITH_DAY)")
+          AbacObjectPropertyJsonV600("attributeType", "AttributeType", s"Attribute type (${AttributeTypeDocs.examples.map(_._1).mkString(", ")})")
         )),
         AbacObjectTypeJsonV600("AccountAttribute", "Account attribute", List(
           AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
@@ -6094,7 +6091,7 @@ object Http4s600 {
     // Auth-only; the v6 Lift docs declare `Some(List())` empty role list.
 
     private val personalDataTypeErrorMsg =
-      s"$InvalidJsonFormat The `type` field can only accept: ${UserAttributeType.DOUBLE}, ${UserAttributeType.STRING}, ${UserAttributeType.INTEGER}, ${UserAttributeType.DATE_WITH_DAY}"
+      s"$InvalidJsonFormat The `type` field can only accept: ${AttributeTypeDocs.typesWithExamples}"
 
     // Route: POST /obp/v6.0.0/my/personal-data-fields (201)
     lazy val createPersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -9639,7 +9636,7 @@ object Http4s600 {
         |
         |For personal attributes that users manage themselves, see the /my/personal-data-fields endpoints.
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
@@ -9977,7 +9974,7 @@ object Http4s600 {
         s"""
             | Create a new Counterparty Attribute for a given COUNTERPARTY_ID.
             |
-            | The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+            | ${AttributeTypeDocs.typeFieldDescription}
             | Authentication is Required
             |
         """.stripMargin,
@@ -14587,7 +14584,7 @@ object Http4s600 {
         |
         |For non-personal attributes that can be used in ABAC rules, see the /users/USER_ID/attributes endpoints.
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |Each Personal Data Field is identified by its own USER_ATTRIBUTE_ID. The "name" is not a unique key:
         |this endpoint always creates a new field, so the same "name" can occur on multiple fields for the same user
@@ -14663,7 +14660,7 @@ object Http4s600 {
         |USER_ATTRIBUTE_ID identifies the exact field to update; this updates that one field in place and never
         |creates a new one. The body's "name", "type" and "value" all replace the existing field's values, so a
         |field can be renamed by changing "name". Returns 404 if no field with that USER_ATTRIBUTE_ID belongs to the user.
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,

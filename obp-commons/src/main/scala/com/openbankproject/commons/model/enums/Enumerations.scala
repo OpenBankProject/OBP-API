@@ -42,6 +42,8 @@ object UserAttributeType extends OBPEnumeration[UserAttributeType]{
   object INTEGER        extends Value
   object DOUBLE         extends Value
   object DATE_WITH_DAY  extends Value
+  object DECIMAL        extends Value
+  object BOOLEAN        extends Value
 }
 sealed trait AtmAttributeType extends EnumValue
 object AtmAttributeType extends OBPEnumeration[AtmAttributeType]{
@@ -49,6 +51,8 @@ object AtmAttributeType extends OBPEnumeration[AtmAttributeType]{
   object INTEGER        extends Value
   object DOUBLE         extends Value
   object DATE_WITH_DAY  extends Value
+  object DECIMAL        extends Value
+  object BOOLEAN        extends Value
 }
 sealed trait RegulatedEntityAttributeType extends EnumValue
 object RegulatedEntityAttributeType extends OBPEnumeration[RegulatedEntityAttributeType]{
@@ -56,6 +60,8 @@ object RegulatedEntityAttributeType extends OBPEnumeration[RegulatedEntityAttrib
   object INTEGER        extends Value
   object DOUBLE         extends Value
   object DATE_WITH_DAY  extends Value
+  object DECIMAL        extends Value
+  object BOOLEAN        extends Value
 }
 sealed trait CounterpartyAttributeType extends EnumValue
 object CounterpartyAttributeType extends OBPEnumeration[CounterpartyAttributeType]{
@@ -63,6 +69,8 @@ object CounterpartyAttributeType extends OBPEnumeration[CounterpartyAttributeTyp
   object INTEGER        extends Value
   object DOUBLE         extends Value
   object DATE_WITH_DAY  extends Value
+  object DECIMAL        extends Value
+  object BOOLEAN        extends Value
 }
 sealed trait BankAttributeType extends EnumValue
 object BankAttributeType extends OBPEnumeration[BankAttributeType]{
@@ -70,6 +78,8 @@ object BankAttributeType extends OBPEnumeration[BankAttributeType]{
   object INTEGER        extends Value
   object DOUBLE         extends Value
   object DATE_WITH_DAY  extends Value
+  object DECIMAL        extends Value
+  object BOOLEAN        extends Value
 }
 
 sealed trait AccountAttributeType extends EnumValue
@@ -78,6 +88,8 @@ object AccountAttributeType extends OBPEnumeration[AccountAttributeType]{
   object INTEGER        extends Value
   object DOUBLE         extends Value
   object DATE_WITH_DAY  extends Value
+  object DECIMAL        extends Value
+  object BOOLEAN        extends Value
 }
 
 sealed trait ProductAttributeType extends EnumValue
@@ -86,6 +98,8 @@ object ProductAttributeType extends OBPEnumeration[ProductAttributeType]{
   object INTEGER       extends Value
   object DOUBLE        extends Value
   object DATE_WITH_DAY extends Value
+  object DECIMAL       extends Value
+  object BOOLEAN       extends Value
 }
 
 sealed trait CardAttributeType extends EnumValue
@@ -94,6 +108,8 @@ object CardAttributeType extends  OBPEnumeration[CardAttributeType]{
   object INTEGER       extends Value
   object DOUBLE        extends Value
   object DATE_WITH_DAY extends Value
+  object DECIMAL       extends Value
+  object BOOLEAN       extends Value
 }
 
 sealed trait CustomerAttributeType extends EnumValue
@@ -102,6 +118,8 @@ object CustomerAttributeType extends  OBPEnumeration[CustomerAttributeType]{
   object INTEGER       extends Value
   object DOUBLE        extends Value
   object DATE_WITH_DAY extends Value
+  object DECIMAL       extends Value
+  object BOOLEAN       extends Value
 }
 
 sealed trait TransactionAttributeType extends EnumValue
@@ -110,6 +128,8 @@ object TransactionAttributeType extends  OBPEnumeration[TransactionAttributeType
   object INTEGER       extends Value
   object DOUBLE        extends Value
   object DATE_WITH_DAY extends Value
+  object DECIMAL       extends Value
+  object BOOLEAN       extends Value
 }
 
 sealed trait TransactionRequestAttributeType extends EnumValue
@@ -118,6 +138,8 @@ object TransactionRequestAttributeType extends  OBPEnumeration[TransactionReques
   object INTEGER       extends Value
   object DOUBLE        extends Value
   object DATE_WITH_DAY extends Value
+  object DECIMAL       extends Value
+  object BOOLEAN       extends Value
 }
 
 //------api enumerations ----
@@ -340,6 +362,8 @@ object AttributeType extends OBPEnumeration[AttributeType]{
   object INTEGER extends Value
   object DOUBLE extends Value
   object DATE_WITH_DAY extends Value
+  object DECIMAL extends Value
+  object BOOLEAN extends Value
 }
 
 sealed trait ConsentType extends EnumValue

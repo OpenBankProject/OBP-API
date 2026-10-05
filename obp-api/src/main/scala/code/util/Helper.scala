@@ -174,8 +174,13 @@ object Helper extends Loggable {
    */
   def convertToSmallestCurrencyUnits(amount : BigDecimal, currencyCode : String) : Long = {
     val decimalPlaces = Helper.currencyDecimalPlaces(currencyCode)
-
-    (amount * BigDecimal("10").pow(decimalPlaces)).toLong
+    val smallestUnits = (amount * BigDecimal("10").pow(decimalPlaces)).setScale(0, BigDecimal.RoundingMode.DOWN)
+    // toLong would silently wrap an amount that does not fit in a Long into an unrelated
+    // (often negative) number, which would then be stored as a balance or transaction amount.
+    if (!smallestUnits.isValidLong)
+      throw new IllegalArgumentException(
+        s"Amount $amount $currencyCode is too large to store: $smallestUnits smallest currency units is outside the range ${Long.MinValue} to ${Long.MaxValue}")
+    smallestUnits.toLong
   }
 
 

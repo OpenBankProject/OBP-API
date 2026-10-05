@@ -1007,9 +1007,9 @@
       "version": "v6_0_0",
       "endpoint": "getAggregateMetrics",
       "field": "description",
-      "reason": "Documents real new response fields (distinct_user_count etc.) verified present in MappedMetrics.scala.",
+      "reason": "Documents real new response fields (distinct_user_count etc.) verified present in MappedMetrics.scala, and who may call it: a User with CanReadAggregateMetrics or an application whose Consumer holds it.",
       "lift_digest": "21e12b117560d354f2ee58bb845e9a5d39d9f47721da8195868cf7a6ed9a216d",
-      "http4s_digest": "7e83ca3e1b2c02edfe20ecd786d397abb899fe37bc5bf42028fb03734cb627cd"
+      "http4s_digest": "a1631529945acf190378edeff834bbdef9040aee86cb0282008bb7ee6ac539a8"
     },
     {
       "version": "v6_0_0",
