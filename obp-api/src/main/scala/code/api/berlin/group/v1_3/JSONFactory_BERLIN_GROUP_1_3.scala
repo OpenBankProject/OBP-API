@@ -887,7 +887,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   def createSigningBasketResponseJson(basket: SigningBasketTrait): SigningBasketResponseJson = {
     SigningBasketResponseJson(
       basketId = basket.basketId,
-      transactionStatus = basket.status.toLowerCase(),
+      transactionStatus = basket.status,
       _links = SigningBasketLinksV13(
         self = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basket.basketId}"),
         status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basket.basketId}/status"),
@@ -898,7 +898,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 
   def getSigningBasketResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
     SigningBasketGetResponseJson(
-      transactionStatus = basket.basket.status.toLowerCase(),
+      transactionStatus = basket.basket.status,
       payments = basket.payments,
       consents = basket.consents,
     )
@@ -906,7 +906,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 
   def getSigningBasketStatusResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
     SigningBasketGetResponseJson(
-      transactionStatus = basket.basket.status.toLowerCase(),
+      transactionStatus = basket.basket.status,
       payments = None,
       consents = None,
     )

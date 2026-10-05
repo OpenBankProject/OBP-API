@@ -134,7 +134,7 @@ The resource identifications of these transactions are contained in the  payload
     "status" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
-  "transactionStatus" : "ACCP",
+  "transactionStatus" : "RCVD",
   "psuMessage" : { }
 }""")),
     List(AuthenticatedUserIsRequired, UnknownError),
@@ -202,7 +202,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
 Returns the content of an signing basket object.""",
     EmptyBody,
     JvalueCaseClass(json.parse("""{
-  "transactionStatus" : "ACCP",
+  "transactionStatus" : "RCVD",
   "payments" : "",
   "consents" : ""
 }""")),
