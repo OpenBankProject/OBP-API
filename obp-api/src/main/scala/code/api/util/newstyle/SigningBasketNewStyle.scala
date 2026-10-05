@@ -30,10 +30,10 @@ package code.api.util.newstyle
 import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.util.Consent
-import code.api.util.ErrorMessages.{InvalidConnectorResponse, RegulatedEntityNotDeleted, SigningBasketAuthorisationNotFound, SigningBasketNotFound}
+import code.api.util.ErrorMessages.{ConsentDoesNotMatchUser, InvalidConnectorResponse, RegulatedEntityNotDeleted, SigningBasketAuthorisationNotFound, SigningBasketNotFound}
 import code.bankconnectors.Connector
 import code.signingbaskets.SigningBasketX
-import code.util.Helper.MdcLoggable
+import code.util.Helper.{MdcLoggable, booleanToFuture}
 import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.model.{ChallengeTrait, SigningBasketContent, TransactionRequestId}
 import net.liftweb.common.{Box, Empty}
@@ -112,6 +112,34 @@ object SigningBasketNewStyle extends MdcLoggable {
     case Right(content) => (content, callContext)
     case Left(_) => unboxFullOrFail(Empty: Box[(SigningBasketContent, Option[CallContext])], callContext, SigningBasketNotFound, 403)
   }
+
+  /**
+   * The PSU an authorisation on this basket is for, bound to the basket.
+   *
+   * It decides whose challenge this is, which is also where the one-time password is sent, so it is
+   * not read off the session: under Berlin Group the caller is the TPP, and a client-credentials TPP
+   * resolves to a pseudo-user of its own. The order is Consent.resolveBerlinGroupPsu's: the PSU the
+   * basket already names, a genuine PSU in the session (Redirect), then the PSU-ID header (Embedded).
+   * A header that contradicts the basket's PSU gets the same answer as any other refusal to address
+   * the basket; with none of the three there is nobody to authorise for, which is the standard's
+   * PSU_CREDENTIALS_INVALID (401).
+   */
+  def bindAuthorisingPsu(basket: SigningBasketContent,
+                         cc: CallContext,
+                         callContext: Option[CallContext]): Future[String] =
+    for {
+      headerPsuUserId <- Consent.resolvePsuIdHeader(cc, callContext)
+      psuUserId <- Consent.resolveBerlinGroupPsu(
+        basket.basket.psuUserId.getOrElse(""), Consent.genuinePsu(cc).map(_.userId), headerPsuUserId) match {
+        case Right(userId) => Future.successful(userId)
+        case Left(reason) =>
+          val (failMsg, failCode) =
+            if (reason == ConsentDoesNotMatchUser) (SigningBasketNotFound, 403) else (reason, 401)
+          booleanToFuture(failMsg = failMsg, failCode = failCode, cc = callContext)(false).map(_ => "")
+      }
+      bound <- Future(SigningBasketX.signingBasketProvider.vend.bindSigningBasketPsu(basket.basket.basketId, psuUserId))
+      _ <- booleanToFuture(failMsg = SigningBasketNotFound, failCode = 403, cc = callContext)(bound.openOr(false))
+    } yield psuUserId
 
   /**
    * An authorisation of this basket, by id. One issued for another basket, or for something that is

@@ -675,6 +675,36 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
+  // ───────────────────────── whose challenge: the PSU, not the calling TPP ─────────────────────────
+
+  feature("BG v1.3 signing baskets - an authorisation is minted for the PSU, which is where the one-time password goes") {
+    scenario("S1: a client-credentials TPP naming the PSU in PSU-ID gets a challenge for that PSU, and the basket binds to them", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      val response = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name)))
+      response.code should equal(201)
+      val authorisationId = (response.body \ "authorisationId").extract[String]
+      Challenges.ChallengeProvider.vend.getChallenge(authorisationId).openOrThrowException("challenge").expectedUserId should equal(resourceUser1.userId)
+      SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId).map(_.basket.psuUserId) should equal(net.liftweb.common.Full(Some(resourceUser1.userId)))
+    }
+
+    scenario("S1: a client-credentials TPP that names nobody gets no challenge (L11597, IG §14.11 PSU_CREDENTIALS_INVALID)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      expectRefusal(startAuthorisation(basketId, as = clientCredentialsSession), 401, "PSU_CREDENTIALS_INVALID", "no PSU anywhere")
+      expectRefusal(makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", "nobody-by-this-name"))), 401, "PSU_CREDENTIALS_INVALID", "an unknown PSU-ID")
+      storedChallengeCount(basketId) should equal(0)
+    }
+
+    scenario("S1: once a PSU is bound, a PSU-ID naming someone else is refused like any other refusal to address the basket", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name))).code should equal(201)
+      val challengesBefore = storedChallengeCount(basketId)
+      expectRefusal(makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser2.name))), 403, "RESOURCE_UNKNOWN", "another PSU")
+      storedChallengeCount(basketId) should equal(challengesBefore)
+    }
+  }
+
   // ───────────────────────── members: S5, D8 ─────────────────────────
 
   feature("BG v1.3 signing baskets - a basket only takes members the caller may authorise") {

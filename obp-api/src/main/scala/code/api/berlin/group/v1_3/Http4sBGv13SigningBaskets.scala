@@ -352,12 +352,14 @@ Returns the status of a signing basket object.
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Pisp(callContext)
-          _ <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
           _ <- requireSupportedAuthorisationBody(
             cc.httpBody.getOrElse(""), answering = false,
             s"$InvalidJsonFormat The Json body should be empty, or the transactionAuthorisation body. ", callContext)
+          // Whose challenge this is, which is also where the OTP goes: the PSU, not the calling TPP.
+          psuUserId <- SigningBasketNewStyle.bindAuthorisingPsu(basket, cc, callContext)
           (challenges, _) <- NewStyle.function.createChallengesC3(
-            List(cc.user.map(_.userId).openOr("")),
+            List(psuUserId),
             ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
             None,
             getSuggestedDefaultScaMethod(),
