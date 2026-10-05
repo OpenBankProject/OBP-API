@@ -70,6 +70,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
                                         transactionStatus: String,
                                         basketId: String,
                                         _links: SigningBasketLinksV13)
+  // The links of a signing basket authorisation: scaStatus is a hyperlink object (hrefType), not a bare string.
+  case class SigningBasketScaLinksV13(scaStatus: LinkHrefJson)
+  case class StartSigningBasketAuthorisationJson(
+                                                  scaStatus: String,
+                                                  authorisationId: String,
+                                                  psuMessage: String,
+                                                  _links: SigningBasketScaLinksV13)
   case class SigningBasketGetResponseJson(
                                         transactionStatus: String,
                                         payments: Option[List[String]],
@@ -875,12 +882,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   }
 
 
-  def createStartSigningBasketAuthorisationJson(basketId: String, challenge: ChallengeTrait): StartPaymentAuthorisationJson = {
-    StartPaymentAuthorisationJson(
+  def createStartSigningBasketAuthorisationJson(basketId: String, challenge: ChallengeTrait): StartSigningBasketAuthorisationJson = {
+    StartSigningBasketAuthorisationJson(
       scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
       authorisationId = challenge.challengeId,
       psuMessage = "Please check your SMS at a mobile device.",
-      _links = ScaStatusJsonV13(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")
+      _links = SigningBasketScaLinksV13(
+        scaStatus = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")
+      )
     )
   }
 
