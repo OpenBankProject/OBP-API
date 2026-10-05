@@ -759,12 +759,54 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("S3: a wrong answer changes nothing", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    scenario("S3: a wrong answer is the standard's incorrect-OTP refusal and changes nothing (IG §14.11 PSU_CREDENTIALS_INVALID, L11597)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val started = startedBasket()
-      val response = answerAuthorisation(started.basketId, started.authorisationId, body = """{"scaAuthenticationData":"wrong"}""")
-      response.code should be >= 400
+      expectRefusal(
+        answerAuthorisation(started.basketId, started.authorisationId, body = """{"scaAuthenticationData":"wrong"}"""),
+        401, "PSU_CREDENTIALS_INVALID", "a wrong one-time password")
       storedBasketStatus(started.basketId) should equal(Some("RCVD"))
       started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+      withClue("the authorisation can still be answered correctly: ") {
+        answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
+      }
+    }
+
+    scenario("S3: a client-credentials TPP relays the PSU's answer, and it is checked as the PSU the challenge names", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val basketId = createBasket(List(lodgePayment()), as = clientCredentialsSession)
+      val started = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name)))
+      started.code should equal(201)
+      val authorisationId = (started.body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId, as = clientCredentialsSession).code should equal(200)
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("S2: the same correct answer sent twice at once is accepted once and refused once (contract 3.7)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      (1 to 5).foreach { round =>
+        val started = startedBasket()
+        val answers = (1 to 2).map(_ => Future(answerAuthorisation(started.basketId, started.authorisationId)))
+        val codes = Await.result(Future.sequence(answers), 60.seconds).map(_.code).sorted
+        withClue(s"round $round: ") {
+          codes should equal(List(200, 409))
+          storedBasketStatus(started.basketId) should equal(Some("ACTC"))
+        }
+      }
+    }
+
+    scenario("D9: a basket cannot be authorised unless the instance enables it, and nothing changes while it is not", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY") // signing_basket_authorisation_enabled is left at its default
+      val payment = lodgePayment()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      expectRefusal(answerAuthorisation(basketId, authorisationId), 403, "SERVICE_BLOCKED", "an instance that has not enabled it")
+      storedBasketStatus(basketId) should equal(Some("RCVD"))
+      storedPaymentStatus(payment) should equal(awaitingSca)
+      withClue("the answer was not consumed: ") {
+        Challenges.ChallengeProvider.vend.getChallenge(authorisationId).map(_.successful) should equal(net.liftweb.common.Full(false))
+      }
+      setPropsValues("signing_basket_authorisation_enabled" -> "true")
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
     }
   }
 

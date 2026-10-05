@@ -47,5 +47,15 @@ object ConstantsBG {
     // 4) CANC (Cancelled) and
     // 5) RJCT (Rejected) are supported for signing baskets.
     val RCVD, PATC, ACTC, CANC, RJCT = Value
+
+    /**
+     * Stored between the moment a correct answer claims the basket and the moment its members have
+     * been dealt with. It is never reported: to a TPP a basket in this state is still RCVD, since the
+     * authorisation has not completed from its point of view.
+     */
+    val AUTHORISING_INTERNAL = "AUTHORISING"
+
+    def external(storedStatus: String): String =
+      if (storedStatus == AUTHORISING_INTERNAL) RCVD.toString else storedStatus
   }
 }
