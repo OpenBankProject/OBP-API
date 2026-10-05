@@ -85,8 +85,12 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
           postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
             json.parse(cc.httpBody.getOrElse("")).extract[PostSigningBasketJsonV13]
           }
+          // The body shall contain at least one entry, and each list that is present at least one id
+          // (minItems: 1). A list naming the same id twice is refused as well, rather than silently
+          // collapsed, so the TPP learns its request was malformed.
+          idLists = List(postJson.paymentIds, postJson.consentIds).flatten
           _ <- booleanToFuture(failMsg, cc = callContext) {
-            !(postJson.paymentIds.isEmpty && postJson.consentIds.isEmpty)
+            idLists.nonEmpty && idLists.forall(ids => ids.nonEmpty && ids.distinct.size == ids.size)
           }
           signingBasket <- Future {
             SigningBasketX.signingBasketProvider.vend.createSigningBasket(
