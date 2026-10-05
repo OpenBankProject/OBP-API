@@ -168,8 +168,9 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
   }
 
   /** Tests that answer an SCA need a challenge whose answer is known, and an instance that lets baskets be authorised. */
-  private def enableBasketAuthorisation(): Unit =
+  private def enableBasketAuthorisation(): Unit = {
     setPropsValues("suggested_default_sca_method" -> "DUMMY", "signing_basket_authorisation_enabled" -> "true")
+  }
 
   // What the database says, as opposed to what an HTTP response claims.
   private def storedBasketStatus(basketId: String): Option[String] =

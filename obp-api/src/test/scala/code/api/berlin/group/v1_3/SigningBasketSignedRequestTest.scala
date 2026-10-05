@@ -60,7 +60,7 @@ class SigningBasketSignedRequestTest extends BerlinGroupServerSetupV1_3 with PSD
 
   private val mandatoryHeaders = "Date,Digest,PSU-Device-ID,PSU-Device-Name,PSU-IP-Address,Signature,TPP-Signature-Certificate,X-Request-ID"
 
-  private def enforceSignatures(): Unit =
+  private def enforceSignatures(): Unit = {
     setPropsValues(
       "berlin_group_mandatory_headers" -> mandatoryHeaders,
       "requirePsd2Certificates" -> "ONLINE",
@@ -68,6 +68,7 @@ class SigningBasketSignedRequestTest extends BerlinGroupServerSetupV1_3 with PSD
       "bypass_tpp_signature_validation" -> "true",
       "suggested_default_sca_method" -> "DUMMY"
     )
+  }
 
   /** Registers the TPP's certificate as a regulated entity that holds the given PSD2 roles. */
   private def registerTpp(roles: String): Unit = {
