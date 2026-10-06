@@ -144,6 +144,12 @@ class FundsAvailableTest extends V310ServerSetup {
       And("error should be " + InvalidISOCurrencyCode)
       response310_invalic_ccy.body.extract[ErrorMessage].message startsWith(InvalidISOCurrencyCode)
 
+      When("We make a request v3.1.0 with an amount that has more decimal places than EUR allows")
+      val response310_precision = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "1.234"))
+      Then("We should get a 400")
+      response310_precision.code should equal(400)
+      response310_precision.body.extract[ErrorMessage].message should startWith (InvalidAmountPrecision)
+
       When("We make a request v3.1.0 with all params but amount is invalid")
       val response310_amount_ccy = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "bb"))
       Then("We should get a 400")

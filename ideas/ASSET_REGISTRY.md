@@ -60,7 +60,8 @@ The work is ordered so that each step changes nothing a caller can see until the
 | 5 | Read-only endpoints `GET /assets`, `GET /assets/ASSET_CODE`, reverse chain lookup (§8), and the Glossary entry (§11) | Done, not committed |
 | 6 | `isValidCurrencyISOCode` and `currencyDecimalPlaces` read from the registry (§4) | Done, not committed |
 | 7 | Case-insensitive codes (§4): codes upper-cased in requests by `ResourceDocMiddleware`, compared ignoring case | Done, not committed |
-| Later | Rejecting excess decimals (§4), write endpoints (§8), amount storage (§5, §7 Part A), precision corrections (§7 Part B), folding `lovelace` and `wei` (§7 Part C, §10) | Each changes behaviour or waits on an open question |
+| 8 | Rejecting excess decimals (§4): 400 (OBP-10068) from `ResourceDocMiddleware`, crypto assets exempt until §7 | Done, not committed |
+| Later | write endpoints (§8), amount storage (§5, §7 Part A), precision corrections (§7 Part B), folding `lovelace` and `wei` (§7 Part C, §10) | Each changes behaviour or waits on an open question |
 
 **Step 1.** `CurrencyHandlingTest` is a pure unit test (no server, no database). It asserts correct behaviour only. The three known defects are written as the correct expectation inside `pendingUntilFixed`, so they report as pending now and fail, demanding the wrapper's removal, once fixed:
 - codes are not accepted in every letter case;
@@ -115,6 +116,15 @@ The registry is read once into memory and read again after any write through `As
 - **Stored rows.** The runOnce migration `upperCaseStoredCurrencyCodes` (`MigrationOfCurrencyCodesUpperCase`) rewrites the codes in every currency column in upper case, `ada` to `ADA` among them, so database queries that select by currency (for example the FX rate lookup) find old rows too. It leaves codes inside stored JSON alone, and a `mappedcurrency` row whose upper-case twin exists. `lovelace` and `wei` become `LOVELACE` and `WEI`; their amounts are converted later (§7 Part C). `CurrencyCodesUpperCaseMigrationTest` covers it.
 
 `CurrencyCodesTest` (unit) covers the rule. The two letter-case defects in `CurrencyHandlingTest` are no longer pending. `AssetLookupTest`, `FundsAvailableTest` (lower-case `eur` now gives 200) and `ExchangeRateTest` (an FX rate created with `eur`/`usd` is stored as `EUR`/`USD` and read back with lower-case path segments) were updated.
+
+
+**Step 8.** An amount with more decimal places than its currency allows is refused with 400 (OBP-10068, `InvalidAmountPrecision`) instead of being cut off when stored. `code.asset.AmountPrecision` finds the amounts; `ResourceDocMiddleware.validateAmountPrecision` runs it as the last validation step, after authentication and Roles, so it applies to every static endpoint in every version:
+- **Where an amount is found.** In a JSON body, an object with an `amount` field (any letter case) next to its currency: the field named `currency`, or else the object's only currency-named field. In a query string, an `amount` parameter next to a currency parameter. Numbers are parsed exactly (`useBigDecimalForDouble`). Trailing zeros do not count.
+- **Not checked.** Unknown codes and non-numbers (left to the endpoint), and crypto assets: `AssetLookup.enforcedDecimalPlaces` is None for a registry `CRYPTO` asset and for `lovelace` and `wei`. Their registered decimal places are still the built-in 2, so enforcing them would refuse 0.001 ETH. They are checked once §7 records their real precision.
+- **Not changed.** Amounts OBP computes itself (FX conversion, for example) are still cut off by `convertToSmallestCurrencyUnits`; only amounts a caller sends are refused.
+- **Precision used.** The registry's decimal places, which still equal the built-in table (§7 Part B corrects them). So CZK is held at 0 decimal places and 10.50 CZK is refused, as it would be stored as 10 today.
+
+`code.asset.AmountPrecisionTest` (unit) covers the rule; `code.api.v4_0_0.AmountPrecisionTest` covers account creation and a SANDBOX_TAN transaction request; `FundsAvailableTest` covers a query amount.
 
 ---
 

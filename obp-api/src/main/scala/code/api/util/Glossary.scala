@@ -7242,6 +7242,10 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |Currency codes are case-insensitive: `eur`, `Eur` and `EUR` all name the same Asset and get the same decimal places. OBP upper-cases a currency code in a request before the endpoint handles it, so it is validated, compared and stored as `EUR`. This applies to the fields of a JSON request body that hold a currency code (`currency`, `from_currency_code` and the like) and to query parameters named the same way. Codes stored before this rule, in another letter case, are still compared ignoring case.
 				 |
+				 |## Decimal places of an amount
+				 |
+				 |OBP does not round or cut off an amount. A request carrying an amount with more decimal places than its currency allows, such as 12.345 EUR or 100.5 JPY, is refused with 400 (OBP-10068). Trailing zeros do not count, so 100.00 JPY is accepted. This applies to every object in a JSON request body that holds an `amount` next to its currency (UK Open Banking's `Amount` and `Currency` included), and to an `amount` query parameter next to a currency parameter. Amounts in crypto assets (ADA, ETH, XBT, and the units `lovelace` and `wei`) are not checked yet, because the registry does not yet record their real precision.
+				 |
 				 |## Endpoints
 				 |
 				 |These need no authentication.

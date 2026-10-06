@@ -153,6 +153,7 @@ object ErrorMessages {
   val IpPenaltyAlreadyExists = "OBP-10064: This IP address already has a penalty. Remove it first to change it."
   val IpPenaltyNotFound = "OBP-10065: This IP address has no penalty."
   val InvalidTrafficWindow = "OBP-10067: Invalid window. Use window=1, 5 or 15 (minutes)."
+  val InvalidAmountPrecision = "OBP-10068: Invalid amount precision. The amount has more decimal places than its currency allows, and OBP does not round or cut off amounts."
   val InvalidIpPenalty = "OBP-10066: Invalid IP penalty. per_minute_limit must be 0 or more, duration_minutes between 1 and 10080 (one week), and reason between 1 and 255 characters."
   // Not an error: the text of the X-Rate-Limit-Warning header a self-service endpoint returns in
   // shadow mode. SCOPE and LIMIT are replaced at runtime, e.g. "signup" and "5 per hour".

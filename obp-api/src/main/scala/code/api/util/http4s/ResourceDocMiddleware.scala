@@ -364,6 +364,7 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- processForceError(req, resourceDoc, context)
       context <- validateAuthType(resourceDoc, context)
       context <- validateJsonSchema(resourceDoc, context)
+      context <- validateAmountPrecision(req, context)
     } yield context
 
     result.value.map {
@@ -610,6 +611,32 @@ object ResourceDocMiddleware extends MdcLoggable {
         // Mirror Lift's afterAuthenticateInterceptors prefix so tests asserting on
         // `$InvalidRequestPayload` still pass.
         val message = s"${code.api.util.ErrorMessages.InvalidRequestPayload} $errorMsg"
+        EitherT[IO, Response[IO], ValidationContext](
+          ErrorResponseConverter.createErrorResponse(400, message, ctx.callContext)
+            .map[Either[Response[IO], ValidationContext]](Left(_))
+        )
+      case None => success(ctx)
+    }
+  }
+
+  /**
+   * This refuses, with 400, a request carrying an amount with more decimal places than its currency
+   * allows, such as 12.345 EUR. Before this check such an amount was cut off when it was stored, so
+   * part of it silently disappeared. The amounts it looks at, and the currencies it leaves alone, are
+   * described in [[code.asset.AmountPrecision]].
+   *
+   * It runs last, once the caller is known to be allowed to make the request, so an unauthenticated
+   * caller still gets 401 and one without the Role 403. The body it reads is the one in the
+   * CallContext, whose currency codes are already upper case (withCurrencyCodesUpperCased).
+   */
+  private def validateAmountPrecision(req: Request[IO], ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    import code.asset.AmountPrecision
+    val excess = ctx.callContext.httpBody.flatMap(AmountPrecision.inJsonBody)
+      .orElse(AmountPrecision.inQuery(req.uri.query.pairs))
+    excess match {
+      case Some(found) =>
+        val message = s"${code.api.util.ErrorMessages.InvalidAmountPrecision} ${found.describe}"
         EitherT[IO, Response[IO], ValidationContext](
           ErrorResponseConverter.createErrorResponse(400, message, ctx.callContext)
             .map[Either[Response[IO], ValidationContext]](Left(_))
