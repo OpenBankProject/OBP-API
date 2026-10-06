@@ -368,6 +368,51 @@ Returns the status of a signing basket object.
     http4sPartialFunction = Some(getSigningBasketStatus)
   )
 
+  // ── GET /signing-baskets/BASKETID/execution ───────────────────────────
+  // Not part of the standard. The basket's status can say only RCVD or ACTC; when the authorisation was
+  // answered but a payment could not be booked, this says what happened to each member.
+  val getSigningBasketExecution: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `bgV13Prefix` / "signing-baskets" / basketid / "execution" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        val callContext = Some(cc)
+        for {
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
+          members <- Future(SigningBasketX.signingBasketProvider.vend.getSigningBasketMemberExecutions(basketid))
+        } yield {
+          getSigningBasketExecutionResultsJson(basket, members)
+        }
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getSigningBasketExecution),
+    "GET",
+    "/signing-baskets/BASKETID/execution",
+    "Read what executing the signing basket did to each member",
+    s"""${mockedDataText(false)}
+This is an extension of the ASPSP, not part of the Berlin Group standard.
+
+Answering the authorisation of a signing basket books its payments one after another. The basket is ACTC
+only when every one was booked. When one could not be, the basket stays RCVD, and this call says what became
+of each member: PENDING (not started), EXECUTING, DONE (booked), FAILED (refused, and may be tried again) or
+UNKNOWN (the executor stopped without recording an outcome; an operator reconciles it).
+
+Only the TPP that created the basket may read this.
+""",
+    EmptyBody,
+    JvalueCaseClass(json.parse("""{
+  "transactionStatus" : "RCVD",
+  "members" : [
+    { "memberType" : "payment", "memberId" : "4f4a8b7f-9968-4183-92ab-ca512b396bfc", "state" : "DONE", "detail" : "Booked", "attempts" : 1 },
+    { "memberType" : "payment", "memberId" : "88695566-6642-46d5-9985-0d824624f507", "state" : "FAILED", "detail" : "Booking failed", "attempts" : 1 }
+  ]
+}""")),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
+    apiTagSigningBaskets :: Nil,
+    http4sPartialFunction = Some(getSigningBasketExecution)
+  )
+
   // ── POST /signing-baskets/BASKETID/authorisations ─────────────────────
   val startSigningBasketAuthorisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `bgV13Prefix` / "signing-baskets" / basketId / "authorisations" =>
@@ -618,6 +663,7 @@ There are the following request types on this access path:
       .orElse(getSigningBasketAuthorisation(req))
       .orElse(getSigningBasketScaStatus(req))
       .orElse(getSigningBasketStatus(req))
+      .orElse(getSigningBasketExecution(req))
       .orElse(startSigningBasketAuthorisation(req))
       .orElse(updateSigningBasketPsuData(req))
   }

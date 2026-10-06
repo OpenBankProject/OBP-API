@@ -67,6 +67,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
   object getSigningBasketScaStatus extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketScaStatus))
   object getSigningBasketAuthorisation extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketAuthorisation))
   object updateSigningBasketPsuData extends Tag(nameOf(APIMethods_SigningBasketsApi.updateSigningBasketPsuData))
+  object getSigningBasketExecution extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketExecution))
 
   // ───────────────────────────── fixtures ─────────────────────────────
 
@@ -903,6 +904,23 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       withClue("the basket is no longer RCVD to be deleted: ") {
         expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (user1)), 409, "STATUS_INVALID", "deleting an incompletely executed basket")
       }
+    }
+
+    scenario("S4: the creating TPP reads what happened to each member, and nobody else can", BerlinGroupV1_3, SBS, getSigningBasketExecution) {
+      enableBasketAuthorisation()
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \\ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+
+      val response = makeGetRequest((basketUrl(basketId) / "execution").GET <@ (user1))
+      response.code should equal(200)
+      (response.body \\ "transactionStatus").extract[String] should equal("RCVD")
+      val members = (response.body \\ "members").children.map(m => (m \\ "memberId").extract[String] -> (m \\ "state").extract[String])
+      members should equal(List(good -> "DONE", bad -> "FAILED"))
+      expectRefusal(makeGetRequest((basketUrl(basketId) / "execution").GET <@ (user2)), 403, "RESOURCE_UNKNOWN", "another TPP reading the results")
+      expectRefusal(makeGetRequest((basketUrl(UUID.randomUUID().toString) / "execution").GET <@ (user1)), 403, "RESOURCE_UNKNOWN", "an unknown basket")
     }
 
     scenario("S4: executing again books nothing twice, retries a failed payment a limited number of times, then leaves it", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {

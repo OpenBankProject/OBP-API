@@ -77,6 +77,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
                                                   authorisationId: String,
                                                   psuMessage: String,
                                                   _links: SigningBasketScaLinksV13)
+  // An ASPSP extension: what executing the basket's authorisation did to each member.
+  case class SigningBasketMemberResultJson(memberType: String, memberId: String, state: String, detail: String, attempts: Int)
+  case class SigningBasketExecutionResultsJson(transactionStatus: String, members: List[SigningBasketMemberResultJson])
   case class SigningBasketGetResponseJson(
                                         transactionStatus: String,
                                         payments: Option[List[String]],
@@ -926,6 +929,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
       consents = basket.consents,
     )
   }
+
+  def getSigningBasketExecutionResultsJson(basket: SigningBasketContent,
+                                           members: List[code.signingbaskets.SigningBasketMemberExecution]): SigningBasketExecutionResultsJson =
+    SigningBasketExecutionResultsJson(
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.basket.status),
+      members = members.map(m => SigningBasketMemberResultJson(m.memberType, m.memberId, m.state, m.detail, m.attempts))
+    )
 
   def getSigningBasketStatusResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
     SigningBasketGetResponseJson(
