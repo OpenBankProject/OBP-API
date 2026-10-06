@@ -100,6 +100,10 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
     "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
     "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md."
 
+  private val filesNotYetServed =
+    "the Files tables (code.files) exist but no endpoint writes them yet. The endpoints must store " +
+    "cc.onBehalfOfUserId as the owner (ideas/ogcr_file_storage.md) and reject a consent user as grantee."
+
   private val mechanicalBatch =
     "Phase 2 mechanical batch: the provider does not call attributionOf yet, so a consent user's " +
     "row is stored against the consent user and dies with the Consent."
@@ -141,6 +145,12 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
     "ApiProductSubscription_CreatedByUserId"           -> mechanicalBatch,
     "DynamicGlossaryItem_CreatedByUserId"              -> mechanicalBatch,
     "Organisation_CreatedByUserId"                     -> mechanicalBatch,
+    "Asset_CreatedByUserId" ->
+      "no endpoint writes the asset registry yet; only the boot seed does. Wire it with the asset write endpoints.",
+    "File_UserId"                -> filesNotYetServed,
+    "FileAttachment_UserId"      -> filesNotYetServed,
+    "FileAccess_GrantedByUserId" -> filesNotYetServed,
+    "FileAccess_GranteeUserId"   -> filesNotYetServed,
     "PayeeLookup_CreatedByUserId"                      -> mechanicalBatch,
     "RoutingScheme_CreatedByUserId"                    -> mechanicalBatch,
     "UtilityPaymentCallback_CreatedByUserId"           -> mechanicalBatch,

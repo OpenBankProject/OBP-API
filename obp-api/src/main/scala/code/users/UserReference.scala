@@ -161,6 +161,7 @@ object UserReference {
   case object UserRefreshes_UserId                             extends UserReference(UseAuthenticatedUserId, "code.UserRefreshes.MappedUserRefreshes", List("mUserId"), "operational: refresh of the authenticated user's own account list")
   case object PlatformApp_MarkedByUserId                       extends UserReference(UseAuthenticatedUserId, "code.platformapp.PlatformApp", List("MarkedByUserId"), "audit: who marked the Consumer as a platform app")
   case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
+  case object AssetStatusHistory_ChangedByUserId              extends UserReference(UseAuthenticatedUserId, "code.asset.AssetStatusHistory", List("ChangedByUserId"), "audit: who changed the asset's status, the question a regulator asks")
 
   // ---- UseOnBehalfOfUserId: the row belongs to the person, so it must outlive the Consent that
   // ---- created it. A handful of these tables keep both ids, and those name two fields.
@@ -201,6 +202,11 @@ object UserReference {
   case object DomainApi_CreatedByUserId                        extends UserReference(UseOnBehalfOfUserId   , "code.domainapi.DomainApi", List("CreatedByUserId"), "the Domain API's creator; a published API outlives the Consent that created it")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
   case object Organisation_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.organisation.Organisation", List("CreatedByUserId"), "outlives the Consent that created it")
+  case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
+  case object File_UserId                                      extends UserReference(UseOnBehalfOfUserId   , "code.files.File", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who uploaded (the agent), OnBehalfOfUserId = the human, who owns the file")
+  case object FileAttachment_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAttachment", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who attached (the agent), OnBehalfOfUserId = the human")
+  case object FileAccess_GrantedByUserId                       extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAccess", List("GrantedByUserId", "OnBehalfOfUserId"), "record both: GrantedByUserId = who granted (the agent), OnBehalfOfUserId = the file's owner it acted for")
+  case object FileAccess_GranteeUserId                         extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAccess", List("GranteeUserId"), "explicit target: the User given access is named in the request; access given to a consent user would die with its Consent")
   case object PayeeLookup_CreatedByUserId                      extends UserReference(UseOnBehalfOfUserId   , "code.payeelookup.PayeeLookup", List("CreatedByUserId"), "outlives the Consent that created it")
   case object RoutingScheme_CreatedByUserId                    extends UserReference(UseOnBehalfOfUserId   , "code.routingscheme.RoutingScheme", List("CreatedByUserId"), "outlives the Consent that created it")
   case object UtilityPaymentCallback_CreatedByUserId           extends UserReference(UseOnBehalfOfUserId   , "code.utilitypayment.UtilityPaymentCallback", List("CreatedByUserId"), "outlives the Consent that created it")
@@ -255,6 +261,7 @@ object UserReference {
     UserRefreshes_UserId,
     PlatformApp_MarkedByUserId,
     GroupMembership_CreatedByUserId,
+    AssetStatusHistory_ChangedByUserId,
     TransactionRequest_UserId,
     Entitlement_UserId,
     GroupMembership_UserId,
@@ -291,6 +298,11 @@ object UserReference {
     DomainApi_CreatedByUserId,
     Bank_CreatedByUserId,
     Organisation_CreatedByUserId,
+    Asset_CreatedByUserId,
+    File_UserId,
+    FileAttachment_UserId,
+    FileAccess_GrantedByUserId,
+    FileAccess_GranteeUserId,
     PayeeLookup_CreatedByUserId,
     RoutingScheme_CreatedByUserId,
     UtilityPaymentCallback_CreatedByUserId,
