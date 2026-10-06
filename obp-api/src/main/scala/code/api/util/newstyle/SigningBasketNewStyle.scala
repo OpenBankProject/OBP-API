@@ -35,11 +35,12 @@ import code.api.util.Consent
 import code.consent.{ConsentStatus, Consents}
 import code.api.util.ErrorMessages.{ConsentDoesNotMatchUser, SigningBasketAuthorisationNotFound, SigningBasketMemberMixInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, SigningBasketNotFound}
 import code.bankconnectors.Connector
+import code.consumer.Consumers
 import code.signingbaskets.SigningBasketX
 import code.users.Users
 import code.util.Helper.{MdcLoggable, booleanToFuture}
 import com.openbankproject.commons.model.enums.{ChallengeType, TransactionRequestTypes}
-import com.openbankproject.commons.model.{ChallengeTrait, SigningBasketContent}
+import com.openbankproject.commons.model.{ChallengeTrait, SigningBasketContent, TransactionRequest, TransactionRequestId}
 import net.liftweb.common.{Box, Empty, Full}
 
 import scala.concurrent.Future
@@ -161,16 +162,51 @@ object SigningBasketNewStyle extends MdcLoggable {
       _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
         awaitingScaPaymentStatuses.contains(payment.status)
       }
-    } yield payment.on_behalf_of_user_id.flatMap(Consent.present).filter(isPerson(_, cc))
+    } yield paymentPsu(payment, cc.consumer.map(_.key.get))
 
   /**
-   * Whether this user is a person rather than the calling TPP's own pseudo-user. A client-credentials
-   * token resolves to an auto-created user keyed on the consumer's own key, and a payment lodged on one
-   * records it as the user it was made for; it names nobody a basket could be bound to.
+   * Whether this user is a person rather than the TPP's own pseudo-user. A client-credentials token
+   * resolves to an auto-created user keyed on the consumer's own key, and a payment lodged on one
+   * records it as a user it was made by or for; it names nobody a basket could be bound to.
    */
-  private def isPerson(userId: String, cc: CallContext): Boolean =
+  private def isPerson(userId: String, tppConsumerKey: Option[String]): Boolean =
     Users.users.vend.getUserByUserId(userId).toOption
-      .forall(user => !cc.consumer.map(_.key.get).contains(user.idGivenByProvider))
+      .forall(user => !tppConsumerKey.contains(user.idGivenByProvider))
+
+  /**
+   * The PSU a payment is for. A payment records two identities, the principal that lodged it and, when it
+   * was lodged for somebody, the one it was lodged for, and the rule that lets a caller address it
+   * accepts either (BerlinGroupPaymentAccess). So the PSU is whichever of the two is a person: the one it
+   * was lodged for if that is one, otherwise the one that lodged it. Reading only the first lets a payment
+   * a PSU lodged themselves join a basket that names nobody, to be bound to somebody else.
+   */
+  private def paymentPsu(payment: TransactionRequest, tppConsumerKey: Option[String]): Option[String] =
+    List(payment.on_behalf_of_user_id, payment.user_id).flatten.flatMap(Consent.present).find(isPerson(_, tppConsumerKey))
+
+  /**
+   * The PSUs the members of a basket name. Empty when none names anyone, one when they agree. Read off the
+   * members as they are now, because they can change between creating the basket and authorising it.
+   */
+  private def knownMemberPsus(basket: SigningBasketContent, callContext: Option[CallContext]): Future[Set[String]] = Future {
+    val tppKey = basket.basket.consumerId.flatMap(id => Consumers.consumers.vend.getConsumerByConsumerId(id).toOption.map(_.key.get))
+    val payments = basket.payments.getOrElse(Nil).flatMap { id =>
+      Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(id), callContext).toOption.flatMap(r => paymentPsu(r._1, tppKey))
+    }
+    val consents = basket.consents.getOrElse(Nil).flatMap { id =>
+      Consents.consentProvider.vend.getConsentByConsentId(id).toOption.flatMap(c => Consent.present(c.userId))
+    }
+    (payments ++ consents).toSet
+  }
+
+  /**
+   * Refuse a PSU the members do not all name. The PSU named when an authorisation is started, and the one
+   * the answer is checked as, must be the one every member that names a PSU is for; otherwise someone else
+   * could authorise a member that is not theirs. Answered like any other refusal to address the basket.
+   */
+  def requireMembersForPsu(basket: SigningBasketContent, psuUserId: String, callContext: Option[CallContext]): Future[Unit] =
+    knownMemberPsus(basket, callContext).flatMap { named =>
+      booleanToFuture(failMsg = SigningBasketNotFound, failCode = 403, cc = callContext)(named.forall(_ == psuUserId)).map(_ => ())
+    }
 
   // A payment lodged for SCA is stored RCVD (BG initiation) or INITIATED; anything else has been booked,
   // rejected or cancelled, or is being authorised some other way.
@@ -249,6 +285,7 @@ object SigningBasketNewStyle extends MdcLoggable {
             if (reason == ConsentDoesNotMatchUser) (SigningBasketNotFound, 403) else (reason, 401)
           booleanToFuture(failMsg = failMsg, failCode = failCode, cc = callContext)(false).map(_ => "")
       }
+      _ <- requireMembersForPsu(basket, psuUserId, callContext)
       bound <- Future(SigningBasketX.signingBasketProvider.vend.bindSigningBasketPsu(basket.basket.basketId, psuUserId))
       _ <- booleanToFuture(failMsg = SigningBasketNotFound, failCode = 403, cc = callContext)(bound.openOr(false))
     } yield psuUserId

@@ -1087,6 +1087,50 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
+  feature("BG v1.3 signing baskets - the PSU of a member is the PSU of the basket") {
+    // A payment a PSU lodged themselves records them as the user that lodged it and nothing as the user it was
+    // lodged for. The rule that lets a TPP address the payment accepts either, so the PSU is read from both.
+    def paymentLodgedByPsu(): String = {
+      val payment = lodgePayment()
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, payment)).openOrThrowException("payment")
+        .mOnBehalfOfUserId("").saveMe()
+      payment
+    }
+    // A basket that names no PSU yet, as a client-credentials TPP's would be.
+    def basketWithoutPsu(payment: String): String =
+      SigningBasketX.signingBasketProvider.vend.createSigningBasket(Some(List(payment)), None, testConsumer.consumerId.get, None)
+        .openOrThrowException("basket").basketId
+    def startNamingPsu(basketId: String, psuName: String) =
+      makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", psuName)))
+
+    scenario("S1: another PSU cannot be bound to a basket whose payment was lodged by a PSU", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val basketId = basketWithoutPsu(paymentLodgedByPsu())
+      expectRefusal(startNamingPsu(basketId, resourceUser2.name), 403, "RESOURCE_UNKNOWN", "naming a PSU the payment is not for")
+      storedChallengeCount(basketId) should equal(0)
+      SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId).map(_.basket.psuUserId) should equal(net.liftweb.common.Full(None))
+      withClue("the PSU the payment is for can start it: ") { startNamingPsu(basketId, resourceUser1.name).code should equal(201) }
+    }
+
+    scenario("S1: a member that changes hands before the answer is not authorised by the PSU the authorisation was started for", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val payment = paymentLodgedByPsu()
+      val basketId = basketWithoutPsu(payment)
+      val started = startNamingPsu(basketId, resourceUser1.name)
+      started.code should equal(201)
+      val authorisationId = (started.body \\ "authorisationId").extract[String]
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, payment)).openOrThrowException("payment")
+        .mUserId(resourceUser2.userId).saveMe()
+
+      expectRefusal(answerAuthorisation(basketId, authorisationId, as = clientCredentialsSession), 403, "RESOURCE_UNKNOWN", "answering for a PSU the payment is no longer for")
+      storedBasketStatus(basketId) should equal(Some("RCVD"))
+      storedPaymentStatus(payment) should equal(awaitingSca)
+      withClue("the answer was not consumed: ") {
+        Challenges.ChallengeProvider.vend.getChallenge(authorisationId).map(_.successful) should equal(net.liftweb.common.Full(false))
+      }
+    }
+  }
+
   // ───────────────────────── concurrency ─────────────────────────
 
   feature("BG v1.3 signing baskets - a delete racing the final answer has exactly one winner") {

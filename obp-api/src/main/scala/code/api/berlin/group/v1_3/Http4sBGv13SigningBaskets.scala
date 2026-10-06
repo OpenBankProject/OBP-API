@@ -564,6 +564,8 @@ This applies in the following scenarios:
           // The answer is the PSU's, relayed by the TPP under Embedded, so it is checked against the
           // challenge's own PSU rather than the principal on the token.
           (psu, _) <- NewStyle.function.findByUserId(startedChallenge.expectedUserId, callContext)
+          // Every member that names a PSU must name this one, as when the authorisation was started.
+          _ <- SigningBasketNewStyle.requireMembersForPsu(basket, psu.userId, callContext)
           // The PSU has to hold the accounts each consent names, as when they authorise a consent on its own.
           // Before the answer is checked and before anything changes: activation is not one transaction.
           _ <- consents.flatMap(_._2.toList).foldLeft(Future.successful(())) { (previous, consent) =>
