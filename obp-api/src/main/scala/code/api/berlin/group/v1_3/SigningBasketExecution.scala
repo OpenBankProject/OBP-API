@@ -86,6 +86,25 @@ object SigningBasketExecution extends MdcLoggable {
     loop(provider.getSigningBasketMemberExecutions(basketId)).flatMap(allDone => finish(basketId, allDone))
   }
 
+  /**
+   * Picks up executions that stopped: members left EXECUTING past the lease become UNKNOWN, and every basket
+   * still AUTHORISING or EXECUTION_INCOMPLETE that has not moved for the lease is executed again from where
+   * it stopped. Safe to run on several nodes at once, since each member and each status change is claimed
+   * with a conditional update. Returns how many baskets were looked at.
+   */
+  def resumePending(leaseSeconds: Long, limit: Int): Future[Int] = {
+    provider.markStaleSigningBasketMembersUnknown(leaseSeconds)
+    val baskets = provider.getSigningBasketsAwaitingExecution(leaseSeconds, limit)
+    baskets.foldLeft(Future.successful(())) { (previous, basketId) =>
+      previous.flatMap(_ => execute(basketId, None).transform {
+        case Failure(error) =>
+          logger.error(s"Resuming the execution of signing basket $basketId failed", error)
+          Success(false)
+        case ok => ok
+      }.map(_ => ()))
+    }.map(_ => baskets.size)
+  }
+
   private def finish(basketId: String, allDone: Boolean): Future[Boolean] = Future {
     val authorising = ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL
     val incomplete = ConstantsBG.SigningBasketsStatus.EXECUTION_INCOMPLETE_INTERNAL

@@ -643,6 +643,7 @@ class Boot extends MdcLoggable {
     }
     ConsentScheduler.startAll()
     TransactionScheduler.startAll()
+    SigningBasketScheduler.startAll()
 
 
     code.metrics.MetricsProps.enableMetricsScheduler match {

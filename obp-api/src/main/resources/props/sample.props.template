@@ -1686,6 +1686,13 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 # A payment on any other connector whose booking failed is left UNKNOWN for an operator.
 #signing_basket_member_max_attempts = 3
 
+# Resuming signing basket executions that stopped (for instance because the process booking the payments died).
+# The interval is in seconds (0 switches it off); the lease is how long a basket or member may sit without moving
+# before it counts as stopped. A member left executing past the lease becomes UNKNOWN and is reconciled by its
+# transaction id, or left for an operator.
+#signing_basket_resume_interval_in_seconds = 593
+#signing_basket_execution_lease_in_seconds = 300
+
 # Support multiple brands on one instance. Note this needs checking on a clustered environment
 #brands_enabled=false
 

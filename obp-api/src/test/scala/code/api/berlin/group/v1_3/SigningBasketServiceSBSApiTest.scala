@@ -966,6 +966,53 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
+  feature("BG v1.3 signing baskets - an execution that stopped is resumed from where it stopped") {
+    scenario("S4: a basket claimed but never started is executed by the resumption, once, and only after the lease", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      val payments = List(lodgePayment(), lodgePayment())
+      val basketId = createBasket(payments)
+      val provider = SigningBasketX.signingBasketProvider.vend
+      // The state a crash leaves behind: the answer was accepted and the basket claimed, and nothing was booked.
+      provider.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      provider.createSigningBasketMemberExecutions(basketId, payments.map("payment" -> _))
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
+
+      withClue("within the lease it is left alone: ") {
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(3600, 50), 60.seconds)
+        balanceOf(ibanFrom) should equal(fromBefore)
+        storedBasketStatusRaw(basketId) should equal("AUTHORISING")
+      }
+      Thread.sleep(1200)
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(1, 50), 60.seconds)
+      balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+      balanceOf(ibanTo) should equal(toBefore + 2 * 2001)
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1), ("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+
+      withClue("resuming again books nothing: ") {
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(1, 50), 60.seconds)
+        balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+      }
+    }
+
+    scenario("S4: two resumptions at once book each payment once", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      val ibanFrom = ibanAccounts.head
+      val payments = List(lodgePayment(), lodgePayment())
+      val basketId = createBasket(payments)
+      val provider = SigningBasketX.signingBasketProvider.vend
+      provider.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      provider.createSigningBasketMemberExecutions(basketId, payments.map("payment" -> _))
+      val fromBefore = balanceOf(ibanFrom)
+      Thread.sleep(1200)
+      val resumptions = (1 to 3).map(_ => Future(Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds)))
+      Await.result(Future.sequence(resumptions), 120.seconds)
+      balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+      memberResults(basketId).map(_._3) should equal(List(1, 1))
+    }
+  }
+
   // ───────────────────────── concurrency ─────────────────────────
 
   feature("BG v1.3 signing baskets - a delete racing the final answer has exactly one winner") {
