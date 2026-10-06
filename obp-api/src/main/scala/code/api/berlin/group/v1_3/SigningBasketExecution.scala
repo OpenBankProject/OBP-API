@@ -157,7 +157,7 @@ object SigningBasketExecution extends MdcLoggable {
               outcome <-
                 if (consent.status == ConsentStatus.valid.toString && consent.userId == psuUserId)
                   Future.successful("Already valid")
-                else if (consent.status != ConsentStatus.received.toString)
+                else if (!BerlinGroupConsentActivation.canActivate(consent, psuUserId))
                   Future.failed(new IllegalStateException(s"The consent is ${consent.status}, not waiting for authorisation"))
                 else for {
                   // The binding point, so the holdings check is repeated here: an account can change hands

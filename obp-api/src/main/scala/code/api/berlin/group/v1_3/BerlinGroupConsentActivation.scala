@@ -38,25 +38,40 @@ import scala.concurrent.Future
 
 /**
  * Makes a Berlin Group consent valid once the PSU's SCA for it has succeeded: grants the access an
- * "allAccounts" consent leaves open, marks the consent valid, and binds it to the PSU.
+ * "allAccounts" consent leaves open, binds the consent to the PSU, and marks it valid.
  *
  * The consent authorisation (PUT /consents/{id}/authorisations/{id}) performs the same steps inline,
  * interleaved with checking the answer. A signing basket checks the answer once for all its members and
- * then activates each consent here. The order is the one the consent route documents: grant before the
- * status changes, so a consent never becomes valid without the access it names; bind last.
+ * then activates each consent here.
  *
- * Idempotent, so that a basket resumed after a stop can run it again: a consent already valid and bound
- * to this PSU is returned as it is.
+ * It can be run again after a stop at any point. The status changes last, so a stop leaves the consent
+ * `received`, with its access granted and perhaps already bound to the PSU, and running it again completes
+ * it. A consent made valid by an earlier version of this method, which set the status before binding, and
+ * left unbound by a stop between the two, is completed by binding it. A consent already valid and bound to
+ * this PSU is returned as it is.
  */
 object BerlinGroupConsentActivation {
 
+  private def bound(consent: ConsentTrait): Option[String] = Consent.present(consent.userId)
+
+  /** Whether activating this consent for this PSU can still lead to a valid consent bound to them. */
+  def canActivate(consent: ConsentTrait, psuUserId: String): Boolean =
+    consent.status == ConsentStatus.received.toString ||
+      (consent.status == ConsentStatus.valid.toString && bound(consent).forall(_ == psuUserId))
+
   def activate(consent: ConsentTrait, psu: User, callContext: Option[CallContext]): Future[ConsentTrait] =
-    if (consent.status == ConsentStatus.valid.toString && consent.userId == psu.userId) Future.successful(consent)
-    else for {
+    if (consent.status == ConsentStatus.valid.toString) {
+      bound(consent) match {
+        case Some(user) if user == psu.userId => Future.successful(consent)
+        // Valid but not bound: a stop between the two steps. Bind it; the access was granted before.
+        case None => Consent.bindBerlinGroupConsentToPsu(consent.consentId, psu, callContext).map(_ => consent)
+        case Some(_) => Future.failed(new IllegalStateException(s"The consent is already valid for another PSU"))
+      }
+    } else for {
       _ <- Consent.grantBerlinGroupAvailableAccountsAccess(psu, consent)
         .map(unboxFullOrFail(_, callContext, ConsentAccountAccessCannotBeGranted))
+      _ <- Consent.bindBerlinGroupConsentToPsu(consent.consentId, psu, callContext)
       valid <- Future(Consents.consentProvider.vend.updateConsentStatus(consent.consentId, ConsentStatus.valid))
         .map(unboxFullOrFail(_, callContext, ConsentUpdateStatusError))
-      _ <- Consent.bindBerlinGroupConsentToPsu(consent.consentId, psu, callContext)
     } yield valid
 }

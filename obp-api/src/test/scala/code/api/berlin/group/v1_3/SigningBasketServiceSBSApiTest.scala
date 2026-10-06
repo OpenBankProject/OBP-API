@@ -1040,6 +1040,53 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
+  feature("BG v1.3 signing baskets - a consent activation that stopped part way is completed by resuming") {
+    // A basket claimed for execution with a consent that the stop left in the given state.
+    def stoppedConsentBasket(stopped: String => Unit): (String, String) = {
+      val consentId = createUnclaimedBerlinGroupConsent().consentId
+      stopped(consentId)
+      val provider = SigningBasketX.signingBasketProvider.vend
+      val basketId = provider.createSigningBasket(None, Some(List(consentId)), testConsumer.consumerId.get, Some(resourceUser1.userId))
+        .openOrThrowException("basket").basketId
+      provider.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      provider.createSigningBasketMemberExecutions(basketId, List("consent" -> consentId))
+      (basketId, consentId)
+    }
+    def consentOf(id: String) = code.consent.Consents.consentProvider.vend.getConsentByConsentId(id).openOrThrowException("consent")
+
+    scenario("C10: a consent made valid but not yet bound is bound, not refused as no longer waiting", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val (basketId, consentId) = stoppedConsentBasket { id =>
+        code.consent.Consents.consentProvider.vend.updateConsentStatus(id, code.consent.ConsentStatus.valid)
+      }
+      consentOf(consentId).userId should not equal resourceUser1.userId
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(true)
+      consentOf(consentId).userId should equal(resourceUser1.userId)
+      consentOf(consentId).status should equal(code.consent.ConsentStatus.valid.toString)
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: a consent bound but not yet valid is made valid", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val (basketId, consentId) = stoppedConsentBasket { id =>
+        code.consent.Consents.consentProvider.vend.updateConsentUser(id, resourceUser1)
+      }
+      consentOf(consentId).status should equal(code.consent.ConsentStatus.received.toString)
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(true)
+      consentOf(consentId).status should equal(code.consent.ConsentStatus.valid.toString)
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: a consent already valid for another PSU is not taken over", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val (basketId, consentId) = stoppedConsentBasket { id =>
+        code.consent.Consents.consentProvider.vend.updateConsentUser(id, resourceUser2)
+        code.consent.Consents.consentProvider.vend.updateConsentStatus(id, code.consent.ConsentStatus.valid)
+      }
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      consentOf(consentId).userId should equal(resourceUser2.userId)
+      memberResults(basketId).map(_._2) should equal(List("FAILED"))
+    }
+  }
+
   // ───────────────────────── concurrency ─────────────────────────
 
   feature("BG v1.3 signing baskets - a delete racing the final answer has exactly one winner") {
