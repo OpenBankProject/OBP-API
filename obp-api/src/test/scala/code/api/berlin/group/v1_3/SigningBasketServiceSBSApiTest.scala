@@ -986,6 +986,24 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       storedBasketStatusRaw(empty.basketId) should equal("EXECUTION_INCOMPLETE")
     }
 
+    scenario("S3: when the attempts are used up the basket is rejected with its payments, and cannot be answered again", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val started = startedBasket()
+      val wrong = """{"scaAuthenticationData":"definitely-wrong"}"""
+      val allowed = code.api.util.APIUtil.allowedAnswerTransactionRequestChallengeAttempts
+      val codes = (1 to allowed + 1).map(_ => answerAuthorisation(started.basketId, started.authorisationId, body = wrong).code)
+      withClue(s"codes $codes: ") {
+        codes.foreach(_ should equal(401))
+        storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal("REJECTED"))
+      }
+      withClue("the right answer no longer authorises anything: ") {
+        val before = balanceOf(ibanAccounts.head)
+        answerAuthorisation(started.basketId, started.authorisationId).code should equal(409)
+        balanceOf(ibanAccounts.head) should equal(before)
+      }
+    }
+
     scenario("S4: a payment stored INITIATED is admitted and then booked like one stored RCVD, and ends COMPLETED", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val ibanFrom = ibanAccounts.head

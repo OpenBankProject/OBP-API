@@ -517,6 +517,26 @@ This applies in the following scenarios:
     else if (message.contains("OBP-40016") || message.contains("OBP-20211") || message.contains("OBP-40014")) (message, 401)
     else (message, 400)
 
+  /**
+   * A basket whose authorisation failed for good is rejected, with the payments it held, and frees its
+   * members. Only one caller wins the move out of RCVD, so a basket that is being answered correctly at
+   * the same time is not rejected.
+   */
+  private def rejectBasket(basketId: String, paymentIds: List[String], callContext: Option[CallContext]): Future[Unit] = {
+    val provider = SigningBasketX.signingBasketProvider.vend
+    Future(provider.transitionSigningBasketStatus(
+      basketId, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.RJCT.toString).openOr(false)).flatMap {
+      case false => Future.successful(())
+      case true =>
+        provider.releaseSigningBasketMembers(basketId)
+        paymentIds.foldLeft(Future.successful(())) { (previous, id) =>
+          previous.flatMap(_ =>
+            NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(id), REJECTED.toString, callContext)
+              .map(_ => ()).recover { case _ => () })
+        }
+    }
+  }
+
   // ── PUT /signing-baskets/BASKETID/authorisations/AUTHORISATIONID ───────
   //
   // Order matters, and nothing may be changed until the answer has been checked:
@@ -581,16 +601,26 @@ This applies in the following scenarios:
             SuppliedAnswerType.PLAIN_TEXT_VALUE,
             callContext.map(_.copy(user = Full(psu)))
           )
-          challenge <- Future {
-            boxedChallenge match {
-              case Full(answered) => answered
-              case failure =>
-                val (message, code) = challengeFailure(failure match {
-                  case f: Failure => f.msg
-                  case _ => InvalidConnectorResponse
-                })
-                unboxFullOrFail(Empty: Box[ChallengeTrait], callContext, message, code)
-            }
+          // Only an answer the challenge records as finalised authorises anything. A connector may hand back the
+          // challenge itself with a failed status, which is a refusal, not a success.
+          challenge <- boxedChallenge match {
+            case Full(answered) if answered.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised) =>
+              Future.successful(answered)
+            case other =>
+              // The answer failed for good (the connector says failed, or the attempts are used up): the basket
+              // is rejected, and so are its payments, so the same basket cannot be answered again with a new
+              // authorisation and a new allowance of guesses.
+              val failedForGood = other match {
+                case Full(answered) => answered.scaStatus.contains(StrongCustomerAuthenticationStatus.failed)
+                case f: Failure => f.msg.contains("OBP-40014")
+                case _ => false
+              }
+              val (message, code) = challengeFailure(other match {
+                case f: Failure => f.msg
+                case _ => InvalidChallengeAnswer
+              })
+              (if (failedForGood) rejectBasket(basketId, paymentIds, callContext) else Future.successful(()))
+                .flatMap(_ => Future(unboxFullOrFail(Empty: Box[ChallengeTrait], callContext, message, code)))
           }
           claimed <- Future(provider.transitionSigningBasketStatus(
             basketId, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL))
