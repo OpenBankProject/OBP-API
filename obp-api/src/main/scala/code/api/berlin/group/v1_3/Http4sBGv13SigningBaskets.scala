@@ -36,11 +36,12 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, ge
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
-import code.api.util.{ApiTag, CallContext, NewStyle}
+import code.api.util.{ApiTag, CallContext, Consent, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.SigningBasketNewStyle
 import code.api.util.newstyle.SigningBasketNewStyle.{AuthorisationOperation, CreatorOnly}
 import code.bankconnectors.Connector
+import code.consent.{ConsentStatus, Consents}
 import code.signingbaskets.{SigningBasketMemberState, SigningBasketX}
 import code.util.Helper.{MdcLoggable, booleanToFuture}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -541,9 +542,6 @@ This applies in the following scenarios:
           _ <- booleanToFuture(SigningBasketAuthorisationDisabled, failCode = 403, cc = callContext) {
             getPropsAsBoolValue("signing_basket_authorisation_enabled", defaultValue = false)
           }
-          _ <- booleanToFuture(SigningBasketConsentNotSupported, failCode = 400, cc = callContext) {
-            basket.consents.forall(_.isEmpty)
-          }
           _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
             basket.basket.status == ConstantsBG.SigningBasketsStatus.RCVD.toString
           }
@@ -557,9 +555,20 @@ This applies in the following scenarios:
           _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
             !members.exists(_._2.exists(_._1.status == COMPLETED.toString))
           }
+          consentIds = basket.consents.getOrElse(Nil)
+          consents <- Future(consentIds.map(id => id -> Consents.consentProvider.vend.getConsentByConsentId(id)))
+          _ <- booleanToFuture(SigningBasketMemberNotFound, failCode = 400, cc = callContext)(consents.forall(_._2.isDefined))
+          _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
+            consents.forall(_._2.exists(_.status == ConsentStatus.received.toString))
+          }
           // The answer is the PSU's, relayed by the TPP under Embedded, so it is checked against the
           // challenge's own PSU rather than the principal on the token.
           (psu, _) <- NewStyle.function.findByUserId(startedChallenge.expectedUserId, callContext)
+          // The PSU has to hold the accounts each consent names, as when they authorise a consent on its own.
+          // Before the answer is checked and before anything changes: activation is not one transaction.
+          _ <- consents.flatMap(_._2.toList).foldLeft(Future.successful(())) { (previous, consent) =>
+            previous.flatMap(_ => Consent.assertBerlinGroupConsentAccountsHeld(psu, consent, callContext).map(_ => ()))
+          }
           (boxedChallenge, _) <- NewStyle.function.validateChallengeAnswerC5(
             ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
             None,
@@ -585,7 +594,8 @@ This applies in the following scenarios:
             basketId, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL))
           _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext)(claimed.openOr(false))
           // Each member is recorded, then booked in order. The basket becomes ACTC only if every one is.
-          _ <- Future(provider.createSigningBasketMemberExecutions(basketId, paymentIds.map(SigningBasketMemberState.PaymentType -> _)))
+          _ <- Future(provider.createSigningBasketMemberExecutions(basketId,
+            paymentIds.map(SigningBasketMemberState.PaymentType -> _) ::: consentIds.map(SigningBasketMemberState.ConsentType -> _)))
           allDone <- SigningBasketExecution.execute(basketId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.createUpdateSigningBasketPsuDataJson(basketId, challenge, executionIncomplete = !allDone)
@@ -651,7 +661,7 @@ There are the following request types on this access path:
                     }
                   }
                 }""")),
-    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketNotFound, SigningBasketAuthorisationNotFound, SigningBasketAuthorisationVariantNotSupported, SigningBasketAuthorisationDisabled, SigningBasketConsentNotSupported, SigningBasketStatusInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, InvalidChallengeAnswer, UnknownError),
+    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketNotFound, SigningBasketAuthorisationNotFound, SigningBasketAuthorisationVariantNotSupported, SigningBasketAuthorisationDisabled, SigningBasketStatusInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, InvalidChallengeAnswer, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(updateSigningBasketPsuData)
   )

@@ -29,7 +29,8 @@ package code.api.berlin.group.v1_3
 
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.getPropsAsIntValue
-import code.api.util.{CallContext, NewStyle}
+import code.api.util.{CallContext, Consent, NewStyle}
+import code.consent.{ConsentStatus, Consents}
 import code.signingbaskets.{SigningBasketMemberExecution, SigningBasketMemberState, SigningBasketX}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -86,6 +87,10 @@ object SigningBasketExecution extends MdcLoggable {
     loop(provider.getSigningBasketMemberExecutions(basketId)).flatMap(allDone => finish(basketId, allDone))
   }
 
+  /** The PSU the basket was authorised by, bound when its authorisation was started. */
+  private def basketPsu(basketId: String): Option[String] =
+    provider.getSigningBasketByBasketId(basketId).toOption.flatMap(_.basket.psuUserId)
+
   /**
    * Picks up executions that stopped: members left EXECUTING past the lease become UNKNOWN, and every basket
    * still AUTHORISING or EXECUTION_INCOMPLETE that has not moved for the lease is executed again from where
@@ -124,9 +129,50 @@ object SigningBasketExecution extends MdcLoggable {
   private def executeMember(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] =
     member.memberType match {
       case PaymentType => executePayment(basketId, member, callContext)
-      // Activating a consent is not available yet, so a basket holding one is not executed.
-      case _ => record(basketId, member, Set(Pending, Failed), Failed, "Activating a consent through a signing basket is not available").map(_ => false)
+      case ConsentType => executeConsent(basketId, member, callContext)
+      case other => record(basketId, member, Set(Pending, Failed), Failed, s"Unknown member type $other").map(_ => false)
     }
+
+  /**
+   * Activates a consent: it becomes valid and is bound to the PSU, as if the PSU had authorised it on its
+   * own. Activation is idempotent (a consent already valid and bound to this PSU is simply DONE), so unlike a
+   * payment a consent may be claimed again from any state short of DONE, up to the attempts allowed.
+   */
+  private def executeConsent(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] = {
+    def finishWith(to: String, detail: String): Future[Boolean] =
+      record(basketId, member, Set(Executing, Unknown), to, detail).map(_ => to == Done)
+    val claimFrom = if (member.attempts == 0) Set(Pending) else if (member.attempts < maxAttempts) Set(Pending, Failed, Unknown) else Set(Pending)
+    record(basketId, member, claimFrom, Executing, "").flatMap {
+      case false => Future.successful(false)
+      case true =>
+        basketPsu(basketId) match {
+          case None => finishWith(Failed, "The basket has no PSU, so there is nobody to bind the consent to")
+          case Some(psuUserId) =>
+            val activation = for {
+              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(member.memberId)).map {
+                case Full(found) => found
+                case _ => throw new IllegalStateException("The consent cannot be read")
+              }
+              (psu, _) <- NewStyle.function.findByUserId(psuUserId, callContext)
+              outcome <-
+                if (consent.status == ConsentStatus.valid.toString && consent.userId == psuUserId)
+                  Future.successful("Already valid")
+                else if (consent.status != ConsentStatus.received.toString)
+                  Future.failed(new IllegalStateException(s"The consent is ${consent.status}, not waiting for authorisation"))
+                else for {
+                  // The binding point, so the holdings check is repeated here: an account can change hands
+                  // between the answer and the activation.
+                  _ <- Consent.assertBerlinGroupConsentAccountsHeld(psu, consent, callContext)
+                  _ <- BerlinGroupConsentActivation.activate(consent, psu, callContext)
+                } yield "Activated"
+            } yield outcome
+            activation.transform(Success(_)).flatMap {
+              case Success(detail) => finishWith(Done, detail)
+              case Failure(error) => finishWith(Failed, Option(error.getMessage).getOrElse(error.getClass.getSimpleName))
+            }
+        }
+    }
+  }
 
   private def record(basketId: String, member: SigningBasketMemberExecution, from: Set[String], to: String, detail: String): Future[Boolean] = Future {
     provider.transitionSigningBasketMemberExecution(basketId, member.memberType, member.memberId, from, to, detail).openOr(false)

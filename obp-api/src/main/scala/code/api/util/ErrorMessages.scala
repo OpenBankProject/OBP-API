@@ -883,7 +883,6 @@ object ErrorMessages {
   val SigningBasketAuthorisationNotFound = "OBP-35052: Signing basket authorisation not found by AUTHORISATION_ID. "
   val SigningBasketStatusInvalid = "OBP-35053: The signing basket's status does not allow this operation. "
   val SigningBasketAuthorisationDisabled = "OBP-35054: Authorising signing baskets is not enabled at this instance. "
-  val SigningBasketConsentNotSupported = "OBP-35055: This signing basket contains a consent, and authorising a consent through a signing basket is not supported yet. "
   val SigningBasketMemberNotFound = "OBP-35056: A payment or consent named for the signing basket was not found. "
   val SigningBasketMemberStatusInvalid = "OBP-35057: A payment or consent named for the signing basket is not in a state that can be authorised, or is already in another signing basket. "
   val SigningBasketMemberMixInvalid = "OBP-35058: The payments and consents named for the signing basket cannot be authorised together. "

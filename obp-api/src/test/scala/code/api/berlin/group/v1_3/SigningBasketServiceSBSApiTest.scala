@@ -562,36 +562,63 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       storedBasketStatus(started.basketId) should equal(Some("ACTC"))
     }
 
-    scenario("C10: a basket with a consent member is refused at authorisation before anything changes (consent activation is not supported yet)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    scenario("C10: authorising a basket of a consent makes it valid and binds it to the PSU", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
-      val consentResponse = makePostRequest((V1_3_BG / "consents").POST <@ (user1), write(bgConsentPostBody()))
-      consentResponse.code should equal(201)
-      val consentId = (consentResponse.body \ "consentId").extract[String]
-      val payment = lodgePayment()
+      // One consent: a second recurring consent for the same PSU and TPP would end the first.
+      val consentIds = List.fill(1)((makePostRequest((V1_3_BG / "consents").POST <@ (user1), write(bgConsentPostBody())).body \\ "consentId").extract[String])
+      val created = postBasket(s"""{"consentIds":${idList(consentIds)}}""")
+      created.code should equal(201)
+      val basketId = created.body.extract[SigningBasketResponseJson].basketId
+      val authorisationId = (startAuthorisation(basketId).body \\ "authorisationId").extract[String]
 
-      val consentOnly = postBasket(s"""{"consentIds":${idList(List(consentId))}}""")
-      consentOnly.code should equal(201)
-      val consentOnlyBasket = consentOnly.body.extract[SigningBasketResponseJson].basketId
-      val consentOnlyAuth = (startAuthorisation(consentOnlyBasket).body \ "authorisationId").extract[String]
-      expectRefusal(answerAuthorisation(consentOnlyBasket, consentOnlyAuth), 400, "SERVICE_INVALID", "authorising a consent-only basket")
-      storedBasketStatus(consentOnlyBasket) should equal(Some("RCVD"))
-
-      // The consent is held by the first basket, so a mixed basket needs another one.
-      val secondConsent = makePostRequest((V1_3_BG / "consents").POST <@ (user1), write(bgConsentPostBody()))
-      val secondConsentId = (secondConsent.body \ "consentId").extract[String]
-      val mixed = postBasket(s"""{"paymentIds":${idList(List(payment))},"consentIds":${idList(List(secondConsentId))}}""")
-      mixed.code should equal(201)
-      val mixedBasket = mixed.body.extract[SigningBasketResponseJson].basketId
-      val mixedAuth = (startAuthorisation(mixedBasket).body \ "authorisationId").extract[String]
-      expectRefusal(answerAuthorisation(mixedBasket, mixedAuth), 400, "SERVICE_INVALID", "authorising a mixed basket")
-      withClue("the payment was not marked completed and the basket was not marked ACTC: ") {
-        storedBasketStatus(mixedBasket) should equal(Some("RCVD"))
-        storedPaymentStatus(payment) should equal(awaitingSca)
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      consentIds.foreach { id =>
+        val consent = code.consent.Consents.consentProvider.vend.getConsentByConsentId(id).openOrThrowException("consent")
+        withClue(s"consent $id: ") {
+          consent.status should equal(code.consent.ConsentStatus.valid.toString)
+          consent.userId should equal(resourceUser1.userId)
+        }
       }
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
     }
 
-    // Pending until consent activation is specified; the target is recorded so it is not forgotten.
-    ignore("C10 (target, execution phase): authorising a consent-only basket leaves the consent valid", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {}
+    scenario("C10: a basket of a payment and a consent books the payment and activates the consent", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val consentId = (makePostRequest((V1_3_BG / "consents").POST <@ (user1), write(bgConsentPostBody())).body \\ "consentId").extract[String]
+      val created = postBasket(s"""{"paymentIds":${idList(List(payment))},"consentIds":${idList(List(consentId))}}""")
+      created.code should equal(201)
+      val basketId = created.body.extract[SigningBasketResponseJson].basketId
+      val authorisationId = (startAuthorisation(basketId).body \\ "authorisationId").extract[String]
+      val fromBefore = balanceOf(ibanFrom)
+
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      balanceOf(ibanFrom) should equal(fromBefore - 2001)
+      storedPaymentStatus(payment) should equal("COMPLETED")
+      code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId).map(_.status) should equal(net.liftweb.common.Full(code.consent.ConsentStatus.valid.toString))
+      memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(payment -> "DONE", consentId -> "DONE"))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: a PSU who does not hold the consent's accounts cannot authorise it through a basket, and nothing changes", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val consentId = createUnclaimedBerlinGroupConsent().consentId // names an account resourceUser2 does not hold
+      val created = postBasket(s"""{"consentIds":${idList(List(consentId))}}""", as = clientCredentialsSession)
+      created.code should equal(201)
+      val basketId = created.body.extract[SigningBasketResponseJson].basketId
+      val started = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser2.name)))
+      started.code should equal(201)
+      val authorisationId = (started.body \\ "authorisationId").extract[String]
+
+      expectRefusal(answerAuthorisation(basketId, authorisationId, as = clientCredentialsSession), 403, "CONSENT_UNKNOWN", "a PSU without the accounts")
+      storedBasketStatus(basketId) should equal(Some("RCVD"))
+      code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId).map(_.status) should equal(net.liftweb.common.Full(code.consent.ConsentStatus.received.toString))
+      withClue("the answer was not consumed: ") {
+        Challenges.ChallengeProvider.vend.getChallenge(authorisationId).map(_.successful) should equal(net.liftweb.common.Full(false))
+      }
+    }
   }
 
   // ───────────────────────── unknown resources: C4, C8, C11 ─────────────────────────
