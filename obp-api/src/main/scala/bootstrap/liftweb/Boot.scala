@@ -125,7 +125,7 @@ import code.regulatedentities.attribute.RegulatedEntityAttribute
 import code.counterpartyattribute.{CounterpartyAttribute => CounterpartyAttributeMapper}
 import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope, Scope}
-import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketMemberClaim, MappedSigningBasketPayment}
+import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketMemberClaim, MappedSigningBasketMemberExecution, MappedSigningBasketPayment}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
@@ -1005,6 +1005,7 @@ object ToSchemify extends MdcLoggable {
     MappedSigningBasketPayment,
     MappedSigningBasketConsent,
     MappedSigningBasketMemberClaim,
+    MappedSigningBasketMemberExecution,
     MappedRegulatedEntity,
     AtmAttribute,
     AbacRule,

@@ -103,6 +103,7 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     }
     if (result.isEmpty) created.foreach { basket =>
       tryo {
+        MappedSigningBasketMemberExecution.bulkDelete_!!(By(MappedSigningBasketMemberExecution.BasketId, basket.basketId))
         MappedSigningBasketMemberClaim.bulkDelete_!!(By(MappedSigningBasketMemberClaim.BasketId, basket.basketId))
         MappedSigningBasketPayment.bulkDelete_!!(By(MappedSigningBasketPayment.BasketId, basket.basketId))
         MappedSigningBasketConsent.bulkDelete_!!(By(MappedSigningBasketConsent.BasketId, basket.basketId))
@@ -113,6 +114,70 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
       case Failure(_, Full(_: MemberAlreadyHeld), _) => Failure(SigningBasketMemberStatusInvalid)
       case other => other
     }
+  }
+
+  override def createSigningBasketMemberExecutions(basketId: String, members: List[(String, String)]): Box[Boolean] =
+    tryo {
+      DB.use(DefaultConnectionIdentifier) { _ =>
+        members.zipWithIndex.foreach { case ((memberType, memberId), position) =>
+          val exists = MappedSigningBasketMemberExecution.find(
+            By(MappedSigningBasketMemberExecution.BasketId, basketId),
+            By(MappedSigningBasketMemberExecution.MemberType, memberType),
+            By(MappedSigningBasketMemberExecution.MemberId, memberId)).isDefined
+          if (!exists)
+            MappedSigningBasketMemberExecution.create
+              .BasketId(basketId).MemberType(memberType).MemberId(memberId)
+              .Position(position).State(SigningBasketMemberState.Pending).Detail("").Attempts(0)
+              .saveMe()
+        }
+      }
+      true
+    }
+
+  override def getSigningBasketMemberExecutions(basketId: String): List[SigningBasketMemberExecution] =
+    MappedSigningBasketMemberExecution
+      .findAll(By(MappedSigningBasketMemberExecution.BasketId, basketId), OrderBy(MappedSigningBasketMemberExecution.Position, Ascending))
+      .map(row => SigningBasketMemberExecution(
+        row.MemberType.get, row.MemberId.get, row.Position.get, row.State.get, Option(row.Detail.get).getOrElse(""), row.Attempts.get))
+
+  override def transitionSigningBasketMemberExecution(basketId: String,
+                                                      memberType: String,
+                                                      memberId: String,
+                                                      from: Set[String],
+                                                      to: String,
+                                                      detail: String): Box[Boolean] =
+    tryo {
+      val m = MappedSigningBasketMemberExecution
+      val fromList = from.toList
+      // A claim is the move to EXECUTING, and counts as an attempt.
+      val attemptsSql = if (to == SigningBasketMemberState.Executing) s", ${m.Attempts._dbColumnNameLC} = ${m.Attempts._dbColumnNameLC} + 1" else ""
+      DB.runUpdate(
+        s"UPDATE ${m.dbTableName} SET ${m.State._dbColumnNameLC} = ?, ${m.Detail._dbColumnNameLC} = ?, " +
+          s"${m.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP$attemptsSql " +
+          s"WHERE ${m.BasketId._dbColumnNameLC} = ? AND ${m.MemberType._dbColumnNameLC} = ? AND ${m.MemberId._dbColumnNameLC} = ? " +
+          s"AND ${m.State._dbColumnNameLC} IN (${fromList.map(_ => "?").mkString(", ")})",
+        List[Any](to, detail.take(2000), basketId, memberType, memberId) ++ fromList) == 1
+    }
+
+  override def markStaleSigningBasketMembersUnknown(olderThanSeconds: Long): Box[Int] =
+    tryo {
+      val m = MappedSigningBasketMemberExecution
+      val cutoff = new java.sql.Timestamp(System.currentTimeMillis() - olderThanSeconds * 1000)
+      DB.runUpdate(
+        s"UPDATE ${m.dbTableName} SET ${m.State._dbColumnNameLC} = ?, ${m.Detail._dbColumnNameLC} = ?, " +
+          s"${m.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP " +
+          s"WHERE ${m.State._dbColumnNameLC} = ? AND ${m.updatedAt._dbColumnNameLC} < ?",
+        List[Any](SigningBasketMemberState.Unknown, "The executor stopped before recording an outcome", SigningBasketMemberState.Executing, cutoff))
+    }
+
+  override def getSigningBasketsAwaitingExecution(olderThanSeconds: Long, limit: Int): List[String] = {
+    val cutoff = new java.util.Date(System.currentTimeMillis() - olderThanSeconds * 1000)
+    MappedSigningBasket.findAll(
+      ByList(MappedSigningBasket.Status, List(ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL, ConstantsBG.SigningBasketsStatus.EXECUTION_INCOMPLETE_INTERNAL)),
+      BySql[MappedSigningBasket](s"${MappedSigningBasket.updatedAt._dbColumnNameLC} < ?", IHaveValidatedThisSQL("signing-basket", "2026-10-06"), cutoff),
+      OrderBy(MappedSigningBasket.updatedAt, Ascending),
+      MaxRows(limit)
+    ).map(_.basketId)
   }
 
   override def releaseSigningBasketMembers(basketId: String): Box[Boolean] =
@@ -207,4 +272,20 @@ class MappedSigningBasketMemberClaim extends LongKeyedMapper[MappedSigningBasket
 object MappedSigningBasketMemberClaim extends MappedSigningBasketMemberClaim with LongKeyedMetaMapper[MappedSigningBasketMemberClaim] {
   override def dbTableName = "SigningBasketMemberClaim"
   override def dbIndexes = UniqueIndex(MemberKey) :: Index(BasketId) :: super.dbIndexes
+}
+
+/** Per member, how executing the basket's authorisation went. See SigningBasketMemberExecution. */
+class MappedSigningBasketMemberExecution extends LongKeyedMapper[MappedSigningBasketMemberExecution] with IdPK with CreatedUpdated {
+  override def getSingleton = MappedSigningBasketMemberExecution
+  object BasketId extends MappedUUID(this)
+  object MemberType extends MappedString(this, 16)
+  object MemberId extends MappedString(this, 255)
+  object Position extends MappedInt(this)
+  object State extends MappedString(this, 16)
+  object Detail extends MappedString(this, 2000)
+  object Attempts extends MappedInt(this)
+}
+object MappedSigningBasketMemberExecution extends MappedSigningBasketMemberExecution with LongKeyedMetaMapper[MappedSigningBasketMemberExecution] {
+  override def dbTableName = "SigningBasketMemberExecution"
+  override def dbIndexes = UniqueIndex(BasketId, MemberType, MemberId) :: super.dbIndexes
 }

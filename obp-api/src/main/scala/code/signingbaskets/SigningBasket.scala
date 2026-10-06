@@ -38,6 +38,38 @@ object SigningBasketX extends SimpleInjector {
   private def buildOne: SigningBasketProvider = MappedSigningBasketProvider
 }
 
+/**
+ * What happened to one member of a basket when the basket's authorisation was executed.
+ *
+ * `state` is one of SigningBasketMemberState. `detail` says why for FAILED and UNKNOWN. The state is
+ * the member's own and is never folded into the basket's status: a basket can be RCVD while its
+ * first payment is DONE and its second FAILED, and the TPP reads that here.
+ */
+case class SigningBasketMemberExecution(
+  memberType: String,
+  memberId: String,
+  position: Int,
+  state: String,
+  detail: String,
+  attempts: Int
+)
+
+object SigningBasketMemberState {
+  /** Not started. */
+  val Pending = "PENDING"
+  /** Claimed by one executor; the outcome is not known yet. */
+  val Executing = "EXECUTING"
+  /** Booked (a payment) or activated (a consent), and recorded as such. */
+  val Done = "DONE"
+  /** Refused or failed before it took effect. Safe to try again. */
+  val Failed = "FAILED"
+  /** The executor stopped without recording an outcome. Whether it took effect is not known. */
+  val Unknown = "UNKNOWN"
+
+  val PaymentType = "payment"
+  val ConsentType = "consent"
+}
+
 trait SigningBasketProvider extends MdcLoggable {
 
   def getSigningBaskets(): List[SigningBasketTrait]
@@ -56,6 +88,33 @@ trait SigningBasketProvider extends MdcLoggable {
                           consumerId: String,
                           psuUserId: Option[String]
                          ): Box[SigningBasketTrait]
+
+  /** Records each member as PENDING, in the order given. Members already recorded are left as they are. */
+  def createSigningBasketMemberExecutions(basketId: String, members: List[(String, String)]): Box[Boolean]
+
+  /** The members of a basket with their execution state, in the order they were recorded. */
+  def getSigningBasketMemberExecutions(basketId: String): List[SigningBasketMemberExecution]
+
+  /**
+   * Moves one member from one of the given states to another, only if it is still in one of them.
+   * One conditional update, so two executors reaching for the same member have exactly one winner.
+   * `attempts` goes up each time a member is claimed (moved to EXECUTING).
+   */
+  def transitionSigningBasketMemberExecution(basketId: String,
+                                             memberType: String,
+                                             memberId: String,
+                                             from: Set[String],
+                                             to: String,
+                                             detail: String): Box[Boolean]
+
+  /**
+   * Members still EXECUTING after `olderThanSeconds` belong to an executor that stopped. They become
+   * UNKNOWN, because nothing records whether they took effect. Returns how many were moved.
+   */
+  def markStaleSigningBasketMembersUnknown(olderThanSeconds: Long): Box[Int]
+
+  /** Baskets whose execution has not finished, oldest first: AUTHORISING or EXECUTION_INCOMPLETE. */
+  def getSigningBasketsAwaitingExecution(olderThanSeconds: Long, limit: Int): List[String]
 
   /**
    * Frees the payments and consents a basket was holding, so they can join another basket. Called when

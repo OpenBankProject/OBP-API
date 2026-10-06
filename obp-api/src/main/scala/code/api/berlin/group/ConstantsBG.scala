@@ -55,7 +55,14 @@ object ConstantsBG {
      */
     val AUTHORISING_INTERNAL = "AUTHORISING"
 
+    /**
+     * Stored when the authorisation was answered correctly but not every member took effect: a payment
+     * failed, or an outcome is not known. Reported as RCVD, like AUTHORISING. The members' own results say
+     * what happened to each.
+     */
+    val EXECUTION_INCOMPLETE_INTERNAL = "EXECUTION_INCOMPLETE"
+
     def external(storedStatus: String): String =
-      if (storedStatus == AUTHORISING_INTERNAL) RCVD.toString else storedStatus
+      if (storedStatus == AUTHORISING_INTERNAL || storedStatus == EXECUTION_INCOMPLETE_INTERNAL) RCVD.toString else storedStatus
   }
 }

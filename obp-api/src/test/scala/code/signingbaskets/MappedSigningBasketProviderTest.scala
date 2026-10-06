@@ -158,4 +158,74 @@ class MappedSigningBasketProviderTest extends ServerSetup {
       }
     }
   }
+
+  feature("each member of a basket has its own execution state") {
+    import SigningBasketMemberState._
+
+    scenario("members are recorded PENDING in the order given, once") {
+      val basket = newBasket()
+      val (first, second, consent) = (uuid(), uuid(), uuid())
+      provider.createSigningBasketMemberExecutions(basket.basketId, List((PaymentType, first), (PaymentType, second), (ConsentType, consent)))
+        .openOrThrowException("x") should be(true)
+      // Recording them again changes nothing.
+      provider.createSigningBasketMemberExecutions(basket.basketId, List((PaymentType, second), (PaymentType, first)))
+      provider.getSigningBasketMemberExecutions(basket.basketId).map(m => (m.memberType, m.memberId, m.state, m.attempts)) should equal(
+        List((PaymentType, first, Pending, 0), (PaymentType, second, Pending, 0), (ConsentType, consent, Pending, 0)))
+    }
+
+    scenario("a member moves only from a state the caller names, and a claim counts as an attempt") {
+      val basket = newBasket()
+      val payment = uuid()
+      provider.createSigningBasketMemberExecutions(basket.basketId, List((PaymentType, payment)))
+      def move(from: Set[String], to: String, detail: String = "") =
+        provider.transitionSigningBasketMemberExecution(basket.basketId, PaymentType, payment, from, to, detail).openOrThrowException("x")
+      move(Set(Executing), Done) should be(false)
+      move(Set(Pending, Failed), Executing) should be(true)
+      move(Set(Pending, Failed), Executing) should be(false)
+      move(Set(Executing), Failed, "no funds") should be(true)
+      move(Set(Pending, Failed), Executing) should be(true)
+      move(Set(Executing), Done) should be(true)
+      val stored = provider.getSigningBasketMemberExecutions(basket.basketId).head
+      (stored.state, stored.attempts) should equal((Done, 2))
+    }
+
+    scenario("executors racing for one member have exactly one winner") {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      (1 to 10).foreach { round =>
+        val basket = newBasket()
+        val payment = uuid()
+        provider.createSigningBasketMemberExecutions(basket.basketId, List((PaymentType, payment)))
+        val executors = (1 to 8).map(_ => Future(
+          provider.transitionSigningBasketMemberExecution(basket.basketId, PaymentType, payment, Set(Pending), Executing, "").openOr(false)))
+        withClue(s"round $round: ") {
+          Await.result(Future.sequence(executors), 60.seconds).count(identity) should equal(1)
+          provider.getSigningBasketMemberExecutions(basket.basketId).head.attempts should equal(1)
+        }
+      }
+    }
+
+    scenario("a member still EXECUTING after the lease becomes UNKNOWN; one that finished does not") {
+      val basket = newBasket()
+      val (stuck, finished) = (uuid(), uuid())
+      provider.createSigningBasketMemberExecutions(basket.basketId, List((PaymentType, stuck), (PaymentType, finished)))
+      List(stuck, finished).foreach(id => provider.transitionSigningBasketMemberExecution(basket.basketId, PaymentType, id, Set(Pending), Executing, ""))
+      provider.transitionSigningBasketMemberExecution(basket.basketId, PaymentType, finished, Set(Executing), Done, "")
+      Thread.sleep(1200)
+      provider.markStaleSigningBasketMembersUnknown(1).openOrThrowException("x") should be >= 1
+      provider.getSigningBasketMemberExecutions(basket.basketId).map(m => m.memberId -> m.state).toMap should equal(
+        Map(stuck -> Unknown, finished -> Done))
+    }
+
+    scenario("baskets whose execution has not finished are listed, oldest first") {
+      val stuck = newBasket()
+      val done = newBasket()
+      provider.transitionSigningBasketStatus(stuck.basketId, "RCVD", code.api.berlin.group.ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL)
+      provider.transitionSigningBasketStatus(done.basketId, "RCVD", "ACTC")
+      Thread.sleep(1200)
+      val awaiting = provider.getSigningBasketsAwaitingExecution(1, 100)
+      awaiting should contain(stuck.basketId)
+      awaiting should not contain done.basketId
+      provider.getSigningBasketsAwaitingExecution(3600, 100) should not contain stuck.basketId
+    }
+  }
 }
