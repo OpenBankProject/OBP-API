@@ -7748,7 +7748,7 @@ object Http4s400 {
         |
         |This is a soft delete: the database row is kept, but the User's personal data is scrambled i.e. overwritten with random values:
         |
-        |* The username is replaced with DELETED-<random-string>
+        |* The username is replaced with `DELETED-<random-string>`
         |* The first name, last name and email are replaced with random values
         |* The password is replaced with a random value and the user is invalidated, so the User can no longer log in
         |* Any User Invitation that created the User is scrambled in the same way
