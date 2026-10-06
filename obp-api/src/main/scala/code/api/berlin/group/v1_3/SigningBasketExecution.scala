@@ -31,6 +31,7 @@ import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.getPropsAsIntValue
 import code.api.util.newstyle.SigningBasketNewStyle
 import code.api.util.{CallContext, Consent, NewStyle}
+import code.bankconnectors.{Connector, LocalMappedConnector, StarConnector}
 import code.consent.{ConsentStatus, Consents}
 import code.signingbaskets.{SigningBasketMemberExecution, SigningBasketMemberState, SigningBasketX}
 import code.util.Helper.MdcLoggable
@@ -82,13 +83,26 @@ object SigningBasketExecution extends MdcLoggable {
    * finish. Returns true when every member is DONE and the basket has become ACTC.
    */
   def execute(basketId: String, callContext: Option[CallContext]): Future[Boolean] = {
+    // A basket with nothing recorded to execute is not complete: every member is DONE only if there are members.
     def loop(rest: List[SigningBasketMemberExecution]): Future[Boolean] = rest match {
       case Nil => Future.successful(true)
       case member :: tail if member.state == Done => loop(tail)
       case member :: tail => executeMember(basketId, member, callContext).flatMap(done => if (done) loop(tail) else Future.successful(false))
     }
-    loop(provider.getSigningBasketMemberExecutions(basketId)).flatMap(allDone => finish(basketId, allDone))
+    if (ensureMembers(basketId)) loop(provider.getSigningBasketMemberExecutions(basketId)).flatMap(allDone => finish(basketId, allDone))
+    else finish(basketId, allDone = false)
   }
+
+  /**
+   * Records the basket's members as PENDING if they are not recorded yet (the call is idempotent), and says
+   * whether the basket has any. Done here, rather than only when the answer arrives, so that a run that stopped
+   * before recording them is repaired by the resumption instead of finishing a basket with nothing in it.
+   */
+  private def ensureMembers(basketId: String): Boolean =
+    provider.getSigningBasketByBasketId(basketId).toOption.exists { content =>
+      val members = content.payments.getOrElse(Nil).map(PaymentType -> _) ::: content.consents.getOrElse(Nil).map(ConsentType -> _)
+      members.nonEmpty && provider.createSigningBasketMemberExecutions(basketId, members).openOr(false)
+    }
 
   /** The PSU the basket was authorised by, bound when its authorisation was started. */
   private def basketPsu(basketId: String): Option[String] =
@@ -257,12 +271,21 @@ object SigningBasketExecution extends MdcLoggable {
       case _ => Future.successful(false)
     }
 
-  /** Whether the connector that books this payment is the mapped one. Only it is retried automatically. */
+  /**
+   * Whether the connector that books this payment is the mapped one. Only it is retried automatically.
+   * With the star connector the method routing decides (none means mapped); with any other `connector`
+   * value that connector books everything, whatever the routing table holds.
+   */
   private def isMappedConnector(fromAccount: BankAccount, payment: TransactionRequest, callContext: Option[CallContext]): Boolean =
     scala.util.Try {
-      code.bankconnectors.getConnectorNameAndMethodRouting(
-        "createTransactionAfterChallengeV210",
-        Array("fromAccount" -> fromAccount, "transactionRequest" -> payment, "callContext" -> callContext)
-      )._2 == "mapped"
+      Connector.connector.vend match {
+        case LocalMappedConnector => true
+        case StarConnector =>
+          code.bankconnectors.getConnectorNameAndMethodRouting(
+            "createTransactionAfterChallengeV210",
+            Array("fromAccount" -> fromAccount, "transactionRequest" -> payment, "callContext" -> callContext)
+          )._2 == "mapped"
+        case _ => false
+      }
     }.getOrElse(false)
 }

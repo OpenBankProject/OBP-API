@@ -967,6 +967,25 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       memberResults(basketId).map(r => r._1 -> (r._2, r._3)).toMap should equal(Map(good -> ("DONE", 1), bad -> ("FAILED", 3)))
     }
 
+    scenario("S4: a basket claimed before its members were recorded has them recorded and executed by the resumption, not completed empty", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val basketId = createBasket(List(payment))
+      SigningBasketX.signingBasketProvider.vend.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      memberResults(basketId) should equal(Nil)
+      val before = balanceOf(ibanFrom)
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(true)
+      balanceOf(ibanFrom) should equal(before - 2001)
+      storedPaymentStatus(payment) should equal("COMPLETED")
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("S4: a basket with nothing to execute is never completed", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val empty = MappedSigningBasket.create.Status("AUTHORISING").ConsumerId("nobody").saveMe()
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(empty.basketId, None), 60.seconds) should be(false)
+      storedBasketStatusRaw(empty.basketId) should equal("EXECUTION_INCOMPLETE")
+    }
+
     scenario("S4: a payment stored INITIATED is admitted and then booked like one stored RCVD, and ends COMPLETED", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val ibanFrom = ibanAccounts.head

@@ -596,8 +596,6 @@ This applies in the following scenarios:
             basketId, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL))
           _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext)(claimed.openOr(false))
           // Each member is recorded, then booked in order. The basket becomes ACTC only if every one is.
-          _ <- Future(provider.createSigningBasketMemberExecutions(basketId,
-            paymentIds.map(SigningBasketMemberState.PaymentType -> _) ::: consentIds.map(SigningBasketMemberState.ConsentType -> _)))
           allDone <- SigningBasketExecution.execute(basketId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.createUpdateSigningBasketPsuDataJson(basketId, challenge, executionIncomplete = !allDone)
