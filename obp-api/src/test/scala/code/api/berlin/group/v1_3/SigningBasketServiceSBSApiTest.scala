@@ -1003,9 +1003,16 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       List(booked, unbooked).foreach(id => provider.transitionSigningBasketMemberExecution(basketId, "payment", id, Set("DONE"), "UNKNOWN", "test"))
       MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, unbooked)).openOrThrowException("payment")
         .mStatus(awaitingSca).mTransactionIDs("").saveMe()
+      // The booked payment was never marked COMPLETED either (its transaction id is all that was recorded).
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, booked)).openOrThrowException("payment")
+        .mStatus(awaitingSca).saveMe()
 
       Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
       withClue("nothing was booked again: ") { balanceOf(ibanFrom) should equal(afterBooking) }
+      withClue("a payment found booked is marked COMPLETED, so it no longer looks like one awaiting authorisation: ") {
+        storedPaymentStatus(booked) should equal("COMPLETED")
+      }
+      storedPaymentStatus(unbooked) should equal(awaitingSca)
       memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(booked -> "DONE", unbooked -> "UNKNOWN"))
       storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
     }

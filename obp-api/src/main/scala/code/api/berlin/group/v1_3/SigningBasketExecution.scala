@@ -35,6 +35,7 @@ import code.consent.{ConsentStatus, Consents}
 import code.signingbaskets.{SigningBasketMemberExecution, SigningBasketMemberState, SigningBasketX}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.{AccountId, BankAccount, BankId, TransactionRequest, TransactionRequestId}
 import net.liftweb.common.Full
 
@@ -184,6 +185,20 @@ object SigningBasketExecution extends MdcLoggable {
   private def claimableFrom(member: SigningBasketMemberExecution): Set[String] =
     if (member.attempts > 0 && member.attempts < maxAttempts) Set(Pending, Failed) else Set(Pending)
 
+  /**
+   * A booked payment is COMPLETED, as the payment routes leave it, so that it does not look like one still
+   * waiting for authorisation (the outdated-payment task rejects those). Failing to say so does not undo the
+   * booking, so it is logged and the member is still done; a later run says it again.
+   */
+  private def markCompleted(paymentId: String, callContext: Option[CallContext]): Future[Unit] =
+    NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(paymentId), TransactionRequestStatus.COMPLETED.toString, callContext)
+      .transform {
+        case Failure(error) =>
+          logger.warn(s"Signing basket: payment $paymentId is booked but could not be marked COMPLETED: ${error.getMessage}")
+          Success(())
+        case Success(_) => Success(())
+      }
+
   private def bookedTransactionIds(transactionRequest: TransactionRequest): Boolean =
     Option(transactionRequest.transaction_ids).exists(_.trim.nonEmpty)
 
@@ -200,7 +215,7 @@ object SigningBasketExecution extends MdcLoggable {
           case Failure(_) => finishWith(Failed, "The payment cannot be read")
           case Success((payment, _)) if bookedTransactionIds(payment) =>
             // Already booked, by an earlier attempt that did not get to record it.
-            finishWith(Done, s"Already booked: transaction ${payment.transaction_ids}")
+            markCompleted(member.memberId, callContext).flatMap(_ => finishWith(Done, s"Already booked: transaction ${payment.transaction_ids}"))
           case Success((payment, _)) if !awaitingAuthorisation.contains(payment.status) =>
             finishWith(Failed, s"The payment is ${payment.status}, not waiting for authorisation")
           case Success((payment, _)) => book(basketId, member, payment, callContext, finishWith)
@@ -219,13 +234,14 @@ object SigningBasketExecution extends MdcLoggable {
         case Success((fromAccount, _)) =>
           val mapped = isMappedConnector(fromAccount, payment, callContext)
           NewStyle.function.createTransactionAfterChallengeV210(fromAccount, payment, callContext).transform(Success(_)).flatMap {
-            case Success(_) => finishWith(Done, "Booked")
+            case Success(_) => markCompleted(member.memberId, callContext).flatMap(_ => finishWith(Done, "Booked"))
             case Failure(error) =>
               // The connector failed. Whether it booked first is read from the payment: a transaction id
               // means it did. Without one, the mapped connector is treated as not having booked, so the
               // payment can be tried again; any other connector may have, so it is left UNKNOWN.
               NewStyle.function.getTransactionRequestImpl(TransactionRequestId(member.memberId), callContext).transform(Success(_)).flatMap {
-                case Success((after, _)) if bookedTransactionIds(after) => finishWith(Done, s"Booked: transaction ${after.transaction_ids}")
+                case Success((after, _)) if bookedTransactionIds(after) =>
+                  markCompleted(member.memberId, callContext).flatMap(_ => finishWith(Done, s"Booked: transaction ${after.transaction_ids}"))
                 case _ if mapped => finishWith(Failed, s"Booking failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
                 case _ => finishWith(Unknown, s"The connector failed and may have booked: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
               }
@@ -236,7 +252,8 @@ object SigningBasketExecution extends MdcLoggable {
   private def reconcile(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] =
     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(member.memberId), callContext).transform(Success(_)).flatMap {
       case Success((payment, _)) if bookedTransactionIds(payment) =>
-        record(basketId, member, Set(Unknown), Done, s"Reconciled: transaction ${payment.transaction_ids}").map(_ => true)
+        markCompleted(member.memberId, callContext).flatMap(_ =>
+          record(basketId, member, Set(Unknown), Done, s"Reconciled: transaction ${payment.transaction_ids}").map(_ => true))
       case _ => Future.successful(false)
     }
 
