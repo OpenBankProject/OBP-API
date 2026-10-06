@@ -96,10 +96,19 @@ object MigrationOfCurrencyCodesUpperCase extends MdcLoggable {
     CurrencyColumn(OpenCorridorFeeAccrual, OpenCorridorFeeAccrual.Currency.dbColumnName)
   )
 
-  private def columnExists(table: String, column: String): Boolean =
+  /**
+   * This returns true when the table has the column. Names are compared ignoring letter case, as
+   * DbFunction.tableExists compares table names, because databases store unquoted names differently:
+   * PostgreSQL in lower case, H2 (used by CI) in upper case.
+   */
+  private def columnExists(actualTableName: String, column: String): Boolean =
     DB.use(DefaultConnectionIdentifier) { connection =>
-      val found = connection.getMetaData.getColumns(null, null, table, column)
-      try found.next() finally found.close()
+      val columns = connection.getMetaData.getColumns(null, null, actualTableName, null)
+      try {
+        var found = false
+        while (!found && columns.next()) found = columns.getString("COLUMN_NAME").equalsIgnoreCase(column)
+        found
+      } finally columns.close()
     }
 
   private def runUpdate(sql: String): Int =
@@ -160,10 +169,11 @@ object MigrationOfCurrencyCodesUpperCase extends MdcLoggable {
       val table = currencyColumn.table.dbTableName.toLowerCase
       val column = currencyColumn.column.toLowerCase
       val qualified = s"$table.$column"
-      if (!DbFunction.tableExists(currencyColumn.table)) {
+      val actualTableNames = new scala.collection.mutable.HashMap[String, String]()
+      if (!DbFunction.tableExists(currencyColumn.table, actualTableNames)) {
         missingColumns += s"$qualified (no such table)"
         logger.info(s"upperCaseEverywhere says: $qualified skipped, the table does not exist on this database")
-      } else if (!columnExists(table, column)) {
+      } else if (!columnExists(actualTableNames.getOrElse(currencyColumn.table._dbTableNameLC, table), column)) {
         missingColumns += s"$qualified (no such column)"
         logger.info(s"upperCaseEverywhere says: $qualified skipped, the column does not exist on this database")
       } else {
