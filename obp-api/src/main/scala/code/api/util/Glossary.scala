@@ -7244,7 +7244,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Decimal places of an amount
 				 |
-				 |OBP does not round or cut off an amount. A request carrying an amount with more decimal places than its currency allows, such as 12.345 EUR or 100.5 JPY, is refused with 400 (OBP-10068). Trailing zeros do not count, so 100.00 JPY is accepted. This applies to every object in a JSON request body that holds an `amount` next to its currency (UK Open Banking's `Amount` and `Currency` included), and to an `amount` query parameter next to a currency parameter. Amounts in crypto assets (ADA, ETH, XBT, and the units `lovelace` and `wei`) are not checked yet, because the registry does not yet record their real precision.
+				 |OBP does not round or cut off an amount. A request carrying an amount with more decimal places than its currency allows, such as 12.345 EUR or 100.5 JPY, is refused with 400 (OBP-10068). Trailing zeros do not count, so 100.00 JPY is accepted. This applies to every object in a JSON request body that holds an `amount` next to its currency (UK Open Banking's `Amount` and `Currency` included), and to an `amount` query parameter next to a currency parameter.
 				 |
 				 |## Endpoints
 				 |
