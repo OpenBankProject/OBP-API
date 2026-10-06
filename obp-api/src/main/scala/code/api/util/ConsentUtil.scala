@@ -237,7 +237,7 @@ object Consent extends MdcLoggable {
     * @return the Consumer-Key value from a Request Header as a String
     */
   def getConsumerKey(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consumer-Key`).toList match {
+    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consumer-Key`)).toList match {
       case x :: Nil => Some(x.values.mkString(", "))
       case _ => None
     }
@@ -1552,12 +1552,12 @@ object Consent extends MdcLoggable {
 
     // Collect optional headers
     val headers = callContext.map(_.requestHeaders).getOrElse(Nil)
-    val tppRedirectUri = headers.find(_.name == RequestHeader.`TPP-Redirect-URI`)
-    val tppNokRedirectUri = headers.find(_.name == RequestHeader.`TPP-Nok-Redirect-URI`)
-    val xRequestId = headers.find(_.name == RequestHeader.`X-Request-ID`)
-    val psuDeviceId = headers.find(_.name == RequestHeader.`PSU-Device-ID`)
-    val psuIpAddress = headers.find(_.name == RequestHeader.`PSU-IP-Address`)
-    val psuGeoLocation = headers.find(_.name == RequestHeader.`PSU-Geo-Location`)
+    val tppRedirectUri = headers.find(_.name.equalsIgnoreCase(RequestHeader.`TPP-Redirect-URI`))
+    val tppNokRedirectUri = headers.find(_.name.equalsIgnoreCase(RequestHeader.`TPP-Nok-Redirect-URI`))
+    val xRequestId = headers.find(_.name.equalsIgnoreCase(RequestHeader.`X-Request-ID`))
+    val psuDeviceId = headers.find(_.name.equalsIgnoreCase(RequestHeader.`PSU-Device-ID`))
+    val psuIpAddress = headers.find(_.name.equalsIgnoreCase(RequestHeader.`PSU-IP-Address`))
+    val psuGeoLocation = headers.find(_.name.equalsIgnoreCase(RequestHeader.`PSU-Geo-Location`))
 
     def sequenceBoxes[A](boxes: List[Box[A]]): Box[List[A]] = {
       boxes.foldRight(Full(Nil): Box[List[A]]) { (box, acc) =>
