@@ -1403,7 +1403,7 @@ object Http4s310 {
           } yield {
             val fundsAvailable = (view.allowed_actions.exists(_ == CAN_QUERY_AVAILABLE_FUNDS), account.balance, account.currency) match {
               case (false, _, _) => ""
-              case (true, _, c) if c != ccy => "no"
+              case (true, _, c) if !code.asset.CurrencyCodes.same(c, ccy) => "no"
               case (true, b, _) if b.compare(available) >= 0 => "yes"
               case _ => "no"
             }

@@ -59,7 +59,8 @@ The work is ordered so that each step changes nothing a caller can see until the
 | 4 | `Asset` and `AssetStatusHistory` tables, provider and boot seed (§2, §6, §7) | Done, not committed |
 | 5 | Read-only endpoints `GET /assets`, `GET /assets/ASSET_CODE`, reverse chain lookup (§8), and the Glossary entry (§11) | Done, not committed |
 | 6 | `isValidCurrencyISOCode` and `currencyDecimalPlaces` read from the registry (§4) | Done, not committed |
-| Later | Case-insensitive codes (§4), rejecting excess decimals (§4), write endpoints (§8), amount storage (§5, §7 Part A), precision corrections (§7 Part B), folding `lovelace` and `wei` (§7 Part C, §10) | Each changes behaviour or waits on an open question |
+| 7 | Case-insensitive codes (§4): codes upper-cased in requests by `ResourceDocMiddleware`, compared ignoring case | Done, not committed |
+| Later | Rejecting excess decimals (§4), write endpoints (§8), amount storage (§5, §7 Part A), precision corrections (§7 Part B), folding `lovelace` and `wei` (§7 Part C, §10) | Each changes behaviour or waits on an open question |
 
 **Step 1.** `CurrencyHandlingTest` is a pure unit test (no server, no database). It asserts correct behaviour only. The three known defects are written as the correct expectation inside `pendingUntilFixed`, so they report as pending now and fail, demanding the wrapper's removal, once fixed:
 - codes are not accepted in every letter case;
@@ -105,6 +106,15 @@ The JSON is in `JSONFactory700Assets.scala`, the endpoints carry the new `Asset`
 The registry is read once into memory and read again after any write through `Assets`. Every node seeds the same rows, and nothing else writes assets yet, so no cache expiry is needed; the write endpoints (§8) will need one across nodes. If the registry cannot be read (no database) or is empty (before the boot seed), the built-in list answers and nothing is kept. That list survives as `APIUtil.builtInCurrencyCodes` and `Helper.builtInCurrencyDecimalPlaces`; the seed reads it, so an empty database is still seeded at today's precisions.
 
 `AssetLookupTest` (`code.asset`, CI shard 8) checks that the seeded registry gives the built-in answer for every code, that a newly registered asset is accepted at once with its own decimal places, and that an empty registry falls back. Suites that rewrite the registry restore the seeded one when they end (`RestoresSeededAssetRegistry`), and the test database resets also clear the in-memory copy; otherwise a later suite in the same JVM, such as `CurrencyHandlingTest`, would read a registry holding only test assets. Run with `FundsAvailableTest`, both `TransactionRequestsTest` suites, the v4.0.0 `AccountTest` and `CardanoTransactionRequestTest`: 104 passed, 3 pending (the known defects), none failed.
+
+
+**Step 7.** Currency codes are case-insensitive. `code.asset.CurrencyCodes` holds the rule:
+- **Requests.** Once a static ResourceDoc has matched, `ResourceDocMiddleware.withCurrencyCodesUpperCased` upper-cases the currency codes in the request before the endpoint runs. In the JSON body it changes the string fields that the endpoint's example body uses for a currency code (a name ending in `currency` or `currency_code`, ignoring case and underscores); it edits the text, so amounts keep their exact form. In the query string it changes parameters named the same way. Only values that look like a code (2 to 12 letters or digits) are touched. Dynamic Entity and Dynamic Endpoint requests are left as sent.
+- **Path segments.** The only currency codes in a URL path are those of `GET /banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE`, which already upper-cases them, and `GET /assets/ASSET_CODE`, which already ignores case.
+- **Stored codes.** About ten comparisons against a stored currency (transaction request against account currency, funds available, settlement accounts, bulk payments, FX) use `CurrencyCodes.same`, so rows written before this rule in another case still match. `AssetLookup` ignores case, so `jpy` gets 0 decimal places. `ada` is no longer a legacy spelling, because it matches `ADA`.
+- **Stored rows.** The runOnce migration `upperCaseStoredCurrencyCodes` (`MigrationOfCurrencyCodesUpperCase`) rewrites the codes in every currency column in upper case, `ada` to `ADA` among them, so database queries that select by currency (for example the FX rate lookup) find old rows too. It leaves codes inside stored JSON alone, and a `mappedcurrency` row whose upper-case twin exists. `lovelace` and `wei` become `LOVELACE` and `WEI`; their amounts are converted later (§7 Part C). `CurrencyCodesUpperCaseMigrationTest` covers it.
+
+`CurrencyCodesTest` (unit) covers the rule. The two letter-case defects in `CurrencyHandlingTest` are no longer pending. `AssetLookupTest`, `FundsAvailableTest` (lower-case `eur` now gives 200) and `ExchangeRateTest` (an FX rate created with `eur`/`usd` is stored as `EUR`/`USD` and read back with lower-case path segments) were updated.
 
 ---
 

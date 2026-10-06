@@ -2325,7 +2325,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val fromTransAmtSettlementAccount: BigDecimal = {
               // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
@@ -2350,7 +2350,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val toTransAmtSettlementAccount: BigDecimal = {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
@@ -2482,7 +2482,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val fromTransAmtSettlementAccount = {
                 // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
@@ -2507,7 +2507,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val toTransAmtSettlementAccount = {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt

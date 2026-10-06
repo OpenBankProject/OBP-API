@@ -130,8 +130,15 @@ class FundsAvailableTest extends V310ServerSetup {
       Then("We should get a 200")
       response310.code should equal(200)
 
+      When("We make a request v3.1.0 with the currency in lower case")
+      val response310_lower_case_ccy = makeGetRequest(request310 <<? Map("currency" -> "eur", "amount" -> "1"))
+      Then("We should get a 200, because currency codes are case-insensitive")
+      response310_lower_case_ccy.code should equal(200)
+      And("the same answer as for EUR")
+      (response310_lower_case_ccy.body \ "answer").extract[String] should equal((response310.body \ "answer").extract[String])
+
       When("We make a request v3.1.0 with all params but currency is invalid")
-      val response310_invalic_ccy = makeGetRequest(request310 <<? Map("currency" -> "eur", "amount" -> "1"))
+      val response310_invalic_ccy = makeGetRequest(request310 <<? Map("currency" -> "QQQ", "amount" -> "1"))
       Then("We should get a 400")
       response310_invalic_ccy.code should equal(400)
       And("error should be " + InvalidISOCurrencyCode)

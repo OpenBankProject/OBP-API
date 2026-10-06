@@ -330,7 +330,7 @@ object Http4s210 {
         _ <- code.util.Helper.booleanToFuture(
           s"$InvalidTransactionRequestCurrency From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}",
           cc = Some(cc)) {
-          transDetailsJson.value.currency == fromAccount.currency
+          code.asset.CurrencyCodes.same(transDetailsJson.value.currency, fromAccount.currency)
         }
         parsedJson = com.openbankproject.commons.util.JsonAliases.parse(jsonBody)
         (createdTransactionRequest, _) <- TransactionRequestTypes.withName(transactionRequestTypeStr) match {

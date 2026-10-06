@@ -93,9 +93,7 @@ class CurrencyHandlingTest extends FeatureSpec with Matchers with GivenWhenThen 
     }
 
     scenario("Currency codes are accepted in any letter case") {
-      pendingUntilFixed {
-        List("eur", "Eur", "xbt", "eth", "ADA", "LOVELACE", "WEI").filterNot(APIUtil.isValidCurrencyISOCode) shouldBe Nil
-      }
+      List("eur", "Eur", "xbt", "eth", "ADA", "LOVELACE", "WEI").filterNot(APIUtil.isValidCurrencyISOCode) shouldBe Nil
     }
   }
 
@@ -121,10 +119,8 @@ class CurrencyHandlingTest extends FeatureSpec with Matchers with GivenWhenThen 
     }
 
     scenario("The decimal places of a code do not depend on its letter case") {
-      pendingUntilFixed {
-        Helper.currencyDecimalPlaces("jpy") shouldBe 0
-        Helper.currencyDecimalPlaces("kwd") shouldBe 3
-      }
+      Helper.currencyDecimalPlaces("jpy") shouldBe 0
+      Helper.currencyDecimalPlaces("kwd") shouldBe 3
     }
   }
 

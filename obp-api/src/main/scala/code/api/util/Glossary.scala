@@ -7236,7 +7236,11 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Current state
 				 |
-				 |The registry decides which currency codes OBP accepts and how many decimal places it gives them. For now it gives the same answers as the built-in list OBP used before: codes are matched exactly as written, so `EUR` is accepted and `eur` is not, and an Asset's status is not yet checked. Each code has the same number of decimal places as in that list. The registry does not hold `lovelace` or `wei`, which OBP still accepts: they are the smallest units of ADA and ETH, not Assets of their own. OBP also still accepts `ada` as well as `ADA`.
+				 |The registry decides which currency codes OBP accepts and how many decimal places it gives them. Each code has the same number of decimal places as in the built-in list OBP used before, and an Asset's status is not yet checked. The registry does not hold `lovelace` or `wei`, which OBP still accepts: they are the smallest units of ADA and ETH, not Assets of their own.
+				 |
+				 |## Letter case
+				 |
+				 |Currency codes are case-insensitive: `eur`, `Eur` and `EUR` all name the same Asset and get the same decimal places. OBP upper-cases a currency code in a request before the endpoint handles it, so it is validated, compared and stored as `EUR`. This applies to the fields of a JSON request body that hold a currency code (`currency`, `from_currency_code` and the like) and to query parameters named the same way. Codes stored before this rule, in another letter case, are still compared ignoring case.
 				 |
 				 |## Endpoints
 				 |

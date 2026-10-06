@@ -28,12 +28,19 @@ class AssetLookupTest extends ServerSetup with RestoresSeededAssetRegistry {
     APIUtil.builtInCurrencyCodes.toList.sorted ++
       List("eur", "Eur", "jpy", "kwd", "xbt", "eth", "LOVELACE", "WEI", "", "EUR USD", "978", "USDC", "MRO")
 
+  /** Whether the built-in list holds this code, ignoring letter case, as OBP now matches codes. */
+  private def builtInListHolds(code: String): Boolean =
+    APIUtil.builtInCurrencyCodes.exists(builtIn => CurrencyCodes.same(builtIn, code))
+
   feature("Answers from the seeded registry") {
 
-    scenario("Every code is accepted or rejected as the built-in list does, except that ADA is now accepted") {
+    scenario("Every code is accepted or rejected as the built-in list does, ignoring letter case, and ADA is now accepted") {
       seedRegistry()
-      val differences = codesToCompare.filter(code => APIUtil.isValidCurrencyISOCode(code) != APIUtil.builtInCurrencyCodes.contains(code))
+      val differences = codesToCompare.filter(code => APIUtil.isValidCurrencyISOCode(code) != builtInListHolds(code))
       differences shouldBe Nil
+      And("a code the built-in list holds in upper case is accepted in lower case too")
+      APIUtil.isValidCurrencyISOCode("eur") shouldBe true
+      APIUtil.isValidCurrencyISOCode("Eur") shouldBe true
       Then("ADA, the registry's code for Cardano's currency, is accepted, and so is the built-in spelling ada")
       APIUtil.isValidCurrencyISOCode("ADA") shouldBe true
       APIUtil.isValidCurrencyISOCode("ada") shouldBe true
@@ -42,8 +49,8 @@ class AssetLookupTest extends ServerSetup with RestoresSeededAssetRegistry {
     scenario("Every code has the decimal places of the built-in table") {
       seedRegistry()
       val differences = (codesToCompare :+ "ADA").collect {
-        case code if Helper.currencyDecimalPlaces(code) != Helper.builtInCurrencyDecimalPlaces(code) =>
-          s"$code: registry ${Helper.currencyDecimalPlaces(code)}, built-in ${Helper.builtInCurrencyDecimalPlaces(code)}"
+        case code if Helper.currencyDecimalPlaces(code) != Helper.builtInCurrencyDecimalPlaces(CurrencyCodes.normalise(code)) =>
+          s"$code: registry ${Helper.currencyDecimalPlaces(code)}, built-in ${Helper.builtInCurrencyDecimalPlaces(CurrencyCodes.normalise(code))}"
       }
       differences shouldBe Nil
     }
@@ -69,9 +76,13 @@ class AssetLookupTest extends ServerSetup with RestoresSeededAssetRegistry {
       Asset.bulkDelete_!!()
       AssetLookup.invalidate()
       APIUtil.isValidCurrencyISOCode("EUR") shouldBe true
+      APIUtil.isValidCurrencyISOCode("eur") shouldBe true
       APIUtil.isValidCurrencyISOCode("lovelace") shouldBe true
-      APIUtil.isValidCurrencyISOCode("ADA") shouldBe false
+      APIUtil.isValidCurrencyISOCode("ada") shouldBe true
+      APIUtil.isValidCurrencyISOCode("XBT") shouldBe true
+      APIUtil.isValidCurrencyISOCode("MRO") shouldBe false
       Helper.currencyDecimalPlaces("JPY") shouldBe 0
+      Helper.currencyDecimalPlaces("jpy") shouldBe 0
       Helper.currencyDecimalPlaces("KWD") shouldBe 3
     }
   }

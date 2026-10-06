@@ -144,7 +144,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
 
       // Prevent default value for transaction request type (at least).
       _ <- Helper.booleanToFuture(s"$InvalidTransactionRequestCurrency From Account Currency is ${fromAccount.currency}, but Requested instructedAmount.currency is: ${transactionRequestBody.instructedAmount.currency}", cc = callContext) {
-        transactionRequestBody.instructedAmount.currency == fromAccount.currency
+        code.asset.CurrencyCodes.same(transactionRequestBody.instructedAmount.currency, fromAccount.currency)
       }
 
       // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?

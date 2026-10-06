@@ -170,7 +170,7 @@ object ResourceDocMiddleware extends MdcLoggable {
       OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
         // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
         // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
-        val reqWithCachedBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
+        val reqWithOriginalBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
         ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex) match {
           case Some(resourceDoc) if !endpointIsEnabled(resourceDoc) =>
             // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
@@ -181,7 +181,8 @@ object ResourceDocMiddleware extends MdcLoggable {
               note.operationId = Some(resourceDoc.operationId)
               note.apiVersion = Some(resourceDoc.implementedInApiVersion.apiShortVersion)
             }
-            val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
+            val (reqWithCachedBody, ccForDoc) = withCurrencyCodesUpperCased(reqWithOriginalBody, cc, resourceDoc)
+            val ccWithDoc = ResourceDocMatcher.attachToCallContext(ccForDoc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
             // Validate first (read-only, outside any transaction), then run business logic.
             // GET/HEAD are safe methods — no writes, no transaction needed; they run on
@@ -231,7 +232,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             // serves the request, and re-validating the credentials on every hop was pure waste.
             OptionT.liftF(
               resolveCallerOnce(req, cc).map { resolvedCc =>
-                reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, resolvedCc)
+                reqWithOriginalBody.withAttribute(Http4sRequestAttributes.callContextKey, resolvedCc)
               }
             ).flatMap(routes.run)
         }
@@ -720,6 +721,43 @@ object ResourceDocMiddleware extends MdcLoggable {
         )
       case _ => DSL.success(ctx)
     }
+  }
+
+  /**
+   * This upper-cases the currency codes in a request before the endpoint sees it, because currency
+   * codes are case-insensitive (code.asset.CurrencyCodes): `eur` is validated, compared and stored
+   * as `EUR`. It touches the string values of the body fields that the endpoint's documented example
+   * body uses for a currency code, and the values of query parameters whose name says they hold one
+   * (`currency`, `from_currency_code`, ...). Only values that look like a code are changed, and a
+   * request with nothing to change is returned as it came. The body is changed in the CallContext
+   * and in the cached body every later hop reads; the query in the request URI and in `cc.url`.
+   *
+   * It runs only once a static ResourceDoc has matched, so a Dynamic Entity or Dynamic Endpoint
+   * request falling through this middleware keeps its body exactly as sent.
+   */
+  private def withCurrencyCodesUpperCased(req: Request[IO], cc: CallContext, resourceDoc: ResourceDoc): (Request[IO], CallContext) = {
+    import code.asset.CurrencyCodes
+    def upperCasedIfCode(value: String): String =
+      if (CurrencyCodes.looksLikeCode(value)) CurrencyCodes.normalise(value) else value
+
+    val currencyFields = CurrencyCodes.currencyFieldsOf(resourceDoc.operationId, resourceDoc.exampleRequestBody)
+    val body = cc.httpBody.map(CurrencyCodes.normaliseJsonBody(_, currencyFields))
+
+    val pairs = req.uri.query.pairs
+    val queryChanged = pairs.exists { case (name, value) =>
+      CurrencyCodes.isCurrencyKey(name) && value.exists(v => upperCasedIfCode(v) != v)
+    }
+    val uri =
+      if (!queryChanged) req.uri
+      else req.uri.copy(query = Query.fromVector(pairs.map { case (name, value) =>
+        (name, if (CurrencyCodes.isCurrencyKey(name)) value.map(upperCasedIfCode) else value)
+      }))
+
+    if (body == cc.httpBody && !queryChanged) (req, cc)
+    else (
+      req.withUri(uri).withAttribute(Http4sRequestAttributes.cachedBodyKey, body),
+      cc.copy(url = if (queryChanged) uri.renderString else cc.url, httpBody = body)
+    )
   }
 
   /** Ensure the response has JSON content type */
