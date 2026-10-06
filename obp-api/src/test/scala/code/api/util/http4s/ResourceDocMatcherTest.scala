@@ -572,4 +572,67 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       result should be(None)
     }
   }
+
+  feature("ResourceDocMatcher - transaction-request types and other enum values in URLs") {
+
+    // Transaction-request types and SCA methods are written in capitals, like placeholders.
+    // These scenarios check that the matcher treats them as fixed words, so one type's
+    // template never claims another type's request.
+    val transactionRequestsUrl = "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/%s/transaction-requests"
+    def transactionRequestsPath(transactionRequestType: String): Uri.Path =
+      Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/accounts/8ca8a7e4/owner/transaction-request-types/$transactionRequestType/transaction-requests")
+
+    scenario("A type registered first does not claim another type's request", ResourceDocMatcherTag) {
+      Given("a MOBILE_WALLET doc registered before a UTILITY doc that requires a role")
+      val utilityDoc = createResourceDoc("POST", transactionRequestsUrl.format("UTILITY"), "createTransactionRequestUtility")
+        .copy(roles = Some(List(code.api.util.ApiRole.canCreateUtilityVendResult)))
+      val resourceDocs = ArrayBuffer(
+        createResourceDoc("POST", transactionRequestsUrl.format("MOBILE_WALLET"), "createTransactionRequestMobileWallet"),
+        utilityDoc
+      )
+
+      When("a UTILITY request is matched")
+      val result = ResourceDocMatcher.findResourceDoc("POST", transactionRequestsPath("UTILITY"), resourceDocs)
+
+      Then("the UTILITY doc is chosen, so the middleware enforces the UTILITY doc's role")
+      result.map(_.partialFunctionName) shouldBe Some("createTransactionRequestUtility")
+      result.flatMap(_.roles) shouldBe Some(List(code.api.util.ApiRole.canCreateUtilityVendResult))
+    }
+
+    scenario("A type with no doc in this version matches nothing", ResourceDocMatcherTag) {
+      Given("a catalog with only a MOBILE_WALLET doc")
+      val resourceDocs = ArrayBuffer(
+        createResourceDoc("POST", transactionRequestsUrl.format("MOBILE_WALLET"), "createTransactionRequestMobileWallet")
+      )
+
+      When("a CARDANO request is matched")
+      val result = ResourceDocMatcher.findResourceDoc("POST", transactionRequestsPath("CARDANO"), resourceDocs)
+
+      Then("no doc matches, so the request can fall through to an older version that serves CARDANO")
+      result shouldBe None
+    }
+
+    scenario("A specific type's doc beats a placeholder doc registered before it", ResourceDocMatcherTag) {
+      Given("a TRANSACTION_REQUEST_TYPE placeholder doc registered before a SEPA doc")
+      val resourceDocs = ArrayBuffer(
+        createResourceDoc("POST", transactionRequestsUrl.format("TRANSACTION_REQUEST_TYPE"), "createTransactionRequestAnyType"),
+        createResourceDoc("POST", transactionRequestsUrl.format("SEPA"), "createTransactionRequestSepa")
+      )
+
+      Then("a SEPA request gets the SEPA doc")
+      ResourceDocMatcher.findResourceDoc("POST", transactionRequestsPath("SEPA"), resourceDocs)
+        .map(_.partialFunctionName) shouldBe Some("createTransactionRequestSepa")
+
+      And("a type with no doc of its own still gets the placeholder doc")
+      ResourceDocMatcher.findResourceDoc("POST", transactionRequestsPath("FREE_FORM"), resourceDocs)
+        .map(_.partialFunctionName) shouldBe Some("createTransactionRequestAnyType")
+    }
+
+    scenario("Every transaction-request type and SCA method is a fixed word", ResourceDocMatcherTag) {
+      val enumValues =
+        com.openbankproject.commons.model.enums.TransactionRequestTypes.values.map(_.toString) ++
+          com.openbankproject.commons.model.enums.StrongCustomerAuthentication.values.map(_.toString)
+      enumValues.filterNot(ResourceDocMatcher.literalAllCapsSegments.contains) shouldBe empty
+    }
+  }
 }

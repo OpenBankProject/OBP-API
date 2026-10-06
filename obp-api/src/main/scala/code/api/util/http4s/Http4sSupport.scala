@@ -34,6 +34,7 @@ import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidJsonForm
 import code.api.util.{AuthHeaderParser, CallContext, RemoteIpUtil, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
+import com.openbankproject.commons.model.enums.{StrongCustomerAuthentication, TransactionRequestTypes}
 import net.liftweb.common.{Box, Empty, Full}
 import org.http4s._
 import org.http4s.dsl.io._
@@ -837,7 +838,11 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     val segCount     = strippedPath.split("/").count(_.nonEmpty)
     val lookupKey    = (verb.toUpperCase, apiVersion, segCount)
     val candidates   = index.getOrElse(lookupKey, Nil)
-    val result       = candidates.find(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+    // When several templates match, the one with the most literal segments wins, so
+    // `.../transaction-request-types/SEPA/...` beats `.../transaction-request-types/TRANSACTION_REQUEST_TYPE/...`
+    // whichever was registered first. On a tie, the first registered wins (maxBy keeps the first maximum).
+    val matching     = candidates.filter(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
+    val result       = if (matching.isEmpty) None else Some(matching.maxBy(doc => literalSegmentCount(doc.requestUrl)))
     if (result.isEmpty) {
       logger.debug(
         s"[ResourceDocMatcher] No match for $verb $pathString. " +
@@ -885,35 +890,32 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
   }
   
   /**
-   * Check if a template segment is a variable (uppercase)
+   * This set holds the all-caps URL segments that are fixed words, not placeholders.
+   *
+   * ResourceDoc templates write placeholders in capitals (`BANK_ID`, `GRANT_VIEW_ID`,
+   * `TRANSACTION_REQUEST_TYPE`), and OBP writes enum values in capitals too. Where an enum
+   * value appears in a URL, as in
+   * `/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/MOBILE_WALLET/transaction-requests`,
+   * the two look the same. If `MOBILE_WALLET` were read as a placeholder, that template would
+   * match every transaction-request type, and the middleware would validate UTILITY or BULK
+   * requests with the MOBILE_WALLET doc (its roles, operationId, enable/disable switch), or
+   * return 404 for a type that version has no handler for instead of letting the request
+   * fall through to an older version.
+   *
+   * The set used to be kept by hand and fell behind each time a type was added. It is now
+   * built from the two enums whose values appear as URL segments, transaction-request types
+   * and SCA methods, so a new enum value is a literal without anyone remembering to list it.
+   * Any other all-caps segment stays a placeholder, which keeps the deliberate non-standard
+   * placeholders (NEW_ACCOUNT_ID, FIREHOSE_BANK_ID, ...) working.
    */
-  /**
-   * All-caps URL-segment literals that historically broke the matcher.
-   *
-   * `isTemplateVariable` originally returned true for every all-caps + underscore +
-   * digit segment. That made literals like `SANDBOX_TAN`, `ACCOUNT`, `SEPA` etc.
-   * indistinguishable from real placeholders like `BANK_ID`, so a ResourceDoc URL
-   * `/banks/BANK_ID/.../transaction-request-types/SANDBOX_TAN/transaction-requests`
-   * matched any trans-req-type URL — including v4-only `ACCOUNT` — and the v4
-   * request never reached the Lift fallback that knows how to handle it.
-   *
-   * We special-case the known literal segments. Anything else stays a wildcard so
-   * the existing non-standard placeholder convention (NEW_ACCOUNT_ID, GRANT_VIEW_ID,
-   * FIREHOSE_BANK_ID, EXPLICIT_COUNTERPARTY_ID, SYS_VIEW_ID, …) keeps working
-   * without an explicit allow-list.
-   *
-   * Add a value here when a new path uses an all-caps literal (e.g. a new
-   * transaction-request type or SCA method).
-   */
-  private val literalAllCapsSegments: Set[String] = Set(
-    // transaction-request types
-    "SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM",
-    "ACCOUNT", "ACCOUNT_OTP", "REFUND", "SIMPLE",
-    "AGENT_CASH_WITHDRAWAL", "CARD",
-    "OPEN_CORRIDOR_PROMISE", "OPEN_CORRIDOR_SETTLEMENT",
-    // SCA methods (POST /banks/BANK_ID/my/consents/{EMAIL|SMS|IMPLICIT})
-    "EMAIL", "SMS", "IMPLICIT", "NOT_EMAIL_NEITHER_SMS"
-  )
+  private[http4s] val literalAllCapsSegments: Set[String] =
+    TransactionRequestTypes.values.map(_.toString).toSet ++
+      StrongCustomerAuthentication.values.map(_.toString) +
+      // Used as a fixed segment in consent URLs but not an SCA enum value.
+      "NOT_EMAIL_NEITHER_SMS"
+
+  private def literalSegmentCount(template: String): Int =
+    template.split("/").count(segment => segment.nonEmpty && !isTemplateVariable(segment))
 
   private def isTemplateVariable(segment: String): Boolean = {
     segment.nonEmpty &&
