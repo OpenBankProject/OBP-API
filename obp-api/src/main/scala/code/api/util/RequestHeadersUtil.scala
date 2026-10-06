@@ -30,7 +30,45 @@ package code.api.util
 import code.api.RequestHeader._
 import code.api.util.APIUtil.HTTPParam
 
+/**
+ * This object is the one place OBP looks up a request header by name.
+ *
+ * HTTP header names are case-insensitive (RFC 9110, section 5.1), and over HTTP/2 every name arrives
+ * in lower case, so a client sending `Consent-JWT` may reach OBP as `consent-jwt`. The http4s request
+ * already treats names that way, but `Http4sCallContextBuilder` copies the headers into a
+ * `List[HTTPParam]` with the names exactly as received, and a lookup written as `_.name == "Consent-JWT"`
+ * then misses the header. Every lookup in a request header list goes through the functions below,
+ * which match names ignoring case; HeaderLookupConventionsTest fails the build on one that does not.
+ */
 object RequestHeadersUtil {
+
+  /** This returns true when the header has the given name, ignoring letter case. */
+  def isNamed(header: HTTPParam, name: String): Boolean =
+    header != null && header.name != null && header.name.equalsIgnoreCase(name)
+
+  /** This returns true when any header has the given name. */
+  def exists(requestHeaders: List[HTTPParam], name: String): Boolean =
+    requestHeaders.exists(isNamed(_, name))
+
+  /** This returns the first header with the given name. */
+  def find(requestHeaders: List[HTTPParam], name: String): Option[HTTPParam] =
+    requestHeaders.find(isNamed(_, name))
+
+  /**
+   * This returns the header with the given name only when exactly one distinct header has it, and
+   * None when there is none or there are several that differ. Identical repeats count once. It is for
+   * credentials such as Consent-JWT, where a request carrying two different values is ambiguous.
+   */
+  def findSingle(requestHeaders: List[HTTPParam], name: String): Option[HTTPParam] =
+    requestHeaders.toSet.filter(isNamed(_, name)).toList match {
+      case header :: Nil => Some(header)
+      case _ => None
+    }
+
+  /** This groups the headers by name, ignoring letter case; the keys are the names in lower case. */
+  def groupByName(requestHeaders: List[HTTPParam]): Map[String, List[HTTPParam]] =
+    requestHeaders.groupBy(_.name.toLowerCase(java.util.Locale.ROOT))
+
   def checkEmptyRequestHeaderValues(requestHeaders: List[HTTPParam]): List[String] = {
     val emptyValues = requestHeaders
       .filter(header => header != null && (header.values == null || header.values.isEmpty || header.values.exists(_.trim.isEmpty)))

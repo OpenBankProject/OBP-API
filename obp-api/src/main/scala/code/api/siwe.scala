@@ -127,12 +127,11 @@ object SIWE extends MdcLoggable {
   val SiweHeaderKey = "SIWE"
 
   def hasSiweHeader(requestHeaders: List[HTTPParam]): Boolean =
-    requestHeaders.exists(_.name.equalsIgnoreCase(SiweHeaderKey))
+    code.api.util.RequestHeadersUtil.exists(requestHeaders, SiweHeaderKey)
 
   /** Parse `SIWE: token=<key>` → Some(key). Mirrors DirectLogin's `token=` parsing. */
   def getSiweToken(requestHeaders: List[HTTPParam]): Option[String] = {
-    val raw = requestHeaders
-      .find(_.name.equalsIgnoreCase(SiweHeaderKey))
+    val raw = code.api.util.RequestHeadersUtil.find(requestHeaders, SiweHeaderKey)
       .flatMap(_.values.headOption)
       .getOrElse("")
     raw.split(",").map(_.trim).flatMap { entry =>

@@ -73,7 +73,7 @@ object JwsUtil extends MdcLoggable {
     json.parse(s).extractOpt[JwsProtectedHeader] match {
       case Some(header) =>
         val headers = header.sigD.pars.flatMap( i =>
-          requestHeaders.find(_.name.equalsIgnoreCase(i)).map(i => s"${i.name.toLowerCase()}: ${i.values.mkString}")
+          RequestHeadersUtil.find(requestHeaders, i).map(i => s"${i.name.toLowerCase()}: ${i.values.mkString}")
         )
         val requestTarget = s"""(request-target): ${verb.toLowerCase()} ${url}\n"""
         requestTarget + headers.mkString("\n") + "\n" // Add new line after each item
@@ -100,14 +100,14 @@ object JwsUtil extends MdcLoggable {
     headerValue == s"SHA-256=${computeDigest(httpBody)}"
   }
   def getDigestHeaderValue(requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.find(_.name.equalsIgnoreCase("digest")).map(_.values.mkString).getOrElse("None")
+    RequestHeadersUtil.find(requestHeaders, "digest").map(_.values.mkString).getOrElse("None")
   }
   def getJwsHeaderValue(requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.find(_.name.equalsIgnoreCase("x-jws-signature")).map(_.values.mkString).getOrElse("None")
+    RequestHeadersUtil.find(requestHeaders, "x-jws-signature").map(_.values.mkString).getOrElse("None")
   }
   def checkRequestIsSigned(requestHeaders: List[HTTPParam]): Boolean = {
-    requestHeaders.exists(_.name.equalsIgnoreCase("x-jws-signature")) ||
-    requestHeaders.exists(_.name.equalsIgnoreCase("digest"))
+    RequestHeadersUtil.exists(requestHeaders, "x-jws-signature") ||
+    RequestHeadersUtil.exists(requestHeaders, "digest")
   }
   private def getDeferredCriticalHeaders() = {
     val deferredCriticalHeaders  = new util.HashSet[String]()

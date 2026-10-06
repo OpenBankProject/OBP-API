@@ -32,9 +32,9 @@ import code.api.util.APIUtil.HTTPParam
 
 object AuthorisationUtil {
   def getAuthorisationHeaders(requestHeaders: List[HTTPParam]): List[String] = {
-    requestHeaders.map(_.name).filter(name =>
-      List(`Consent-Id`, `Consent-ID`, `Consent-JWT`).exists(name.equalsIgnoreCase)
-    )
+    requestHeaders
+      .filter(header => List(`Consent-Id`, `Consent-ID`, `Consent-JWT`).exists(RequestHeadersUtil.isNamed(header, _)))
+      .map(_.name)
   }
   
 

@@ -5005,8 +5005,7 @@ object Http4s600 {
     // but reads from CallContext.requestHeaders (populated by the http4s context builder) instead of
     // Lift's thread-local S.request.
     private def parseDirectLoginParams(cc: CallContext): Map[String, String] = {
-      def find(name: String): Option[String] = cc.requestHeaders
-        .find(_.name.equalsIgnoreCase(name))
+      def find(name: String): Option[String] = code.api.util.RequestHeadersUtil.find(cc.requestHeaders, name)
         .flatMap(_.values.headOption)
       val directLoginHeader = find("DirectLogin")
       val authHeader = find("Authorization")

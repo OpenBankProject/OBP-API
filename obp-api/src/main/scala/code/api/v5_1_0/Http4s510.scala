@@ -494,7 +494,7 @@ object Http4s510 {
       val df = new java.text.SimpleDateFormat(DateWithSeconds)
       val headerEpoch: Long = scala.util.Try(df.parse(headerValue).getTime).getOrElse(0L)
       val requestHeaders = cc.requestHeaders
-        .filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)
+        .filter(i => code.api.util.RequestHeadersUtil.isNamed(i, "limit") || code.api.util.RequestHeadersUtil.isNamed(i, "offset")).sortBy(_.name)
       val hashedRequestPayload = code.api.util.HashUtil.Sha256Hash(cc.url + requestHeaders)
       val consumerId = cc.consumer.map(_.consumerId.get).getOrElse("None")
       val userId = scala.util.Try(cc.userId).getOrElse("None")

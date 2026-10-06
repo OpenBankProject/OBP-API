@@ -239,9 +239,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
 
-  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.exists(_.name.equalsIgnoreCase("DirectLogin"))
+  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = RequestHeadersUtil.exists(requestHeaders, "DirectLogin")
 
-  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.exists(_.name.equalsIgnoreCase("Authorization"))
+  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = RequestHeadersUtil.exists(requestHeaders, "Authorization")
 
   /*
      The OAuth 2.0 Authorization Framework: Bearer Token
@@ -262,7 +262,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Other types: the `GatewayLogin` is in the VALUE
    * Authorization:GatewayLogin token=xxxx
    */
-  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.exists(_.name.equalsIgnoreCase(DAuthHeaderKey))
+  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = RequestHeadersUtil.exists(requestHeaders, DAuthHeaderKey)
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -282,13 +282,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-JWT value from a Request Header as a String
    */
   def getConsentJWT(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-JWT`)).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-Id`)).toList match {
-        case x :: Nil => Some(x.values.mkString(", "))
-        case _ => None
-      }
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-JWT`)
+      .orElse(RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-Id`))
+      .map(_.values.mkString(", "))
   }
 
   /**
@@ -296,27 +292,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-JWT value from a Request Header as a String
    */
   def getConsentIdRequestHeaderValue(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-Id`)).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-Id`).map(_.values.mkString(", "))
   }
   /**
    * Purpose of this helper function is to get the PSD2-CERT value from a Request Headers.
    * @return the PSD2-CERT value from a Request Header as a String
    */
   def `getPSD2-CERT`(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`PSD2-CERT`)).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`PSD2-CERT`).map(_.values.mkString(", "))
   }
 
   def getRequestHeader(name: String, requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(name)).toList match {
-      case x :: Nil => x.values.mkString(";")
-      case _ => ""
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, name).map(_.values.mkString(";")).getOrElse("")
   }
 
   def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
@@ -329,10 +316,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-ID value from a Request Header as a String
    */
   def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name.equalsIgnoreCase(RequestHeader.`Consent-ID`)).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-ID`).map(_.values.mkString(", "))
   }
   def `hasConsent-ID`(requestHeaders: List[HTTPParam]): Boolean = {
     `getConsent-ID`(requestHeaders).isDefined
@@ -458,7 +442,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     val url = cc.map(_.url).getOrElse("")
     val requestHeaders: List[HTTPParam] =
-      cc.map(_.requestHeaders.filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)).getOrElse(Nil)
+      cc.map(_.requestHeaders.filter(i => RequestHeadersUtil.isNamed(i, "limit") || RequestHeadersUtil.isNamed(i, "offset")).sortBy(_.name)).getOrElse(Nil)
     val hashedRequestPayload = HashUtil.Sha256Hash(url + requestHeaders)
     val consumerId = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
     val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("None")
@@ -499,13 +483,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def checkConditionalRequest(cc: Option[CallContext], httpVerb: String, httpCode: Int, httpBody: Box[String]) = {
     val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
-    requestHeaders.filter(_.name.equalsIgnoreCase(RequestHeader.`If-None-Match`)).headOption match {
+    RequestHeadersUtil.find(requestHeaders, RequestHeader.`If-None-Match`) match {
       case Some(value) => // Handle the If-None-Match HTTP request header
         checkIfNotMatchHeader(cc, httpCode, httpBody, value.values.mkString(""))
       case None =>
         // When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
         // The most common use case is to update a cached entity that has no associated ETag
-        requestHeaders.filter(_.name.equalsIgnoreCase(RequestHeader.`If-Modified-Since`)).headOption match {
+        RequestHeadersUtil.find(requestHeaders, RequestHeader.`If-Modified-Since`) match {
           case Some(value) => // Handle the If-Modified-Since HTTP request header
             checkIfModifiedSinceHeader(cc, httpVerb, httpCode, httpBody, value.values.mkString(""))
           case None =>
@@ -2890,7 +2874,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       getRemoteIpAddress()
     
     val xRequestId: Option[String] =
-      reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
+      RequestHeadersUtil.find(reqHeaders, RequestHeader.`X-Request-ID`)
         .map(_.values.mkString(","))
     logger.debug(s"Request Headers for verb: $verb, URL: $url")
     logger.debug(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString)
@@ -4791,7 +4775,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return Full(errorResponse) if validate fail
    */
   def validateRequestHeadersKeys(operationId: String, callContext: CallContext): Box[JsonResponse] = {
-    val headerKeysGrouped: Map[String, List[HTTPParam]] = callContext.requestHeaders.groupBy(_.name.toLowerCase(java.util.Locale.ROOT))
+    val headerKeysGrouped: Map[String, List[HTTPParam]] = RequestHeadersUtil.groupByName(callContext.requestHeaders)
     headerKeysGrouped.toList.forall(_._2.size == 1) match {
       case true => Empty
       case false => 
@@ -4881,10 +4865,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val requestHeaders = callContext.requestHeaders
 
         val forceError = requestHeaders.collectFirst {
-          case HTTPParam(name, value::_) if name.equalsIgnoreCase("Force-Error") => value
+          case header @ HTTPParam(_, value::_) if RequestHeadersUtil.isNamed(header, "Force-Error") => value
         }
         val responseCode = requestHeaders.collectFirst {
-          case HTTPParam(name, value::_) if name.equalsIgnoreCase("Response-Code") => value
+          case header @ HTTPParam(_, value::_) if RequestHeadersUtil.isNamed(header, "Response-Code") => value
         }
 
         if(forceError.isEmpty) {
