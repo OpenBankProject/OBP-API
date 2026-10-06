@@ -1676,11 +1676,15 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 #berlin_group_aspsp_sca_approach = redirect
 
 # Whether a Berlin Group signing basket may be authorised (PUT /signing-baskets/{basketId}/authorisations/{authorisationId}).
-# Default false: the call answers 403 SERVICE_BLOCKED. Answering the authorisation of a basket starts the
-# booking of its payments without waiting for the result, so a basket can report itself authorised while a
-# payment was not booked. Turn this on only once that has been replaced. Creating, reading, starting an
-# authorisation on and deleting baskets are not affected.
+# Default false: the call answers 403 SERVICE_BLOCKED. Answering the authorisation books the basket's payments
+# one after another and records, per payment, whether it was booked. Roll this out in stages: first the ownership
+# guard, then this, with a recovery rehearsal in between. Creating, reading, starting an authorisation on and
+# deleting baskets are not affected.
 #signing_basket_authorisation_enabled = false
+
+# How many times a payment of a signing basket that failed to book is claimed again, on the mapped connector only.
+# A payment on any other connector whose booking failed is left UNKNOWN for an operator.
+#signing_basket_member_max_attempts = 3
 
 # Support multiple brands on one instance. Note this needs checking on a clustered environment
 #brands_enabled=false

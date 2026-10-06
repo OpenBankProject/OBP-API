@@ -41,7 +41,7 @@ import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps
 import code.api.util.newstyle.SigningBasketNewStyle
 import code.api.util.newstyle.SigningBasketNewStyle.{AuthorisationOperation, CreatorOnly}
 import code.bankconnectors.Connector
-import code.signingbaskets.SigningBasketX
+import code.signingbaskets.{SigningBasketMemberState, SigningBasketX}
 import code.util.Helper.{MdcLoggable, booleanToFuture}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -471,21 +471,6 @@ This applies in the following scenarios:
     else if (message.contains("OBP-40016") || message.contains("OBP-20211") || message.contains("OBP-40014")) (message, 401)
     else (message, 400)
 
-  /**
-   * Starts the booking of each payment and marks it completed. Neither is awaited and neither outcome
-   * is read, which is the defect this leaves in place: replacing it is the payment execution work and
-   * is not part of this change. What this change does guarantee is who gets here -- only the basket's
-   * owner, with a correct answer to an authorisation of this basket, and only once, since the basket is
-   * claimed before this runs. That is also why `signing_basket_authorisation_enabled` is off by default.
-   */
-  private def startPaymentExecution(paymentIds: List[String], callContext: Option[CallContext]): Unit =
-    paymentIds.foreach { paymentId =>
-      NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(paymentId), COMPLETED.toString, callContext)
-      Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext).map { t =>
-        Connector.connector.vend.makePaymentV400(t._1, None, callContext)
-      }
-    }
-
   // ── PUT /signing-baskets/BASKETID/authorisations/AUTHORISATIONID ───────
   //
   // Order matters, and nothing may be changed until the answer has been checked:
@@ -554,12 +539,11 @@ This applies in the following scenarios:
           claimed <- Future(provider.transitionSigningBasketStatus(
             basketId, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL))
           _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext)(claimed.openOr(false))
-          _ = startPaymentExecution(paymentIds, callContext)
-          _ <- Future(provider.transitionSigningBasketStatus(
-            basketId, ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL, ConstantsBG.SigningBasketsStatus.ACTC.toString))
-          _ <- Future(provider.releaseSigningBasketMembers(basketId))
+          // Each member is recorded, then booked in order. The basket becomes ACTC only if every one is.
+          _ <- Future(provider.createSigningBasketMemberExecutions(basketId, paymentIds.map(SigningBasketMemberState.PaymentType -> _)))
+          allDone <- SigningBasketExecution.execute(basketId, callContext)
         } yield {
-          JSONFactory_BERLIN_GROUP_1_3.createUpdateSigningBasketPsuDataJson(basketId, challenge)
+          JSONFactory_BERLIN_GROUP_1_3.createUpdateSigningBasketPsuDataJson(basketId, challenge, executionIncomplete = !allDone)
         }
       }
   }

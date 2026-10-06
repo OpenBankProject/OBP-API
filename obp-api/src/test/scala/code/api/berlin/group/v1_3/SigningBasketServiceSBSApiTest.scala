@@ -108,7 +108,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
    * a payment in. A payment of 10 is booked on creation (ACCP) and can no longer be authorised by
    * anything.
    */
-  private def lodgePayment(amount: String = "2001", as: Option[(Consumer, Token)] = user1, initiator: User = resourceUser1): String = {
+  private def lodgePayment(amount: String = "2001", as: Option[(Consumer, Token)] = user1, initiator: User = resourceUser1, creditorIban: Option[String] = None): String = {
     val ibanFrom = ibanAccounts.head
     val ibanTo = ibanAccounts.last
     Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)).foreach(view =>
@@ -118,7 +118,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       s"""{
          | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
          | "instructedAmount": { "currency": "EUR", "amount": "$amount" },
-         | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
+         | "creditorAccount": { "iban": "${creditorIban.getOrElse(ibanTo.accountRouting.address)}" },
          | "creditorName": "TestCreditor"
          |}""".stripMargin
     val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (as)
@@ -144,7 +144,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   private def createBasket(paymentIds: List[String], as: Option[(Consumer, Token)] = user1): String = {
     val response = postBasket(s"""{"paymentIds":${idList(paymentIds)}}""", as)
-    withClue(s"creating a basket of $paymentIds: ") { response.code should equal(201) }
+    withClue(s"creating a basket of $paymentIds: ${response.body}: ") { response.code should equal(201) }
     response.body.extract[SigningBasketResponseJson].basketId
   }
 
@@ -831,25 +831,120 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  // ───────────────────────── execution: S4 (the next phase, recorded here so it is not forgotten) ─────────────────────────
+  // ───────────────────────── execution: every member is booked, and what happened to each is recorded ─────────────────────────
 
-  feature("BG v1.3 signing baskets - a payment the basket reports as authorised is actually booked") {
-    // Ignored until payment execution is reworked (the next phase). Measured on the baseline: the final answer
-    // returns 200, the payment is stored COMPLETED and the basket ACTC, and neither account moves, even after
-    // eight seconds. The booking is started without being awaited and its outcome is never read.
-    ignore("S4 (target, execution phase): after the final answer the debtor account is debited and the creditor account credited", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+  private def memberResults(basketId: String): List[(String, String, Int)] =
+    SigningBasketX.signingBasketProvider.vend.getSigningBasketMemberExecutions(basketId).map(m => (m.memberId, m.state, m.attempts))
+
+  /**
+   * A payment that is lodged normally and cannot be booked afterwards: its creditor account exists when
+   * the payment is created and its IBAN no longer resolves when the payment is executed.
+   */
+  private def lodgePaymentThatCannotBeBooked(): String = {
+    ibanAccounts.size should be >= 3
+    val creditor = ibanAccounts(1)
+    val payment = lodgePayment(creditorIban = Some(creditor.accountRouting.address))
+    BankAccountRouting.findAll(
+      By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString),
+      By(BankAccountRouting.BankId, creditor.bankId.value),
+      By(BankAccountRouting.AccountId, creditor.accountId.value),
+      By(BankAccountRouting.AccountRoutingAddress, creditor.accountRouting.address)).foreach(_.delete_!)
+    payment
+  }
+
+  private def storedBasketStatusRaw(basketId: String): String =
+    MappedSigningBasket.find(By(MappedSigningBasket.BasketId, basketId)).map(_.Status.get).openOrThrowException("basket")
+
+  feature("BG v1.3 signing baskets - answering the authorisation books the payments, and only then is the basket ACTC") {
+    scenario("S4: both payments are booked once, each is DONE, and the basket is ACTC", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val ibanFrom = ibanAccounts.head
       val ibanTo = ibanAccounts.last
-      val started = startedBasket()
-      val fromBefore = balanceOf(ibanFrom)
-      val toBefore = balanceOf(ibanTo)
+      val started = startedBasket(paymentCount = 2)
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
       answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
-      val deadline = System.currentTimeMillis() + 8000
-      while (System.currentTimeMillis() < deadline && balanceOf(ibanTo) == toBefore) Thread.sleep(250)
-      withClue(s"payment status ${storedPaymentStatus(started.paymentIds.head)}, basket ${storedBasketStatus(started.basketId)}: ") {
+      withClue("booked before the response, not eventually: ") {
+        balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+        balanceOf(ibanTo) should equal(toBefore + 2 * 2001)
+      }
+      started.paymentIds.foreach(storedPaymentStatus(_) should equal("COMPLETED"))
+      memberResults(started.basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1), ("DONE", 1)))
+      storedBasketStatus(started.basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("S4: a payment that cannot be booked leaves the basket RCVD, the earlier payment booked, and the members held", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
+
+      val response = answerAuthorisation(basketId, authorisationId)
+      response.code should equal(200)
+      (response.body \ "scaStatus").extract[String] should equal("finalised")
+      (response.body \ "psuMessage").extract[String] should include("not every payment")
+
+      withClue("only the first payment moved money: ") {
         balanceOf(ibanFrom) should equal(fromBefore - 2001)
         balanceOf(ibanTo) should equal(toBefore + 2001)
       }
+      storedPaymentStatus(good) should equal("COMPLETED")
+      storedPaymentStatus(bad) should equal(awaitingSca)
+      memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(good -> "DONE", bad -> "FAILED"))
+      withClue("reported as RCVD although stored as incomplete: ") {
+        storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
+        (makeGetRequest((basketUrl(basketId) / "status").GET <@ (user1)).body \ "transactionStatus").extract[String] should equal("RCVD")
+      }
+      withClue("the payment still waiting stays held, so it cannot be put in another basket: ") {
+        expectRefusal(postBasket(s"""{"paymentIds":${idList(List(bad))}}"""), 409, "REFERENCE_STATUS_INVALID", "the failed payment in a second basket")
+      }
+      withClue("the basket is no longer RCVD to be deleted: ") {
+        expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (user1)), 409, "STATUS_INVALID", "deleting an incompletely executed basket")
+      }
+    }
+
+    scenario("S4: executing again books nothing twice, retries a failed payment a limited number of times, then leaves it", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      val afterFirst = balanceOf(ibanFrom)
+
+      (1 to 4).foreach { _ =>
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      }
+      withClue("the booked payment was not booked again: ") { balanceOf(ibanFrom) should equal(afterFirst) }
+      memberResults(basketId).map(r => r._1 -> (r._2, r._3)).toMap should equal(Map(good -> ("DONE", 1), bad -> ("FAILED", 3)))
+    }
+
+    scenario("S4: a member left UNKNOWN is reconciled by its transaction id, and is otherwise left alone", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val booked = lodgePayment()
+      val unbooked = lodgePayment()
+      val basketId = createBasket(List(booked, unbooked))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      val afterBooking = balanceOf(ibanFrom)
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+
+      // As if the executor stopped before it recorded either outcome: the basket is back to executing,
+      // and the first payment really was booked (it carries its transaction id), the second was not.
+      val provider = SigningBasketX.signingBasketProvider.vend
+      provider.transitionSigningBasketStatus(basketId, "ACTC", "AUTHORISING")
+      List(booked, unbooked).foreach(id => provider.transitionSigningBasketMemberExecution(basketId, "payment", id, Set("DONE"), "UNKNOWN", "test"))
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, unbooked)).openOrThrowException("payment")
+        .mStatus(awaitingSca).mTransactionIDs("").saveMe()
+
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      withClue("nothing was booked again: ") { balanceOf(ibanFrom) should equal(afterBooking) }
+      memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(booked -> "DONE", unbooked -> "UNKNOWN"))
+      storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
     }
   }
 
