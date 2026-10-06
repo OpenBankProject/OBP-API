@@ -113,6 +113,12 @@ trait SigningBasketProvider extends MdcLoggable {
    */
   def markStaleSigningBasketMembersUnknown(olderThanSeconds: Long): Box[Int]
 
+  /**
+   * Records that someone looked at an unfinished basket, so it goes to the back of the queue
+   * `getSigningBasketsAwaitingExecution` reads, instead of staying at the front for as long as it is stuck.
+   */
+  def touchSigningBasket(basketId: String): Box[Boolean]
+
   /** Baskets whose execution has not finished, oldest first: AUTHORISING or EXECUTION_INCOMPLETE. */
   def getSigningBasketsAwaitingExecution(olderThanSeconds: Long, limit: Int): List[String]
 

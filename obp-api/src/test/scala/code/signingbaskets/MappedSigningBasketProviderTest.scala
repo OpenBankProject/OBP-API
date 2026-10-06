@@ -149,10 +149,16 @@ class MappedSigningBasketProviderTest extends ServerSetup {
       import scala.concurrent.ExecutionContext.Implicits.global
       (1 to 10).foreach { round =>
         val member = uuid()
-        val callers = (1 to 6).map(_ => Future(provider.createSigningBasket(Some(List(member)), None, "consumer-1", None).isDefined))
-        val created = Await.result(Future.sequence(callers), 60.seconds)
+        val callers = (1 to 6).map(_ => Future(provider.createSigningBasket(Some(List(member)), None, "consumer-1", None)))
+        val results = Await.result(Future.sequence(callers), 60.seconds)
+        val created = results.map(_.isDefined)
         withClue(s"round $round: ") {
           created.count(identity) should equal(1)
+          // Whichever way a loser lost (the check, or the unique index under it), it is the same refusal.
+          results.filterNot(_.isDefined).foreach {
+            case net.liftweb.common.Failure(message, _, _) => message should equal(code.api.util.ErrorMessages.SigningBasketMemberStatusInvalid)
+            case other => fail(s"unexpected result $other")
+          }
           MappedSigningBasketPayment.findAll(By(MappedSigningBasketPayment.PaymentId, member)).size should equal(1)
         }
       }
@@ -214,6 +220,23 @@ class MappedSigningBasketProviderTest extends ServerSetup {
       provider.markStaleSigningBasketMembersUnknown(1).openOrThrowException("x") should be >= 1
       provider.getSigningBasketMemberExecutions(basket.basketId).map(m => m.memberId -> m.state).toMap should equal(
         Map(stuck -> Unknown, finished -> Done))
+    }
+
+    scenario("a basket that was looked at goes behind the ones not yet tried, so a stuck one does not hold the queue") {
+      val looked = newBasket()
+      val waiting = newBasket()
+      List(looked, waiting).foreach(b =>
+        provider.transitionSigningBasketStatus(b.basketId, "RCVD", code.api.berlin.group.ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL))
+      Thread.sleep(1200)
+      provider.touchSigningBasket(looked.basketId).openOrThrowException("x") should be(true)
+      val awaiting = provider.getSigningBasketsAwaitingExecution(1, 100)
+      awaiting should contain(waiting.basketId)
+      awaiting should not contain looked.basketId
+      withClue("a basket that is not awaiting execution is not touched: ") {
+        val finished = newBasket()
+        provider.transitionSigningBasketStatus(finished.basketId, "RCVD", "ACTC")
+        provider.touchSigningBasket(finished.basketId).openOrThrowException("x") should be(false)
+      }
     }
 
     scenario("baskets whose execution has not finished are listed, oldest first") {

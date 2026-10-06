@@ -121,6 +121,8 @@ object SigningBasketExecution extends MdcLoggable {
       previous.flatMap(_ => execute(basketId, None).transform {
         case Failure(error) =>
           logger.error(s"Resuming the execution of signing basket $basketId failed", error)
+          // Out of the front of the queue, or a basket that always fails would hold its place for ever.
+          provider.touchSigningBasket(basketId)
           Success(false)
         case ok => ok
       }.map(_ => ()))
@@ -139,6 +141,8 @@ object SigningBasketExecution extends MdcLoggable {
       completed
     } else {
       provider.transitionSigningBasketStatus(basketId, authorising, incomplete)
+      // A basket already incomplete does not move, but it was looked at: it goes behind the ones not yet tried.
+      provider.touchSigningBasket(basketId)
       false
     }
   }

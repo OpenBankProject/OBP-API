@@ -112,6 +112,8 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     }
     result match {
       case Failure(_, Full(_: MemberAlreadyHeld), _) => Failure(SigningBasketMemberStatusInvalid)
+      // Two requests that both got past the check above: the unique index on the claim let one through.
+      case Failure(_, Full(error), _) if isConstraintViolation(error) => Failure(SigningBasketMemberStatusInvalid)
       case other => other
     }
   }
@@ -140,6 +142,21 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
       .map(row => SigningBasketMemberExecution(
         row.MemberType.get, row.MemberId.get, row.Position.get, row.State.get, Option(row.Detail.get).getOrElse(""), row.Attempts.get))
 
+  // Every timestamp this provider writes or compares comes from the JVM, as the Mapper's own createdAt/updatedAt
+  // do. The database's CURRENT_TIMESTAMP is the database server's clock and zone, which need not be the JVM's.
+  private def now = new java.sql.Timestamp(System.currentTimeMillis)
+
+  /** Whether the failure is a unique/integrity constraint violation (SQLState class 23), however deeply wrapped. */
+  private def isConstraintViolation(error: Throwable): Boolean = {
+    def inChain(t: Throwable, depth: Int): Boolean =
+      t != null && depth < 10 && (t match {
+        case sql: java.sql.SQLException =>
+          Option(sql.getSQLState).exists(_.startsWith("23")) || inChain(sql.getNextException, depth + 1) || inChain(sql.getCause, depth + 1)
+        case _ => inChain(t.getCause, depth + 1)
+      })
+    inChain(error, 0)
+  }
+
   override def transitionSigningBasketMemberExecution(basketId: String,
                                                       memberType: String,
                                                       memberId: String,
@@ -153,10 +170,10 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
       val attemptsSql = if (to == SigningBasketMemberState.Executing) s", ${m.Attempts._dbColumnNameLC} = ${m.Attempts._dbColumnNameLC} + 1" else ""
       DB.runUpdate(
         s"UPDATE ${m.dbTableName} SET ${m.State._dbColumnNameLC} = ?, ${m.Detail._dbColumnNameLC} = ?, " +
-          s"${m.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP$attemptsSql " +
+          s"${m.updatedAt._dbColumnNameLC} = ?$attemptsSql " +
           s"WHERE ${m.BasketId._dbColumnNameLC} = ? AND ${m.MemberType._dbColumnNameLC} = ? AND ${m.MemberId._dbColumnNameLC} = ? " +
           s"AND ${m.State._dbColumnNameLC} IN (${fromList.map(_ => "?").mkString(", ")})",
-        List[Any](to, detail.take(2000), basketId, memberType, memberId) ++ fromList) == 1
+        List[Any](to, detail.take(2000), now, basketId, memberType, memberId) ++ fromList) == 1
     }
 
   override def markStaleSigningBasketMembersUnknown(olderThanSeconds: Long): Box[Int] =
@@ -165,9 +182,9 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
       val cutoff = new java.sql.Timestamp(System.currentTimeMillis() - olderThanSeconds * 1000)
       DB.runUpdate(
         s"UPDATE ${m.dbTableName} SET ${m.State._dbColumnNameLC} = ?, ${m.Detail._dbColumnNameLC} = ?, " +
-          s"${m.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP " +
+          s"${m.updatedAt._dbColumnNameLC} = ? " +
           s"WHERE ${m.State._dbColumnNameLC} = ? AND ${m.updatedAt._dbColumnNameLC} < ?",
-        List[Any](SigningBasketMemberState.Unknown, "The executor stopped before recording an outcome", SigningBasketMemberState.Executing, cutoff))
+        List[Any](SigningBasketMemberState.Unknown, "The executor stopped before recording an outcome", now, SigningBasketMemberState.Executing, cutoff))
     }
 
   override def getSigningBasketsAwaitingExecution(olderThanSeconds: Long, limit: Int): List[String] = {
@@ -187,19 +204,29 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     tryo {
       DB.runUpdate(
         s"UPDATE ${MappedSigningBasket.dbTableName} " +
-          s"SET ${MappedSigningBasket.Status._dbColumnNameLC} = ?, ${MappedSigningBasket.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP " +
+          s"SET ${MappedSigningBasket.Status._dbColumnNameLC} = ?, ${MappedSigningBasket.updatedAt._dbColumnNameLC} = ? " +
           s"WHERE ${MappedSigningBasket.BasketId._dbColumnNameLC} = ? AND ${MappedSigningBasket.Status._dbColumnNameLC} = ?",
-        List(to, basketId, from)) == 1
+        List[Any](to, now, basketId, from)) == 1
+    }
+
+  override def touchSigningBasket(basketId: String): Box[Boolean] =
+    tryo {
+      val statuses = List(ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL, ConstantsBG.SigningBasketsStatus.EXECUTION_INCOMPLETE_INTERNAL)
+      DB.runUpdate(
+        s"UPDATE ${MappedSigningBasket.dbTableName} SET ${MappedSigningBasket.updatedAt._dbColumnNameLC} = ? " +
+          s"WHERE ${MappedSigningBasket.BasketId._dbColumnNameLC} = ? " +
+          s"AND ${MappedSigningBasket.Status._dbColumnNameLC} IN (${statuses.map(_ => "?").mkString(", ")})",
+        List[Any](now, basketId) ++ statuses) == 1
     }
 
   override def bindSigningBasketPsu(basketId: String, psuUserId: String): Box[Boolean] =
     tryo {
       val bound = DB.runUpdate(
         s"UPDATE ${MappedSigningBasket.dbTableName} " +
-          s"SET ${MappedSigningBasket.PsuUserId._dbColumnNameLC} = ?, ${MappedSigningBasket.updatedAt._dbColumnNameLC} = CURRENT_TIMESTAMP " +
+          s"SET ${MappedSigningBasket.PsuUserId._dbColumnNameLC} = ?, ${MappedSigningBasket.updatedAt._dbColumnNameLC} = ? " +
           s"WHERE ${MappedSigningBasket.BasketId._dbColumnNameLC} = ? " +
           s"AND (${MappedSigningBasket.PsuUserId._dbColumnNameLC} IS NULL OR ${MappedSigningBasket.PsuUserId._dbColumnNameLC} = '')",
-        List(psuUserId, basketId)) == 1
+        List[Any](psuUserId, now, basketId)) == 1
       // Not bound by this call: that is only a success if the basket was already bound to this PSU.
       bound || MappedSigningBasket.find(By(MappedSigningBasket.BasketId, basketId)).exists(_.psuUserId.contains(psuUserId))
     }
