@@ -133,6 +133,14 @@
   "field_mismatches": [
     {
       "version": "v4_0_0",
+      "endpoint": "deleteUser",
+      "field": "description",
+      "reason": "Reviewed: the Lift description said DELETED-<random-string>, which renders as an unclosed HTML element and does not parse as XML (API Explorer and ResourceDocsTest require that it does). The http4s description puts it in a code span; nothing else differs.",
+      "lift_digest": "f2e1d5e50e5b129805fcae2dbfe8e6fc681605ba65c67c1b734bf3f3a14a66d4",
+      "http4s_digest": "7883d1964bf7eb19e158179acdb87bd1e75136681f67ad2e6c35b966b6c8cde4"
+    },
+    {
+      "version": "v4_0_0",
       "endpoint": "deleteExplicitCounterparty",
       "field": "requestVerb",
       "reason": "Lift's doc wrongly listed POST for a delete operation; http4s DELETE is the correct verb (RESTful bug fix)",
