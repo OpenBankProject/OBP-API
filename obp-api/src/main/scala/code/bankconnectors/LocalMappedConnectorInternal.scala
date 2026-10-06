@@ -81,7 +81,28 @@ import scala.util.Random
 
 //Try to keep LocalMappedConnector smaller, so put OBP internal code here. these methods will not be exposed to CBS side.
 object LocalMappedConnectorInternal extends MdcLoggable {
-  
+
+  /**
+   * This records on a newly created transaction request which counterparty it pays.
+   *
+   * SIMPLE and OPEN_CORRIDOR_PROMISE requests name their payee by routing, and the counterparty is
+   * found or created from that routing when the request is created. Without the id, the challenge
+   * step has to resolve the routing a second time, from the body as the payer wrote it, and that
+   * second resolution once paid an unrelated account (see `createTransactionAfterChallengeV210`).
+   *
+   * Only the mapped transaction-request table is written. With a core banking system connector the
+   * request is stored by the core banking system, there is no row here, and nothing is recorded:
+   * the failure is logged and the request carries on.
+   */
+  def recordTransactionRequestCounterparty(transactionRequestId: TransactionRequestId, counterparty: CounterpartyTrait): Future[Unit] = Future {
+    TransactionRequests.transactionRequestProvider.vend
+      .saveTransactionRequestCounterpartyIdImpl(transactionRequestId, CounterpartyId(counterparty.counterpartyId)) match {
+      case Full(true) => ()
+      case outcome => logger.warn(s"recordTransactionRequestCounterparty says: could not record counterparty " +
+        s"${counterparty.counterpartyId} on transaction request ${transactionRequestId.value}: $outcome")
+    }
+  }
+
   def createTransactionRequestBGInternal(
     initiator: Option[User],
     paymentServiceType: PaymentServiceTypes,
@@ -1264,6 +1285,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               getScaMethodAtInstance(transactionRequestType.value).toOption,
               None,
               callContext)
+            _ <- recordTransactionRequestCounterparty(createdTransactionRequest.id, toCounterparty)
           } yield (createdTransactionRequest, callContext)
 
         }

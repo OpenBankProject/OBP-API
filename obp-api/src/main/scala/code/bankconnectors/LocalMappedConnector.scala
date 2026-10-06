@@ -67,7 +67,7 @@ import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
 import code.meetings.Meetings
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.model._
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
@@ -1654,19 +1654,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     otherAccountSecondaryRoutingAddress: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[CounterpartyTrait]] = Future {
-    lazy val counterpartyFromRoutings= Counterparties.counterparties.vend.getCounterpartyByRoutings(
-      otherBankRoutingScheme: String,
-      otherBankRoutingAddress: String,
-      otherBranchRoutingScheme: String,
-      otherBranchRoutingAddress: String,
-      otherAccountRoutingScheme: String,
-      otherAccountRoutingAddress: String
-    )
+    // Empty routing values must never be used as a lookup key: matching on ("", "") returns an
+    // arbitrary counterparty that happens to have the field empty, and a payment to it goes to
+    // whatever account that counterparty points at. Same guard as getOrCreateCounterparty.
+    lazy val counterpartyFromRoutings =
+      if (otherAccountRoutingScheme.trim.nonEmpty && otherAccountRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyByRoutings(
+          otherBankRoutingScheme: String,
+          otherBankRoutingAddress: String,
+          otherBranchRoutingScheme: String,
+          otherBranchRoutingAddress: String,
+          otherAccountRoutingScheme: String,
+          otherAccountRoutingAddress: String
+        )
+      else Empty
 
-    lazy val counterpartyFromSecondaryRouting = Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
-      otherAccountSecondaryRoutingScheme: String,
-      otherAccountSecondaryRoutingAddress: String
-    )
+    lazy val counterpartyFromSecondaryRouting =
+      if (otherAccountSecondaryRoutingScheme.trim.nonEmpty && otherAccountSecondaryRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
+          otherAccountSecondaryRoutingScheme: String,
+          otherAccountSecondaryRoutingAddress: String
+        )
+      else Empty
 
     if(counterpartyFromRoutings.isDefined) {
       (counterpartyFromRoutings, callContext)
@@ -5318,6 +5327,61 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full((APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList, callContext))
   }
   
+  /**
+   * This finds the counterparty a SIMPLE transaction request pays, when its challenge is answered.
+   *
+   * The counterparty was resolved from the payer's routing when the request was created, and its id
+   * is recorded on the request (`LocalMappedConnectorInternal.recordTransactionRequestCounterparty`).
+   * When the id is there, that counterparty is paid and nothing is resolved again.
+   *
+   * Requests created before the id was recorded have only the routing in their body, as the payer
+   * wrote it. Resolving that used to pay an unrelated account: the schemes were stored normalised
+   * (`obp` as `OBP`) but looked up as written, so the case-sensitive match missed, and the fallback
+   * to the secondary routing then matched ("", "") and returned any counterparty with an empty
+   * secondary routing, owned by anyone. For those requests the routing is now normalised the same
+   * way as at creation, an empty routing is never used as a lookup key, and only counterparties of
+   * the paying account are considered. If none matches, the payment fails rather than guess.
+   */
+  private def simpleTransactionRequestCounterparty(
+    transactionRequest: TransactionRequest,
+    fromAccount: BankAccount,
+    bodyToSimple: TransactionRequestSimple,
+    callContext: Option[CallContext]
+  ): OBPReturnType[CounterpartyTrait] = {
+    val recordedCounterpartyId = Option(transactionRequest.counterparty_id).flatMap(id => Option(id.value)).filter(_.trim.nonEmpty)
+    recordedCounterpartyId match {
+      case Some(counterpartyId) =>
+        NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
+      case None => Future {
+        def normalisedScheme(scheme: String): String = net.liftweb.util.StringHelpers.snakify(scheme).toUpperCase
+        val ofPayingAccount = List[QueryParam[MappedCounterparty]](
+          By(MappedCounterparty.mThisBankId, fromAccount.bankId.value),
+          By(MappedCounterparty.mThisAccountId, fromAccount.accountId.value)
+        )
+        val byPrimaryRouting: Box[CounterpartyTrait] =
+          if (bodyToSimple.otherAccountRoutingScheme.trim.nonEmpty && bodyToSimple.otherAccountRoutingAddress.trim.nonEmpty)
+            MappedCounterparty.find(ofPayingAccount ++ List[QueryParam[MappedCounterparty]](
+              By(MappedCounterparty.mOtherBankRoutingScheme, normalisedScheme(bodyToSimple.otherBankRoutingScheme)),
+              By(MappedCounterparty.mOtherBankRoutingAddress, bodyToSimple.otherBankRoutingAddress),
+              By(MappedCounterparty.mOtherBranchRoutingScheme, normalisedScheme(bodyToSimple.otherBranchRoutingScheme)),
+              By(MappedCounterparty.mOtherBranchRoutingAddress, bodyToSimple.otherBranchRoutingAddress),
+              By(MappedCounterparty.mOtherAccountRoutingScheme, normalisedScheme(bodyToSimple.otherAccountRoutingScheme)),
+              By(MappedCounterparty.mOtherAccountRoutingAddress, bodyToSimple.otherAccountRoutingAddress)
+            ): _*)
+          else Empty
+        val bySecondaryRouting: Box[CounterpartyTrait] =
+          if (byPrimaryRouting.isEmpty &&
+            bodyToSimple.otherAccountSecondaryRoutingScheme.trim.nonEmpty && bodyToSimple.otherAccountSecondaryRoutingAddress.trim.nonEmpty)
+            MappedCounterparty.find(ofPayingAccount ++ List[QueryParam[MappedCounterparty]](
+              By(MappedCounterparty.mOtherAccountSecondaryRoutingScheme, normalisedScheme(bodyToSimple.otherAccountSecondaryRoutingScheme)),
+              By(MappedCounterparty.mOtherAccountSecondaryRoutingAddress, bodyToSimple.otherAccountSecondaryRoutingAddress)
+            ): _*)
+          else Empty
+        (unboxFullOrFail(byPrimaryRouting or bySecondaryRouting, callContext, CounterpartyNotFoundByRoutings, 400), callContext)
+      }
+    }
+  }
+
   override def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
     // OPEN_CORRIDOR_PROMISE never posts at challenge-answer: a successfully answered challenge
     // (four-eyes control) admits the promise into the corridor at PENDING, where it accumulates
@@ -5432,17 +5496,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
               body.to_simple.get
             }
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByRoutings(
-              bodyToSimple.otherBankRoutingScheme,
-              bodyToSimple.otherBankRoutingAddress,
-              bodyToSimple.otherBranchRoutingScheme,
-              bodyToSimple.otherBranchRoutingAddress,
-              bodyToSimple.otherAccountRoutingScheme,
-              bodyToSimple.otherAccountRoutingAddress,
-              bodyToSimple.otherAccountSecondaryRoutingScheme,
-              bodyToSimple.otherAccountSecondaryRoutingAddress,
-              callContext
-            )
+            (toCounterparty, callContext) <- simpleTransactionRequestCounterparty(transactionRequest, fromAccount, bodyToSimple, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodySimpleJsonV400(
               to = PostSimpleCounterpartyJson400(

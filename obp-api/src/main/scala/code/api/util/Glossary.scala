@@ -7215,7 +7215,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |An **Asset** is a unit that amounts can be held in: a currency such as EUR, a precious metal such as gold (XAU), an accounting unit such as the IMF's Special Drawing Right (XDR), a crypto asset such as ETH, or an asset a bank issues, such as a deposit token, a stablecoin, a bond or a fund share. Each Asset has a code, and that code is the value that appears in the `currency` field of an account, a transaction or a product fee.
 				 |
-				 |The **asset registry** lists the Assets an OBP instance knows. It is filled automatically with every currency, metal and accounting unit in ISO 4217 and with the crypto assets XBT, ADA and ETH. Banks will be able to add the assets they issue.
+				 |The **asset registry** lists the Assets an OBP instance knows. It is filled automatically with every currency, metal and accounting unit in ISO 4217 and with the crypto assets XBT, ADA and ETH.
 				 |
 				 |## What the registry records about an Asset
 				 |
@@ -7224,7 +7224,7 @@ object Glossary extends MdcLoggable  {
 				 |- **Decimal places**: how many digits an amount may have after the decimal point, from 0 to 18. EUR has 2, JPY has 0.
 				 |- **Issuer**: the bank that issued it, for the types a bank issues. Currencies, metals, accounting units and crypto assets have no issuer.
 				 |- **Chain identity**: for a token recorded on a blockchain, the chain and network (for example `CARDANO_MAINNET`) and the token's identity there. A chain's own currency, such as ADA or ETH, has none.
-				 |- **Status**: `ACTIVE` (usable), `SUSPENDED` (for example frozen by a regulator; existing holdings stay visible) or `RETIRED` (for example a bond that has matured). `RETIRED` is final.
+				 |- **Status**: `ACTIVE`, `SUSPENDED` (for example frozen by a regulator) or `RETIRED` (for example a bond that has matured).
 				 |
 				 |## Assets, Products and Accounts
 				 |
@@ -7232,15 +7232,15 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Administering bank
 				 |
-				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else. Changes to an Asset will be made at its administering bank, so the Roles that allow them can always name one bank.
+				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else.
 				 |
-				 |## Current state
+				 |## Codes OBP accepts
 				 |
-				 |The registry decides which currency codes OBP accepts and how many decimal places it gives them. Each code has the same number of decimal places as in the built-in list OBP used before, and an Asset's status is not yet checked. The registry does not hold `lovelace` or `wei`, which OBP still accepts: they are the smallest units of ADA and ETH, not Assets of their own.
+				 |The registry decides which currency codes OBP accepts and how many decimal places each one has. OBP also accepts `lovelace` and `wei`, the smallest units of ADA and ETH, which are not Assets of their own.
 				 |
 				 |## Letter case
 				 |
-				 |Currency codes are case-insensitive: `eur`, `Eur` and `EUR` all name the same Asset and get the same decimal places. OBP upper-cases a currency code in a request before the endpoint handles it, so it is validated, compared and stored as `EUR`. This applies to the fields of a JSON request body that hold a currency code (`currency`, `from_currency_code` and the like) and to query parameters named the same way. Codes stored before this rule, in another letter case, are still compared ignoring case.
+				 |Currency codes are case-insensitive: `eur`, `Eur` and `EUR` all name the same Asset and get the same decimal places. OBP upper-cases a currency code in a request before the endpoint handles it, so it is validated, compared and stored as `EUR`. This applies to the fields of a JSON request body that hold a currency code (`currency`, `from_currency_code` and the like) and to query parameters named the same way. Wherever OBP compares two currency codes, it ignores letter case.
 				 |
 				 |## Decimal places of an amount
 				 |
