@@ -2377,6 +2377,25 @@ object Consent extends MdcLoggable {
         }
     }
 
+  /**
+   * Bind a Berlin Group consent to the PSU who authorised it: copy the PSU's authentication context onto the
+   * consent, and make the PSU the consent's user. Both the consent authorisation and a signing basket that
+   * activates a consent do this once the SCA has succeeded.
+   */
+  def bindBerlinGroupConsentToPsu(consentId: String, psu: User, callContext: Option[CallContext]): Future[Unit] =
+    for {
+      _ <- Future {
+        val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(psu.userId)
+          .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+        ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
+      } map {
+        APIUtil.unboxFullOrFail(_, callContext, ConsentUserAuthContextCannotBeAdded)
+      }
+      _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, psu)) map {
+        APIUtil.unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
+      }
+    } yield ()
+
   def createUKConsentJWT(
     user: Option[User],
     bankId: Option[String],

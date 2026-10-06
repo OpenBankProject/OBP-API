@@ -704,16 +704,7 @@ object Http4sBGv13AIS extends MdcLoggable {
             _ <- NewStyle.function.tryons(ConsentUpdateStatusError, 400, callContext) {
               consent.toList.size == 1
             }
-            _ <- Future {
-              val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(psu.userId)
-                .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
-              ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
-            } map {
-              unboxFullOrFail(_, callContext, ConsentUserAuthContextCannotBeAdded)
-            }
-            _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, psu)) map {
-              unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
-            }
+            _ <- Consent.bindBerlinGroupConsentToPsu(consentId, psu, callContext)
           } yield {
             createPutConsentResponseJson(consent.toList.head)
           }
