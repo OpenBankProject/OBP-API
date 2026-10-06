@@ -54,8 +54,11 @@ import org.json4s.JsonAST.{JObject, JValue}
  */
 object DomainApiPaths {
 
-  /** What the front door records on a request it rewrote: which Domain API, and the path that was called. */
-  case class DomainApiCall(domainApiId: String, basePath: String, calledPath: String)
+  /**
+   * What the front door records on a request it rewrote: which Domain API, and the URL that was called (path
+   * and query string, the shape of CallContext.url), which API Metrics record as `domain_api_url`.
+   */
+  case class DomainApiCall(domainApiId: String, basePath: String, calledUrl: String)
 
   val domainApiCallKey: org.typelevel.vault.Key[DomainApiCall] =
     org.typelevel.vault.Key.newKey[IO, DomainApiCall].unsafeRunSync()

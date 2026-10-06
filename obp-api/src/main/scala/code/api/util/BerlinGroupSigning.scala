@@ -186,9 +186,9 @@ object BerlinGroupSigning extends MdcLoggable {
    */
   def verifySignedRequest(body: Box[String], verb: String, url: String, reqHeaders: List[HTTPParam], forwardResult: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     def checkRequestIsSigned(requestHeaders: List[HTTPParam]): Boolean = {
-      requestHeaders.exists(_.name.toLowerCase() == RequestHeader.`TPP-Signature-Certificate`.toLowerCase()) &&
-      requestHeaders.exists(_.name.toLowerCase() == RequestHeader.Signature.toLowerCase()) &&
-      requestHeaders.exists(_.name.toLowerCase() == RequestHeader.Digest.toLowerCase())
+      RequestHeadersUtil.exists(requestHeaders, RequestHeader.`TPP-Signature-Certificate`) &&
+      RequestHeadersUtil.exists(requestHeaders, RequestHeader.Signature) &&
+      RequestHeadersUtil.exists(requestHeaders, RequestHeader.Digest)
     }
     checkRequestIsSigned(forwardResult._2.map(_.requestHeaders).getOrElse(Nil)) match {
       case false =>
@@ -240,7 +240,7 @@ object BerlinGroupSigning extends MdcLoggable {
   }
 
   def getHeaderValue(name: String, requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.find(_.name.toLowerCase() == name.toLowerCase()).map(_.values.mkString)
+    RequestHeadersUtil.find(requestHeaders, name).map(_.values.mkString)
       .getOrElse(SecureRandomUtil.csprng.nextLong().toString)
   }
   /**
@@ -260,8 +260,7 @@ object BerlinGroupSigning extends MdcLoggable {
    * ~half of calls where the random Long happened to be negative.
    */
   def getCertificateFromTppSignatureCertificate(requestHeaders: List[HTTPParam]): Box[X509Certificate] = {
-    requestHeaders
-      .find(_.name.equalsIgnoreCase(RequestHeader.`TPP-Signature-Certificate`))
+    RequestHeadersUtil.find(requestHeaders, RequestHeader.`TPP-Signature-Certificate`)
       .map(_.values.mkString.trim)
       .filter(_.nonEmpty) match {
       case None =>

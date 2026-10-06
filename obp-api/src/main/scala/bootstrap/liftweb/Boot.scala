@@ -327,6 +327,10 @@ class Boot extends MdcLoggable {
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()
 
+    // Idempotent seed of the asset registry (ISO currencies, precious metals, accounting units,
+    // XBT, ADA, ETH) at the decimal places OBP uses today. Currency validation and decimal places read it.
+    code.asset.AssetSeed.run()
+
     // Report which static Glossary Items the database is currently displacing. A developer editing
     // Glossary.scala has no other way to find out that their text is being overridden.
     code.api.util.Glossary.logStaticOverrides()
@@ -1053,6 +1057,11 @@ object ToSchemify extends MdcLoggable {
     DynamicData,
     DynamicDataAccess,
     code.api.dynamic.entity.projection.DynamicEntityIndex,
+    // Files: written in full because Boot imports java.io.File.
+    code.files.File,
+    code.files.FileContent,
+    code.files.FileAttachment,
+    code.files.FileAccess,
     DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,
@@ -1141,6 +1150,8 @@ object ToSchemify extends MdcLoggable {
     Organisation,
     RoutingScheme,
     BankSupportedRoutingScheme,
+    code.asset.Asset,
+    code.asset.AssetStatusHistory,
     code.glossaryitem.DynamicGlossaryItem,
     code.platformapp.PlatformApp,
     code.platformapp.PlatformAppRequiredScope,

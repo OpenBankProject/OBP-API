@@ -45,7 +45,7 @@ import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.{APIUtil, Consent, ConsentJWT, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, OBPLimit, OBPOffset, OBPSortBy, SecureRandomUtil, X509}
-import code.api.util.{ExampleValue, Glossary}
+import code.api.util.{AttributeTypeDocs, ExampleValue, Glossary}
 import code.api.v2_0_0.AccountsHelper
 import code.api.v2_0_0.AccountsHelper.accountTypeFilterText
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{
@@ -494,7 +494,7 @@ object Http4s510 {
       val df = new java.text.SimpleDateFormat(DateWithSeconds)
       val headerEpoch: Long = scala.util.Try(df.parse(headerValue).getTime).getOrElse(0L)
       val requestHeaders = cc.requestHeaders
-        .filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)
+        .filter(i => code.api.util.RequestHeadersUtil.isNamed(i, "limit") || code.api.util.RequestHeadersUtil.isNamed(i, "offset")).sortBy(_.name)
       val hashedRequestPayload = code.api.util.HashUtil.Sha256Hash(cc.url + requestHeaders)
       val consumerId = cc.consumer.map(_.consumerId.get).getOrElse("None")
       val userId = scala.util.Try(cc.userId).getOrElse("None")
@@ -674,6 +674,16 @@ object Http4s510 {
         }
     }
 
+    // For the Create Consumer docs: how an app the installation runs itself gets the Roles its own calls need.
+    private val platformAppConsumerText =
+      s"""**If this Consumer is for an app your installation runs itself** (such as the Portal, the API Manager,
+      |Opey or a monitoring service like OBP-Sentinel) and the app calls OBP with its own application token
+      |(OAuth2 client credentials, no User), those calls need Roles granted to the Consumer as Scopes. Have an
+      |administrator mark the Consumer as a Platform App (`POST /obp/v7.0.0/management/platform-apps`); the app
+      |then declares the Scopes it needs (`PUT /obp/v7.0.0/consumers/current/platform-app`), retrying until it is
+      |marked, and the administrator grants the missing ones. See ${Glossary.getGlossaryItemLink("Platform Apps")}
+      |""".stripMargin
+
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
       nameOf(createConsumer),
@@ -756,6 +766,8 @@ object Http4s510 {
       |- `bypass_tpp_signature_validation` - Emergency bypass (default: false, use only for testing)
       |
       |**Important**: The key and secret are only shown once in the response. Save them securely as they cannot be retrieved later.
+      |
+      |$platformAppConsumerText
       |
       |${consumerDisabledText()}
       |
@@ -1199,6 +1211,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheTraceEndpoint)
     )
 
@@ -1225,6 +1238,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheDebugEndpoint)
     )
 
@@ -1251,6 +1265,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheInfoEndpoint)
     )
 
@@ -1277,6 +1292,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheWarningEndpoint)
     )
 
@@ -1303,6 +1319,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheErrorEndpoint)
     )
 
@@ -1329,6 +1346,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)),
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
@@ -1400,7 +1418,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AtmAttributeType.withName(postedData.`type`) }
             (atmAttribute, _) <- NewStyle.function.createOrUpdateAtmAttribute(
               bankId, atmId, None, postedData.name, attrType, postedData.value, postedData.is_active, Some(cc))
@@ -1415,7 +1433,7 @@ object Http4s510 {
       "Create ATM Attribute",
       s""" Create ATM Attribute
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |
@@ -1500,7 +1518,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AtmAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getAtmAttributeById(atmAttributeId, Some(cc))
             (atmAttribute, _) <- NewStyle.function.createOrUpdateAtmAttribute(
@@ -1704,7 +1722,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${RegulatedEntityAttributeType.DOUBLE}(12.1234), ${RegulatedEntityAttributeType.STRING}(TAX_NUMBER), ${RegulatedEntityAttributeType.INTEGER}(123) and ${RegulatedEntityAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { RegulatedEntityAttributeType.withName(postedData.attribute_type) }
             (attribute, _) <- RegulatedEntityAttributeNewStyle.createOrUpdateRegulatedEntityAttribute(
               regulatedEntityId = RegulatedEntityId(entityIdStr),
@@ -1724,7 +1742,7 @@ object Http4s510 {
       s"""
           | Create a new Regulated Entity Attribute for a given REGULATED_ENTITY_ID.
           |
-          | The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+          | ${AttributeTypeDocs.typeFieldDescription}
           | ${userAuthenticationMessage(true)}
           |
       """.stripMargin,
@@ -1836,7 +1854,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${RegulatedEntityAttributeType.DOUBLE}(12.1234), ${RegulatedEntityAttributeType.STRING}(TAX_NUMBER), ${RegulatedEntityAttributeType.INTEGER}(123) and ${RegulatedEntityAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { RegulatedEntityAttributeType.withName(postedData.attribute_type) }
             (_, _) <- getRegulatedEntityByEntityIdNewStyle(entityIdStr, Some(cc))
             (updated, _) <- RegulatedEntityAttributeNewStyle.createOrUpdateRegulatedEntityAttribute(
@@ -2130,7 +2148,7 @@ object Http4s510 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${UserAttributeType.DOUBLE}(12.1234), ${UserAttributeType.STRING}(TAX_NUMBER), ${UserAttributeType.INTEGER} (123)and ${UserAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { UserAttributeType.withName(postedData.`type`) }
             (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
               user.userId, None, postedData.name, attrType, postedData.value, false, Some(cc))
@@ -2145,7 +2163,7 @@ object Http4s510 {
       "Create Non Personal User Attribute",
       s""" Create Non Personal User Attribute
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |
@@ -3064,6 +3082,7 @@ object Http4s510 {
       "Create a Consumer",
       s"""Create a Consumer (Authenticated access).
       |
+      |$platformAppConsumerText
       |""",
       createConsumerRequestJsonV510,
       consumerJsonV510,

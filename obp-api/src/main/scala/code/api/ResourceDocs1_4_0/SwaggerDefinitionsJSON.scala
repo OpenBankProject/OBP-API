@@ -3232,7 +3232,8 @@ object SwaggerDefinitionsJSON {
     consent_reference_id = Some(ExampleValue.consentReferenceIdExample.value),
     auth_type = Some("Consent"),
     certificate_trust = Some("forwarded"),
-    certificate_trust_detail = Some("cn=nginx-prod-1,ou=edge,o=tesobe gmbh,c=de")
+    certificate_trust_detail = Some("cn=nginx-prod-1,ou=edge,o=tesobe gmbh,c=de"),
+    domain_api_url = None
   )
   lazy val metricsJsonV600 = MetricsJsonV600(
     metrics = List(metricJsonV600)

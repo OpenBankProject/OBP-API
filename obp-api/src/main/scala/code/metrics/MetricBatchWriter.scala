@@ -72,7 +72,24 @@ object MetricBatchWriter extends MdcLoggable {
     consentReferenceId: String,
     certificateTrust: String,
     certificateTrustDetail: String,
-    authType: String
+    authType: String,
+    // The URL called under a Domain API; null for every other call.
+    domainApiUrl: String = null
+  )
+
+  /**
+   * This holds one row's values in the order of the INSERT's columns. It is a case class, not a tuple,
+   * because the row has more than 22 values and Scala tuples stop at 22. Each text value is an Option so
+   * that Doobie writes a null as SQL NULL (its Put[String] refuses a null).
+   */
+  private case class InsertValues(
+    userId: Option[String], url: Option[String], date: Timestamp, duration: Long, userName: Option[String],
+    appName: Option[String], developerEmail: Option[String], consumerId: Option[String],
+    implementedByPartialFunction: Option[String], implementedInVersion: Option[String], verb: Option[String],
+    httpCode: Int, correlationId: Option[String], responseBody: Option[String], sourceIp: Option[String],
+    targetIp: Option[String], forwardedFor: Option[String], apiInstanceId: Option[String],
+    consentReferenceId: Option[String], certificateTrust: Option[String], certificateTrustDetail: Option[String],
+    authType: Option[String], domainApiUrl: Option[String]
   )
 
   private val queue = new ConcurrentLinkedQueue[MetricRow]()
@@ -145,14 +162,20 @@ object MetricBatchWriter extends MdcLoggable {
       consentReferenceId = fit(row.consentReferenceId, table.consentReferenceId),
       certificateTrust = fit(row.certificateTrust, table.certificateTrust),
       certificateTrustDetail = fit(row.certificateTrustDetail, table.certificateTrustDetail),
-      authType = fit(row.authType, table.authType)
+      authType = fit(row.authType, table.authType),
+      domainApiUrl = fit(row.domainApiUrl, table.domainApiUrl)
     )
   }
 
   /**
    * Drain the queue and batch-insert all pending metrics via Doobie.
+   *
+   * This is synchronized so that one flush finishes before the next starts. The background scheduler
+   * and a caller (a test that flushes before reading the metric table) may flush at the same time.
+   * Without the lock, a caller could find the queue empty because the scheduler had just drained it,
+   * and return while those rows were still being inserted, so a read straight after saw none of them.
    */
-  private[code] def flush(): Unit = {
+  private[code] def flush(): Unit = synchronized {
     val flushStart = System.nanoTime()
     // Rows taken off the queue by this flush. If the write fails they are lost, so Telemetry counts them.
     var drainedRows = 0
@@ -179,22 +202,14 @@ object MetricBatchWriter extends MdcLoggable {
             developeremail, consumerid, implementedbypartialfunction,
             implementedinversion, verb, httpcode, correlationid,
             responsebody, sourceip, targetip, forwarded_for, apiinstanceid, consent_reference_id,
-            certificate_trust, certificate_trust_detail, auth_type
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            certificate_trust, certificate_trust_detail, auth_type, domain_api_url
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
-        // Use Option[String] so Doobie handles nullable fields via Put[Option[String]]
-        // instead of Put[String] which throws "oops, null" on null values
-        val insert = Update[
-          (Option[String], Option[String], Timestamp, Long, Option[String], Option[String],
-           Option[String], Option[String], Option[String],
-           Option[String], Option[String], Int, Option[String],
-           Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
-           Option[String], Option[String], Option[String])
-        ](insertSql)
+        val insert = Update[InsertValues](insertSql)
 
         val values = rows.map { r =>
-          (
+          InsertValues(
             Option(r.userId), Option(r.url), new Timestamp(if (r.date != null) r.date.getTime else 0L),
             r.duration, Option(r.userName), Option(r.appName),
             Option(r.developerEmail), Option(r.consumerId), Option(r.implementedByPartialFunction),
@@ -202,7 +217,7 @@ object MetricBatchWriter extends MdcLoggable {
             Option(r.responseBody), Option(r.sourceIp), Option(r.targetIp), Option(r.forwardedFor), Option(r.apiInstanceId),
             Option(r.consentReferenceId),
             Option(r.certificateTrust), Option(r.certificateTrustDetail),
-            Option(r.authType)
+            Option(r.authType), Option(r.domainApiUrl)
           )
         }
 

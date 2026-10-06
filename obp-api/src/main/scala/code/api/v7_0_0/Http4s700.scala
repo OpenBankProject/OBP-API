@@ -4836,11 +4836,11 @@ object Http4s700 {
       "GET",
       "/management/message-outbox",
       "Get Message Outbox",
-      """List rows of the generic transactional message outbox — the messages OBP-API must deliver asynchronously, written in the same DB transaction as the business event that caused them and published by the relay with at-least-once redelivery.
+      s"""List rows of the generic transactional message outbox — the messages OBP-API must deliver asynchronously, written in the same DB transaction as the business event that caused them and published by the relay with at-least-once redelivery.
         |
         |Filter with `outbox_type` (e.g. `OPEN_CORRIDOR`), `status` (`PENDING` / `DELIVERED` / `STICKY`) and `limit` (default 100, max 500). `subject_id` + `subject_id_type` name the business object each message is about (a settlement, a transaction request, ...) — not to be confused with the per-request Correlation-Id.
         |
-        |STICKY rows are failures redelivery cannot fix; after reconciliation, re-queue one with the retry endpoint. The wire payload is not exposed: it can carry commit-reveal evidence and originator PII.
+        |STICKY rows are failures redelivery cannot fix: an error reply that retrying cannot change, or an Open Corridor message still undelivered after ${code.messageoutbox.MessageOutboxRelay.maxOpenCorridorAttemptsInEffect} attempts on this instance (its `last_error` keeps the cause). After reconciliation, re-queue one with the retry endpoint. The wire payload is not exposed: it can carry commit-reveal evidence and originator PII.
         |
         |Authentication is Required.""".stripMargin,
       EmptyBody,
@@ -5310,12 +5310,12 @@ object Http4s700 {
       "GET",
       "/banks/BANK_ID/open-corridor/settlements/SETTLEMENT_ID",
       "Get Open Corridor Settlement",
-      """Read one Open Corridor settlement. BANK_ID must be a party (debtor or creditor) of the settlement — other banks get a 404.
+      s"""Read one Open Corridor settlement. BANK_ID must be a party (debtor or creditor) of the settlement — other banks get a 404.
         |
         |The two status fields deliberately separate the two layers:
         |
         |* `ledger_status` — the OBP-side OPEN_CORRIDOR_SETTLEMENT Transaction Request (COMPLETED at settle time: netting, promise discharge and the net ledger Transaction are done).
-        |* `settlement_status` — the value leg on the rail, as last reported by the debtor bank's node: `NET_ZERO` (nothing to move), `INSTRUCTED` (no node reply yet), `SETTLING` / `SUBMITTED` (in flight, with `settlement_depth` = confirmation depth when reported), `FINAL` (node reported finality), `ERROR` (non-retryable node error; operator reconciliation — see the message's `last_error`).
+        |* `settlement_status` — the value leg on the rail, as last reported by the debtor bank's node: `NET_ZERO` (nothing to move), `INSTRUCTED` (no node reply yet), `SETTLING` / `SUBMITTED` (in flight, with `settlement_depth` = confirmation depth when reported), `FINAL` (node reported finality), `ERROR` (a non-retryable node error, or the instruction was still not FINAL after ${code.messageoutbox.MessageOutboxRelay.maxOpenCorridorAttemptsInEffect} delivery attempts on this instance; operator reconciliation — see the message's `last_error`).
         |
         |`messages` lists the settlement's Interface C outbox rows (settlement advices and the settlement instruction) with their delivery state.
         |
@@ -7472,6 +7472,9 @@ object Http4s700 {
 
     // Deployment Checks: is this instance, and what sits in front of it, set up correctly.
     resourceDocs ++= Http4s700DeploymentChecks.resourceDocs
+
+    // The asset registry: the currencies, metals, accounting units, crypto assets and bank-issued assets amounts are held in.
+    resourceDocs ++= Http4s700Assets.resourceDocs
 
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs

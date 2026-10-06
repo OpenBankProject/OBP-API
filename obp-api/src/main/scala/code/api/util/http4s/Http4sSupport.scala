@@ -697,6 +697,7 @@ object Http4sCallContextBuilder {
       }
     } yield CallContext(
       url = request.uri.renderString,
+      domainApiUrl = request.attributes.lookup(code.api.dynamic.domainapi.DomainApiPaths.domainApiCallKey).map(_.calledUrl),
       forwardedFor = RemoteIpUtil.forwardedForPath(
         request.remoteAddr.map(_.toUriString).getOrElse(""),
         requestHeaderValues(request, "X-Forwarded-For")

@@ -84,6 +84,17 @@ class JoinQuerySpec extends FlatSpec with Matchers {
     joins shouldBe List(RawJoin(Quantifier.NotExists, "Contract", None, Nil))
   }
 
+  it should "parse a bare join key with no '=' (no values) as a no-predicate join, not drop it" in {
+    // http4s multiParams gives `?obp_not_exists[Contract]` (no '=') an empty value list.
+    val query = org.http4s.Query.unsafeFromString("obp_not_exists[Contract]&obp_exists[Partner]")
+    val multi = query.multiParams.map { case (k, vs) => k -> vs.toList }
+    multi("obp_not_exists[Contract]") shouldBe Nil
+    val Right((_, joins, _, _)) = QueryParamParser.parse(multi)
+    joins should contain theSameElementsAs List(
+      RawJoin(Quantifier.NotExists, "Contract", None, Nil),
+      RawJoin(Quantifier.Exists, "Partner", None, Nil))
+  }
+
   it should "parse a nested predicate reusing the filter grammar" in {
     val Right((_, joins, _, _)) = QueryParamParser.parse(params("obp_exists[Contract]" -> "filter[active]=eq:true"))
     joins shouldBe List(RawJoin(Quantifier.Exists, "Contract", None, List(Filter("active", FilterOp.Eq, List("true")))))

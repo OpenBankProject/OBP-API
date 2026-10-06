@@ -65,7 +65,7 @@ import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.http4s.IdempotencyMiddleware
-import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, AttributeTypeDocs, CallContext, CustomJsonFormats, NewStyle}
 import code.api.v4_0_0.JSONFactory400._
 import code.DynamicData.DynamicData
 import code.api.util.migration.Migration
@@ -895,7 +895,7 @@ object Http4s400 {
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             productAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
@@ -929,7 +929,7 @@ object Http4s400 {
       |See [FPML](http://www.fpml.org/) for more examples.
       |
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |
       |
@@ -954,7 +954,7 @@ object Http4s400 {
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             productAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
@@ -4622,7 +4622,7 @@ object Http4s400 {
           for {
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.BankAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.BankAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.BankAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.BankAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.BankAttributeType.withName(postedData.`type`)
             }
@@ -4641,7 +4641,7 @@ object Http4s400 {
               bankIdStr, user.userId, canUpdateBankAttribute, Some(cc))
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.BankAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.BankAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.BankAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.BankAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.BankAttributeType.withName(postedData.`type`)
             }
@@ -4669,7 +4669,7 @@ object Http4s400 {
           for {
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.CustomerAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.CustomerAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.CustomerAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.CustomerAttributeType.withName(postedData.`type`)
             }
@@ -4688,7 +4688,7 @@ object Http4s400 {
           for {
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.CustomerAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.CustomerAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.CustomerAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.CustomerAttributeType.withName(postedData.`type`)
             }
@@ -4712,7 +4712,7 @@ object Http4s400 {
               bank.bankId, AccountId(accountIdStr), TransactionId(transactionIdStr), Some(cc))
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.TransactionAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.TransactionAttributeType.withName(postedData.`type`)
             }
@@ -4731,7 +4731,7 @@ object Http4s400 {
               bank.bankId, AccountId(accountIdStr), TransactionId(transactionIdStr), Some(cc))
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.TransactionAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.TransactionAttributeType.withName(postedData.`type`)
             }
@@ -4753,7 +4753,7 @@ object Http4s400 {
               TransactionRequestId(transactionRequestIdStr), Some(cc))
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.TransactionRequestAttributeType.withName(postedData.attribute_type)
             }
@@ -4772,7 +4772,7 @@ object Http4s400 {
               TransactionRequestId(transactionRequestIdStr), Some(cc))
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.TransactionRequestAttributeType.withName(postedData.attribute_type)
             }
@@ -4825,7 +4825,7 @@ object Http4s400 {
           for {
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.UserAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.UserAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.UserAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.UserAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.UserAttributeType.withName(postedData.`type`)
             }
@@ -4846,7 +4846,7 @@ object Http4s400 {
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${com.openbankproject.commons.model.enums.UserAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.UserAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.UserAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.UserAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) {
               com.openbankproject.commons.model.enums.UserAttributeType.withName(postedData.`type`)
             }
@@ -4880,7 +4880,7 @@ object Http4s400 {
         |See [FPML](http://www.fpml.org/) for more examples.
         |
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |
         |
@@ -4925,7 +4925,7 @@ object Http4s400 {
         s""" Create Customer Attribute
         |
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -4966,7 +4966,7 @@ object Http4s400 {
         "Create Transaction Attribute",
         s""" Create Transaction Attribute
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -5009,7 +5009,7 @@ object Http4s400 {
         "Create Transaction Request Attribute",
         s""" Create Transaction Request Attribute
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -5091,7 +5091,7 @@ object Http4s400 {
         "Create My Personal User Attribute",
         s""" Create My Personal User Attribute
         |
-        |The `type` field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -5112,7 +5112,7 @@ object Http4s400 {
         "Update My Personal User Attribute",
         s"""Update My Personal User Attribute for current user by USER_ATTRIBUTE_ID
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |
@@ -5902,7 +5902,7 @@ object Http4s400 {
       for {
         attributeType <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-            s"${com.openbankproject.commons.model.enums.AttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.AttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.AttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.AttributeType.DATE_WITH_DAY}(2012-04-23)",
+            AttributeTypeDocs.typesWithExamples,
           400, Some(cc)) {
           com.openbankproject.commons.model.enums.AttributeType.withName(postedData.`type`)
         }

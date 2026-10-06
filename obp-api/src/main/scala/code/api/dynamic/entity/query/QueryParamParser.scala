@@ -145,9 +145,12 @@ object QueryParamParser {
 
   private def parseJoins(params: Map[String, List[String]]): Either[QueryError, List[RawJoin]] = {
     // NotExistsKey is tried first; `obp_not_exists[...]` never matches `obp_exists[...]` so order is safe either way.
+    // A bare key (`?obp_exists[CHILD]`, no `=`) arrives with no values; treat it as one empty value
+    // (no predicate), the same as `?obp_exists[CHILD]=`, rather than silently dropping the join.
+    def orEmpty(values: List[String]): List[String] = if (values.isEmpty) List("") else values
     val perKey: List[Either[QueryError, List[RawJoin]]] = params.toList.collect {
-      case (NotExistsKey(child), values) => traverse(values)(parseOneJoin(Quantifier.NotExists, child, _))
-      case (ExistsKey(child), values)    => traverse(values)(parseOneJoin(Quantifier.Exists, child, _))
+      case (NotExistsKey(child), values) => traverse(orEmpty(values))(parseOneJoin(Quantifier.NotExists, child, _))
+      case (ExistsKey(child), values)    => traverse(orEmpty(values))(parseOneJoin(Quantifier.Exists, child, _))
     }
     sequence(perKey).map(_.flatten)
   }

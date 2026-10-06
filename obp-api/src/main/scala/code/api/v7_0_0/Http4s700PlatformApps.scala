@@ -218,7 +218,11 @@ object Http4s700PlatformApps {
             case _ => net.liftweb.common.Empty
           }).map(code.api.util.APIUtil.unboxFullOrFail(_, Some(cc), ApplicationNotIdentified, 401))
           consumerId = consumer.consumerId.get
-          _ <- Helper.booleanToFuture(PlatformAppNotFound, failCode = 404, cc = Some(cc)) {
+          // Say which Consumer to mark and where to read how: the app's developer may never have heard of Platform Apps.
+          notMarked = s"$PlatformAppNotFound This Consumer's CONSUMER_ID is $consumerId (name: ${consumer.name.get}). " +
+            s"See the glossary entry Platform Apps: GET /obp/v7.0.0/api/glossary/Platform%20Apps or " +
+            s"${Glossary.apiExplorerUrl}/glossary#Platform%20Apps"
+          _ <- Helper.booleanToFuture(notMarked, failCode = 404, cc = Some(cc)) {
             provider.getPlatformApp(consumerId).isDefined
           }
           scopes = Option(body.required_scopes).getOrElse(Nil)

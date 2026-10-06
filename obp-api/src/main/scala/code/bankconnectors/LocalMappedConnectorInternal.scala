@@ -949,10 +949,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               val attributes = transactionRequestBodyCounterparty.attributes.head
 
               val failMsg = s"$InvalidJsonFormat The attribute `type` field can only accept the following field: " +
-                s"${TransactionRequestAttributeType.DOUBLE}(12.1234)," +
-                s" ${TransactionRequestAttributeType.STRING}(TAX_NUMBER), " +
-                s"${TransactionRequestAttributeType.INTEGER}(123) and " +
-                s"${TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)"
+                AttributeTypeDocs.typesWithExamples
 
               for{
                 _ <- NewStyle.function.tryons(failMsg, 400, callContext) {

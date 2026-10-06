@@ -148,6 +148,8 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
           logger.warn(s"[TEST ISOLATION] Failed to clear table for ${model.getClass.getSimpleName}: ${e.getMessage}")
       }
     }
+    // The reset empties the asset registry behind AssetLookup's in-memory copy, so forget the copy too.
+    code.asset.AssetLookup.invalidate()
   }
 
   val server = TestServer
@@ -225,6 +227,9 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
   override def afterEach() = {
     super.afterEach()
     wipeTestData()
+    // The wipe empties the asset registry behind AssetLookup's in-memory copy. Forget the copy, or a
+    // registry a scenario left holding only a test asset would decide currency codes for later suites.
+    code.asset.AssetLookup.invalidate()
   }
 
 }

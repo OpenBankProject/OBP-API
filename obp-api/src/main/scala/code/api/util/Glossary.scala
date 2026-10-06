@@ -1527,6 +1527,8 @@ object Glossary extends MdcLoggable  {
 			|
 			|There is a one to one relationship between a Consumer and its certificate. i.e. OBP does not (currently) store the history of certificates bound to a Consumer. If a certificate expires, the third party provider (TPP) must generate a new consumer using a new certificate. In this case, related resources such as rate limits and scopes must be copied from the old consumer to the new consumer. In the future, OBP may store multiple certificates for a consumer, but a certificate will always identify only one consumer record.
 			|
+			|A Consumer for an app the installation runs itself (the Portal, the API Manager, Opey, OBP-Sentinel or a bank's own service) that calls OBP with its own application token needs Roles granted to it as Scopes. An administrator marks it as a Platform App, the app declares the Scopes it needs, and the administrator grants them. See ${getGlossaryItemLink("Platform Apps")}
+			|
 		""")
 
 	  glossaryItems += GlossaryItem(
@@ -6957,6 +6959,7 @@ object Glossary extends MdcLoggable  {
 				 |- `source_ip`: the address of the client, as OBP-API decided it (see [Client IP Address](/glossary#Client-IP-Address)). Records written before this was introduced hold the raw `X-Forwarded-For` header instead
 				 |- `forwarded_for`: the hops the call passed through: the `X-Forwarded-For` list it arrived with, followed by the address of the machine that connected to OBP-API. Entries to the left of the first address OBP-API does not trust may have been written by the caller, so read them as a claim, not a fact
 				 |- `target_ip`: the `X-Forwarded-Host` request header, as sent
+				 |- `domain_api_url`: for a call made under a [Domain API](/glossary#Domain-APIs), the path and query string the caller used, such as `/carbon-registry/v1/activity?limit=10`; the URL above is then the OBP URL the call was served at. Absent for every other call. A Domain API's base paths never overlap, so the calls through one Domain API are those whose `domain_api_url` starts with its base path.
 				 |- the `api_instance_id` of the OBP-API instance that served the call
 				 |- the response body, for selected endpoints only
 				 |
@@ -7203,6 +7206,46 @@ object Glossary extends MdcLoggable  {
 				 |
 """)
 
+
+	glossaryItems += GlossaryItem(
+		title = "Asset",
+		description =
+			s"""
+				 |# Asset
+				 |
+				 |An **Asset** is a unit that amounts can be held in: a currency such as EUR, a precious metal such as gold (XAU), an accounting unit such as the IMF's Special Drawing Right (XDR), a crypto asset such as ETH, or an asset a bank issues, such as a deposit token, a stablecoin, a bond or a fund share. Each Asset has a code, and that code is the value that appears in the `currency` field of an account, a transaction or a product fee.
+				 |
+				 |The **asset registry** lists the Assets an OBP instance knows. It is filled automatically with every currency, metal and accounting unit in ISO 4217 and with the crypto assets XBT, ADA and ETH. Banks will be able to add the assets they issue.
+				 |
+				 |## What the registry records about an Asset
+				 |
+				 |- **Code**: 3 to 10 letters or digits, held upper case. The registry matches codes ignoring letter case, so looking up `eur` finds `EUR`.
+				 |- **Type**: `FIAT`, `PRECIOUS_METAL`, `ACCOUNTING_UNIT`, `CRYPTO`, or one of the types a bank issues: `DEPOSIT_TOKEN`, `STABLECOIN`, `DEBT_SECURITY`, `EQUITY`, `FUND_SHARE`, `OTHER`.
+				 |- **Decimal places**: how many digits an amount may have after the decimal point, from 0 to 18. EUR has 2, JPY has 0.
+				 |- **Issuer**: the bank that issued it, for the types a bank issues. Currencies, metals, accounting units and crypto assets have no issuer.
+				 |- **Chain identity**: for a token recorded on a blockchain, the chain and network (for example `CARDANO_MAINNET`) and the token's identity there. A chain's own currency, such as ADA or ETH, has none.
+				 |- **Status**: `ACTIVE` (usable), `SUSPENDED` (for example frozen by a regulator; existing holdings stay visible) or `RETIRED` (for example a bond that has matured). `RETIRED` is final.
+				 |
+				 |## Assets, Products and Accounts
+				 |
+				 |These are three separate things. The **Asset** says what the units are. A **Product** says what a bank offers and on what terms; an issuing bank describes an instrument, such as a bond's coupon and maturity date, with a Product and its attributes. An **Account** says who holds how many units: its `currency` is the Asset's code, and its product is the holding bank's own Product. A customer at bank B holding a bond issued by bank A has an account at B, in the bond's Asset code, under one of B's Products.
+				 |
+				 |## Administering bank
+				 |
+				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else. Changes to an Asset will be made at its administering bank, so the Roles that allow them can always name one bank.
+				 |
+				 |## Current state
+				 |
+				 |The registry decides which currency codes OBP accepts and how many decimal places it gives them. For now it gives the same answers as the built-in list OBP used before: codes are matched exactly as written, so `EUR` is accepted and `eur` is not, and an Asset's status is not yet checked. Each code has the same number of decimal places as in that list. The registry does not hold `lovelace` or `wei`, which OBP still accepts: they are the smallest units of ADA and ETH, not Assets of their own. OBP also still accepts `ada` as well as `ADA`.
+				 |
+				 |## Endpoints
+				 |
+				 |These need no authentication.
+				 |
+				 |- [Get Assets](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssets): `GET /obp/v7.0.0/assets`
+				 |- [Get Asset](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAsset): `GET /obp/v7.0.0/assets/ASSET_CODE`
+				 |- [Get Asset by Chain Identity](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssetByChainIdentity): `GET /obp/v7.0.0/assets/chain/CHAIN_SCHEME/CHAIN_ASSET_ID`
+				 |""".stripMargin)
 
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala

@@ -30,9 +30,10 @@ package code.api.v7_0_0
 import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetTelemetry
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
 import code.api.v6_0_0.V600ServerSetup
 import code.entitlement.Entitlement
+import code.scope.Scope
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
@@ -62,7 +63,7 @@ class TelemetryEndpointTest extends V600ServerSetup {
     scenario("Anonymous access fails with 401", ApiEndpoint, VersionOfApi) {
       val response = makeGetRequest(telemetryRequest.GET)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
     }
 
     scenario("A logged-in user without CanGetTelemetry gets 403", ApiEndpoint, VersionOfApi) {
@@ -134,6 +135,19 @@ class TelemetryEndpointTest extends V600ServerSetup {
       val names = response.body.extract[TelemetryJsonV700].meters.map(_.name)
       names should not be empty
       all(names) should startWith("jvm.memory")
+    }
+
+    scenario("A Consumer holding CanGetTelemetry as a Scope may read Telemetry without an Entitlement", ApiEndpoint, VersionOfApi) {
+      Given("user2 holds no CanGetTelemetry Entitlement and testConsumer2 no Scope")
+      makeGetRequest(telemetryRequest.GET <@ (user2)).code should equal(403)
+
+      When("testConsumer2, which user2 signs with, is granted CanGetTelemetry as a Scope")
+      val granted = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetTelemetry.toString)
+      val response = try makeGetRequest(telemetryRequest.GET <@ (user2)) finally Scope.scope.vend.deleteScope(granted)
+
+      Then("Telemetry is returned")
+      response.code should equal(200)
+      response.body.extract[TelemetryJsonV700].api_instance_id should equal(Constant.ApiInstanceId)
     }
   }
 }

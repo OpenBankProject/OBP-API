@@ -57,8 +57,7 @@ object BerlinGroupCheck extends MdcLoggable {
     .toList.filterNot(_.isEmpty)
 
   def hasUnwantedConsentIdHeaderForBGEndpoint(path: String, reqHeaders: List[HTTPParam]): Boolean = {
-    val headerMap: Map[String, HTTPParam] = reqHeaders.map(h => h.name.toLowerCase -> h).toMap
-    val hasConsentIdId = headerMap.get(RequestHeader.`Consent-ID`.toLowerCase).flatMap(_.values.headOption).isDefined
+    val hasConsentIdId = RequestHeadersUtil.find(reqHeaders, RequestHeader.`Consent-ID`).flatMap(_.values.headOption).isDefined
 
     val parts = path.stripPrefix("/").stripSuffix("/").split("/").toList
     val doesNotRequireConsentId = parts.reverse match {
@@ -79,18 +78,17 @@ object BerlinGroupCheck extends MdcLoggable {
                                forwardResult: (Box[User], Option[CallContext])
                              ): (Box[User], Option[CallContext]) = {
 
-    val headerMap: Map[String, HTTPParam] = reqHeaders.map(h => h.name.toLowerCase -> h).toMap
-    val maybeRequestId: Option[String] = headerMap.get(RequestHeader.`X-Request-ID`.toLowerCase).flatMap(_.values.headOption)
+    val maybeRequestId: Option[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.`X-Request-ID`).flatMap(_.values.headOption)
 
     val missingHeaders: List[String] = {
       if (url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && url.endsWith("/consents"))
-        (berlinGroupMandatoryHeaders ++ berlinGroupMandatoryHeaderConsent).filterNot(headerMap.contains)
+        (berlinGroupMandatoryHeaders ++ berlinGroupMandatoryHeaderConsent).filterNot(RequestHeadersUtil.exists(reqHeaders, _))
       else
-        berlinGroupMandatoryHeaders.filterNot(headerMap.contains)
+        berlinGroupMandatoryHeaders.filterNot(RequestHeadersUtil.exists(reqHeaders, _))
     }
 
     val resultWithWrongDateHeaderCheck: Option[(Box[User], Option[CallContext])] = {
-      val date: Option[String] = headerMap.get(RequestHeader.Date.toLowerCase).flatMap(_.values.headOption)
+      val date: Option[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.Date).flatMap(_.values.headOption)
       if (date.isDefined && !DateTimeUtil.isValidRfc7231Date(date.get)) {
         val message = ErrorMessages.NotValidRfc7231Date
         Some(
@@ -155,7 +153,7 @@ object BerlinGroupCheck extends MdcLoggable {
 
     // === Signature Header Parsing ===
     val resultWithInvalidSignatureHeaderCheck: Option[(Box[User], Option[CallContext])] = {
-      val maybeSignature: Option[String] = headerMap.get("signature").flatMap(_.values.headOption)
+      val maybeSignature: Option[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.Signature).flatMap(_.values.headOption)
       maybeSignature.flatMap { header =>
         BerlinGroupSignatureHeaderParser.parseSignatureHeader(header) match {
           case Right(parsed) =>
@@ -241,7 +239,7 @@ object BerlinGroupCheck extends MdcLoggable {
    */
   def isTppRequestsWithoutPsuInvolvement(requestHeaders: List[HTTPParam]): Boolean = {
     def valueOf(name: String): Option[String] =
-      requestHeaders.find(_.name.equalsIgnoreCase(name)).map(_.values.mkString.trim).filter(_.nonEmpty)
+      RequestHeadersUtil.find(requestHeaders, name).map(_.values.mkString.trim).filter(_.nonEmpty)
 
     val psuIpAddress = valueOf(RequestHeader.`PSU-IP-Address`)
     val markedAsUnattended = psuIpAddress.contains("0.0.0.0") ||

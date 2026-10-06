@@ -486,7 +486,10 @@ case class MetricJsonV600(
     // absent when the request carried no certificate material. See PeerTrust.Resolution.
     certificate_trust: Option[String],
     // The forwarding proxy's subject DN, or the reason no caller was identified.
-    certificate_trust_detail: Option[String]
+    certificate_trust_detail: Option[String],
+    // The path and query string the caller used under a Domain API, before it was rewritten to the OBP
+    // URL in `url`. Absent for every call that did not come through a Domain API.
+    domain_api_url: Option[String] = None
 )
 case class MetricsJsonV600(metrics: List[MetricJsonV600])
 
@@ -1779,7 +1782,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       consent_reference_id = Option(metric.getConsentReferenceId()).filter(_.nonEmpty),
       auth_type = Option(metric.getAuthType()).filter(_.nonEmpty),
       certificate_trust = Option(metric.getCertificateTrust()).filter(_.nonEmpty),
-      certificate_trust_detail = Option(metric.getCertificateTrustDetail()).filter(_.nonEmpty)
+      certificate_trust_detail = Option(metric.getCertificateTrustDetail()).filter(_.nonEmpty),
+      domain_api_url = Option(metric.getDomainApiUrl()).filter(_.nonEmpty)
     )
   }
 

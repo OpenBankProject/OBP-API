@@ -142,7 +142,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
                           responseBody: String, sourceIp: String, targetIp: String, forwardedFor: String, apiInstanceId: String, consentReferenceId: String,
                           certificateTrust: String, certificateTrustDetail: String,
-                          authType: String): Unit = {
+                          authType: String, domainApiUrl: String): Unit = {
     // A correlation id is expected on every metric. Rows without one cannot be moved
     // to the archive later (its correlationId column requires a UUID), so flag it at
     // write time where the source of the missing id can actually be traced.
@@ -172,7 +172,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         consentReferenceId = consentReferenceId,
         certificateTrust = certificateTrust,
         certificateTrustDetail = certificateTrustDetail,
-        authType = authType
+        authType = authType,
+        domainApiUrl = domainApiUrl
       )
     )
   }
@@ -184,7 +185,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   responseBody: String, sourceIp: String, targetIp: String, forwardedFor: String,
                                   apiInstanceId: String, consentReferenceId: String,
                                   certificateTrust: String, certificateTrustDetail: String,
-                                  authType: String): Boolean = {
+                                  authType: String, domainApiUrl: String): Boolean = {
     // Fix: dedup by the source metric's primary key stored in `metricId`, NOT by the
     // archive's own auto-increment `id`. The two are unrelated id-spaces; matching on
     // `id` overwrites an unrelated archived row once the archive's id sequence grows
@@ -214,6 +215,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .certificateTrust(certificateTrust)
       .certificateTrustDetail(certificateTrustDetail)
       .authType(authType)
+      .domainApiUrl(domainApiUrl)
 
     httpCode match {
       case Some(code) => metric.httpCode(code)
@@ -323,6 +325,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => By(MappedMetric.httpCode, value) }.headOption
     val consentReferenceId = queryParams.collect { case OBPConsentReferenceId(value) => By(MappedMetric.consentReferenceId, value) }.headOption
     val certificateTrust = queryParams.collect { case OBPCertificateTrust(value) => By(MappedMetric.certificateTrust, value) }.headOption
+    val domainApiUrl = queryParams.collect { case OBPDomainApiUrl(value) => Like(MappedMetric.domainApiUrl, s"$value%") }.headOption
     val anon = queryParams.collect {
       case OBPAnon(true) => By(MappedMetric.userId, "null")
       case OBPAnon(false) => NotBy(MappedMetric.userId, "null")
@@ -352,6 +355,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       httpStatusCode.toSeq,
       consentReferenceId.toSeq,
       certificateTrust.toSeq,
+      domainApiUrl.toSeq,
       anon.toSeq,
       excludeAppNames.toSeq.flatten
     ).flatten
@@ -854,6 +858,12 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
     override def dbColumnName = "forwarded_for"
     override def defaultValue = null
   }
+  // The path and query string a caller used under a Domain API, before the request was rewritten to
+  // the OBP URL in `url`. Null for every other call. The same width as `url`, in both tables.
+  object domainApiUrl extends MappedString(this, 2000) {
+    override def dbColumnName = "domain_api_url"
+    override def defaultValue = null
+  }
   object apiInstanceId extends MappedString(this, 255)
   // Set when the request was authenticated via a consent. Null otherwise.
   object consentReferenceId extends MappedString(this, 36) {
@@ -899,6 +909,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
   override def getForwardedFor(): String = forwardedFor.get
+  override def getDomainApiUrl(): String = domainApiUrl.get
   override def getApiInstanceId(): String = apiInstanceId.get
   override def getConsentReferenceId(): String = consentReferenceId.get
   override def getCertificateTrust(): String = certificateTrust.get
@@ -969,6 +980,12 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
     override def dbColumnName = "forwarded_for"
     override def defaultValue = null
   }
+  // The path and query string a caller used under a Domain API, before the request was rewritten to
+  // the OBP URL in `url`. Null for every other call. The same width as `url`, in both tables.
+  object domainApiUrl extends MappedString(this, 2000) {
+    override def dbColumnName = "domain_api_url"
+    override def defaultValue = null
+  }
   object apiInstanceId extends MappedString(this, 255)
   // Set when the request was authenticated via a consent. Null otherwise.
   object consentReferenceId extends MappedString(this, 36) {
@@ -1012,6 +1029,7 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
   override def getForwardedFor(): String = forwardedFor.get
+  override def getDomainApiUrl(): String = domainApiUrl.get
   override def getApiInstanceId(): String = apiInstanceId.get
   override def getConsentReferenceId(): String = consentReferenceId.get
   override def getCertificateTrust(): String = certificateTrust.get

@@ -29,9 +29,10 @@ package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadAggregateMetrics
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
 import code.entitlement.Entitlement
 import code.metrics.MetricBatchWriter
+import code.scope.Scope
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
@@ -58,7 +59,7 @@ class AggregateMetricsTest extends V600ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
     }
   }
 
@@ -122,6 +123,21 @@ class AggregateMetricsTest extends V600ServerSetup {
       aggregateMetric2.distinct_consumer_count shouldBe 2
       aggregateMetric2.consent_call_count shouldBe 0
       aggregateMetric2.distinct_consent_count shouldBe 0
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - Application access with a Scope") {
+    scenario("A Consumer holding the Role as a Scope may read aggregate metrics without an Entitlement", ApiEndpoint1, VersionOfApi) {
+      val request = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user2)
+      Given("user2 holds no CanReadAggregateMetrics Entitlement and testConsumer2 no Scope")
+      makeGetRequest(request).code should equal(403)
+
+      When("testConsumer2, which user2 signs with, is granted CanReadAggregateMetrics as a Scope")
+      val granted = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanReadAggregateMetrics.toString)
+      try {
+        Then("aggregate metrics are returned")
+        makeGetRequest(request).code should equal(200)
+      } finally Scope.scope.vend.deleteScope(granted)
     }
   }
 }

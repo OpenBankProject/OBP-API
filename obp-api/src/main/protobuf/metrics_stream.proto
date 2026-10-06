@@ -60,6 +60,9 @@ message MetricEvent {
   // The specifics behind certificate_trust: the forwarding proxy's subject for
   // "forwarded", the rejection reason for "none". Matches MetricJsonV600.certificate_trust_detail.
   string certificate_trust_detail         = 22;
+  // For a call made under a Domain API, the path and query string the caller used, before it was
+  // rewritten to the OBP URL in `url`; empty for every other call. Matches MetricJsonV600.domain_api_url.
+  string domain_api_url                   = 23;
 }
 
 // Live tail of API metrics as they are written.

@@ -130,7 +130,9 @@ trait APIMetrics {
                  consentReferenceId: String,
                  certificateTrust: String,
                  certificateTrustDetail: String,
-                 authType: String): Unit
+                 authType: String,
+                 // The URL called under a Domain API (CallContext.domainApiUrl); null for every other call.
+                 domainApiUrl: String = null): Unit
 
   def saveMetricsArchive(primaryKey: Long,
                          userId: String,
@@ -154,7 +156,8 @@ trait APIMetrics {
                          consentReferenceId: String,
                          certificateTrust: String,
                          certificateTrustDetail: String,
-                         authType: String
+                         authType: String,
+                         domainApiUrl: String = null
                         ): Boolean
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
@@ -211,6 +214,9 @@ trait APIMetric {
   def getSourceIp(): String
   def getTargetIp(): String
   def getForwardedFor(): String
+  // The path and query string called under a Domain API, before it was rewritten to the OBP URL in
+  // getUrl. Null for every call that did not come through a Domain API.
+  def getDomainApiUrl(): String
   def getApiInstanceId(): String
   def getConsentReferenceId(): String
   def getCertificateTrust(): String

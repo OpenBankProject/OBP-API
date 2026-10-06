@@ -29,10 +29,11 @@ package code.api.v5_1_0
 
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanGetSystemLogCacheAll,CanGetSystemLogCacheInfo}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ApiRole.{CanGetSystemLogCacheAll,CanGetSystemLogCacheError,CanGetSystemLogCacheInfo}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, ApplicationNotIdentified}
 import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
+import code.scope.Scope
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -57,7 +58,7 @@ class LogCacheEndpointTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
     }
   }
 
@@ -269,6 +270,26 @@ class LogCacheEndpointTest extends V510ServerSetup {
       
       Then("We should get a not found response since endpoint does not exist")
       responseNegativeOffset.code should equal(400)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - Application access with a Scope") {
+    scenario("A Consumer holding the Role as a Scope may read the log cache without an Entitlement", ApiEndpoint1, VersionOfApi) {
+      val request = (v5_1_0_Request / "system" / "log-cache" / "error").GET <@(user2)
+      Given("user2 holds no log cache Entitlement and testConsumer2 no Scope")
+      makeGetRequest(request).code should equal(403)
+
+      When("testConsumer2, which user2 signs with, is granted CanGetSystemLogCacheError as a Scope")
+      val granted = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetSystemLogCacheError.toString)
+      try {
+        val response = makeGetRequest(request)
+        Then("the error level log cache is returned")
+        response.code should equal(200)
+        (response.body \ "entries") shouldBe a[JArray]
+
+        And("the Scope covers only its own level")
+        makeGetRequest((v5_1_0_Request / "system" / "log-cache" / "info").GET <@(user2)).code should equal(403)
+      } finally Scope.scope.vend.deleteScope(granted)
     }
   }
 }
