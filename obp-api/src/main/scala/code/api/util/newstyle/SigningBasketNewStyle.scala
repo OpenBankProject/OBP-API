@@ -209,8 +209,8 @@ object SigningBasketNewStyle extends MdcLoggable {
     }
 
   // A payment lodged for SCA is stored RCVD (BG initiation) or INITIATED; anything else has been booked,
-  // rejected or cancelled, or is being authorised some other way.
-  private val awaitingScaPaymentStatuses = Set("RCVD", "INITIATED")
+  // rejected or cancelled, or is being authorised some other way. The executor accepts the same set.
+  val awaitingScaPaymentStatuses = Set("RCVD", "INITIATED")
 
   /**
    * A consent may join a basket if the caller may address it under the rule consents use, it was

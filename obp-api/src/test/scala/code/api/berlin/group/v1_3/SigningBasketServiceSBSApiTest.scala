@@ -967,6 +967,24 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       memberResults(basketId).map(r => r._1 -> (r._2, r._3)).toMap should equal(Map(good -> ("DONE", 1), bad -> ("FAILED", 3)))
     }
 
+    scenario("S4: a payment stored INITIATED is admitted and then booked like one stored RCVD, and ends COMPLETED", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      val payment = lodgePayment()
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, payment)).openOrThrowException("payment")
+        .mStatus("INITIATED").saveMe()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      balanceOf(ibanFrom) should equal(fromBefore - 2001)
+      balanceOf(ibanTo) should equal(toBefore + 2001)
+      storedPaymentStatus(payment) should equal("COMPLETED")
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
     scenario("S4: a member left UNKNOWN is reconciled by its transaction id, and is otherwise left alone", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val ibanFrom = ibanAccounts.head

@@ -29,6 +29,7 @@ package code.api.berlin.group.v1_3
 
 import code.api.berlin.group.ConstantsBG
 import code.api.util.APIUtil.getPropsAsIntValue
+import code.api.util.newstyle.SigningBasketNewStyle
 import code.api.util.{CallContext, Consent, NewStyle}
 import code.consent.{ConsentStatus, Consents}
 import code.signingbaskets.{SigningBasketMemberExecution, SigningBasketMemberState, SigningBasketX}
@@ -72,7 +73,8 @@ object SigningBasketExecution extends MdcLoggable {
   /** How many times a member that failed is claimed again before it is left for an operator. */
   private def maxAttempts: Int = getPropsAsIntValue("signing_basket_member_max_attempts", 3)
 
-  private val awaitingAuthorisation = "RCVD"
+  // The statuses a payment may have been admitted to a basket with.
+  private def awaitingAuthorisation: Set[String] = SigningBasketNewStyle.awaitingScaPaymentStatuses
 
   /**
    * Executes the basket's members that are not yet DONE, in order, stopping at the first that does not
@@ -199,7 +201,7 @@ object SigningBasketExecution extends MdcLoggable {
           case Success((payment, _)) if bookedTransactionIds(payment) =>
             // Already booked, by an earlier attempt that did not get to record it.
             finishWith(Done, s"Already booked: transaction ${payment.transaction_ids}")
-          case Success((payment, _)) if payment.status != awaitingAuthorisation =>
+          case Success((payment, _)) if !awaitingAuthorisation.contains(payment.status) =>
             finishWith(Failed, s"The payment is ${payment.status}, not waiting for authorisation")
           case Success((payment, _)) => book(basketId, member, payment, callContext, finishWith)
         }
