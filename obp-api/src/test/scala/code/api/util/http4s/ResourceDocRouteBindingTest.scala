@@ -82,14 +82,10 @@ class ResourceDocRouteBindingTest extends ServerSetup {
   /**
    * Docs whose route serves a longer or narrower URL than the template documents, or accepts only some
    * values of a segment, so the template text itself is not a request the route serves. The documented
-   * URL is kept as it is (resource-docs and Swagger show it); this gives the URL to test instead.
+   * URL is kept as it is (resource-docs and Swagger show it); this gives the URL to test instead. Empty
+   * today: a doc that disagrees with its route should be fixed, as v2.0.0's search docs were.
    */
-  private val sampleUrlOf: Map[String, String] = Map(
-    // Lift documented /search/warehouse, and served /search/warehouse/{query}
-    "elasticSearchWarehouse" -> "/search/warehouse/QUERY",
-    "elasticSearchMetrics" -> "/search/metrics/QUERY",
-    // (the Berlin Group payment routes accept only real payment services and products, see below)
-  )
+  private val sampleUrlOf: Map[String, String] = Map.empty
 
   private def requestFor(doc: ResourceDoc): Request[IO] = {
     val version = doc.implementedInApiVersion

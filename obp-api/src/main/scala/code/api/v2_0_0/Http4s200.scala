@@ -1416,7 +1416,7 @@ object Http4s200 {
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(elasticSearchWarehouse), "GET",
-      "/search/warehouse",
+      "/search/warehouse/QUERY",
       "Search Warehouse Data Via Elasticsearch",
       """
       |Search warehouse data via Elastic Search.
@@ -1508,7 +1508,7 @@ object Http4s200 {
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(elasticSearchMetrics), "GET",
-      "/search/metrics",
+      "/search/metrics/QUERY",
       "Search API Metrics via Elasticsearch",
       """
       |Search the API calls made to this API instance via Elastic Search.
