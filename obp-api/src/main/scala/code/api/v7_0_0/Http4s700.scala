@@ -7486,6 +7486,7 @@ object Http4s700 {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
         .flatMap(_.http4sPartialFunction)
+        .map(_.routes)
       sorted.foldLeft(HttpRoutes.empty[IO]) { (acc, route) =>
         HttpRoutes[IO](req => acc.run(req).orElse(route.run(req)))
       }

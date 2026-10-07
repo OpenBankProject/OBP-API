@@ -2792,7 +2792,43 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   type OBPReturnType[T] = Future[(T, Option[CallContext])]
-  type Http4sEndpoint = Option[HttpRoutes[IO]]
+  /** The pattern match of one http4s endpoint, before `HttpRoutes.of` hides it. */
+  type Http4sRoutePF = PartialFunction[org.http4s.Request[IO], IO[org.http4s.Response[IO]]]
+
+  /**
+   * What a ResourceDoc runs. A [[Http4sRoute]] exposes its pattern match, so ResourceDocMiddleware
+   * can ask it whether it serves a request and take the doc of the route that does. Plain
+   * `HttpRoutes[IO]` (a [[LegacyRoutes]]) cannot be asked without running it, so the middleware
+   * still finds the doc of such an endpoint by matching the URL against the doc's template.
+   * Endpoints are converted to [[Http4sRoute]] one version at a time; the implicit conversion in
+   * the companion keeps the unconverted `http4sPartialFunction = Some(routes)` sites compiling.
+   */
+  sealed trait Http4sHandler {
+    def routes: HttpRoutes[IO]
+    def route: Option[Http4sRoutePF]
+  }
+
+  object Http4sHandler {
+    import scala.language.implicitConversions
+    implicit def fromHttpRoutes(routes: HttpRoutes[IO]): Http4sHandler = LegacyRoutes(routes)
+  }
+
+  final case class LegacyRoutes(routes: HttpRoutes[IO]) extends Http4sHandler {
+    def route: Option[Http4sRoutePF] = None
+  }
+
+  /** An endpoint whose pattern match is available: `Http4sRoute { case req @ GET -> ... => ... }`. */
+  final class Http4sRoute(val pf: Http4sRoutePF) extends Http4sHandler {
+    lazy val routes: HttpRoutes[IO] = HttpRoutes.of[IO](pf)
+    def route: Option[Http4sRoutePF] = Some(pf)
+    def run(req: org.http4s.Request[IO]): cats.data.OptionT[IO, org.http4s.Response[IO]] = routes.run(req)
+  }
+
+  object Http4sRoute {
+    def apply(pf: Http4sRoutePF): Http4sRoute = new Http4sRoute(pf)
+  }
+
+  type Http4sEndpoint = Option[Http4sHandler]
   // Native http4s endpoint type for runtime-compiled dynamic endpoints (Piece C).
   // The dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
   type Http4sEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]

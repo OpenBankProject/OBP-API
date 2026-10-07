@@ -142,10 +142,23 @@ object ResourceDocMiddleware extends MdcLoggable {
   /**
    * Middleware factory: wraps HttpRoutes with ResourceDoc validation.
    * Finds the matching ResourceDoc, validates the request, and enriches CallContext.
+   *
+   * A doc that carries its route ([[code.api.util.APIUtil.Http4sRoute]]) is found by asking the
+   * routes whether they serve the request (`ResourceDocMatcher.selectByRoute`, docs tried in the
+   * order given), and that route alone is run, wrapped in `wrap`. A doc without a route is found by
+   * matching the URL against its template, and the request goes to `routes`.
    */
-  def apply(resourceDocs: ArrayBuffer[ResourceDoc]): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
-    // Build the lookup index once per middleware instance (at startup), not per request.
-    val resourceDocIndex = ResourceDocMatcher.buildIndex(resourceDocs)
+  def apply(
+    resourceDocs: ArrayBuffer[ResourceDoc],
+    wrap: HttpRoutes[IO] => HttpRoutes[IO] = identity
+  ): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
+    // Build the lookup structures once per middleware instance (at startup), not per request.
+    val routeBoundDocs = resourceDocs.filter(_.http4sPartialFunction.exists(_.route.isDefined)).toList
+    val resourceDocIndex = ResourceDocMatcher.buildIndex(
+      resourceDocs.filterNot(doc => doc.http4sPartialFunction.exists(_.route.isDefined)))
+    // A ResourceDoc is a case class holding JSON bodies: look it up by identity, not by equality.
+    val routeOfDoc = new java.util.IdentityHashMap[ResourceDoc, HttpRoutes[IO]]()
+    routeBoundDocs.foreach(doc => routeOfDoc.put(doc, wrap(doc.http4sPartialFunction.get.routes)))
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
       // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
       // tests or live config reloads) take effect immediately. Cost is a few Lift Props
@@ -171,12 +184,15 @@ object ResourceDocMiddleware extends MdcLoggable {
         // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
         // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
         val reqWithOriginalBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
-        ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex) match {
-          case Some(resourceDoc) if !endpointIsEnabled(resourceDoc) =>
+        val selected: Option[(ResourceDoc, HttpRoutes[IO])] =
+          ResourceDocMatcher.selectByRoute(req, routeBoundDocs).map(doc => doc -> routeOfDoc.get(doc))
+            .orElse(ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex).map(_ -> routes))
+        selected match {
+          case Some((resourceDoc, _)) if !endpointIsEnabled(resourceDoc) =>
             // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
             // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
             OptionT.none[IO, Response[IO]]
-          case Some(resourceDoc) =>
+          case Some((resourceDoc, routesToRun)) =>
             Http4sRequestAttributes.trafficNote(req).foreach { note =>
               note.operationId = Some(resourceDoc.operationId)
               note.apiVersion = Some(resourceDoc.implementedInApiVersion.apiShortVersion)
@@ -206,7 +222,7 @@ object ResourceDocMiddleware extends MdcLoggable {
                     user <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.user.toOption)
                   } note.userId = Some(user.userId)
                   val routeIO =
-                    routes.run(enrichedReq)
+                    routesToRun.run(enrichedReq)
                       .map(ensureJsonContentType)
                       .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
                   val executed =

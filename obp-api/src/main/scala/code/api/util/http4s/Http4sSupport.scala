@@ -870,7 +870,42 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     resourceDocs: ArrayBuffer[ResourceDoc]
   ): Option[ResourceDoc] =
     findResourceDoc(verb, path, buildIndex(resourceDocs))
-  
+
+  /**
+   * Select the ResourceDoc of the route that serves `req`.
+   *
+   * A ResourceDoc whose `http4sPartialFunction` is an [[code.api.util.APIUtil.Http4sRoute]] carries
+   * the pattern match of its handler, so the request is put to that match instead of being compared
+   * with the doc's URL template. The doc that comes back is the doc of the route that will run,
+   * whatever the template says, and nothing about a segment has to be guessed to be a placeholder
+   * or a fixed word. Docs without a route are ignored; they are found by [[findResourceDoc]].
+   *
+   * `docs` are tried in the order given, which must be the order the routes are tried in when a
+   * request could be served by more than one. Several docs may share one route (a handler that
+   * serves every transaction-request type has a doc per type); the template then tells those docs
+   * apart, the one with the most fixed segments winning, and the first of them when none matches.
+   */
+  def selectByRoute(req: Request[IO], docs: Iterable[ResourceDoc]): Option[ResourceDoc] = {
+    def routeOf(doc: ResourceDoc): Option[code.api.util.APIUtil.Http4sRoutePF] =
+      doc.http4sPartialFunction.flatMap(_.route)
+
+    docs.iterator
+      .flatMap(doc => routeOf(doc).map(doc -> _))
+      .find { case (_, route) => route.isDefinedAt(req) }
+      .map { case (first, route) =>
+        val sharingTheRoute = docs.filter(doc => routeOf(doc).exists(_ eq route)).toList
+        if (sharingTheRoute.size <= 1) first
+        else {
+          val strippedPath = apiPrefixPattern.replaceFirstIn(req.uri.path.renderString, "")
+          sharingTheRoute
+            .filter(doc => doc.requestVerb.equalsIgnoreCase(req.method.name) && matchesUrlTemplate(strippedPath, doc.requestUrl))
+            .sortBy(doc => -literalSegmentCount(doc.requestUrl))
+            .headOption
+            .getOrElse(first)
+        }
+      }
+  }
+
   /**
    * Check if a path matches a URL template
    * Template segments in uppercase are treated as variables
