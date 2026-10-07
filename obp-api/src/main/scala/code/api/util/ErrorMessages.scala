@@ -881,6 +881,16 @@ object ErrorMessages {
   val InvalidUKConsentPermissions = "OBP-35038: The Permissions array is not a valid combination for UK Open Banking. "
   val BerlinGroupPsuNotIdentified = "OBP-35039: The PSU this authorisation is for cannot be identified. Send the PSU-ID header, or authenticate as the PSU. "
   val ConsentNamesNoAccount = "OBP-35040: The Consent names no account, so it grants no access. It was authorised before consents were bound to accounts; re-authorise it to select which accounts it applies to. "
+  val SigningBasketAuthorisationVariantNotSupported = "OBP-35050: This request body is not supported on a signing basket authorisation. " +
+    "Send an empty body to start the authorisation, or {\"scaAuthenticationData\": ...} to answer it. " +
+    "PSU authentication, authentication method selection and confirmation code requests are not available for signing baskets. "
+  val SigningBasketNotFound = "OBP-35051: Signing basket not found by BASKET_ID. "
+  val SigningBasketAuthorisationNotFound = "OBP-35052: Signing basket authorisation not found by AUTHORISATION_ID. "
+  val SigningBasketStatusInvalid = "OBP-35053: The signing basket's status does not allow this operation. "
+  val SigningBasketAuthorisationDisabled = "OBP-35054: Authorising signing baskets is not enabled at this instance. "
+  val SigningBasketMemberNotFound = "OBP-35056: A payment named for the signing basket was not found. "
+  val SigningBasketMemberStatusInvalid = "OBP-35057: A payment named for the signing basket is not waiting for SCA. "
+  val SigningBasketConsentsNotSupported = "OBP-35058: Consents in a signing basket are not supported yet. Name payments only. "
   val ConsentMyResourcesInvalid = "OBP-35042: The Consent's my_resources block is invalid. "
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "
