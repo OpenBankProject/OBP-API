@@ -29,7 +29,7 @@ package code.api.v7_0_0
 import cats.effect.IO
 import code.api.Constant
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -138,7 +138,7 @@ object Http4s700Groups {
   }
 
   // Route: POST /obp/v7.0.0/management/groups/GROUP_ID/sync-members
-  lazy val syncGroupMembers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val syncGroupMembers: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "groups" / groupId / "sync-members" =>
       EndpointHelpers.withUser(req) { (user, cc) =>
         val dryRun = isDryRun(req)
@@ -227,7 +227,7 @@ object Http4s700Groups {
   }
 
   // Route: POST /obp/v7.0.0/management/groups/GROUP_ID/users/USER_ID/sync
-  lazy val syncGroupMember: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val syncGroupMember: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "groups" / groupId / "users" / userId / "sync" =>
       EndpointHelpers.withUser(req) { (user, cc) =>
         val dryRun = isDryRun(req)
@@ -293,7 +293,7 @@ object Http4s700Groups {
   )
 
   // Route: POST /obp/v7.0.0/management/users/USER_ID/sync-groups
-  lazy val syncUserGroups: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val syncUserGroups: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "users" / userId / "sync-groups" =>
       EndpointHelpers.withUser(req) { (user, cc) =>
         val dryRun = isDryRun(req)

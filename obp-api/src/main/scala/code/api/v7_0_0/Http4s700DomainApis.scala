@@ -30,7 +30,7 @@ import cats.effect.IO
 import code.api.Constant.ApiPathZero
 import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.entity.helper.DynamicEntitySpace
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -156,7 +156,7 @@ object Http4s700DomainApis {
     DomainApiPathClash, UnknownError)
 
   // Route: POST /obp/v7.0.0/management/banks/BANK_ID/domain-apis (201)
-  lazy val createDomainApi: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomainApi: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "domain-apis" =>
       EndpointHelpers.withUserAndBodyCreated[PostDomainApiJsonV700, DomainApiJsonV700](req) { (user, body, cc) =>
         val spaceId = space(bankIdInUrl)
@@ -186,7 +186,7 @@ object Http4s700DomainApis {
   ).allowSystemSpace()
 
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/domain-apis
-  lazy val getDomainApis: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomainApis: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "domain-apis" =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         Future(provider.getAll(space(bankIdInUrl))).map(box =>
@@ -212,7 +212,7 @@ object Http4s700DomainApis {
   ).allowSystemSpace()
 
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID
-  lazy val getDomainApi: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomainApi: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "domain-apis" / domainApiId =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         found(space(bankIdInUrl), domainApiId, cc).map(JSONFactory700DomainApis.createDomainApiJson)
@@ -237,7 +237,7 @@ object Http4s700DomainApis {
   ).allowSystemSpace()
 
   // Route: PUT /obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID
-  lazy val updateDomainApi: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updateDomainApi: Http4sRoute = Http4sRoute {
     case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdInUrl / "domain-apis" / domainApiId =>
       EndpointHelpers.withUserAndBody[PostDomainApiJsonV700, DomainApiJsonV700](req) { (_, body, cc) =>
         val spaceId = space(bankIdInUrl)
@@ -270,7 +270,7 @@ object Http4s700DomainApis {
   ).allowSystemSpace()
 
   // Route: DELETE /obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID (204)
-  lazy val deleteDomainApi: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteDomainApi: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `prefixPath` / "management" / "banks" / bankIdInUrl / "domain-apis" / domainApiId =>
       EndpointHelpers.withUserDelete(req) { (_, cc) =>
         val spaceId = space(bankIdInUrl)
