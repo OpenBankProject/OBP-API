@@ -679,9 +679,9 @@
       "version": "v4_0_0",
       "endpoint": "createTransactionRequestAccount",
       "field": "requestUrl",
-      "reason": "Literal \"ACCOUNT\" segment generalized to a TRANSACTION_REQUEST_TYPE wildcard + GRANT_VIEW_ID: a single generic http4s handler now serves what were 9 separate per-type Lift doc aliases (confirmed by a matching code comment).",
+      "reason": "VIEW_ID -> GRANT_VIEW_ID: checkAuthorisationToCreateTransactionRequest handles the view/role authorisation logic internally, matching this repo's documented bypass convention. The literal ACCOUNT segment is as in the Lift baseline.",
       "lift_digest": "f05f20b524d4f6546c826d4c69d9e40f785c624e77956c9fb0389160a03054ca",
-      "http4s_digest": "dc93a9444e21bd6540d25ed64b94db928463b2cb6468129c8dd92b8316f53886"
+      "http4s_digest": "68051da298bb3e52e38bd934987adce04a7f40bcb5bb9f236344eb02010b892b"
     },
     {
       "version": "v4_0_0",
