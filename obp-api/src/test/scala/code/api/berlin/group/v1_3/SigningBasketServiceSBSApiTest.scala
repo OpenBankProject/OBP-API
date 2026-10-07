@@ -1334,6 +1334,128 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (user1)), 409, "STATUS_INVALID", "deleting a basket that ended")
     }
   }
+
+  /**
+   * Runs `body` with the connector replaced by one that answers the named methods itself and hands every other
+   * call to the connector that was in use. Not the mapped connector and not the star connector, which is what
+   * a deployment with a single configured remote connector looks like to the code that asks which one it has.
+   */
+  private def withConnector[A](overrides: PartialFunction[String, Array[AnyRef] => AnyRef])(body: => A): A = {
+    val original = code.bankconnectors.Connector.connector.vend
+    val handler = new java.lang.reflect.InvocationHandler {
+      override def invoke(proxy: AnyRef, method: java.lang.reflect.Method, args: Array[AnyRef]): AnyRef = {
+        val arguments = Option(args).getOrElse(Array.empty[AnyRef])
+        overrides.lift(method.getName) match {
+          case Some(answer) => answer(arguments)
+          case None =>
+            try method.invoke(original, arguments: _*)
+            catch { case e: java.lang.reflect.InvocationTargetException => throw e.getCause }
+        }
+      }
+    }
+    val replacement = java.lang.reflect.Proxy
+      .newProxyInstance(classOf[code.bankconnectors.Connector].getClassLoader, Array(classOf[code.bankconnectors.Connector]), handler)
+      .asInstanceOf[code.bankconnectors.Connector]
+    code.bankconnectors.Connector.connector.default.set(replacement)
+    try body finally code.bankconnectors.Connector.connector.default.set(original)
+  }
+
+  /** The challenge the connector was asked about, reporting the given SCA status instead of its own. */
+  private def challengeReporting(challengeId: String, status: StrongCustomerAuthenticationStatus.SCAStatus): com.openbankproject.commons.model.ChallengeTrait = {
+    val real = Challenges.ChallengeProvider.vend.getChallenge(challengeId).openOrThrowException("the challenge must exist")
+    java.lang.reflect.Proxy.newProxyInstance(
+      classOf[com.openbankproject.commons.model.ChallengeTrait].getClassLoader,
+      Array(classOf[com.openbankproject.commons.model.ChallengeTrait]),
+      new java.lang.reflect.InvocationHandler {
+        override def invoke(proxy: AnyRef, method: java.lang.reflect.Method, args: Array[AnyRef]): AnyRef =
+          if (method.getName == "scaStatus") Some(status)
+          else try method.invoke(real, Option(args).getOrElse(Array.empty[AnyRef]): _*)
+          catch { case e: java.lang.reflect.InvocationTargetException => throw e.getCause }
+      }).asInstanceOf[com.openbankproject.commons.model.ChallengeTrait]
+  }
+
+  feature("BG v1.3 signing baskets - what a connector other than the mapped one can answer") {
+    // The connector answers a one-time password it did not accept by handing back the challenge itself, with
+    // a status that says so, instead of failing.
+    def connectorAnswering(status: StrongCustomerAuthenticationStatus.SCAStatus): PartialFunction[String, Array[AnyRef] => AnyRef] = {
+      case "validateChallengeAnswerC5" => arguments =>
+        Future.successful((net.liftweb.common.Full(challengeReporting(arguments(3).asInstanceOf[String], status)), arguments(6)))
+    }
+
+    scenario("X1: a challenge the connector hands back as failed is a refusal, and the basket is rejected with its payments", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val started = startedBasket(paymentCount = 2)
+      val before = balanceOf(ibanFrom)
+      withConnector(connectorAnswering(StrongCustomerAuthenticationStatus.failed)) {
+        expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 401, "PSU_CREDENTIALS_INVALID", "an answer the connector reports as failed")
+      }
+      withClue("nothing was booked, and nothing can be answered again: ") {
+        balanceOf(ibanFrom) should equal(before)
+        storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal("REJECTED"))
+        memberResults(started.basketId) should equal(Nil)
+      }
+      expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 409, "STATUS_INVALID", "the right answer afterwards")
+    }
+
+    scenario("X2: a challenge the connector hands back without finalising it authorises nothing, and does not reject the basket", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val started = startedBasket()
+      val before = balanceOf(ibanFrom)
+      withConnector(connectorAnswering(StrongCustomerAuthenticationStatus.received)) {
+        expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 401, "PSU_CREDENTIALS_INVALID", "an answer the connector has not finalised")
+      }
+      balanceOf(ibanFrom) should equal(before)
+      storedBasketStatus(started.basketId) should equal(Some("RCVD"))
+      started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+      withClue("and the PSU can still answer it properly: ") {
+        answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
+        balanceOf(ibanFrom) should equal(before - 2001)
+      }
+    }
+
+    scenario("X3: a booking that fails on a connector other than the mapped one may have been made, so it is left UNKNOWN and never retried", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      val before = balanceOf(ibanFrom)
+      val bookings = new java.util.concurrent.atomic.AtomicInteger(0)
+      val failing: PartialFunction[String, Array[AnyRef] => AnyRef] = {
+        case "createTransactionAfterChallengeV210" => arguments =>
+          bookings.incrementAndGet()
+          Future.failed(new RuntimeException("the backend timed out, and may have booked"))
+      }
+      withConnector(failing) {
+        answerAuthorisation(basketId, authorisationId).code should equal(200)
+        (1 to 3).foreach { _ =>
+          Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+        }
+      }
+      withClue("one attempt, however often the basket is executed again: ") { bookings.get() should equal(1) }
+      memberResults(basketId) should equal(List((payment, "UNKNOWN", 1)))
+      storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
+      withClue("not terminal, and still held: it is waiting for a person to say whether the money moved: ") {
+        code.signingbaskets.MappedSigningBasketMemberClaim.find(By(code.signingbaskets.MappedSigningBasketMemberClaim.MemberKey, s"payment:$payment")).isDefined should be(true)
+      }
+      balanceOf(ibanFrom) should equal(before)
+    }
+
+    scenario("X4: the same failure on the mapped connector is a payment that was not booked, and is tried again", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val payment = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      (1 to 3).foreach { _ =>
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      }
+      withClue("claimed again up to the attempts allowed, and failed each time, not left UNKNOWN: ") {
+        memberResults(basketId) should equal(List((payment, "FAILED", 3)))
+      }
+    }
+  }
 }
 
 /** A provider that behaves as the real one, except that reading one particular basket throws, as a database failure would. */
