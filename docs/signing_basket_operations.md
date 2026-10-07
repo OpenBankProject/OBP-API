@@ -20,11 +20,15 @@ Related properties:
 
 ## What the stored status means
 
-A basket reports `RCVD`, `PATC`, `ACTC`, `CANC` or `RJCT`. Two more are stored and reported as `RCVD`:
+A basket reports `RCVD`, `PATC`, `ACTC`, `CANC` or `RJCT`. Three more are stored and reported as `RCVD`:
 
 * `AUTHORISING`: the authorisation was answered correctly and the basket was claimed; its members are being
   executed.
 * `EXECUTION_INCOMPLETE`: execution stopped with a member that is not `DONE`.
+* `EXECUTION_FAILED`: the end of an incomplete basket. Every member that is not `DONE` has failed as often as it
+  is allowed to (`signing_basket_member_max_attempts`), so running it again would change nothing. The basket is no
+  longer picked up and what it held is free; it cannot be authorised again, cancelled or restarted. The creating
+  TPP still reads what happened from the results endpoint.
 
 `ACTC` means every member is `DONE`. Each member has its own state in `SigningBasketMemberExecution`, and the
 creating TPP reads it from `GET /signing-baskets/{basketId}/execution`.
@@ -35,9 +39,23 @@ creating TPP reads it from `GET /signing-baskets/{basketId}/execution`.
 | `EXECUTING` | Claimed by an executor. Past the lease it becomes `UNKNOWN`. |
 | `DONE` | Payment booked, or consent activated. |
 | `FAILED` | Refused before it took effect. Claimed again automatically, on the mapped connector, up to the attempts allowed. |
-| `UNKNOWN` | The executor stopped without recording an outcome, or a connector other than the mapped one failed after it may have booked. |
+| `UNKNOWN` | The executor stopped without recording an outcome, or a connector other than the mapped one failed after it may have booked. On the mapped connector the resumption turns it into `DONE` (the payment has a transaction id) or `FAILED` (it has not). |
 
 Several payments in one basket are not one transaction. A failure leaves the earlier payments booked.
+
+### What is committed when
+
+The ledger (the claim `RCVD -> AUTHORISING`, the member rows and their states, the release of members) is written on
+a database connection of its own and committed at once. Everything else a request writes (the finalised challenge,
+the booking and transaction id on the mapped connector, the payment status) is committed when the response is sent.
+So if a node dies in the middle of answering an authorisation, the ledger survives and says what was under way, and
+the basket is not answered a second time: it is `AUTHORISING`, not `RCVD`. A request that executes a basket holds two
+connections from the pool for that time.
+
+On the mapped connector a booking that did not commit leaves no transaction id, so the resumption knows that member
+was not booked (it becomes `FAILED` and is claimed again). On any other connector there is no way to know, and the
+member stays `UNKNOWN` for you. The lease (`signing_basket_execution_lease_in_seconds`) must be longer than the
+longest an answer to an authorisation can take, or a request still working can have its members taken over.
 
 ## Looking at baskets that did not complete
 
@@ -58,7 +76,9 @@ ORDER BY position;
 ## Members left UNKNOWN
 
 The resumption reconciles an `UNKNOWN` payment by its transaction id: if the payment carries one it was
-booked, and the member becomes `DONE`. Without one, nothing proves whether it was booked, so it is left for you.
+booked, and the member becomes `DONE`. Without one, the mapped connector did not book it (it records the
+transaction id in the same transaction as the booking), so the member becomes `FAILED` and is claimed again. On any
+other connector nothing proves whether it was booked, so it is left for you.
 
 1. Find the payment's debit in the ledger (the debtor account, the amount, the time of the execution).
 2. If it was booked, set the payment's transaction id and mark the member `DONE`; the next resumption completes
@@ -101,6 +121,12 @@ payment. A basket that is only to be closed needs none of this; set its status t
 
 ## Things that can still surprise
 
+* A payment that an active basket holds cannot be authorised on its own (the payment authorisation answers 409
+  `STATUS_INVALID`), and a payment that is no longer waiting for SCA (rejected, cancelled, failed) stops the answer to
+  the basket's authorisation with 409 before anything is booked.
+* Wrong answers are counted for the basket, over all its authorisations, against
+  `answer_transactionRequest_challenge_allowed_attempts`. The answer that uses the allowance up rejects the basket
+  (`RJCT`) and its payments, so starting new authorisations does not give new guesses.
 * A payment waiting in a basket is still a payment waiting for SCA: if
   `berlin_group_outdated_transactions_interval_in_seconds` is set, the outdated-payment task rejects it after
   `berlin_group_outdated_transactions_time_in_seconds`, and the basket's member then fails as not waiting for

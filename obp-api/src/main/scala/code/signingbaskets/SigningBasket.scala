@@ -122,6 +122,9 @@ trait SigningBasketProvider extends MdcLoggable {
   /** Baskets whose execution has not finished, oldest first: AUTHORISING or EXECUTION_INCOMPLETE. */
   def getSigningBasketsAwaitingExecution(olderThanSeconds: Long, limit: Int): List[String]
 
+  /** Whether an active basket holds the member, named "payment:<id>" or "consent:<id>". */
+  def memberHeldByBasket(memberKey: String): Boolean
+
   /**
    * Frees the payments and consents a basket was holding, so they can join another basket. Called when
    * a basket reaches a final status.

@@ -165,6 +165,38 @@ class MappedSigningBasketProviderTest extends ServerSetup {
     }
   }
 
+  feature("the execution ledger does not depend on the request that wrote it") {
+    scenario("R1: the claim, the member states and the release are committed on their own, so they survive the request's transaction rolling back") {
+      import SigningBasketMemberState._
+      import code.api.util.http4s.RequestScopeConnection
+      val basket = newBasket()
+      val member = basket.basketId.reverse // a member id of this basket's own; only the ledger row matters here
+      val real = code.api.util.APIUtil.vendor.HikariDatasource.ds.getConnection()
+      real.setAutoCommit(false)
+      RequestScopeConnection.currentProxy.set(RequestScopeConnection.makeProxy(real))
+      try {
+        provider.transitionSigningBasketStatus(basket.basketId, "RCVD", "AUTHORISING").openOrThrowException("claimed") should be(true)
+        provider.createSigningBasketMemberExecutions(basket.basketId, List((PaymentType, member))).openOrThrowException("recorded") should be(true)
+        provider.transitionSigningBasketMemberExecution(basket.basketId, PaymentType, member, Set(Pending), Executing, "").openOrThrowException("moved") should be(true)
+        provider.releaseSigningBasketMembers(basket.basketId)
+      } finally {
+        RequestScopeConnection.currentProxy.remove()
+        // The request dies before it commits: a crash, a timeout, a failed commit.
+        real.rollback()
+        real.close()
+      }
+      withClue("the claim that the answer was being executed: ") {
+        provider.getSigningBasketByBasketId(basket.basketId).openOrThrowException("basket").basket.status should equal("AUTHORISING")
+      }
+      withClue("the member that was being executed, which is what the resumption turns UNKNOWN: ") {
+        provider.getSigningBasketMemberExecutions(basket.basketId).map(m => m.memberId -> m.state) should equal(List(member -> Executing))
+      }
+      withClue("the release of what the basket held: ") {
+        MappedSigningBasketMemberClaim.findAll(By(MappedSigningBasketMemberClaim.BasketId, basket.basketId)) should equal(Nil)
+      }
+    }
+  }
+
   feature("each member of a basket has its own execution state") {
     import SigningBasketMemberState._
 

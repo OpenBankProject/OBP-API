@@ -1022,7 +1022,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       storedBasketStatus(basketId) should equal(Some("ACTC"))
     }
 
-    scenario("S4: a member left UNKNOWN is reconciled by its transaction id, and is otherwise left alone", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    scenario("S4: a member left UNKNOWN is reconciled by its transaction id, and on the mapped connector is otherwise known not to have been booked", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val ibanFrom = ibanAccounts.head
       val booked = lodgePayment()
@@ -1050,7 +1050,9 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
         storedPaymentStatus(booked) should equal("COMPLETED")
       }
       storedPaymentStatus(unbooked) should equal(awaitingSca)
-      memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(booked -> "DONE", unbooked -> "UNKNOWN"))
+      withClue("on the mapped connector the booking is in the request's own transaction, so a payment without a transaction id was rolled back with it: ") {
+        memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(booked -> "DONE", unbooked -> "FAILED"))
+      }
       storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
     }
   }
@@ -1214,4 +1216,78 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
   }
+
+  feature("BG v1.3 signing baskets - what a review of the execution found") {
+    scenario("R6: a basket whose execution throws does not stop the resumption reaching the others, and goes to the back of the queue", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val provider = code.signingbaskets.MappedSigningBasketProvider
+      val poisoned = createBasket(List(lodgePayment()))
+      Thread.sleep(30)
+      val good = lodgePayment()
+      val goodBasket = createBasket(List(good))
+      List(poisoned, goodBasket).foreach(id => provider.transitionSigningBasketStatus(id, "RCVD", "AUTHORISING"))
+      val poisonedBefore = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, poisoned)).openOrThrowException("basket").updatedAt.get.getTime
+      val before = balanceOf(ibanFrom)
+      Thread.sleep(30)
+      SigningBasketX.signingBasketProvider.default.set(new ThrowingForOneBasket(provider, poisoned))
+      try {
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(0, 10), 60.seconds)
+      } finally {
+        SigningBasketX.signingBasketProvider.default.set(provider)
+      }
+      withClue("the basket after the poisoned one was still executed: ") {
+        balanceOf(ibanFrom) should equal(before - 2001)
+        storedBasketStatus(goodBasket) should equal(Some("ACTC"))
+      }
+      withClue("the poisoned basket moved back instead of keeping the head of the queue: ") {
+        MappedSigningBasket.find(By(MappedSigningBasket.BasketId, poisoned)).openOrThrowException("basket").updatedAt.get.getTime should be > poisonedBefore
+      }
+    }
+
+    scenario("R4: when no member can make progress without an operator the basket ends, and frees what it held", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      (1 to 4).foreach { _ =>
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      }
+      memberResults(basketId).map(r => r._1 -> (r._2, r._3)).toMap should equal(Map(good -> ("DONE", 1), bad -> ("FAILED", 3)))
+      withClue("a terminal state, still reported as RCVD: ") {
+        storedBasketStatusRaw(basketId) should equal("EXECUTION_FAILED")
+        (makeGetRequest((basketUrl(basketId) / "status").GET <@ (user1)).body \ "transactionStatus").extract[String] should equal("RCVD")
+      }
+      withClue("the resumption has nothing more to do with it: ") {
+        code.signingbaskets.MappedSigningBasketProvider.getSigningBasketsAwaitingExecution(0, 1000) should not contain basketId
+      }
+      withClue("what it held is free: ") {
+        code.signingbaskets.MappedSigningBasketMemberClaim.find(By(code.signingbaskets.MappedSigningBasketMemberClaim.MemberKey, s"payment:$bad")).isDefined should be(false)
+        postBasket(s"""{"paymentIds":${idList(List(bad))}}""").code should equal(201)
+      }
+      expectRefusal(startAuthorisation(basketId), 409, "STATUS_INVALID", "a new authorisation on a basket that ended")
+      expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (user1)), 409, "STATUS_INVALID", "deleting a basket that ended")
+    }
+  }
+}
+
+/** A provider that behaves as the real one, except that reading one particular basket throws, as a database failure would. */
+private class ThrowingForOneBasket(underlying: code.signingbaskets.SigningBasketProvider, poisoned: String) extends code.signingbaskets.SigningBasketProvider {
+  override def getSigningBaskets() = underlying.getSigningBaskets()
+  override def getSigningBasketByBasketId(entityId: String) =
+    if (entityId == poisoned) throw new RuntimeException("the database is not answering") else underlying.getSigningBasketByBasketId(entityId)
+  override def createSigningBasket(paymentIds: Option[List[String]], consentIds: Option[List[String]], consumerId: String, psuUserId: Option[String]) =
+    underlying.createSigningBasket(paymentIds, consentIds, consumerId, psuUserId)
+  override def createSigningBasketMemberExecutions(basketId: String, members: List[(String, String)]) = underlying.createSigningBasketMemberExecutions(basketId, members)
+  override def getSigningBasketMemberExecutions(basketId: String) = underlying.getSigningBasketMemberExecutions(basketId)
+  override def transitionSigningBasketMemberExecution(basketId: String, memberType: String, memberId: String, from: Set[String], to: String, detail: String) =
+    underlying.transitionSigningBasketMemberExecution(basketId, memberType, memberId, from, to, detail)
+  override def markStaleSigningBasketMembersUnknown(olderThanSeconds: Long) = underlying.markStaleSigningBasketMembersUnknown(olderThanSeconds)
+  override def touchSigningBasket(basketId: String) = underlying.touchSigningBasket(basketId)
+  override def getSigningBasketsAwaitingExecution(olderThanSeconds: Long, limit: Int) = underlying.getSigningBasketsAwaitingExecution(olderThanSeconds, limit)
+  override def releaseSigningBasketMembers(basketId: String) = underlying.releaseSigningBasketMembers(basketId)
+  override def memberHeldByBasket(memberKey: String) = underlying.memberHeldByBasket(memberKey)
+  override def transitionSigningBasketStatus(basketId: String, from: String, to: String) = underlying.transitionSigningBasketStatus(basketId, from, to)
+  override def bindSigningBasketPsu(basketId: String, psuUserId: String) = underlying.bindSigningBasketPsu(basketId, psuUserId)
 }

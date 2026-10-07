@@ -62,7 +62,14 @@ object ConstantsBG {
      */
     val EXECUTION_INCOMPLETE_INTERNAL = "EXECUTION_INCOMPLETE"
 
+    /**
+     * Stored when execution stopped and nothing that is left can be finished by running it again: every member
+     * that is not done has failed as often as it is allowed to. The basket is over, what it held is free,
+     * and it is no longer picked up. Reported as RCVD; the members' own results say what happened.
+     */
+    val EXECUTION_FAILED_INTERNAL = "EXECUTION_FAILED"
+
     def external(storedStatus: String): String =
-      if (storedStatus == AUTHORISING_INTERNAL || storedStatus == EXECUTION_INCOMPLETE_INTERNAL) RCVD.toString else storedStatus
+      if (storedStatus == AUTHORISING_INTERNAL || storedStatus == EXECUTION_INCOMPLETE_INTERNAL || storedStatus == EXECUTION_FAILED_INTERNAL) RCVD.toString else storedStatus
   }
 }

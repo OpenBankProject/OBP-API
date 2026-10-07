@@ -83,14 +83,18 @@ object SigningBasketExecution extends MdcLoggable {
    * finish. Returns true when every member is DONE and the basket has become ACTC.
    */
   def execute(basketId: String, callContext: Option[CallContext]): Future[Boolean] = {
-    // A basket with nothing recorded to execute is not complete: every member is DONE only if there are members.
     def loop(rest: List[SigningBasketMemberExecution]): Future[Boolean] = rest match {
       case Nil => Future.successful(true)
       case member :: tail if member.state == Done => loop(tail)
       case member :: tail => executeMember(basketId, member, callContext).flatMap(done => if (done) loop(tail) else Future.successful(false))
     }
-    if (ensureMembers(basketId)) loop(provider.getSigningBasketMemberExecutions(basketId)).flatMap(allDone => finish(basketId, allDone))
-    else finish(basketId, allDone = false)
+    // Inside a Future from the first line, so that whatever the reads below throw is this basket's failure,
+    // handled where the caller handles a failed execution, and not an exception that skips it.
+    Future.unit.flatMap { _ =>
+      // A basket with nothing recorded to execute is not complete: every member is DONE only if there are members.
+      if (ensureMembers(basketId)) loop(provider.getSigningBasketMemberExecutions(basketId)).flatMap(allDone => finish(basketId, allDone))
+      else finish(basketId, allDone = false)
+    }
   }
 
   /**
@@ -114,24 +118,27 @@ object SigningBasketExecution extends MdcLoggable {
    * it stopped. Safe to run on several nodes at once, since each member and each status change is claimed
    * with a conditional update. Returns how many baskets were looked at.
    */
-  def resumePending(leaseSeconds: Long, limit: Int): Future[Int] = {
-    provider.markStaleSigningBasketMembersUnknown(leaseSeconds)
-    val baskets = provider.getSigningBasketsAwaitingExecution(leaseSeconds, limit)
-    baskets.foldLeft(Future.successful(())) { (previous, basketId) =>
-      previous.flatMap(_ => execute(basketId, None).transform {
-        case Failure(error) =>
-          logger.error(s"Resuming the execution of signing basket $basketId failed", error)
-          // Out of the front of the queue, or a basket that always fails would hold its place for ever.
-          provider.touchSigningBasket(basketId)
-          Success(false)
-        case ok => ok
-      }.map(_ => ()))
-    }.map(_ => baskets.size)
-  }
+  def resumePending(leaseSeconds: Long, limit: Int): Future[Int] =
+    Future.unit.flatMap { _ =>
+      provider.markStaleSigningBasketMembersUnknown(leaseSeconds)
+      val baskets = provider.getSigningBasketsAwaitingExecution(leaseSeconds, limit)
+      baskets.foldLeft(Future.successful(())) { (previous, basketId) =>
+        // Each basket's failure stays its own: the ones after it are still resumed.
+        previous.flatMap(_ => execute(basketId, None).transform {
+          case Failure(error) =>
+            logger.error(s"Resuming the execution of signing basket $basketId failed", error)
+            // Out of the front of the queue, or a basket that always fails would hold its place for ever.
+            scala.util.Try(provider.touchSigningBasket(basketId))
+            Success(false)
+          case ok => ok
+        }.map(_ => ()))
+      }.map(_ => baskets.size)
+    }
 
   private def finish(basketId: String, allDone: Boolean): Future[Boolean] = Future {
     val authorising = ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL
     val incomplete = ConstantsBG.SigningBasketsStatus.EXECUTION_INCOMPLETE_INTERNAL
+    val failed = ConstantsBG.SigningBasketsStatus.EXECUTION_FAILED_INTERNAL
     val actc = ConstantsBG.SigningBasketsStatus.ACTC.toString
     if (allDone) {
       val completed = provider.transitionSigningBasketStatus(basketId, authorising, actc).openOr(false) ||
@@ -139,12 +146,27 @@ object SigningBasketExecution extends MdcLoggable {
       // The members are free to join another basket only once the basket is final.
       if (completed) provider.releaseSigningBasketMembers(basketId)
       completed
+    } else if (cannotProgress(basketId)) {
+      // What is left needs a person, not another run: the basket ends, and what it held is free to be used again.
+      val ended = provider.transitionSigningBasketStatus(basketId, authorising, failed).openOr(false) ||
+        provider.transitionSigningBasketStatus(basketId, incomplete, failed).openOr(false)
+      if (ended) provider.releaseSigningBasketMembers(basketId)
+      false
     } else {
       provider.transitionSigningBasketStatus(basketId, authorising, incomplete)
       // A basket already incomplete does not move, but it was looked at: it goes behind the ones not yet tried.
       provider.touchSigningBasket(basketId)
       false
     }
+  }
+
+  /**
+   * True when every member that is not DONE has failed as often as it is allowed to. Nothing started, running,
+   * of unknown outcome or still to be retried is left, so another run would change nothing.
+   */
+  private def cannotProgress(basketId: String): Boolean = {
+    val pending = provider.getSigningBasketMemberExecutions(basketId).filterNot(_.state == Done)
+    pending.nonEmpty && pending.forall(member => member.state == Failed && member.attempts >= maxAttempts)
   }
 
   private def executeMember(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] =
@@ -266,12 +288,25 @@ object SigningBasketExecution extends MdcLoggable {
           }
       }
 
-  /** A member left UNKNOWN is DONE if its payment carries a transaction id, and is otherwise left for an operator. */
+  /**
+   * A member left UNKNOWN is DONE if its payment carries a transaction id. Without one, the mapped connector
+   * did not book it: it books and records the transaction id in the request's own database transaction, which
+   * did not commit, so the payment is FAILED and will be claimed again. Any other connector may have booked it
+   * without leaving a trace, so it is left for an operator.
+   */
   private def reconcile(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] =
     NewStyle.function.getTransactionRequestImpl(TransactionRequestId(member.memberId), callContext).transform(Success(_)).flatMap {
       case Success((payment, _)) if bookedTransactionIds(payment) =>
         markCompleted(member.memberId, callContext).flatMap(_ =>
           record(basketId, member, Set(Unknown), Done, s"Reconciled: transaction ${payment.transaction_ids}").map(_ => true))
+      case Success((payment, _)) =>
+        NewStyle.function.checkBankAccountExists(BankId(payment.from.bank_id), AccountId(payment.from.account_id), callContext)
+          .transform(Success(_)).flatMap {
+            case Success((fromAccount, _)) if isMappedConnector(fromAccount, payment, callContext) =>
+              record(basketId, member, Set(Unknown), Failed, "Not booked: the mapped connector books inside the request's transaction, which did not commit")
+                .map(_ => false)
+            case _ => Future.successful(false)
+          }
       case _ => Future.successful(false)
     }
 

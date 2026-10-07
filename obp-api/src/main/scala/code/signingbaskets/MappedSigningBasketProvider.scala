@@ -67,9 +67,14 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
                                    consumerId: String,
                                    psuUserId: Option[String]
                                   ): Box[SigningBasketTrait] = {
-    // The basket and every member row are written inside one DB.use. Inside an HTTP request the
-    // connection is the request's own, whose rollback is not ours to call, so a failure part way is
-    // also undone by hand: nothing of a basket that was not fully created is left behind.
+    // The basket and every member row are written inside one DB.use. Outside a request a failure part way
+    // rolls all of it back. Inside an HTTP request the connection is the request's own, whose rollback is
+    // not ours to call, so what was written is deleted again by hand where the database lets the
+    // transaction go on. PostgreSQL does not: a failed statement (a unique-index violation, say) aborts the
+    // transaction, the deletes fail as well, and it is the request's own commit of the aborted transaction,
+    // which PostgreSQL turns into a rollback, that leaves nothing of the basket behind. That rollback takes
+    // everything else the request wrote with it (an idempotency record, for one), and the refusal is
+    // still answered.
     var created: Option[MappedSigningBasket] = None
     val memberKeys =
       paymentIds.getOrElse(Nil).map(id => s"payment:$id") ::: consentIds.getOrElse(Nil).map(id => s"consent:$id")
@@ -120,27 +125,93 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
 
   override def createSigningBasketMemberExecutions(basketId: String, members: List[(String, String)]): Box[Boolean] =
     tryo {
-      DB.use(DefaultConnectionIdentifier) { _ =>
-        members.zipWithIndex.foreach { case ((memberType, memberId), position) =>
-          val exists = MappedSigningBasketMemberExecution.find(
-            By(MappedSigningBasketMemberExecution.BasketId, basketId),
-            By(MappedSigningBasketMemberExecution.MemberType, memberType),
-            By(MappedSigningBasketMemberExecution.MemberId, memberId)).isDefined
-          if (!exists)
-            MappedSigningBasketMemberExecution.create
-              .BasketId(basketId).MemberType(memberType).MemberId(memberId)
-              .Position(position).State(SigningBasketMemberState.Pending).Detail("").Attempts(0)
-              .saveMe()
+      val m = MappedSigningBasketMemberExecution
+      members.zipWithIndex.foreach { case ((memberType, memberId), position) =>
+        // One ledger transaction per member: a member recorded by an executor racing this one makes the insert
+        // violate the unique index, which only says it is there already.
+        try {
+          inLedger { connection =>
+            val recorded = queryLedger(connection,
+              s"SELECT COUNT(*) FROM ${m.dbTableName} WHERE ${m.BasketId._dbColumnNameLC} = ? AND ${m.MemberType._dbColumnNameLC} = ? AND ${m.MemberId._dbColumnNameLC} = ?",
+              List(basketId, memberType, memberId))(_.getInt(1)).headOption.getOrElse(0) > 0
+            if (!recorded)
+              updateLedger(connection,
+                s"INSERT INTO ${m.dbTableName} (${m.BasketId._dbColumnNameLC}, ${m.MemberType._dbColumnNameLC}, ${m.MemberId._dbColumnNameLC}, " +
+                  s"${m.Position._dbColumnNameLC}, ${m.State._dbColumnNameLC}, ${m.Detail._dbColumnNameLC}, ${m.Attempts._dbColumnNameLC}, " +
+                  s"${m.createdAt._dbColumnNameLC}, ${m.updatedAt._dbColumnNameLC}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                List[Any](basketId, memberType, memberId, position, SigningBasketMemberState.Pending, "", 0, now, now))
+          }
+        } catch {
+          case error: Throwable if isConstraintViolation(error) => ()
         }
       }
       true
     }
 
-  override def getSigningBasketMemberExecutions(basketId: String): List[SigningBasketMemberExecution] =
-    MappedSigningBasketMemberExecution
-      .findAll(By(MappedSigningBasketMemberExecution.BasketId, basketId), OrderBy(MappedSigningBasketMemberExecution.Position, Ascending))
-      .map(row => SigningBasketMemberExecution(
-        row.MemberType.get, row.MemberId.get, row.Position.get, row.State.get, Option(row.Detail.get).getOrElse(""), row.Attempts.get))
+  override def getSigningBasketMemberExecutions(basketId: String): List[SigningBasketMemberExecution] = {
+    val m = MappedSigningBasketMemberExecution
+    inLedger { connection =>
+      queryLedger(connection,
+        s"SELECT ${m.MemberType._dbColumnNameLC}, ${m.MemberId._dbColumnNameLC}, ${m.Position._dbColumnNameLC}, ${m.State._dbColumnNameLC}, " +
+          s"${m.Detail._dbColumnNameLC}, ${m.Attempts._dbColumnNameLC} FROM ${m.dbTableName} WHERE ${m.BasketId._dbColumnNameLC} = ? " +
+          s"ORDER BY ${m.Position._dbColumnNameLC}",
+        List(basketId))(row => SigningBasketMemberExecution(
+          row.getString(1), row.getString(2), row.getInt(3), row.getString(4), Option(row.getString(5)).getOrElse(""), row.getInt(6)))
+    }
+  }
+
+  /**
+   * Runs `work` on a connection of its own and commits it before returning, whatever request it is called from.
+   *
+   * The execution ledger is the record of what was done to the outside world: that a basket was claimed, that
+   * a member was being executed, that it finished. An HTTP request's database work is one transaction that
+   * commits only when the response is sent, so a ledger written inside it is lost together with it when the
+   * node dies after a remote connector has booked a payment but before the response: the basket would be back
+   * to RCVD, nothing would say a booking was under way, and the same answer could be sent again.
+   *
+   * It takes a connection from the pool directly, not through the connection manager, which would hand out
+   * the request's own connection. A request therefore holds two connections while it executes a basket.
+   * The ledger rows are written only through here, so the request's connection never holds a lock on them.
+   */
+  private def inLedger[A](work: java.sql.Connection => A): A = {
+    val connection = code.api.util.APIUtil.vendor.newConnection(DefaultConnectionIdentifier)
+      .openOrThrowException("No database connection could be taken for the signing basket ledger")
+    try {
+      connection.setAutoCommit(false)
+      val result = work(connection)
+      connection.commit()
+      result
+    } catch {
+      case error: Throwable =>
+        try connection.rollback() catch { case _: Exception => () }
+        throw error
+    } finally {
+      try connection.close() catch { case _: Exception => () }
+    }
+  }
+
+  private def updateLedger(connection: java.sql.Connection, sql: String, params: List[Any]): Int = {
+    val statement = connection.prepareStatement(sql)
+    try {
+      params.zipWithIndex.foreach { case (value, index) => statement.setObject(index + 1, value) }
+      statement.executeUpdate()
+    } finally statement.close()
+  }
+
+  private def queryLedger[A](connection: java.sql.Connection, sql: String, params: List[Any])(read: java.sql.ResultSet => A): List[A] = {
+    val statement = connection.prepareStatement(sql)
+    try {
+      params.zipWithIndex.foreach { case (value, index) => statement.setObject(index + 1, value) }
+      val rows = statement.executeQuery()
+      try {
+        val buffer = scala.collection.mutable.ListBuffer.empty[A]
+        while (rows.next()) buffer += read(rows)
+        buffer.toList
+      } finally rows.close()
+    } finally statement.close()
+  }
+
+  private def ledgerUpdate(sql: String, params: List[Any]): Int = inLedger(updateLedger(_, sql, params))
 
   // Every timestamp this provider writes or compares comes from the JVM, as the Mapper's own createdAt/updatedAt
   // do. The database's CURRENT_TIMESTAMP is the database server's clock and zone, which need not be the JVM's.
@@ -168,7 +239,7 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
       val fromList = from.toList
       // A claim is the move to EXECUTING, and counts as an attempt.
       val attemptsSql = if (to == SigningBasketMemberState.Executing) s", ${m.Attempts._dbColumnNameLC} = ${m.Attempts._dbColumnNameLC} + 1" else ""
-      DB.runUpdate(
+      ledgerUpdate(
         s"UPDATE ${m.dbTableName} SET ${m.State._dbColumnNameLC} = ?, ${m.Detail._dbColumnNameLC} = ?, " +
           s"${m.updatedAt._dbColumnNameLC} = ?$attemptsSql " +
           s"WHERE ${m.BasketId._dbColumnNameLC} = ? AND ${m.MemberType._dbColumnNameLC} = ? AND ${m.MemberId._dbColumnNameLC} = ? " +
@@ -180,7 +251,7 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     tryo {
       val m = MappedSigningBasketMemberExecution
       val cutoff = new java.sql.Timestamp(System.currentTimeMillis() - olderThanSeconds * 1000)
-      DB.runUpdate(
+      ledgerUpdate(
         s"UPDATE ${m.dbTableName} SET ${m.State._dbColumnNameLC} = ?, ${m.Detail._dbColumnNameLC} = ?, " +
           s"${m.updatedAt._dbColumnNameLC} = ? " +
           s"WHERE ${m.State._dbColumnNameLC} = ? AND ${m.updatedAt._dbColumnNameLC} < ?",
@@ -197,12 +268,21 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
     ).map(_.basketId)
   }
 
+  // Through the ledger, like the status change it goes with: if the status were committed and the release lost
+  // with a request, the basket would be final and still hold its members.
   override def releaseSigningBasketMembers(basketId: String): Box[Boolean] =
-    tryo { MappedSigningBasketMemberClaim.bulkDelete_!!(By(MappedSigningBasketMemberClaim.BasketId, basketId)) }
+    tryo {
+      val claims = MappedSigningBasketMemberClaim
+      ledgerUpdate(s"DELETE FROM ${claims.dbTableName} WHERE ${claims.BasketId._dbColumnNameLC} = ?", List(basketId))
+      true
+    }
+
+  override def memberHeldByBasket(memberKey: String): Boolean =
+    MappedSigningBasketMemberClaim.find(By(MappedSigningBasketMemberClaim.MemberKey, memberKey)).isDefined
 
   override def transitionSigningBasketStatus(basketId: String, from: String, to: String): Box[Boolean] =
     tryo {
-      DB.runUpdate(
+      ledgerUpdate(
         s"UPDATE ${MappedSigningBasket.dbTableName} " +
           s"SET ${MappedSigningBasket.Status._dbColumnNameLC} = ?, ${MappedSigningBasket.updatedAt._dbColumnNameLC} = ? " +
           s"WHERE ${MappedSigningBasket.BasketId._dbColumnNameLC} = ? AND ${MappedSigningBasket.Status._dbColumnNameLC} = ?",
@@ -212,7 +292,7 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
   override def touchSigningBasket(basketId: String): Box[Boolean] =
     tryo {
       val statuses = List(ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL, ConstantsBG.SigningBasketsStatus.EXECUTION_INCOMPLETE_INTERNAL)
-      DB.runUpdate(
+      ledgerUpdate(
         s"UPDATE ${MappedSigningBasket.dbTableName} SET ${MappedSigningBasket.updatedAt._dbColumnNameLC} = ? " +
           s"WHERE ${MappedSigningBasket.BasketId._dbColumnNameLC} = ? " +
           s"AND ${MappedSigningBasket.Status._dbColumnNameLC} IN (${statuses.map(_ => "?").mkString(", ")})",
