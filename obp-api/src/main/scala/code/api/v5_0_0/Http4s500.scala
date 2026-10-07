@@ -2400,8 +2400,8 @@ object Http4s500 {
       ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v5.0.0/… → /obp/v4.0.0/… ─────────────
-    // Cascades inherited (v1.2.1–v4.0.0) endpoints through the http4s versions
-    // instead of falling all the way through to Http4sLiftWebBridge.
+    // Cascades inherited (v1.2.1–v4.0.0) endpoints through the http4s versions.
+    // Chained after this version's own routes, so it only sees requests none of them served.
     val v500ToV400Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v5.0.0/")) {

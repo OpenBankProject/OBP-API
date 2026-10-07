@@ -203,7 +203,7 @@ object Http4s700 {
     // before `val myEndpoint` is initialized, `Some(null)` is stored. The sort+fold then
     // produces a null-route chain that NPEs on every request — and because OptionT.orElse
     // only recovers from None (not failed IO), the NPE propagates up and kills the entire
-    // http4s handler chain, including the Lift bridge fallback.
+    // http4s handler chain, including the bridge to v6.0.0.
     //
     // Convention: val → resourceDocs +=, never the other way around.
 

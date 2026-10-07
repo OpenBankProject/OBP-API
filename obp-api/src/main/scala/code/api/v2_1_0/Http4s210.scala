@@ -290,7 +290,7 @@ object Http4s210 {
     // (Catch-all ResourceDoc for TRANSACTION_REQUEST_TYPE removed: it caused the v2.1.0
     // middleware to auth-check and route every type, including v4-only ones, then return
     // 400. The four specific docs above cover what v2.1.0 actually supports; v4-only
-    // types miss the route guard and fall through to the Lift bridge.)
+    // types miss the route guard and fall through to the version below.)
 
     private def createTransactionRequestImpl(
       jsonBody: String,

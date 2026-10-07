@@ -175,7 +175,7 @@ object ResourceDocMiddleware extends MdcLoggable {
         // tests or live config reloads) take effect immediately. Cost is a few Lift Props
         // lookups — negligible per request, but lets disabled endpoints be toggled without
         // restarting the server. A disabled endpoint yields OptionT.none so the request
-        // falls through to the next handler in the chain (typically the Lift bridge).
+        // falls through to the next handler in the chain (the bridge to the version below, then `notFoundCatchAll`).
         //
         // Version-level enable/disable is NOT re-checked here — that's enforced once at
         // startup by `Http4sApp.gate` for the URL prefix the request arrives at, so that
@@ -198,7 +198,7 @@ object ResourceDocMiddleware extends MdcLoggable {
           selected match {
             case Some((resourceDoc, _)) if !endpointIsEnabled(resourceDoc) =>
               // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
-              // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
+              // api_enabled_versions. Fall through so the next handler in the chain can serve or 404.
               OptionT.none[IO, Response[IO]]
             case Some((resourceDoc, routesToRun)) =>
               Http4sRequestAttributes.trafficNote(req).foreach { note =>

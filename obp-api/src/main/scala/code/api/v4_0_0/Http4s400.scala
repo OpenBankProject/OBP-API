@@ -3134,7 +3134,7 @@ object Http4s400 {
       //   - Unknown types (e.g. "invalidTransactionRequestType") still hit this route
       //     and get a 400 from the connector's `transactionRequests_supported_types`
       //     check, matching the v210 catch-all behavior the test depends on. Without
-      //     this catch, unknown types fall through to Lift → 404.
+      //     this catch, unknown types fall through to the versions below → 404.
       //
       // Use `executeFutureCreated` so the response is 201; extract user/bank/account
       // from cc manually (middleware populates them via the BANK_ID and ACCOUNT_ID
