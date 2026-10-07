@@ -7208,6 +7208,30 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Database Connection Hold Warnings",
+		description =
+			s"""
+				 |# Database Connection Hold Warnings
+				 |
+				 |OBP-API keeps a pool of database connections that requests share. A request takes a connection, uses it and gives it back. When work keeps a connection for a long time, the pool can run out, and every request that needs a connection then waits and fails, including requests that would be quick on their own.
+				 |
+				 |An endpoint that takes too long is answered with a timeout, but the database work behind it carries on, and keeps its connection, until the query returns. So the request that was cut off and the work that holds the connection are separate, and the timeout alone does not say which work is holding the pool.
+				 |
+				 |To show this, OBP-API writes a warning to its log when a connection has been out of the pool for too long. ${if (code.util.DatabaseConnectionHoldWatch.enabled) s"On this instance the limit is ${code.util.DatabaseConnectionHoldWatch.holdWarningSeconds} seconds." else "On this instance the warnings are turned off."} The warning gives:
+				 |
+				 |- how long the connection has been held, and how many connections are in use, idle and waited for;
+				 |- the thread that took the connection, and the OBP-API code that thread is running at that moment, which for a query still running is the code waiting for it.
+				 |
+				 |When that connection goes back to the pool, a second warning gives the total time it was held. Both warnings carry the same connection label, so they can be paired. The warnings reach the log cache like any other warning.
+				 |
+				 |[Telemetry](/glossary#Telemetry) reports how many connections are held past the limit right now (`obp_api_database_connection_held_too_long`) and how many warnings have been written (`obp_api_database_connection_hold_warnings_total`), next to the pool's own `hikaricp_*` series.
+				 |
+				 |See also: [Telemetry](/glossary#Telemetry).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
 		title = "Asset",
 		description =
 			s"""
@@ -7215,7 +7239,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |An **Asset** is a unit that amounts can be held in: a currency such as EUR, a precious metal such as gold (XAU), an accounting unit such as the IMF's Special Drawing Right (XDR), a crypto asset such as ETH, or an asset a bank issues, such as a deposit token, a stablecoin, a bond or a fund share. Each Asset has a code, and that code is the value that appears in the `currency` field of an account, a transaction or a product fee.
 				 |
-				 |The **asset registry** lists the Assets an OBP instance knows. It is filled automatically with every currency, metal and accounting unit in ISO 4217 and with the crypto assets XBT, ADA and ETH. Banks will be able to add the assets they issue.
+				 |The **asset registry** lists the Assets an OBP instance knows. It is filled automatically with every currency, metal and accounting unit in ISO 4217 and with the crypto assets XBT, ADA and ETH.
 				 |
 				 |## What the registry records about an Asset
 				 |
@@ -7224,7 +7248,7 @@ object Glossary extends MdcLoggable  {
 				 |- **Decimal places**: how many digits an amount may have after the decimal point, from 0 to 18. EUR has 2, JPY has 0.
 				 |- **Issuer**: the bank that issued it, for the types a bank issues. Currencies, metals, accounting units and crypto assets have no issuer.
 				 |- **Chain identity**: for a token recorded on a blockchain, the chain and network (for example `CARDANO_MAINNET`) and the token's identity there. A chain's own currency, such as ADA or ETH, has none.
-				 |- **Status**: `ACTIVE` (usable), `SUSPENDED` (for example frozen by a regulator; existing holdings stay visible) or `RETIRED` (for example a bond that has matured). `RETIRED` is final.
+				 |- **Status**: `ACTIVE`, `SUSPENDED` (for example frozen by a regulator) or `RETIRED` (for example a bond that has matured).
 				 |
 				 |## Assets, Products and Accounts
 				 |
@@ -7232,11 +7256,19 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Administering bank
 				 |
-				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else. Changes to an Asset will be made at its administering bank, so the Roles that allow them can always name one bank.
+				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else.
 				 |
-				 |## Current state
+				 |## Codes OBP accepts
 				 |
-				 |The registry decides which currency codes OBP accepts and how many decimal places it gives them. For now it gives the same answers as the built-in list OBP used before: codes are matched exactly as written, so `EUR` is accepted and `eur` is not, and an Asset's status is not yet checked. Each code has the same number of decimal places as in that list. The registry does not hold `lovelace` or `wei`, which OBP still accepts: they are the smallest units of ADA and ETH, not Assets of their own. OBP also still accepts `ada` as well as `ADA`.
+				 |The registry decides which currency codes OBP accepts and how many decimal places each one has. OBP also accepts `lovelace` and `wei`, the smallest units of ADA and ETH, which are not Assets of their own.
+				 |
+				 |## Letter case
+				 |
+				 |Currency codes are case-insensitive: `eur`, `Eur` and `EUR` all name the same Asset and get the same decimal places. OBP upper-cases a currency code in a request before the endpoint handles it, so it is validated, compared and stored as `EUR`. This applies to the fields of a JSON request body that hold a currency code (`currency`, `from_currency_code` and the like) and to query parameters named the same way. Wherever OBP compares two currency codes, it ignores letter case.
+				 |
+				 |## Decimal places of an amount
+				 |
+				 |OBP does not round or cut off an amount. A request carrying an amount with more decimal places than its currency allows, such as 12.345 EUR or 100.5 JPY, is refused with 400 (OBP-10068). Trailing zeros do not count, so 100.00 JPY is accepted. This applies to every object in a JSON request body that holds an `amount` next to its currency (UK Open Banking's `Amount` and `Currency` included), and to an `amount` query parameter next to a currency parameter.
 				 |
 				 |## Endpoints
 				 |

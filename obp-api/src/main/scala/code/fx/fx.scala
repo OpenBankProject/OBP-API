@@ -108,7 +108,7 @@ object fx extends MdcLoggable {
       inverseRate: Double
     )
     implicit val formats = CustomJsonFormats.formats
-    fromCurrency == toCurrency match {
+    code.asset.CurrencyCodes.same(fromCurrency, toCurrency) match {
       case true => 
         Some(1)
       case false =>
@@ -136,12 +136,12 @@ object fx extends MdcLoggable {
   }
 
   def getFallbackExchangeRate2nd(fromCurrency: String, toCurrency: String): Option[Double] = {
-    if (fromCurrency == toCurrency) {
+    if (code.asset.CurrencyCodes.same(fromCurrency, toCurrency)) {
       Some(1)
     } else {
       //logger.debug(s"fromAmount is $fromAmount, toCurrency is ${toCurrency}")
       val rate: Option[Double] = try {
-        Some(fallbackExchangeRates.get(fromCurrency).get(toCurrency))
+        Some(fallbackExchangeRates.get(code.asset.CurrencyCodes.normalise(fromCurrency)).get(code.asset.CurrencyCodes.normalise(toCurrency)))
       }
       catch {
         case e: NoSuchElementException => None

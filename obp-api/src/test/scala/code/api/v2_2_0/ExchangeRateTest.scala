@@ -32,6 +32,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.InvalidISOCurrencyCode
 import code.consumer.Consumers
+import code.entitlement.Entitlement
 import code.scope.Scope
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
@@ -50,6 +51,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
     */
   object VersionOfApi extends Tag(ApiVersion.v2_2_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Http4s220.Implementations2_2_0.getCurrentFxRate))
+  object ApiEndpoint2 extends Tag(nameOf(Http4s220.Implementations2_2_0.createFx))
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -92,7 +94,28 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       responseGet.code should equal(400)
       responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
-    
-  }
 
+    scenario("Currency codes in any letter case name the same currency", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+      val testBank = testBankId1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, ApiRole.canCreateFxRate.toString())
+
+      When("We create an FX rate with the currency codes in lower case")
+      val body =
+        s"""{"bank_id":"${testBank.value}","from_currency_code":"eur","to_currency_code":"usd",
+           |"conversion_value":1.5,"inverse_conversion_value":0.6666666666666666,"effective_date":"2026-10-06T00:00:00Z"}""".stripMargin
+      val responsePut = makePutRequest((v2_2Request / "banks" / testBank.value / "fx").PUT <@ (user1), body)
+      Then("We should get a 201, and the codes are stored in upper case")
+      responsePut.code should equal(201)
+      (responsePut.body \ "from_currency_code").extract[String] should equal("EUR")
+      (responsePut.body \ "to_currency_code").extract[String] should equal("USD")
+
+      When("We get the rate, naming the currencies in lower case")
+      val responseGet = makeGetRequest((v2_2Request / "banks" / testBank.value / "fx" / "eur" / "usd").GET <@ (user1))
+      Then("We should get the rate we created")
+      responseGet.code should equal(200)
+      (responseGet.body \ "conversion_value").extract[Double] should equal(1.5)
+    }
+  }
 }

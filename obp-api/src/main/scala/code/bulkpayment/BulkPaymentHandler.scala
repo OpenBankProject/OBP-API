@@ -76,8 +76,8 @@ object BulkPaymentHandler {
         body.payments.size <= maxItems
       }
       _ <- Helper.booleanToFuture(BulkPaymentCurrencyMismatch, 400, callContext) {
-        body.value.currency == sourceCurrency &&
-          body.payments.forall(_.value.currency == sourceCurrency)
+        code.asset.CurrencyCodes.same(body.value.currency, sourceCurrency) &&
+          body.payments.forall(payment => code.asset.CurrencyCodes.same(payment.value.currency, sourceCurrency))
       }
       _ <- Helper.booleanToFuture(BulkDuplicateEndToEndId, 400, callContext) {
         body.payments.map(_.end_to_end_id).distinct.size == body.payments.size

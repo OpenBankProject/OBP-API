@@ -193,6 +193,7 @@ object Migration extends MdcLoggable {
       alterDynamicDataIdLength()
       renameDynamicEntityRoles()
       renameDynamicEntityDefinitionRoles()
+      upperCaseStoredCurrencyCodes()
     }
 
     /**
@@ -947,6 +948,19 @@ object Migration extends MdcLoggable {
       val name = nameOf(renameDynamicEntityDefinitionRoles)
       runOnce(name) {
         MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere(name)
+      }
+    }
+
+    /**
+     * Rewrite every stored currency code in upper case, because currency codes are case-insensitive
+     * and are now upper-cased in every request. Rows written before that, such as `ada` or a client's
+     * `eur`, would otherwise be missed by database queries that select by currency. The columns, and
+     * what is deliberately left alone, are in [[MigrationOfCurrencyCodesUpperCase]].
+     */
+    private def upperCaseStoredCurrencyCodes(): Boolean = {
+      val name = nameOf(upperCaseStoredCurrencyCodes)
+      runOnce(name) {
+        MigrationOfCurrencyCodesUpperCase.upperCaseEverywhere(name)
       }
     }
 

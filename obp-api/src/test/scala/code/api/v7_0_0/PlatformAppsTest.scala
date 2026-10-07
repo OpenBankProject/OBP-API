@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{canCreatePlatformApp, canDeletePlatformApp, canGetDynamicEntityDefinitions, canGetPlatformApps}
+import code.api.util.ApiRole.{canCreatePlatformApp, canCreateScopeAtOneBank, canDeletePlatformApp, canGetDynamicEntityDefinitions, canGetPlatformApps}
 import code.api.util.ErrorMessages.{InvalidPlatformAppDeclaration, PlatformAppAlreadyExists, PlatformAppNotFound, UserHasMissingRoles}
 import code.api.v6_0_0.V600ServerSetup
 import code.entitlement.Entitlement
@@ -51,6 +51,7 @@ class PlatformAppsTest extends V600ServerSetup {
   object ApiEndpoint2 extends Tag("getPlatformApps")
   object ApiEndpoint3 extends Tag("deletePlatformApp")
   object ApiEndpoint4 extends Tag("updateCurrentConsumerPlatformApp")
+  object ApiEndpoint5 extends Tag("addScope")
 
   private def platformApps = v7 / "management" / "platform-apps"
   private def declaration = v7 / "consumers" / "current" / "platform-app"
@@ -131,6 +132,32 @@ class PlatformAppsTest extends V600ServerSetup {
       } finally {
         scope.foreach(s => Scope.scope.vend.deleteScope(Full(s)))
         PlatformApps.platformAppProvider.vend.deletePlatformApp(consumerId)
+      }
+    }
+
+    scenario("CanCreateScopeAtOneBank grants a missing Scope only at its own bank_id, and a refusal names the bank_id",
+      ApiEndpoint5, VersionOfApi) {
+      val consumer = testConsumer2
+      val bankId = testBankId1.value
+      val scopes = v7 / "consumers" / consumer.consumerId.get / "scopes"
+      def body(bank: String) = compact(render(("bank_id" -> bank) ~ ("role_name" -> canGetDynamicEntityDefinitions.toString)))
+      val granted = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateScopeAtOneBank.toString)
+      var added: net.liftweb.common.Box[Scope] = net.liftweb.common.Empty
+      try {
+        When("user1, holding CanCreateScopeAtOneBank at another bank, adds a Scope at SYS")
+        val refused = makePostRequest(scopes.POST <@ (user1), body(SYS))
+        Then("it is refused, and the message names the bank_id the Role was checked at")
+        refused.code should equal(403)
+        message(refused) should include(s"$UserHasMissingRoles$canCreateScopeAtOneBank at bank_id $SYS or ")
+
+        When("user1 adds the same Scope at the bank it holds the Role at")
+        val created = makePostRequest(scopes.POST <@ (user1), body(bankId))
+        Then("it is created")
+        created.code should equal(201)
+        added = Scope.scope.vend.getScope(bankId, consumer.id.get.toString, canGetDynamicEntityDefinitions.toString)
+      } finally {
+        granted.foreach(e => Entitlement.entitlement.vend.deleteEntitlement(Full(e)))
+        added.foreach(s => Scope.scope.vend.deleteScope(Full(s)))
       }
     }
 

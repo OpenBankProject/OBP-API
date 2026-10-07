@@ -38,15 +38,13 @@ import net.liftweb.util.Helpers.tryo
  * them from the asset registry ([[Assets]]), so that `APIUtil.isValidCurrencyISOCode` and
  * `Helper.currencyDecimalPlaces` no longer depend on a list built into the code.
  *
- * The answers are the same as before the registry existed (ideas/ASSET_REGISTRY.md, progress step 6):
+ * Codes are matched ignoring letter case, so `eur` is EUR and gets EUR's decimal places
+ * ([[CurrencyCodes]]). Otherwise the answers are the ones OBP gave before the registry existed:
  *
- * - Codes are matched exactly as written, so `EUR` is known and `eur` is not. Accepting any letter
- *   case is a later, deliberate change (section 4).
  * - The status of an asset is not checked yet: a suspended or retired code is still known. That
- *   also comes later, when `isValidCurrencyISOCode` becomes `isUsableAsset` (section 4).
- * - Three spellings the built-in list accepts are not registry codes: `ada` (the registry holds
- *   `ADA`), and `lovelace` and `wei`, the smallest units of ADA and ETH. They stay known, with the
- *   built-in decimal places, until amounts in those units are converted (section 7, Part C).
+ *   comes later, when `isValidCurrencyISOCode` becomes `isUsableAsset` (section 4).
+ * - `lovelace` and `wei`, the smallest units of ADA and ETH, are not registry codes but stay known,
+ *   with the built-in decimal places, until amounts in those units are converted (section 7, Part C).
  * - A code the registry does not hold gets the built-in decimal places, as it did before.
  *
  * The registry is read once into memory and read again after any write through [[Assets]]. If it
@@ -57,20 +55,23 @@ import net.liftweb.util.Helpers.tryo
  */
 object AssetLookup extends MdcLoggable {
 
-  /** The spellings the built-in list accepts that are not codes in the registry. */
-  val LegacySpellings: Set[String] = Set("ada", "lovelace", "wei")
+  /** The codes the built-in list accepts that the registry does not hold, upper case. */
+  val LegacySpellings: Set[String] = Set("LOVELACE", "WEI")
 
-  /** The decimal places of every registered asset, keyed by its code exactly as stored. */
-  @volatile private var decimalPlacesByCode: Option[Map[String, Int]] = None
+  /** What is kept in memory about a registered asset. */
+  private case class Registered(decimalPlaces: Int, assetType: String)
+
+  /** Every registered asset, keyed by its code exactly as stored. */
+  @volatile private var assetsByCode: Option[Map[String, Registered]] = None
 
   /** Forgets what was read, so the next lookup reads the registry again. Called after every write. */
-  def invalidate(): Unit = decimalPlacesByCode = None
+  def invalidate(): Unit = assetsByCode = None
 
-  private def registry: Option[Map[String, Int]] = decimalPlacesByCode.orElse {
-    tryo(Assets.getAssets().map(asset => asset.assetCode -> asset.decimalPlaces).toMap) match {
+  private def registeredAssets: Option[Map[String, Registered]] = assetsByCode.orElse {
+    tryo(Assets.getAssets().map(asset => asset.assetCode -> Registered(asset.decimalPlaces, asset.assetType)).toMap) match {
       case Full(loaded) if loaded.nonEmpty =>
-        decimalPlacesByCode = Some(loaded)
-        decimalPlacesByCode
+        assetsByCode = Some(loaded)
+        assetsByCode
       case Full(_) =>
         logger.debug("registry says: the asset registry is empty; using the built-in currency list")
         None
@@ -80,13 +81,48 @@ object AssetLookup extends MdcLoggable {
     }
   }
 
-  /** Whether OBP knows this currency code, matched exactly as written. */
-  def isKnownCode(code: String): Boolean = registry match {
-    case Some(codes) => codes.contains(code) || LegacySpellings.contains(code)
-    case None => APIUtil.builtInCurrencyCodes.contains(code)
+  private def registry: Option[Map[String, Int]] = registeredAssets.map(_.map { case (code, asset) => code -> asset.decimalPlaces })
+
+  private lazy val builtInCodesUpperCase: Set[String] = APIUtil.builtInCurrencyCodes.map(CurrencyCodes.normalise)
+
+  /** Whether OBP knows this currency code, ignoring letter case. */
+  def isKnownCode(code: String): Boolean = code != null && {
+    val normalised = CurrencyCodes.normalise(code)
+    registry match {
+      case Some(codes) => codes.contains(normalised) || LegacySpellings.contains(normalised)
+      case None => builtInCodesUpperCase.contains(normalised)
+    }
   }
 
-  /** The number of decimal places of this currency code, matched exactly as written. */
-  def decimalPlaces(code: String): Int =
-    registry.flatMap(_.get(code)).getOrElse(Helper.builtInCurrencyDecimalPlaces(code))
+  /**
+   * The crypto codes the built-in list knows, upper case. Without a registry these stand in for the
+   * registry's CRYPTO assets.
+   */
+  private val BuiltInCryptoCodes: Set[String] = Set("XBT", "ADA", "ETH") ++ LegacySpellings
+
+  /**
+   * This returns the number of decimal places an amount in this currency may have, when OBP enforces
+   * it, ignoring letter case.
+   *
+   * It is None for a code OBP does not know, and for crypto assets (`ADA`, `ETH`, `XBT`, and the units
+   * `lovelace` and `wei`). Their registered decimal places are still the built-in default of 2, not
+   * their real precision, which comes with the move to exact amount storage (ideas/ASSET_REGISTRY.md
+   * section 7, Parts A to C); enforcing 2 would refuse an ordinary payment of 0.001 ETH.
+   */
+  def enforcedDecimalPlaces(code: String): Option[Int] =
+    if (code == null || !isKnownCode(code)) None
+    else {
+      val normalised = CurrencyCodes.normalise(code)
+      val isCrypto = registeredAssets.flatMap(_.get(normalised)) match {
+        case Some(asset) => asset.assetType == AssetTypes.CRYPTO
+        case None => BuiltInCryptoCodes.contains(normalised)
+      }
+      if (isCrypto) None else Some(decimalPlaces(normalised))
+    }
+
+  /** The number of decimal places of this currency code, ignoring letter case. */
+  def decimalPlaces(code: String): Int = {
+    val normalised = CurrencyCodes.normalise(code)
+    registry.flatMap(_.get(normalised)).getOrElse(Helper.builtInCurrencyDecimalPlaces(normalised))
+  }
 }

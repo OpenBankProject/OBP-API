@@ -256,6 +256,14 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     }
   }
 
+  override def saveTransactionRequestCounterpartyIdImpl(transactionRequestId: TransactionRequestId, counterpartyId: CounterpartyId): Box[Boolean] = {
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+    mappedTransactionRequest match {
+      case Full(tr: MappedTransactionRequest) => Full(tr.mCounterpartyId(counterpartyId.value).save)
+      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set its counterparty id")
+    }
+  }
+
   override def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean] = {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {

@@ -45,6 +45,12 @@ connector=star
 #hikari.keepaliveTime=30000
 #hikari.maxLifetime=1800000
 
+# Write a warning to the log (and so to the log cache) when a database connection has been out of
+# the pool for longer than this many seconds. The warning names the thread that took it and the
+# OBP-API code that thread is running, and a second warning gives the total time once the
+# connection goes back. 0 turns this off.
+#database_connection_hold_warning_seconds=60
+
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka.
 starConnector_supported_types=mapped,internal
 
