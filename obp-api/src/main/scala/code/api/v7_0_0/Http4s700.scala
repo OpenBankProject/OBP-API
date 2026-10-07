@@ -7488,6 +7488,9 @@ object Http4s700 {
     // Telemetry, for people; Prometheus reads the separate Telemetry port instead.
     resourceDocs ++= Http4s700Telemetry.resourceDocs
 
+    // What has been granted across all Users and Consumers: every Scope, and the Role names anyone holds.
+    resourceDocs ++= Http4s700Grants.resourceDocs
+
     // IP penalties: an operator's temporary per-minute limit on one address.
     resourceDocs ++= Http4s700IpPenalties.resourceDocs
 

@@ -2266,6 +2266,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     scopes = List(CurrentConsumerScopeJsonV700(role_name = "CanGetDynamicEntityDefinitions", bank_id = "SYS"))
   )
 
+  /** One Scope on this instance: which Consumer holds which Role, and where. */
+  case class ScopeJsonV700(
+    bank_id: String,
+    role_name: String,
+    consumer_id: String
+  )
+
+  case class ScopesJsonV700(scopes: List[ScopeJsonV700])
+
+  def createAllScopesJsonV700(scopes: List[code.scope.Scope]): ScopesJsonV700 =
+    ScopesJsonV700(scopes.map(s => ScopeJsonV700(bank_id = s.bankId, role_name = s.roleName, consumer_id = s.consumerId))
+      .sortBy(s => (s.role_name, s.bank_id, s.consumer_id)))
+
+  lazy val allScopesJsonV700Example = ScopesJsonV700(List(
+    ScopeJsonV700(bank_id = "", role_name = "CanGetTelemetry", consumer_id = ExampleValue.consumerIdExample.value)))
+
+  /** The Role names someone holds, as an Entitlement or a Scope, each once. No Users, Consumers or bank ids. */
+  case class ReachableRolesJsonV700(role_names: List[String])
+
+  def createReachableRolesJsonV700(roleNames: List[String]): ReachableRolesJsonV700 =
+    ReachableRolesJsonV700(roleNames.distinct.sorted)
+
+  lazy val reachableRolesJsonV700Example = ReachableRolesJsonV700(List("CanGetCustomersAtOneBank", "CanGetTelemetry"))
+
   case class PasswordPolicyJsonV700(
     description: String,
     min_length: Int,
