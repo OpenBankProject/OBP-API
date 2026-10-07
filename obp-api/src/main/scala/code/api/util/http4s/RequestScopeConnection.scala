@@ -87,6 +87,13 @@ import scala.concurrent.Future
  *      - None  → endpoint made zero DB calls; pool unaffected, nothing to commit or close.
  *      - Some(realConn, _) → commit (or rollback on error/cancel), then close realConn.
  *
+ * AFTER-COMMIT ACTIONS: a handler that must tell something else about its write (for example
+ * a cache that other nodes watch) registers the action with afterCommit. Inside a transaction
+ * scope it is held until the transaction has committed, and dropped on rollback, so nothing
+ * hears of a change that is not yet, or never will be, visible in the database. The action
+ * list reaches Future workers the same way the proxy does: an IOLocal on the fiber
+ * (requestAfterCommitLocal) copied into a TTL (currentAfterCommit) by fromFuture.
+ *
  * METRIC WRITES: recordMetric runs in IO.blocking (blocking pool, no TTL from compute
  * thread). currentProxy.get() returns null there, so RequestAwareConnectionManager
  * falls back to the pool — metric writes use a separate connection and commit
@@ -145,6 +152,46 @@ object RequestScopeConnection extends MdcLoggable {
     }
 
   /**
+   * The after-commit actions of the current transaction scope, held for the request fiber.
+   * None outside a transaction scope (GET/HEAD, background tasks).
+   */
+  val requestAfterCommitLocal: IOLocal[Option[java.util.concurrent.ConcurrentLinkedQueue[() => Unit]]] =
+    IOLocal[Option[java.util.concurrent.ConcurrentLinkedQueue[() => Unit]]](None).unsafeRunSync()(IORuntime.global)
+
+  /**
+   * The same action list as requestAfterCommitLocal, carried to Future workers by TtlRunnable.
+   * childValue returns null for the reason given on currentProxy.
+   */
+  val currentAfterCommit: TransmittableThreadLocal[java.util.concurrent.ConcurrentLinkedQueue[() => Unit]] =
+    new TransmittableThreadLocal[java.util.concurrent.ConcurrentLinkedQueue[() => Unit]]() {
+      override def childValue(parentValue: java.util.concurrent.ConcurrentLinkedQueue[() => Unit]): java.util.concurrent.ConcurrentLinkedQueue[() => Unit] = null
+    }
+
+  /**
+   * Runs `action` once the current request's transaction has committed.
+   *
+   * Use this for anything that announces a write to the outside, such as bumping a cache
+   * namespace that other nodes re-read: done before the commit, another node could act on the
+   * announcement, read the database before the write is visible, and cache the old data.
+   *
+   * Inside a transaction scope (POST, PUT, DELETE, PATCH) the action runs after a successful
+   * commit and is dropped if the transaction rolls back. Outside one (GET, HEAD, background
+   * work) every write has already committed on its own, so the action runs at once.
+   * A failing action is logged and does not affect the response or the other actions.
+   */
+  def afterCommit(action: => Unit): Unit = {
+    val actions = currentAfterCommit.get()
+    if (actions == null) runAfterCommitAction(() => action)
+    else actions.add(() => action)
+  }
+
+  private def runAfterCommitAction(action: () => Unit): Unit =
+    try action()
+    catch {
+      case e: Exception => logger.error(s"afterCommit says: an after-commit action failed: ${e.getMessage}", e)
+    }
+
+  /**
    * Wrap a real Connection in a proxy that no-ops commit, rollback, and close.
    * All other methods delegate to the real connection.
    *
@@ -196,11 +243,15 @@ object RequestScopeConnection extends MdcLoggable {
    */
   def fromFuture[A](fut: => Future[A]): IO[A] =
     ensureProxy.flatMap { proxyOpt =>
-      IO.defer {
-        proxyOpt.foreach(currentProxy.set)  // (1) set TTL on current thread T
-        val f = fut                          // (2) submit Future; TtlRunnable captures proxy from T
-        currentProxy.remove()               // (3) clear TTL on T — T is clean after this point
-        IO.fromFuture(IO.pure(f))           // await the already-submitted future
+      requestAfterCommitLocal.get.flatMap { afterCommitOpt =>
+        IO.defer {
+          proxyOpt.foreach(currentProxy.set)  // (1) set TTL on current thread T
+          afterCommitOpt.foreach(currentAfterCommit.set)
+          val f = fut                          // (2) submit Future; TtlRunnable captures proxy from T
+          currentProxy.remove()               // (3) clear TTL on T — T is clean after this point
+          currentAfterCommit.remove()
+          IO.fromFuture(IO.pure(f))           // await the already-submitted future
+        }
       }
     }
 
@@ -213,6 +264,8 @@ object RequestScopeConnection extends MdcLoggable {
    * and share the winner's proxy, so all fibers use one underlying Connection / one
    * transaction.  On success: commit then close.  On error/cancel: rollback then close.
    * If no DB call was made: nothing to commit or close (pool unaffected).
+   * Actions registered with afterCommit run after a successful commit (or, with no DB call,
+   * after the route succeeded) and are dropped on error or cancel.
    *
    * GET/HEAD must NOT be wrapped (they run on auto-commit vendor connections).  Used by
    * ResourceDocMiddleware and by services that build their own request scope
@@ -231,9 +284,21 @@ object RequestScopeConnection extends MdcLoggable {
         p        <- deferred.get.map(_._2)
       } yield p
 
-      requestLazyAcquire.set(Some(acquireOnce)).bracket(_ =>
+      val afterCommitActions = new java.util.concurrent.ConcurrentLinkedQueue[() => Unit]()
+
+      // Runs only once the transaction has committed, so whatever an action announces is
+      // already visible to every other reader of the database.
+      val runAfterCommitActions: IO[Unit] = IO.blocking {
+        var action = afterCommitActions.poll()
+        while (action != null) {
+          runAfterCommitAction(action)
+          action = afterCommitActions.poll()
+        }
+      }
+
+      (requestLazyAcquire.set(Some(acquireOnce)) *> requestAfterCommitLocal.set(Some(afterCommitActions))).bracket(_ =>
         io.guaranteeCase { outcome =>
-          deferred.tryGet.flatMap {
+          val finish: IO[Unit] = deferred.tryGet.flatMap {
             case None => IO.unit   // no DB calls — pool unaffected
             case Some((realConn, _)) =>
               requestProxyLocal.set(None) *>
@@ -242,11 +307,16 @@ object RequestScopeConnection extends MdcLoggable {
                     IO.blocking { realConn.commit() }
                   case _ =>
                     IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
-                }) *>
-                IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
+                }).guarantee(
+                  IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
+                )
+          }
+          outcome match {
+            case Outcome.Succeeded(_) => finish *> runAfterCommitActions
+            case _                    => finish *> IO(afterCommitActions.clear())
           }
         }
-      )(_ => requestLazyAcquire.set(None))
+      )(_ => requestLazyAcquire.set(None) *> requestAfterCommitLocal.set(None))
     }
 
   /**

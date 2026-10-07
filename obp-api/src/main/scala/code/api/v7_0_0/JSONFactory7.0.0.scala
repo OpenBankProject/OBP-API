@@ -1021,27 +1021,37 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class GlossaryJsonV700(glossary_items: List[GlossaryItemJsonV700], total_count: Int)
 
   /**
-   * One Item as the Glossary serves it.
+   * The description of one Item as the Glossary serves it, in markdown and in HTML.
    *
    * `expanded` controls the Glossary placeholders that Items use to quote each other: true gives
    * the text a reader wants, false the text as authored, which is what an editor must PUT back.
-   * `includeAuthor` keeps created_by_user_id out of anonymous responses.
+   * This is the expensive part of serving an Item (placeholder expansion and a markdown to HTML
+   * conversion), so the Glossary endpoints cache its result rather than calling it per request.
+   */
+  def createGlossaryItemDescriptionJsonV700(item: Glossary.GlossaryItem, expanded: Boolean): GlossaryItemDescriptionJsonV700 = {
+    val raw = item.description()
+    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+    GlossaryItemDescriptionJsonV700(
+      markdown = markdown,
+      html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
+    )
+  }
+
+  /**
+   * One Item as the Glossary serves it, with its description already rendered by
+   * createGlossaryItemDescriptionJsonV700. `includeAuthor` keeps created_by_user_id out of
+   * anonymous responses.
    */
   def createServedGlossaryItemJsonV700(
       item: Glossary.GlossaryItem,
       meta: Option[code.glossaryitem.DynamicGlossaryItemTrait],
-      expanded: Boolean,
+      description: GlossaryItemDescriptionJsonV700,
       includeAuthor: Boolean
-  ): GlossaryItemJsonV700 = {
-    val raw = item.description()
-    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+  ): GlossaryItemJsonV700 =
     GlossaryItemJsonV700(
       glossary_item_id = meta.map(_.glossaryItemId),
       title = item.title,
-      description = GlossaryItemDescriptionJsonV700(
-        markdown = markdown,
-        html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
-      ),
+      description = description,
       is_dynamic = item.isDynamic,
       overrides_static_item = item.overridesStaticItem,
       shadows_static_glossary_item = item.shadowsStaticItem,
@@ -1049,7 +1059,6 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       created_at = meta.map(_.createdAt),
       updated_at = meta.map(_.updatedAt)
     )
-  }
 
   def createGlossaryJsonV700(items: List[GlossaryItemJsonV700], totalCount: Int): GlossaryJsonV700 =
     GlossaryJsonV700(glossary_items = items, total_count = totalCount)

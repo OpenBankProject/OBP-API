@@ -3710,26 +3710,45 @@ object Http4s700 {
     private def normaliseGlossaryTitle(title: String): String =
       Option(title).getOrElse("").trim.toLowerCase.replaceAll("[-_/\\s]+", " ")
 
-    // Rendering every Item through Pegdown is too expensive to do per request, and a lazy val
-    // would never pick up a Dynamic Glossary Item change, so the merged Glossary is cached against
-    // the Dynamic Item watermark. Each entry keeps the database row it came from, so one lookup
-    // serves both the Glossary and a single Item without going back to the table.
-    private type GlossaryEntry = (Glossary.GlossaryItem, Option[code.glossaryitem.DynamicGlossaryItemTrait])
+    // Rendering every Item through Pegdown is too expensive to do per request: expanding the
+    // placeholders (which can inline whole other Items) and converting the markdown to HTML for
+    // the whole Glossary took several seconds a call in production. A lazy val would never pick
+    // up a Dynamic Glossary Item change, so the merged Glossary, already expanded and rendered,
+    // is cached against the Glossary version token. That token covers the Dynamic Item watermark
+    // and the glossary cache namespace; the first is re-read every ten minutes and the second every ten seconds.
+    // Each entry keeps the database row it came from, so one lookup serves both the Glossary and
+    // a single Item without going back to the table.
+    private case class GlossaryEntry(
+        item: Glossary.GlossaryItem,
+        meta: Option[code.glossaryitem.DynamicGlossaryItemTrait],
+        expandedDescription: JSONFactory700.GlossaryItemDescriptionJsonV700
+    )
 
     private val cachedGlossaryEntries =
       new java.util.concurrent.atomic.AtomicReference[Option[(String, List[GlossaryEntry])]](None)
 
     private def glossaryEntries: List[GlossaryEntry] = {
-      val version = Glossary.dynamicGlossaryItemsVersion
+      val version = Glossary.glossaryVersionForCacheKey
       cachedGlossaryEntries.get() match {
         case Some((cachedVersion, entries)) if cachedVersion == version => entries
         case _ =>
-          val rowsByTitle = DynamicGlossaryItems.dynamicGlossaryItem.vend.getAllDynamicGlossaryItems
-            .map(_.map(row => row.title.toLowerCase -> row).toMap)
-            .getOrElse(Map.empty[String, code.glossaryitem.DynamicGlossaryItemTrait])
-          val entries = APIUtil.getGlossaryItems.map(item => (item, rowsByTitle.get(item.title.toLowerCase)))
-          cachedGlossaryEntries.set(Some((version, entries)))
-          entries
+          // One request builds the Glossary while the others wait for it, rather than every
+          // request that arrives during a rebuild rendering the whole Glossary again itself.
+          cachedGlossaryEntries.synchronized {
+            cachedGlossaryEntries.get() match {
+              case Some((cachedVersion, entries)) if cachedVersion == version => entries
+              case _ =>
+                val rowsByTitle = DynamicGlossaryItems.dynamicGlossaryItem.vend.getAllDynamicGlossaryItems
+                  .map(_.map(row => row.title.toLowerCase -> row).toMap)
+                  .getOrElse(Map.empty[String, code.glossaryitem.DynamicGlossaryItemTrait])
+                val entries = APIUtil.getGlossaryItems.map { item =>
+                  GlossaryEntry(item, rowsByTitle.get(item.title.toLowerCase),
+                    JSONFactory700.createGlossaryItemDescriptionJsonV700(item, expanded = true))
+                }
+                cachedGlossaryEntries.set(Some((version, entries)))
+                entries
+            }
+          }
       }
     }
 
@@ -3760,7 +3779,8 @@ object Http4s700 {
             // alone found nothing at all. Every word must appear somewhere in the Item, and the
             // Items whose titles hold all of them are listed first, so an exact title still leads.
             val searchWords: List[String] = search.toList.flatMap(_.split("\\s+")).filter(_.nonEmpty)
-            val inSource = glossaryEntries.filter { case (item, _) =>
+            val inSource = glossaryEntries.filter { entry =>
+              val item = entry.item
               source match {
                 case "static"  => !item.isDynamic
                 case "dynamic" => item.isDynamic
@@ -3770,11 +3790,11 @@ object Http4s700 {
             val matching =
               if (searchWords.isEmpty) inSource
               else {
-                val (titleMatches, bodyMatches) = inSource.filter { case (item, _) =>
-                  val titleAndText = s"${item.title}\n${item.textDescription}".toLowerCase
+                val (titleMatches, bodyMatches) = inSource.filter { entry =>
+                  val titleAndText = s"${entry.item.title}\n${entry.item.textDescription}".toLowerCase
                   searchWords.forall(titleAndText.contains)
-                }.partition { case (item, _) =>
-                  val title = item.title.toLowerCase
+                }.partition { entry =>
+                  val title = entry.item.title.toLowerCase
                   searchWords.forall(title.contains)
                 }
                 titleMatches ++ bodyMatches
@@ -3785,8 +3805,9 @@ object Http4s700 {
               case None    => matching
             }
             JSONFactory700.createGlossaryJsonV700(
-              page.map { case (item, meta) =>
-                JSONFactory700.createServedGlossaryItemJsonV700(item, meta, expanded = true, includeAuthor = cc.user.isDefined)
+              page.map { entry =>
+                JSONFactory700.createServedGlossaryItemJsonV700(entry.item, entry.meta, entry.expandedDescription,
+                  includeAuthor = cc.user.isDefined)
               },
               totalCount = matching.size
             )
@@ -3860,9 +3881,15 @@ object Http4s700 {
             // Glossary itself, so this always answers with the text the Glossary is serving.
             json <- Future {
               val wanted = normaliseGlossaryTitle(titleSegment)
-              Box(glossaryEntries.find { case (item, _) => normaliseGlossaryTitle(item.title) == wanted }
-                .map { case (item, meta) =>
-                  JSONFactory700.createServedGlossaryItemJsonV700(item, meta, expanded, includeAuthor = cc.user.isDefined)
+              Box(glossaryEntries.find(entry => normaliseGlossaryTitle(entry.item.title) == wanted)
+                .map { entry =>
+                  // The expanded text is already rendered in the cache; the text as authored is
+                  // asked for rarely (by an editor) and is one Item, so it is rendered here.
+                  val description =
+                    if (expanded) entry.expandedDescription
+                    else JSONFactory700.createGlossaryItemDescriptionJsonV700(entry.item, expanded = false)
+                  JSONFactory700.createServedGlossaryItemJsonV700(entry.item, entry.meta, description,
+                    includeAuthor = cc.user.isDefined)
                 })
             }.map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
           } yield json
@@ -3934,8 +3961,8 @@ object Http4s700 {
                 createdByUserId = user.userId
               )
             }.map(unboxFullOrFail(_, Some(cc), CreateGlossaryItemError, 400))
-            // Reflect the write on this node at once; other nodes pick it up via the watermark.
-            _ = Glossary.invalidateGlossaryItemCache()
+            // Reflect the write on every node within ten seconds of the commit.
+            _ = Glossary.dynamicGlossaryItemsChanged()
           } yield JSONFactory700.createGlossaryItemJsonV700(created)
         }
     }
@@ -3993,7 +4020,7 @@ object Http4s700 {
               DynamicGlossaryItems.dynamicGlossaryItem.vend.updateDynamicGlossaryItem(
                 titleSegment, body.description, body.overrides_static_item)
             }.map(unboxFullOrFail(_, Some(cc), UpdateGlossaryItemError, 400))
-            _ = Glossary.invalidateGlossaryItemCache()
+            _ = Glossary.dynamicGlossaryItemsChanged()
           } yield JSONFactory700.createGlossaryItemJsonV700(updated)
         }
     }
@@ -4046,7 +4073,7 @@ object Http4s700 {
               .map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
             _ <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.deleteDynamicGlossaryItem(titleSegment))
               .map(unboxFullOrFail(_, Some(cc), DeleteGlossaryItemError, 400))
-            _ = Glossary.invalidateGlossaryItemCache()
+            _ = Glossary.dynamicGlossaryItemsChanged()
           } yield ()
         }
     }
