@@ -49,7 +49,7 @@ import scala.collection.mutable.ArrayBuffer
  * Coverage: all 20 v3.1 categories (~67 endpoints) are migrated to http4s and
  * composed into allRoutes below. The Lift ScannedApis aggregator
  * (OBP_UKOpenBanking_310) registers `routes = Nil`, so no UK v3.1 path is served
- * by Lift — nothing falls through to the Lift bridge.
+ * by Lift.
  */
 object Http4sUKOBv310 extends MdcLoggable {
 

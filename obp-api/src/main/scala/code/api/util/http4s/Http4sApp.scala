@@ -93,11 +93,8 @@ object Http4sApp extends MdcLoggable {
   // OBPAPIDynamicEntity dispatch.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
   // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — fully-native http4s: proxy (DynamicReq)
-  // + runtime-compiled resource docs, no Lift dispatch. Replaces the LiftRules.statelessDispatch
-  // registration. Must sit AHEAD of the Lift bridge (the bridge no longer carries dynamic-endpoint).
-  // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — proxy (DynamicReq) + runtime-compiled
-  // resource docs / practise. Runs the OBPAPIDynamicEndpoint.routes in-process via an adapter,
-  // replacing the former LiftRules.statelessDispatch registration.
+  // + runtime-compiled resource docs, no Lift dispatch. Replaces the former
+  // LiftRules.statelessDispatch registration.
   private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint)
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
   // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)

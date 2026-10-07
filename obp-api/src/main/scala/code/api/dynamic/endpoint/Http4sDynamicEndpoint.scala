@@ -62,8 +62,8 @@ import org.http4s.{HttpRoutes, Request, Response}
  *     body forcing / early-return recovery (`DynamicCodeBody.force`, inside the compiled handler).
  *
  * Piece B is tried first; a non-match falls through to Piece C; a non-match there returns
- * `OptionT.none`, so the request falls through the Http4sApp chain (the Lift bridge produces the
- * final 404, as before).
+ * `OptionT.none`, so the request falls through the Http4sApp chain to `notFoundCatchAll`, which
+ * produces the final 404 (JSON).
  */
 object Http4sDynamicEndpoint extends MdcLoggable {
 
@@ -154,7 +154,7 @@ object Http4sDynamicEndpoint extends MdcLoggable {
         }
     }
 
-  /** Entry point wired into Http4sApp.baseServices (before the Lift bridge). */
+  /** Entry point wired into Http4sApp.baseServices. */
   lazy val wrappedRoutesDynamicEndpoint: HttpRoutes[IO] =
     Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       req.uri.path.segments.map(_.encoded).toList match {

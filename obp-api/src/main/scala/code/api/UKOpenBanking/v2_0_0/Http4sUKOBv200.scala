@@ -46,7 +46,7 @@ import scala.collection.mutable.ArrayBuffer
  * account-scoped ones (/accounts/ID/balances, /accounts/ID/transactions) — are
  * migrated in Http4sUKOBv200AIS. The Lift ScannedApis aggregator
  * (OBP_UKOpenBanking_200) registers `routes = Nil`, so no UK v2.0 path is served
- * by Lift — nothing falls through to the Lift bridge.
+ * by Lift.
  */
 object Http4sUKOBv200 extends MdcLoggable {
 

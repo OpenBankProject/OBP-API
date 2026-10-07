@@ -451,11 +451,10 @@ object Http4s210 {
     }
 
     // Register one ResourceDoc per supported type rather than a single
-    // TRANSACTION_REQUEST_TYPE wildcard. The wildcard would also match v4-only
-    // types (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD),
-    // which the route guard then rejects — leaving the middleware to return 404
-    // instead of letting the request fall through to the Lift fallback that
-    // actually handles those types.
+    // TRANSACTION_REQUEST_TYPE wildcard. The route serves every type, including the
+    // v4-only ones (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD),
+    // which the handler refuses with InvalidTransactionRequestType. A type with no doc
+    // of its own is validated under the first of the docs below, which share the route.
     private val answerChallengeCommonErrors = List(
       AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat, InvalidJsonFormat,
       BankNotFound, UserNoPermissionAccessView, TransactionRequestStatusNotInitiated,

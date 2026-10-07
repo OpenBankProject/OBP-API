@@ -142,8 +142,8 @@ each of which changes what callers receive:
    the output depends on the prefix: v4.0.0 and later get the newer shape, v6.0.0 also adds the
    technology field (`Http4sResourceDocs.scala`, `includeTechnologyForPrefix` and the
    `isVersion4OrHigher` choice in `routes`). The middleware selects a doc from the routes of the
-   version group in the path, so it would need a copy of each doc in every version group, or a matcher that ignores
-   versions, and either change reaches beyond these routes.
+   version group in the path, so it would need a copy of each doc in every version group, or a
+   selection that ignores versions, and either change reaches beyond these routes.
 3. They are open by default and need a Role only when `resource_docs_requires_role=true`, checked
    inline (`withOptionalRoleCheck`). A doc can declare a Role conditionally, but the choice is
    fixed when the docs are built at start-up (see the shard 10 note in `CLAUDE.md`).
@@ -161,6 +161,3 @@ section 13).
 - `docs/telemetry_conventions.md`, section 13: which of these routes Telemetry does not time.
 - `CLAUDE.md`: the migration rules (ResourceDoc registration order, the middleware's handling of
   `BANK_ID`, `ACCOUNT_ID`, `VIEW_ID`, `COUNTERPARTY_ID`, and the gotchas).
-- Stale comment: `Http4sDynamicEndpoint.scala`'s header still says an unmatched request falls
-  through to "the Lift bridge"; since the bridge was removed it reaches `notFoundCatchAll` (JSON
-  404).

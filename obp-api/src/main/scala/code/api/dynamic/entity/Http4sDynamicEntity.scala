@@ -971,7 +971,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def resolveCallerOutsideTheTransaction(cc: CallContext): IO[Unit] =
     IO.fromFuture(IO(code.api.util.APIUtil.resolveCallerWithoutRateLimiting(cc))).attempt.void
 
-  /** Entry point wired into Http4sApp.baseServices (before the Lift bridge). */
+  /** Entry point wired into Http4sApp.baseServices. */
   lazy val wrappedRoutesDynamicEntity: HttpRoutes[IO] =
     Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       req.uri.path.segments.map(_.encoded).toList match {
