@@ -3268,14 +3268,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Resolve the caller (user and Consumer) from the request credentials WITHOUT applying rate
    * limiting: the call is neither refused for exceeding a limit nor counted against one.
    *
-   * For the http4s version fallthrough chain only (ResourceDocMiddleware.resolveCallerOnce). A hop
-   * that has no ResourceDoc for the request is almost always about to pass it on to the next
-   * version, and the hop that finally serves it applies rate limiting itself through
-   * [[anonymousAccess]] / [[applicationAccess]]. Counting the call on every hop charged one unit per
-   * hop: `GET /obp/v5.1.0/users/current` is served by v3.0.0 after six hops, so it cost seven
-   * units and a Consumer with a per-second limit below seven could never call it (429 OBP-10018).
+   * For a service that opens its own write transaction and so cannot leave the authentication to
+   * ResourceDocMiddleware (which validates before it opens one): authenticating a consent request
+   * writes (the consent's user and Roles), and those writes must be committed before the transaction
+   * opens. Not counting the call against a rate limit is deliberate: the handler authenticates again
+   * and applies the limit through [[anonymousAccess]] / [[applicationAccess]], so counting here too
+   * would charge the call twice.
    *
-   * A Failure is returned in the Box, never thrown; the middleware decides what to do with it.
+   * A Failure is returned in the Box, never thrown; the caller decides what to do with it.
    */
   def resolveCallerWithoutRateLimiting(cc: CallContext): OBPReturnType[Box[User]] =
     accessPipeline(cc, applyRateLimiting = false)
