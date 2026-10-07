@@ -972,9 +972,16 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     val pathString = path.renderString
     // Strip the API prefix (/obp/vX.X.X) from the path for matching
     val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    val pathSegments = strippedPath.split("/").filter(_.nonEmpty)
     val templateSegments = resourceDoc.requestUrl.split("/").filter(_.nonEmpty)
-    
+    // A route can serve a path with an empty segment (`/banks/B/api-products//subscriptions`), and the
+    // doc selected for it is the route's. Read the parameters by position with the empty segment kept,
+    // so BANK_ID and the other checks see the value the request carries (an empty one) instead of finding
+    // no parameters at all and skipping validation.
+    val positionalSegments = strippedPath.split("/", -1).drop(1)
+    val pathSegments =
+      if (positionalSegments.length == templateSegments.length) positionalSegments
+      else strippedPath.split("/").filter(_.nonEmpty)
+
     if (pathSegments.length != templateSegments.length) {
       Map.empty
     } else {

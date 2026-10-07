@@ -29,7 +29,9 @@ package code.api.v7_0_0
 
 import cats.effect.unsafe.IORuntime
 import code.api.sweep.SweepFixtures
+import code.api.util.ApiRole
 import code.api.util.ErrorMessages.UserHasMissingRoles
+import code.entitlement.Entitlement
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
 import org.json4s.native.JsonMethods.{compact, render}
 import org.scalatest.Tag
@@ -44,7 +46,9 @@ import org.scalatest.Tag
  * matches, but the middleware counts segments, finds no doc and runs the handler without any
  * validation, so the caller gets the handler's own answer instead of the role check.
  *
- * The caller here is authenticated and holds no role at all.
+ * The first two scenarios use a caller that is authenticated and holds no role at all. The third uses
+ * a caller that holds the role at the bank: the empty segment must not make the middleware check the
+ * role against a bank called "" or skip the bank, so the answer is the handler's own, not a 403 or a 500.
  */
 class EmptySegmentRoleValidationTest extends ServerSetupWithTestData with DefaultUsers with SweepFixtures {
 
@@ -72,6 +76,19 @@ class EmptySegmentRoleValidationTest extends ServerSetupWithTestData with Defaul
         status shouldBe 403
         compact(render(json)) should include(UserHasMissingRoles.take(10))
       }
+    }
+
+    scenario("A caller with the role at the bank is not refused by the role check when a path parameter is empty", EmptySegmentRoleValidationTag) {
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(
+        bank, resourceUser1.userId, ApiRole.canGetApiProductSubscriptionAtOneBank.toString)
+      try {
+        val (status, json) = callApi("GET", s"/obp/v7.0.0/banks/$bank/api-products//subscriptions", callerWithoutRoles)
+        withClue(s"body: ${compact(render(json))}\n") {
+          status should not be 403
+          status should not be 500
+          compact(render(json)) should not include UserHasMissingRoles.take(10)
+        }
+      } finally Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
   }
 }

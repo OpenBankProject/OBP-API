@@ -635,4 +635,41 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       enumValues.filterNot(ResourceDocMatcher.literalAllCapsSegments.contains) shouldBe empty
     }
   }
+
+  feature("ResourceDocMatcher - path parameters of a path with an empty segment") {
+
+    scenario("An empty segment is read by position, so the parameters of the other segments keep their place", ResourceDocMatcherTag) {
+      Given("a doc with BANK_ID before a placeholder, and a request that leaves the placeholder empty")
+      val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions", "getSubscriptions")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/api-products//subscriptions")
+
+      When("the path parameters are extracted")
+      val params = ResourceDocMatcher.extractPathParams(path, resourceDoc)
+
+      Then("BANK_ID is the bank of the request, and the empty segment is an empty value")
+      params.get("BANK_ID") should be(Some("gh.29.uk"))
+      params.get("API_PRODUCT_CODE") should be(Some(""))
+    }
+
+    scenario("An empty BANK_ID segment is an empty BANK_ID, not a missing one", ResourceDocMatcherTag) {
+      val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts", "getAccounts")
+      val path = Uri.Path.unsafeFromString(s"$base/banks//accounts")
+
+      ResourceDocMatcher.extractPathParams(path, resourceDoc).get("BANK_ID") should be(Some(""))
+    }
+
+    scenario("A path whose segment count differs from the template still yields nothing", ResourceDocMatcherTag) {
+      val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts", "getAccounts")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/accounts/extra")
+
+      ResourceDocMatcher.extractPathParams(path, resourceDoc) should be(Map.empty)
+    }
+
+    scenario("A trailing slash does not change the parameters of the doc it was matched with", ResourceDocMatcherTag) {
+      val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
+      val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/")
+
+      ResourceDocMatcher.extractPathParams(path, resourceDoc).get("BANK_ID") should be(Some("gh.29.uk"))
+    }
+  }
 }
