@@ -885,6 +885,7 @@ object ErrorMessages {
   val SigningBasketAuthorisationDisabled = "OBP-35054: Authorising signing baskets is not enabled at this instance. "
   val SigningBasketMemberNotFound = "OBP-35056: A payment or consent named for the signing basket was not found. "
   val SigningBasketMemberStatusInvalid = "OBP-35057: A payment or consent named for the signing basket is not in a state that can be authorised, or is already in another signing basket. "
+  val PaymentInSigningBasket = "OBP-35059: The payment is part of a signing basket and is authorised through the basket. "
   val SigningBasketMemberMixInvalid = "OBP-35058: The payments and consents named for the signing basket cannot be authorised together. "
   val ConsentMyResourcesInvalid = "OBP-35042: The Consent's my_resources block is invalid. "
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "

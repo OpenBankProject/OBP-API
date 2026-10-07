@@ -572,8 +572,11 @@ This applies in the following scenarios:
           paymentIds = basket.payments.getOrElse(Nil)
           members <- Future(paymentIds.map(id => id -> Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(id), callContext)))
           _ <- booleanToFuture(SigningBasketMemberNotFound, failCode = 400, cc = callContext)(members.forall(_._2.isDefined))
+          // Every payment has to be waiting for SCA, the state the executor takes one in. A payment rejected,
+          // cancelled or failed in the meantime would be refused by the executor after the other members had
+          // been booked, leaving a basket that can never complete.
           _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
-            !members.exists(_._2.exists(_._1.status == COMPLETED.toString))
+            members.forall(_._2.exists(member => SigningBasketNewStyle.awaitingScaPaymentStatuses.contains(member._1.status)))
           }
           consentIds = basket.consents.getOrElse(Nil)
           consents <- Future(consentIds.map(id => id -> Consents.consentProvider.vend.getConsentByConsentId(id)))
@@ -615,11 +618,17 @@ This applies in the following scenarios:
                 case f: Failure => f.msg.contains("OBP-40014")
                 case _ => false
               }
+              // Wrong answers are counted for the basket, over all its authorisations: a new authorisation brings
+              // a new one-time password and a new allowance on its own challenge, so counting per challenge alone
+              // would let a TPP keep guessing by starting new authorisations.
+              val answeredWrongly = _root_.code.transactionChallenge.Challenges.ChallengeProvider.vend.getChallengesByBasketId(basketId)
+                .map(_.map(_.attemptCounter).sum).openOr(0)
+              val allowance = _root_.code.api.util.APIUtil.allowedAnswerTransactionRequestChallengeAttempts
               val (message, code) = challengeFailure(other match {
                 case f: Failure => f.msg
                 case _ => InvalidChallengeAnswer
               })
-              (if (failedForGood) rejectBasket(basketId, paymentIds, callContext) else Future.successful(()))
+              (if (failedForGood || answeredWrongly >= allowance) rejectBasket(basketId, paymentIds, callContext) else Future.successful(()))
                 .flatMap(_ => Future(unboxFullOrFail(Empty: Box[ChallengeTrait], callContext, message, code)))
           }
           claimed <- Future(provider.transitionSigningBasketStatus(

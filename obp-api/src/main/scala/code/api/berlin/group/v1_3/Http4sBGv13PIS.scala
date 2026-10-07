@@ -41,6 +41,7 @@ import code.api.util.CustomJsonFormats
 import code.api.util.APIUtil.OBPReturnType
 import code.api.util.{ApiTag, CallContext, Consent, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
+import code.api.util.newstyle.SigningBasketNewStyle
 import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection}
 import code.fx.fx
 import code.transactionrequests.TransactionRequests
@@ -441,6 +442,7 @@ object Http4sBGv13PIS extends MdcLoggable {
               TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
             }
             (_, _) <- getOwnPaymentImpl(paymentId, callContext)
+            _ <- SigningBasketNewStyle.requirePaymentOutsideBaskets(paymentId, callContext)
             (challenges, _) <- NewStyle.function.createChallengesC2(
               List(u.userId),
               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
@@ -673,6 +675,7 @@ object Http4sBGv13PIS extends MdcLoggable {
             }
             transactionRequestId = TransactionRequestId(paymentId)
             (existingTransactionRequest, _) <- getOwnPaymentImpl(transactionRequestId.value, callContext)
+            _ <- SigningBasketNewStyle.requirePaymentOutsideBaskets(paymentId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CannotUpdatePSUData, cc = callContext) {
               existingTransactionRequest.status == TransactionStatus.RCVD.code
             }

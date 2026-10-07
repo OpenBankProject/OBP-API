@@ -121,6 +121,7 @@ object BerlinGroupError {
       case "403" if message.contains("OBP-35051") => "RESOURCE_UNKNOWN"
       case "404" if message.contains("OBP-35052") => "RESOURCE_UNKNOWN"
       case "409" if message.contains("OBP-35053") => "STATUS_INVALID"
+      case "409" if message.contains("OBP-35059") => "STATUS_INVALID"
       case "403" if message.contains("OBP-35054") => "SERVICE_BLOCKED"
       // The PSU does not hold the accounts a consent names. The consent cannot be authorised by them, which is
       // the standard's "consent cannot be found with respect to the PSU".

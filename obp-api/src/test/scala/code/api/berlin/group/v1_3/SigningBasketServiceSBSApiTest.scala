@@ -991,10 +991,12 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       val started = startedBasket()
       val wrong = """{"scaAuthenticationData":"definitely-wrong"}"""
       val allowed = code.api.util.APIUtil.allowedAnswerTransactionRequestChallengeAttempts
-      val codes = (1 to allowed + 1).map(_ => answerAuthorisation(started.basketId, started.authorisationId, body = wrong).code)
+      val codes = (1 to allowed).map(_ => answerAuthorisation(started.basketId, started.authorisationId, body = wrong).code)
       withClue(s"codes $codes: ") {
         codes.foreach(_ should equal(401))
-        storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        withClue("the last wrong answer the allowance covers closes the basket: ") {
+          storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        }
         started.paymentIds.foreach(storedPaymentStatus(_) should equal("REJECTED"))
       }
       withClue("the right answer no longer authorises anything: ") {
@@ -1218,6 +1220,68 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
   }
 
   feature("BG v1.3 signing baskets - what a review of the execution found") {
+    scenario("R3: a payment that is no longer waiting for SCA stops the answer before anything is booked", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      List("REJECTED", "CANCELLED", "FAILED").foreach { status =>
+        val first = lodgePayment()
+        val second = lodgePayment()
+        val basketId = createBasket(List(first, second))
+        val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+        MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, second)).openOrThrowException("payment")
+          .mStatus(status).saveMe()
+        val before = balanceOf(ibanFrom)
+        withClue(s"a payment that is $status: ") {
+          answerAuthorisation(basketId, authorisationId).code should equal(409)
+          balanceOf(ibanFrom) should equal(before)
+          storedPaymentStatus(first) should equal(awaitingSca)
+          storedBasketStatus(basketId) should equal(Some("RCVD"))
+          memberResults(basketId) should equal(Nil)
+        }
+      }
+    }
+
+    scenario("R2: a payment that is in a basket cannot also be authorised on its own", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val singleAuthorisations = V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / payment / "authorisations"
+      val started = makePostRequest(singleAuthorisations.POST <@ (user1), "{}")
+      started.code should equal(201)
+      val singleAuthorisationId = (started.body \ "authorisationId").extract[String]
+      createBasket(List(payment))
+
+      val before = balanceOf(ibanFrom)
+      expectRefusal(makePutRequest((singleAuthorisations / singleAuthorisationId).PUT <@ (user1), """{"scaAuthenticationData":"123"}"""),
+        409, "STATUS_INVALID", "answering the payment's own authorisation while a basket holds it")
+      withClue("nothing was booked, and the payment is still the basket's to authorise: ") {
+        balanceOf(ibanFrom) should equal(before)
+        storedPaymentStatus(payment) should equal(awaitingSca)
+      }
+      expectRefusal(makePostRequest(singleAuthorisations.POST <@ (user1), "{}"),
+        409, "STATUS_INVALID", "starting a second authorisation for a payment a basket holds")
+    }
+
+    scenario("R5: wrong answers are counted for the basket, not for each authorisation, so new authorisations are no new guesses", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val allowed = code.api.util.APIUtil.allowedAnswerTransactionRequestChallengeAttempts
+      val wrong = """{"scaAuthenticationData":"definitely-wrong"}"""
+      val started = startedBasket()
+      (1 until allowed).foreach(_ => answerAuthorisation(started.basketId, started.authorisationId, body = wrong).code should equal(401))
+      storedBasketStatus(started.basketId) should equal(Some("RCVD"))
+
+      val second = startAuthorisation(started.basketId)
+      second.code should equal(201)
+      val secondId = (second.body \ "authorisationId").extract[String]
+      withClue("the wrong answer that uses up the basket's allowance, on a new authorisation: ") {
+        answerAuthorisation(started.basketId, secondId, body = wrong).code should equal(401)
+        storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal("REJECTED"))
+      }
+      expectRefusal(startAuthorisation(started.basketId), 409, "STATUS_INVALID", "a new authorisation on a rejected basket")
+      expectRefusal(answerAuthorisation(started.basketId, secondId), 409, "STATUS_INVALID", "the right answer on a rejected basket")
+    }
+
     scenario("R6: a basket whose execution throws does not stop the resumption reaching the others, and goes to the back of the queue", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val ibanFrom = ibanAccounts.head
       val provider = code.signingbaskets.MappedSigningBasketProvider

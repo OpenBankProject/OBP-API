@@ -33,7 +33,7 @@ import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.BerlinGroupPaymentAccess
 import code.api.util.Consent
 import code.consent.{ConsentStatus, Consents}
-import code.api.util.ErrorMessages.{ConsentDoesNotMatchUser, SigningBasketAuthorisationNotFound, SigningBasketMemberMixInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, SigningBasketNotFound}
+import code.api.util.ErrorMessages.{PaymentInSigningBasket, ConsentDoesNotMatchUser, SigningBasketAuthorisationNotFound, SigningBasketMemberMixInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, SigningBasketNotFound}
 import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.signingbaskets.SigningBasketX
@@ -207,6 +207,16 @@ object SigningBasketNewStyle extends MdcLoggable {
     knownMemberPsus(basket, callContext).flatMap { named =>
       booleanToFuture(failMsg = SigningBasketNotFound, failCode = 403, cc = callContext)(named.forall(_ == psuUserId)).map(_ => ())
     }
+
+  /**
+   * A payment that an active basket holds is authorised through the basket. Authorising it on its own as well
+   * would book it twice, once by each. Only the check is shared with the basket: the two authorisations are
+   * answered with different one-time passwords, in separate requests.
+   */
+  def requirePaymentOutsideBaskets(paymentId: String, callContext: Option[CallContext]): Future[Unit] =
+    booleanToFuture(failMsg = PaymentInSigningBasket, failCode = 409, cc = callContext) {
+      !SigningBasketX.signingBasketProvider.vend.memberHeldByBasket(s"payment:$paymentId")
+    }.map(_ => ())
 
   // A payment lodged for SCA is stored RCVD (BG initiation) or INITIATED; anything else has been booked,
   // rejected or cancelled, or is being authorised some other way. The executor accepts the same set.
