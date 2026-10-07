@@ -27,23 +27,37 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import code.api.Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.ConstantsBG
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{AuthorisationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, PostSigningBasketJsonV13, ScaStatusJsonV13, SigningBasketGetResponseJson, SigningBasketResponseJson, StartPaymentAuthorisationJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{AuthorisationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, PostSigningBasketJsonV13, SigningBasketGetResponseJson, SigningBasketResponseJson}
 import code.api.berlin.group.v1_3.model.TransactionStatus
 import code.api.berlin.group.v1_3.{Http4sBGv13SigningBaskets => APIMethods_SigningBasketsApi}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
-import code.model.dataAccess.BankAccountRouting
-import code.setup.{APIResponse, DefaultUsers}
+import code.model.TokenType
+import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.setup.APIResponse
+import com.openbankproject.commons.model.User
+import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketPayment, SigningBasketX}
+import code.token.Tokens
+import code.transactionChallenge.Challenges
+import code.transactionrequests.MappedTransactionRequest
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ViewId
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, StrongCustomerAuthenticationStatus, TransactionRequestTypes}
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.randomString
+import net.liftweb.util.TimeHelpers.TimeSpan
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
-class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
+import java.util.UUID
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+
+class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
   object SBS extends Tag("Signing Baskets Service (SBS)")
   object createSigningBasket extends Tag(nameOf(APIMethods_SigningBasketsApi.createSigningBasket))
   object getSigningBasket extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasket))
@@ -53,28 +67,149 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
   object getSigningBasketScaStatus extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketScaStatus))
   object getSigningBasketAuthorisation extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketAuthorisation))
   object updateSigningBasketPsuData extends Tag(nameOf(APIMethods_SigningBasketsApi.updateSigningBasketPsuData))
+  object getSigningBasketExecution extends Tag(nameOf(APIMethods_SigningBasketsApi.getSigningBasketExecution))
 
-  // Helper: create a real SEPA payment via BG PIS API and return its paymentId
-  private def createRealPaymentId(): String = {
-    val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
-    val ibanFrom = accountsRoutingIban.head
-    val ibanTo = accountsRoutingIban.last
+  // ───────────────────────────── fixtures ─────────────────────────────
+
+  // Spec references below are lines of psd2-api_v1.3.16-2025-11-27.openapi.yaml ("L1234") and sections
+  // of the Implementation Guidelines 1.3.16 ("IG §x"). Where the standard leaves a choice to the ASPSP the
+  // scenario says so and states the choice made.
+
+  /** The tppMessage codes the standard allows for each status of a signing basket call (L11514-11749: MessageCode400_SBS L11514, 401 L11597, 403 L11648, 404 L11680, 409 L11744). */
+  private val allowedTppCodes: Map[Int, Set[String]] = Map(
+    400 -> Set("FORMAT_ERROR", "PARAMETER_NOT_CONSISTENT", "PARAMETER_NOT_SUPPORTED", "SERVICE_INVALID", "RESOURCE_UNKNOWN",
+      "RESOURCE_EXPIRED", "RESOURCE_BLOCKED", "TIMESTAMP_INVALID", "PERIOD_INVALID", "SCA_METHOD_UNKNOWN", "SCA_INVALID",
+      "CONSENT_UNKNOWN", "REFERENCE_MIX_INVALID"),
+    401 -> Set("CERTIFICATE_INVALID", "ROLE_INVALID", "CERTIFICATE_EXPIRED", "CERTIFICATE_BLOCKED", "CERTIFICATE_REVOKE",
+      "CERTIFICATE_MISSING", "SIGNATURE_INVALID", "SIGNATURE_MISSING", "CORPORATE_ID_INVALID", "PSU_CREDENTIALS_INVALID",
+      "CONSENT_INVALID", "CONSENT_EXPIRED", "TOKEN_UNKNOWN", "TOKEN_INVALID", "TOKEN_EXPIRED"),
+    403 -> Set("CONSENT_UNKNOWN", "SERVICE_BLOCKED", "RESOURCE_UNKNOWN", "RESOURCE_EXPIRED"),
+    404 -> Set("RESOURCE_UNKNOWN"),
+    409 -> Set("REFERENCE_STATUS_INVALID", "STATUS_INVALID")
+  )
+
+  private def ibanAccounts = BankAccountRouting
+    .findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
+
+  private def balanceOf(routing: BankAccountRouting) = MappedBankAccount.find(
+    By(MappedBankAccount.bank, routing.bankId.value),
+    By(MappedBankAccount.theAccountId, routing.accountId.value))
+    .map(_.balance).openOrThrowException("Can not be empty here")
+
+  private def basketsUrl = V1_3_BG / "signing-baskets"
+  private def basketUrl(basketId: String) = V1_3_BG / "signing-baskets" / basketId
+  private def authorisationsUrl(basketId: String) = V1_3_BG / "signing-baskets" / basketId / "authorisations"
+  private def authorisationUrl(basketId: String, authorisationId: String) =
+    V1_3_BG / "signing-baskets" / basketId / "authorisations" / authorisationId
+
+  /**
+   * Lodges a SEPA payment as user1 and returns its id. The default amount is over the challenge
+   * threshold, so the payment sits at RCVD awaiting SCA, which is the only state a basket may take
+   * a payment in. A payment of 10 is booked on creation (ACCP) and can no longer be authorised by
+   * anything.
+   */
+  private def lodgePayment(amount: String = "2001", as: Option[(Consumer, Token)] = user1, initiator: User = resourceUser1, creditorIban: Option[String] = None): String = {
+    val ibanFrom = ibanAccounts.head
+    val ibanTo = ibanAccounts.last
     Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)).foreach(view =>
-      Views.views.vend.grantAccessToSystemView(ibanFrom.bankId, ibanFrom.accountId, view, resourceUser1)
+      Views.views.vend.grantAccessToSystemView(ibanFrom.bankId, ibanFrom.accountId, view, initiator)
     )
     val initiatePaymentJson =
       s"""{
          | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
-         | "instructedAmount": { "currency": "EUR", "amount": "10" },
-         | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
+         | "instructedAmount": { "currency": "EUR", "amount": "$amount" },
+         | "creditorAccount": { "iban": "${creditorIban.getOrElse(ibanTo.accountRouting.address)}" },
          | "creditorName": "TestCreditor"
          |}""".stripMargin
-    val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1)
+    val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (as)
     val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
-    response.code should equal(201)
-    val payment = response.body.extract[InitiatePaymentResponseJson]
-    payment.transactionStatus should be(TransactionStatus.ACCP.code)
-    payment.paymentId
+    withClue(s"lodging a payment of $amount: ") { response.code should equal(201) }
+    response.body.extract[InitiatePaymentResponseJson].paymentId
+  }
+
+  /** A payment lodged the way a client-credentials TPP lodges one: on its own session, with no PSU in it. */
+  private def lodgePaymentAsClientCredentialsTpp(): String =
+    lodgePayment(as = clientCredentialsSession, initiator = pseudoUserOfTestConsumer)
+
+  private def createRealPaymentId(): String = lodgePayment()
+
+  /** The stored status of a payment that awaits SCA, and of one that was booked on creation. */
+  private val awaitingSca = "RCVD"
+  private val bookedOnCreation = "ACCP"
+
+  private def idList(ids: List[String]): String = ids.map(id => s""""$id"""").mkString("[", ",", "]")
+
+  private def postBasket(body: String, as: Option[(Consumer, Token)] = user1): APIResponse =
+    makePostRequest(basketsUrl.POST <@ (as), body)
+
+  private def createBasket(paymentIds: List[String], as: Option[(Consumer, Token)] = user1): String = {
+    val response = postBasket(s"""{"paymentIds":${idList(paymentIds)}}""", as)
+    withClue(s"creating a basket of $paymentIds: ${response.body}: ") { response.code should equal(201) }
+    response.body.extract[SigningBasketResponseJson].basketId
+  }
+
+  private def startAuthorisation(basketId: String, as: Option[(Consumer, Token)] = user1, body: String = "{}"): APIResponse =
+    makePostRequest(authorisationsUrl(basketId).POST <@ (as), body)
+
+  private def answerAuthorisation(basketId: String, authorisationId: String, as: Option[(Consumer, Token)] = user1,
+                                  body: String = """{"scaAuthenticationData":"123"}"""): APIResponse =
+    makePutRequest(authorisationUrl(basketId, authorisationId).PUT <@ (as), body)
+
+  /** Everything a basket needs for its SCA to be answered: a basket of real payments, and an authorisation on it. */
+  private case class StartedBasket(basketId: String, paymentIds: List[String], authorisationId: String)
+
+  private def startedBasket(paymentCount: Int = 1): StartedBasket = {
+    enableBasketAuthorisation()
+    val paymentIds = List.fill(paymentCount)(lodgePayment())
+    val basketId = createBasket(paymentIds)
+    val started = startAuthorisation(basketId)
+    started.code should equal(201)
+    StartedBasket(basketId, paymentIds, (started.body \ "authorisationId").extract[String])
+  }
+
+  /** Tests that answer an SCA need a challenge whose answer is known, and an instance that lets baskets be authorised. */
+  private def enableBasketAuthorisation(): Unit = {
+    setPropsValues("suggested_default_sca_method" -> "DUMMY", "signing_basket_authorisation_enabled" -> "true")
+  }
+
+  // What the database says, as opposed to what an HTTP response claims.
+  private def storedBasketStatus(basketId: String): Option[String] =
+    SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId).toOption.map(_.basket.status)
+
+  private def storedPaymentStatus(paymentId: String): String =
+    MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, paymentId))
+      .map(_.mStatus.get).openOrThrowException(s"payment $paymentId must exist")
+
+  private def storedChallengeCount(basketId: String): Int =
+    Challenges.ChallengeProvider.vend.getChallengesByBasketId(basketId).map(_.size).openOrThrowException("challenges must be readable")
+
+  private def storedBasketCount(): Long = MappedSigningBasket.count()
+
+  private def tppCode(response: APIResponse): String = response.body.extract[ErrorMessagesBG].tppMessages.head.code
+
+  /** The status is as expected, the tppMessage code is the expected one, and that code is one the standard allows for that status. */
+  private def expectRefusal(response: APIResponse, status: Int, code: String, what: String): Unit =
+    withClue(s"$what: ") {
+      response.code should equal(status)
+      tppCode(response) should equal(code)
+      allowedTppCodes(status) should contain(code)
+    }
+
+  // resourceUser1's own token, issued under a second consumer: same person, different TPP.
+  private lazy val samePsuUnderSecondConsumer = {
+    val token = Tokens.tokens.vend.createToken(
+      TokenType.Access,
+      Some(testConsumer2.id.get),
+      Some(resourceUser1.id.get),
+      Some(randomString(40).toLowerCase),
+      Some(randomString(40).toLowerCase),
+      Some(tokenDuration),
+      Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+      Some(new java.util.Date(System.currentTimeMillis())),
+      None
+    ).openOrThrowException("test token creation failed")
+    Some(consumer2, Token(token.key.get, token.secret.get))
   }
 
   feature(s"test the BG v1.3 - ${createSigningBasket.name}") {
@@ -133,7 +268,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       response.code should equal(201)
       val createdBasket = response.body.extract[SigningBasketResponseJson]
       createdBasket.basketId should not be empty
-      createdBasket.transactionStatus should be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
+      createdBasket.transactionStatus should be(ConstantsBG.SigningBasketsStatus.RCVD.toString)
       createdBasket._links.self.href should not be empty
       createdBasket._links.status.href should not be empty
       createdBasket._links.startAuthorisation.href should not be empty
@@ -173,19 +308,19 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
       Then("We should get a 200")
       responseGet.code should be(200)
       val basket = responseGet.body.extract[SigningBasketGetResponseJson]
-      basket.transactionStatus should be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
+      basket.transactionStatus should be(ConstantsBG.SigningBasketsStatus.RCVD.toString)
       basket.payments.isDefined should be(true)
       basket.payments.get should contain(paymentId1)
       basket.payments.get should contain(paymentId2)
 
-      // Verify each paymentId in the basket has ACCP status
-      Then("Each payment in the basket should return ACCP status")
+      // Each payment still awaits SCA, which Berlin Group reports as RCVD (ACCP would mean it is already booked)
+      Then("Each payment in the basket should return RCVD status")
       basket.payments.get.foreach { pid =>
         val requestPaymentStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / pid / "status").GET <@ (user1)
         val responsePaymentStatus = makeGetRequest(requestPaymentStatus)
         responsePaymentStatus.code should be(200)
         val txStatus = (responsePaymentStatus.body \ "transactionStatus").extract[String]
-        txStatus should be(TransactionStatus.ACCP.code)
+        txStatus should be(TransactionStatus.RCVD.code)
       }
     }
   }
@@ -265,84 +400,1080 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
   }
 
 
-  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation, $updateSigningBasketPsuData") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, startSigningBasketAuthorisation, getSigningBasketAuthorisation, updateSigningBasketPsuData) {
-      // Create Signing Basket
-      val postJson =
-        s"""{
-           |  "paymentIds": [
-           |    "123qwert456789",
-           |    "12345qwert7899"
-           |  ]
-           |}""".stripMargin
+  // ───────────────────────── the happy path, with real payments ─────────────────────────
 
-      val requestPost = (V1_3_BG / "signing-baskets").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, postJson)
-      Then("We should get a 201 ")
-      response.code should equal(201)
+  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation, $getSigningBasketScaStatus, $updateSigningBasketPsuData") {
+    scenario("a basket of real payments is created, read, authorised and its authorisation listed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, startSigningBasketAuthorisation, getSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+      val started = startedBasket(paymentCount = 2)
 
-      val basketId = response.body.extract[SigningBasketResponseJson].basketId
-
-      // Get Signing Basket
       Then(s"We test the $getSigningBasket")
-      val requestGet = (V1_3_BG / "signing-baskets" / basketId).GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
+      val responseGet = makeGetRequest(basketUrl(started.basketId).GET <@ (user1))
       responseGet.code should be(200)
-      responseGet.body.extract[SigningBasketGetResponseJson].transactionStatus should
-        be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
+      responseGet.body.extract[SigningBasketGetResponseJson].transactionStatus should be("RCVD") // L4497-4518
 
-      // Get Signing Basket Status
       Then(s"We test the $getSigningBasketStatus")
-      val requestGetStatus = (V1_3_BG / "signing-baskets" / basketId / "status").GET <@ (user1)
-      var responseGetStatus = makeGetRequest(requestGetStatus)
-      responseGetStatus.code should be(200)
-      responseGetStatus.body.extract[SigningBasketGetResponseJson].transactionStatus should
-        be(ConstantsBG.SigningBasketsStatus.RCVD.toString.toLowerCase())
+      val responseStatus = makeGetRequest((basketUrl(started.basketId) / "status").GET <@ (user1))
+      responseStatus.code should be(200)
+      (responseStatus.body \ "transactionStatus").extract[String] should be("RCVD")
 
-      // Delete Signing Basket
-      val requestDelete = (V1_3_BG / "signing-baskets" / basketId).DELETE <@ (user1)
-      val responseDelete = makeDeleteRequest(requestDelete)
-      responseDelete.code should be(204)
+      Then(s"We test the $getSigningBasketAuthorisation")
+      val responseAuths = makeGetRequest(authorisationsUrl(started.basketId).GET <@ (user1))
+      responseAuths.code should be(200)
+      responseAuths.body.extract[AuthorisationJsonV13].authorisationIds should equal(List(started.authorisationId)) // L4827
 
-      responseGetStatus = makeGetRequest(requestGetStatus)
-      responseGetStatus.code should be(200)
-      responseGetStatus.body.extract[SigningBasketGetResponseJson].transactionStatus should
-        be(ConstantsBG.SigningBasketsStatus.CANC.toString.toLowerCase())
-
-      // Start Signing Basket Auth Flow
-      val postJsonAuth = s"""{}""".stripMargin
-      val requestAuth = (V1_3_BG / "signing-baskets" / basketId / "authorisations").POST <@ (user1)
-      val responseAuth = makePostRequest(requestAuth, postJsonAuth)
-      Then("We should get a 201 ")
-      responseAuth.code should equal(201)
-      responseAuth.body.extract[StartPaymentAuthorisationJson].scaStatus should
-        be(StrongCustomerAuthenticationStatus.received.toString)
-      val authorisationId = responseAuth.body.extract[StartPaymentAuthorisationJson].authorisationId
-
-      // Get Signing Basket Auth Flow Status
-      val requestAuthStatus = (V1_3_BG / "signing-baskets" / basketId / "authorisations" / authorisationId).GET <@ (user1)
-      val responseAuthStatus = makeGetRequest(requestAuthStatus)
-      Then("We should get a 200 ")
-      responseAuthStatus.code should equal(200)
-      responseAuthStatus.body.extract[ScaStatusJsonV13].scaStatus should
-        be(responseAuth.body.extract[StartPaymentAuthorisationJson].scaStatus)
-
-      // Get Signing Basket Authorisations
-      val requestGetAuths = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations").GET <@ (user1)
-      val responseGetAuths = makeGetRequest(requestGetAuths)
-      Then("We should get a 200 ")
-      responseGetAuths.code should equal(200)
-      responseGetAuths.body.extract[AuthorisationJsonV13]
-
-      // Failed due to unexisting paymentIds
-      val putJson = s"""{"scaAuthenticationData":"123"}""".stripMargin
-      val requestPut = (V1_3_BG / "signing-baskets" / basketId / "authorisations" / authorisationId).PUT <@ (user1)
-      val responsePut = makePutRequest(requestPut, putJson)
-      val error = s"$InvalidConnectorResponse"
-      And("error should be " + error)
-      responsePut.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
+      Then(s"We test the $getSigningBasketScaStatus")
+      val responseAuthStatus = makeGetRequest(authorisationUrl(started.basketId, started.authorisationId).GET <@ (user1))
+      responseAuthStatus.code should be(200)
+      (responseAuthStatus.body \ "scaStatus").extract[String] should be(StrongCustomerAuthenticationStatus.received.toString)
     }
   }
 
+  // ───────────────────────── response shape: C1, C2, C3, C12 ─────────────────────────
 
+  feature("BG v1.3 signing baskets - response shape follows the standard") {
+    scenario("C1: transactionStatus is upper case in every response that carries it (L4497-4518)", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus) {
+      val response = postBasket(s"""{"paymentIds":${idList(List(lodgePayment()))}}""")
+      response.code should equal(201)
+      (response.body \ "transactionStatus").extract[String] should equal("RCVD")
+      val basketId = response.body.extract[SigningBasketResponseJson].basketId
+
+      (makeGetRequest(basketUrl(basketId).GET <@ (user1)).body \ "transactionStatus").extract[String] should equal("RCVD")
+      (makeGetRequest((basketUrl(basketId) / "status").GET <@ (user1)).body \ "transactionStatus").extract[String] should equal("RCVD")
+    }
+
+    scenario("C12: the 201 carries Location (IG §8.1, Mandatory) and ASPSP-SCA-Approach (IG §8.1, Conditional on the approach being fixed)", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val response = postBasket(s"""{"paymentIds":${idList(List(lodgePayment()))}}""")
+      response.code should equal(201)
+      val basketId = response.body.extract[SigningBasketResponseJson].basketId
+      val headers = response.headers.getOrElse(fail("the response has no headers"))
+      Option(headers.get("Location")).getOrElse(fail("Location is missing")) should endWith(s"/signing-baskets/$basketId")
+      Option(headers.get("ASPSP-SCA-Approach")) should not be empty
+    }
+
+    scenario("C2: _links.scaStatus of a started authorisation is a {href} object (L4801, L10752)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      val basketId = createBasket(List(lodgePayment()))
+      val response = startAuthorisation(basketId)
+      response.code should equal(201)
+      val authorisationId = (response.body \ "authorisationId").extract[String]
+      (response.body \ "scaStatus").extract[String] should equal("received")
+      withClue("ASPSP-SCA-Approach is sent when the authorisation resource is created (IG §7.1): ") {
+        Option(response.headers.getOrElse(fail("the response has no headers")).get("ASPSP-SCA-Approach")) should not be empty
+      }
+      (response.body \ "_links" \ "scaStatus" \ "href").extract[String] should endWith(s"/signing-baskets/$basketId/authorisations/$authorisationId")
+    }
+
+    scenario("C3: the answer to an authorisation links to the basket's authorisation, not to a payment (L8828, L15675)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      val response = answerAuthorisation(started.basketId, started.authorisationId)
+      response.code should equal(200)
+      (response.body \ "scaStatus").extract[String] should equal("finalised")
+      val href = (response.body \ "_links" \ "scaStatus" \ "href").extract[String]
+      href should endWith(s"/signing-baskets/${started.basketId}/authorisations/${started.authorisationId}")
+      href should not include "/payments/"
+    }
+  }
+
+  // ───────────────────────── request validation: C5, C7 ─────────────────────────
+
+  feature("BG v1.3 signing baskets - requests are validated against the schema") {
+    scenario("C5: an empty id list is refused, whichever list it is (L4325, L4365; body 'shall contain at least one entry' L4742)", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val payment = lodgePayment()
+      val basketsBefore = storedBasketCount()
+      List(
+        """{"paymentIds":[]}""",
+        """{"consentIds":[]}""",
+        """{"paymentIds":[],"consentIds":[]}""",
+        s"""{"paymentIds":${idList(List(payment))},"consentIds":[]}"""
+      ).foreach { body =>
+        expectRefusal(postBasket(body), 400, "FORMAT_ERROR", s"body $body")
+      }
+      withClue("a refused request leaves no basket behind: ") { storedBasketCount() should equal(basketsBefore) }
+    }
+
+    scenario("C5: the same id twice in one list is refused (the standard sets no rule; refused as a format error)", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val payment = lodgePayment()
+      expectRefusal(postBasket(s"""{"paymentIds":${idList(List(payment, payment))}}"""), 400, "FORMAT_ERROR", "duplicate payment id")
+    }
+
+    scenario("C7: POST authorisations refuses the body variants it does not support instead of discarding them (L3653)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      val basketId = createBasket(List(lodgePayment()))
+      expectRefusal(startAuthorisation(basketId, body = """{"psuData":{"password":"secret"}}"""), 400, "SERVICE_INVALID", "updatePsuAuthentication")
+      expectRefusal(startAuthorisation(basketId, body = """{"authenticationMethodId":"sms"}"""), 400, "SERVICE_INVALID", "selectPsuAuthenticationMethod")
+      withClue("neither refused request minted a challenge: ") { storedChallengeCount(basketId) should equal(0) }
+    }
+
+    scenario("C7: POST authorisations accepts the two variants it supports (L3653)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      val basketId = createBasket(List(lodgePayment()))
+      startAuthorisation(basketId, body = "{}").code should equal(201)
+      startAuthorisation(basketId, body = """{"scaAuthenticationData":"123"}""").code should equal(201)
+    }
+
+    scenario("C7: PUT refuses the variants it does not support, and a body matching no variant is a format error (L3867, L8250-8300)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      expectRefusal(answerAuthorisation(started.basketId, started.authorisationId, body = """{"confirmationCode":"123"}"""), 400, "SERVICE_INVALID", "authorisationConfirmation")
+      expectRefusal(answerAuthorisation(started.basketId, started.authorisationId, body = """{"psuData":{"password":"x"}}"""), 400, "SERVICE_INVALID", "updatePsuAuthentication")
+      expectRefusal(answerAuthorisation(started.basketId, started.authorisationId, body = """{"foo":"bar"}"""), 400, "FORMAT_ERROR", "matches no variant")
+      withClue("nothing was authorised: ") {
+        storedBasketStatus(started.basketId) should equal(Some("RCVD"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+      }
+    }
+  }
+
+  // ───────────────────────── states and transitions: C6, C9, C10 ─────────────────────────
+
+  feature("BG v1.3 signing baskets - a basket only moves along the transitions the standard and this ASPSP allow") {
+    scenario("C9: a deleted basket cannot be authorised, and nothing it held is touched (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user1)).code should equal(204)
+      storedBasketStatus(started.basketId) should equal(Some("CANC"))
+
+      expectRefusal(startAuthorisation(started.basketId), 409, "STATUS_INVALID", "starting an authorisation on a CANC basket")
+      expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 409, "STATUS_INVALID", "answering an authorisation on a CANC basket")
+      withClue("the basket stayed CANC and its payment was not touched: ") {
+        storedBasketStatus(started.basketId) should equal(Some("CANC"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+      }
+      withClue("deleting a deleted basket is idempotent: ") {
+        makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user1)).code should equal(204)
+      }
+    }
+
+    scenario("C6: a basket whose authorisation has been applied cannot be deleted or restarted (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
+      storedBasketStatus(started.basketId) should equal(Some("ACTC"))
+
+      expectRefusal(makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user1)), 409, "STATUS_INVALID", "deleting an authorised basket")
+      expectRefusal(startAuthorisation(started.basketId), 409, "STATUS_INVALID", "starting another authorisation on an authorised basket")
+      withClue("the basket is still ACTC, not CANC: ") { storedBasketStatus(started.basketId) should equal(Some("ACTC")) }
+    }
+
+    scenario("C6: a started but unanswered authorisation does not stop a delete (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket) {
+      val started = startedBasket()
+      makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user1)).code should equal(204)
+      storedBasketStatus(started.basketId) should equal(Some("CANC"))
+    }
+
+    scenario("C9: answering the same authorisation twice is a conflict and does not repeat anything", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
+      expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 409, "STATUS_INVALID", "the repeated answer")
+      storedBasketStatus(started.basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: authorising a basket of a consent makes it valid and binds it to the PSU", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      // One consent: a second recurring consent for the same PSU and TPP would end the first.
+      val consentIds = List.fill(1)((makePostRequest((V1_3_BG / "consents").POST <@ (user1), write(bgConsentPostBody())).body \\ "consentId").extract[String])
+      val created = postBasket(s"""{"consentIds":${idList(consentIds)}}""")
+      created.code should equal(201)
+      val basketId = created.body.extract[SigningBasketResponseJson].basketId
+      val authorisationId = (startAuthorisation(basketId).body \\ "authorisationId").extract[String]
+
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      consentIds.foreach { id =>
+        val consent = code.consent.Consents.consentProvider.vend.getConsentByConsentId(id).openOrThrowException("consent")
+        withClue(s"consent $id: ") {
+          consent.status should equal(code.consent.ConsentStatus.valid.toString)
+          consent.userId should equal(resourceUser1.userId)
+        }
+      }
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: a basket of a payment and a consent books the payment and activates the consent", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val consentId = (makePostRequest((V1_3_BG / "consents").POST <@ (user1), write(bgConsentPostBody())).body \\ "consentId").extract[String]
+      val created = postBasket(s"""{"paymentIds":${idList(List(payment))},"consentIds":${idList(List(consentId))}}""")
+      created.code should equal(201)
+      val basketId = created.body.extract[SigningBasketResponseJson].basketId
+      val authorisationId = (startAuthorisation(basketId).body \\ "authorisationId").extract[String]
+      val fromBefore = balanceOf(ibanFrom)
+
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      balanceOf(ibanFrom) should equal(fromBefore - 2001)
+      storedPaymentStatus(payment) should equal("COMPLETED")
+      code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId).map(_.status) should equal(net.liftweb.common.Full(code.consent.ConsentStatus.valid.toString))
+      memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(payment -> "DONE", consentId -> "DONE"))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: a PSU who does not hold the consent's accounts cannot authorise it through a basket, and nothing changes", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val consentId = createUnclaimedBerlinGroupConsent().consentId // names an account resourceUser2 does not hold
+      val created = postBasket(s"""{"consentIds":${idList(List(consentId))}}""", as = clientCredentialsSession)
+      created.code should equal(201)
+      val basketId = created.body.extract[SigningBasketResponseJson].basketId
+      val started = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser2.name)))
+      started.code should equal(201)
+      val authorisationId = (started.body \\ "authorisationId").extract[String]
+
+      expectRefusal(answerAuthorisation(basketId, authorisationId, as = clientCredentialsSession), 403, "CONSENT_UNKNOWN", "a PSU without the accounts")
+      storedBasketStatus(basketId) should equal(Some("RCVD"))
+      code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId).map(_.status) should equal(net.liftweb.common.Full(code.consent.ConsentStatus.received.toString))
+      withClue("the answer was not consumed: ") {
+        Challenges.ChallengeProvider.vend.getChallenge(authorisationId).map(_.successful) should equal(net.liftweb.common.Full(false))
+      }
+    }
+  }
+
+  // ───────────────────────── unknown resources: C4, C8, C11 ─────────────────────────
+
+  feature("BG v1.3 signing baskets - unknown resources are refused with codes the standard allows") {
+    scenario("C8/D1: an unknown basket is answered 403 RESOURCE_UNKNOWN by every operation that names one (L11648, L11680)", BerlinGroupV1_3, SBS, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, getSigningBasketAuthorisation, startSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val unknown = UUID.randomUUID().toString
+      val unknownAuthorisation = UUID.randomUUID().toString
+      val challengesBefore = Challenges.ChallengeProvider.vend.getChallengesByBasketId(unknown).map(_.size).openOrThrowException("x")
+      List(
+        "GET basket" -> makeGetRequest(basketUrl(unknown).GET <@ (user1)),
+        "GET status" -> makeGetRequest((basketUrl(unknown) / "status").GET <@ (user1)),
+        "DELETE basket" -> makeDeleteRequest(basketUrl(unknown).DELETE <@ (user1)),
+        "GET authorisations" -> makeGetRequest(authorisationsUrl(unknown).GET <@ (user1)),
+        "POST authorisation" -> startAuthorisation(unknown),
+        "GET authorisation" -> makeGetRequest(authorisationUrl(unknown, unknownAuthorisation).GET <@ (user1)),
+        "PUT authorisation" -> answerAuthorisation(unknown, unknownAuthorisation)
+      ).foreach { case (what, response) => expectRefusal(response, 403, "RESOURCE_UNKNOWN", what) }
+      withClue("starting an authorisation on a basket that does not exist minted no challenge: ") {
+        Challenges.ChallengeProvider.vend.getChallengesByBasketId(unknown).map(_.size).openOrThrowException("x") should equal(challengesBefore)
+      }
+    }
+
+    scenario("C4: an authorisation id the basket does not have is 404 RESOURCE_UNKNOWN, never a 200 with a made-up scaStatus (L4521, L11680)", BerlinGroupV1_3, SBS, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      val other = startedBasket()
+      expectRefusal(makeGetRequest(authorisationUrl(started.basketId, UUID.randomUUID().toString).GET <@ (user1)), 404, "RESOURCE_UNKNOWN", "an id nobody issued")
+      expectRefusal(makeGetRequest(authorisationUrl(started.basketId, other.authorisationId).GET <@ (user1)), 404, "RESOURCE_UNKNOWN", "an id issued for another basket")
+      expectRefusal(answerAuthorisation(started.basketId, other.authorisationId), 404, "RESOURCE_UNKNOWN", "answering an id issued for another basket")
+    }
+
+    scenario("C11: a refused creation uses codes from the standard's lists (L11514, L11744, IG §14.11.5)", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val invented = UUID.randomUUID().toString
+      expectRefusal(postBasket(s"""{"paymentIds":${idList(List(invented))}}"""), 400, "RESOURCE_UNKNOWN", "invented payment id")
+      expectRefusal(postBasket("""{"wrongFieldName":["x"]}"""), 400, "FORMAT_ERROR", "unknown field")
+    }
+  }
+
+  // ───────────────────────── ownership: S1 ─────────────────────────
+
+  feature("BG v1.3 signing baskets - a basket belongs to the TPP that created it") {
+    scenario("S1: a second TPP is refused on every operation, and nothing about the basket changes (IG §4.11)", BerlinGroupV1_3, SBS, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, getSigningBasketAuthorisation, startSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      val challengesBefore = storedChallengeCount(started.basketId)
+
+      List(
+        "GET basket" -> makeGetRequest(basketUrl(started.basketId).GET <@ (user2)),
+        "GET status" -> makeGetRequest((basketUrl(started.basketId) / "status").GET <@ (user2)),
+        "DELETE basket" -> makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user2)),
+        "GET authorisations" -> makeGetRequest(authorisationsUrl(started.basketId).GET <@ (user2)),
+        "POST authorisation" -> startAuthorisation(started.basketId, as = user2),
+        "GET authorisation" -> makeGetRequest(authorisationUrl(started.basketId, started.authorisationId).GET <@ (user2)),
+        "PUT authorisation" -> answerAuthorisation(started.basketId, started.authorisationId, as = user2)
+      ).foreach { case (what, response) => expectRefusal(response, 403, "RESOURCE_UNKNOWN", s"user2 tried to $what") }
+
+      withClue("the basket, its payments and its challenges are as they were: ") {
+        storedBasketStatus(started.basketId) should equal(Some("RCVD"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+        storedChallengeCount(started.basketId) should equal(challengesBefore)
+      }
+      And("the TPP that created it still can")
+      makeGetRequest((basketUrl(started.basketId) / "status").GET <@ (user1)).code should equal(200)
+    }
+
+    scenario("S1: the same PSU acting through a second TPP is refused too (IG §4.11)", BerlinGroupV1_3, SBS, getSigningBasketStatus, deleteSigningBasket) {
+      val basketId = createBasket(List(lodgePayment()))
+      expectRefusal(makeGetRequest((basketUrl(basketId) / "status").GET <@ (samePsuUnderSecondConsumer)), 403, "RESOURCE_UNKNOWN", "status read")
+      expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (samePsuUnderSecondConsumer)), 403, "RESOURCE_UNKNOWN", "delete")
+      storedBasketStatus(basketId) should equal(Some("RCVD"))
+    }
+
+    scenario("S1: a basket created before ownership was recorded is quarantined, for everybody", BerlinGroupV1_3, SBS, getSigningBasket, deleteSigningBasket, startSigningBasketAuthorisation) {
+      // The shape every basket had before ownership existed: a status, members, and no consumer or PSU.
+      val payment = lodgePayment()
+      val legacy = MappedSigningBasket.create.Status("RCVD").saveMe()
+      MappedSigningBasketPayment.create.BasketId(legacy.basketId).PaymentId(payment).saveMe()
+
+      List(
+        "GET basket" -> makeGetRequest(basketUrl(legacy.basketId).GET <@ (user1)),
+        "DELETE basket" -> makeDeleteRequest(basketUrl(legacy.basketId).DELETE <@ (user1)),
+        "POST authorisation" -> startAuthorisation(legacy.basketId)
+      ).foreach { case (what, response) => expectRefusal(response, 403, "RESOURCE_UNKNOWN", s"the payment's own TPP tried to $what on a legacy basket") }
+      withClue("the legacy basket is kept as it was, for audit: ") {
+        storedBasketStatus(legacy.basketId) should equal(Some("RCVD"))
+        storedChallengeCount(legacy.basketId) should equal(0)
+      }
+    }
+  }
+
+  // ───────────────────────── whose challenge: the PSU, not the calling TPP ─────────────────────────
+
+  feature("BG v1.3 signing baskets - an authorisation is minted for the PSU, which is where the one-time password goes") {
+    scenario("S1: a client-credentials TPP naming the PSU in PSU-ID gets a challenge for that PSU, and the basket binds to them", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
+      val response = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name)))
+      response.code should equal(201)
+      val authorisationId = (response.body \ "authorisationId").extract[String]
+      Challenges.ChallengeProvider.vend.getChallenge(authorisationId).openOrThrowException("challenge").expectedUserId should equal(resourceUser1.userId)
+      SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId).map(_.basket.psuUserId) should equal(net.liftweb.common.Full(Some(resourceUser1.userId)))
+    }
+
+    scenario("S1: a client-credentials TPP that names nobody gets no challenge (L11597, IG §14.11 PSU_CREDENTIALS_INVALID)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
+      expectRefusal(startAuthorisation(basketId, as = clientCredentialsSession), 401, "PSU_CREDENTIALS_INVALID", "no PSU anywhere")
+      expectRefusal(makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", "nobody-by-this-name"))), 401, "PSU_CREDENTIALS_INVALID", "an unknown PSU-ID")
+      storedChallengeCount(basketId) should equal(0)
+    }
+
+    scenario("S1: once a PSU is bound, a PSU-ID naming someone else is refused like any other refusal to address the basket", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
+      makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name))).code should equal(201)
+      val challengesBefore = storedChallengeCount(basketId)
+      expectRefusal(makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser2.name))), 403, "RESOURCE_UNKNOWN", "another PSU")
+      storedChallengeCount(basketId) should equal(challengesBefore)
+    }
+  }
+
+  // ───────────────────────── members: S5, D8 ─────────────────────────
+
+  feature("BG v1.3 signing baskets - a basket only takes members the caller may authorise") {
+    scenario("S5: an id that names no payment is refused, and no basket is left behind", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val basketsBefore = storedBasketCount()
+      expectRefusal(postBasket(s"""{"paymentIds":${idList(List("123qwert456789", "12345qwert7899"))}}"""), 400, "RESOURCE_UNKNOWN", "invented payment ids")
+      storedBasketCount() should equal(basketsBefore)
+    }
+
+    scenario("S5: a payment another TPP lodged looks exactly like one that does not exist", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val payment = lodgePayment() // lodged by user1
+      val basketsBefore = storedBasketCount()
+      val foreign = postBasket(s"""{"paymentIds":${idList(List(payment))}}""", as = user2)
+      val invented = postBasket(s"""{"paymentIds":${idList(List(UUID.randomUUID().toString))}}""", as = user2)
+      expectRefusal(foreign, 400, "RESOURCE_UNKNOWN", "another TPP's payment")
+      expectRefusal(invented, 400, "RESOURCE_UNKNOWN", "an invented payment")
+      storedBasketCount() should equal(basketsBefore)
+    }
+
+    scenario("D8: a payment that is already booked cannot be put in a basket (IG §14.11.5, L11748)", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val booked = lodgePayment(amount = "10") // under the threshold: booked on creation
+      storedPaymentStatus(booked) should equal(bookedOnCreation)
+      expectRefusal(postBasket(s"""{"paymentIds":${idList(List(booked))}}"""), 409, "REFERENCE_STATUS_INVALID", "a booked payment")
+    }
+
+    scenario("D8: a payment sits in one active basket at a time, and is released when that basket is cancelled", BerlinGroupV1_3, SBS, createSigningBasket, deleteSigningBasket) {
+      val payment = lodgePayment()
+      val first = createBasket(List(payment))
+      val basketsBefore = storedBasketCount()
+      expectRefusal(postBasket(s"""{"paymentIds":${idList(List(payment))}}"""), 409, "REFERENCE_STATUS_INVALID", "the same payment in a second active basket")
+      withClue("the refused request left no basket behind: ") { storedBasketCount() should equal(basketsBefore) }
+
+      makeDeleteRequest(basketUrl(first).DELETE <@ (user1)).code should equal(204)
+      postBasket(s"""{"paymentIds":${idList(List(payment))}}""").code should equal(201)
+    }
+  }
+
+  feature("BG v1.3 signing baskets - a consent joins a basket only if its TPP is the basket's and it is still to be authorised") {
+    scenario("D8: an unauthorised consent of the same TPP is admitted; an authorised one, or another TPP's, is not", BerlinGroupV1_3, SBS, createSigningBasket) {
+      val own = createUnclaimedBerlinGroupConsent().consentId
+      postBasket(s"""{"consentIds":${idList(List(own))}}""").code should equal(201)
+
+      val authorised = createUnclaimedBerlinGroupConsent().consentId
+      code.consent.Consents.consentProvider.vend.updateConsentStatus(authorised, code.consent.ConsentStatus.valid)
+      expectRefusal(postBasket(s"""{"consentIds":${idList(List(authorised))}}"""), 409, "REFERENCE_STATUS_INVALID", "an authorised consent")
+
+      val anotherTpp = createUnclaimedBerlinGroupConsent().consentId
+      expectRefusal(postBasket(s"""{"consentIds":${idList(List(anotherTpp))}}""", as = user2), 400, "RESOURCE_UNKNOWN", "another TPP's consent")
+      expectRefusal(postBasket(s"""{"consentIds":${idList(List(UUID.randomUUID().toString))}}"""), 400, "RESOURCE_UNKNOWN", "a consent nobody created")
+    }
+  }
+
+  // ───────────────────────── challenge binding and ordering: S3 ─────────────────────────
+
+  feature("BG v1.3 signing baskets - an authorisation can only be answered through the basket it was issued for") {
+    scenario("S3: a challenge that was finalised for one basket cannot be replayed to execute another (SB PUT order)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val first = startedBasket()
+      val second = startedBasket()
+      answerAuthorisation(first.basketId, first.authorisationId).code should equal(200) // finalises first's challenge
+
+      // The challenge already answered is presented, with a wrong answer, against the other basket.
+      val replay = answerAuthorisation(second.basketId, first.authorisationId, body = """{"scaAuthenticationData":"wrong"}""")
+      replay.code should be >= 400
+      withClue("the second basket and its payment are untouched, whatever the response said: ") {
+        storedBasketStatus(second.basketId) should equal(Some("RCVD"))
+        second.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+      }
+    }
+
+    scenario("S3: a wrong answer is the standard's incorrect-OTP refusal and changes nothing (IG §14.11 PSU_CREDENTIALS_INVALID, L11597)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val started = startedBasket()
+      expectRefusal(
+        answerAuthorisation(started.basketId, started.authorisationId, body = """{"scaAuthenticationData":"wrong"}"""),
+        401, "PSU_CREDENTIALS_INVALID", "a wrong one-time password")
+      storedBasketStatus(started.basketId) should equal(Some("RCVD"))
+      started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+      withClue("the authorisation can still be answered correctly: ") {
+        answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
+      }
+    }
+
+    scenario("S3: a client-credentials TPP relays the PSU's answer, and it is checked as the PSU the challenge names", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val basketId = createBasket(List(lodgePaymentAsClientCredentialsTpp()), as = clientCredentialsSession)
+      val started = makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", resourceUser1.name)))
+      started.code should equal(201)
+      val authorisationId = (started.body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId, as = clientCredentialsSession).code should equal(200)
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("S2: the same correct answer sent twice at once is accepted once and refused once (contract 3.7)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      (1 to 5).foreach { round =>
+        val started = startedBasket()
+        val answers = (1 to 2).map(_ => Future(answerAuthorisation(started.basketId, started.authorisationId)))
+        val codes = Await.result(Future.sequence(answers), 60.seconds).map(_.code).sorted
+        withClue(s"round $round: ") {
+          codes should equal(List(200, 409))
+          storedBasketStatus(started.basketId) should equal(Some("ACTC"))
+        }
+      }
+    }
+
+    scenario("D9: a basket cannot be authorised unless the instance enables it, and nothing changes while it is not", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY") // signing_basket_authorisation_enabled is left at its default
+      val payment = lodgePayment()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      expectRefusal(answerAuthorisation(basketId, authorisationId), 403, "SERVICE_BLOCKED", "an instance that has not enabled it")
+      storedBasketStatus(basketId) should equal(Some("RCVD"))
+      storedPaymentStatus(payment) should equal(awaitingSca)
+      withClue("the answer was not consumed: ") {
+        Challenges.ChallengeProvider.vend.getChallenge(authorisationId).map(_.successful) should equal(net.liftweb.common.Full(false))
+      }
+      setPropsValues("signing_basket_authorisation_enabled" -> "true")
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+    }
+  }
+
+  // ───────────────────────── execution: every member is booked, and what happened to each is recorded ─────────────────────────
+
+  private def memberResults(basketId: String): List[(String, String, Int)] =
+    SigningBasketX.signingBasketProvider.vend.getSigningBasketMemberExecutions(basketId).map(m => (m.memberId, m.state, m.attempts))
+
+  /**
+   * A payment that is lodged normally and cannot be booked afterwards: its creditor account exists when
+   * the payment is created and its IBAN no longer resolves when the payment is executed.
+   */
+  private def lodgePaymentThatCannotBeBooked(): String = {
+    ibanAccounts.size should be >= 3
+    val creditor = ibanAccounts(1)
+    val payment = lodgePayment(creditorIban = Some(creditor.accountRouting.address))
+    BankAccountRouting.findAll(
+      By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString),
+      By(BankAccountRouting.BankId, creditor.bankId.value),
+      By(BankAccountRouting.AccountId, creditor.accountId.value),
+      By(BankAccountRouting.AccountRoutingAddress, creditor.accountRouting.address)).foreach(_.delete_!)
+    payment
+  }
+
+  private def storedBasketStatusRaw(basketId: String): String =
+    MappedSigningBasket.find(By(MappedSigningBasket.BasketId, basketId)).map(_.Status.get).openOrThrowException("basket")
+
+  feature("BG v1.3 signing baskets - answering the authorisation books the payments, and only then is the basket ACTC") {
+    scenario("S4: both payments are booked once, each is DONE, and the basket is ACTC", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      val started = startedBasket(paymentCount = 2)
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
+      answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
+      withClue("booked before the response, not eventually: ") {
+        balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+        balanceOf(ibanTo) should equal(toBefore + 2 * 2001)
+      }
+      started.paymentIds.foreach(storedPaymentStatus(_) should equal("COMPLETED"))
+      memberResults(started.basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1), ("DONE", 1)))
+      storedBasketStatus(started.basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("S4: a payment that cannot be booked leaves the basket RCVD, the earlier payment booked, and the members held", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
+
+      val response = answerAuthorisation(basketId, authorisationId)
+      response.code should equal(200)
+      (response.body \ "scaStatus").extract[String] should equal("finalised")
+      (response.body \ "psuMessage").extract[String] should include("not every payment")
+
+      withClue("only the first payment moved money: ") {
+        balanceOf(ibanFrom) should equal(fromBefore - 2001)
+        balanceOf(ibanTo) should equal(toBefore + 2001)
+      }
+      storedPaymentStatus(good) should equal("COMPLETED")
+      storedPaymentStatus(bad) should equal(awaitingSca)
+      memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(good -> "DONE", bad -> "FAILED"))
+      withClue("reported as RCVD although stored as incomplete: ") {
+        storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
+        (makeGetRequest((basketUrl(basketId) / "status").GET <@ (user1)).body \ "transactionStatus").extract[String] should equal("RCVD")
+      }
+      withClue("the payment still waiting stays held, so it cannot be put in another basket: ") {
+        expectRefusal(postBasket(s"""{"paymentIds":${idList(List(bad))}}"""), 409, "REFERENCE_STATUS_INVALID", "the failed payment in a second basket")
+      }
+      withClue("the basket is no longer RCVD to be deleted: ") {
+        expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (user1)), 409, "STATUS_INVALID", "deleting an incompletely executed basket")
+      }
+    }
+
+    scenario("S4: the creating TPP reads what happened to each member, and nobody else can", BerlinGroupV1_3, SBS, getSigningBasketExecution) {
+      enableBasketAuthorisation()
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \\ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+
+      val response = makeGetRequest((basketUrl(basketId) / "execution").GET <@ (user1))
+      response.code should equal(200)
+      (response.body \\ "transactionStatus").extract[String] should equal("RCVD")
+      val members = (response.body \\ "members").children.map(m => (m \\ "memberId").extract[String] -> (m \\ "state").extract[String])
+      members should equal(List(good -> "DONE", bad -> "FAILED"))
+      expectRefusal(makeGetRequest((basketUrl(basketId) / "execution").GET <@ (user2)), 403, "RESOURCE_UNKNOWN", "another TPP reading the results")
+      expectRefusal(makeGetRequest((basketUrl(UUID.randomUUID().toString) / "execution").GET <@ (user1)), 403, "RESOURCE_UNKNOWN", "an unknown basket")
+    }
+
+    scenario("S4: executing again books nothing twice, retries a failed payment a limited number of times, then leaves it", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      val afterFirst = balanceOf(ibanFrom)
+
+      (1 to 4).foreach { _ =>
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      }
+      withClue("the booked payment was not booked again: ") { balanceOf(ibanFrom) should equal(afterFirst) }
+      memberResults(basketId).map(r => r._1 -> (r._2, r._3)).toMap should equal(Map(good -> ("DONE", 1), bad -> ("FAILED", 3)))
+    }
+
+    scenario("S4: a basket claimed before its members were recorded has them recorded and executed by the resumption, not completed empty", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val basketId = createBasket(List(payment))
+      SigningBasketX.signingBasketProvider.vend.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      memberResults(basketId) should equal(Nil)
+      val before = balanceOf(ibanFrom)
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(true)
+      balanceOf(ibanFrom) should equal(before - 2001)
+      storedPaymentStatus(payment) should equal("COMPLETED")
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("S4: a basket with nothing to execute is never completed", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val empty = MappedSigningBasket.create.Status("AUTHORISING").ConsumerId("nobody").saveMe()
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(empty.basketId, None), 60.seconds) should be(false)
+      storedBasketStatusRaw(empty.basketId) should equal("EXECUTION_INCOMPLETE")
+    }
+
+    scenario("S3: when the attempts are used up the basket is rejected with its payments, and cannot be answered again", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val started = startedBasket()
+      val wrong = """{"scaAuthenticationData":"definitely-wrong"}"""
+      val allowed = code.api.util.APIUtil.allowedAnswerTransactionRequestChallengeAttempts
+      val codes = (1 to allowed).map(_ => answerAuthorisation(started.basketId, started.authorisationId, body = wrong).code)
+      withClue(s"codes $codes: ") {
+        codes.foreach(_ should equal(401))
+        withClue("the last wrong answer the allowance covers closes the basket: ") {
+          storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        }
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal("REJECTED"))
+      }
+      withClue("the right answer no longer authorises anything: ") {
+        val before = balanceOf(ibanAccounts.head)
+        answerAuthorisation(started.basketId, started.authorisationId).code should equal(409)
+        balanceOf(ibanAccounts.head) should equal(before)
+      }
+    }
+
+    scenario("S4: a payment stored INITIATED is admitted and then booked like one stored RCVD, and ends COMPLETED", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      val payment = lodgePayment()
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, payment)).openOrThrowException("payment")
+        .mStatus("INITIATED").saveMe()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      balanceOf(ibanFrom) should equal(fromBefore - 2001)
+      balanceOf(ibanTo) should equal(toBefore + 2001)
+      storedPaymentStatus(payment) should equal("COMPLETED")
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("S4: a member left UNKNOWN is reconciled by its transaction id, and on the mapped connector is otherwise known not to have been booked", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val booked = lodgePayment()
+      val unbooked = lodgePayment()
+      val basketId = createBasket(List(booked, unbooked))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      val afterBooking = balanceOf(ibanFrom)
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+
+      // As if the executor stopped before it recorded either outcome: the basket is back to executing,
+      // and the first payment really was booked (it carries its transaction id), the second was not.
+      val provider = SigningBasketX.signingBasketProvider.vend
+      provider.transitionSigningBasketStatus(basketId, "ACTC", "AUTHORISING")
+      List(booked, unbooked).foreach(id => provider.transitionSigningBasketMemberExecution(basketId, "payment", id, Set("DONE"), "UNKNOWN", "test"))
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, unbooked)).openOrThrowException("payment")
+        .mStatus(awaitingSca).mTransactionIDs("").saveMe()
+      // The booked payment was never marked COMPLETED either (its transaction id is all that was recorded).
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, booked)).openOrThrowException("payment")
+        .mStatus(awaitingSca).saveMe()
+
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      withClue("nothing was booked again: ") { balanceOf(ibanFrom) should equal(afterBooking) }
+      withClue("a payment found booked is marked COMPLETED, so it no longer looks like one awaiting authorisation: ") {
+        storedPaymentStatus(booked) should equal("COMPLETED")
+      }
+      storedPaymentStatus(unbooked) should equal(awaitingSca)
+      withClue("on the mapped connector the booking is in the request's own transaction, so a payment without a transaction id was rolled back with it: ") {
+        memberResults(basketId).map(r => r._1 -> r._2).toMap should equal(Map(booked -> "DONE", unbooked -> "FAILED"))
+      }
+      storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
+    }
+  }
+
+  feature("BG v1.3 signing baskets - an execution that stopped is resumed from where it stopped") {
+    scenario("S4: a basket claimed but never started is executed by the resumption, once, and only after the lease", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      val payments = List(lodgePayment(), lodgePayment())
+      val basketId = createBasket(payments)
+      val provider = SigningBasketX.signingBasketProvider.vend
+      // The state a crash leaves behind: the answer was accepted and the basket claimed, and nothing was booked.
+      provider.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      provider.createSigningBasketMemberExecutions(basketId, payments.map("payment" -> _))
+      val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
+
+      withClue("within the lease it is left alone: ") {
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(3600, 50), 60.seconds)
+        balanceOf(ibanFrom) should equal(fromBefore)
+        storedBasketStatusRaw(basketId) should equal("AUTHORISING")
+      }
+      Thread.sleep(1200)
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(1, 50), 60.seconds)
+      balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+      balanceOf(ibanTo) should equal(toBefore + 2 * 2001)
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1), ("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+
+      withClue("resuming again books nothing: ") {
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(1, 50), 60.seconds)
+        balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+      }
+    }
+
+    scenario("S4: two resumptions at once book each payment once", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      val ibanFrom = ibanAccounts.head
+      val payments = List(lodgePayment(), lodgePayment())
+      val basketId = createBasket(payments)
+      val provider = SigningBasketX.signingBasketProvider.vend
+      provider.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      provider.createSigningBasketMemberExecutions(basketId, payments.map("payment" -> _))
+      val fromBefore = balanceOf(ibanFrom)
+      Thread.sleep(1200)
+      val resumptions = (1 to 3).map(_ => Future(Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds)))
+      Await.result(Future.sequence(resumptions), 120.seconds)
+      balanceOf(ibanFrom) should equal(fromBefore - 2 * 2001)
+      memberResults(basketId).map(_._3) should equal(List(1, 1))
+    }
+  }
+
+  feature("BG v1.3 signing baskets - a consent activation that stopped part way is completed by resuming") {
+    // A basket claimed for execution with a consent that the stop left in the given state.
+    def stoppedConsentBasket(stopped: String => Unit): (String, String) = {
+      val consentId = createUnclaimedBerlinGroupConsent().consentId
+      stopped(consentId)
+      val provider = SigningBasketX.signingBasketProvider.vend
+      val basketId = provider.createSigningBasket(None, Some(List(consentId)), testConsumer.consumerId.get, Some(resourceUser1.userId))
+        .openOrThrowException("basket").basketId
+      provider.transitionSigningBasketStatus(basketId, "RCVD", "AUTHORISING")
+      provider.createSigningBasketMemberExecutions(basketId, List("consent" -> consentId))
+      (basketId, consentId)
+    }
+    def consentOf(id: String) = code.consent.Consents.consentProvider.vend.getConsentByConsentId(id).openOrThrowException("consent")
+
+    scenario("C10: a consent made valid but not yet bound is bound, not refused as no longer waiting", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val (basketId, consentId) = stoppedConsentBasket { id =>
+        code.consent.Consents.consentProvider.vend.updateConsentStatus(id, code.consent.ConsentStatus.valid)
+      }
+      consentOf(consentId).userId should not equal resourceUser1.userId
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(true)
+      consentOf(consentId).userId should equal(resourceUser1.userId)
+      consentOf(consentId).status should equal(code.consent.ConsentStatus.valid.toString)
+      memberResults(basketId).map(r => (r._2, r._3)) should equal(List(("DONE", 1)))
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: a consent bound but not yet valid is made valid", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val (basketId, consentId) = stoppedConsentBasket { id =>
+        code.consent.Consents.consentProvider.vend.updateConsentUser(id, resourceUser1)
+      }
+      consentOf(consentId).status should equal(code.consent.ConsentStatus.received.toString)
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(true)
+      consentOf(consentId).status should equal(code.consent.ConsentStatus.valid.toString)
+      storedBasketStatus(basketId) should equal(Some("ACTC"))
+    }
+
+    scenario("C10: a consent already valid for another PSU is not taken over", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val (basketId, consentId) = stoppedConsentBasket { id =>
+        code.consent.Consents.consentProvider.vend.updateConsentUser(id, resourceUser2)
+        code.consent.Consents.consentProvider.vend.updateConsentStatus(id, code.consent.ConsentStatus.valid)
+      }
+      Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      consentOf(consentId).userId should equal(resourceUser2.userId)
+      memberResults(basketId).map(_._2) should equal(List("FAILED"))
+    }
+  }
+
+  feature("BG v1.3 signing baskets - the PSU of a member is the PSU of the basket") {
+    // A payment a PSU lodged themselves records them as the user that lodged it and nothing as the user it was
+    // lodged for. The rule that lets a TPP address the payment accepts either, so the PSU is read from both.
+    def paymentLodgedByPsu(): String = {
+      val payment = lodgePayment()
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, payment)).openOrThrowException("payment")
+        .mOnBehalfOfUserId("").saveMe()
+      payment
+    }
+    // A basket that names no PSU yet, as a client-credentials TPP's would be.
+    def basketWithoutPsu(payment: String): String =
+      SigningBasketX.signingBasketProvider.vend.createSigningBasket(Some(List(payment)), None, testConsumer.consumerId.get, None)
+        .openOrThrowException("basket").basketId
+    def startNamingPsu(basketId: String, psuName: String) =
+      makePostRequest(authorisationsUrl(basketId).POST <@ (clientCredentialsSession), "{}", List(("PSU-ID", psuName)))
+
+    scenario("S1: another PSU cannot be bound to a basket whose payment was lodged by a PSU", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val basketId = basketWithoutPsu(paymentLodgedByPsu())
+      expectRefusal(startNamingPsu(basketId, resourceUser2.name), 403, "RESOURCE_UNKNOWN", "naming a PSU the payment is not for")
+      storedChallengeCount(basketId) should equal(0)
+      SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId).map(_.basket.psuUserId) should equal(net.liftweb.common.Full(None))
+      withClue("the PSU the payment is for can start it: ") { startNamingPsu(basketId, resourceUser1.name).code should equal(201) }
+    }
+
+    scenario("S1: a member that changes hands before the answer is not authorised by the PSU the authorisation was started for", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val payment = paymentLodgedByPsu()
+      val basketId = basketWithoutPsu(payment)
+      val started = startNamingPsu(basketId, resourceUser1.name)
+      started.code should equal(201)
+      val authorisationId = (started.body \\ "authorisationId").extract[String]
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, payment)).openOrThrowException("payment")
+        .mUserId(resourceUser2.userId).saveMe()
+
+      expectRefusal(answerAuthorisation(basketId, authorisationId, as = clientCredentialsSession), 403, "RESOURCE_UNKNOWN", "answering for a PSU the payment is no longer for")
+      storedBasketStatus(basketId) should equal(Some("RCVD"))
+      storedPaymentStatus(payment) should equal(awaitingSca)
+      withClue("the answer was not consumed: ") {
+        Challenges.ChallengeProvider.vend.getChallenge(authorisationId).map(_.successful) should equal(net.liftweb.common.Full(false))
+      }
+    }
+  }
+
+  // ───────────────────────── concurrency ─────────────────────────
+
+  feature("BG v1.3 signing baskets - a delete racing the final answer has exactly one winner") {
+    scenario("S2: PUT and DELETE at the same time never both succeed", BerlinGroupV1_3, SBS, deleteSigningBasket, updateSigningBasketPsuData) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      (1 to 5).foreach { round =>
+        val started = startedBasket()
+        val put = Future(answerAuthorisation(started.basketId, started.authorisationId))
+        val delete = Future(makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user1)))
+        val (putResponse, deleteResponse) = (Await.result(put, 60.seconds), Await.result(delete, 60.seconds))
+        withClue(s"round $round (put ${putResponse.code}, delete ${deleteResponse.code}): ") {
+          (putResponse.code == 200 && deleteResponse.code == 204) should be(false)
+          storedBasketStatus(started.basketId) match {
+            case Some("CANC") => started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+            case Some("ACTC") => deleteResponse.code should equal(409)
+            case other => fail(s"the basket ended in $other")
+          }
+        }
+      }
+    }
+  }
+
+  feature("BG v1.3 signing baskets - what a review of the execution found") {
+    scenario("R3: a payment that is no longer waiting for SCA stops the answer before anything is booked", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      List("REJECTED", "CANCELLED", "FAILED").foreach { status =>
+        val first = lodgePayment()
+        val second = lodgePayment()
+        val basketId = createBasket(List(first, second))
+        val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+        MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, second)).openOrThrowException("payment")
+          .mStatus(status).saveMe()
+        val before = balanceOf(ibanFrom)
+        withClue(s"a payment that is $status: ") {
+          answerAuthorisation(basketId, authorisationId).code should equal(409)
+          balanceOf(ibanFrom) should equal(before)
+          storedPaymentStatus(first) should equal(awaitingSca)
+          storedBasketStatus(basketId) should equal(Some("RCVD"))
+          memberResults(basketId) should equal(Nil)
+        }
+      }
+    }
+
+    scenario("R2: a payment that is in a basket cannot also be authorised on its own", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val singleAuthorisations = V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / payment / "authorisations"
+      val started = makePostRequest(singleAuthorisations.POST <@ (user1), "{}")
+      started.code should equal(201)
+      val singleAuthorisationId = (started.body \ "authorisationId").extract[String]
+      createBasket(List(payment))
+
+      val before = balanceOf(ibanFrom)
+      expectRefusal(makePutRequest((singleAuthorisations / singleAuthorisationId).PUT <@ (user1), """{"scaAuthenticationData":"123"}"""),
+        409, "STATUS_INVALID", "answering the payment's own authorisation while a basket holds it")
+      withClue("nothing was booked, and the payment is still the basket's to authorise: ") {
+        balanceOf(ibanFrom) should equal(before)
+        storedPaymentStatus(payment) should equal(awaitingSca)
+      }
+      expectRefusal(makePostRequest(singleAuthorisations.POST <@ (user1), "{}"),
+        409, "STATUS_INVALID", "starting a second authorisation for a payment a basket holds")
+    }
+
+    scenario("R5: wrong answers are counted for the basket, not for each authorisation, so new authorisations are no new guesses", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val allowed = code.api.util.APIUtil.allowedAnswerTransactionRequestChallengeAttempts
+      val wrong = """{"scaAuthenticationData":"definitely-wrong"}"""
+      val started = startedBasket()
+      (1 until allowed).foreach(_ => answerAuthorisation(started.basketId, started.authorisationId, body = wrong).code should equal(401))
+      storedBasketStatus(started.basketId) should equal(Some("RCVD"))
+
+      val second = startAuthorisation(started.basketId)
+      second.code should equal(201)
+      val secondId = (second.body \ "authorisationId").extract[String]
+      withClue("the wrong answer that uses up the basket's allowance, on a new authorisation: ") {
+        answerAuthorisation(started.basketId, secondId, body = wrong).code should equal(401)
+        storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal("REJECTED"))
+      }
+      expectRefusal(startAuthorisation(started.basketId), 409, "STATUS_INVALID", "a new authorisation on a rejected basket")
+      expectRefusal(answerAuthorisation(started.basketId, secondId), 409, "STATUS_INVALID", "the right answer on a rejected basket")
+    }
+
+    scenario("R6: a basket whose execution throws does not stop the resumption reaching the others, and goes to the back of the queue", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val provider = code.signingbaskets.MappedSigningBasketProvider
+      val poisoned = createBasket(List(lodgePayment()))
+      Thread.sleep(30)
+      val good = lodgePayment()
+      val goodBasket = createBasket(List(good))
+      List(poisoned, goodBasket).foreach(id => provider.transitionSigningBasketStatus(id, "RCVD", "AUTHORISING"))
+      val poisonedBefore = MappedSigningBasket.find(By(MappedSigningBasket.BasketId, poisoned)).openOrThrowException("basket").updatedAt.get.getTime
+      val before = balanceOf(ibanFrom)
+      Thread.sleep(30)
+      SigningBasketX.signingBasketProvider.default.set(new ThrowingForOneBasket(provider, poisoned))
+      try {
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.resumePending(0, 10), 60.seconds)
+      } finally {
+        SigningBasketX.signingBasketProvider.default.set(provider)
+      }
+      withClue("the basket after the poisoned one was still executed: ") {
+        balanceOf(ibanFrom) should equal(before - 2001)
+        storedBasketStatus(goodBasket) should equal(Some("ACTC"))
+      }
+      withClue("the poisoned basket moved back instead of keeping the head of the queue: ") {
+        MappedSigningBasket.find(By(MappedSigningBasket.BasketId, poisoned)).openOrThrowException("basket").updatedAt.get.getTime should be > poisonedBefore
+      }
+    }
+
+    scenario("R4: when no member can make progress without an operator the basket ends, and frees what it held", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val good = lodgePayment()
+      val bad = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(good, bad))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      (1 to 4).foreach { _ =>
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      }
+      memberResults(basketId).map(r => r._1 -> (r._2, r._3)).toMap should equal(Map(good -> ("DONE", 1), bad -> ("FAILED", 3)))
+      withClue("a terminal state, still reported as RCVD: ") {
+        storedBasketStatusRaw(basketId) should equal("EXECUTION_FAILED")
+        (makeGetRequest((basketUrl(basketId) / "status").GET <@ (user1)).body \ "transactionStatus").extract[String] should equal("RCVD")
+      }
+      withClue("the resumption has nothing more to do with it: ") {
+        code.signingbaskets.MappedSigningBasketProvider.getSigningBasketsAwaitingExecution(0, 1000) should not contain basketId
+      }
+      withClue("what it held is free: ") {
+        code.signingbaskets.MappedSigningBasketMemberClaim.find(By(code.signingbaskets.MappedSigningBasketMemberClaim.MemberKey, s"payment:$bad")).isDefined should be(false)
+        postBasket(s"""{"paymentIds":${idList(List(bad))}}""").code should equal(201)
+      }
+      expectRefusal(startAuthorisation(basketId), 409, "STATUS_INVALID", "a new authorisation on a basket that ended")
+      expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (user1)), 409, "STATUS_INVALID", "deleting a basket that ended")
+    }
+  }
+
+  /**
+   * Runs `body` with the connector replaced by one that answers the named methods itself and hands every other
+   * call to the connector that was in use. Not the mapped connector and not the star connector, which is what
+   * a deployment with a single configured remote connector looks like to the code that asks which one it has.
+   */
+  private def withConnector[A](overrides: PartialFunction[String, Array[AnyRef] => AnyRef])(body: => A): A = {
+    val original = code.bankconnectors.Connector.connector.vend
+    val handler = new java.lang.reflect.InvocationHandler {
+      override def invoke(proxy: AnyRef, method: java.lang.reflect.Method, args: Array[AnyRef]): AnyRef = {
+        val arguments = Option(args).getOrElse(Array.empty[AnyRef])
+        overrides.lift(method.getName) match {
+          case Some(answer) => answer(arguments)
+          case None =>
+            try method.invoke(original, arguments: _*)
+            catch { case e: java.lang.reflect.InvocationTargetException => throw e.getCause }
+        }
+      }
+    }
+    val replacement = java.lang.reflect.Proxy
+      .newProxyInstance(classOf[code.bankconnectors.Connector].getClassLoader, Array(classOf[code.bankconnectors.Connector]), handler)
+      .asInstanceOf[code.bankconnectors.Connector]
+    code.bankconnectors.Connector.connector.default.set(replacement)
+    try body finally code.bankconnectors.Connector.connector.default.set(original)
+  }
+
+  /** The challenge the connector was asked about, reporting the given SCA status instead of its own. */
+  private def challengeReporting(challengeId: String, status: StrongCustomerAuthenticationStatus.SCAStatus): com.openbankproject.commons.model.ChallengeTrait = {
+    val real = Challenges.ChallengeProvider.vend.getChallenge(challengeId).openOrThrowException("the challenge must exist")
+    java.lang.reflect.Proxy.newProxyInstance(
+      classOf[com.openbankproject.commons.model.ChallengeTrait].getClassLoader,
+      Array(classOf[com.openbankproject.commons.model.ChallengeTrait]),
+      new java.lang.reflect.InvocationHandler {
+        override def invoke(proxy: AnyRef, method: java.lang.reflect.Method, args: Array[AnyRef]): AnyRef =
+          if (method.getName == "scaStatus") Some(status)
+          else try method.invoke(real, Option(args).getOrElse(Array.empty[AnyRef]): _*)
+          catch { case e: java.lang.reflect.InvocationTargetException => throw e.getCause }
+      }).asInstanceOf[com.openbankproject.commons.model.ChallengeTrait]
+  }
+
+  feature("BG v1.3 signing baskets - what a connector other than the mapped one can answer") {
+    // The connector answers a one-time password it did not accept by handing back the challenge itself, with
+    // a status that says so, instead of failing.
+    def connectorAnswering(status: StrongCustomerAuthenticationStatus.SCAStatus): PartialFunction[String, Array[AnyRef] => AnyRef] = {
+      case "validateChallengeAnswerC5" => arguments =>
+        Future.successful((net.liftweb.common.Full(challengeReporting(arguments(3).asInstanceOf[String], status)), arguments(6)))
+    }
+
+    scenario("X1: a challenge the connector hands back as failed is a refusal, and the basket is rejected with its payments", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val started = startedBasket(paymentCount = 2)
+      val before = balanceOf(ibanFrom)
+      withConnector(connectorAnswering(StrongCustomerAuthenticationStatus.failed)) {
+        expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 401, "PSU_CREDENTIALS_INVALID", "an answer the connector reports as failed")
+      }
+      withClue("nothing was booked, and nothing can be answered again: ") {
+        balanceOf(ibanFrom) should equal(before)
+        storedBasketStatus(started.basketId) should equal(Some("RJCT"))
+        started.paymentIds.foreach(storedPaymentStatus(_) should equal("REJECTED"))
+        memberResults(started.basketId) should equal(Nil)
+      }
+      expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 409, "STATUS_INVALID", "the right answer afterwards")
+    }
+
+    scenario("X2: a challenge the connector hands back without finalising it authorises nothing, and does not reject the basket", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      val ibanFrom = ibanAccounts.head
+      val started = startedBasket()
+      val before = balanceOf(ibanFrom)
+      withConnector(connectorAnswering(StrongCustomerAuthenticationStatus.received)) {
+        expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 401, "PSU_CREDENTIALS_INVALID", "an answer the connector has not finalised")
+      }
+      balanceOf(ibanFrom) should equal(before)
+      storedBasketStatus(started.basketId) should equal(Some("RCVD"))
+      started.paymentIds.foreach(storedPaymentStatus(_) should equal(awaitingSca))
+      withClue("and the PSU can still answer it properly: ") {
+        answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
+        balanceOf(ibanFrom) should equal(before - 2001)
+      }
+    }
+
+    scenario("X3: a booking that fails on a connector other than the mapped one may have been made, so it is left UNKNOWN and never retried", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val ibanFrom = ibanAccounts.head
+      val payment = lodgePayment()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      val before = balanceOf(ibanFrom)
+      val bookings = new java.util.concurrent.atomic.AtomicInteger(0)
+      val failing: PartialFunction[String, Array[AnyRef] => AnyRef] = {
+        case "createTransactionAfterChallengeV210" => arguments =>
+          bookings.incrementAndGet()
+          Future.failed(new RuntimeException("the backend timed out, and may have booked"))
+      }
+      withConnector(failing) {
+        answerAuthorisation(basketId, authorisationId).code should equal(200)
+        (1 to 3).foreach { _ =>
+          Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+        }
+      }
+      withClue("one attempt, however often the basket is executed again: ") { bookings.get() should equal(1) }
+      memberResults(basketId) should equal(List((payment, "UNKNOWN", 1)))
+      storedBasketStatusRaw(basketId) should equal("EXECUTION_INCOMPLETE")
+      withClue("not terminal, and still held: it is waiting for a person to say whether the money moved: ") {
+        code.signingbaskets.MappedSigningBasketMemberClaim.find(By(code.signingbaskets.MappedSigningBasketMemberClaim.MemberKey, s"payment:$payment")).isDefined should be(true)
+      }
+      balanceOf(ibanFrom) should equal(before)
+    }
+
+    scenario("X4: the same failure on the mapped connector is a payment that was not booked, and is tried again", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+      enableBasketAuthorisation()
+      val payment = lodgePaymentThatCannotBeBooked()
+      val basketId = createBasket(List(payment))
+      val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
+      answerAuthorisation(basketId, authorisationId).code should equal(200)
+      (1 to 3).foreach { _ =>
+        Await.result(code.api.berlin.group.v1_3.SigningBasketExecution.execute(basketId, None), 60.seconds) should be(false)
+      }
+      withClue("claimed again up to the attempts allowed, and failed each time, not left UNKNOWN: ") {
+        memberResults(basketId) should equal(List((payment, "FAILED", 3)))
+      }
+    }
+  }
+}
+
+/** A provider that behaves as the real one, except that reading one particular basket throws, as a database failure would. */
+private class ThrowingForOneBasket(underlying: code.signingbaskets.SigningBasketProvider, poisoned: String) extends code.signingbaskets.SigningBasketProvider {
+  override def getSigningBaskets() = underlying.getSigningBaskets()
+  override def getSigningBasketByBasketId(entityId: String) =
+    if (entityId == poisoned) throw new RuntimeException("the database is not answering") else underlying.getSigningBasketByBasketId(entityId)
+  override def createSigningBasket(paymentIds: Option[List[String]], consentIds: Option[List[String]], consumerId: String, psuUserId: Option[String]) =
+    underlying.createSigningBasket(paymentIds, consentIds, consumerId, psuUserId)
+  override def createSigningBasketMemberExecutions(basketId: String, members: List[(String, String)]) = underlying.createSigningBasketMemberExecutions(basketId, members)
+  override def getSigningBasketMemberExecutions(basketId: String) = underlying.getSigningBasketMemberExecutions(basketId)
+  override def transitionSigningBasketMemberExecution(basketId: String, memberType: String, memberId: String, from: Set[String], to: String, detail: String) =
+    underlying.transitionSigningBasketMemberExecution(basketId, memberType, memberId, from, to, detail)
+  override def markStaleSigningBasketMembersUnknown(olderThanSeconds: Long) = underlying.markStaleSigningBasketMembersUnknown(olderThanSeconds)
+  override def touchSigningBasket(basketId: String) = underlying.touchSigningBasket(basketId)
+  override def getSigningBasketsAwaitingExecution(olderThanSeconds: Long, limit: Int) = underlying.getSigningBasketsAwaitingExecution(olderThanSeconds, limit)
+  override def releaseSigningBasketMembers(basketId: String) = underlying.releaseSigningBasketMembers(basketId)
+  override def memberHeldByBasket(memberKey: String) = underlying.memberHeldByBasket(memberKey)
+  override def transitionSigningBasketStatus(basketId: String, from: String, to: String) = underlying.transitionSigningBasketStatus(basketId, from, to)
+  override def bindSigningBasketPsu(basketId: String, psuUserId: String) = underlying.bindSigningBasketPsu(basketId, psuUserId)
 }

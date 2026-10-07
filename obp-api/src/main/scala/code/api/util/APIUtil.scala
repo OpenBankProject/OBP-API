@@ -625,6 +625,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         CustomResponseHeaders(List(
           (ResponseHeader.`ASPSP-SCA-Approach`, aspspScaApproach)
         ))
+      // The approach is fixed per instance, so the standard requires the header ("must be contained, if
+      // the SCA Approach is already fixed") on the two calls that create a signing basket resource.
+      case Some(cc) if cc.url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && cc.verb == "POST" &&
+        (cc.url.endsWith("/signing-baskets") || (cc.url.contains("/signing-baskets/") && cc.url.endsWith("/authorisations"))) =>
+        CustomResponseHeaders(List(
+          (ResponseHeader.`ASPSP-SCA-Approach`, aspspScaApproach)
+        ))
       case _ =>
         CustomResponseHeaders(Nil)
     }

@@ -1,0 +1,330 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
+package code.api.berlin.group.v1_3
+
+import code.api.berlin.group.ConstantsBG
+import code.api.util.APIUtil.getPropsAsIntValue
+import code.api.util.newstyle.SigningBasketNewStyle
+import code.api.util.{CallContext, Consent, NewStyle}
+import code.bankconnectors.{Connector, LocalMappedConnector, StarConnector}
+import code.consent.{ConsentStatus, Consents}
+import code.signingbaskets.{SigningBasketMemberExecution, SigningBasketMemberState, SigningBasketX}
+import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
+import com.openbankproject.commons.model.{AccountId, BankAccount, BankId, TransactionRequest, TransactionRequestId}
+import net.liftweb.common.Full
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
+
+/**
+ * Carries out a signing basket's authorisation once its SCA has been answered: books each payment,
+ * one after another, and records what happened to each.
+ *
+ * What it guarantees, and what it does not.
+ *
+ *  - Each member is claimed with one conditional update before it is touched, so two executors (the
+ *    request that answered the SCA and a later resumption) never work on the same member at once.
+ *  - A payment that already carries a transaction id is never booked again. The payment id is the
+ *    idempotency key: this is what makes a resumption safe. It holds for the mapped connector, which
+ *    records the transaction id in the same database as the booking.
+ *  - An execution that stopped part way is resumed from where it stopped. A member left EXECUTING past
+ *    the lease is UNKNOWN: it is reconciled by the transaction id if it has one, and otherwise left for
+ *    an operator, never retried blindly.
+ *  - A member that failed is retried automatically only on the mapped connector, and only a limited
+ *    number of times. On any other connector a failure is recorded as UNKNOWN, because the connector
+ *    may have booked before it failed, and nothing here can ask it.
+ *  - The basket reaches ACTC only when every member is DONE. Otherwise it is EXECUTION_INCOMPLETE,
+ *    reported as RCVD, and the members' own results say what happened.
+ *
+ * It does not make several payments atomic. Each is booked by its connector on its own, so a failure
+ * leaves the earlier ones booked, which is what the per-member results are there to show.
+ */
+object SigningBasketExecution extends MdcLoggable {
+
+  import SigningBasketMemberState._
+
+  private def provider = SigningBasketX.signingBasketProvider.vend
+
+  /** How many times a member that failed is claimed again before it is left for an operator. */
+  private def maxAttempts: Int = getPropsAsIntValue("signing_basket_member_max_attempts", 3)
+
+  // The statuses a payment may have been admitted to a basket with.
+  private def awaitingAuthorisation: Set[String] = SigningBasketNewStyle.awaitingScaPaymentStatuses
+
+  /**
+   * Executes the basket's members that are not yet DONE, in order, stopping at the first that does not
+   * finish. Returns true when every member is DONE and the basket has become ACTC.
+   */
+  def execute(basketId: String, callContext: Option[CallContext]): Future[Boolean] = {
+    def loop(rest: List[SigningBasketMemberExecution]): Future[Boolean] = rest match {
+      case Nil => Future.successful(true)
+      case member :: tail if member.state == Done => loop(tail)
+      case member :: tail => executeMember(basketId, member, callContext).flatMap(done => if (done) loop(tail) else Future.successful(false))
+    }
+    // Inside a Future from the first line, so that whatever the reads below throw is this basket's failure,
+    // handled where the caller handles a failed execution, and not an exception that skips it.
+    Future.unit.flatMap { _ =>
+      // A basket with nothing recorded to execute is not complete: every member is DONE only if there are members.
+      if (ensureMembers(basketId)) loop(provider.getSigningBasketMemberExecutions(basketId)).flatMap(allDone => finish(basketId, allDone))
+      else finish(basketId, allDone = false)
+    }
+  }
+
+  /**
+   * Records the basket's members as PENDING if they are not recorded yet (the call is idempotent), and says
+   * whether the basket has any. Done here, rather than only when the answer arrives, so that a run that stopped
+   * before recording them is repaired by the resumption instead of finishing a basket with nothing in it.
+   */
+  private def ensureMembers(basketId: String): Boolean =
+    provider.getSigningBasketByBasketId(basketId).toOption.exists { content =>
+      val members = content.payments.getOrElse(Nil).map(PaymentType -> _) ::: content.consents.getOrElse(Nil).map(ConsentType -> _)
+      members.nonEmpty && provider.createSigningBasketMemberExecutions(basketId, members).openOr(false)
+    }
+
+  /** The PSU the basket was authorised by, bound when its authorisation was started. */
+  private def basketPsu(basketId: String): Option[String] =
+    provider.getSigningBasketByBasketId(basketId).toOption.flatMap(_.basket.psuUserId)
+
+  /**
+   * Picks up executions that stopped: members left EXECUTING past the lease become UNKNOWN, and every basket
+   * still AUTHORISING or EXECUTION_INCOMPLETE that has not moved for the lease is executed again from where
+   * it stopped. Safe to run on several nodes at once, since each member and each status change is claimed
+   * with a conditional update. Returns how many baskets were looked at.
+   */
+  def resumePending(leaseSeconds: Long, limit: Int): Future[Int] =
+    Future.unit.flatMap { _ =>
+      provider.markStaleSigningBasketMembersUnknown(leaseSeconds)
+      val baskets = provider.getSigningBasketsAwaitingExecution(leaseSeconds, limit)
+      baskets.foldLeft(Future.successful(())) { (previous, basketId) =>
+        // Each basket's failure stays its own: the ones after it are still resumed.
+        previous.flatMap(_ => execute(basketId, None).transform {
+          case Failure(error) =>
+            logger.error(s"Resuming the execution of signing basket $basketId failed", error)
+            // Out of the front of the queue, or a basket that always fails would hold its place for ever.
+            scala.util.Try(provider.touchSigningBasket(basketId))
+            Success(false)
+          case ok => ok
+        }.map(_ => ()))
+      }.map(_ => baskets.size)
+    }
+
+  private def finish(basketId: String, allDone: Boolean): Future[Boolean] = Future {
+    val authorising = ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL
+    val incomplete = ConstantsBG.SigningBasketsStatus.EXECUTION_INCOMPLETE_INTERNAL
+    val failed = ConstantsBG.SigningBasketsStatus.EXECUTION_FAILED_INTERNAL
+    val actc = ConstantsBG.SigningBasketsStatus.ACTC.toString
+    if (allDone) {
+      val completed = provider.transitionSigningBasketStatus(basketId, authorising, actc).openOr(false) ||
+        provider.transitionSigningBasketStatus(basketId, incomplete, actc).openOr(false)
+      // The members are free to join another basket only once the basket is final.
+      if (completed) provider.releaseSigningBasketMembers(basketId)
+      completed
+    } else if (cannotProgress(basketId)) {
+      // What is left needs a person, not another run: the basket ends, and what it held is free to be used again.
+      val ended = provider.transitionSigningBasketStatus(basketId, authorising, failed).openOr(false) ||
+        provider.transitionSigningBasketStatus(basketId, incomplete, failed).openOr(false)
+      if (ended) provider.releaseSigningBasketMembers(basketId)
+      false
+    } else {
+      provider.transitionSigningBasketStatus(basketId, authorising, incomplete)
+      // A basket already incomplete does not move, but it was looked at: it goes behind the ones not yet tried.
+      provider.touchSigningBasket(basketId)
+      false
+    }
+  }
+
+  /**
+   * True when every member that is not DONE has failed as often as it is allowed to. Nothing started, running,
+   * of unknown outcome or still to be retried is left, so another run would change nothing.
+   */
+  private def cannotProgress(basketId: String): Boolean = {
+    val pending = provider.getSigningBasketMemberExecutions(basketId).filterNot(_.state == Done)
+    pending.nonEmpty && pending.forall(member => member.state == Failed && member.attempts >= maxAttempts)
+  }
+
+  private def executeMember(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] =
+    member.memberType match {
+      case PaymentType => executePayment(basketId, member, callContext)
+      case ConsentType => executeConsent(basketId, member, callContext)
+      case other => record(basketId, member, Set(Pending, Failed), Failed, s"Unknown member type $other").map(_ => false)
+    }
+
+  /**
+   * Activates a consent: it becomes valid and is bound to the PSU, as if the PSU had authorised it on its
+   * own. Activation is idempotent (a consent already valid and bound to this PSU is simply DONE), so unlike a
+   * payment a consent may be claimed again from any state short of DONE, up to the attempts allowed.
+   */
+  private def executeConsent(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] = {
+    def finishWith(to: String, detail: String): Future[Boolean] =
+      record(basketId, member, Set(Executing, Unknown), to, detail).map(_ => to == Done)
+    val claimFrom = if (member.attempts == 0) Set(Pending) else if (member.attempts < maxAttempts) Set(Pending, Failed, Unknown) else Set(Pending)
+    record(basketId, member, claimFrom, Executing, "").flatMap {
+      case false => Future.successful(false)
+      case true =>
+        basketPsu(basketId) match {
+          case None => finishWith(Failed, "The basket has no PSU, so there is nobody to bind the consent to")
+          case Some(psuUserId) =>
+            val activation = for {
+              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(member.memberId)).map {
+                case Full(found) => found
+                case _ => throw new IllegalStateException("The consent cannot be read")
+              }
+              (psu, _) <- NewStyle.function.findByUserId(psuUserId, callContext)
+              outcome <-
+                if (consent.status == ConsentStatus.valid.toString && consent.userId == psuUserId)
+                  Future.successful("Already valid")
+                else if (!BerlinGroupConsentActivation.canActivate(consent, psuUserId))
+                  Future.failed(new IllegalStateException(s"The consent is ${consent.status}, not waiting for authorisation"))
+                else for {
+                  // The binding point, so the holdings check is repeated here: an account can change hands
+                  // between the answer and the activation.
+                  _ <- Consent.assertBerlinGroupConsentAccountsHeld(psu, consent, callContext)
+                  _ <- BerlinGroupConsentActivation.activate(consent, psu, callContext)
+                } yield "Activated"
+            } yield outcome
+            activation.transform(Success(_)).flatMap {
+              case Success(detail) => finishWith(Done, detail)
+              case Failure(error) => finishWith(Failed, Option(error.getMessage).getOrElse(error.getClass.getSimpleName))
+            }
+        }
+    }
+  }
+
+  private def record(basketId: String, member: SigningBasketMemberExecution, from: Set[String], to: String, detail: String): Future[Boolean] = Future {
+    provider.transitionSigningBasketMemberExecution(basketId, member.memberType, member.memberId, from, to, detail).openOr(false)
+  }
+
+  /** The states a member may be claimed from: a first attempt, or a retry that is allowed. */
+  private def claimableFrom(member: SigningBasketMemberExecution): Set[String] =
+    if (member.attempts > 0 && member.attempts < maxAttempts) Set(Pending, Failed) else Set(Pending)
+
+  /**
+   * A booked payment is COMPLETED, as the payment routes leave it, so that it does not look like one still
+   * waiting for authorisation (the outdated-payment task rejects those). Failing to say so does not undo the
+   * booking, so it is logged and the member is still done; a later run says it again.
+   */
+  private def markCompleted(paymentId: String, callContext: Option[CallContext]): Future[Unit] =
+    NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(paymentId), TransactionRequestStatus.COMPLETED.toString, callContext)
+      .transform {
+        case Failure(error) =>
+          logger.warn(s"Signing basket: payment $paymentId is booked but could not be marked COMPLETED: ${error.getMessage}")
+          Success(())
+        case Success(_) => Success(())
+      }
+
+  private def bookedTransactionIds(transactionRequest: TransactionRequest): Boolean =
+    Option(transactionRequest.transaction_ids).exists(_.trim.nonEmpty)
+
+  private def executePayment(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] = {
+    def finishWith(to: String, detail: String): Future[Boolean] =
+      record(basketId, member, Set(Executing, Unknown), to, detail).map(_ => to == Done)
+
+    if (member.state == Unknown) reconcile(basketId, member, callContext)
+    else record(basketId, member, claimableFrom(member), Executing, "").flatMap {
+      // Another executor holds it, or it is Failed past its attempts: not this one's to do.
+      case false => Future.successful(false)
+      case true =>
+        NewStyle.function.getTransactionRequestImpl(TransactionRequestId(member.memberId), callContext).transform(Success(_)).flatMap {
+          case Failure(_) => finishWith(Failed, "The payment cannot be read")
+          case Success((payment, _)) if bookedTransactionIds(payment) =>
+            // Already booked, by an earlier attempt that did not get to record it.
+            markCompleted(member.memberId, callContext).flatMap(_ => finishWith(Done, s"Already booked: transaction ${payment.transaction_ids}"))
+          case Success((payment, _)) if !awaitingAuthorisation.contains(payment.status) =>
+            finishWith(Failed, s"The payment is ${payment.status}, not waiting for authorisation")
+          case Success((payment, _)) => book(basketId, member, payment, callContext, finishWith)
+        }
+    }
+  }
+
+  private def book(basketId: String,
+                   member: SigningBasketMemberExecution,
+                   payment: TransactionRequest,
+                   callContext: Option[CallContext],
+                   finishWith: (String, String) => Future[Boolean]): Future[Boolean] =
+    NewStyle.function.checkBankAccountExists(BankId(payment.from.bank_id), AccountId(payment.from.account_id), callContext)
+      .transform(Success(_)).flatMap {
+        case Failure(_) => finishWith(Failed, "The debtor account cannot be found")
+        case Success((fromAccount, _)) =>
+          val mapped = isMappedConnector(fromAccount, payment, callContext)
+          NewStyle.function.createTransactionAfterChallengeV210(fromAccount, payment, callContext).transform(Success(_)).flatMap {
+            case Success(_) => markCompleted(member.memberId, callContext).flatMap(_ => finishWith(Done, "Booked"))
+            case Failure(error) =>
+              // The connector failed. Whether it booked first is read from the payment: a transaction id
+              // means it did. Without one, the mapped connector is treated as not having booked, so the
+              // payment can be tried again; any other connector may have, so it is left UNKNOWN.
+              NewStyle.function.getTransactionRequestImpl(TransactionRequestId(member.memberId), callContext).transform(Success(_)).flatMap {
+                case Success((after, _)) if bookedTransactionIds(after) =>
+                  markCompleted(member.memberId, callContext).flatMap(_ => finishWith(Done, s"Booked: transaction ${after.transaction_ids}"))
+                case _ if mapped => finishWith(Failed, s"Booking failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+                case _ => finishWith(Unknown, s"The connector failed and may have booked: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+              }
+          }
+      }
+
+  /**
+   * A member left UNKNOWN is DONE if its payment carries a transaction id. Without one, the mapped connector
+   * did not book it: it books and records the transaction id in the request's own database transaction, which
+   * did not commit, so the payment is FAILED and will be claimed again. Any other connector may have booked it
+   * without leaving a trace, so it is left for an operator.
+   */
+  private def reconcile(basketId: String, member: SigningBasketMemberExecution, callContext: Option[CallContext]): Future[Boolean] =
+    NewStyle.function.getTransactionRequestImpl(TransactionRequestId(member.memberId), callContext).transform(Success(_)).flatMap {
+      case Success((payment, _)) if bookedTransactionIds(payment) =>
+        markCompleted(member.memberId, callContext).flatMap(_ =>
+          record(basketId, member, Set(Unknown), Done, s"Reconciled: transaction ${payment.transaction_ids}").map(_ => true))
+      case Success((payment, _)) =>
+        NewStyle.function.checkBankAccountExists(BankId(payment.from.bank_id), AccountId(payment.from.account_id), callContext)
+          .transform(Success(_)).flatMap {
+            case Success((fromAccount, _)) if isMappedConnector(fromAccount, payment, callContext) =>
+              record(basketId, member, Set(Unknown), Failed, "Not booked: the mapped connector books inside the request's transaction, which did not commit")
+                .map(_ => false)
+            case _ => Future.successful(false)
+          }
+      case _ => Future.successful(false)
+    }
+
+  /**
+   * Whether the connector that books this payment is the mapped one. Only it is retried automatically.
+   * With the star connector the method routing decides (none means mapped); with any other `connector`
+   * value that connector books everything, whatever the routing table holds.
+   */
+  private def isMappedConnector(fromAccount: BankAccount, payment: TransactionRequest, callContext: Option[CallContext]): Boolean =
+    scala.util.Try {
+      Connector.connector.vend match {
+        case LocalMappedConnector => true
+        case StarConnector =>
+          code.bankconnectors.getConnectorNameAndMethodRouting(
+            "createTransactionAfterChallengeV210",
+            Array("fromAccount" -> fromAccount, "transactionRequest" -> payment, "callContext" -> callContext)
+          )._2 == "mapped"
+        case _ => false
+      }
+    }.getOrElse(false)
+}

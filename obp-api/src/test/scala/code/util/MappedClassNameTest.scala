@@ -144,6 +144,8 @@ class MappedClassNameTest extends FeatureSpec {
       "code.signingbaskets.MappedSigningBasketConsent",
       "code.signingbaskets.MappedSigningBasket",
       "code.signingbaskets.MappedSigningBasketPayment",
+      "code.signingbaskets.MappedSigningBasketMemberClaim",
+      "code.signingbaskets.MappedSigningBasketMemberExecution",
       "code.CustomerDependants.MappedCustomerDependant",
     )
 

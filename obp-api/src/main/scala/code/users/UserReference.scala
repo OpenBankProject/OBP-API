@@ -151,6 +151,7 @@ object UserReference {
   case object Entitlement_GrantedByUserId                      extends UserReference(UseAuthenticatedUserId, "code.entitlement.MappedEntitlement", List("mGrantedByUserId"), "audit: who granted")
   case object UserLocks_UserId                                 extends UserReference(UseAuthenticatedUserId, "code.userlocks.UserLocks", List("UserId"), "lock the authenticated user")
   case object ExpectedChallengeAnswer_ExpectedUserId           extends UserReference(UseAuthenticatedUserId, "code.transactionChallenge.MappedExpectedChallengeAnswer", List("ExpectedUserId"), "consent and signing-basket authorisation: the caller IS the person authorising, so the challenge is theirs")
+  case object SigningBasket_PsuUserId                          extends UserReference(UseAuthenticatedUserId, "code.signingbaskets.MappedSigningBasket", List("PsuUserId"), "the PSU the basket is for, resolved explicitly by Consent.resolveBerlinGroupPsu from the bound PSU, a genuine PSU session or PSU-ID; never the calling agent, and a client-credentials TPP's pseudo-user is never stored. Nothing is delegated, so there is nothing to look up")
   case object ChatMessage_SenderUserId                         extends UserReference(UseAuthenticatedUserId, "code.chat.ChatMessage", List("SenderUserId"), "sender = the authenticated user is truthful")
   case object Metric_UserId                                    extends UserReference(UseAuthenticatedUserId, "code.metrics.MappedMetric", List("userId"), "record both: on-behalf-of via consent_reference_id at read time")
   case object MetricArchive_UserId                             extends UserReference(UseAuthenticatedUserId, "code.metrics.MetricArchive", List("userId"), "as Metric_UserId")
@@ -250,6 +251,7 @@ object UserReference {
     Entitlement_GrantedByUserId,
     UserLocks_UserId,
     ExpectedChallengeAnswer_ExpectedUserId,
+    SigningBasket_PsuUserId,
     ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest,
     ChatMessage_SenderUserId,
     Metric_UserId,

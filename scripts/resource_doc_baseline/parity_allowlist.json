@@ -133,6 +133,14 @@
   "field_mismatches": [
     {
       "version": "v4_0_0",
+      "endpoint": "deleteUser",
+      "field": "description",
+      "reason": "Expanded description accurately documents verified soft-delete/PII-scramble behavior (AuthUser.scrambleAuthUser, scrambleDataOfResourceUser in the real handler). It also puts DELETED-<random-string> in a code span: unquoted, that renders as an unclosed HTML element and does not parse as XML, which API Explorer and ResourceDocsTest require.",
+      "lift_digest": "f2e1d5e50e5b129805fcae2dbfe8e6fc681605ba65c67c1b734bf3f3a14a66d4",
+      "http4s_digest": "7883d1964bf7eb19e158179acdb87bd1e75136681f67ad2e6c35b966b6c8cde4"
+    },
+    {
+      "version": "v4_0_0",
       "endpoint": "deleteExplicitCounterparty",
       "field": "requestVerb",
       "reason": "Lift's doc wrongly listed POST for a delete operation; http4s DELETE is the correct verb (RESTful bug fix)",
@@ -770,14 +778,6 @@
       "reason": "COUNTERPARTY_ID -> COUNTERPARTY_ID_PARAM rename, same shape.",
       "lift_digest": "921d75d9e3f3f8829417e01b547c83bb66305f39e6125d07641d70228ba12762",
       "http4s_digest": "f17aeac76f848755b702722badaf8024590ced0c796cdf6467cc8f3ca0cabf2e"
-    },
-    {
-      "version": "v4_0_0",
-      "endpoint": "deleteUser",
-      "field": "description",
-      "reason": "Expanded description accurately documents verified soft-delete/PII-scramble behavior (AuthUser.scrambleAuthUser, scrambleDataOfResourceUser in the real handler).",
-      "lift_digest": "f2e1d5e50e5b129805fcae2dbfe8e6fc681605ba65c67c1b734bf3f3a14a66d4",
-      "http4s_digest": "017005c0edb02ebf0b68a20c3e82936cdb06b2febe71dbd87c49799ff6396d8d"
     },
     {
       "version": "v4_0_0",

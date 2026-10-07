@@ -70,6 +70,16 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
                                         transactionStatus: String,
                                         basketId: String,
                                         _links: SigningBasketLinksV13)
+  // The links of a signing basket authorisation: scaStatus is a hyperlink object (hrefType), not a bare string.
+  case class SigningBasketScaLinksV13(scaStatus: LinkHrefJson)
+  case class StartSigningBasketAuthorisationJson(
+                                                  scaStatus: String,
+                                                  authorisationId: String,
+                                                  psuMessage: String,
+                                                  _links: SigningBasketScaLinksV13)
+  // An ASPSP extension: what executing the basket's authorisation did to each member.
+  case class SigningBasketMemberResultJson(memberType: String, memberId: String, state: String, detail: String, attempts: Int)
+  case class SigningBasketExecutionResultsJson(transactionStatus: String, members: List[SigningBasketMemberResultJson])
   case class SigningBasketGetResponseJson(
                                         transactionStatus: String,
                                         payments: Option[List[String]],
@@ -875,19 +885,35 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   }
 
 
-  def createStartSigningBasketAuthorisationJson(basketId: String, challenge: ChallengeTrait): StartPaymentAuthorisationJson = {
-    StartPaymentAuthorisationJson(
+  def createStartSigningBasketAuthorisationJson(basketId: String, challenge: ChallengeTrait): StartSigningBasketAuthorisationJson = {
+    StartSigningBasketAuthorisationJson(
       scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
       authorisationId = challenge.challengeId,
       psuMessage = "Please check your SMS at a mobile device.",
-      _links = ScaStatusJsonV13(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")
+      _links = SigningBasketScaLinksV13(
+        scaStatus = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")
+      )
+    )
+  }
+
+  /** The 200 answer to a transaction authorisation on a signing basket: a scaStatusResponse whose link names the basket's authorisation. */
+  def createUpdateSigningBasketPsuDataJson(basketId: String, challenge: ChallengeTrait, executionIncomplete: Boolean = false) = {
+    ScaStatusResponse(
+      scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+      // The authorisation itself succeeded either way. When not every payment could be executed, the basket
+      // stays RCVD and each payment's own result says what happened.
+      psuMessage = Some(
+        if (executionIncomplete) "The authorisation was accepted, but not every payment in the basket could be executed yet."
+        else "Please check your SMS at a mobile device."),
+      _links = Some(LinksAll(scaStatus = Some(HrefType(Some(
+        s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")))))
     )
   }
 
   def createSigningBasketResponseJson(basket: SigningBasketTrait): SigningBasketResponseJson = {
     SigningBasketResponseJson(
       basketId = basket.basketId,
-      transactionStatus = basket.status.toLowerCase(),
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.status),
       _links = SigningBasketLinksV13(
         self = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basket.basketId}"),
         status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basket.basketId}/status"),
@@ -898,15 +924,22 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 
   def getSigningBasketResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
     SigningBasketGetResponseJson(
-      transactionStatus = basket.basket.status.toLowerCase(),
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.basket.status),
       payments = basket.payments,
       consents = basket.consents,
     )
   }
 
+  def getSigningBasketExecutionResultsJson(basket: SigningBasketContent,
+                                           members: List[code.signingbaskets.SigningBasketMemberExecution]): SigningBasketExecutionResultsJson =
+    SigningBasketExecutionResultsJson(
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.basket.status),
+      members = members.map(m => SigningBasketMemberResultJson(m.memberType, m.memberId, m.state, m.detail, m.attempts))
+    )
+
   def getSigningBasketStatusResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
     SigningBasketGetResponseJson(
-      transactionStatus = basket.basket.status.toLowerCase(),
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.basket.status),
       payments = None,
       consents = None,
     )

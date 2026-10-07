@@ -2356,6 +2356,43 @@ object Consent extends MdcLoggable {
       unusable.isEmpty
     }
 
+  /**
+   * The PSU-ID request header, resolved to the user id it names.
+   *
+   * Berlin Group makes the header conditional rather than mandatory, so absent is a conforming
+   * answer and gives None -- the caller may be identifying the PSU some other way, which
+   * resolveBerlinGroupPsu works out. A value the ASPSP cannot resolve is a different matter and is
+   * refused with the code the standard reserves for exactly it: PSU_CREDENTIALS_INVALID, 401,
+   * "PSU-ID cannot be found by ASPSP".
+   */
+  def resolvePsuIdHeader(cc: CallContext, callContext: Option[CallContext]): Future[Option[String]] =
+    Option(APIUtil.getRequestHeader(RequestHeader.`PSU-ID`, cc.requestHeaders)).map(_.trim).filter(_.nonEmpty) match {
+      case None => Future.successful(None)
+      case Some(psuId) =>
+        Future(findPsuByPsuId(psuId)) map { psu =>
+          Some(APIUtil.unboxFullOrFail(psu, callContext, UserNotFoundByProviderAndUsername, 401).userId)
+        }
+    }
+
+  /**
+   * Bind a Berlin Group consent to the PSU who authorised it: copy the PSU's authentication context onto the
+   * consent, and make the PSU the consent's user. Both the consent authorisation and a signing basket that
+   * activates a consent do this once the SCA has succeeded.
+   */
+  def bindBerlinGroupConsentToPsu(consentId: String, psu: User, callContext: Option[CallContext]): Future[Unit] =
+    for {
+      _ <- Future {
+        val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(psu.userId)
+          .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+        ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
+      } map {
+        APIUtil.unboxFullOrFail(_, callContext, ConsentUserAuthContextCannotBeAdded)
+      }
+      _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, psu)) map {
+        APIUtil.unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
+      }
+    } yield ()
+
   def createUKConsentJWT(
     user: Option[User],
     bankId: Option[String],

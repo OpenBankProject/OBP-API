@@ -32,22 +32,24 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Pisp, unboxFullOrFail}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, getPropsAsBoolValue, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, passesPsd2Pisp, unboxFullOrFail}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiTag, CallContext, Consent, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.SigningBasketNewStyle
+import code.api.util.newstyle.SigningBasketNewStyle.{AuthorisationOperation, CreatorOnly}
 import code.bankconnectors.Connector
-import code.signingbaskets.SigningBasketX
+import code.consent.{ConsentStatus, Consents}
+import code.signingbaskets.{SigningBasketMemberState, SigningBasketX}
 import code.util.Helper.{MdcLoggable, booleanToFuture}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.TransactionRequestStatus.{COMPLETED, REJECTED}
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
-import com.openbankproject.commons.model.{ChallengeTrait, TransactionRequestId}
-import net.liftweb.common.Empty
+import com.openbankproject.commons.model.{ChallengeTrait, SigningBasketTrait, TransactionRequestId}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.util.json
 import org.json4s.Formats
 import org.http4s._
@@ -73,30 +75,73 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
 
   val bgV13Prefix = Root / ConstantsBG.berlinGroupVersion1.urlPrefix / ConstantsBG.berlinGroupVersion1.apiShortVersion
 
+  /**
+   * Berlin Group hangs several request bodies off the authorisation paths (L3653, L3867). Baskets
+   * support the two that need no data this ASPSP holds back: an empty body, which starts the
+   * authorisation, and `transactionAuthorisation`, which answers it. The others are Embedded-approach
+   * steps (PSU authentication, authentication method selection, confirmation code) that are not
+   * implemented for any Berlin Group resource here. They are refused by name rather than answered
+   * as if the credential or the choice had been processed, and a body that matches no variant is a
+   * format error.
+   */
+  private def requireSupportedAuthorisationBody(rawBody: String, answering: Boolean, failMsg: String, callContext: Option[CallContext]): Future[Boolean] = {
+    val parsed = scala.util.Try(json.parse(rawBody)).getOrElse(json.JNothing)
+    val supported = if (answering) checkTransactionAuthorisation(parsed) else startsAuthorisation(parsed)
+    val knownButUnsupported = !supported && (
+      checkUpdatePsuAuthentication(parsed) || checkSelectPsuAuthenticationMethod(parsed) ||
+        checkAuthorisationConfirmation(parsed) || (answering && parsed == json.JObject(Nil)))
+    for {
+      _ <- booleanToFuture(SigningBasketAuthorisationVariantNotSupported, cc = callContext)(!knownButUnsupported)
+      _ <- booleanToFuture(failMsg, cc = callContext)(supported)
+    } yield true
+  }
+
   // ── POST /signing-baskets ──────────────────────────────────────────────
   val createSigningBasket: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `bgV13Prefix` / "signing-baskets" =>
-      EndpointHelpers.executeFutureCreated(req) {
+      EndpointHelpers.executeFutureCreatedWithHeaders(req) {
         val cc = req.callContext
         val callContext = Some(cc)
+        val failMsg = s"$InvalidJsonFormat The Json body should be the $PostSigningBasketJsonV13 "
         for {
-          _ <- passesPsd2Pisp(callContext)
-          failMsg = s"$InvalidJsonFormat The Json body should be the $PostSigningBasketJsonV13 "
           postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
             json.parse(cc.httpBody.getOrElse("")).extract[PostSigningBasketJsonV13]
           }
+          // The body shall contain at least one entry, and each list that is present at least one id
+          // (minItems: 1). A list naming the same id twice is refused as well, rather than silently
+          // collapsed, so the TPP learns its request was malformed.
+          idLists = List(postJson.paymentIds, postJson.consentIds).flatten
           _ <- booleanToFuture(failMsg, cc = callContext) {
-            !(postJson.paymentIds.isEmpty && postJson.consentIds.isEmpty)
+            idLists.nonEmpty && idLists.forall(ids => ids.nonEmpty && ids.distinct.size == ids.size)
           }
+          // Which role the TPP needs follows from what it names: payments need PISP, consents AISP, both for a mix.
+          _ <- if (postJson.paymentIds.exists(_.nonEmpty)) passesPsd2Pisp(callContext) else Future.successful(())
+          _ <- if (postJson.consentIds.exists(_.nonEmpty)) passesPsd2Aisp(callContext) else Future.successful(())
+          // The basket belongs to the TPP that creates it; nothing else identifies who may address it later.
+          consumerId <- Future.successful(cc.consumer.map(_.consumerId.get))
+            .map(unboxFullOrFail(_, callContext, AuthenticatedUserIsRequired, 401))
+          // Every member must be one this TPP may address and SCA can still authorise.
+          psuUserId <- SigningBasketNewStyle.admitMembers(
+            postJson.paymentIds.getOrElse(Nil), postJson.consentIds.getOrElse(Nil), cc, callContext)
           signingBasket <- Future {
             SigningBasketX.signingBasketProvider.vend.createSigningBasket(
               postJson.paymentIds,
               postJson.consentIds,
+              consumerId,
+              psuUserId
             )
-          }.map(connectorEmptyResponse(_, callContext))
+          }.map {
+            // A member that another active basket already holds: the standard's REFERENCE_STATUS_INVALID.
+            case Failure(SigningBasketMemberStatusInvalid, _, _) =>
+              unboxFullOrFail(Empty: Box[SigningBasketTrait], callContext, SigningBasketMemberStatusInvalid, 409)
+            case created => connectorEmptyResponse(created, callContext)
+          }
         } yield {
           createSigningBasketResponseJson(signingBasket)
         }
+      } { created =>
+        // Location of the created resource (IG 8.1, Mandatory), under the path the request came in on.
+        List("Location" -> s"${req.callContext.url.takeWhile(_ != '?').stripSuffix("/")}/${created.basketId}")
       }
   }
 
@@ -134,10 +179,10 @@ The resource identifications of these transactions are contained in the  payload
     "status" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
-  "transactionStatus" : "ACCP",
+  "transactionStatus" : "RCVD",
   "psuMessage" : { }
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, SigningBasketMemberMixInvalid, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(createSigningBasket)
   )
@@ -148,10 +193,27 @@ The resource identifications of these transactions are contained in the  payload
       EndpointHelpers.executeDelete(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
-          _ <- Future {
-            SigningBasketX.signingBasketProvider.vend.deleteSigningBasket(basketid)
-          }.map(connectorEmptyResponse(_, callContext))
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
+          // Deleting a basket that is already cancelled changes nothing and is not an error.
+          alreadyCancelled = basket.basket.status == ConstantsBG.SigningBasketsStatus.CANC.toString
+          _ <- if (alreadyCancelled) Future.successful(true) else for {
+            // "As long as no (partial) authorisation has yet been applied" (L3399): the basket must
+            // still be RCVD and none of its authorisations may be finalised.
+            _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+              basket.basket.status == ConstantsBG.SigningBasketsStatus.RCVD.toString
+            }
+            (challenges, _) <- NewStyle.function.getChallengesByBasketId(basketid, callContext)
+            _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+              !challenges.exists(_.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised))
+            }
+            // One conditional update. A final answer racing this delete claims the basket first or
+            // loses to it, and the loser is told so; never both.
+            cancelled <- Future(SigningBasketX.signingBasketProvider.vend.transitionSigningBasketStatus(
+              basketid, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.CANC.toString))
+            _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext)(cancelled.openOr(false))
+            // The members are free to join another basket.
+            _ <- Future(SigningBasketX.signingBasketProvider.vend.releaseSigningBasketMembers(basketid))
+          } yield true
         } yield ()
       }
   }
@@ -164,14 +226,16 @@ The resource identifications of these transactions are contained in the  payload
     "Delete the signing basket",
     s"""${mockedDataText(false)}
 Delete the signing basket structure as long as no (partial) authorisation has yet been applied.
-The undlerying transactions are not affected by this deletion.
+The underlying transactions are not affected by this deletion.
+
+Only the TPP that created the basket may delete it. A basket that is already cancelled answers 204 again.
 
 Remark: The signing basket as such is not deletable after a first (partial) authorisation has been applied.
 Nevertheless, single transactions might be cancelled on an individual basis on the XS2A interface.
 """,
     EmptyBody,
     EmptyBody,
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, SigningBasketStatusInvalid, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(deleteSigningBasket)
   )
@@ -182,10 +246,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
-          basket <- Future {
-            SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketid)
-          }.map(connectorEmptyResponse(_, callContext))
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
         } yield {
           getSigningBasketResponseJson(basket)
         }
@@ -202,11 +263,11 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
 Returns the content of an signing basket object.""",
     EmptyBody,
     JvalueCaseClass(json.parse("""{
-  "transactionStatus" : "ACCP",
+  "transactionStatus" : "RCVD",
   "payments" : "",
   "consents" : ""
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasket)
   )
@@ -217,7 +278,7 @@ Returns the content of an signing basket object.""",
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
+          _ <- SigningBasketNewStyle.getOwnBasket(basketid, AuthorisationOperation, callContext)
           (challenges, _) <- NewStyle.function.getChallengesByBasketId(basketid, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(challenges.map(_.challengeId))
@@ -240,7 +301,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
     JvalueCaseClass(json.parse("""{
   "authorisationIds" : ""
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketAuthorisation)
   )
@@ -251,14 +312,10 @@ This function returns an array of hyperlinks to all generated authorisation sub-
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
-          _ <- Future(SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId))
-                 .map(unboxFullOrFail(_, callContext, s"$ConsentNotFound ($basketId)", 403))
-          (challenges, _) <- NewStyle.function.getChallengesByBasketId(basketId, callContext)
+          _ <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
+          (challenge, _) <- SigningBasketNewStyle.getBasketAuthorisation(basketId, authorisationId, callContext)
         } yield {
-          val challengeStatus = challenges.filter(_.challengeId == authorisationId)
-            .flatMap(_.scaStatus).headOption.map(_.toString).getOrElse("None")
-          JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challengeStatus)
+          JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse(""))
         }
       }
   }
@@ -276,7 +333,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
     JvalueCaseClass(json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, SigningBasketAuthorisationNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketScaStatus)
   )
@@ -287,10 +344,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
-          basket <- Future {
-            SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketid)
-          }.map(connectorEmptyResponse(_, callContext))
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
         } yield {
           getSigningBasketStatusResponseJson(basket)
         }
@@ -310,9 +364,54 @@ Returns the status of a signing basket object.
     JvalueCaseClass(json.parse("""{
   "transactionStatus" : "RCVD"
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketStatus)
+  )
+
+  // ── GET /signing-baskets/BASKETID/execution ───────────────────────────
+  // Not part of the standard. The basket's status can say only RCVD or ACTC; when the authorisation was
+  // answered but a payment could not be booked, this says what happened to each member.
+  val getSigningBasketExecution: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `bgV13Prefix` / "signing-baskets" / basketid / "execution" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        val callContext = Some(cc)
+        for {
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketid, CreatorOnly, callContext)
+          members <- Future(SigningBasketX.signingBasketProvider.vend.getSigningBasketMemberExecutions(basketid))
+        } yield {
+          getSigningBasketExecutionResultsJson(basket, members)
+        }
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getSigningBasketExecution),
+    "GET",
+    "/signing-baskets/BASKETID/execution",
+    "Read what executing the signing basket did to each member",
+    s"""${mockedDataText(false)}
+This is an extension of the ASPSP, not part of the Berlin Group standard.
+
+Answering the authorisation of a signing basket books its payments one after another. The basket is ACTC
+only when every one was booked. When one could not be, the basket stays RCVD, and this call says what became
+of each member: PENDING (not started), EXECUTING, DONE (booked), FAILED (refused, and may be tried again) or
+UNKNOWN (the executor stopped without recording an outcome; an operator reconciles it).
+
+Only the TPP that created the basket may read this.
+""",
+    EmptyBody,
+    JvalueCaseClass(json.parse("""{
+  "transactionStatus" : "RCVD",
+  "members" : [
+    { "memberType" : "payment", "memberId" : "4f4a8b7f-9968-4183-92ab-ca512b396bfc", "state" : "DONE", "detail" : "Booked", "attempts" : 1 },
+    { "memberType" : "payment", "memberId" : "88695566-6642-46d5-9985-0d824624f507", "state" : "FAILED", "detail" : "Booking failed", "attempts" : 1 }
+  ]
+}""")),
+    List(AuthenticatedUserIsRequired, SigningBasketNotFound, UnknownError),
+    apiTagSigningBaskets :: Nil,
+    http4sPartialFunction = Some(getSigningBasketExecution)
   )
 
   // ── POST /signing-baskets/BASKETID/authorisations ─────────────────────
@@ -322,9 +421,18 @@ Returns the status of a signing basket object.
         val cc = req.callContext
         val callContext = Some(cc)
         for {
-          _ <- passesPsd2Pisp(callContext)
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
+          _ <- requireSupportedAuthorisationBody(
+            cc.httpBody.getOrElse(""), answering = false,
+            s"$InvalidJsonFormat The Json body should be empty, or the transactionAuthorisation body. ", callContext)
+          // An authorisation can only be started on a basket still waiting for one.
+          _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+            basket.basket.status == ConstantsBG.SigningBasketsStatus.RCVD.toString
+          }
+          // Whose challenge this is, which is also where the OTP goes: the PSU, not the calling TPP.
+          psuUserId <- SigningBasketNewStyle.bindAuthorisingPsu(basket, cc, callContext)
           (challenges, _) <- NewStyle.function.createChallengesC3(
-            List(cc.user.map(_.userId).openOr("")),
+            List(psuUserId),
             ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
             None,
             getSuggestedDefaultScaMethod(),
@@ -385,46 +493,107 @@ This applies in the following scenarios:
 """,
     EmptyBody,
     JvalueCaseClass(json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
+  "scaStatus" : "received",
+  "authorisationId" : "4f4a8b7f-9968-4183-92ab-ca512b396bfc",
+  "psuMessage" : "Please check your SMS at a mobile device.",
   "_links" : {
-    "scaStatus" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
+    "scaStatus" : {
+      "href" : "/v1.3/signing-baskets/1234-basket-567/authorisations/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
+    }
+  }
 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketNotFound, SigningBasketStatusInvalid, SigningBasketAuthorisationVariantNotSupported, BerlinGroupPsuNotIdentified, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(startSigningBasketAuthorisation)
   )
 
+  /**
+   * How a failed challenge validation is answered. A wrong, expired or used-up one-time password is
+   * the standard's PSU_CREDENTIALS_INVALID (401, "the password/OTP is incorrect"); an authorisation
+   * answered a second time, concurrently or later, is a conflict.
+   */
+  private def challengeFailure(message: String): (String, Int) =
+    if (message.contains("Challenge already answered")) (SigningBasketStatusInvalid, 409)
+    else if (message.contains("OBP-40016") || message.contains("OBP-20211") || message.contains("OBP-40014")) (message, 401)
+    else (message, 400)
+
+  /**
+   * A basket whose authorisation failed for good is rejected, with the payments it held, and frees its
+   * members. Only one caller wins the move out of RCVD, so a basket that is being answered correctly at
+   * the same time is not rejected.
+   */
+  private def rejectBasket(basketId: String, paymentIds: List[String], callContext: Option[CallContext]): Future[Unit] = {
+    val provider = SigningBasketX.signingBasketProvider.vend
+    Future(provider.transitionSigningBasketStatus(
+      basketId, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.RJCT.toString).openOr(false)).flatMap {
+      case false => Future.successful(())
+      case true =>
+        provider.releaseSigningBasketMembers(basketId)
+        paymentIds.foldLeft(Future.successful(())) { (previous, id) =>
+          previous.flatMap(_ =>
+            NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(id), REJECTED.toString, callContext)
+              .map(_ => ()).recover { case _ => () })
+        }
+    }
+  }
+
   // ── PUT /signing-baskets/BASKETID/authorisations/AUTHORISATIONID ───────
+  //
+  // Order matters, and nothing may be changed until the answer has been checked:
+  //   1. who the caller is and whether this is their basket and their authorisation;
+  //   2. whether the request can succeed at all (instance setting, members, basket state, challenge state);
+  //   3. the answer, checked as the PSU the challenge was minted for;
+  //   4. the basket is claimed with one conditional update, so the final answer and a delete racing it
+  //      have exactly one winner;
+  //   5. only then do members change, and the basket is completed.
   val updateSigningBasketPsuData: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ PUT -> `bgV13Prefix` / "signing-baskets" / basketId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
+        val provider = SigningBasketX.signingBasketProvider.vend
         for {
-          _ <- passesPsd2Pisp(callContext)
+          (basket, _) <- SigningBasketNewStyle.getOwnBasket(basketId, AuthorisationOperation, callContext)
+          (startedChallenge, _) <- SigningBasketNewStyle.getBasketAuthorisation(basketId, authorisationId, callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
+          _ <- requireSupportedAuthorisationBody(cc.httpBody.getOrElse(""), answering = true, failMsg, callContext)
           updateBasketPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
             json.parse(cc.httpBody.getOrElse("")).extract[UpdatePaymentPsuDataJson]
           }
-          _ <- SigningBasketNewStyle.checkSigningBasketPayments(basketId, callContext)
+          _ <- booleanToFuture(SigningBasketAuthorisationDisabled, failCode = 403, cc = callContext) {
+            getPropsAsBoolValue("signing_basket_authorisation_enabled", defaultValue = false)
+          }
+          _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+            basket.basket.status == ConstantsBG.SigningBasketsStatus.RCVD.toString
+          }
+          _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext) {
+            !startedChallenge.scaStatus.exists(status =>
+              status == StrongCustomerAuthenticationStatus.finalised || status == StrongCustomerAuthenticationStatus.failed)
+          }
+          paymentIds = basket.payments.getOrElse(Nil)
+          members <- Future(paymentIds.map(id => id -> Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(id), callContext)))
+          _ <- booleanToFuture(SigningBasketMemberNotFound, failCode = 400, cc = callContext)(members.forall(_._2.isDefined))
+          // Every payment has to be waiting for SCA, the state the executor takes one in. A payment rejected,
+          // cancelled or failed in the meantime would be refused by the executor after the other members had
+          // been booked, leaving a basket that can never complete.
+          _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
+            members.forall(_._2.exists(member => SigningBasketNewStyle.awaitingScaPaymentStatuses.contains(member._1.status)))
+          }
+          consentIds = basket.consents.getOrElse(Nil)
+          consents <- Future(consentIds.map(id => id -> Consents.consentProvider.vend.getConsentByConsentId(id)))
+          _ <- booleanToFuture(SigningBasketMemberNotFound, failCode = 400, cc = callContext)(consents.forall(_._2.isDefined))
+          _ <- booleanToFuture(SigningBasketMemberStatusInvalid, failCode = 409, cc = callContext) {
+            consents.forall(_._2.exists(_.status == ConsentStatus.received.toString))
+          }
+          // The answer is the PSU's, relayed by the TPP under Embedded, so it is checked against the
+          // challenge's own PSU rather than the principal on the token.
+          (psu, _) <- NewStyle.function.findByUserId(startedChallenge.expectedUserId, callContext)
+          // Every member that names a PSU must name this one, as when the authorisation was started.
+          _ <- SigningBasketNewStyle.requireMembersForPsu(basket, psu.userId, callContext)
+          // The PSU has to hold the accounts each consent names, as when they authorise a consent on its own.
+          // Before the answer is checked and before anything changes: activation is not one transaction.
+          _ <- consents.flatMap(_._2.toList).foldLeft(Future.successful(())) { (previous, consent) =>
+            previous.flatMap(_ => Consent.assertBerlinGroupConsentAccountsHeld(psu, consent, callContext).map(_ => ()))
+          }
           (boxedChallenge, _) <- NewStyle.function.validateChallengeAnswerC5(
             ChallengeType.BERLIN_GROUP_SIGNING_BASKETS_CHALLENGE,
             None,
@@ -433,53 +602,42 @@ This applies in the following scenarios:
             authorisationId,
             updateBasketPsuDataJson.scaAuthenticationData,
             SuppliedAnswerType.PLAIN_TEXT_VALUE,
-            callContext
+            callContext.map(_.copy(user = Full(psu)))
           )
-          (challenge, updatedCC) <- NewStyle.function.getChallenge(authorisationId, callContext)
-          _ <- challenge.scaStatus match {
-            case Some(status) if status.toString == StrongCustomerAuthenticationStatus.finalised.toString =>
-              Future {
-                val basket = SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId)
-                val existAll =
-                  basket.flatMap(_.payments.map(_.forall(i => Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), updatedCC).isDefined)))
-                val alreadyCompleted: List[String] =
-                  basket.flatMap(_.payments).getOrElse(Nil).filter { i =>
-                    Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), updatedCC)
-                      .exists(_._1.status == COMPLETED.toString)
-                  }
-                if (alreadyCompleted.nonEmpty) {
-                  unboxFullOrFail(Empty, updatedCC, s"$InvalidConnectorResponse Some of paymentIds [${alreadyCompleted.mkString(",")}] are already completed")
-                } else if (existAll.getOrElse(false)) {
-                  basket.map { i =>
-                    i.payments.map(_.map { i =>
-                      NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(i), COMPLETED.toString, updatedCC)
-                      Connector.connector.vend.getTransactionRequestImpl(TransactionRequestId(i), updatedCC).map { t =>
-                        Connector.connector.vend.makePaymentV400(t._1, None, updatedCC)
-                      }
-                    })
-                  }
-                  SigningBasketX.signingBasketProvider.vend.saveSigningBasketStatus(basketId, ConstantsBG.SigningBasketsStatus.ACTC.toString)
-                  unboxFullOrFail(boxedChallenge, updatedCC, s"$InvalidConnectorResponse validateChallengeAnswerC5")
-                } else {
-                  val paymentIds = basket.flatMap(_.payments).getOrElse(Nil).mkString(",")
-                  unboxFullOrFail(Empty, updatedCC, s"$InvalidConnectorResponse Some of paymentIds [${paymentIds}] are invalid")
-                }
+          // Only an answer the challenge records as finalised authorises anything. A connector may hand back the
+          // challenge itself with a failed status, which is a refusal, not a success.
+          challenge <- boxedChallenge match {
+            case Full(answered) if answered.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised) =>
+              Future.successful(answered)
+            case other =>
+              // The answer failed for good (the connector says failed, or the attempts are used up): the basket
+              // is rejected, and so are its payments, so the same basket cannot be answered again with a new
+              // authorisation and a new allowance of guesses.
+              val failedForGood = other match {
+                case Full(answered) => answered.scaStatus.contains(StrongCustomerAuthenticationStatus.failed)
+                case f: Failure => f.msg.contains("OBP-40014")
+                case _ => false
               }
-            case Some(status) if status.toString == StrongCustomerAuthenticationStatus.failed.toString =>
-              Future {
-                val basket = SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId)
-                basket.map { i =>
-                  i.payments.map(_.map { i =>
-                    NewStyle.function.saveTransactionRequestStatusImpl(TransactionRequestId(i), REJECTED.toString, updatedCC)
-                  })
-                }
-                unboxFullOrFail(boxedChallenge, updatedCC, s"$InvalidConnectorResponse validateChallengeAnswerC5")
-              }
-            case _ =>
-              Future(unboxFullOrFail(Empty, updatedCC, s"$InvalidConnectorResponse getChallenge"))
+              // Wrong answers are counted for the basket, over all its authorisations: a new authorisation brings
+              // a new one-time password and a new allowance on its own challenge, so counting per challenge alone
+              // would let a TPP keep guessing by starting new authorisations.
+              val answeredWrongly = _root_.code.transactionChallenge.Challenges.ChallengeProvider.vend.getChallengesByBasketId(basketId)
+                .map(_.map(_.attemptCounter).sum).openOr(0)
+              val allowance = _root_.code.api.util.APIUtil.allowedAnswerTransactionRequestChallengeAttempts
+              val (message, code) = challengeFailure(other match {
+                case f: Failure => f.msg
+                case _ => InvalidChallengeAnswer
+              })
+              (if (failedForGood || answeredWrongly >= allowance) rejectBasket(basketId, paymentIds, callContext) else Future.successful(()))
+                .flatMap(_ => Future(unboxFullOrFail(Empty: Box[ChallengeTrait], callContext, message, code)))
           }
+          claimed <- Future(provider.transitionSigningBasketStatus(
+            basketId, ConstantsBG.SigningBasketsStatus.RCVD.toString, ConstantsBG.SigningBasketsStatus.AUTHORISING_INTERNAL))
+          _ <- booleanToFuture(SigningBasketStatusInvalid, failCode = 409, cc = callContext)(claimed.openOr(false))
+          // Each member is recorded, then booked in order. The basket becomes ACTC only if every one is.
+          allDone <- SigningBasketExecution.execute(basketId, callContext)
         } yield {
-          JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge)
+          JSONFactory_BERLIN_GROUP_1_3.createUpdateSigningBasketPsuDataJson(basketId, challenge, executionIncomplete = !allDone)
         }
       }
   }
@@ -535,13 +693,14 @@ There are the following request types on this access path:
     JvalueCaseClass(json.parse("""{"scaAuthenticationData":"123"}""")),
     JvalueCaseClass(json.parse("""{
                   "scaStatus":"finalised",
-                  "authorisationId":"4f4a8b7f-9968-4183-92ab-ca512b396bfc",
                   "psuMessage":"Please check your SMS at a mobile device.",
                   "_links":{
-                    "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
+                    "scaStatus":{
+                      "href":"/v1.3/signing-baskets/1234-basket-567/authorisations/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
+                    }
                   }
                 }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(AuthenticatedUserIsRequired, InvalidJsonFormat, SigningBasketNotFound, SigningBasketAuthorisationNotFound, SigningBasketAuthorisationVariantNotSupported, SigningBasketAuthorisationDisabled, SigningBasketStatusInvalid, SigningBasketMemberNotFound, SigningBasketMemberStatusInvalid, InvalidChallengeAnswer, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(updateSigningBasketPsuData)
   )
@@ -553,6 +712,7 @@ There are the following request types on this access path:
       .orElse(getSigningBasketAuthorisation(req))
       .orElse(getSigningBasketScaStatus(req))
       .orElse(getSigningBasketStatus(req))
+      .orElse(getSigningBasketExecution(req))
       .orElse(startSigningBasketAuthorisation(req))
       .orElse(updateSigningBasketPsuData(req))
   }

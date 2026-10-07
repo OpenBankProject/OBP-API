@@ -47,5 +47,29 @@ object ConstantsBG {
     // 4) CANC (Cancelled) and
     // 5) RJCT (Rejected) are supported for signing baskets.
     val RCVD, PATC, ACTC, CANC, RJCT = Value
+
+    /**
+     * Stored between the moment a correct answer claims the basket and the moment its members have
+     * been dealt with. It is never reported: to a TPP a basket in this state is still RCVD, since the
+     * authorisation has not completed from its point of view.
+     */
+    val AUTHORISING_INTERNAL = "AUTHORISING"
+
+    /**
+     * Stored when the authorisation was answered correctly but not every member took effect: a payment
+     * failed, or an outcome is not known. Reported as RCVD, like AUTHORISING. The members' own results say
+     * what happened to each.
+     */
+    val EXECUTION_INCOMPLETE_INTERNAL = "EXECUTION_INCOMPLETE"
+
+    /**
+     * Stored when execution stopped and nothing that is left can be finished by running it again: every member
+     * that is not done has failed as often as it is allowed to. The basket is over, what it held is free,
+     * and it is no longer picked up. Reported as RCVD; the members' own results say what happened.
+     */
+    val EXECUTION_FAILED_INTERNAL = "EXECUTION_FAILED"
+
+    def external(storedStatus: String): String =
+      if (storedStatus == AUTHORISING_INTERNAL || storedStatus == EXECUTION_INCOMPLETE_INTERNAL || storedStatus == EXECUTION_FAILED_INTERNAL) RCVD.toString else storedStatus
   }
 }

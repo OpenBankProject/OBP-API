@@ -125,7 +125,7 @@ import code.regulatedentities.attribute.RegulatedEntityAttribute
 import code.counterpartyattribute.{CounterpartyAttribute => CounterpartyAttributeMapper}
 import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope, Scope}
-import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
+import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketMemberClaim, MappedSigningBasketMemberExecution, MappedSigningBasketPayment}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
@@ -647,6 +647,7 @@ class Boot extends MdcLoggable {
     }
     ConsentScheduler.startAll()
     TransactionScheduler.startAll()
+    SigningBasketScheduler.startAll()
 
 
     code.metrics.MetricsProps.enableMetricsScheduler match {
@@ -1008,6 +1009,8 @@ object ToSchemify extends MdcLoggable {
     MappedSigningBasket,
     MappedSigningBasketPayment,
     MappedSigningBasketConsent,
+    MappedSigningBasketMemberClaim,
+    MappedSigningBasketMemberExecution,
     MappedRegulatedEntity,
     AtmAttribute,
     AbacRule,

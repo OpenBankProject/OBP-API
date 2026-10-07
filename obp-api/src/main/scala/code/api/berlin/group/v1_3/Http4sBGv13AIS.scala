@@ -533,23 +533,8 @@ object Http4sBGv13AIS extends MdcLoggable {
       }
   }
 
-  /**
-   * The PSU-ID request header, resolved to the user id it names.
-   *
-   * Berlin Group makes the header conditional rather than mandatory, so absent is a conforming
-   * answer and gives None -- the caller may be identifying the PSU some other way, which
-   * Consent.resolveBerlinGroupPsu works out. A value the ASPSP cannot resolve is a different matter
-   * and is refused with the code the standard reserves for exactly it: PSU_CREDENTIALS_INVALID, 401,
-   * "PSU-ID cannot be found by ASPSP".
-   */
   private def resolvePsuIdHeader(cc: CallContext, callContext: Option[CallContext]): Future[Option[String]] =
-    Option(APIUtil.getRequestHeader(RequestHeader.`PSU-ID`, cc.requestHeaders)).map(_.trim).filter(_.nonEmpty) match {
-      case None => Future.successful(None)
-      case Some(psuId) =>
-        Future(Consent.findPsuByPsuId(psuId)) map { psu =>
-          Some(unboxFullOrFail(psu, callContext, UserNotFoundByProviderAndUsername, 401).userId)
-        }
-    }
+    Consent.resolvePsuIdHeader(cc, callContext)
 
   // ── POST /consents/CONSENTID/authorisations (3 body-guard variants) ─────
   lazy val startConsentAuthorisationAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -719,16 +704,7 @@ object Http4sBGv13AIS extends MdcLoggable {
             _ <- NewStyle.function.tryons(ConsentUpdateStatusError, 400, callContext) {
               consent.toList.size == 1
             }
-            _ <- Future {
-              val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(psu.userId)
-                .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
-              ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
-            } map {
-              unboxFullOrFail(_, callContext, ConsentUserAuthContextCannotBeAdded)
-            }
-            _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, psu)) map {
-              unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
-            }
+            _ <- Consent.bindBerlinGroupConsentToPsu(consentId, psu, callContext)
           } yield {
             createPutConsentResponseJson(consent.toList.head)
           }

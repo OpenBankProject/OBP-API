@@ -1685,8 +1685,26 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 ## Berlin Group Create Consent Frequency per Day Upper Limit
 #berlin_group_frequency_per_day_upper_limit = 4
 
-## Berlin Group Create Consent ASPSP-SCA-Approach response header value
+## Berlin Group ASPSP-SCA-Approach response header value (create consent, create signing basket and its authorisations)
 #berlin_group_aspsp_sca_approach = redirect
+
+# Whether a Berlin Group signing basket may be authorised (PUT /signing-baskets/{basketId}/authorisations/{authorisationId}).
+# Default false: the call answers 403 SERVICE_BLOCKED. Answering the authorisation books the basket's payments
+# one after another and records, per payment, whether it was booked. Roll this out in stages: first the ownership
+# guard, then this, with a recovery rehearsal in between. Creating, reading, starting an authorisation on and
+# deleting baskets are not affected.
+#signing_basket_authorisation_enabled = false
+
+# How many times a payment of a signing basket that failed to book is claimed again, on the mapped connector only.
+# A payment on any other connector whose booking failed is left UNKNOWN for an operator.
+#signing_basket_member_max_attempts = 3
+
+# Resuming signing basket executions that stopped (for instance because the process booking the payments died).
+# The interval is in seconds (0 switches it off); the lease is how long a basket or member may sit without moving
+# before it counts as stopped. A member left executing past the lease becomes UNKNOWN and is reconciled by its
+# transaction id, or left for an operator.
+#signing_basket_resume_interval_in_seconds = 593
+#signing_basket_execution_lease_in_seconds = 300
 
 # Support multiple brands on one instance. Note this needs checking on a clustered environment
 #brands_enabled=false
