@@ -37,7 +37,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, 
   DateWithMsExampleString,
   DefaultToDateString,
   EmptyBody,
@@ -169,7 +169,7 @@ object Http4s600 {
     // Mirrors v6 Lift root — both bare prefix and /root return the same
     // info JSON. Reuses JSONFactory510.getApiInfoJSON because v6's API-info
     // shape is unchanged from v5.1.
-    lazy val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val root: Http4sRoute = Http4sRoute {
       case GET -> `prefixPath` =>
         Ok(convertAnyToJsonString(
           JSONFactory510.getApiInfoJSON(implementedInApiVersion, versionStatus)
@@ -184,7 +184,7 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/api/versions
     // Returns the list of scanned API versions with `is_active` reflecting
     // current `api_disabled_versions`/`api_enabled_versions` props.
-    lazy val getScannedApiVersions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getScannedApiVersions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "api" / "versions" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future {
@@ -214,7 +214,7 @@ object Http4s600 {
     // Auth-only. Returns the logged-in user enriched with entitlements,
     // virtual roles (super_admin / oidc_operator), permissions, and the
     // optional on-behalf-of user when the request runs under a consent.
-    lazy val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCurrentUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -259,7 +259,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks
-    lazy val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -270,7 +270,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID
-    lazy val getBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
@@ -281,7 +281,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers
-    lazy val getCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomersAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "customers" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           val bankId = BankId(bankIdStr)
@@ -298,7 +298,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID
-    lazy val getCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -312,7 +312,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/banks/BANK_ID/accounts/ACCOUNT_ID/account
-    lazy val getCoreAccountByIdV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCoreAccountByIdV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -329,7 +329,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/dynamic-entities
-    lazy val getMyDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "dynamic-entities" =>
         EndpointHelpers.withUser(req) { (user, _) =>
           for {
@@ -343,7 +343,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/system-dynamic-entities
-    lazy val getSystemDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system-dynamic-entities" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -367,7 +367,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities
-    lazy val getBankLevelDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankLevelDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, _) =>
           for {
@@ -389,7 +389,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID
-    lazy val getConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConsumer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -407,7 +407,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/customers
-    lazy val getCustomersAtAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomersAtAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "customers" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -423,7 +423,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/users/USER_ID/attributes
-    lazy val getUserAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserAttributes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userIdStr / "attributes" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -435,7 +435,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account
-    lazy val getPrivateAccountByIdFull: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPrivateAccountByIdFull: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "account" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -457,7 +457,7 @@ object Http4s600 {
     // POST that GETs (returns 200) — used to fetch a customer by their customer_number.
     // Body is parsed manually so we preserve v6 Lift's "The Json body should be the …"
     // wording verbatim, which the test suites assert on.
-    lazy val getCustomerByCustomerNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerByCustomerNumber: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" / "customer-number" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -478,7 +478,7 @@ object Http4s600 {
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customers/legal-name
     // POST that GETs (returns 200) — fetch customers by legal name.
-    lazy val getCustomersByLegalName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomersByLegalName: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" / "legal-name" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -570,7 +570,7 @@ object Http4s600 {
     }
 
     // Route: POST /obp/v6.0.0/management/system-dynamic-entities (201)
-    lazy val createSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createSystemDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -591,7 +591,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities (201)
-    lazy val createBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createBankLevelDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -611,7 +611,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/system-dynamic-entities/DYNAMIC_ENTITY_ID (200)
-    lazy val updateSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -630,7 +630,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID (200)
-    lazy val updateBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateBankLevelDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -648,7 +648,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/my/dynamic-entities/DYNAMIC_ENTITY_ID (200)
-    lazy val updateMyDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateMyDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "my" / "dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -674,7 +674,7 @@ object Http4s600 {
     // Route: PUT /obp/v6.0.0/system-views/UPD_VIEW_ID (200)
     // Uses UPD_VIEW_ID (non-standard ALL_CAPS) so middleware skips view validation;
     // system views aren't in the regular view tables that VIEW_ID resolution checks.
-    lazy val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemView: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "system-views" / viewIdStr if viewIdStr.nonEmpty =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -698,7 +698,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/metrics
-    lazy val getMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -710,7 +710,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/aggregate-metrics
-    lazy val getAggregateMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAggregateMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "aggregate-metrics" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -738,7 +738,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/metrics/top-apis
-    lazy val getTopAPIs: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getTopAPIs: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" / "top-apis" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -769,7 +769,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/webui-props
-    lazy val getWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getWebUiProps: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "webui-props" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val what = req.uri.query.params.getOrElse("what", "active")
@@ -800,7 +800,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts
-    lazy val getAccountsAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountsAtBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           val filteredParams: Map[String, List[String]] = req.uri.query.multiParams
@@ -834,7 +834,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions
-    lazy val getTransactionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getTransactionsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" =>
         EndpointHelpers.withView(req) { (user, bankAccount, view, cc) =>
           for {
@@ -855,7 +855,7 @@ object Http4s600 {
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/products
     // Simplified port — skips the Redis cache layer (perf optimization only).
-    lazy val getProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProductsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "products" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
@@ -867,7 +867,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/users
-    lazy val getUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -890,7 +890,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/banks (201)
-    lazy val createBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createBank: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -945,7 +945,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customers (201)
-    lazy val createCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -1079,7 +1079,7 @@ object Http4s600 {
     }
 
     // Route: POST /obp/v6.0.0/users (201)
-    lazy val createUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createUser: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -1127,7 +1127,7 @@ object Http4s600 {
       }
 
     // Route: POST /obp/v6.0.0/management/user/reset-password-url (201)
-    lazy val resetPasswordUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val resetPasswordUrl: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "user" / "reset-password-url" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -1197,7 +1197,7 @@ object Http4s600 {
     // ─── Phase 2: system bucket (8 GETs) — wholly new in v6, no override risk ────
 
     // Route: GET /obp/v6.0.0/system/connectors
-    lazy val getConnectors: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectors: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "connectors" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful {
@@ -1214,7 +1214,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/cache/config
-    lazy val getCacheConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCacheConfig: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "cache" / "config" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future.successful(JSONFactory600.createCacheConfigJsonV600())
@@ -1223,7 +1223,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/cache/info
-    lazy val getCacheInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCacheInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "cache" / "info" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future.successful(JSONFactory600.createCacheInfoJsonV600())
@@ -1232,7 +1232,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/cache/namespaces
-    lazy val getCacheNamespaces: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCacheNamespaces: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "cache" / "namespaces" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1262,7 +1262,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/database/pool
-    lazy val getDatabasePoolInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getDatabasePoolInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "database" / "pool" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future.successful(JSONFactory600.createDatabasePoolInfoJsonV600())
@@ -1271,7 +1271,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/migrations
-    lazy val getMigrations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMigrations: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "migrations" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1283,7 +1283,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/connectors/stored_procedure_vDec2019/health
-    lazy val getStoredProcedureConnectorHealth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getStoredProcedureConnectorHealth: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "connectors" / "stored_procedure_vDec2019" / "health" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1302,7 +1302,7 @@ object Http4s600 {
 
     // Route: GET /obp/v6.0.0/system/connector-method-names
     // Simplified port — skips the Redis cache wrapper (perf only).
-    lazy val getConnectorMethodNames: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectorMethodNames: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "connector-method-names" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1318,7 +1318,7 @@ object Http4s600 {
     // `my_resources` (the granting User's own resources the consent user may act on). Owned, not granted,
     // so no Role is checked for the block: Consent.validateMyResources checks kind, shape and existence.
     // Lives in v6 because v5.1.0 is next in line to be frozen. ideas/CONSENT_MY_RESOURCES.md
-    lazy val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createConsent: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "consents" / scaMethod
         if scaMethod == "EMAIL" || scaMethod == "SMS" || scaMethod == "IMPLICIT" =>
         EndpointHelpers.executeFutureCreated(req) {
@@ -1510,262 +1510,267 @@ object Http4s600 {
       http4sPartialFunction = Some(createConsent)
     )
 
-    val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-        root(req)
-          .orElse(getScannedApiVersions(req))
-          .orElse(getCurrentUser(req))
-          .orElse(createConsent(req))
-          .orElse(getBanks(req))
-          .orElse(getBank(req))
-          .orElse(getCustomersAtOneBank(req))
-          .orElse(getCustomerByCustomerId(req))
-          .orElse(getCoreAccountByIdV600(req))
-          .orElse(getMyDynamicEntities(req))
-          .orElse(getSystemDynamicEntities(req))
-          .orElse(getBankLevelDynamicEntities(req))
-          .orElse(getConsumer(req))
-          .orElse(getCustomersAtAllBanks(req))
-          .orElse(getUserAttributes(req))
-          .orElse(getPrivateAccountByIdFull(req))
-          .orElse(getCustomerByCustomerNumber(req))
-          .orElse(getCustomersByLegalName(req))
-          .orElse(createSystemDynamicEntity(req))
-          .orElse(createBankLevelDynamicEntity(req))
-          .orElse(updateSystemDynamicEntity(req))
-          .orElse(updateBankLevelDynamicEntity(req))
-          .orElse(updateMyDynamicEntity(req))
-          .orElse(updateSystemView(req))
-          .orElse(getMetrics(req))
-          .orElse(getAggregateMetrics(req))
-          .orElse(getTopAPIs(req))
-          .orElse(getWebUiProps(req))
-          .orElse(getAccountsAtBank(req))
-          .orElse(getTransactionsForBankAccount(req))
-          .orElse(getProductsV600(req))
-          .orElse(getUsers(req))
-          .orElse(createBank(req))
-          .orElse(createCustomer(req))
-          .orElse(createUser(req))
-          .orElse(resetPasswordUrl(req))
-          .orElse(getConnectors(req))
-          .orElse(getCacheConfig(req))
-          .orElse(getCacheInfo(req))
-          .orElse(getCacheNamespaces(req))
-          .orElse(getDatabasePoolInfo(req))
-          .orElse(getMigrations(req))
-          .orElse(getStoredProcedureConnectorHealth(req))
-          .orElse(getConnectorMethodNames(req))
-          .orElse(createMandate(req))
-          .orElse(getMandates(req))
-          .orElse(getMandate(req))
-          .orElse(updateMandate(req))
-          .orElse(deleteMandate(req))
-          .orElse(createMandateProvision(req))
-          .orElse(getMandateProvisions(req))
-          .orElse(getMandateProvision(req))
-          .orElse(updateMandateProvision(req))
-          .orElse(deleteMandateProvision(req))
-          .orElse(createApiProduct(req))
-          .orElse(createOrUpdateApiProduct(req))
-          .orElse(getApiProduct(req))
-          .orElse(getApiProducts(req))
-          .orElse(deleteApiProduct(req))
-          .orElse(createApiProductAttribute(req))
-          .orElse(updateApiProductAttribute(req))
-          .orElse(getApiProductAttribute(req))
-          .orElse(deleteApiProductAttribute(req))
-          .orElse(createFeaturedApiCollection(req))
-          .orElse(getFeaturedApiCollectionsAdmin(req))
-          .orElse(updateFeaturedApiCollection(req))
-          .orElse(deleteFeaturedApiCollection(req))
-          .orElse(createPersonalDataField(req))
-          .orElse(getPersonalDataFields(req))
-          .orElse(getPersonalDataFieldById(req))
-          .orElse(updatePersonalDataField(req))
-          .orElse(deletePersonalDataField(req))
-          .orElse(getConsumerCallCounters(req))
-          .orElse(createCallLimits(req))
-          .orElse(updateRateLimits(req))
-          .orElse(deleteCallLimits(req))
-          .orElse(getActiveRateLimitsNow(req))
-          .orElse(getActiveRateLimitsAtDate(req))
-          .orElse(createGroup(req))
-          .orElse(getGroup(req))
-          .orElse(getGroups(req))
-          .orElse(updateGroup(req))
-          .orElse(deleteGroup(req))
-          .orElse(getGroupEntitlements(req))
-          .orElse(createAbacRule(req))
-          .orElse(getAbacRule(req))
-          .orElse(getAbacRules(req))
-          .orElse(getAbacRulesByPolicy(req))
-          .orElse(updateAbacRule(req))
-          .orElse(deleteAbacRule(req))
-          .orElse(getFeatures(req))
-          .orElse(getProviders(req))
-          .orElse(getCurrentConsumer(req))
-          .orElse(getPopularApis(req))
-          .orElse(getAccountDirectory(req))
-          .orElse(getConfigProps(req))
-          .orElse(getAppDirectory(req))
-          .orElse(getCustomViews(req))
-          .orElse(getRolesWithEntitlementCountsAtAllBanks(req))
-          .orElse(getCustomViewById(req))
-          .orElse(invalidateCacheNamespace(req))
-          .orElse(createCustomerLink(req))
-          .orElse(getCustomerLinksByBankId(req))
-          .orElse(getCustomerLinkById(req))
-          .orElse(updateCustomerLink(req))
-          .orElse(deleteCustomerLink(req))
-          .orElse(getCorporateCustomersAtOneBank(req))
-          .orElse(getCorporateCustomerByCustomerId(req))
-          .orElse(getCorporateCustomerSubsidiaries(req))
-          .orElse(getRetailCustomersAtOneBank(req))
-          .orElse(getRetailCustomerByCustomerId(req))
-          .orElse(getCustomerChildren(req))
-          .orElse(getCustomerLinksByCustomerId(req))
-          .orElse(getCustomerInvestigationReport(req))
-          .orElse(getSystemViews(req))
-          .orElse(getSystemViewById(req))
-          .orElse(getAbacPolicies(req))
-          .orElse(getConnectorCallCounts(req))
-          .orElse(getConnectorTraces(req))
-          .orElse(getDynamicEntityDiagnostics(req))
-          .orElse(cleanupOrphanedDynamicEntityRecords(req))
-          .orElse(createWebUiProps(req))
-          .orElse(createOrUpdateWebUiProps(req))
-          .orElse(deleteWebUiProps(req))
-          .orElse(createCustomViewManagement(req))
-          .orElse(getProductTagsV600(req))
-          .orElse(updateProductTagsV600(req))
-          .orElse(getOidcClient(req))
-          .orElse(verifyOidcClient(req))
-          .orElse(getUserAttributeById(req))
-          .orElse(createUserAttribute(req))
-          .orElse(updateUserAttribute(req))
-          .orElse(deleteUserAttribute(req))
-          .orElse(addUserToGroup(req))
-          .orElse(removeUserFromGroup(req))
-          .orElse(deleteEntitlement(req))
-          .orElse(getAvailablePersonalDynamicEntities(req))
-          .orElse(getReferenceTypes(req))
-          .orElse(joinSystemChatRoom(req))
-          .orElse(createCounterpartyAttribute(req))
-          .orElse(deleteCounterpartyAttribute(req))
-          .orElse(getCounterpartyAttributeById(req))
-          .orElse(getAllCounterpartyAttributes(req))
-          .orElse(updateCounterpartyAttribute(req))
-          .orElse(hasAccountAccess(req))
-          .orElse(getMyAccountAccessRequests(req))
-          .orElse(getWebUiProp(req))
-          .orElse(getMessageDocsJsonSchema(req))
-          .orElse(verifyUserCredentials(req))
-          .orElse(getViewPermissions(req))
-          .orElse(getAllApiProductsV600(req))
-          .orElse(getAllProductsV600(req))
-          .orElse(getAccountAccessRequestsForAccount(req))
-          .orElse(getAccountAccessRequestById(req))
-          .orElse(getHoldingAccountByReleaser(req))
-          .orElse(createAccountAccessRequest(req))
-          .orElse(approveAccountAccessRequest(req))
-          .orElse(rejectAccountAccessRequest(req))
-          .orElse(getSignalChannels(req))
-          .orElse(getSignalChannelInfo(req))
-          .orElse(getSignalStats(req))
-          .orElse(publishSignalMessage(req))
-          .orElse(getSignalMessages(req))
-          .orElse(deleteSignalChannel(req))
-          .orElse(getBankChatRooms(req))
-          .orElse(getSystemChatRooms(req))
-          .orElse(getBankChatRoom(req))
-          .orElse(getSystemChatRoom(req))
-          .orElse(getMyChatRooms(req))
-          .orElse(getMyUnreadCounts(req))
-          .orElse(markChatRoomRead(req))
-          .orElse(getMyMentions(req))
-          .orElse(searchChatRooms(req))
-          .orElse(getBulkReactions(req))
-          .orElse(archiveBankChatRoom(req))
-          .orElse(archiveSystemChatRoom(req))
-          .orElse(joinBankChatRoom(req))
-          .orElse(refreshBankJoiningKey(req))
-          .orElse(refreshSystemJoiningKey(req))
-          .orElse(createBankChatRoom(req))
-          .orElse(createSystemChatRoom(req))
-          .orElse(updateBankChatRoom(req))
-          .orElse(updateSystemChatRoom(req))
-          .orElse(deleteBankChatRoom(req))
-          .orElse(deleteSystemChatRoom(req))
-          .orElse(setBankChatRoomOpenRoom(req))
-          .orElse(setSystemChatRoomOpenRoom(req))
-          .orElse(addBankChatRoomParticipant(req))
-          .orElse(addSystemChatRoomParticipant(req))
-          .orElse(getBankChatRoomParticipants(req))
-          .orElse(getSystemChatRoomParticipants(req))
-          .orElse(updateBankParticipantPermissions(req))
-          .orElse(updateSystemParticipantPermissions(req))
-          .orElse(removeBankChatRoomParticipant(req))
-          .orElse(removeSystemChatRoomParticipant(req))
-          .orElse(sendBankChatMessage(req))
-          .orElse(sendSystemChatMessage(req))
-          .orElse(getBankChatMessages(req))
-          .orElse(getSystemChatMessages(req))
-          .orElse(getBankChatMessage(req))
-          .orElse(getSystemChatMessage(req))
-          .orElse(editBankChatMessage(req))
-          .orElse(editSystemChatMessage(req))
-          .orElse(deleteBankChatMessage(req))
-          .orElse(deleteSystemChatMessage(req))
-          .orElse(getBankThreadReplies(req))
-          .orElse(getSystemThreadReplies(req))
-          .orElse(replyInBankThread(req))
-          .orElse(replyInSystemThread(req))
-          .orElse(addBankReaction(req))
-          .orElse(addSystemReaction(req))
-          .orElse(removeBankReaction(req))
-          .orElse(removeSystemReaction(req))
-          .orElse(getBankReactions(req))
-          .orElse(getSystemReactions(req))
-          .orElse(signalBankTyping(req))
-          .orElse(signalSystemTyping(req))
-          .orElse(getBankTypingUsers(req))
-          .orElse(getSystemTypingUsers(req))
-          .orElse(createSignatoryPanel(req))
-          .orElse(getSignatoryPanels(req))
-          .orElse(getSignatoryPanel(req))
-          .orElse(updateSignatoryPanel(req))
-          .orElse(deleteSignatoryPanel(req))
-          .orElse(validateUserEmail(req))
-          .orElse(resetPasswordComplete(req))
-          .orElse(resetPasswordUrlAnonymous(req))
-          .orElse(validateDynamicResourceDoc(req))
-          .orElse(createTransactionRequestHold(req))
-          .orElse(createTransactionRequestCardano(req))
-          .orElse(createTransactionRequestEthereumeSendTransaction(req))
-          .orElse(createTransactionRequestEthSendRawTransaction(req))
-          .orElse(getUserGroupMemberships(req))
-          .orElse(getUsersWithAccountAccess(req))
-          .orElse(createRetailCustomer(req))
-          .orElse(createCorporateCustomer(req))
-          .orElse(getUserByUserId(req))
-          .orElse(directLoginEndpoint(req))
-          .orElse(validateAbacRule(req))
-          .orElse(executeAbacRule(req))
-          .orElse(executeAbacPolicy(req))
-          .orElse(getAbacRuleSchema(req))
-          .orElse(backupSystemDynamicEntity(req))
-          .orElse(backupBankLevelDynamicEntity(req))
-          .orElse(deleteSystemDynamicEntityCascade(req))
-          // createCorporateCustomer + createRetailCustomer deferred — share
-          // the 60-line date-parsing/customer-number generation logic of
-          // createCustomer (already migrated); will batch as a focused pass.
-      }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getScannedApiVersions,
+      getCurrentUser,
+      createConsent,
+      getBanks,
+      getBank,
+      getCustomersAtOneBank,
+      getCustomerByCustomerId,
+      getCoreAccountByIdV600,
+      getMyDynamicEntities,
+      getSystemDynamicEntities,
+      getBankLevelDynamicEntities,
+      getConsumer,
+      getCustomersAtAllBanks,
+      getUserAttributes,
+      getPrivateAccountByIdFull,
+      getCustomerByCustomerNumber,
+      getCustomersByLegalName,
+      createSystemDynamicEntity,
+      createBankLevelDynamicEntity,
+      updateSystemDynamicEntity,
+      updateBankLevelDynamicEntity,
+      updateMyDynamicEntity,
+      updateSystemView,
+      getMetrics,
+      getAggregateMetrics,
+      getTopAPIs,
+      getWebUiProps,
+      getAccountsAtBank,
+      getTransactionsForBankAccount,
+      getProductsV600,
+      getUsers,
+      createBank,
+      createCustomer,
+      createUser,
+      resetPasswordUrl,
+      getConnectors,
+      getCacheConfig,
+      getCacheInfo,
+      getCacheNamespaces,
+      getDatabasePoolInfo,
+      getMigrations,
+      getStoredProcedureConnectorHealth,
+      getConnectorMethodNames,
+      createMandate,
+      getMandates,
+      getMandate,
+      updateMandate,
+      deleteMandate,
+      createMandateProvision,
+      getMandateProvisions,
+      getMandateProvision,
+      updateMandateProvision,
+      deleteMandateProvision,
+      createApiProduct,
+      createOrUpdateApiProduct,
+      getApiProduct,
+      getApiProducts,
+      deleteApiProduct,
+      createApiProductAttribute,
+      updateApiProductAttribute,
+      getApiProductAttribute,
+      deleteApiProductAttribute,
+      createFeaturedApiCollection,
+      getFeaturedApiCollectionsAdmin,
+      updateFeaturedApiCollection,
+      deleteFeaturedApiCollection,
+      createPersonalDataField,
+      getPersonalDataFields,
+      getPersonalDataFieldById,
+      updatePersonalDataField,
+      deletePersonalDataField,
+      getConsumerCallCounters,
+      createCallLimits,
+      updateRateLimits,
+      deleteCallLimits,
+      getActiveRateLimitsNow,
+      getActiveRateLimitsAtDate,
+      createGroup,
+      getGroup,
+      getGroups,
+      updateGroup,
+      deleteGroup,
+      getGroupEntitlements,
+      createAbacRule,
+      getAbacRule,
+      getAbacRules,
+      getAbacRulesByPolicy,
+      updateAbacRule,
+      deleteAbacRule,
+      getFeatures,
+      getProviders,
+      getCurrentConsumer,
+      getPopularApis,
+      getAccountDirectory,
+      getConfigProps,
+      getAppDirectory,
+      getCustomViews,
+      getRolesWithEntitlementCountsAtAllBanks,
+      getCustomViewById,
+      invalidateCacheNamespace,
+      createCustomerLink,
+      getCustomerLinksByBankId,
+      getCustomerLinkById,
+      updateCustomerLink,
+      deleteCustomerLink,
+      getCorporateCustomersAtOneBank,
+      getCorporateCustomerByCustomerId,
+      getCorporateCustomerSubsidiaries,
+      getRetailCustomersAtOneBank,
+      getRetailCustomerByCustomerId,
+      getCustomerChildren,
+      getCustomerLinksByCustomerId,
+      getCustomerInvestigationReport,
+      getSystemViews,
+      getSystemViewById,
+      getAbacPolicies,
+      getConnectorCallCounts,
+      getConnectorTraces,
+      getDynamicEntityDiagnostics,
+      cleanupOrphanedDynamicEntityRecords,
+      createWebUiProps,
+      createOrUpdateWebUiProps,
+      deleteWebUiProps,
+      createCustomViewManagement,
+      getProductTagsV600,
+      updateProductTagsV600,
+      getOidcClient,
+      verifyOidcClient,
+      getUserAttributeById,
+      createUserAttribute,
+      updateUserAttribute,
+      deleteUserAttribute,
+      addUserToGroup,
+      removeUserFromGroup,
+      deleteEntitlement,
+      getAvailablePersonalDynamicEntities,
+      getReferenceTypes,
+      joinSystemChatRoom,
+      createCounterpartyAttribute,
+      deleteCounterpartyAttribute,
+      getCounterpartyAttributeById,
+      getAllCounterpartyAttributes,
+      updateCounterpartyAttribute,
+      hasAccountAccess,
+      getMyAccountAccessRequests,
+      getWebUiProp,
+      getMessageDocsJsonSchema,
+      verifyUserCredentials,
+      getViewPermissions,
+      getAllApiProductsV600,
+      getAllProductsV600,
+      getAccountAccessRequestsForAccount,
+      getAccountAccessRequestById,
+      getHoldingAccountByReleaser,
+      createAccountAccessRequest,
+      approveAccountAccessRequest,
+      rejectAccountAccessRequest,
+      getSignalChannels,
+      getSignalChannelInfo,
+      getSignalStats,
+      publishSignalMessage,
+      getSignalMessages,
+      deleteSignalChannel,
+      getBankChatRooms,
+      getSystemChatRooms,
+      getBankChatRoom,
+      getSystemChatRoom,
+      getMyChatRooms,
+      getMyUnreadCounts,
+      markChatRoomRead,
+      getMyMentions,
+      searchChatRooms,
+      getBulkReactions,
+      archiveBankChatRoom,
+      archiveSystemChatRoom,
+      joinBankChatRoom,
+      refreshBankJoiningKey,
+      refreshSystemJoiningKey,
+      createBankChatRoom,
+      createSystemChatRoom,
+      updateBankChatRoom,
+      updateSystemChatRoom,
+      deleteBankChatRoom,
+      deleteSystemChatRoom,
+      setBankChatRoomOpenRoom,
+      setSystemChatRoomOpenRoom,
+      addBankChatRoomParticipant,
+      addSystemChatRoomParticipant,
+      getBankChatRoomParticipants,
+      getSystemChatRoomParticipants,
+      updateBankParticipantPermissions,
+      updateSystemParticipantPermissions,
+      removeBankChatRoomParticipant,
+      removeSystemChatRoomParticipant,
+      sendBankChatMessage,
+      sendSystemChatMessage,
+      getBankChatMessages,
+      getSystemChatMessages,
+      getBankChatMessage,
+      getSystemChatMessage,
+      editBankChatMessage,
+      editSystemChatMessage,
+      deleteBankChatMessage,
+      deleteSystemChatMessage,
+      getBankThreadReplies,
+      getSystemThreadReplies,
+      replyInBankThread,
+      replyInSystemThread,
+      addBankReaction,
+      addSystemReaction,
+      removeBankReaction,
+      removeSystemReaction,
+      getBankReactions,
+      getSystemReactions,
+      signalBankTyping,
+      signalSystemTyping,
+      getBankTypingUsers,
+      getSystemTypingUsers,
+      createSignatoryPanel,
+      getSignatoryPanels,
+      getSignatoryPanel,
+      updateSignatoryPanel,
+      deleteSignatoryPanel,
+      validateUserEmail,
+      resetPasswordComplete,
+      resetPasswordUrlAnonymous,
+      validateDynamicResourceDoc,
+      createTransactionRequestHold,
+      createTransactionRequestCardano,
+      createTransactionRequestEthereumeSendTransaction,
+      createTransactionRequestEthSendRawTransaction,
+      getUserGroupMemberships,
+      getUsersWithAccountAccess,
+      createRetailCustomer,
+      createCorporateCustomer,
+      getUserByUserId,
+      directLoginEndpoint,
+      validateAbacRule,
+      executeAbacRule,
+      executeAbacPolicy,
+      getAbacRuleSchema,
+      backupSystemDynamicEntity,
+      backupBankLevelDynamicEntity,
+      deleteSystemDynamicEntityCascade
+      // createCorporateCustomer + createRetailCustomer deferred — share
+      // the 60-line date-parsing/customer-number generation logic of
+      // createCustomer (already migrated); will batch as a focused pass.
+    )
+
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
     // ─── Phase 2: corporate-customers + retail-customers + banks/customers/* (8) ───
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers
-    lazy val getCorporateCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCorporateCustomersAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1779,7 +1784,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID
-    lazy val getCorporateCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCorporateCustomerByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" / customerId =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1794,7 +1799,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries
-    lazy val getCorporateCustomerSubsidiaries: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCorporateCustomerSubsidiaries: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" / customerId / "subsidiaries" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1809,7 +1814,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers
-    lazy val getRetailCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getRetailCustomersAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "retail-customers" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1823,7 +1828,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers/CUSTOMER_ID
-    lazy val getRetailCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getRetailCustomerByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "retail-customers" / customerId =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1838,7 +1843,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/children
-    lazy val getCustomerChildren: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerChildren: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "children" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1850,7 +1855,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/customer-links
-    lazy val getCustomerLinksByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerLinksByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "customer-links" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -1867,7 +1872,7 @@ object Http4s600 {
     // deleteSystemDynamicEntityCascade (private deleteDynamicEntityCascadeMethod).
 
     // GET /obp/v6.0.0/management/system-views
-    lazy val getSystemViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemViews: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system-views" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Views.views.vend.getSystemViews().map(JSONFactory600.createViewsJsonV600)
@@ -1875,7 +1880,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/system-views/SYS_VIEW_ID  (non-standard var so middleware skips view validation)
-    lazy val getSystemViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemViewById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system-views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc)).map(JSONFactory600.createViewJsonV600)
@@ -1883,7 +1888,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/abac-policies
-    lazy val getAbacPolicies: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacPolicies: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-policies" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1897,7 +1902,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/connector/metrics/counts
-    lazy val getConnectorCallCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectorCallCounts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "connector" / "metrics" / "counts" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1915,7 +1920,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/connector/traces
-    lazy val getConnectorTraces: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectorTraces: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "connector" / "traces" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -1927,7 +1932,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/diagnostics/dynamic-entities
-    lazy val getDynamicEntityDiagnostics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getDynamicEntityDiagnostics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "diagnostics" / "dynamic-entities" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1943,7 +1948,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/management/diagnostics/dynamic-entities/orphaned-records
-    lazy val cleanupOrphanedDynamicEntityRecords: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val cleanupOrphanedDynamicEntityRecords: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "diagnostics" / "dynamic-entities" / "orphaned-records" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1962,7 +1967,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/management/webui_props
-    lazy val createWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createWebUiProps: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "webui_props" =>
         EndpointHelpers.withUserAndBodyCreated[WebUiPropsCommons, Any](req) { (user, postedData, cc) =>
           for {
@@ -1979,7 +1984,7 @@ object Http4s600 {
 
 
     // PUT /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
-    lazy val createOrUpdateWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createOrUpdateWebUiProps: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
         implicit val cc: CallContext = req.callContext
         implicit val formats: Formats = code.api.util.CustomJsonFormats.formats
@@ -2013,7 +2018,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
-    lazy val deleteWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteWebUiProps: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
         EndpointHelpers.executeDelete(req) { cc =>
           val nameLower = webUiPropName.toLowerCase
@@ -2039,7 +2044,7 @@ object Http4s600 {
     // ─── Phase 2: 3 small mixed buckets (5 endpoints) ─────────────────────
 
     // POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views (201)
-    lazy val createCustomViewManagement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCustomViewManagement: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "views" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2060,7 +2065,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
-    lazy val getProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProductTagsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "products" / productCodeStr / "tags" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val productCode = com.openbankproject.commons.model.ProductCode(productCodeStr)
@@ -2072,7 +2077,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
-    lazy val updateProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateProductTagsV600: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "products" / productCodeStr / "tags" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2097,7 +2102,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/oidc/clients/CLIENT_ID
-    lazy val getOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getOidcClient: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "oidc" / "clients" / clientId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2120,7 +2125,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/oidc/clients/verify
-    lazy val verifyOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val verifyOidcClient: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "oidc" / "clients" / "verify" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2148,7 +2153,7 @@ object Http4s600 {
     // ─── Phase 2: users bucket (6 of 16; chat-room + special-purpose deferred) ───
 
     // GET /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
-    lazy val getUserAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserAttributeById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2161,7 +2166,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/users/USER_ID/attributes (201)
-    lazy val createUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createUserAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userIdStr / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2181,7 +2186,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
-    lazy val updateUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateUserAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2203,7 +2208,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
-    lazy val deleteUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteUserAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -2217,7 +2222,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/users/USER_ID/group-entitlements (201)
-    lazy val addUserToGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addUserToGroup: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userIdStr / "group-entitlements" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2270,7 +2275,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID
-    lazy val removeUserFromGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeUserFromGroup: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "users" / userIdStr / "group-entitlements" / groupId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -2300,7 +2305,7 @@ object Http4s600 {
     // ─── Phase 2: 4 more single-endpoint buckets ──────────────────────────
 
     // DELETE /obp/v6.0.0/entitlements/ENTITLEMENT_ID
-    lazy val deleteEntitlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteEntitlement: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "entitlements" / entitlementId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -2314,7 +2319,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/personal-dynamic-entities/available
-    lazy val getAvailablePersonalDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAvailablePersonalDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "personal-dynamic-entities" / "available" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(NewStyle.function.getDynamicEntities(None, true))
@@ -2323,7 +2328,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/dynamic-entities/reference-types
-    lazy val getReferenceTypes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getReferenceTypes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "dynamic-entities" / "reference-types" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -2366,7 +2371,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/chat-room-participants (201) — join a system chat room by joining_key
-    lazy val joinSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val joinSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-room-participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2394,7 +2399,7 @@ object Http4s600 {
         AttributeTypeDocs.typesWithExamples
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes (201)
-    lazy val createCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCounterpartyAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2419,7 +2424,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
-    lazy val deleteCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteCounterpartyAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
         EndpointHelpers.executeDelete(req) { cc =>
           code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
@@ -2427,7 +2432,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
-    lazy val getCounterpartyAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCounterpartyAttributeById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2437,7 +2442,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes
-    lazy val getAllCounterpartyAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAllCounterpartyAttributes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2448,7 +2453,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
-    lazy val updateCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateCounterpartyAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2472,7 +2477,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access
-    lazy val hasAccountAccess: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val hasAccountAccess: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "has-account-access" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val bankId = BankId(bankIdStr)
@@ -2503,7 +2508,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/my/account-access-requests
-    lazy val getMyAccountAccessRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyAccountAccessRequests: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "account-access-requests" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2517,7 +2522,7 @@ object Http4s600 {
     // ─── Phase 2: 3 anonymous/UserOrApplication endpoints ─────────────────
 
     // GET /obp/v6.0.0/webui-props/WEBUI_PROP_NAME
-    lazy val getWebUiProp: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getWebUiProp: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "webui-props" / webUiPropName =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val active = req.uri.query.params.getOrElse("active", "false")
@@ -2553,7 +2558,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/message-docs/CONNECTOR/json-schema
-    lazy val getMessageDocsJsonSchema: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMessageDocsJsonSchema: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "message-docs" / connector / "json-schema" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val cacheKey = s"message-docs-json-schema-$connector"
@@ -2582,7 +2587,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/users/verify-credentials
-    lazy val verifyUserCredentials: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val verifyUserCredentials: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "verify-credentials" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2612,7 +2617,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/view-permissions
-    lazy val getViewPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getViewPermissions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "view-permissions" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           Future {
@@ -2640,7 +2645,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/api-products  (all banks; auth-required; cached)
-    lazy val getAllApiProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAllApiProductsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "api-products" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val tagFilter = req.uri.query.params.get("tag").map(_.trim).filter(_.nonEmpty)
@@ -2668,7 +2673,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/products  (all banks; auth-required; cached)
-    lazy val getAllProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAllProductsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "products" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
@@ -2702,7 +2707,7 @@ object Http4s600 {
     // ─── Phase 2: account-access-requests + holding-accounts (3 endpoints) ─
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests
-    lazy val getAccountAccessRequestsForAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountAccessRequestsForAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           val status = req.uri.query.params.get("status")
@@ -2724,7 +2729,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID
-    lazy val getAccountAccessRequestById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountAccessRequestById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestId =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           for {
@@ -2740,7 +2745,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/holding-accounts
-    lazy val getHoldingAccountByReleaser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getHoldingAccountByReleaser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "holding-accounts" =>
         EndpointHelpers.withView(req) { (user, _, view, cc) =>
           val bankId = BankId(bankIdStr)
@@ -2774,7 +2779,7 @@ object Http4s600 {
     // ─── Phase 2: account-access-request lifecycle (3 endpoints) ─────────
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests (201)
-    lazy val createAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createAccountAccessRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2819,7 +2824,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../approval (201)
-    lazy val approveAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val approveAccountAccessRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestIdStr / "approval" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2878,7 +2883,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../rejection (201)
-    lazy val rejectAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val rejectAccountAccessRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestIdStr / "rejection" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2919,7 +2924,7 @@ object Http4s600 {
     // ─── Phase 2: Signal bucket (6 endpoints) ────────────────────────────
 
     // GET /obp/v6.0.0/signal-channels
-    lazy val getSignalChannels: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalChannels: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           // Shared with the gRPC SignalChannelsService.ListChannels, see code.signal.SignalChannels
@@ -2928,7 +2933,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/info
-    lazy val getSignalChannelInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalChannelInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" / channelName / "info" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2951,7 +2956,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/signal-channels/stats
-    lazy val getSignalStats: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalStats: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" / "stats" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           Future {
@@ -2970,7 +2975,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages (201)
-    lazy val publishSignalMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val publishSignalMessage: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3004,7 +3009,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages
-    lazy val getSignalMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalMessages: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3031,7 +3036,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/signal-channels/CHANNEL_NAME (200 with body — not 204)
-    lazy val deleteSignalChannel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSignalChannel: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "signal-channels" / channelName =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -3065,7 +3070,7 @@ object Http4s600 {
       }.toMap
 
     // GET /obp/v6.0.0/banks/BANK_ID/chat-rooms
-    lazy val getBankChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatRooms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3080,7 +3085,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/chat-rooms
-    lazy val getSystemChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatRooms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3095,7 +3100,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
-    lazy val getBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3108,7 +3113,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
-    lazy val getSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3123,7 +3128,7 @@ object Http4s600 {
     // ─── Phase 2: Chat-room my-views (6 endpoints) ────────────────────────
 
     // GET /obp/v6.0.0/users/current/chat-rooms
-    lazy val getMyChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyChatRooms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "chat-rooms" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3152,7 +3157,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/users/current/chat-rooms/unread
-    lazy val getMyUnreadCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyUnreadCounts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "chat-rooms" / "unread" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3176,7 +3181,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/users/current/chat-rooms/CHAT_ROOM_ID/read-marker
-    lazy val markChatRoomRead: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val markChatRoomRead: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "users" / "current" / "chat-rooms" / chatRoomId / "read-marker" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException("User not found in CallContext")
@@ -3193,7 +3198,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/users/current/mentions
-    lazy val getMyMentions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyMentions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "mentions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val qp = req.uri.query.params
@@ -3215,7 +3220,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/chat-rooms/search (200, NOT 201)
-    lazy val searchChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val searchChatRooms: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / "search" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3237,7 +3242,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/messages/reactions
-    lazy val getBulkReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBulkReactions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / "reactions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3258,7 +3263,7 @@ object Http4s600 {
     // ─── Phase 2: Chat-room admin (5 endpoints) ───────────────────────────
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/archive-status
-    lazy val archiveBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val archiveBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "archive-status" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -3273,7 +3278,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/archive-status
-    lazy val archiveSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val archiveSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "archive-status" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -3288,7 +3293,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/banks/BANK_ID/chat-room-participants (201)
-    lazy val joinBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val joinBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-room-participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3313,7 +3318,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key
-    lazy val refreshBankJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val refreshBankJoiningKey: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "joining-key" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3330,7 +3335,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/joining-key
-    lazy val refreshSystemJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val refreshSystemJoiningKey: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "joining-key" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3349,7 +3354,7 @@ object Http4s600 {
     // ─── Phase 2: Chat-room mutations (8 endpoints) ───────────────────────
 
     // POST /obp/v6.0.0/banks/BANK_ID/chat-rooms (201)
-    lazy val createBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3378,7 +3383,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/chat-rooms (201)
-    lazy val createSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3407,7 +3412,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
-    lazy val updateBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3432,7 +3437,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
-    lazy val updateSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3457,7 +3462,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID (204)
-    lazy val deleteBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -3471,7 +3476,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID (204)
-    lazy val deleteSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -3485,7 +3490,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room
-    lazy val setBankChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val setBankChatRoomOpenRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "open-room" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3504,7 +3509,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/open-room
-    lazy val setSystemChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val setSystemChatRoomOpenRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "open-room" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3527,7 +3532,7 @@ object Http4s600 {
     // registrations live in a separate private def to keep <init> under
     // the JVM 64KB method-size limit. Apply this pattern for future batches.
 
-    lazy val addBankChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addBankChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3565,7 +3570,7 @@ object Http4s600 {
         }
     }
 
-    lazy val addSystemChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addSystemChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3603,7 +3608,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankChatRoomParticipants: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatRoomParticipants: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3618,7 +3623,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemChatRoomParticipants: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatRoomParticipants: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3633,7 +3638,7 @@ object Http4s600 {
         }
     }
 
-    lazy val updateBankParticipantPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateBankParticipantPermissions: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3657,7 +3662,7 @@ object Http4s600 {
         }
     }
 
-    lazy val updateSystemParticipantPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemParticipantPermissions: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3681,7 +3686,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeBankChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeBankChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -3702,7 +3707,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeSystemChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeSystemChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -3729,7 +3734,7 @@ object Http4s600 {
 
     // ─── Phase 2: Chat messages (10 endpoints) ────────────────────────────
 
-    lazy val sendBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val sendBankChatMessage: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3779,7 +3784,7 @@ object Http4s600 {
         }
     }
 
-    lazy val sendSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val sendSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3829,7 +3834,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankChatMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatMessages: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           val qp = req.uri.query.params
@@ -3848,7 +3853,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemChatMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatMessages: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val qp = req.uri.query.params
@@ -3867,7 +3872,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatMessage: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3882,7 +3887,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3897,7 +3902,7 @@ object Http4s600 {
         }
     }
 
-    lazy val editBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val editBankChatMessage: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3933,7 +3938,7 @@ object Http4s600 {
         }
     }
 
-    lazy val editSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val editSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3969,7 +3974,7 @@ object Http4s600 {
         }
     }
 
-    lazy val deleteBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteBankChatMessage: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -3993,7 +3998,7 @@ object Http4s600 {
         }
     }
 
-    lazy val deleteSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4023,7 +4028,7 @@ object Http4s600 {
 
     // ─── Phase 2: Chat threads + reactions + typing (14 endpoints) ────────
 
-    lazy val getBankThreadReplies: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankThreadReplies: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -4046,7 +4051,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemThreadReplies: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemThreadReplies: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -4069,7 +4074,7 @@ object Http4s600 {
         }
     }
 
-    lazy val replyInBankThread: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val replyInBankThread: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4124,7 +4129,7 @@ object Http4s600 {
         }
     }
 
-    lazy val replyInSystemThread: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val replyInSystemThread: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4179,7 +4184,7 @@ object Http4s600 {
         }
     }
 
-    lazy val addBankReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addBankReaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4207,7 +4212,7 @@ object Http4s600 {
         }
     }
 
-    lazy val addSystemReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addSystemReaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4235,7 +4240,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeBankReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeBankReaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" / emoji =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4258,7 +4263,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeSystemReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeSystemReaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" / emoji =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4281,7 +4286,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankReactions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -4298,7 +4303,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemReactions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -4315,7 +4320,7 @@ object Http4s600 {
         }
     }
 
-    lazy val signalBankTyping: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val signalBankTyping: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4333,7 +4338,7 @@ object Http4s600 {
         }
     }
 
-    lazy val signalSystemTyping: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val signalSystemTyping: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4351,7 +4356,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankTypingUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankTypingUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -4381,7 +4386,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemTypingUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemTypingUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -4417,7 +4422,7 @@ object Http4s600 {
 
     // ─── Phase 2: Signatory Panels (5 endpoints) ─────────────────────────
 
-    lazy val createSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "signatory-panels" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4435,7 +4440,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSignatoryPanels: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignatoryPanels: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "signatory-panels" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -4447,7 +4452,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / _ / "signatory-panels" / panelId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -4459,7 +4464,7 @@ object Http4s600 {
         }
     }
 
-    lazy val updateSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "mandates" / _ / "signatory-panels" / panelId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -4477,7 +4482,7 @@ object Http4s600 {
         }
     }
 
-    lazy val deleteSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "mandates" / _ / "signatory-panels" / panelId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -4495,7 +4500,7 @@ object Http4s600 {
 
     // ─── Phase 2: Auth/JWT/validation/transaction-request endpoints (7) ──
 
-    lazy val validateUserEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val validateUserEmail: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "email-validation" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -4544,7 +4549,7 @@ object Http4s600 {
         }
     }
 
-    lazy val resetPasswordComplete: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val resetPasswordComplete: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "password" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4586,7 +4591,7 @@ object Http4s600 {
         }
     }
 
-    lazy val resetPasswordUrlAnonymous: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val resetPasswordUrlAnonymous: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "password-reset-url" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4642,7 +4647,7 @@ object Http4s600 {
         }
     }
 
-    lazy val validateDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val validateDynamicResourceDoc: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" / "validate" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -4735,25 +4740,25 @@ object Http4s600 {
       }
     }
 
-    lazy val createTransactionRequestHold: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestHold: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "HOLD" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "HOLD")
     }
 
-    lazy val createTransactionRequestCardano: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestCardano: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "CARDANO" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "CARDANO")
     }
 
-    lazy val createTransactionRequestEthereumeSendTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestEthereumeSendTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "ETH_SEND_TRANSACTION" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "ETH_SEND_TRANSACTION")
     }
 
-    lazy val createTransactionRequestEthSendRawTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestEthSendRawTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "ETH_SEND_RAW_TRANSACTION" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "ETH_SEND_RAW_TRANSACTION")
@@ -4772,7 +4777,7 @@ object Http4s600 {
 
     // ─── Phase 2: User memberships, access listing, customer creation (4) ─
 
-    lazy val getUserGroupMemberships: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserGroupMemberships: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "group-entitlements" =>
         EndpointHelpers.withUser(req) { (u, cc) =>
           for {
@@ -4810,7 +4815,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getUsersWithAccountAccess: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUsersWithAccountAccess: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "users-with-access" =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           val bankId = BankId(bankIdStr)
@@ -4860,7 +4865,7 @@ object Http4s600 {
         }
     }
 
-    lazy val createRetailCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createRetailCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "retail-customers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4920,7 +4925,7 @@ object Http4s600 {
         }
     }
 
-    lazy val createCorporateCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCorporateCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "corporate-customers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4967,7 +4972,7 @@ object Http4s600 {
 
     // ─── Phase 2: Final batch — getUserByUserId, directLogin, ABAC (5), dynamic-entity backup/cascade (3) ─
 
-    lazy val getUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserByUserId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "user-id" / userId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5023,7 +5028,7 @@ object Http4s600 {
       }.toMap
     }
 
-    lazy val directLoginEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val directLoginEndpoint: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "logins" / "direct" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5046,7 +5051,7 @@ object Http4s600 {
         }
     }
 
-    lazy val validateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val validateAbacRule: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" / "validate" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5092,7 +5097,7 @@ object Http4s600 {
         }
     }
 
-    lazy val executeAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val executeAbacRule: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" / ruleId / "execute" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5118,7 +5123,7 @@ object Http4s600 {
         }
     }
 
-    lazy val executeAbacPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val executeAbacPolicy: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-policies" / policy / "execute" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5347,7 +5352,7 @@ object Http4s600 {
       )
     )
 
-    lazy val getAbacRuleSchema: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRuleSchema: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules-schema" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           Future.successful(buildAbacRuleSchemaJson())
@@ -5449,7 +5454,7 @@ object Http4s600 {
       }
     }
 
-    lazy val backupSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val backupSystemDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId / "backup" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5458,7 +5463,7 @@ object Http4s600 {
         }
     }
 
-    lazy val backupBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val backupBankLevelDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" / dynamicEntityId / "backup" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5499,7 +5504,7 @@ object Http4s600 {
         _ <- NewStyle.function.deleteDynamicEntity(bankIdOpt, dynamicEntityId)
       } yield JObject(Nil)
 
-    lazy val deleteSystemDynamicEntityCascade: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSystemDynamicEntityCascade: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / "cascade" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -5514,7 +5519,7 @@ object Http4s600 {
     initFinal9ResourceDocs()
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report
-    lazy val getCustomerInvestigationReport: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerInvestigationReport: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "investigation-report" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val qp = req.uri.query.params
@@ -5550,7 +5555,7 @@ object Http4s600 {
     // ─── Phase 2: banks/.../customer-links bucket (5 endpoints) ───────────
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customer-links (201)
-    lazy val createCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCustomerLink: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customer-links" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5578,7 +5583,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links
-    lazy val getCustomerLinksByBankId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerLinksByBankId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customer-links" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -5589,7 +5594,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
-    lazy val getCustomerLinkById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerLinkById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -5600,7 +5605,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
-    lazy val updateCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateCustomerLink: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5615,7 +5620,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
-    lazy val deleteCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteCustomerLink: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -5626,7 +5631,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
-    lazy val getCustomViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomViewById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5640,7 +5645,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/management/cache/namespaces/invalidate
-    lazy val invalidateCacheNamespace: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val invalidateCacheNamespace: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "cache" / "namespaces" / "invalidate" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5668,7 +5673,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/config-props
-    lazy val getConfigProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConfigProps: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "config-props" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -5682,7 +5687,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/app-directory
-    lazy val getAppDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAppDirectory: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "app-directory" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future {
@@ -5694,7 +5699,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/custom-views
-    lazy val getCustomViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomViews: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "custom-views" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(JSONFactory600.createViewsJsonV600(code.views.system.ViewDefinition.getCustomViews()))
@@ -5703,7 +5708,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/roles-with-entitlement-counts
-    lazy val getRolesWithEntitlementCountsAtAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getRolesWithEntitlementCountsAtAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "roles-with-entitlement-counts" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           val allRoles = code.api.util.ApiRole.availableRoles.sorted
@@ -5719,7 +5724,7 @@ object Http4s600 {
     // ─── Phase 2: 5 small single-endpoint buckets ─────────────────────────
 
     // Route: GET /obp/v6.0.0/features
-    lazy val getFeatures: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getFeatures: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "features" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(FeaturesJsonV600(
@@ -5741,7 +5746,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/providers
-    lazy val getProviders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProviders: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "providers" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(code.model.dataAccess.ResourceUser.getDistinctProviders)
@@ -5751,7 +5756,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/consumers/current
-    lazy val getCurrentConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCurrentConsumer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "consumers" / "current" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5771,7 +5776,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/api/popular-endpoints
-    lazy val getPopularApis: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPopularApis: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "api" / "popular-endpoints" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -5793,7 +5798,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/account-directory
-    lazy val getAccountDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountDirectory: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "account-directory" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val allowedParams = List("limit", "offset", "sort_direction")
@@ -5834,7 +5839,7 @@ object Http4s600 {
         list_of_roles = group.listOfRoles, is_enabled = group.isEnabled)
 
     // Route: POST /obp/v6.0.0/management/groups (201)
-    lazy val createGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createGroup: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "groups" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5858,7 +5863,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/groups/GROUP_ID
-    lazy val getGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getGroup: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "groups" / groupId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -5871,7 +5876,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/groups
-    lazy val getGroups: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getGroups: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "groups" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val bankIdParam = req.uri.query.params.get("bank_id")
@@ -5893,7 +5898,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/groups/GROUP_ID
-    lazy val updateGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateGroup: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "groups" / groupId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5915,7 +5920,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/groups/GROUP_ID
-    lazy val deleteGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteGroup: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "groups" / groupId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -5933,7 +5938,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/groups/GROUP_ID/entitlements
-    lazy val getGroupEntitlements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getGroupEntitlements: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "groups" / groupId / "entitlements" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5960,7 +5965,7 @@ object Http4s600 {
     // classification + rule-engine integration warrants its own batch.
 
     // Route: POST /obp/v6.0.0/management/abac-rules (201)
-    lazy val createAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createAbacRule: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" =>
         EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
@@ -5994,7 +5999,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
-    lazy val getAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRule: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules" / ruleId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6006,7 +6011,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/abac-rules
-    lazy val getAbacRules: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRules: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(createAbacRulesJsonV600(MappedAbacRuleProvider.getAllAbacRules()))
@@ -6015,7 +6020,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/abac-rules/policy/POLICY
-    lazy val getAbacRulesByPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRulesByPolicy: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules" / "policy" / policy =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(createAbacRulesJsonV600(MappedAbacRuleProvider.getAbacRulesByPolicy(policy)))
@@ -6024,7 +6029,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
-    lazy val updateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateAbacRule: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "abac-rules" / ruleId =>
         EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
@@ -6061,7 +6066,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
-    lazy val deleteAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteAbacRule: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "abac-rules" / ruleId =>
         EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
@@ -6093,7 +6098,7 @@ object Http4s600 {
       s"$InvalidJsonFormat The `type` field can only accept: ${AttributeTypeDocs.typesWithExamples}"
 
     // Route: POST /obp/v6.0.0/my/personal-data-fields (201)
-    lazy val createPersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createPersonalDataField: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "personal-data-fields" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6114,7 +6119,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/personal-data-fields
-    lazy val getPersonalDataFields: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPersonalDataFields: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "personal-data-fields" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -6125,7 +6130,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
-    lazy val getPersonalDataFieldById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPersonalDataFieldById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -6138,7 +6143,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
-    lazy val updatePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updatePersonalDataField: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6161,7 +6166,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
-    lazy val deletePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deletePersonalDataField: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -6178,7 +6183,7 @@ object Http4s600 {
     // ─── Phase 2: management/consumers bucket (6 endpoints) ───────────────
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/call-counters
-    lazy val getConsumerCallCounters: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConsumerCallCounters: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "call-counters" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6190,7 +6195,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits (201)
-    lazy val createCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCallLimits: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6213,7 +6218,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
-    lazy val updateRateLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateRateLimits: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / rateLimitingId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6236,7 +6241,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
-    lazy val deleteCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteCallLimits: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / rateLimitingId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -6248,7 +6253,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits
-    lazy val getActiveRateLimitsNow: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getActiveRateLimitsNow: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "active-rate-limits" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6261,7 +6266,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR
-    lazy val getActiveRateLimitsAtDate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getActiveRateLimitsAtDate: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "active-rate-limits" / dateWithHourString =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6282,7 +6287,7 @@ object Http4s600 {
     // ─── Phase 2: management/api-collections bucket (4 endpoints) ─────────
 
     // Route: POST /obp/v6.0.0/management/api-collections/featured (201)
-    lazy val createFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createFeaturedApiCollection: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "api-collections" / "featured" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6304,7 +6309,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/api-collections/featured
-    lazy val getFeaturedApiCollectionsAdmin: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getFeaturedApiCollectionsAdmin: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "api-collections" / "featured" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6315,7 +6320,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
-    lazy val updateFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateFeaturedApiCollection: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "api-collections" / "featured" / apiCollectionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6331,7 +6336,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
-    lazy val deleteFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteFeaturedApiCollection: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "api-collections" / "featured" / apiCollectionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -6347,7 +6352,7 @@ object Http4s600 {
     // gating would be a Phase 3 follow-up if needed.
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE (201)
-    lazy val createApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createApiProduct: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6375,7 +6380,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE (201 — Lift returns 201)
-    lazy val createOrUpdateApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createOrUpdateApiProduct: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6403,7 +6408,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
-    lazy val getApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getApiProduct: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -6415,7 +6420,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products
-    lazy val getApiProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getApiProducts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "api-products" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val tagFilter = req.uri.query.params.get("tag").map(_.trim).filter(_.nonEmpty)
@@ -6427,7 +6432,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
-    lazy val deleteApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteApiProduct: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -6439,7 +6444,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute (201)
-    lazy val createApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "attribute" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6459,7 +6464,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
-    lazy val updateApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "attributes" / apiProductAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6478,7 +6483,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
-    lazy val getApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "api-products" / _ / "attributes" / apiProductAttributeId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6489,7 +6494,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
-    lazy val deleteApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "api-products" / _ / "attributes" / apiProductAttributeId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6513,7 +6518,7 @@ object Http4s600 {
       }
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates (201)
-    lazy val createMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createMandate: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6538,7 +6543,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates
-    lazy val getMandates: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandates: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" =>
         EndpointHelpers.withBankAccount(req) { (_, account, cc) =>
           for {
@@ -6551,7 +6556,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
-    lazy val getMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandate: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           for {
@@ -6563,7 +6568,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
-    lazy val updateMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateMandate: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6584,7 +6589,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID (204)
-    lazy val deleteMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteMandate: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -6601,7 +6606,7 @@ object Http4s600 {
     }
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions (201)
-    lazy val createMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createMandateProvision: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "provisions" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6626,7 +6631,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions
-    lazy val getMandateProvisions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandateProvisions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "provisions" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6638,7 +6643,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
-    lazy val getMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandateProvision: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6650,7 +6655,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
-    lazy val updateMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateMandateProvision: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6674,7 +6679,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID (204)
-    lazy val deleteMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteMandateProvision: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -6695,7 +6700,7 @@ object Http4s600 {
     // Deferring index construction to first request (post object-init) lets every
     // registration land before the snapshot is taken.
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
 
     // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
     // Targets v5.1.0; Http4s510 has its own working cascade down to v5.0.0 → v4.0.0 → …
@@ -6703,7 +6708,7 @@ object Http4s600 {
     lazy val v600ToV510Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v6.0.0/") &&
-          ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, v6ResourceDocIndex).isEmpty) {
+          ResourceDocMatcher.selectByRoute(req, v6RouteIndex).isEmpty) {
         val rewritten = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.1.0/")
         val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
         Http4s510.wrappedRoutesV510Services.run(req.withUri(newUri))
@@ -15641,8 +15646,8 @@ object Http4s600 {
     }
 }
 
-  private lazy val v6ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
-    ResourceDocMatcher.buildIndex(resourceDocs)
+  private lazy val v6RouteIndex: ResourceDocMatcher.RouteIndex =
+    ResourceDocMatcher.buildRouteIndex(Implementations6_0_0.orderedResourceDocs)
 
   // `lazy val`, not `val`: other objects reference
   // `Http4s600.Implementations6_0_0` directly via getstatic. When either is loaded
