@@ -948,11 +948,28 @@ object Http4sDynamicEntity extends MdcLoggable {
             val reqWithCc = req.withAttribute(Http4sRequestAttributes.callContextKey, cc)
             val io = handler(reqWithCc)
             if (req.method == Method.GET || req.method == Method.HEAD) io
-            else RequestScopeConnection.withBusinessDBTransaction(io)
+            else resolveCallerOutsideTheTransaction(cc) *> RequestScopeConnection.withBusinessDBTransaction(io)
           }
         }
     }
   }
+
+  /**
+   * Authenticate the caller before the write transaction opens.
+   *
+   * Authenticating a consent request writes: it creates the consent's user and copies the consent's
+   * Roles onto it. Inside the transaction those writes stay uncommitted, and the checks the handler runs
+   * next read on other connections, so they would not see them: the consent's Role looks missing (403),
+   * and personal rows are owned by the consent user instead of the human who granted the consent. Done
+   * first, outside any transaction, the writes are committed by the time the handler reads them. The
+   * handler still authenticates for itself; this pass only has to leave the committed state behind,
+   * so its outcome is not used and a failure is left for the handler to report.
+   *
+   * ResourceDocMiddleware does the same for every other endpoint (it validates before it opens a
+   * transaction); this service builds its own request scope, so it has to do it here.
+   */
+  private def resolveCallerOutsideTheTransaction(cc: CallContext): IO[Unit] =
+    IO.fromFuture(IO(code.api.util.APIUtil.resolveCallerWithoutRateLimiting(cc))).attempt.void
 
   /** Entry point wired into Http4sApp.baseServices (before the Lift bridge). */
   lazy val wrappedRoutesDynamicEntity: HttpRoutes[IO] =
