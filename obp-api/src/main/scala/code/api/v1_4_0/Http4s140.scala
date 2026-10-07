@@ -31,12 +31,12 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.{APIUtil, NewStyle}
 import code.api.v1_2_1.{JSONFactory, SuccessMessage}
@@ -69,7 +69,7 @@ object Http4s140 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_4_0, versionStatus))
@@ -101,7 +101,7 @@ object Http4s140 {
 
     // ─── getCustomer ──────────────────────────────────────────────────────────
 
-    val getCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customer" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -134,7 +134,7 @@ object Http4s140 {
 
     // ─── getCustomersMessages ─────────────────────────────────────────────────
 
-    val getCustomersMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomersMessages: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customer" / "messages" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           Future {
@@ -164,7 +164,7 @@ object Http4s140 {
 
     // ─── addCustomerMessage ───────────────────────────────────────────────────
 
-    val addCustomerMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCustomerMessage: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customer" / customerId / "messages" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[JSONFactory1_4_0.AddCustomerMessageJson, SuccessMessage](req) { (_, bank, body, cc) =>
           for {
@@ -195,7 +195,7 @@ object Http4s140 {
 
     private val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
-    val getBranches: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBranches: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "branches" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
@@ -239,7 +239,7 @@ object Http4s140 {
 
     private val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
-    val getAtms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAtms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
@@ -280,7 +280,7 @@ object Http4s140 {
 
     private val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
-    val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getProducts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "products" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           Future {
@@ -319,7 +319,7 @@ object Http4s140 {
 
     // ─── getCrmEvents ─────────────────────────────────────────────────────────
 
-    val getCrmEvents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCrmEvents: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "crm-events" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           NewStyle.function.getCrmEvents(bank.bankId, Some(cc))
@@ -344,7 +344,7 @@ object Http4s140 {
 
     // ─── getTransactionRequestTypes ───────────────────────────────────────────
 
-    val getTransactionRequestTypes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionRequestTypes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" =>
         EndpointHelpers.withView(req) { (user, fromAccount, view, cc) =>
           for {
@@ -408,7 +408,7 @@ object Http4s140 {
 
     // ─── addCustomer ─────────────────────────────────────────────────────────
 
-    val addCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customer" =>
         EndpointHelpers.withUserAndBankAndBody[code.api.v2_0_0.CreateCustomerJson, JSONFactory1_4_0.CustomerJsonV140](req) { (user, bank, body, cc) =>
           for {
@@ -499,20 +499,26 @@ object Http4s140 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
-    private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-      root.run(req)
-        .orElse(getCustomer.run(req))
-        .orElse(getCustomersMessages.run(req))
-        .orElse(addCustomerMessage.run(req))
-        .orElse(getBranches.run(req))
-        .orElse(getAtms.run(req))
-        .orElse(getProducts.run(req))
-        .orElse(getCrmEvents.run(req))
-        .orElse(getTransactionRequestTypes.run(req))
-        .orElse(addCustomer.run(req))
-    }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getCustomer,
+      getCustomersMessages,
+      addCustomerMessage,
+      getBranches,
+      getAtms,
+      getProducts,
+      getCrmEvents,
+      getTransactionRequestTypes,
+      addCustomer
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allOwnRoutes))
 
     // ─── path-rewriting bridge: /obp/v1.4.0/… → /obp/v1.3.0/… ──────────────
     // Delegates to Http4s130 so all inherited v1.3.0 and v1.2.1 endpoints are
