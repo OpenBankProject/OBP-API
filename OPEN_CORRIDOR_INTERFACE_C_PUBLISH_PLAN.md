@@ -250,10 +250,10 @@ Rename inventory (OBP-API):
 - prop name `transactionRequests_challenge_threshold_OPEN_CORRIDOR` →
   `..._OPEN_CORRIDOR_PROMISE`;
 - `OpenCorridorProcessor.scala:42`'s type constant;
-- **add both new names to `literalAllCapsSegments` in `Http4sSupport.scala`**
-  so the ResourceDoc matcher treats them as literal path segments, not
-  wildcards. (Latent quirk found 2026-07-18: `OPEN_CORRIDOR` itself is
-  missing from that set today — the rename must not reproduce that.)
+- no matcher list to update: a ResourceDoc is selected by the route that
+  serves the request, so a new transaction-request type needs only its route
+  pattern and its doc. (The old `literalAllCapsSegments` set, which `OPEN_CORRIDOR`
+  was missing from, was removed when docs were bound to their routes.)
 - tests + any dev/test data rows carrying the old type string.
 
 Bank Node side: its submit-TR client URL and any internal type strings
