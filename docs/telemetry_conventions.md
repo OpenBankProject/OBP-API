@@ -295,6 +295,8 @@ thread and class figures on its own port. Remove it once the Micrometer JVM bind
 | `obp.api.redis.commands` | timer | `command`, `result` | `Redis.use` |
 | `cache.gets`, `cache.puts`, `cache.evictions`, `cache.size` | standard | `cache` = `in_memory`, `json_schema`, `message_docs`, `on_behalf_of` | every Guava cache, through `Telemetry.monitorCache` |
 | `hikaricp.*` | standard | `pool` | the database pool (`CustomDBVendor`) |
+| `obp.api.database.connection.held_too_long` | gauge | | connections out of the pool right now for longer than `database_connection_hold_warning_seconds` (`DatabaseConnectionHoldWatch`) |
+| `obp.api.database.connection.hold_warnings` | counter | | warnings written by `DatabaseConnectionHoldWatch`, one per connection held too long |
 | `jvm.*`, `process.*`, `system.*` | standard | | JVM memory, heap after garbage collection (`jvm.memory.usage.after.gc`), garbage collection, threads, classes, CPU, uptime, open files |
 | `obp.api.instance.info` | gauge, always 1 | `api_instance_id`, `git_commit` | start-up |
 | the counters in section 11 | | | `TelemetryBindings` |

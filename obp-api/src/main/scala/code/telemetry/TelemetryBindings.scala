@@ -48,7 +48,12 @@ object TelemetryBindings {
     bindMessageDocs()
     bindRedisLogger()
     bindIpPenalties()
+    bindDatabaseConnectionHoldWatch()
   }
+
+  /** How many database connections are out of the pool right now and held past the warning limit. */
+  private def bindDatabaseConnectionHoldWatch(): Unit =
+    Telemetry.gauge("obp.api.database.connection.held_too_long")(code.util.DatabaseConnectionHoldWatch.heldTooLongCount.toDouble)
 
   /** How many addresses are under an operator's temporary limit. Never which ones: an address is not a tag. */
   private def bindIpPenalties(): Unit =

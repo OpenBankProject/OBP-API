@@ -7208,6 +7208,30 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Database Connection Hold Warnings",
+		description =
+			s"""
+				 |# Database Connection Hold Warnings
+				 |
+				 |OBP-API keeps a pool of database connections that requests share. A request takes a connection, uses it and gives it back. When work keeps a connection for a long time, the pool can run out, and every request that needs a connection then waits and fails, including requests that would be quick on their own.
+				 |
+				 |An endpoint that takes too long is answered with a timeout, but the database work behind it carries on, and keeps its connection, until the query returns. So the request that was cut off and the work that holds the connection are separate, and the timeout alone does not say which work is holding the pool.
+				 |
+				 |To show this, OBP-API writes a warning to its log when a connection has been out of the pool for too long. ${if (code.util.DatabaseConnectionHoldWatch.enabled) s"On this instance the limit is ${code.util.DatabaseConnectionHoldWatch.holdWarningSeconds} seconds." else "On this instance the warnings are turned off."} The warning gives:
+				 |
+				 |- how long the connection has been held, and how many connections are in use, idle and waited for;
+				 |- the thread that took the connection, and the OBP-API code that thread is running at that moment, which for a query still running is the code waiting for it.
+				 |
+				 |When that connection goes back to the pool, a second warning gives the total time it was held. Both warnings carry the same connection label, so they can be paired. The warnings reach the log cache like any other warning.
+				 |
+				 |[Telemetry](/glossary#Telemetry) reports how many connections are held past the limit right now (`obp_api_database_connection_held_too_long`) and how many warnings have been written (`obp_api_database_connection_hold_warnings_total`), next to the pool's own `hikaricp_*` series.
+				 |
+				 |See also: [Telemetry](/glossary#Telemetry).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
 		title = "Asset",
 		description =
 			s"""

@@ -39,11 +39,18 @@ object DBUtil {
 
   def isSqlServer: Boolean = dbUrl.contains("sqlserver")
 
+  /** The endpoint timeout in whole seconds, rounded up, which is the unit JDBC takes. */
+  private[util] def queryTimeoutSeconds: Int =
+    math.max(1L, (Constant.longEndpointTimeoutInMillis + 999) / 1000).toInt
+
   /**
    * SQL Server-safe alternative to Lift's DB.runQuery.
    *
    * Lift's DB.runQuery uses DB.asString which doesn't handle SQL Server's NVARCHAR type
    * (JDBC type -9), causing MatchError. This function handles all JDBC types properly.
+   *
+   * The query is cancelled by the database after `long_endpoint_timeout`, so use this for
+   * read-only queries only.
    *
    * @param query SQL query string
    * @param params Query parameters (for prepared statement)
@@ -53,6 +60,12 @@ object DBUtil {
     DB.use(DefaultConnectionIdentifier) { conn =>
       val stmt = conn.prepareStatement(query)
       try {
+        // The database cancels the query once the caller can no longer receive its answer. The
+        // endpoint timeout (long_endpoint_timeout) answers the caller with a 504, but without this
+        // the query carried on, holding its pool connection, for as long as it took: one
+        // aggregate-metrics query held its connection for about ten minutes. Only read-only
+        // SELECTs come through here, so cancelling never interrupts a write.
+        stmt.setQueryTimeout(queryTimeoutSeconds)
         // Set parameters
         params.zipWithIndex.foreach { case (param, idx) =>
           stmt.setString(idx + 1, param)

@@ -28,8 +28,8 @@ TESOBE (http://www.tesobe.com/)
 package bootstrap.liftweb
 
 import code.api.util.APIUtil
+import code.util.DatabaseConnectionHoldWatch
 import code.util.Helper.MdcLoggable
-import com.zaxxer.hikari.pool.ProxyConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
 import java.sql.Connection
@@ -90,7 +90,12 @@ class CustomDBVendor(driverName: String,
     // Telemetry: the pool's connections, waits and timeouts, as the standard hikaricp_* series.
     config.setMetricRegistry(code.telemetry.Telemetry.registry)
 
-    val ds: HikariDataSource = new HikariDataSource(config)
+    // Every connection taken from the pool, whichever way it is taken (Lift Mapper, Doobie, the
+    // request transaction), passes through here, so DatabaseConnectionHoldWatch sees them all.
+    val ds: HikariDataSource = new HikariDataSource(config) {
+      override def getConnection(): Connection = DatabaseConnectionHoldWatch.watch(super.getConnection())
+    }
+    DatabaseConnectionHoldWatch.pool = Some(ds)
   }
 
   def createOne: Box[Connection] =  {
@@ -109,6 +114,8 @@ trait CustomProtoDBVendor extends ConnectionManager with MdcLoggable {
     createOne
   }
 
-  def releaseConnection(conn: Connection): Unit = {conn.asInstanceOf[ProxyConnection].close()}
+  // A plain close(): the connection may be DatabaseConnectionHoldWatch's wrapper rather than
+  // HikariCP's own ProxyConnection, and either way close() returns it to the pool.
+  def releaseConnection(conn: Connection): Unit = conn.close()
 
 }
