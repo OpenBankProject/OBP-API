@@ -2702,7 +2702,7 @@ object Http4s121 {
     lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] = {
-      val middlewareWrapped = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
+      val middlewareWrapped = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
       // bankById runs before middleware so it can return 400 (not 404) for unknown bank
       Kleisli[HttpF, Request[IO], Response[IO]] { req =>
         bankById.run(req).orElse(middlewareWrapped.run(req))

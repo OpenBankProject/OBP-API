@@ -11397,7 +11397,7 @@ object Http4s400 {
 
     private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
-    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allOwnRoutes))
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── nameOf-compatibility aliases ────────────────────────────────────────
     // These vals have no Lift counterpart in Http4s400 but are referenced by

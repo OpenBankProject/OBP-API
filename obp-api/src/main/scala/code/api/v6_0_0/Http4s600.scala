@@ -6700,7 +6700,7 @@ object Http4s600 {
     // Deferring index construction to first request (post object-init) lets every
     // registration land before the snapshot is taken.
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
     // Targets v5.1.0; Http4s510 has its own working cascade down to v5.0.0 → v4.0.0 → …

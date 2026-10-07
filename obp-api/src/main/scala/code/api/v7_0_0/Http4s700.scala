@@ -7502,7 +7502,7 @@ object Http4s700 {
     // before the idempotency scope key is computed; on a cache hit the inner
     // routes (and any DB transaction) are skipped.
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
   }
 
   // ─── path-rewriting bridge: /obp/v7.0.0/… → /obp/v6.0.0/… ─────────────

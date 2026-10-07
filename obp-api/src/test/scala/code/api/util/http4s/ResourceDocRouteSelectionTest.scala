@@ -110,7 +110,7 @@ class ResourceDocRouteSelectionTest extends FeatureSpec with Matchers with Given
       selected.http4sPartialFunction.flatMap(_.route).get.isDefinedAt(req) shouldBe true
     }
 
-    scenario("Docs that share one route are told apart by their templates", ResourceDocRouteSelectionTag) {
+    scenario("Docs that share one route are told apart by the words of the request their templates carry", ResourceDocRouteSelectionTag) {
       Given("one route that serves every transaction-request type, and a generic doc and a SEPA doc that share it")
       val anyType = Http4sRoute { case POST -> Root / "obp" / "v7.0.0" / "types" / _ / "requests" => ok }
       val generic = doc("createAnyType", "POST", "/types/TRANSACTION_REQUEST_TYPE/requests", Some(anyType))
@@ -120,8 +120,8 @@ class ResourceDocRouteSelectionTest extends FeatureSpec with Matchers with Given
       ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/SEPA/requests"), List(generic, sepa)) shouldBe Some(sepa)
       ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/SEPA/requests"), List(sepa, generic)) shouldBe Some(sepa)
 
-      And("a type with no doc of its own gets the generic doc")
-      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/CARDANO/requests"), List(sepa, generic)) shouldBe Some(generic)
+      And("a type with no doc of its own gets the first doc of the route, here the generic one")
+      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/CARDANO/requests"), List(generic, sepa)) shouldBe Some(generic)
     }
 
     scenario("A request no route serves selects nothing, so it can fall through to an older version", ResourceDocRouteSelectionTag) {
@@ -167,17 +167,17 @@ class ResourceDocRouteSelectionTest extends FeatureSpec with Matchers with Given
       counting.asked shouldBe 1
     }
 
-    scenario("The docs that share a route are found when the index is built, in the order given", ResourceDocRouteSelectionTag) {
+    scenario("The docs that share a route are found when the index is built, in the order given, and the first is the fallback", ResourceDocRouteSelectionTag) {
       val shared = Http4sRoute { case POST -> Root / "obp" / "v7.0.0" / "types" / _ / "requests" => ok }
       val sepa    = doc("createSepa", "POST", "/types/SEPA/requests", Some(shared))
       val generic = doc("createAnyType", "POST", "/types/TRANSACTION_REQUEST_TYPE/requests", Some(shared))
       val index = ResourceDocMatcher.buildRouteIndex(List(sepa, generic))
 
       ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/SEPA/requests"), index) shouldBe Some(sepa)
-      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/CARDANO/requests"), index) shouldBe Some(generic)
+      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/CARDANO/requests"), index) shouldBe Some(sepa)
     }
 
-    scenario("When no template of the docs that share a route matches, the first of them is used", ResourceDocRouteSelectionTag) {
+    scenario("When no doc of the docs that share a route has a word of the request, the first of them is used", ResourceDocRouteSelectionTag) {
       val shared = Http4sRoute { case POST -> Root / "obp" / "v7.0.0" / "types" / _ / "requests" => ok }
       val sepa    = doc("createSepa", "POST", "/types/SEPA/requests", Some(shared))
       val generic = doc("createAnyType", "POST", "/types/TRANSACTION_REQUEST_TYPE/requests", Some(shared))
@@ -186,23 +186,30 @@ class ResourceDocRouteSelectionTest extends FeatureSpec with Matchers with Given
     }
   }
 
-  feature("ResourceDocMiddleware - a group whose docs all carry their route") {
+  feature("ResourceDocMiddleware - every doc carries its route") {
 
     scenario("A route that is null is reported by name when the middleware is built", ResourceDocRouteSelectionTag) {
       val declaredTooLate = doc("getDeclaredTooLate", "GET", "/late", Some(null.asInstanceOf[Http4sRoute]))
 
-      val thrown = the[IllegalStateException] thrownBy ResourceDocMiddleware.apply(ArrayBuffer(declaredTooLate))(HttpRoutes.empty[IO])
+      val thrown = the[IllegalStateException] thrownBy ResourceDocMiddleware.apply(ArrayBuffer(declaredTooLate))
       thrown.getMessage should include("getDeclaredTooLate")
     }
 
+    scenario("A doc with no route at all is reported by name when the middleware is built", ResourceDocRouteSelectionTag) {
+      val noRoute = doc("getNoRoute", "GET", "/none", None)
+
+      val thrown = the[IllegalStateException] thrownBy ResourceDocMiddleware.apply(ArrayBuffer(noRoute))
+      thrown.getMessage should include("getNoRoute")
+    }
+
     scenario("A request no route serves is passed on without running anything of this group", ResourceDocRouteSelectionTag) {
-      var ranTheRoutes = false
-      val routes = HttpRoutes.of[IO] { case _ => IO { ranTheRoutes = true }.as(Response[IO]()) }
-      val thing = doc("getThing", "GET", "/things", Some(Http4sRoute { case GET -> Root / "obp" / "v7.0.0" / "things" => ok }))
-      val middleware = ResourceDocMiddleware.apply(ArrayBuffer(thing))(routes)
+      var ranARoute = false
+      val thing = doc("getThing", "GET", "/things",
+        Some(Http4sRoute { case GET -> Root / "obp" / "v7.0.0" / "things" => IO { ranARoute = true }.as(Response[IO]()) }))
+      val middleware = ResourceDocMiddleware.apply(ArrayBuffer(thing))
 
       middleware.run(request(Method.GET, "/obp/v7.0.0/no-such-thing")).value.unsafeRunSync() shouldBe None
-      ranTheRoutes shouldBe false
+      ranARoute shouldBe false
     }
   }
 }

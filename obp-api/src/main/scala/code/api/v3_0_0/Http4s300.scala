@@ -2343,7 +2343,7 @@ object Http4s300 {
 
     private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
-    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allOwnRoutes))
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v3.0.0/… → /obp/v2.2.0/… ──────────────
 

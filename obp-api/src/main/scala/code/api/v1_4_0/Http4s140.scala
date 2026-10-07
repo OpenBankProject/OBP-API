@@ -518,7 +518,7 @@ object Http4s140 {
 
     private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
-    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allOwnRoutes))
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v1.4.0/… → /obp/v1.3.0/… ──────────────
     // Delegates to Http4s130 so all inherited v1.3.0 and v1.2.1 endpoints are

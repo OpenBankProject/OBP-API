@@ -140,42 +140,36 @@ object ResourceDocMiddleware extends MdcLoggable {
       (enabledOperationIds.isEmpty || enabledOperationIds.contains(rd.operationId))
 
   /**
-   * Middleware factory: wraps HttpRoutes with ResourceDoc validation.
-   * Finds the matching ResourceDoc, validates the request, and enriches CallContext.
+   * Middleware factory: validates a request under the ResourceDoc of the route that serves it, then runs
+   * that route.
    *
-   * A doc that carries its route ([[code.api.util.APIUtil.Http4sRoute]]) is found by asking the
-   * routes whether they serve the request (`ResourceDocMatcher.selectByRoute`, docs tried in the
-   * order given), and that route alone is run, wrapped in `wrap`. A doc without a route is found by
-   * matching the URL against its template, and the request goes to `routes`.
+   * Each doc carries its route ([[code.api.util.APIUtil.Http4sRoute]]). The doc is found by asking the
+   * routes whether they serve the request (`ResourceDocMatcher.selectByRoute`, docs tried in the order
+   * given, which must be the order the routes are tried in), and that route alone is run, wrapped in
+   * `wrap`. A request no route serves is passed on to the next link of the chain at once.
    */
   def apply(
     resourceDocs: ArrayBuffer[ResourceDoc],
     wrap: HttpRoutes[IO] => HttpRoutes[IO] = identity
-  ): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
+  ): HttpRoutes[IO] = {
     // A route declared after the `resourceDocs +=` line that refers to it is still null when the doc is
     // built (Rule 5 in CLAUDE.md). Say which endpoint it is now, rather than failing with an NPE here or
     // on the first request.
     resourceDocs.foreach { doc =>
-      if (doc.http4sPartialFunction.exists(_ == null))
+      if (doc.http4sPartialFunction.forall(_ == null))
         throw new IllegalStateException(
-          s"The route of ${doc.partialFunctionName} (${doc.requestVerb} ${doc.requestUrl}) is null: declare " +
-            "each endpoint val before the resourceDocs += line that uses it.")
+          s"The route of ${doc.partialFunctionName} (${doc.requestVerb} ${doc.requestUrl}) is missing or null: declare " +
+            "each endpoint val before the resourceDocs += line that uses it, and give the doc its route.")
     }
-    // Build the lookup structures once per middleware instance (at startup), not per request.
-    val (routeBound, unbound) = resourceDocs.toList.partition(_.http4sPartialFunction.exists(_.route.isDefined))
-    val routeIndex = ResourceDocMatcher.buildRouteIndex(routeBound)
-    val resourceDocIndex = ResourceDocMatcher.buildIndex(unbound)
-    // When every doc carries its route, a request no route serves is not this group's: nothing else here
-    // could serve it, so it can go straight to the next link of the chain.
-    val everyDocIsRouteBound = routeBound.nonEmpty && unbound.isEmpty
+    // Build the lookup structure once per middleware instance (at startup), not per request.
+    val routeIndex = ResourceDocMatcher.buildRouteIndex(resourceDocs)
     // A ResourceDoc is a case class holding JSON bodies: look it up by identity, not by equality.
     val routeOfDoc = new java.util.IdentityHashMap[ResourceDoc, HttpRoutes[IO]]()
-    routeBound.foreach(doc => routeOfDoc.put(doc, wrap(doc.http4sPartialFunction.get.routes)))
+    resourceDocs.foreach(doc => routeOfDoc.put(doc, wrap(doc.http4sPartialFunction.get.routes)))
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
       val selected: Option[(ResourceDoc, HttpRoutes[IO])] =
         ResourceDocMatcher.selectByRoute(req, routeIndex).map(doc => doc -> routeOfDoc.get(doc))
-          .orElse(ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex).map(_ -> routes))
-      if (selected.isEmpty && everyDocIsRouteBound) OptionT.none[IO, Response[IO]]
+      if (selected.isEmpty) OptionT.none[IO, Response[IO]]
       else {
         // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
         // tests or live config reloads) take effect immediately. Cost is a few Lift Props
@@ -248,27 +242,9 @@ object ResourceDocMiddleware extends MdcLoggable {
               OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)).flatTap(recordTelemetry(resourceDoc, startNanos)))
 
             case None =>
-              // This group has no ResourceDoc for the request. Almost always the request is simply
-              // not ours: `routes.run` yields None and the request moves to the next link of the
-              // version fallthrough chain (v7 -> v6 -> v5.1 -> bridges -> ... ). No transaction scope
-              // is opened. The cached body is carried forward for the later hops.
-              //
-              // The one case where the inner routes DO serve such a request is a malformed URL with
-              // an empty path segment (e.g. `/banks//accounts`) in a version whose docs are matched
-              // by template: the matcher counts segments and finds no doc, but the http4s pattern
-              // still matches with an empty id, and its handler needs the caller in the CallContext
-              // to answer 403/404 rather than a misleading 401. That is why the caller is resolved
-              // here at all. It is resolved WITHOUT rate limiting and at most ONCE per request (see
-              // resolveCallerOnce): rate limiting belongs to the hop that serves the request, and
-              // re-validating the credentials on every hop was pure waste.
-              //
-              // A group whose docs all carry their route never gets here: a request one of its routes
-              // serves has its doc, empty segment or not, and any other request is passed on at once.
-              OptionT.liftF(
-                resolveCallerOnce(req, cc).map { resolvedCc =>
-                  reqWithOriginalBody.withAttribute(Http4sRequestAttributes.callContextKey, resolvedCc)
-                }
-              ).flatMap(routes.run)
+              // Not reachable: a request no route serves was passed on above.
+              OptionT.none[IO, Response[IO]]
+
           }
         }
       }
@@ -290,57 +266,6 @@ object ResourceDocMiddleware extends MdcLoggable {
       }
       case None => IO.unit
     }
-
-  /**
-   * Resolve the caller for a hop that has no ResourceDoc for the request, once per request.
-   *
-   * The first such hop runs [[APIUtil.resolveCallerWithoutRateLimiting]] and stores the outcome in
-   * the holder Http4sApp attached to the request (`Http4sRequestAttributes.callerResolvedOnThisRequestKey`);
-   * every later hop of the same request reads it. Before this, each hop authenticated afresh AND counted the call
-   * against the Consumer's rate limit: `GET /obp/v5.1.0/users/current` crossed seven hops before
-   * v3.0.0 served it, so it validated the token seven times, saved the Consumer row seven times,
-   * and cost seven rate-limit units - a Consumer limited to fewer than seven calls per second was
-   * refused with 429 OBP-10018 on the second hop.
-   *
-   * Failures (bad token, unknown consumer, ...) are kept too - they are the outcome for this
-   * request - and leave the CallContext without a user, exactly as before. Only an exception
-   * thrown by the pipeline is not kept; the hop then proceeds with the unresolved context.
-   */
-  private def resolveCallerOnce(req: Request[IO], cc: CallContext): IO[CallContext] = {
-    val holder = req.attributes.lookup(Http4sRequestAttributes.callerResolvedOnThisRequestKey)
-    holder.flatMap(_.get()) match {
-      case Some(resolved) =>
-        IO.pure(withResolvedCaller(cc, resolved))
-      case None =>
-        IO.fromFuture(IO(APIUtil.resolveCallerWithoutRateLimiting(cc))).attempt.map {
-          case Right(resolved) =>
-            holder.foreach(_.set(Some(resolved)))
-            withResolvedCaller(cc, resolved)
-          case Left(NonFatal(e)) =>
-            logger.debug(s"[ResourceDocMiddleware] caller resolution threw on a no-ResourceDoc hop for ${req.method.name} ${req.uri.path.renderString}: ${e.getMessage}")
-            cc
-          case Left(e) => throw e
-        }
-    }
-  }
-
-  /**
-   * Merge a resolution into THIS hop's freshly built CallContext. The resolved context may come
-   * from an earlier hop; the bridges rewrite the path between hops (`/obp/v5.1.0/...` ->
-   * `/obp/v5.0.0/...`), so the current hop's `url` and `implementedInVersion` are kept while the
-   * authentication-derived fields (user, consumer, session, rate-limit config, ...) are taken from
-   * the resolution.
-   */
-  private def withResolvedCaller(cc: CallContext, resolved: Http4sRequestAttributes.ResolvedCaller): CallContext = {
-    def carryOver(resolvedCc: CallContext): CallContext =
-      resolvedCc.copy(url = cc.url, implementedInVersion = cc.implementedInVersion)
-    resolved match {
-      case (Full(user), Some(resolvedCc)) => carryOver(resolvedCc).copy(user = Full(user))
-      case (Full(user), None)             => cc.copy(user = Full(user))
-      case (_, Some(resolvedCc))          => carryOver(resolvedCc)
-      case _                              => cc
-    }
-  }
 
   /** 504 response emitted when endpointTimeoutMs elapses before the handler completes. */
   private def endpointTimeoutResponse(req: Request[IO]): IO[Option[Response[IO]]] = IO {

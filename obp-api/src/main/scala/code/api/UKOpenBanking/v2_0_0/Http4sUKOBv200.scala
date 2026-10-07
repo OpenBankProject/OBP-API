@@ -64,5 +64,5 @@ object Http4sUKOBv200 extends MdcLoggable {
 
   lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
-  lazy val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
+  lazy val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 }

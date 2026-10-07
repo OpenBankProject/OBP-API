@@ -5443,7 +5443,7 @@ object Http4s510 {
     lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v5.1.0/… → /obp/v5.0.0/… ─────────────
     lazy val v510ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>

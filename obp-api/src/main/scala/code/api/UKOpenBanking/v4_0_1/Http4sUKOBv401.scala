@@ -93,5 +93,5 @@ object Http4sUKOBv401 extends MdcLoggable {
       routes(req).map(_.putHeaders(Header.Raw(fapiInteractionIdHeader, interactionId)))
     }
 
-  lazy val wrappedRoutes: HttpRoutes[IO] = withFapiInteractionId(ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes)))
+  lazy val wrappedRoutes: HttpRoutes[IO] = withFapiInteractionId(ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes)))
 }
