@@ -30,9 +30,9 @@ package code.api.berlin.group.v2
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil.ResourceDoc
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, ResourceDoc}
 import code.api.util.ScannedApis
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ScannedApiVersion
@@ -57,11 +57,14 @@ object Http4sBGv2 extends MdcLoggable with ScannedApis {
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = resourceDocs
 
-  val allRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    Http4sBGv2AIS.routes(req)
-      .orElse(Http4sBGv2PIS.routes(req))
-      .orElse(Http4sBGv2PIIS.routes(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] =
+      Http4sBGv2AIS.routesInOrder ++
+      Http4sBGv2PIS.routesInOrder ++
+      Http4sBGv2PIIS.routesInOrder
 
-  val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+  lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+  lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+  lazy val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
 }

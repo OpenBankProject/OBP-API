@@ -38,7 +38,7 @@ import code.api.berlin.group.v1_3.model._
 import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
 import code.api.RequestHeader
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -97,7 +97,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── POST /consents ──────────────────────────────────────────────────────
-  lazy val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createConsent: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "consents" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
@@ -181,7 +181,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── DELETE /consents/CONSENTID ──────────────────────────────────────────
-  lazy val deleteConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteConsent: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `bgV13Prefix` / "consents" / consentId =>
       EndpointHelpers.executeDelete(req) { cc =>
         val callContext = Some(cc)
@@ -199,7 +199,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts ───────────────────────────────────────────────────────
-  lazy val getAccountList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -238,7 +238,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID/balances ───────────────────────────────────
-  lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId / "balances" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -258,7 +258,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts ──────────────────────────────────────────────────
-  lazy val getCardAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccounts: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -288,7 +288,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts/ACCOUNT_ID/balances ──────────────────────────────
-  lazy val getCardAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" / accountId / "balances" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -308,7 +308,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts/ACCOUNT_ID/transactions ──────────────────────────
-  lazy val getCardAccountTransactionList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountTransactionList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" / accountId / "transactions" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -333,7 +333,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID/authorisations ──────────────────────────────
-  lazy val getConsentAuthorisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentAuthorisation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId / "authorisations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -356,7 +356,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID ─────────────────────────────────────────────
-  lazy val getConsentInformation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentInformation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -373,7 +373,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID/authorisations/AUTHORISATIONID ─────────────
-  lazy val getConsentScaStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentScaStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -396,7 +396,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID/status ──────────────────────────────────────
-  lazy val getConsentStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId / "status" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -416,7 +416,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID/transactions/TRANSACTIONID ─────────────────
-  lazy val getTransactionDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactionDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId / "transactions" / transactionId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -436,7 +436,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID/transactions ───────────────────────────────
-  lazy val getTransactionList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactionList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId / "transactions" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -468,7 +468,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID ────────────────────────────────────────────
-  lazy val getAccountDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -501,7 +501,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts/ACCOUNT_ID ───────────────────────────────────────
-  lazy val readCardAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val readCardAccount: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" / accountId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -552,7 +552,7 @@ object Http4sBGv13AIS extends MdcLoggable {
     }
 
   // ── POST /consents/CONSENTID/authorisations (3 body-guard variants) ─────
-  lazy val startConsentAuthorisationAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val startConsentAuthorisationAll: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "consents" / consentId / "authorisations" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
@@ -638,7 +638,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── PUT /consents/CONSENTID/authorisations/AUTHORISATIONID (4 variants) ─
-  lazy val updateConsentsPsuDataAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updateConsentsPsuDataAll: Http4sRoute = Http4sRoute {
     case req @ PUT -> `bgV13Prefix` / "consents" / consentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -1499,23 +1499,25 @@ respectively the OAuth2 access token.
   initConsentResourceDocs()
   initAccountResourceDocs()
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createConsent(req)
-      .orElse(deleteConsent(req))
-      .orElse(getAccountList(req))
-      .orElse(getBalances(req))
-      .orElse(getCardAccounts(req))
-      .orElse(getCardAccountBalances(req))
-      .orElse(getCardAccountTransactionList(req))
-      .orElse(getConsentAuthorisation(req))
-      .orElse(getConsentInformation(req))
-      .orElse(getConsentScaStatus(req))
-      .orElse(getConsentStatus(req))
-      .orElse(getTransactionDetails(req))
-      .orElse(getTransactionList(req))
-      .orElse(getAccountDetails(req))
-      .orElse(readCardAccount(req))
-      .orElse(startConsentAuthorisationAll(req))
-      .orElse(updateConsentsPsuDataAll(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createConsent,
+    deleteConsent,
+    getAccountList,
+    getBalances,
+    getCardAccounts,
+    getCardAccountBalances,
+    getCardAccountTransactionList,
+    getConsentAuthorisation,
+    getConsentInformation,
+    getConsentScaStatus,
+    getConsentStatus,
+    getTransactionDetails,
+    getTransactionList,
+    getAccountDetails,
+    readCardAccount,
+    startConsentAuthorisationAll,
+    updateConsentsPsuDataAll
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }
