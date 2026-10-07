@@ -207,6 +207,12 @@ object Http4s700 {
     //
     // Convention: val → resourceDocs +=, never the other way around.
 
+    // The granting Roles of a grant whose bank_id is in the body, naming the bank_id each bank Role
+    // was checked at: "CanCreateScopeAtOneBank at bank_id SYS or CanCreateScopeAtAnyBank".
+    private def grantingRolesAt(roles: List[ApiRole], bankId: String): String =
+      roles.map(role => if (role.requiresBankId && bankId.nonEmpty) s"$role at bank_id $bankId" else role.toString)
+        .mkString(" or ")
+
     // Route: GET /obp/v7.0.0/root
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "root" =>
@@ -538,7 +544,7 @@ object Http4s700 {
             grantingRoles = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
             _ <- if (APIUtil.isSuperAdmin(user.userId)) Future.successful(())
                  else Helper.booleanToFuture(
-                   UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
+                   UserHasMissingRoles + grantingRolesAt(grantingRoles, body.bank_id), failCode = 403, cc = Some(cc)) {
                    APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
                  }
             // Bank ids are matched exactly, case included: a grant at a bank id naming no bank is a
@@ -876,7 +882,7 @@ object Http4s700 {
             grantingRoles = ApiRole.canCreateScopeAtOneBank :: ApiRole.canCreateScopeAtAnyBank :: Nil
             _ <- if (APIUtil.isSuperAdmin(user.userId)) Future.successful(())
                  else Helper.booleanToFuture(
-                   UserHasMissingRoles + grantingRoles.mkString(" or "), failCode = 403, cc = Some(cc)) {
+                   UserHasMissingRoles + grantingRolesAt(grantingRoles, body.bank_id), failCode = 403, cc = Some(cc)) {
                    APIUtil.hasAtLeastOneEntitlement(body.bank_id, user.userId, grantingRoles)
                  }
             _ <- Helper.booleanToFuture(failMsg = BankNotFound, failCode = 404, cc = Some(cc)) {
