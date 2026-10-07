@@ -290,7 +290,7 @@ Shards are defined per-matrix-entry in `.github/workflows/build_pull_request.yml
 | `code.api.v6_0_0` | 3 |
 | `code.api.v5_1_0`, `code.api.v5_0_0`, `code.api.v3_0_0` | 4 |
 | `code.api.ResourceDocs1_4_0`, `code.api.v3_1_0`, `code.api.v1_4_0`, `code.api.v1_3_0` | 5 |
-| `code.api.v7_0_0`, `code.api.http4sbridge`, `code.api.UKOpenBanking` | 6 |
+| `code.api.v7_0_0`, `code.api.http4sserver`, `code.api.UKOpenBanking` | 6 |
 | `code.model`, `code.views`, `code.customer`, `code.usercustomerlinks`, `code.api.util`, `code.errormessages`, `code.atms`, `code.branches`, `code.products`, `code.crm`, `code.accountHolder`, `code.api.berlin`, `code.api.v2_*` | 7 |
 | `code.connector`, `code.util`, `code.api.Authentication*`, `code.api.dauthTest`, `code.api.DirectLoginTest`, `code.api.gateWayloginTest`, `code.api.OBPRestHelperTest`, `code.entitlement`, `code.bankaccountcreation`, `code.bankconnectors`, `code.container`, `code.management`, `code.metrics`, `code.concurrency` | 8 |
 | anything else | **8** (catch-all) |
