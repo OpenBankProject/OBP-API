@@ -152,105 +152,124 @@ object ResourceDocMiddleware extends MdcLoggable {
     resourceDocs: ArrayBuffer[ResourceDoc],
     wrap: HttpRoutes[IO] => HttpRoutes[IO] = identity
   ): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
+    // A route declared after the `resourceDocs +=` line that refers to it is still null when the doc is
+    // built (Rule 5 in CLAUDE.md). Say which endpoint it is now, rather than failing with an NPE here or
+    // on the first request.
+    resourceDocs.foreach { doc =>
+      if (doc.http4sPartialFunction.exists(_ == null))
+        throw new IllegalStateException(
+          s"The route of ${doc.partialFunctionName} (${doc.requestVerb} ${doc.requestUrl}) is null: declare " +
+            "each endpoint val before the resourceDocs += line that uses it.")
+    }
     // Build the lookup structures once per middleware instance (at startup), not per request.
-    val routeBoundDocs = resourceDocs.filter(_.http4sPartialFunction.exists(_.route.isDefined)).toList
-    val resourceDocIndex = ResourceDocMatcher.buildIndex(
-      resourceDocs.filterNot(doc => doc.http4sPartialFunction.exists(_.route.isDefined)))
+    val (routeBound, unbound) = resourceDocs.toList.partition(_.http4sPartialFunction.exists(_.route.isDefined))
+    val routeIndex = ResourceDocMatcher.buildRouteIndex(routeBound)
+    val resourceDocIndex = ResourceDocMatcher.buildIndex(unbound)
+    // When every doc carries its route, a request no route serves is not this group's: nothing else here
+    // could serve it, so it can go straight to the next link of the chain.
+    val everyDocIsRouteBound = routeBound.nonEmpty && unbound.isEmpty
     // A ResourceDoc is a case class holding JSON bodies: look it up by identity, not by equality.
     val routeOfDoc = new java.util.IdentityHashMap[ResourceDoc, HttpRoutes[IO]]()
-    routeBoundDocs.foreach(doc => routeOfDoc.put(doc, wrap(doc.http4sPartialFunction.get.routes)))
+    routeBound.foreach(doc => routeOfDoc.put(doc, wrap(doc.http4sPartialFunction.get.routes)))
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-      // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
-      // tests or live config reloads) take effect immediately. Cost is a few Lift Props
-      // lookups — negligible per request, but lets disabled endpoints be toggled without
-      // restarting the server. A disabled endpoint yields OptionT.none so the request
-      // falls through to the next handler in the chain (typically the Lift bridge).
-      //
-      // Version-level enable/disable is NOT re-checked here — that's enforced once at
-      // startup by `Http4sApp.gate` for the URL prefix the request arrives at, so that
-      // disabling vX.Y.Z retires `/obp/vX.Y.Z/...` but leaves the same endpoints
-      // reachable via newer enabled prefixes through the cascade. See
-      // `isEndpointEnabled`'s docstring for the rationale.
-      val disabledOperationIds = APIUtil.getDisabledEndpointOperationIds().toSet
-      val enabledOperationIds = APIUtil.getEnabledEndpointOperationIds().toSet
-      def endpointIsEnabled(rd: ResourceDoc): Boolean =
-        isEndpointEnabled(rd, disabledOperationIds, enabledOperationIds)
-      val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
-        case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
-        case _ => ApiShortVersions.`v7.0.0`.toString
-      }
-      // Build initial CallContext from request
-      OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
-        // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
-        // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
-        val reqWithOriginalBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
-        val selected: Option[(ResourceDoc, HttpRoutes[IO])] =
-          ResourceDocMatcher.selectByRoute(req, routeBoundDocs).map(doc => doc -> routeOfDoc.get(doc))
-            .orElse(ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex).map(_ -> routes))
-        selected match {
-          case Some((resourceDoc, _)) if !endpointIsEnabled(resourceDoc) =>
-            // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
-            // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
-            OptionT.none[IO, Response[IO]]
-          case Some((resourceDoc, routesToRun)) =>
-            Http4sRequestAttributes.trafficNote(req).foreach { note =>
-              note.operationId = Some(resourceDoc.operationId)
-              note.apiVersion = Some(resourceDoc.implementedInApiVersion.apiShortVersion)
-            }
-            val (reqWithCachedBody, ccForDoc) = withCurrencyCodesUpperCased(reqWithOriginalBody, cc, resourceDoc)
-            val ccWithDoc = ResourceDocMatcher.attachToCallContext(ccForDoc, resourceDoc)
-            val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-            // Validate first (read-only, outside any transaction), then run business logic.
-            // GET/HEAD are safe methods — no writes, no transaction needed; they run on
-            // auto-commit vendor connections (same as validation).  All other methods
-            // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
-            val work: IO[Option[Response[IO]]] =
-              validateOnly(reqWithCachedBody, resourceDoc, pathParams, ccWithDoc).flatMap {
-                case Left(errorResponse) =>
-                  IO.pure(Option(errorResponse))
-                case Right(enrichedReq) =>
-                  // The caller is known now: record its Consumer for TrafficSources.
-                  for {
-                    note <- Http4sRequestAttributes.trafficNote(req)
-                    consumer <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.consumer.toOption)
-                  } {
-                    note.consumerId = Some(consumer.consumerId.get)
-                    note.consumerName = Some(consumer.name.get)
-                  }
-                  for {
-                    note <- Http4sRequestAttributes.trafficNote(req)
-                    user <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.user.toOption)
-                  } note.userId = Some(user.userId)
-                  val routeIO =
-                    routesToRun.run(enrichedReq)
-                      .map(ensureJsonContentType)
-                      .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
-                  val executed =
-                    if (req.method == Method.GET || req.method == Method.HEAD) routeIO
-                    else RequestScopeConnection.withBusinessDBTransaction(routeIO)
-                  executed.map(Option(_))
+      val selected: Option[(ResourceDoc, HttpRoutes[IO])] =
+        ResourceDocMatcher.selectByRoute(req, routeIndex).map(doc => doc -> routeOfDoc.get(doc))
+          .orElse(ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex).map(_ -> routes))
+      if (selected.isEmpty && everyDocIsRouteBound) OptionT.none[IO, Response[IO]]
+      else {
+        // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
+        // tests or live config reloads) take effect immediately. Cost is a few Lift Props
+        // lookups — negligible per request, but lets disabled endpoints be toggled without
+        // restarting the server. A disabled endpoint yields OptionT.none so the request
+        // falls through to the next handler in the chain (typically the Lift bridge).
+        //
+        // Version-level enable/disable is NOT re-checked here — that's enforced once at
+        // startup by `Http4sApp.gate` for the URL prefix the request arrives at, so that
+        // disabling vX.Y.Z retires `/obp/vX.Y.Z/...` but leaves the same endpoints
+        // reachable via newer enabled prefixes through the cascade. See
+        // `isEndpointEnabled`'s docstring for the rationale.
+        val disabledOperationIds = APIUtil.getDisabledEndpointOperationIds().toSet
+        val enabledOperationIds = APIUtil.getEnabledEndpointOperationIds().toSet
+        def endpointIsEnabled(rd: ResourceDoc): Boolean =
+          isEndpointEnabled(rd, disabledOperationIds, enabledOperationIds)
+        val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
+          case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
+          case _ => ApiShortVersions.`v7.0.0`.toString
+        }
+        // Build initial CallContext from request
+        OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
+          // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
+          // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
+          val reqWithOriginalBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
+          selected match {
+            case Some((resourceDoc, _)) if !endpointIsEnabled(resourceDoc) =>
+              // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
+              // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
+              OptionT.none[IO, Response[IO]]
+            case Some((resourceDoc, routesToRun)) =>
+              Http4sRequestAttributes.trafficNote(req).foreach { note =>
+                note.operationId = Some(resourceDoc.operationId)
+                note.apiVersion = Some(resourceDoc.implementedInApiVersion.apiShortVersion)
               }
-            val startNanos = System.nanoTime()
-            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)).flatTap(recordTelemetry(resourceDoc, startNanos)))
+              val (reqWithCachedBody, ccForDoc) = withCurrencyCodesUpperCased(reqWithOriginalBody, cc, resourceDoc)
+              val ccWithDoc = ResourceDocMatcher.attachToCallContext(ccForDoc, resourceDoc)
+              val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
+              // Validate first (read-only, outside any transaction), then run business logic.
+              // GET/HEAD are safe methods — no writes, no transaction needed; they run on
+              // auto-commit vendor connections (same as validation).  All other methods
+              // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
+              val work: IO[Option[Response[IO]]] =
+                validateOnly(reqWithCachedBody, resourceDoc, pathParams, ccWithDoc).flatMap {
+                  case Left(errorResponse) =>
+                    IO.pure(Option(errorResponse))
+                  case Right(enrichedReq) =>
+                    // The caller is known now: record its Consumer for TrafficSources.
+                    for {
+                      note <- Http4sRequestAttributes.trafficNote(req)
+                      consumer <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.consumer.toOption)
+                    } {
+                      note.consumerId = Some(consumer.consumerId.get)
+                      note.consumerName = Some(consumer.name.get)
+                    }
+                    for {
+                      note <- Http4sRequestAttributes.trafficNote(req)
+                      user <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.user.toOption)
+                    } note.userId = Some(user.userId)
+                    val routeIO =
+                      routesToRun.run(enrichedReq)
+                        .map(ensureJsonContentType)
+                        .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+                    val executed =
+                      if (req.method == Method.GET || req.method == Method.HEAD) routeIO
+                      else RequestScopeConnection.withBusinessDBTransaction(routeIO)
+                    executed.map(Option(_))
+                }
+              val startNanos = System.nanoTime()
+              OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)).flatTap(recordTelemetry(resourceDoc, startNanos)))
 
-          case None =>
-            // This group has no ResourceDoc for the request. Almost always the request is simply
-            // not ours: `routes.run` yields None and the request moves to the next link of the
-            // version fallthrough chain (v7 -> v6 -> v5.1 -> bridges -> ... ). No transaction scope
-            // is opened. The cached body is carried forward for the later hops.
-            //
-            // The one case where the inner routes DO serve such a request is a malformed URL with
-            // an empty path segment (e.g. `/banks//accounts`): the matcher counts segments and finds
-            // no doc, but the http4s pattern still matches with an empty id, and its handler needs
-            // the caller in the CallContext to answer 403/404 rather than a misleading 401. That is
-            // why the caller is resolved here at all. It is resolved WITHOUT rate limiting and at
-            // most ONCE per request (see resolveCallerOnce): rate limiting belongs to the hop that
-            // serves the request, and re-validating the credentials on every hop was pure waste.
-            OptionT.liftF(
-              resolveCallerOnce(req, cc).map { resolvedCc =>
-                reqWithOriginalBody.withAttribute(Http4sRequestAttributes.callContextKey, resolvedCc)
-              }
-            ).flatMap(routes.run)
+            case None =>
+              // This group has no ResourceDoc for the request. Almost always the request is simply
+              // not ours: `routes.run` yields None and the request moves to the next link of the
+              // version fallthrough chain (v7 -> v6 -> v5.1 -> bridges -> ... ). No transaction scope
+              // is opened. The cached body is carried forward for the later hops.
+              //
+              // The one case where the inner routes DO serve such a request is a malformed URL with
+              // an empty path segment (e.g. `/banks//accounts`) in a version whose docs are matched
+              // by template: the matcher counts segments and finds no doc, but the http4s pattern
+              // still matches with an empty id, and its handler needs the caller in the CallContext
+              // to answer 403/404 rather than a misleading 401. That is why the caller is resolved
+              // here at all. It is resolved WITHOUT rate limiting and at most ONCE per request (see
+              // resolveCallerOnce): rate limiting belongs to the hop that serves the request, and
+              // re-validating the credentials on every hop was pure waste.
+              //
+              // A group whose docs all carry their route never gets here: a request one of its routes
+              // serves has its doc, empty segment or not, and any other request is passed on at once.
+              OptionT.liftF(
+                resolveCallerOnce(req, cc).map { resolvedCc =>
+                  reqWithOriginalBody.withAttribute(Http4sRequestAttributes.callContextKey, resolvedCc)
+                }
+              ).flatMap(routes.run)
+          }
         }
       }
     }

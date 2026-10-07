@@ -871,6 +871,41 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
   ): Option[ResourceDoc] =
     findResourceDoc(verb, path, buildIndex(resourceDocs))
 
+  /** A doc that carries its route, with the docs of the same bucket that share that route. */
+  final case class RouteBoundDoc(
+    doc: ResourceDoc,
+    route: code.api.util.APIUtil.Http4sRoutePF,
+    sharingTheRoute: List[ResourceDoc]
+  )
+
+  /**
+   * The docs that carry their route, by (VERB, apiVersion) and in the order given. A request is only
+   * put to the routes of its own verb and version, and which docs share a route is worked out once
+   * here instead of on every request.
+   */
+  final case class RouteIndex(byVerbAndVersion: Map[(String, String), List[RouteBoundDoc]])
+
+  private def routeOf(doc: ResourceDoc): Option[code.api.util.APIUtil.Http4sRoutePF] =
+    doc.http4sPartialFunction.flatMap(handler => Option(handler)).flatMap(_.route)
+
+  /** The API version a request path is for: the segment after the API prefix, as in [[findResourceDoc]]. */
+  private def apiVersionOf(pathString: String): String =
+    pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
+
+  /**
+   * Build the index [[selectByRoute]] uses. Call this once, at middleware construction; docs without a
+   * route are left out.
+   */
+  def buildRouteIndex(docs: Iterable[ResourceDoc]): RouteIndex = {
+    val bound = docs.toList.flatMap(doc => routeOf(doc).map(doc -> _))
+    val buckets = bound.groupBy { case (doc, _) => (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.toString) }
+    RouteIndex(buckets.map { case (key, inBucket) =>
+      key -> inBucket.map { case (doc, route) =>
+        RouteBoundDoc(doc, route, inBucket.collect { case (other, otherRoute) if otherRoute eq route => other })
+      }
+    })
+  }
+
   /**
    * Select the ResourceDoc of the route that serves `req`.
    *
@@ -878,33 +913,36 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
    * the pattern match of its handler, so the request is put to that match instead of being compared
    * with the doc's URL template. The doc that comes back is the doc of the route that will run,
    * whatever the template says, and nothing about a segment has to be guessed to be a placeholder
-   * or a fixed word. Docs without a route are ignored; they are found by [[findResourceDoc]].
+   * or a fixed word. Docs without a route are not in the index; they are found by [[findResourceDoc]].
    *
-   * `docs` are tried in the order given, which must be the order the routes are tried in when a
-   * request could be served by more than one. Several docs may share one route (a handler that
-   * serves every transaction-request type has a doc per type); the template then tells those docs
-   * apart, the one with the most fixed segments winning, and the first of them when none matches.
+   * Only the routes of the request's verb and API version are asked, in the order the docs were given,
+   * which must be the order the routes are tried in when a request could be served by more than one.
+   * Several docs may share one route (a handler that serves every transaction-request type has a doc
+   * per type); the template then tells those docs apart, the one with the most fixed segments winning.
+   * When none of their templates matches (an empty segment, a type that has no doc of its own) the
+   * first of them is used: the request is served by that handler either way, so it is still validated
+   * under the roles and errors of the endpoint that serves it rather than run with no validation.
    */
-  def selectByRoute(req: Request[IO], docs: Iterable[ResourceDoc]): Option[ResourceDoc] = {
-    def routeOf(doc: ResourceDoc): Option[code.api.util.APIUtil.Http4sRoutePF] =
-      doc.http4sPartialFunction.flatMap(_.route)
-
-    docs.iterator
-      .flatMap(doc => routeOf(doc).map(doc -> _))
-      .find { case (_, route) => route.isDefinedAt(req) }
-      .map { case (first, route) =>
-        val sharingTheRoute = docs.filter(doc => routeOf(doc).exists(_ eq route)).toList
-        if (sharingTheRoute.size <= 1) first
+  def selectByRoute(req: Request[IO], index: RouteIndex): Option[ResourceDoc] = {
+    val key = (req.method.name.toUpperCase, apiVersionOf(req.uri.path.renderString))
+    index.byVerbAndVersion.getOrElse(key, Nil)
+      .find(_.route.isDefinedAt(req))
+      .map { first =>
+        if (first.sharingTheRoute.size <= 1) first.doc
         else {
           val strippedPath = apiPrefixPattern.replaceFirstIn(req.uri.path.renderString, "")
-          sharingTheRoute
-            .filter(doc => doc.requestVerb.equalsIgnoreCase(req.method.name) && matchesUrlTemplate(strippedPath, doc.requestUrl))
+          first.sharingTheRoute
+            .filter(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
             .sortBy(doc => -literalSegmentCount(doc.requestUrl))
             .headOption
-            .getOrElse(first)
+            .getOrElse(first.doc)
         }
       }
   }
+
+  /** Select by route from docs that have not been indexed; builds the index on every call, so use it for tests. */
+  def selectByRoute(req: Request[IO], docs: Iterable[ResourceDoc]): Option[ResourceDoc] =
+    selectByRoute(req, buildRouteIndex(docs))
 
   /**
    * Check if a path matches a URL template

@@ -7512,10 +7512,13 @@ object Http4s700 {
   // OptionT.none for such a path (e.g. api_disabled_endpoints), the bridge must
   // not silently re-serve them from v6. "Served by a v7 route" is asked of the
   // routes themselves, through the same ordered docs the middleware selects from.
+  private lazy val v7RouteIndex: ResourceDocMatcher.RouteIndex =
+    ResourceDocMatcher.buildRouteIndex(Implementations7_0_0.orderedResourceDocs)
+
   private val v700ToV600Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
     val rawPath = req.uri.path.renderString
     if (rawPath.startsWith("/obp/v7.0.0/") &&
-        ResourceDocMatcher.selectByRoute(req, Implementations7_0_0.orderedResourceDocs).isEmpty) {
+        ResourceDocMatcher.selectByRoute(req, v7RouteIndex).isEmpty) {
       val rewritten = rawPath.replaceFirst("/obp/v7\\.0\\.0/", "/obp/v6.0.0/")
       val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
       code.api.v6_0_0.Http4s600.wrappedRoutesV600Services.run(req.withUri(newUri))

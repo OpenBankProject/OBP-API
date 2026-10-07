@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util.http4s
 
 import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil.{Http4sRoute, ResourceDoc}
 import code.api.util.ApiTag.ResourceDocTag
 import com.openbankproject.commons.util.ApiVersion
@@ -35,6 +36,8 @@ import org.http4s._
 import org.http4s.dsl.io._
 import org.json4s.JsonAST.JObject
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Unit tests for ResourceDocMatcher.selectByRoute.
@@ -139,6 +142,67 @@ class ResourceDocRouteSelectionTest extends FeatureSpec with Matchers with Given
       val legacy = doc("getLegacy", "GET", "/legacy/LEGACY_ID", None)
 
       ResourceDocMatcher.selectByRoute(request(Method.GET, "/obp/v7.0.0/legacy/l1"), List(legacy)) shouldBe None
+    }
+  }
+
+  feature("ResourceDocMatcher.selectByRoute - only the routes of the request's verb and version are asked") {
+
+    /** A route that counts how often it is asked whether it serves a request. */
+    class CountingRoute extends PartialFunction[Request[IO], IO[Response[IO]]] {
+      var asked = 0
+      def isDefinedAt(req: Request[IO]): Boolean = { asked += 1; false }
+      def apply(req: Request[IO]): IO[Response[IO]] = ok
+    }
+
+    scenario("A route of another verb or another API version is not asked", ResourceDocRouteSelectionTag) {
+      val counting = new CountingRoute
+      val docs = List(doc("postThing", "POST", "/things", Some(Http4sRoute(counting))))
+      val index = ResourceDocMatcher.buildRouteIndex(docs)
+
+      ResourceDocMatcher.selectByRoute(request(Method.GET, "/obp/v7.0.0/things"), index) shouldBe None
+      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v4.0.0/things"), index) shouldBe None
+      counting.asked shouldBe 0
+
+      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/things"), index) shouldBe None
+      counting.asked shouldBe 1
+    }
+
+    scenario("The docs that share a route are found when the index is built, in the order given", ResourceDocRouteSelectionTag) {
+      val shared = Http4sRoute { case POST -> Root / "obp" / "v7.0.0" / "types" / _ / "requests" => ok }
+      val sepa    = doc("createSepa", "POST", "/types/SEPA/requests", Some(shared))
+      val generic = doc("createAnyType", "POST", "/types/TRANSACTION_REQUEST_TYPE/requests", Some(shared))
+      val index = ResourceDocMatcher.buildRouteIndex(List(sepa, generic))
+
+      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/SEPA/requests"), index) shouldBe Some(sepa)
+      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types/CARDANO/requests"), index) shouldBe Some(generic)
+    }
+
+    scenario("When no template of the docs that share a route matches, the first of them is used", ResourceDocRouteSelectionTag) {
+      val shared = Http4sRoute { case POST -> Root / "obp" / "v7.0.0" / "types" / _ / "requests" => ok }
+      val sepa    = doc("createSepa", "POST", "/types/SEPA/requests", Some(shared))
+      val generic = doc("createAnyType", "POST", "/types/TRANSACTION_REQUEST_TYPE/requests", Some(shared))
+
+      ResourceDocMatcher.selectByRoute(request(Method.POST, "/obp/v7.0.0/types//requests"), List(sepa, generic)) shouldBe Some(sepa)
+    }
+  }
+
+  feature("ResourceDocMiddleware - a group whose docs all carry their route") {
+
+    scenario("A route that is null is reported by name when the middleware is built", ResourceDocRouteSelectionTag) {
+      val declaredTooLate = doc("getDeclaredTooLate", "GET", "/late", Some(null.asInstanceOf[Http4sRoute]))
+
+      val thrown = the[IllegalStateException] thrownBy ResourceDocMiddleware.apply(ArrayBuffer(declaredTooLate))(HttpRoutes.empty[IO])
+      thrown.getMessage should include("getDeclaredTooLate")
+    }
+
+    scenario("A request no route serves is passed on without running anything of this group", ResourceDocRouteSelectionTag) {
+      var ranTheRoutes = false
+      val routes = HttpRoutes.of[IO] { case _ => IO { ranTheRoutes = true }.as(Response[IO]()) }
+      val thing = doc("getThing", "GET", "/things", Some(Http4sRoute { case GET -> Root / "obp" / "v7.0.0" / "things" => ok }))
+      val middleware = ResourceDocMiddleware.apply(ArrayBuffer(thing))(routes)
+
+      middleware.run(request(Method.GET, "/obp/v7.0.0/no-such-thing")).value.unsafeRunSync() shouldBe None
+      ranTheRoutes shouldBe false
     }
   }
 }
