@@ -888,6 +888,38 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
   private def routeOf(doc: ResourceDoc): Option[code.api.util.APIUtil.Http4sRoutePF] =
     doc.http4sPartialFunction.flatMap(handler => Option(handler)).flatMap(_.route)
 
+  /**
+   * The docs in the order their routes are tried: the order the middleware must select from, so the doc
+   * that validates a request is the doc of the route that runs it. Docs that share a route stay together,
+   * in registration order.
+   *
+   * A doc whose route is not in `routesInOrder` is an error (a route left out of the chain would never be
+   * served, or served without its doc's checks), unless it is named in `outsideTheChain`: routes that are
+   * deliberately run before the middleware, and so have no place in the order it selects from. A doc
+   * with no route at all documents an endpoint served somewhere else (the message-docs Swagger is served
+   * by Http4sResourceDocs); it is left out, because there is nothing for the middleware to validate it against.
+   */
+  def orderByRoutes(
+    docs: Iterable[ResourceDoc],
+    routesInOrder: Iterable[code.api.util.APIUtil.Http4sHandler],
+    outsideTheChain: Iterable[code.api.util.APIUtil.Http4sHandler] = Nil
+  ): ArrayBuffer[ResourceDoc] = {
+    // Routes are compared by identity: an alias of a route (`val b = a`) is the same route.
+    def keyOf(h: code.api.util.APIUtil.Http4sHandler): AnyRef = h.routes
+    val position = new java.util.IdentityHashMap[AnyRef, Integer]()
+    routesInOrder.zipWithIndex.foreach { case (h, i) => if (!position.containsKey(keyOf(h))) position.put(keyOf(h), i) }
+    val outside = new java.util.IdentityHashMap[AnyRef, Boolean]()
+    outsideTheChain.foreach(h => outside.put(keyOf(h), true))
+    val withRoute = docs.toSeq.filter(_.http4sPartialFunction.exists(_ != null))
+    val kept = withRoute.filterNot(doc => outside.containsKey(keyOf(doc.http4sPartialFunction.get)))
+    val missing = kept.filterNot(doc => position.containsKey(keyOf(doc.http4sPartialFunction.get)))
+    if (missing.nonEmpty)
+      throw new IllegalStateException(
+        "ResourceDocs whose route is not in the route chain: " +
+          missing.map(d => s"${d.partialFunctionName} (${d.requestVerb} ${d.requestUrl})").mkString(", "))
+    ArrayBuffer(kept.sortBy(doc => position.get(keyOf(doc.http4sPartialFunction.get)).intValue): _*)
+  }
+
   /** The API version a request path is for: the segment after the API prefix, as in [[findResourceDoc]]. */
   private def apiVersionOf(pathString: String): String =
     pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
@@ -898,7 +930,7 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
    */
   def buildRouteIndex(docs: Iterable[ResourceDoc]): RouteIndex = {
     val bound = docs.toList.flatMap(doc => routeOf(doc).map(doc -> _))
-    val buckets = bound.groupBy { case (doc, _) => (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.toString) }
+    val buckets = bound.groupBy { case (doc, _) => (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.apiShortVersion) }
     RouteIndex(buckets.map { case (key, inBucket) =>
       key -> inBucket.map { case (doc, route) =>
         RouteBoundDoc(doc, route, inBucket.collect { case (other, otherRoute) if otherRoute eq route => other })

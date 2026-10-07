@@ -2826,6 +2826,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   object Http4sRoute {
     def apply(pf: Http4sRoutePF): Http4sRoute = new Http4sRoute(pf)
+
+    /** Try the handlers in the order given; the first that serves a request answers it. */
+    def chain(handlers: Seq[Http4sHandler]): HttpRoutes[IO] =
+      handlers.map(_.routes).foldLeft(HttpRoutes.empty[IO]) { (acc, next) =>
+        HttpRoutes[IO](req => acc.run(req).orElse(next.run(req)))
+      }
   }
 
   type Http4sEndpoint = Option[Http4sHandler]
