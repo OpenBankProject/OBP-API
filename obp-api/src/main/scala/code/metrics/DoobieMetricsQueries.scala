@@ -54,6 +54,17 @@ import scala.concurrent.{ExecutionContext, Future}
 object DoobieMetricsQueries {
 
   /**
+   * Runs a query and collects its rows, with a JDBC query timeout equal to the endpoint timeout.
+   * When a metrics query outlives its endpoint the caller has already been answered with a 504,
+   * but without a timeout the database carries on and the query keeps its pool connection for as
+   * long as it takes. Metrics queries only read, so cancelling one never interrupts a write.
+   */
+  private def listWithTimeout[A: Read](query: Fragment): ConnectionIO[List[A]] =
+    query.execWith(
+      HPS.setQueryTimeout(DBUtil.queryTimeoutSeconds).flatMap(_ => HPS.executeQuery(HRS.list[A]))
+    )
+
+  /**
    * Get aggregate metrics (count, avg, min, max duration) for the given time range and filters.
    *
    * @param fromDate Start date for the query
@@ -112,7 +123,7 @@ object DoobieMetricsQueries {
     val conditions = buildFilterConditions(filters, isNewVersion)
     val fullQuery = baseQuery ++ conditions
 
-    fullQuery.query[(Long, Option[Double], Option[Double], Option[Double], Long, Long, Long, Long)].to[List].map { rows =>
+    listWithTimeout[(Long, Option[Double], Option[Double], Option[Double], Long, Long, Long, Long)](fullQuery).map { rows =>
       rows.map { case (count, avgOpt, minOpt, maxOpt, distinctUsers, distinctConsumers, consentCalls, distinctConsents) =>
         AggregateMetrics(
           count.toInt,
@@ -197,7 +208,7 @@ object DoobieMetricsQueries {
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
-    fullQuery.query[(Long, String, String)].to[List].map { rows =>
+    listWithTimeout[(Long, String, String)](fullQuery).map { rows =>
       rows.map { case (count, partialFunction, version) =>
         TopApi(count.toInt, partialFunction, version)
       }
@@ -213,6 +224,75 @@ object DoobieMetricsQueries {
    * @param filters Filter options
    * @return List of TopConsumer sorted by count descending
    */
+  /**
+   * Get the top consumers by API call count, matching a metric row to its consumer by the
+   * consumer's name (metric.appname = consumer.name). This is the grouping v3.1.0's
+   * GET /management/metrics/top-consumers has always used; later versions group by
+   * metric.consumerid instead (see getTopConsumersByConsumerId).
+   *
+   * Only the exclude_* list filters apply here, as they always have for this endpoint.
+   *
+   * @return List of TopConsumer sorted by count descending
+   */
+  def getTopConsumersByAppName(
+    fromDate: Date,
+    toDate: Date,
+    limit: Int,
+    filters: MetricsQueryFilters
+  ): List[TopConsumer] =
+    DoobieUtil.runQuery(buildTopConsumersByAppNameQuery(fromDate, toDate, limit, filters))
+
+  private def buildTopConsumersByAppNameQuery(
+    fromDate: Date,
+    toDate: Date,
+    limit: Int,
+    filters: MetricsQueryFilters
+  ): ConnectionIO[List[TopConsumer]] = {
+    val fromTs = new java.sql.Timestamp(fromDate.getTime)
+    val toTs = new java.sql.Timestamp(toDate.getTime)
+
+    val isSqlServer = DBUtil.isSqlServer
+    val top = if (isSqlServer) fr"TOP($limit)" else fr""
+
+    val baseQuery = fr"SELECT" ++ top ++ fr"""count(*), con.consumerid, m.appname, con.developeremail
+        FROM metric m
+        JOIN consumer con ON m.appname = con.name
+        WHERE m.date_c >= $fromTs
+          AND m.date_c <= $toTs
+      """
+
+    val conditions = List(
+      filters.consumerId.map(v => fr"AND con.consumerid = $v"),
+      filters.userId.map(v => fr"AND m.userid = $v"),
+      filters.implementedByPartialFunction.map(v => fr"AND m.implementedbypartialfunction = $v"),
+      filters.implementedInVersion.map(v => fr"AND m.implementedinversion = $v"),
+      filters.url.map(v => fr"AND m.url = $v"),
+      filters.appName.map(v => fr"AND m.appname = $v"),
+      filters.verb.map(v => fr"AND m.verb = $v"),
+      filters.httpStatusCode.map(v => fr"AND m.httpcode = $v"),
+      filters.anon.map {
+        case true => fr"AND m.userid = 'null'"
+        case false => fr"AND m.userid != 'null'"
+      },
+      filters.excludeAppNames.filter(_.nonEmpty).map(names => buildNotInClause("m.appname", names)),
+      filters.excludeImplementedByPartialFunctions.filter(_.nonEmpty).map(names => buildNotInClause("m.implementedbypartialfunction", names)),
+      filters.excludeUrlPatterns.filter(_.nonEmpty).map(patterns => buildNotLikeClause("m.url", patterns))
+    ).flatten.foldLeft(fr"")(_ ++ _)
+
+    val groupAndOrder = fr"""
+      GROUP BY m.appname, con.developeremail, con.id, con.consumerid
+      ORDER BY count(*) DESC
+    """
+
+    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+
+    listWithTimeout[(Long, String, String, String)](baseQuery ++ conditions ++ groupAndOrder ++ limitClause).map { rows =>
+      rows.map { case (count, consumerId, appName, developerEmail) =>
+        TopConsumer(count.toInt, consumerId, appName, developerEmail)
+      }
+    }
+  }
+
   /**
    * Get top consumers by API call count, grouped by metric.consumerid.
    *
@@ -299,7 +379,7 @@ object DoobieMetricsQueries {
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
-    fullQuery.query[(Long, String, String, String)].to[List].map { rows =>
+    listWithTimeout[(Long, String, String, String)](fullQuery).map { rows =>
       rows.map { case (count, consumerId, appName, developerEmail) =>
         TopConsumer(count.toInt, consumerId, appName, developerEmail)
       }
@@ -388,7 +468,7 @@ object DoobieMetricsQueries {
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
-    fullQuery.query[(Long, String, String)].to[List].map { rows =>
+    listWithTimeout[(Long, String, String)](fullQuery).map { rows =>
       rows.map { case (count, userId, userName) =>
         TopUser(count.toInt, userId, userName)
       }
@@ -459,7 +539,7 @@ object DoobieMetricsQueries {
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
-    fullQuery.query[(Long, Long, String, String, String)].to[List].map { rows =>
+    listWithTimeout[(Long, Long, String, String, String)](fullQuery).map { rows =>
       rows.map { case (count, _, appName, email, consumerId) =>
         TopConsumer(count.toInt, consumerId, appName, email)
       }

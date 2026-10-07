@@ -75,6 +75,12 @@ object MetricsProps {
    */
   val RetainMetricsMoveLimitDefault = 10000
 
+  /**
+   * The longest date range, in days, that one aggregate-metrics call may cover. An aggregate has
+   * to read every metric row in its range, so the cost grows with the range.
+   */
+  val AggregateMetricsMaxDaysDefault = 31
+
   def writeMetrics: Boolean =
     APIUtil.getPropsAsBoolValue("write_metrics", WriteMetricsDefault)
 
@@ -92,4 +98,7 @@ object MetricsProps {
 
   def retainMetricsMoveLimit: Int =
     APIUtil.getPropsAsIntValue("retain_metrics_move_limit", RetainMetricsMoveLimitDefault)
+
+  def aggregateMetricsMaxDays: Int =
+    APIUtil.getPropsAsIntValue("aggregate_metrics_max_days", AggregateMetricsMaxDaysDefault)
 }

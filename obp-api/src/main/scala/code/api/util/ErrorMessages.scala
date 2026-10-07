@@ -188,6 +188,7 @@ object ErrorMessages {
   val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!"
   val FilterDurationFormatError = s"OBP-10029: wrong value for `duration` parameter. Please send a positive integer (=>0)!"
   val FilterIsDeletedFormatError = s"OBP-10036: is_deleted parameter can only take two values: TRUE or FALSE!"
+  val AggregateMetricsDateRangeTooLong = "OBP-10069: The date range is too long for aggregate metrics. Set from_date and to_date closer together. "
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
   val IncorrectTriggerName = "OBP-10039: Incorrect Trigger name:"

@@ -30,6 +30,7 @@ package code.metrics
 import java.util.{Calendar, Date}
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.util.APIUtil.{HTTPParam, createQueriesByHttpParamsFuture}
+import code.api.util.ErrorMessages.AggregateMetricsDateRangeTooLong
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
@@ -74,6 +75,45 @@ object APIMetrics extends SimpleInjector {
       val stableBoundary = APIUtil.getPropsAsIntValue("MappedMetrics.stable.boundary.seconds", 600)
       val defaultFromDate = new Date(System.currentTimeMillis() - ((stableBoundary - 1) * 1000L))
       HTTPParam("from_date", List(APIUtil.DateWithMsFormat.format(defaultFromDate))) :: httpParams
+    }
+  }
+
+  /**
+   * This keeps one aggregate-metrics call to at most MetricsProps.aggregateMetricsMaxDays days of
+   * metrics. An aggregate reads every metric row in its range, so a call covering months of
+   * metrics ran past the endpoint timeout and held a database connection the whole time.
+   *
+   * A request without from_date gets one that many days before its end: to_date, or now when
+   * to_date is absent. It is rounded down to the minute so repeated calls share a cache key. A
+   * request whose range is longer than the limit fails with 400. The end of the range counts as
+   * now at the latest, because there are no metrics after now. A date that cannot be parsed is
+   * left alone here, so the usual date format error reports it.
+   */
+  def limitAggregateMetricsWindow(httpParams: List[HTTPParam], callContext: Option[CallContext]): Future[List[HTTPParam]] = {
+    val maxDays = MetricsProps.aggregateMetricsMaxDays
+    val maxMillis = maxDays * 24L * 60 * 60 * 1000
+    val now = System.currentTimeMillis()
+    val hasFromDate = httpParams.exists(p => p.name == "from_date" || p.name == "obp_from_date")
+    val hasToDate = httpParams.exists(p => p.name == "to_date" || p.name == "obp_to_date")
+    val endMillis: Option[Long] =
+      if (hasToDate) APIUtil.getToDate(httpParams).toOption.map(to => math.min(to.value.getTime, now))
+      else Some(now)
+    if (!hasFromDate) {
+      val withFromDate = endMillis.map { end =>
+        val fromMillis = end - maxMillis
+        val fromDate = new Date(fromMillis - fromMillis % 60000L)
+        HTTPParam("from_date", List(APIUtil.DateWithMsFormat.format(fromDate))) :: httpParams
+      }.getOrElse(httpParams)
+      Future.successful(withFromDate)
+    } else {
+      val fromMillis = APIUtil.getFromDate(httpParams).toOption.map(_.value.getTime)
+      val tooLong = (fromMillis, endMillis) match {
+        case (Some(from), Some(end)) => end - from > maxMillis
+        case _ => false
+      }
+      code.util.Helper.booleanToFuture(
+        s"$AggregateMetricsDateRangeTooLong The longest range allowed is $maxDays days.", 400, callContext
+      )(!tooLong).map(_ => httpParams)
     }
   }
 

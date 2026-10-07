@@ -724,8 +724,9 @@ object Http4s600 {
                 throw new Exception(s"$ExcludeParametersNotSupported Parameters found: [${excludes.map(_.name).mkString(", ")}]")
               else true
             }
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
+            limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(
               APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(limitedHttpParams, cc.callContext)
             // isNewVersion = true: v6 is include_* style (exclude_* is rejected above). With
             // false the include_app_names / include_url_patterns /
             // include_implemented_by_partial_functions filters were silently ignored.
@@ -7859,6 +7860,8 @@ object Http4s600 {
            |This prevents accidentally querying all metrics since Unix Epoch and ensures reasonable response times.
            |For historical/reporting queries, always explicitly specify your desired `from_date`.
            |
+           |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
+           |
            |**IMPORTANT: Smart Caching & Performance**
            |
            |This endpoint uses intelligent two-tier caching to optimize performance:
@@ -7943,6 +7946,7 @@ object Http4s600 {
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
+          AggregateMetricsDateRangeTooLong,
           UnknownError
         ),
         List(apiTagMetric, apiTagAggregateMetrics),
