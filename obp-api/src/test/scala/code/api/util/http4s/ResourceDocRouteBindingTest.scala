@@ -50,11 +50,13 @@ class ResourceDocRouteBindingTest extends ServerSetup {
 
   object ResourceDocRouteBindingTag extends Tag("ResourceDocRouteBinding")
 
-  /** Each converted version's `resourceDocs` buffer. Naming the Implementations object fills it. */
-  private def loaded(implementations: Any, docs: ArrayBuffer[ResourceDoc]): ArrayBuffer[ResourceDoc] = docs
-
+  /**
+   * Each converted version's docs in the order its middleware selects from, which is the order its routes
+   * are tried in. Selection takes the first doc whose route serves a request, so a test that used the
+   * registration order could pass while production picks another doc.
+   */
   private def convertedCatalogs: List[(String, ArrayBuffer[ResourceDoc])] = List(
-    "v7.0.0" -> loaded(code.api.v7_0_0.Http4s700.Implementations7_0_0, code.api.v7_0_0.Http4s700.resourceDocs)
+    "v7.0.0" -> code.api.v7_0_0.Http4s700.Implementations7_0_0.orderedResourceDocs
   )
 
   private def describe(doc: ResourceDoc): String =
