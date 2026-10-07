@@ -31,7 +31,7 @@ import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, passesPsd2Aisp}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, passesPsd2Aisp}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError, attemptedToOpenAnEmptyBox}
@@ -65,7 +65,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
   private def parseBody(s: String): code.api.berlin.group.v1_3.JvalueCaseClass = code.api.berlin.group.v1_3.JvalueCaseClass(com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[org.json4s.JObject])
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 
-  lazy val getAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccounts: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
@@ -127,7 +127,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
     http4sPartialFunction = Some(getAccounts)
   )
 
-  lazy val getAccountsAccountId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / accountIdStr =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
@@ -233,8 +233,10 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
     http4sPartialFunction = Some(getAccountsAccountId)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccounts(req)
-      .orElse(getAccountsAccountId(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccounts,
+    getAccountsAccountId
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

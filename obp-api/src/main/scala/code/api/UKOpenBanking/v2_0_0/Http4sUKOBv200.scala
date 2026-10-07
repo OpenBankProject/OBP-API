@@ -29,8 +29,8 @@ package code.api.UKOpenBanking.v2_0_0
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
-import code.api.util.APIUtil.ResourceDoc
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, ResourceDoc}
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiVersion
@@ -57,9 +57,12 @@ object Http4sUKOBv200 extends MdcLoggable {
   val resourceDocs: ArrayBuffer[ResourceDoc] =
     Http4sUKOBv200AIS.resourceDocs
 
-  val allRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    Http4sUKOBv200AIS.routes(req)
-  }
+  lazy val routesInOrder: List[Http4sHandler] =
+      Http4sUKOBv200AIS.routesInOrder
 
-  val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+  lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+  lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+  lazy val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
 }

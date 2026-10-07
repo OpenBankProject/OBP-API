@@ -30,8 +30,8 @@ package code.api.UKOpenBanking.v4_0_1
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.util.APIUtil
-import code.api.util.APIUtil.ResourceDoc
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, ResourceDoc}
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiVersion
@@ -67,14 +67,17 @@ object Http4sUKOBv401 extends MdcLoggable {
     Http4sUKOBv401Events.resourceDocs ++
     Http4sUKOBv401Vrp.resourceDocs
 
-  val allRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    Http4sUKOBv401AccountInfo.routes(req)
-      .orElse(Http4sUKOBv401PaymentInitiation.routes(req))
-      .orElse(Http4sUKOBv401ConfirmationFunds.routes(req))
-      .orElse(Http4sUKOBv401EventNotifications.routes(req))
-      .orElse(Http4sUKOBv401Events.routes(req))
-      .orElse(Http4sUKOBv401Vrp.routes(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] =
+      Http4sUKOBv401AccountInfo.routesInOrder ++
+      Http4sUKOBv401PaymentInitiation.routesInOrder ++
+      Http4sUKOBv401ConfirmationFunds.routesInOrder ++
+      Http4sUKOBv401EventNotifications.routesInOrder ++
+      Http4sUKOBv401Events.routesInOrder ++
+      Http4sUKOBv401Vrp.routesInOrder
+
+  lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+  lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
   private val fapiInteractionIdHeader = CIString("x-fapi-interaction-id")
 
@@ -90,5 +93,5 @@ object Http4sUKOBv401 extends MdcLoggable {
       routes(req).map(_.putHeaders(Header.Raw(fapiInteractionIdHeader, interactionId)))
     }
 
-  val wrappedRoutes: HttpRoutes[IO] = withFapiInteractionId(ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes)))
+  lazy val wrappedRoutes: HttpRoutes[IO] = withFapiInteractionId(ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes)))
 }

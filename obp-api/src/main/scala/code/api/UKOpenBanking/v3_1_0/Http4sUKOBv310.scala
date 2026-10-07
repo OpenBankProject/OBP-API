@@ -29,8 +29,8 @@ package code.api.UKOpenBanking.v3_1_0
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
-import code.api.util.APIUtil.ResourceDoc
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, ResourceDoc}
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiVersion
@@ -79,28 +79,31 @@ object Http4sUKOBv310 extends MdcLoggable {
     Http4sUKOBv310Balances.resourceDocs ++
     Http4sUKOBv310Transactions.resourceDocs
 
-  val allRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    Http4sUKOBv310AccountAccess.routes(req)
-      .orElse(Http4sUKOBv310Accounts.routes(req))
-      .orElse(Http4sUKOBv310Balances.routes(req))
-      .orElse(Http4sUKOBv310Transactions.routes(req))
-      .orElse(Http4sUKOBv310Products.routes(req))
-      .orElse(Http4sUKOBv310Beneficiaries.routes(req))
-      .orElse(Http4sUKOBv310DirectDebits.routes(req))
-      .orElse(Http4sUKOBv310Offers.routes(req))
-      .orElse(Http4sUKOBv310Partys.routes(req))
-      .orElse(Http4sUKOBv310ScheduledPayments.routes(req))
-      .orElse(Http4sUKOBv310StandingOrders.routes(req))
-      .orElse(Http4sUKOBv310Statements.routes(req))
-      .orElse(Http4sUKOBv310DomesticPayments.routes(req))
-      .orElse(Http4sUKOBv310DomesticScheduledPayments.routes(req))
-      .orElse(Http4sUKOBv310DomesticStandingOrders.routes(req))
-      .orElse(Http4sUKOBv310FilePayments.routes(req))
-      .orElse(Http4sUKOBv310FundsConfirmations.routes(req))
-      .orElse(Http4sUKOBv310InternationalPayments.routes(req))
-      .orElse(Http4sUKOBv310InternationalScheduledPayments.routes(req))
-      .orElse(Http4sUKOBv310InternationalStandingOrders.routes(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] =
+      Http4sUKOBv310AccountAccess.routesInOrder ++
+      Http4sUKOBv310Accounts.routesInOrder ++
+      Http4sUKOBv310Balances.routesInOrder ++
+      Http4sUKOBv310Transactions.routesInOrder ++
+      Http4sUKOBv310Products.routesInOrder ++
+      Http4sUKOBv310Beneficiaries.routesInOrder ++
+      Http4sUKOBv310DirectDebits.routesInOrder ++
+      Http4sUKOBv310Offers.routesInOrder ++
+      Http4sUKOBv310Partys.routesInOrder ++
+      Http4sUKOBv310ScheduledPayments.routesInOrder ++
+      Http4sUKOBv310StandingOrders.routesInOrder ++
+      Http4sUKOBv310Statements.routesInOrder ++
+      Http4sUKOBv310DomesticPayments.routesInOrder ++
+      Http4sUKOBv310DomesticScheduledPayments.routesInOrder ++
+      Http4sUKOBv310DomesticStandingOrders.routesInOrder ++
+      Http4sUKOBv310FilePayments.routesInOrder ++
+      Http4sUKOBv310FundsConfirmations.routesInOrder ++
+      Http4sUKOBv310InternationalPayments.routesInOrder ++
+      Http4sUKOBv310InternationalScheduledPayments.routesInOrder ++
+      Http4sUKOBv310InternationalStandingOrders.routesInOrder
 
-  val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+  lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+  lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+  lazy val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))(IdempotencyMiddleware(allRoutes))
 }
