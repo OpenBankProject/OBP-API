@@ -100,7 +100,7 @@ done
 # Hardcoded ports collide when several project checkouts run this script at the
 # same time. The un-injected 8087 even collides WITHIN one run, because the
 # suites that start Http4sTestServer are split across shards (v5_0_0 in shard 2;
-# http4sbridge/v7 in shard 4) — both JVMs would bind the default 8087.
+# http4sserver/v7 in shard 4) — both JVMs would bind the default 8087.
 # So we pick random high free ports per shard. A fixed base + upward scan can't
 # solve simultaneous launches: at fork time no shard has bound yet, so every
 # concurrent run picks the same base. Random high range + lsof skip (catches
@@ -146,7 +146,7 @@ code.management,code.metrics,code.model,code.views,code.usercustomerlinks,\
 code.customer,code.errormessages"
 
 # Shard 4 base — auth/login/connector/util plus any packages not in shards 1-3
-S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0,\
+S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sserver,code.api.v7_0_0,\
 code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
 
@@ -184,7 +184,7 @@ S4_6="code.api.ResourceDocs1_4_0,code.api.util,code.api.berlin,\
 code.management,code.metrics,code.model,code.views,code.usercustomerlinks,\
 code.customer,code.errormessages"
 
-S5_6="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0"
+S5_6="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sserver,code.api.v7_0_0"
 
 S6_6="code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"

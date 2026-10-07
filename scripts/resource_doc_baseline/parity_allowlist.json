@@ -679,9 +679,9 @@
       "version": "v4_0_0",
       "endpoint": "createTransactionRequestAccount",
       "field": "requestUrl",
-      "reason": "Literal \"ACCOUNT\" segment generalized to a TRANSACTION_REQUEST_TYPE wildcard + GRANT_VIEW_ID: a single generic http4s handler now serves what were 9 separate per-type Lift doc aliases (confirmed by a matching code comment).",
+      "reason": "VIEW_ID -> GRANT_VIEW_ID: checkAuthorisationToCreateTransactionRequest handles the view/role authorisation logic internally, matching this repo's documented bypass convention. The literal ACCOUNT segment is as in the Lift baseline.",
       "lift_digest": "f05f20b524d4f6546c826d4c69d9e40f785c624e77956c9fb0389160a03054ca",
-      "http4s_digest": "dc93a9444e21bd6540d25ed64b94db928463b2cb6468129c8dd92b8316f53886"
+      "http4s_digest": "68051da298bb3e52e38bd934987adce04a7f40bcb5bb9f236344eb02010b892b"
     },
     {
       "version": "v4_0_0",
@@ -1906,6 +1906,22 @@
       "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
       "lift_digest": "d2f72f200b8c01cb57f1e07c608a160c125d3e210f9282fbbfa532c72f802248",
       "http4s_digest": "789c5598a7af5691282a4192dc5d38199bb068928a392b08314aab3b96d5b6af"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "elasticSearchWarehouse",
+      "field": "requestUrl",
+      "reason": "The Lift doc named /search/warehouse but the route serves /search/warehouse/{query}: the query is a path segment, so the documented URL could not be called. The URL now includes it.",
+      "lift_digest": "98b4712c7a2371c331975ff8bf843b479fad54b5d7ca5fb93bc7dd73a6b28f98",
+      "http4s_digest": "fa25345774e514d9be46005801cf85283aa6931854ad5c688da887d34774a945"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "elasticSearchMetrics",
+      "field": "requestUrl",
+      "reason": "The Lift doc named /search/metrics but the route serves /search/metrics/{query}: the query is a path segment, so the documented URL could not be called. The URL now includes it.",
+      "lift_digest": "1132e0dd343990bc0b4b0258f46e9b13bcda43939f6cb99d6b4dc6b34f5080e2",
+      "http4s_digest": "b79574c091ae746fdd0985366c387504e1a0fc0403438f4be6f64de9d7739585"
     }
   ]
 }

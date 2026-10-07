@@ -34,7 +34,7 @@ import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, HTTPParam, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
@@ -117,7 +117,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createAccountAccessConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createAccountAccessConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "aisp" / "account-access-consents" =>
       // Check auth FIRST (before body parsing) to mirror Lift's wrappedWithAuthCheck behaviour:
       // unauthenticated -> 401, invalid body -> 400.
@@ -248,7 +248,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountAccessConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
       // Not withUser: the standard has the AISP poll its own consent with a client-credentials
       // token, which carries no PSU. Consent.checkUKConsentAccess decides who may read it from
@@ -295,7 +295,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   )
 
   private val EX_deleteAccountAccessConsentsConsentId: String = """{}"""
-  lazy val deleteAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteAccountAccessConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
       // Not withUserDelete -- see the GET twin above.
       EndpointHelpers.executeDelete(req) { cc =>
@@ -399,7 +399,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccounts: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
@@ -509,7 +509,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountIdStr =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
@@ -598,7 +598,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountIdStr / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
@@ -690,7 +690,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdBeneficiaries: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdBeneficiaries: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "beneficiaries" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdBeneficiaries)) }
   }
@@ -751,7 +751,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdDirectDebits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdDirectDebits: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "direct-debits" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdDirectDebits)) }
   }
@@ -807,7 +807,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdOffers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdOffers: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "offers" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdOffers)) }
   }
@@ -887,7 +887,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdParties: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdParties: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "parties" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdParties)) }
   }
@@ -965,7 +965,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdParty: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdParty: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "party" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdParty)) }
   }
@@ -1156,7 +1156,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdProduct: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "product" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdProduct)) }
   }
@@ -1243,7 +1243,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdScheduledPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdScheduledPayments: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "scheduled-payments" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdScheduledPayments)) }
   }
@@ -1373,7 +1373,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdStandingOrders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStandingOrders: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "standing-orders" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdStandingOrders)) }
   }
@@ -1496,7 +1496,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdStatements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatements: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "statements" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdStatements)) }
   }
@@ -1619,7 +1619,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdStatementsStatementId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatementsStatementId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "statements" / statementId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdStatementsStatementId)) }
   }
@@ -1638,7 +1638,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   )
 
   private val EX_getAccountsAccountIdStatementsStatementIdFile: String = """{}"""
-  lazy val getAccountsAccountIdStatementsStatementIdFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatementsStatementIdFile: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "statements" / statementId / "file" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdStatementsStatementIdFile)) }
   }
@@ -1966,7 +1966,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdStatementsStatementIdTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatementsStatementIdTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "statements" / statementId / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdStatementsStatementIdTransactions)) }
   }
@@ -2294,7 +2294,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getAccountsAccountIdTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountIdStr / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
@@ -2367,7 +2367,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val balancesViewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
@@ -2467,7 +2467,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getBeneficiaries: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getBeneficiaries: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "beneficiaries" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getBeneficiaries)) }
   }
@@ -2528,7 +2528,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDirectDebits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDirectDebits: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "direct-debits" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDirectDebits)) }
   }
@@ -2584,7 +2584,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getOffers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getOffers: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "offers" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getOffers)) }
   }
@@ -2662,7 +2662,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getParty: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getParty: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "party" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getParty)) }
   }
@@ -2853,7 +2853,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getProducts: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "products" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getProducts)) }
   }
@@ -2940,7 +2940,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getScheduledPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getScheduledPayments: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "scheduled-payments" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getScheduledPayments)) }
   }
@@ -3070,7 +3070,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getStandingOrders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getStandingOrders: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "standing-orders" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getStandingOrders)) }
   }
@@ -3193,7 +3193,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getStatements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getStatements: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "statements" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getStatements)) }
   }
@@ -3521,7 +3521,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "aisp" / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
@@ -3585,35 +3585,37 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     http4sPartialFunction = Some(getTransactions)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createAccountAccessConsents(req)
-      .orElse(getAccountAccessConsentsConsentId(req)
-      .orElse(deleteAccountAccessConsentsConsentId(req)
-      .orElse(getAccounts(req)
-      .orElse(getAccountsAccountId(req)
-      .orElse(getAccountsAccountIdBalances(req)
-      .orElse(getAccountsAccountIdBeneficiaries(req)
-      .orElse(getAccountsAccountIdDirectDebits(req)
-      .orElse(getAccountsAccountIdOffers(req)
-      .orElse(getAccountsAccountIdParties(req)
-      .orElse(getAccountsAccountIdParty(req)
-      .orElse(getAccountsAccountIdProduct(req)
-      .orElse(getAccountsAccountIdScheduledPayments(req)
-      .orElse(getAccountsAccountIdStandingOrders(req)
-      .orElse(getAccountsAccountIdStatements(req)
-      .orElse(getAccountsAccountIdStatementsStatementId(req)
-      .orElse(getAccountsAccountIdStatementsStatementIdFile(req)
-      .orElse(getAccountsAccountIdStatementsStatementIdTransactions(req)
-      .orElse(getAccountsAccountIdTransactions(req)
-      .orElse(getBalances(req)
-      .orElse(getBeneficiaries(req)
-      .orElse(getDirectDebits(req)
-      .orElse(getOffers(req)
-      .orElse(getParty(req)
-      .orElse(getProducts(req)
-      .orElse(getScheduledPayments(req)
-      .orElse(getStandingOrders(req)
-      .orElse(getStatements(req)
-      .orElse(getTransactions(req)))))))))))))))))))))))))))))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createAccountAccessConsents,
+    getAccountAccessConsentsConsentId,
+    deleteAccountAccessConsentsConsentId,
+    getAccounts,
+    getAccountsAccountId,
+    getAccountsAccountIdBalances,
+    getAccountsAccountIdBeneficiaries,
+    getAccountsAccountIdDirectDebits,
+    getAccountsAccountIdOffers,
+    getAccountsAccountIdParties,
+    getAccountsAccountIdParty,
+    getAccountsAccountIdProduct,
+    getAccountsAccountIdScheduledPayments,
+    getAccountsAccountIdStandingOrders,
+    getAccountsAccountIdStatements,
+    getAccountsAccountIdStatementsStatementId,
+    getAccountsAccountIdStatementsStatementIdFile,
+    getAccountsAccountIdStatementsStatementIdTransactions,
+    getAccountsAccountIdTransactions,
+    getBalances,
+    getBeneficiaries,
+    getDirectDebits,
+    getOffers,
+    getParty,
+    getProducts,
+    getScheduledPayments,
+    getStandingOrders,
+    getStatements,
+    getTransactions
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

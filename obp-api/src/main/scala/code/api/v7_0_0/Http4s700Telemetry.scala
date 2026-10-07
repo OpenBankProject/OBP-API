@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -62,7 +62,7 @@ object Http4s700Telemetry {
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
   // Route: GET /obp/v7.0.0/management/telemetry
-  lazy val getTelemetry: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTelemetry: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "telemetry" =>
       EndpointHelpers.executeFuture(req) {
         val namePrefix = req.uri.query.params.get("name_prefix").filter(_.nonEmpty)

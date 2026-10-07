@@ -139,8 +139,8 @@ object IdempotencyMiddleware extends MdcLoggable {
           OptionT.liftF(invalidKeyResponse(key))
         } else if (!matchedThisTier(req)) {
           // operationId is set on the CallContext ONLY by ResourceDocMiddleware.attachToCallContext,
-          // and only for the one version tree whose ResourceDocMatcher actually matched this
-          // request (see ResourceDocMiddleware.apply: the `case None` branch never attaches one).
+          // and only for the one version tree with a route that actually serves this
+          // request (see ResourceDocMiddleware.apply: a request no route of the tree serves is passed on without one).
           // Every other tree in the `.orElse` chain is about to answer a miss regardless of what
           // this middleware does, so doing lock/response-key work there is worse than wasted: two
           // requests that legitimately belong to two DIFFERENT trees, or two genuinely concurrent
@@ -266,10 +266,10 @@ object IdempotencyMiddleware extends MdcLoggable {
     key.length <= MaxKeyLength &&
     key.forall(c => c >= 0x21 && c <= 0x7E)
 
-  // True only for the one version tree whose ResourceDocMatcher matched this request --
+  // True only for the one version tree with a route that serves this request --
   // ResourceDocMiddleware.attachToCallContext is the sole place operationId is ever set, and it
-  // runs only on a match (see ResourceDocMiddleware.apply's `case Some(resourceDoc)` branch; the
-  // `case None` branch attaches a CallContext with no operationId). Every other tree in the
+  // runs only on a selected doc (see ResourceDocMiddleware.apply's `case Some(resourceDoc)` branch;
+  // a request no route serves is passed on without a CallContext). Every other tree in the
   // `.orElse` chain sees operationId absent here and skips idempotency handling entirely, because
   // it is about to answer a miss regardless of what this middleware does.
   private def matchedThisTier(req: Request[IO]): Boolean =

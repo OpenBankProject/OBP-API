@@ -32,7 +32,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
@@ -67,7 +67,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
   private def parseBody(s: String): code.api.berlin.group.v1_3.JvalueCaseClass = code.api.berlin.group.v1_3.JvalueCaseClass(com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[org.json4s.JObject])
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 
-  lazy val createAccountAccessConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createAccountAccessConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "account-access-consents" =>
       // Check auth FIRST (before body parsing) to mirror Lift's wrappedWithAuthCheck behaviour:
       // unauthenticated → 401, invalid body → 400. withUserAndBodyCreated parses body first
@@ -206,7 +206,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
-  lazy val deleteAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteAccountAccessConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `ukV31Prefix` / "account-access-consents" / consentId =>
       // Not withUserDelete: the standard has the AISP revoke its own consent with a
       // client-credentials token, which carries no PSU. Consent.checkUKConsentAccess decides who
@@ -243,7 +243,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     http4sPartialFunction = Some(deleteAccountAccessConsentsConsentId)
   )
 
-  lazy val getAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountAccessConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "account-access-consents" / consentId =>
       // Not withUser -- see the DELETE twin above.
       EndpointHelpers.executeAndRespond(req) { cc =>
@@ -321,9 +321,11 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     http4sPartialFunction = Some(getAccountAccessConsentsConsentId)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createAccountAccessConsents(req)
-      .orElse(deleteAccountAccessConsentsConsentId(req))
-      .orElse(getAccountAccessConsentsConsentId(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createAccountAccessConsents,
+    deleteAccountAccessConsentsConsentId,
+    getAccountAccessConsentsConsentId
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

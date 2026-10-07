@@ -30,7 +30,7 @@ import cats.effect.IO
 import code.DynamicData.DynamicData
 import code.api.dynamic.entity.helper.DynamicEntitySpace
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -112,7 +112,7 @@ object Http4s700DynamicEntityDefinitions {
        |Every response carries `bank_id`, `SYS` included.""".stripMargin
 
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities
-  lazy val getDynamicEntityDefinitions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDynamicEntityDefinitions: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" =>
       EndpointHelpers.executeAndRespond(req) { _ =>
         val bankId = DynamicEntitySpace.bankIdOrNoneForSystem(bankIdInUrl)
@@ -166,7 +166,7 @@ object Http4s700DynamicEntityDefinitions {
   ).allowSystemSpace()
 
   // Route: POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities (201)
-  lazy val createDynamicEntityDefinition: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDynamicEntityDefinition: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" =>
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
@@ -217,7 +217,7 @@ object Http4s700DynamicEntityDefinitions {
   ).allowSystemSpace()
 
   // Route: PUT /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID (200)
-  lazy val updateDynamicEntityDefinition: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updateDynamicEntityDefinition: Http4sRoute = Http4sRoute {
     case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId =>
       EndpointHelpers.executeAndRespond(req) { implicit cc =>
         val rawBody = cc.httpBody.getOrElse("")
@@ -260,7 +260,7 @@ object Http4s700DynamicEntityDefinitions {
   ).allowSystemSpace()
 
   // Route: DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID (204)
-  lazy val deleteDynamicEntityDefinition: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteDynamicEntityDefinition: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId =>
       EndpointHelpers.executeDelete(req) { cc =>
         Implementations4_0_0.deleteDynamicEntityImpl(DynamicEntitySpace.bankIdOrNoneForSystem(bankIdInUrl), dynamicEntityId, cc)
@@ -289,7 +289,7 @@ object Http4s700DynamicEntityDefinitions {
   ).allowSystemSpace()
 
   // Route: POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup (201)
-  lazy val backupDynamicEntityDefinition: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val backupDynamicEntityDefinition: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "backup" =>
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
@@ -322,7 +322,7 @@ object Http4s700DynamicEntityDefinitions {
   ).allowSystemSpace()
 
   // Route: DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/cascade/DYNAMIC_ENTITY_ID (204)
-  lazy val deleteDynamicEntityDefinitionCascade: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteDynamicEntityDefinitionCascade: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / "cascade" / dynamicEntityId =>
       EndpointHelpers.executeDelete(req) { cc =>
         Implementations6_0_0.deleteDynamicEntityCascadeFut(DynamicEntitySpace.bankIdOrNoneForSystem(bankIdInUrl), dynamicEntityId, cc)

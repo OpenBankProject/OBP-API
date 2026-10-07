@@ -31,7 +31,7 @@ import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, passesPsd2Aisp}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, passesPsd2Aisp}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
@@ -132,7 +132,7 @@ object Http4sUKOBv310Balances extends MdcLoggable {
   }
 }""")
 
-  lazy val getAccountsAccountIdBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / accountIdStr / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
@@ -160,7 +160,7 @@ object Http4sUKOBv310Balances extends MdcLoggable {
     http4sPartialFunction = Some(getAccountsAccountIdBalances)
   )
 
-  lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val balancesViewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
@@ -195,8 +195,10 @@ object Http4sUKOBv310Balances extends MdcLoggable {
     http4sPartialFunction = Some(getBalances)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountsAccountIdBalances(req)
-      .orElse(getBalances(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountsAccountIdBalances,
+    getBalances
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

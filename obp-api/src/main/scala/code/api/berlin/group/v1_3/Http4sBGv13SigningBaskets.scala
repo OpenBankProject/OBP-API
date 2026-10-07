@@ -32,7 +32,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Pisp, unboxFullOrFail}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, connectorEmptyResponse, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Pisp, unboxFullOrFail}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -74,7 +74,7 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
   val bgV13Prefix = Root / ConstantsBG.berlinGroupVersion1.urlPrefix / ConstantsBG.berlinGroupVersion1.apiShortVersion
 
   // ── POST /signing-baskets ──────────────────────────────────────────────
-  val createSigningBasket: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val createSigningBasket: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "signing-baskets" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
@@ -143,7 +143,7 @@ The resource identifications of these transactions are contained in the  payload
   )
 
   // ── DELETE /signing-baskets/BASKETID ──────────────────────────────────
-  val deleteSigningBasket: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val deleteSigningBasket: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `bgV13Prefix` / "signing-baskets" / basketid =>
       EndpointHelpers.executeDelete(req) { cc =>
         val callContext = Some(cc)
@@ -177,7 +177,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
   )
 
   // ── GET /signing-baskets/BASKETID ─────────────────────────────────────
-  val getSigningBasket: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val getSigningBasket: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "signing-baskets" / basketid =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -212,7 +212,7 @@ Returns the content of an signing basket object.""",
   )
 
   // ── GET /signing-baskets/BASKETID/authorisations ──────────────────────
-  val getSigningBasketAuthorisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val getSigningBasketAuthorisation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "signing-baskets" / basketid / "authorisations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -246,7 +246,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
   )
 
   // ── GET /signing-baskets/BASKETID/authorisations/AUTHORISATIONID ───────
-  val getSigningBasketScaStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val getSigningBasketScaStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "signing-baskets" / basketId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -282,7 +282,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
   )
 
   // ── GET /signing-baskets/BASKETID/status ──────────────────────────────
-  val getSigningBasketStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val getSigningBasketStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "signing-baskets" / basketid / "status" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -316,7 +316,7 @@ Returns the status of a signing basket object.
   )
 
   // ── POST /signing-baskets/BASKETID/authorisations ─────────────────────
-  val startSigningBasketAuthorisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val startSigningBasketAuthorisation: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "signing-baskets" / basketId / "authorisations" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
@@ -414,7 +414,7 @@ This applies in the following scenarios:
   )
 
   // ── PUT /signing-baskets/BASKETID/authorisations/AUTHORISATIONID ───────
-  val updateSigningBasketPsuData: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val updateSigningBasketPsuData: Http4sRoute = Http4sRoute {
     case req @ PUT -> `bgV13Prefix` / "signing-baskets" / basketId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -546,14 +546,16 @@ There are the following request types on this access path:
     http4sPartialFunction = Some(updateSigningBasketPsuData)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createSigningBasket(req)
-      .orElse(deleteSigningBasket(req))
-      .orElse(getSigningBasket(req))
-      .orElse(getSigningBasketAuthorisation(req))
-      .orElse(getSigningBasketScaStatus(req))
-      .orElse(getSigningBasketStatus(req))
-      .orElse(startSigningBasketAuthorisation(req))
-      .orElse(updateSigningBasketPsuData(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createSigningBasket,
+    deleteSigningBasket,
+    getSigningBasket,
+    getSigningBasketAuthorisation,
+    getSigningBasketScaStatus,
+    getSigningBasketStatus,
+    startSigningBasketAuthorisation,
+    updateSigningBasketPsuData
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

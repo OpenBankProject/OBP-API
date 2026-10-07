@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -59,7 +59,7 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("Domestic Scheduled Payments") :: apiTagMockedData :: Nil
 
-  lazy val createDomesticScheduledPaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticScheduledPaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "domestic-scheduled-payment-consents" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -170,7 +170,7 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
     http4sPartialFunction = Some(createDomesticScheduledPaymentConsents)
   )
 
-  lazy val createDomesticScheduledPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticScheduledPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "domestic-scheduled-payments" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -269,7 +269,7 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
     http4sPartialFunction = Some(createDomesticScheduledPayments)
   )
 
-  lazy val getDomesticScheduledPaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticScheduledPaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "domestic-scheduled-payment-consents" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -380,7 +380,7 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
     http4sPartialFunction = Some(getDomesticScheduledPaymentConsentsConsentId)
   )
 
-  lazy val getDomesticScheduledPaymentsDomesticScheduledPaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticScheduledPaymentsDomesticScheduledPaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "domestic-scheduled-payments" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -479,10 +479,12 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
     http4sPartialFunction = Some(getDomesticScheduledPaymentsDomesticScheduledPaymentId)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createDomesticScheduledPaymentConsents(req)
-      .orElse(createDomesticScheduledPayments(req))
-      .orElse(getDomesticScheduledPaymentConsentsConsentId(req))
-      .orElse(getDomesticScheduledPaymentsDomesticScheduledPaymentId(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createDomesticScheduledPaymentConsents,
+    createDomesticScheduledPayments,
+    getDomesticScheduledPaymentConsentsConsentId,
+    getDomesticScheduledPaymentsDomesticScheduledPaymentId
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

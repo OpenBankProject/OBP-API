@@ -34,7 +34,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
-import code.api.util.APIUtil.{HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -86,7 +86,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
   // entry appears under the "Transactions" tag (matching the Lift source of truth)
   // in addition to the "Statements" entry.
   // -----------------------------------------------------------------------
-  lazy val getAccountsAccountIdStatementsStatementIdTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatementsStatementIdTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "statements" / _ / "transactions" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -331,7 +331,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
   // -----------------------------------------------------------------------
   // getAccountsAccountIdTransactions — real business logic
   // -----------------------------------------------------------------------
-  lazy val getAccountsAccountIdTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / accountIdStr / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
@@ -583,7 +583,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
   // -----------------------------------------------------------------------
   // getTransactions — real business logic (bulk, no consent check)
   // -----------------------------------------------------------------------
-  lazy val getTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
@@ -851,9 +851,11 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
   )
 
   // Routes ordered deep-first: 5-segment path before 3-segment before 1-segment
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountsAccountIdStatementsStatementIdTransactions(req)
-      .orElse(getAccountsAccountIdTransactions(req))
-      .orElse(getTransactions(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountsAccountIdStatementsStatementIdTransactions,
+    getAccountsAccountIdTransactions,
+    getTransactions
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

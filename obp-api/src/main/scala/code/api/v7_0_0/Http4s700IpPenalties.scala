@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -73,7 +73,7 @@ object Http4s700IpPenalties {
        |everyone behind the proxy.""".stripMargin
 
   // Route: POST /obp/v7.0.0/management/ip-penalties
-  lazy val createIpPenalty: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createIpPenalty: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "ip-penalties" =>
       EndpointHelpers.withUserAndBodyCreated[PostIpPenaltyJsonV700, IpPenaltyJsonV700](req) { (user, body, cc) =>
         for {
@@ -118,7 +118,7 @@ object Http4s700IpPenalties {
   )
 
   // Route: GET /obp/v7.0.0/management/ip-penalties
-  lazy val getIpPenalties: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getIpPenalties: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "ip-penalties" =>
       EndpointHelpers.withUser(req) { (_, _) =>
         Future(IpPenaltiesJsonV700(IpPenalties.listAll().map(JSONFactory700Operations.createIpPenaltyJson)))
@@ -144,7 +144,7 @@ object Http4s700IpPenalties {
   )
 
   // Route: DELETE /obp/v7.0.0/management/ip-penalties/IP_ADDRESS
-  lazy val deleteIpPenalty: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteIpPenalty: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `prefixPath` / "management" / "ip-penalties" / ipAddress =>
       EndpointHelpers.withUserDelete(req) { (_, cc) =>
         for {

@@ -34,7 +34,6 @@ import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidJsonForm
 import code.api.util.{AuthHeaderParser, CallContext, RemoteIpUtil, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
-import com.openbankproject.commons.model.enums.{StrongCustomerAuthentication, TransactionRequestTypes}
 import net.liftweb.common.{Box, Empty, Full}
 import org.http4s._
 import org.http4s.dsl.io._
@@ -117,26 +116,6 @@ object Http4sRequestAttributes {
    */
   val callerCertificateTrustKey: Key[code.api.util.PeerTrust.Resolution] =
     Key.newKey[IO, code.api.util.PeerTrust.Resolution].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-
-  /** Outcome of resolving the caller from the request credentials: the user (or a Failure) and the
-    * CallContext enriched by that resolution (Consumer, session, rate-limit config, ...). */
-  type ResolvedCaller = (Box[User], Option[CallContext])
-
-  /**
-   * The caller resolved on THIS request by a fallthrough hop that has no ResourceDoc for it (see
-   * ResourceDocMiddleware.resolveCallerOnce). Http4sApp attaches one empty holder to each incoming
-   * request; the first such hop fills it and every later link of the version fallthrough chain
-   * reads it instead of re-validating the credentials (JWKS lookups, Consumer lookup and save).
-   * The holder is a request attribute: it lives in memory for the duration of that one request,
-   * is never stored anywhere else and is unreachable from any other request. When it is absent
-   * (e.g. the middleware used on its own in a test) the middleware still resolves, just on every hop.
-   */
-  val callerResolvedOnThisRequestKey: Key[java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]] =
-    Key.newKey[IO, java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-
-  def newCallerResolvedOnThisRequest: java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]] =
-    new java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]](None)
-
 
   /**
    * Implicit class that adds .callContext accessor to Request[IO].
@@ -791,145 +770,134 @@ object Http4sCallContextBuilder {
 }
 
 /**
- * Matches http4s requests to ResourceDoc entries.
- * 
- * ResourceDoc entries use URL templates with uppercase variable names:
- * - BANK_ID, ACCOUNT_ID, VIEW_ID, COUNTERPARTY_ID
- * 
- * This matcher finds the corresponding ResourceDoc for a given request
- * and extracts path parameters.
+ * Selects the ResourceDoc of the http4s route that serves a request, and reads the path parameters
+ * the middleware validates (BANK_ID, ACCOUNT_ID, VIEW_ID, COUNTERPARTY_ID) from the doc's template.
+ *
+ * A doc is never chosen by comparing the request URL with its template: the template is documentation
+ * (resource-docs, Swagger), and which route serves a request is asked of the routes themselves.
  */
 object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
 
   // API prefix pattern: /<urlPrefix>/v<version> — handles both OBP (/obp/vX.X.X) and BG (/berlin-group/v1.3)
   private val apiPrefixPattern = """^/[^/]+/v[\d.]+""".r
 
-  // Pre-built index type: (VERB, apiVersion, segmentCount) -> candidates
-  type ResourceDocIndex = Map[(String, String, Int), List[ResourceDoc]]
+  /** A doc that carries its route, with the docs of the same bucket that share that route. */
+  final case class RouteBoundDoc(
+    doc: ResourceDoc,
+    route: code.api.util.APIUtil.Http4sRoutePF,
+    sharingTheRoute: List[ResourceDoc]
+  )
 
   /**
-   * Build a lookup index from a collection of ResourceDocs.
-   * Call this once at middleware startup; pass the result to findResourceDoc.
+   * The docs that carry their route, by (VERB, apiVersion) and in the order given. A request is only
+   * put to the routes of its own verb and version, and which docs share a route is worked out once
+   * here instead of on every request.
    */
-  def buildIndex(resourceDocs: Iterable[ResourceDoc]): ResourceDocIndex =
-    resourceDocs.groupBy { doc =>
-      val segCount = doc.requestUrl.split("/").count(_.nonEmpty)
-      (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.toString, segCount)
-    }.map { case (k, v) => k -> v.toList }
+  final case class RouteIndex(byVerbAndVersion: Map[(String, String), List[RouteBoundDoc]])
+
+  private def routeOf(doc: ResourceDoc): Option[code.api.util.APIUtil.Http4sRoutePF] =
+    doc.http4sPartialFunction.flatMap(handler => Option(handler)).flatMap(_.route)
 
   /**
-   * Find ResourceDoc matching the given verb and path using a pre-built index.
-   * O(1) map lookup + O(k) scan where k is the number of docs with the same
-   * verb/version/segment-count (typically 1–3 in practice).
+   * The docs in the order their routes are tried: the order the middleware must select from, so the doc
+   * that validates a request is the doc of the route that runs it. Docs that share a route stay together,
+   * in registration order.
    *
-   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
-   * @param path         Request path
-   * @param index        Index built by buildIndex — create once, reuse per request
-   * @return Option[ResourceDoc] if a match is found
+   * A doc whose route is not in `routesInOrder` is an error (a route left out of the chain would never be
+   * served, or served without its doc's checks), unless it is named in `outsideTheChain`: routes that are
+   * deliberately run before the middleware, and so have no place in the order it selects from. A doc
+   * with no route at all documents an endpoint served somewhere else (the message-docs Swagger is served
+   * by Http4sResourceDocs); it is left out, because there is nothing for the middleware to validate it against.
    */
-  def findResourceDoc(
-    verb: String,
-    path: Uri.Path,
-    index: ResourceDocIndex
-  ): Option[ResourceDoc] = {
-    val pathString   = path.renderString
-    val apiVersion   = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
-    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    val segCount     = strippedPath.split("/").count(_.nonEmpty)
-    val lookupKey    = (verb.toUpperCase, apiVersion, segCount)
-    val candidates   = index.getOrElse(lookupKey, Nil)
-    // When several templates match, the one with the most literal segments wins, so
-    // `.../transaction-request-types/SEPA/...` beats `.../transaction-request-types/TRANSACTION_REQUEST_TYPE/...`
-    // whichever was registered first. On a tie, the first registered wins (maxBy keeps the first maximum).
-    val matching     = candidates.filter(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
-    val result       = if (matching.isEmpty) None else Some(matching.maxBy(doc => literalSegmentCount(doc.requestUrl)))
-    if (result.isEmpty) {
-      logger.debug(
-        s"[ResourceDocMatcher] No match for $verb $pathString. " +
-        s"lookupKey=$lookupKey strippedPath='$strippedPath'. " +
-        s"Candidates with that key: ${if (candidates.isEmpty) "(none)" else candidates.map(d => s"${d.requestVerb} ${d.requestUrl}(${d.implementedInApiVersion})").mkString(", ")}. " +
-        s"Index keys for apiVersion=$apiVersion: ${index.keys.filter(_._2 == apiVersion).mkString(", ")}"
-      )
-    }
-    result
+  def orderByRoutes(
+    docs: Iterable[ResourceDoc],
+    routesInOrder: Iterable[code.api.util.APIUtil.Http4sHandler],
+    outsideTheChain: Iterable[code.api.util.APIUtil.Http4sHandler] = Nil
+  ): ArrayBuffer[ResourceDoc] = {
+    // Routes are compared by identity: an alias of a route (`val b = a`) is the same route.
+    def keyOf(h: code.api.util.APIUtil.Http4sHandler): AnyRef = h.routes
+    val position = new java.util.IdentityHashMap[AnyRef, Integer]()
+    routesInOrder.zipWithIndex.foreach { case (h, i) => if (!position.containsKey(keyOf(h))) position.put(keyOf(h), i) }
+    val outside = new java.util.IdentityHashMap[AnyRef, Boolean]()
+    outsideTheChain.foreach(h => outside.put(keyOf(h), true))
+    val withRoute = docs.toSeq.filter(_.http4sPartialFunction.exists(_ != null))
+    val kept = withRoute.filterNot(doc => outside.containsKey(keyOf(doc.http4sPartialFunction.get)))
+    val missing = kept.filterNot(doc => position.containsKey(keyOf(doc.http4sPartialFunction.get)))
+    if (missing.nonEmpty)
+      throw new IllegalStateException(
+        "ResourceDocs whose route is not in the route chain: " +
+          missing.map(d => s"${d.partialFunctionName} (${d.requestVerb} ${d.requestUrl})").mkString(", "))
+    ArrayBuffer(kept.sortBy(doc => position.get(keyOf(doc.http4sPartialFunction.get)).intValue): _*)
   }
 
+  /** The API version a request path is for: the segment after the API prefix, as in the route index. */
+  private def apiVersionOf(pathString: String): String =
+    pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
+
   /**
-   * Find ResourceDoc matching the given verb and path.
-   * Builds a transient index on every call — use for tests or one-off lookups.
-   * For hot paths, prefer buildIndex + findResourceDoc(verb, path, index).
-   *
-   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
-   * @param path         Request path
-   * @param resourceDocs Collection of ResourceDoc entries to search
-   * @return Option[ResourceDoc] if a match is found
+   * Build the index [[selectByRoute]] uses. Call this once, at middleware construction; docs without a
+   * route are left out.
    */
-  def findResourceDoc(
-    verb: String,
-    path: Uri.Path,
-    resourceDocs: ArrayBuffer[ResourceDoc]
-  ): Option[ResourceDoc] =
-    findResourceDoc(verb, path, buildIndex(resourceDocs))
-  
-  /**
-   * Check if a path matches a URL template
-   * Template segments in uppercase are treated as variables
-   */
-  private def matchesUrlTemplate(path: String, template: String): Boolean = {
-    val pathSegments = path.split("/").filter(_.nonEmpty)
-    val templateSegments = template.split("/").filter(_.nonEmpty)
-    
-    if (pathSegments.length != templateSegments.length) {
-      false
-    } else {
-      pathSegments.zip(templateSegments).forall { case (pathSeg, templateSeg) =>
-        // Uppercase segments are variables (BANK_ID, ACCOUNT_ID, etc.)
-        isTemplateVariable(templateSeg) || pathSeg == templateSeg
+  def buildRouteIndex(docs: Iterable[ResourceDoc]): RouteIndex = {
+    val bound = docs.toList.flatMap(doc => routeOf(doc).map(doc -> _))
+    val buckets = bound.groupBy { case (doc, _) => (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.apiShortVersion) }
+    RouteIndex(buckets.map { case (key, inBucket) =>
+      key -> inBucket.map { case (doc, route) =>
+        RouteBoundDoc(doc, route, inBucket.collect { case (other, otherRoute) if otherRoute eq route => other })
       }
-    }
+    })
   }
-  
+
   /**
-   * This set holds the all-caps URL segments that are fixed words, not placeholders.
+   * Select the ResourceDoc of the route that serves `req`.
    *
-   * ResourceDoc templates write placeholders in capitals (`BANK_ID`, `GRANT_VIEW_ID`,
-   * `TRANSACTION_REQUEST_TYPE`), and OBP writes enum values in capitals too. Where an enum
-   * value appears in a URL, as in
-   * `/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/MOBILE_WALLET/transaction-requests`,
-   * the two look the same. If `MOBILE_WALLET` were read as a placeholder, that template would
-   * match every transaction-request type, and the middleware would validate UTILITY or BULK
-   * requests with the MOBILE_WALLET doc (its roles, operationId, enable/disable switch), or
-   * return 404 for a type that version has no handler for instead of letting the request
-   * fall through to an older version.
+   * A ResourceDoc whose `http4sPartialFunction` is an [[code.api.util.APIUtil.Http4sRoute]] carries
+   * the pattern match of its handler, so the request is put to that match instead of being compared
+   * with the doc's URL template. The doc that comes back is the doc of the route that will run,
+   * whatever the template says, and nothing about a segment has to be guessed to be a placeholder
+   * or a fixed word.
    *
-   * The set used to be kept by hand and fell behind each time a type was added. It is now
-   * built from the two enums whose values appear as URL segments, transaction-request types
-   * and SCA methods, so a new enum value is a literal without anyone remembering to list it.
-   * Any other all-caps segment stays a placeholder, which keeps the deliberate non-standard
-   * placeholders (NEW_ACCOUNT_ID, FIREHOSE_BANK_ID, ...) working.
+   * Only the routes of the request's verb and API version are asked, in the order the docs were given,
+   * which must be the order the routes are tried in when a request could be served by more than one.
+   * Several docs may share one route (a handler that serves every transaction-request type has a doc
+   * per type); the segments the request has in common with each doc's template then tell them apart.
+   * When no doc has a word of the request (an empty segment, a type that has no doc of its own) the
+   * first of them is used: the request is served by that handler either way, so it is still validated
+   * under the roles and errors of the endpoint that serves it rather than run with no validation.
    */
-  private[http4s] val literalAllCapsSegments: Set[String] =
-    TransactionRequestTypes.values.map(_.toString).toSet ++
-      StrongCustomerAuthentication.values.map(_.toString) +
-      // Used as a fixed segment in consent URLs but not an SCA enum value.
-      "NOT_EMAIL_NEITHER_SMS"
-
-  private def literalSegmentCount(template: String): Int =
-    template.split("/").count(segment => segment.nonEmpty && !isTemplateVariable(segment))
-
-  private def isTemplateVariable(segment: String): Boolean = {
-    segment.nonEmpty &&
-      segment.forall(c => c.isUpper || c == '_' || c.isDigit) &&
-      !literalAllCapsSegments.contains(segment)
+  def selectByRoute(req: Request[IO], index: RouteIndex): Option[ResourceDoc] = {
+    val key = (req.method.name.toUpperCase, apiVersionOf(req.uri.path.renderString))
+    index.byVerbAndVersion.getOrElse(key, Nil)
+      .find(_.route.isDefinedAt(req))
+      .map { first =>
+        if (first.sharingTheRoute.size <= 1) first.doc
+        else {
+          // The docs that share this route differ in a fixed word of the URL (a transaction-request type,
+          // an SCA method). The request carries that word as it is, so the doc that agrees with the request
+          // in the most segments is the doc the request is for; a word no doc has leaves them all level and
+          // the first doc is used.
+          val requestSegments = apiPrefixPattern.replaceFirstIn(req.uri.path.renderString, "").split("/").filter(_.nonEmpty)
+          def agreement(doc: ResourceDoc): Int =
+            doc.requestUrl.split("/").filter(_.nonEmpty).zip(requestSegments).count { case (template, actual) => template == actual }
+          first.sharingTheRoute.maxBy(agreement)
+        }
+      }
   }
-  
+
+  /** Select by route from docs that have not been indexed; builds the index on every call, so use it for tests. */
+  def selectByRoute(req: Request[IO], docs: Iterable[ResourceDoc]): Option[ResourceDoc] =
+    selectByRoute(req, buildRouteIndex(docs))
+
   /**
-   * Extract path parameters from matched ResourceDoc
-   * 
+   * Extract path parameters from the selected ResourceDoc
+   *
    * @param path Request path
    * @param resourceDoc Matched ResourceDoc
    * @return Map with keys: BANK_ID, ACCOUNT_ID, VIEW_ID, COUNTERPARTY_ID (if present)
    */
+  /** The path parameters the middleware validates; any other capitalised word in a template is documentation. */
+  private val pathParamNames = Set("BANK_ID", "ACCOUNT_ID", "VIEW_ID", "COUNTERPARTY_ID")
+
   def extractPathParams(
     path: Uri.Path,
     resourceDoc: ResourceDoc
@@ -937,15 +905,21 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     val pathString = path.renderString
     // Strip the API prefix (/obp/vX.X.X) from the path for matching
     val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    val pathSegments = strippedPath.split("/").filter(_.nonEmpty)
     val templateSegments = resourceDoc.requestUrl.split("/").filter(_.nonEmpty)
-    
+    // A route can serve a path with an empty segment (`/banks/B/api-products//subscriptions`), and the
+    // doc selected for it is the route's. Read the parameters by position with the empty segment kept,
+    // so BANK_ID and the other checks see the value the request carries (an empty one) instead of finding
+    // no parameters at all and skipping validation.
+    val positionalSegments = strippedPath.split("/", -1).drop(1)
+    val pathSegments =
+      if (positionalSegments.length == templateSegments.length) positionalSegments
+      else strippedPath.split("/").filter(_.nonEmpty)
+
     if (pathSegments.length != templateSegments.length) {
       Map.empty
     } else {
       pathSegments.zip(templateSegments).collect {
-        case (pathSeg, templateSeg) if isTemplateVariable(templateSeg) =>
-          templateSeg -> pathSeg
+        case (pathSeg, templateSeg) if pathParamNames.contains(templateSeg) => templateSeg -> pathSeg
       }.toMap
     }
   }

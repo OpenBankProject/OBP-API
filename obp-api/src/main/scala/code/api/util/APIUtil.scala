@@ -2792,7 +2792,49 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   type OBPReturnType[T] = Future[(T, Option[CallContext])]
-  type Http4sEndpoint = Option[HttpRoutes[IO]]
+  /** The pattern match of one http4s endpoint, before `HttpRoutes.of` hides it. */
+  type Http4sRoutePF = PartialFunction[org.http4s.Request[IO], IO[org.http4s.Response[IO]]]
+
+  /**
+   * What a ResourceDoc runs. A [[Http4sRoute]] exposes its pattern match, so ResourceDocMiddleware
+   * can ask it whether it serves a request and take the doc of the route that does. Plain
+   * `HttpRoutes[IO]` (a [[LegacyRoutes]]) cannot be asked without running it, so the middleware
+   * still finds the doc of such an endpoint by matching the URL against the doc's template.
+   * Endpoints are converted to [[Http4sRoute]] one version at a time; the implicit conversion in
+   * the companion keeps the unconverted `http4sPartialFunction = Some(routes)` sites compiling.
+   */
+  sealed trait Http4sHandler {
+    def routes: HttpRoutes[IO]
+    def route: Option[Http4sRoutePF]
+  }
+
+  object Http4sHandler {
+    import scala.language.implicitConversions
+    implicit def fromHttpRoutes(routes: HttpRoutes[IO]): Http4sHandler = LegacyRoutes(routes)
+  }
+
+  final case class LegacyRoutes(routes: HttpRoutes[IO]) extends Http4sHandler {
+    def route: Option[Http4sRoutePF] = None
+  }
+
+  /** An endpoint whose pattern match is available: `Http4sRoute { case req @ GET -> ... => ... }`. */
+  final class Http4sRoute(val pf: Http4sRoutePF) extends Http4sHandler {
+    lazy val routes: HttpRoutes[IO] = HttpRoutes.of[IO](pf)
+    def route: Option[Http4sRoutePF] = Some(pf)
+    def run(req: org.http4s.Request[IO]): cats.data.OptionT[IO, org.http4s.Response[IO]] = routes.run(req)
+  }
+
+  object Http4sRoute {
+    def apply(pf: Http4sRoutePF): Http4sRoute = new Http4sRoute(pf)
+
+    /** Try the handlers in the order given; the first that serves a request answers it. */
+    def chain(handlers: Seq[Http4sHandler]): HttpRoutes[IO] =
+      handlers.map(_.routes).foldLeft(HttpRoutes.empty[IO]) { (acc, next) =>
+        HttpRoutes[IO](req => acc.run(req).orElse(next.run(req)))
+      }
+  }
+
+  type Http4sEndpoint = Option[Http4sHandler]
   // Native http4s endpoint type for runtime-compiled dynamic endpoints (Piece C).
   // The dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
   type Http4sEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]
@@ -3226,14 +3268,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Resolve the caller (user and Consumer) from the request credentials WITHOUT applying rate
    * limiting: the call is neither refused for exceeding a limit nor counted against one.
    *
-   * For the http4s version fallthrough chain only (ResourceDocMiddleware.resolveCallerOnce). A hop
-   * that has no ResourceDoc for the request is almost always about to pass it on to the next
-   * version, and the hop that finally serves it applies rate limiting itself through
-   * [[anonymousAccess]] / [[applicationAccess]]. Counting the call on every hop charged one unit per
-   * hop: `GET /obp/v5.1.0/users/current` is served by v3.0.0 after six hops, so it cost seven
-   * units and a Consumer with a per-second limit below seven could never call it (429 OBP-10018).
+   * For a service that opens its own write transaction and so cannot leave the authentication to
+   * ResourceDocMiddleware (which validates before it opens one): authenticating a consent request
+   * writes (the consent's user and Roles), and those writes must be committed before the transaction
+   * opens. Not counting the call against a rate limit is deliberate: the handler authenticates again
+   * and applies the limit through [[anonymousAccess]] / [[applicationAccess]], so counting here too
+   * would charge the call twice.
    *
-   * A Failure is returned in the Box, never thrown; the middleware decides what to do with it.
+   * A Failure is returned in the Box, never thrown; the caller decides what to do with it.
    */
   def resolveCallerWithoutRateLimiting(cc: CallContext): OBPReturnType[Box[User]] =
     accessPipeline(cc, applyRateLimiting = false)

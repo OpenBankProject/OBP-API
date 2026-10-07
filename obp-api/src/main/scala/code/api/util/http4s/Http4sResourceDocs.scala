@@ -77,8 +77,8 @@ import code.api.util.ApiTag.ResourceDocTag
  *   GET /obp/&#42;/banks/{BANK_ID}/resource-docs/{API_VERSION}/openapi.yaml
  *   GET /obp/&#42;/message-docs/{CONNECTOR}/swagger2.0
  *
- * Wired into `Http4sApp.baseServices` BEFORE the Lift bridge, so requests are
- * served natively instead of falling through to Lift.
+ * Wired into `Http4sApp.baseServices` ahead of the versioned APIs, so these paths are
+ * answered here rather than by a version's routes.
  *
  * Business logic is delegated to `ResourceDocs140.ImplementationsResourceDocs`
  * (and `ResourceDocsAPIMethodsUtil`) so caching / content-param / locale /

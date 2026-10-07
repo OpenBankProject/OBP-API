@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -70,7 +70,7 @@ object Http4sUKOBv310Products extends MdcLoggable {
   private val tag = ApiTag("Products") :: apiTagMockedData :: Nil
 
   // ── GET /accounts/ACCOUNTID/product ────────────────────────────────
-  lazy val getAccountsAccountIdProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdProduct: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "product" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -89,7 +89,7 @@ object Http4sUKOBv310Products extends MdcLoggable {
   )
 
   // ── GET /products ──────────────────────────────────────────────────
-  lazy val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getProducts: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "products" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -107,8 +107,10 @@ object Http4sUKOBv310Products extends MdcLoggable {
     http4sPartialFunction = Some(getProducts)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountsAccountIdProduct(req)
-      .orElse(getProducts(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountsAccountIdProduct,
+    getProducts
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

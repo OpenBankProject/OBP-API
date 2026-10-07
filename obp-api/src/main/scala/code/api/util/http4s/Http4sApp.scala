@@ -93,11 +93,8 @@ object Http4sApp extends MdcLoggable {
   // OBPAPIDynamicEntity dispatch.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
   // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — fully-native http4s: proxy (DynamicReq)
-  // + runtime-compiled resource docs, no Lift dispatch. Replaces the LiftRules.statelessDispatch
-  // registration. Must sit AHEAD of the Lift bridge (the bridge no longer carries dynamic-endpoint).
-  // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — proxy (DynamicReq) + runtime-compiled
-  // resource docs / practise. Runs the OBPAPIDynamicEndpoint.routes in-process via an adapter,
-  // replacing the former LiftRules.statelessDispatch registration.
+  // + runtime-compiled resource docs, no Lift dispatch. Replaces the former
+  // LiftRules.statelessDispatch registration.
   private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint)
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
   // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
@@ -145,16 +142,8 @@ object Http4sApp extends MdcLoggable {
     }
   }
 
-  // One empty holder per incoming request for the caller resolved on a no-ResourceDoc hop, shared by
-  // every link of the fallthrough chain below (see ResourceDocMiddleware.resolveCallerOnce). Bridges
-  // rewrite the URI between hops with `req.withUri`, which keeps attributes, so the holder travels
-  // the chain and dies with the request.
-  private def installCallerResolvedOnThisRequest(req: Request[IO]): Request[IO] =
-    if (req.attributes.lookup(Http4sRequestAttributes.callerResolvedOnThisRequestKey).isDefined) req
-    else req.withAttribute(Http4sRequestAttributes.callerResolvedOnThisRequestKey, Http4sRequestAttributes.newCallerResolvedOnThisRequest)
-
   private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-    OptionT.liftF(cacheBodyOnce(req).map(installCallerResolvedOnThisRequest)).flatMap { req =>
+    OptionT.liftF(cacheBodyOnce(req)).flatMap { req =>
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))

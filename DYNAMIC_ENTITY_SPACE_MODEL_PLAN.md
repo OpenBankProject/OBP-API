@@ -334,11 +334,11 @@ writing. `/obp/dynamic-entity/…` keeps serving unchanged throughout; the two r
    by every endpoint in OBP, so relaxing it there would let `/banks/SYS/accounts` past bank validation
    for endpoints that genuinely need a bank, and they would fail further in with something worse than
    a 404. Instead the Dynamic Entity ResourceDocs declare their template with `SPACE_ID`, a
-   non-standard all-caps variable the matcher treats as a wildcard and the middleware skips — the
+   non-standard all-caps variable the middleware does not read — the
    documented bypass in CLAUDE.md, already used by `FIREHOSE_BANK_ID` and `NEW_ACCOUNT_ID`. The
    handler then calls the resolver itself, in place of today's `bankCheck`
-   (`Http4sDynamicEntity.scala:173`). `SPACE_ID` is not in `ResourceDocMatcher.literalAllCapsSegments`,
-   so nothing else has to change.
+   (`Http4sDynamicEntity.scala:173`). The middleware only reads `BANK_ID`, `ACCOUNT_ID`, `VIEW_ID` and
+   `COUNTERPARTY_ID` from a template, so nothing else has to change.
 
    The served URL is unaffected: a caller still writes `/banks/obp1/...` or `/banks/SYS/...`; only the
    doc's template variable is named differently, which is what the middleware matches on.

@@ -158,7 +158,7 @@ object Http4s510 {
 
     // ─── root (GET /root and GET / — v5.1 override of every prior version) ──
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` =>
         EndpointHelpers.executeFuture(req) {
           Future.successful(JSONFactory510.getApiInfoJSON(ApiVersion.v5_1_0, versionStatus))
@@ -192,7 +192,7 @@ object Http4s510 {
 
     // ─── getMyConsentsByBank (GET /banks/BANK_ID/my/consents) — v5.1 override
 
-    val getMyConsentsByBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMyConsentsByBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "my" / "consents" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -269,7 +269,7 @@ object Http4s510 {
 
     // ─── getAggregateMetrics (GET /management/aggregate-metrics) — v5.1 override
 
-    val getAggregateMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAggregateMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "aggregate-metrics" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -338,7 +338,7 @@ object Http4s510 {
 
     // ─── getBanks — kept in v5.1.0 layer so metrics are attributed to this version ──
 
-    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -361,7 +361,7 @@ object Http4s510 {
 
     // ─── ATM CRUD (createAtm/updateAtm/getAtms/getAtm/deleteAtm) — v5.1 overrides
 
-    val createAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAtm: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "atms" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -399,7 +399,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createAtm)
     )
 
-    val updateAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateAtm: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -521,7 +521,7 @@ object Http4s510 {
       }
     }
 
-    val getAtms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAtms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" =>
         Implementations5_1_0.respondWithETag(req, { cc =>
           implicit val ccImpl: code.api.util.CallContext = cc
@@ -576,7 +576,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getAtms)
     )
 
-    val getAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAtm: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr =>
         Implementations5_1_0.respondWithETag(req, { cc =>
           implicit val ccImpl: code.api.util.CallContext = cc
@@ -609,7 +609,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getAtm)
     )
 
-    val deleteAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteAtm: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           val bankId = BankId(bankIdStr)
@@ -643,7 +643,7 @@ object Http4s510 {
 
     // ─── createConsumer / getConsumer / getConsumers — v5.1 overrides ──────
 
-    val createConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createConsumer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "consumers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -783,7 +783,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createConsumer)
     )
 
-    val getConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsumer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -811,7 +811,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getConsumer)
     )
 
-    val getConsumers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsumers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -847,7 +847,7 @@ object Http4s510 {
 
     // ─── getTransactionRequests (v5.1 — adds attributes filter) ─────────────
 
-    val getTransactionRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionRequests: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "transaction-requests" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -915,7 +915,7 @@ object Http4s510 {
 
     // ─── getBankAccountsBalances (v5.1 — same shape as v4 but in v5.1) ─────
 
-    val getBankAccountsBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBankAccountsBalances: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "balances" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -945,7 +945,7 @@ object Http4s510 {
 
     // ─── getAllBankAccountBalances (v5.1 override returns BankAccountBalancesJsonV510)
 
-    val getAllBankAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAllBankAccountBalances: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "balances" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -982,7 +982,7 @@ object Http4s510 {
     //                 waitingForGodot, getApiTags, mtlsClientCertificateInfo
     //                 (plus log-cache×6, regulated-entities CRUD, getAllApiCollections)
 
-    val suggestedSessionTimeout: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val suggestedSessionTimeout: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "ui" / "suggested-session-timeout" =>
         EndpointHelpers.executeFuture(req) {
           Future(APIUtil.getPropsAsIntValue("session_inactivity_timeout_in_seconds", 300))
@@ -1007,7 +1007,7 @@ object Http4s510 {
       http4sPartialFunction = Some(suggestedSessionTimeout)
     )
 
-    val getOAuth2ServerWellKnown: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOAuth2ServerWellKnown: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "well-known" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1053,7 +1053,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getOAuth2ServerWellKnown)
     )
 
-    val regulatedEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val regulatedEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "regulated-entities" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1079,7 +1079,7 @@ object Http4s510 {
       http4sPartialFunction = Some(regulatedEntities)
     )
 
-    val getRegulatedEntityById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getRegulatedEntityById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "regulated-entities" / regulatedEntityId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1103,7 +1103,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getRegulatedEntityById)
     )
 
-    val createRegulatedEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createRegulatedEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "regulated-entities" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1152,7 +1152,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createRegulatedEntity)
     )
 
-    val deleteRegulatedEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteRegulatedEntity: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "regulated-entities" / regulatedEntityId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1188,7 +1188,7 @@ object Http4s510 {
         } yield logs
       }
 
-    val logCacheTraceEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val logCacheTraceEndpoint: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "log-cache" / "trace" =>
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.TRACE)
     }
@@ -1215,7 +1215,7 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheTraceEndpoint)
     )
 
-    val logCacheDebugEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val logCacheDebugEndpoint: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "log-cache" / "debug" =>
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.DEBUG)
     }
@@ -1242,7 +1242,7 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheDebugEndpoint)
     )
 
-    val logCacheInfoEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val logCacheInfoEndpoint: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "log-cache" / "info" =>
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.INFO)
     }
@@ -1269,7 +1269,7 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheInfoEndpoint)
     )
 
-    val logCacheWarningEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val logCacheWarningEndpoint: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "log-cache" / "warning" =>
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.WARNING)
     }
@@ -1296,7 +1296,7 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheWarningEndpoint)
     )
 
-    val logCacheErrorEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val logCacheErrorEndpoint: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "log-cache" / "error" =>
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ERROR)
     }
@@ -1323,7 +1323,7 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheErrorEndpoint)
     )
 
-    val logCacheAllEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val logCacheAllEndpoint: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "log-cache" / "all" =>
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ALL)
     }
@@ -1350,7 +1350,7 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
-    val waitingForGodot: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val waitingForGodot: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "waiting-for-godot" =>
         EndpointHelpers.executeFuture(req) {
           val sleep = req.uri.query.params.get("sleep").getOrElse("0")
@@ -1378,7 +1378,7 @@ object Http4s510 {
       http4sPartialFunction = Some(waitingForGodot)
     )
 
-    val getAllApiCollections: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAllApiCollections: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "api-collections" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1406,7 +1406,7 @@ object Http4s510 {
 
     // ─── ATM attributes (5) ────────────────────────────────────────────────
 
-    val createAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAtmAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1446,7 +1446,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createAtmAttribute)
     )
 
-    val getAtmAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAtmAttributes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1476,7 +1476,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getAtmAttributes)
     )
 
-    val getAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAtmAttribute: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" / atmAttributeId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1506,7 +1506,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getAtmAttribute)
     )
 
-    val updateAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateAtmAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" / atmAttributeId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1547,7 +1547,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateAtmAttribute)
     )
 
-    val deleteAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteAtmAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" / atmAttributeId =>
         EndpointHelpers.withUserAndBankDelete(req) { (_, _, cc) =>
           val bankId = BankId(bankIdStr); val atmId = AtmId(atmIdStr)
@@ -1580,7 +1580,7 @@ object Http4s510 {
 
     // ─── Agents (4) ─────────────────────────────────────────────────────────
 
-    val createAgent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAgent: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "agents" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1616,7 +1616,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createAgent)
     )
 
-    val updateAgentStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateAgentStatus: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "agents" / agentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1649,7 +1649,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateAgentStatus)
     )
 
-    val getAgent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAgent: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "agents" / agentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1679,7 +1679,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getAgent)
     )
 
-    val getAgents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAgents: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "agents" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1712,7 +1712,7 @@ object Http4s510 {
 
     // ─── Regulated entity attributes (5) ───────────────────────────────────
 
-    val createRegulatedEntityAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createRegulatedEntityAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1754,7 +1754,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createRegulatedEntityAttribute)
     )
 
-    val deleteRegulatedEntityAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteRegulatedEntityAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" / attributeId =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           for {
@@ -1783,7 +1783,7 @@ object Http4s510 {
       http4sPartialFunction = Some(deleteRegulatedEntityAttribute)
     )
 
-    val getRegulatedEntityAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getRegulatedEntityAttributeById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" / attributeId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1813,7 +1813,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getRegulatedEntityAttributeById)
     )
 
-    val getAllRegulatedEntityAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAllRegulatedEntityAttributes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1844,7 +1844,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getAllRegulatedEntityAttributes)
     )
 
-    val updateRegulatedEntityAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateRegulatedEntityAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" / attributeId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1888,7 +1888,7 @@ object Http4s510 {
 
     // ─── mtls / api-collection / api-tags / metrics / webui-props (5) ─────
 
-    val mtlsClientCertificateInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val mtlsClientCertificateInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "mtls" / "certificate" / "current" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1918,7 +1918,7 @@ object Http4s510 {
       http4sPartialFunction = Some(mtlsClientCertificateInfo)
     )
 
-    val updateMyApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateMyApiCollection: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "my" / "api-collections" / apiCollectionId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1950,7 +1950,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateMyApiCollection)
     )
 
-    val getApiTags: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getApiTags: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "tags" =>
         EndpointHelpers.executeFuture(req) {
           Future.successful(code.api.v5_1_0.APITags(code.api.util.ApiTag.allDisplayTagNames.toList))
@@ -1977,7 +1977,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getApiTags)
     )
 
-    val getMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2089,7 +2089,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getMetrics)
     )
 
-    val getWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getWebUiProps: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "webui-props" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2137,7 +2137,7 @@ object Http4s510 {
 
     // ─── Non-personal user attributes (3) ─────────────────────────────────
 
-    val createNonPersonalUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createNonPersonalUserAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userId / "non-personal" / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2176,7 +2176,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createNonPersonalUserAttribute)
     )
 
-    val deleteNonPersonalUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteNonPersonalUserAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "users" / userId / "non-personal" / "attributes" / userAttributeId =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           for {
@@ -2200,7 +2200,7 @@ object Http4s510 {
       http4sPartialFunction = Some(deleteNonPersonalUserAttribute)
     )
 
-    val getNonPersonalUserAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getNonPersonalUserAttributes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "non-personal" / "attributes" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2226,7 +2226,7 @@ object Http4s510 {
 
     // ─── User / lock / sync (8) ───────────────────────────────────────────
 
-    val syncExternalUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val syncExternalUser: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / provider / providerId / "sync" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2258,7 +2258,7 @@ object Http4s510 {
       http4sPartialFunction = Some(syncExternalUser)
     )
 
-    val getEntitlementsAndPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getEntitlementsAndPermissions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "entitlements-and-permissions" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2290,7 +2290,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getEntitlementsAndPermissions)
     )
 
-    val getUserByProviderAndUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUserByProviderAndUsername: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "provider" / provider / "username" / username =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2345,7 +2345,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getUserByProviderAndUsername)
     )
 
-    val getUserLockStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUserLockStatus: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / provider / username / "lock-status" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2372,7 +2372,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getUserLockStatus)
     )
 
-    val unlockUserByProviderAndUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val unlockUserByProviderAndUsername: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "users" / provider / username / "lock-status" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2404,7 +2404,7 @@ object Http4s510 {
       http4sPartialFunction = Some(unlockUserByProviderAndUsername)
     )
 
-    val lockUserByProviderAndUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val lockUserByProviderAndUsername: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / provider / username / "locks" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2434,7 +2434,7 @@ object Http4s510 {
       http4sPartialFunction = Some(lockUserByProviderAndUsername)
     )
 
-    val validateUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val validateUserByUserId: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "users" / userId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2471,7 +2471,7 @@ object Http4s510 {
       http4sPartialFunction = Some(validateUserByUserId)
     )
 
-    val getAccountAccessByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAccountAccessByUserId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "account-access" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2530,7 +2530,7 @@ object Http4s510 {
       }
     }
 
-    val getAccountsHeldByUserAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAccountsHeldByUserAtBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "banks" / bankIdStr / "accounts-held" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2568,7 +2568,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getAccountsHeldByUserAtBank)
     )
 
-    val getAccountsHeldByUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAccountsHeldByUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "accounts-held" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2607,7 +2607,7 @@ object Http4s510 {
 
     // ─── Customer helpers (2) ─────────────────────────────────────────────
 
-    val getCustomersForUserIdsOnly: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomersForUserIdsOnly: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "customers" / "customer_ids" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2637,7 +2637,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getCustomersForUserIdsOnly)
     )
 
-    val getCustomersByLegalName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomersByLegalName: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" / "legal-name" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2669,7 +2669,7 @@ object Http4s510 {
 
     // ─── System integrity (5) + currencies (1) ────────────────────────────
 
-    val customViewNamesCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val customViewNamesCheck: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "custom-view-names-check" =>
         EndpointHelpers.executeFuture(req) {
           for {
@@ -2697,7 +2697,7 @@ object Http4s510 {
       http4sPartialFunction = Some(customViewNamesCheck)
     )
 
-    val systemViewNamesCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val systemViewNamesCheck: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "system-view-names-check" =>
         EndpointHelpers.executeFuture(req) {
           for {
@@ -2725,7 +2725,7 @@ object Http4s510 {
       http4sPartialFunction = Some(systemViewNamesCheck)
     )
 
-    val accountAccessUniqueIndexCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val accountAccessUniqueIndexCheck: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "account-access-unique-index-1-check" =>
         EndpointHelpers.executeFuture(req) {
           for {
@@ -2755,7 +2755,7 @@ object Http4s510 {
       http4sPartialFunction = Some(accountAccessUniqueIndexCheck)
     )
 
-    val accountCurrencyCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val accountCurrencyCheck: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "banks" / bankIdStr / "account-currency-check" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2786,7 +2786,7 @@ object Http4s510 {
       http4sPartialFunction = Some(accountCurrencyCheck)
     )
 
-    val orphanedAccountCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val orphanedAccountCheck: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "banks" / bankIdStr / "orphaned-account-check" =>
         EndpointHelpers.executeFuture(req) {
           val bankId = BankId(bankIdStr)
@@ -2821,7 +2821,7 @@ object Http4s510 {
       http4sPartialFunction = Some(orphanedAccountCheck)
     )
 
-    val getCurrenciesAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCurrenciesAtBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "currencies" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2855,7 +2855,7 @@ object Http4s510 {
     // ─── Consumer mgmt PUTs (4) + getCallsLimit + createMyConsumer +
     //     createConsumerDynamicRegistration (7 total) ───────────────────────
 
-    val updateConsumerRedirectURL: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateConsumerRedirectURL: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "redirect_url" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2903,7 +2903,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsumerRedirectURL)
     )
 
-    val updateConsumerLogoURL: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateConsumerLogoURL: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "logo_url" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2940,7 +2940,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsumerLogoURL)
     )
 
-    val updateConsumerCertificate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateConsumerCertificate: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "certificate" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2977,7 +2977,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsumerCertificate)
     )
 
-    val updateConsumerName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateConsumerName: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "name" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3014,7 +3014,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsumerName)
     )
 
-    val getCallsLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCallsLimit: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3044,7 +3044,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getCallsLimit)
     )
 
-    val createMyConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createMyConsumer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "consumers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3125,7 +3125,7 @@ object Http4s510 {
           NewStyle.function.tryons(PostJsonIsNotSigned, 400, Some(cc)) { throw t }
       }
 
-    val createConsumerDynamicRegistration: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createConsumerDynamicRegistration: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "dynamic-registration" / "consumers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3273,7 +3273,7 @@ object Http4s510 {
 
     // ─── View access (3) + transaction-request mgmt (2) ───────────────────
 
-    val grantUserAccessToViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val grantUserAccessToViewById: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "account-access" / "grant" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3352,7 +3352,7 @@ object Http4s510 {
       http4sPartialFunction = Some(grantUserAccessToViewById)
     )
 
-    val revokeUserAccessToViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val revokeUserAccessToViewById: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "account-access" / "revoke" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3399,7 +3399,7 @@ object Http4s510 {
       http4sPartialFunction = Some(revokeUserAccessToViewById)
     )
 
-    val createUserWithAccountAccessById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createUserWithAccountAccessById: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "user-account-access" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3458,7 +3458,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createUserWithAccountAccessById)
     )
 
-    val getTransactionRequestById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionRequestById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "transaction-requests" / requestIdStr =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3488,7 +3488,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getTransactionRequestById)
     )
 
-    val updateTransactionRequestStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateTransactionRequestStatus: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "transaction-requests" / requestIdStr =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3535,7 +3535,7 @@ object Http4s510 {
 
     // ─── View account/balance reads (3) ───────────────────────────────────
 
-    val getCoreAccountByIdThroughView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCoreAccountByIdThroughView: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3567,7 +3567,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getCoreAccountByIdThroughView)
     )
 
-    val getBankAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBankAccountBalances: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "balances" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3600,7 +3600,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getBankAccountBalances)
     )
 
-    val getBankAccountsBalancesThroughView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBankAccountsBalancesThroughView: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "views" / viewIdStr / "balances" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3629,7 +3629,7 @@ object Http4s510 {
 
     // ─── Counterparty limits (4 simple) — getCounterpartyLimitStatus deferred (complex)
 
-    val createCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCounterpartyLimit: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3687,7 +3687,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createCounterpartyLimit)
     )
 
-    val updateCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyLimit: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3729,7 +3729,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateCounterpartyLimit)
     )
 
-    val getCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCounterpartyLimit: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3755,7 +3755,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getCounterpartyLimit)
     )
 
-    val getCounterpartyLimitStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCounterpartyLimitStatus: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limit-status" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -3831,7 +3831,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getCounterpartyLimitStatus)
     )
 
-    val deleteCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyLimit: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
@@ -3858,7 +3858,7 @@ object Http4s510 {
 
     // ─── Custom view CRUD (4) ─────────────────────────────────────────────
 
-    val createCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCustomView: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
@@ -3909,7 +3909,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createCustomView)
     )
 
-    val updateCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomView: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" / targetViewIdStr =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val targetViewId = ViewId(targetViewIdStr)
@@ -3948,7 +3948,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateCustomView)
     )
 
-    val getCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomView: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" / targetViewIdStr =>
         EndpointHelpers.withView(req) { (_, _, view, cc) =>
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val targetViewId = ViewId(targetViewIdStr)
@@ -4001,7 +4001,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getCustomView)
     )
 
-    val deleteCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCustomView: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" / targetViewIdStr =>
         EndpointHelpers.executeDelete(req) { cc =>
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val targetViewId = ViewId(targetViewIdStr)
@@ -4035,7 +4035,7 @@ object Http4s510 {
 
     // ─── Bank account balance CRUD (4) ────────────────────────────────────
 
-    val createBankAccountBalance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createBankAccountBalance: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "balances" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4071,7 +4071,7 @@ object Http4s510 {
       http4sPartialFunction = Some(createBankAccountBalance)
     )
 
-    val getBankAccountBalanceById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBankAccountBalanceById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "balances" / balanceIdStr =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4099,7 +4099,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getBankAccountBalanceById)
     )
 
-    val updateBankAccountBalance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateBankAccountBalance: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "balances" / balanceIdStr =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4136,7 +4136,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateBankAccountBalance)
     )
 
-    val deleteBankAccountBalance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteBankAccountBalance: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "balances" / balanceIdStr =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           val balanceId = BalanceId(balanceIdStr)
@@ -4167,7 +4167,7 @@ object Http4s510 {
 
     // ─── System view permissions (2) ──────────────────────────────────────
 
-    val addSystemViewPermission: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addSystemViewPermission: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "system-views" / viewIdStr / "permissions" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4198,7 +4198,7 @@ object Http4s510 {
       http4sPartialFunction = Some(addSystemViewPermission)
     )
 
-    val deleteSystemViewPermission: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteSystemViewPermission: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "system-views" / viewIdStr / "permissions" / permissionName =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           val viewId = ViewId(viewIdStr)
@@ -4224,7 +4224,7 @@ object Http4s510 {
 
     // ─── Consents family (12) ─────────────────────────────────────────────
 
-    val updateConsentStatusByConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateConsentStatusByConsent: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "consents" / consentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4268,7 +4268,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsentStatusByConsent)
     )
 
-    val updateConsentAccountAccessByConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateConsentAccountAccessByConsentId: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "consents" / consentId / "account-access" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4324,7 +4324,7 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsentAccountAccessByConsentId)
     )
 
-    val updateConsentUserIdByConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateConsentUserIdByConsentId: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "consents" / consentId / "created-by-user" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4385,7 +4385,7 @@ object Http4s510 {
     // uses — with ChallengeType.OBP_CONSENT_CHALLENGE, which is status-agnostic and so works
     // on an AWAITINGAUTHORISATION consent. The OTP is delivered per the configured SCA method
     // (props suggested_default_sca_method: DUMMY answer "123" for dev, EMAIL/SMS for prod).
-    val authoriseUKConsentChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val authoriseUKConsentChallenge: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "consents" / consentId / "authorise" / "challenge" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4459,7 +4459,7 @@ object Http4s510 {
     // access token + the challenge answer to verify SCA, bind the consent to that user, and
     // flip it to AUTHORISED — the missing "authorisation binding" step of the UK flow.
     // User-authenticated but role-free (the account holder is approving their own consent).
-    val authoriseUKConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val authoriseUKConsent: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "consents" / consentId / "authorise" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4608,7 +4608,7 @@ object Http4s510 {
       http4sPartialFunction = Some(authoriseUKConsent)
     )
 
-    val getMyConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMyConsents: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "consents" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4662,7 +4662,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getMyConsents)
     )
 
-    val getConsentsAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsentsAtBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consents" / "banks" / bankIdStr =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4710,7 +4710,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getConsentsAtBank)
     )
 
-    val getConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsents: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consents" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4762,7 +4762,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getConsents)
     )
 
-    val getConsentByConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsentByConsentId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "user" / "current" / "consents" / consentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4801,7 +4801,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getConsentByConsentId)
     )
 
-    val getConsentByConsentIdViaConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsentByConsentIdViaConsumer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "consumer" / "current" / "consents" / consentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4835,7 +4835,7 @@ object Http4s510 {
       http4sPartialFunction = Some(getConsentByConsentIdViaConsumer)
     )
 
-    val revokeConsentAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val revokeConsentAtBank: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "consents" / consentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4881,7 +4881,7 @@ object Http4s510 {
       http4sPartialFunction = Some(revokeConsentAtBank)
     )
 
-    val selfRevokeConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val selfRevokeConsent: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "my" / "consent" / "current" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -4985,7 +4985,7 @@ object Http4s510 {
 
     // ─── createConsent (IMPLICIT alias) — handles SCA: EMAIL/SMS/IMPLICIT ──
 
-    val revokeMyConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val revokeMyConsent: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "my" / "consents" / consentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -5028,7 +5028,7 @@ object Http4s510 {
     )
 
     // Lift named this endpoint "createConsent"; test tag nameOf references still use that name.
-    val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createConsent: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "consents" / scaMethod
         if scaMethod == "EMAIL" || scaMethod == "SMS" || scaMethod == "IMPLICIT" =>
         EndpointHelpers.executeFutureCreated(req) {
@@ -5220,7 +5220,7 @@ object Http4s510 {
 
     // ─── createVRPConsentRequest ────────────────────────────────────────────
 
-    val createVRPConsentRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createVRPConsentRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "consumer" / "vrp-consent-requests" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -5319,133 +5319,137 @@ object Http4s510 {
       http4sPartialFunction = Some(createVRPConsentRequest)
     )
 
-    val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-        root(req)
-          .orElse(getMyConsentsByBank(req))
-          .orElse(getAggregateMetrics(req))
-          .orElse(getBanks(req))
-          .orElse(createAtm(req))
-          .orElse(updateAtm(req))
-          .orElse(getAtms(req))
-          .orElse(getAtm(req))
-          .orElse(deleteAtm(req))
-          .orElse(createConsumer(req))
-          .orElse(getConsumer(req))
-          .orElse(getConsumers(req))
-          .orElse(getTransactionRequests(req))
-          .orElse(getBankAccountsBalances(req))
-          .orElse(getAllBankAccountBalances(req))
-          .orElse(suggestedSessionTimeout(req))
-          .orElse(getOAuth2ServerWellKnown(req))
-          .orElse(regulatedEntities(req))
-          .orElse(getRegulatedEntityById(req))
-          .orElse(createRegulatedEntity(req))
-          .orElse(deleteRegulatedEntity(req))
-          .orElse(logCacheTraceEndpoint(req))
-          .orElse(logCacheDebugEndpoint(req))
-          .orElse(logCacheInfoEndpoint(req))
-          .orElse(logCacheWarningEndpoint(req))
-          .orElse(logCacheErrorEndpoint(req))
-          .orElse(logCacheAllEndpoint(req))
-          .orElse(waitingForGodot(req))
-          .orElse(getAllApiCollections(req))
-          .orElse(createAtmAttribute(req))
-          .orElse(getAtmAttributes(req))
-          .orElse(getAtmAttribute(req))
-          .orElse(updateAtmAttribute(req))
-          .orElse(deleteAtmAttribute(req))
-          .orElse(createAgent(req))
-          .orElse(updateAgentStatus(req))
-          .orElse(getAgent(req))
-          .orElse(getAgents(req))
-          .orElse(createRegulatedEntityAttribute(req))
-          .orElse(deleteRegulatedEntityAttribute(req))
-          .orElse(getRegulatedEntityAttributeById(req))
-          .orElse(getAllRegulatedEntityAttributes(req))
-          .orElse(updateRegulatedEntityAttribute(req))
-          .orElse(mtlsClientCertificateInfo(req))
-          .orElse(updateMyApiCollection(req))
-          .orElse(getApiTags(req))
-          .orElse(getMetrics(req))
-          .orElse(getWebUiProps(req))
-          .orElse(createNonPersonalUserAttribute(req))
-          .orElse(deleteNonPersonalUserAttribute(req))
-          .orElse(getNonPersonalUserAttributes(req))
-          .orElse(syncExternalUser(req))
-          .orElse(getEntitlementsAndPermissions(req))
-          .orElse(getUserByProviderAndUsername(req))
-          .orElse(getUserLockStatus(req))
-          .orElse(unlockUserByProviderAndUsername(req))
-          .orElse(lockUserByProviderAndUsername(req))
-          .orElse(lockUserByProviderAndUsername(req))
-          .orElse(validateUserByUserId(req))
-          .orElse(getAccountAccessByUserId(req))
-          .orElse(getAccountsHeldByUserAtBank(req))
-          .orElse(getAccountsHeldByUser(req))
-          .orElse(getCustomersForUserIdsOnly(req))
-          .orElse(getCustomersByLegalName(req))
-          .orElse(customViewNamesCheck(req))
-          .orElse(systemViewNamesCheck(req))
-          .orElse(accountAccessUniqueIndexCheck(req))
-          .orElse(accountCurrencyCheck(req))
-          .orElse(orphanedAccountCheck(req))
-          .orElse(getCurrenciesAtBank(req))
-          .orElse(updateConsumerRedirectURL(req))
-          .orElse(updateConsumerLogoURL(req))
-          .orElse(updateConsumerCertificate(req))
-          .orElse(updateConsumerName(req))
-          .orElse(getCallsLimit(req))
-          .orElse(createMyConsumer(req))
-          .orElse(createConsumerDynamicRegistration(req))
-          .orElse(grantUserAccessToViewById(req))
-          .orElse(revokeUserAccessToViewById(req))
-          .orElse(createUserWithAccountAccessById(req))
-          .orElse(getTransactionRequestById(req))
-          .orElse(updateTransactionRequestStatus(req))
-          .orElse(getCoreAccountByIdThroughView(req))
-          .orElse(getBankAccountBalances(req))
-          .orElse(getBankAccountsBalancesThroughView(req))
-          .orElse(createCounterpartyLimit(req))
-          .orElse(updateCounterpartyLimit(req))
-          .orElse(getCounterpartyLimit(req))
-          .orElse(getCounterpartyLimitStatus(req))
-          .orElse(deleteCounterpartyLimit(req))
-          .orElse(createCustomView(req))
-          .orElse(updateCustomView(req))
-          .orElse(getCustomView(req))
-          .orElse(deleteCustomView(req))
-          .orElse(createBankAccountBalance(req))
-          .orElse(getBankAccountBalanceById(req))
-          .orElse(updateBankAccountBalance(req))
-          .orElse(deleteBankAccountBalance(req))
-          .orElse(addSystemViewPermission(req))
-          .orElse(deleteSystemViewPermission(req))
-          .orElse(updateConsentStatusByConsent(req))
-          .orElse(updateConsentAccountAccessByConsentId(req))
-          .orElse(updateConsentUserIdByConsentId(req))
-          .orElse(authoriseUKConsentChallenge(req))
-          .orElse(authoriseUKConsent(req))
-          .orElse(getMyConsents(req))
-          .orElse(getConsentsAtBank(req))
-          .orElse(getConsents(req))
-          .orElse(getConsentByConsentId(req))
-          .orElse(getConsentByConsentIdViaConsumer(req))
-          .orElse(revokeConsentAtBank(req))
-          .orElse(selfRevokeConsent(req))
-          .orElse(revokeMyConsent(req))
-          .orElse(createConsent(req))
-          .orElse(createVRPConsentRequest(req))
-      }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getMyConsentsByBank,
+      getAggregateMetrics,
+      getBanks,
+      createAtm,
+      updateAtm,
+      getAtms,
+      getAtm,
+      deleteAtm,
+      createConsumer,
+      getConsumer,
+      getConsumers,
+      getTransactionRequests,
+      getBankAccountsBalances,
+      getAllBankAccountBalances,
+      suggestedSessionTimeout,
+      getOAuth2ServerWellKnown,
+      regulatedEntities,
+      getRegulatedEntityById,
+      createRegulatedEntity,
+      deleteRegulatedEntity,
+      logCacheTraceEndpoint,
+      logCacheDebugEndpoint,
+      logCacheInfoEndpoint,
+      logCacheWarningEndpoint,
+      logCacheErrorEndpoint,
+      logCacheAllEndpoint,
+      waitingForGodot,
+      getAllApiCollections,
+      createAtmAttribute,
+      getAtmAttributes,
+      getAtmAttribute,
+      updateAtmAttribute,
+      deleteAtmAttribute,
+      createAgent,
+      updateAgentStatus,
+      getAgent,
+      getAgents,
+      createRegulatedEntityAttribute,
+      deleteRegulatedEntityAttribute,
+      getRegulatedEntityAttributeById,
+      getAllRegulatedEntityAttributes,
+      updateRegulatedEntityAttribute,
+      mtlsClientCertificateInfo,
+      updateMyApiCollection,
+      getApiTags,
+      getMetrics,
+      getWebUiProps,
+      createNonPersonalUserAttribute,
+      deleteNonPersonalUserAttribute,
+      getNonPersonalUserAttributes,
+      syncExternalUser,
+      getEntitlementsAndPermissions,
+      getUserByProviderAndUsername,
+      getUserLockStatus,
+      unlockUserByProviderAndUsername,
+      lockUserByProviderAndUsername,
+      validateUserByUserId,
+      getAccountAccessByUserId,
+      getAccountsHeldByUserAtBank,
+      getAccountsHeldByUser,
+      getCustomersForUserIdsOnly,
+      getCustomersByLegalName,
+      customViewNamesCheck,
+      systemViewNamesCheck,
+      accountAccessUniqueIndexCheck,
+      accountCurrencyCheck,
+      orphanedAccountCheck,
+      getCurrenciesAtBank,
+      updateConsumerRedirectURL,
+      updateConsumerLogoURL,
+      updateConsumerCertificate,
+      updateConsumerName,
+      getCallsLimit,
+      createMyConsumer,
+      createConsumerDynamicRegistration,
+      grantUserAccessToViewById,
+      revokeUserAccessToViewById,
+      createUserWithAccountAccessById,
+      getTransactionRequestById,
+      updateTransactionRequestStatus,
+      getCoreAccountByIdThroughView,
+      getBankAccountBalances,
+      getBankAccountsBalancesThroughView,
+      createCounterpartyLimit,
+      updateCounterpartyLimit,
+      getCounterpartyLimit,
+      getCounterpartyLimitStatus,
+      deleteCounterpartyLimit,
+      createCustomView,
+      updateCustomView,
+      getCustomView,
+      deleteCustomView,
+      createBankAccountBalance,
+      getBankAccountBalanceById,
+      updateBankAccountBalance,
+      deleteBankAccountBalance,
+      addSystemViewPermission,
+      deleteSystemViewPermission,
+      updateConsentStatusByConsent,
+      updateConsentAccountAccessByConsentId,
+      updateConsentUserIdByConsentId,
+      authoriseUKConsentChallenge,
+      authoriseUKConsent,
+      getMyConsents,
+      getConsentsAtBank,
+      getConsents,
+      getConsentByConsentId,
+      getConsentByConsentIdViaConsumer,
+      revokeConsentAtBank,
+      selfRevokeConsent,
+      revokeMyConsent,
+      createConsent,
+      createVRPConsentRequest
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v5.1.0/… → /obp/v5.0.0/… ─────────────
     lazy val v510ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v5.1.0/") &&
-          ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, v5_1ResourceDocIndex).isEmpty) {
+          ResourceDocMatcher.selectByRoute(req, v5_1RouteIndex).isEmpty) {
         val rewritten = rawPath.replaceFirst("/obp/v5\\.1\\.0/", "/obp/v5.0.0/")
         val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
         Http4s500.wrappedRoutesV500Services.run(req.withUri(newUri))
@@ -5456,8 +5460,8 @@ object Http4s510 {
     }
   }
 
-  private lazy val v5_1ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
-    ResourceDocMatcher.buildIndex(resourceDocs)
+  private lazy val v5_1RouteIndex: ResourceDocMatcher.RouteIndex =
+    ResourceDocMatcher.buildRouteIndex(Implementations5_1_0.orderedResourceDocs)
 
   lazy val wrappedRoutesV510Services: HttpRoutes[IO] =
     Kleisli[HttpF, Request[IO], Response[IO]] { req =>

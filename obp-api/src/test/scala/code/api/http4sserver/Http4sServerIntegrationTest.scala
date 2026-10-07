@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
 
   */
 
-package code.api.http4sbridge
+package code.api.http4sserver
 
 import org.json4s._
 import code.Http4sTestServer

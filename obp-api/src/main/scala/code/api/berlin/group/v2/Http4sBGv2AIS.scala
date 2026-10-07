@@ -31,7 +31,7 @@ import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -73,7 +73,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getAccountList)
   )
 
-  val getAccountList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "accounts" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockAccountList))
   }
@@ -94,7 +94,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getAccountDetails)
   )
 
-  val getAccountDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "accounts" / accountId if !accountId.contains("/") =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockAccountDetails(accountId)))
   }
@@ -115,7 +115,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getAccountBalances)
   )
 
-  val getAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "accounts" / accountId / "balances" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockBalances(accountId)))
   }
@@ -136,7 +136,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getTransactionList)
   )
 
-  val getTransactionList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactionList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "accounts" / accountId / "transactions" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockTransactions(accountId)))
   }
@@ -157,7 +157,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getTransactionDetails)
   )
 
-  val getTransactionDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactionDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "accounts" / accountId / "transactions" / transactionId =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockTransactionDetails(accountId, transactionId)))
   }
@@ -178,7 +178,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getCardAccountList)
   )
 
-  val getCardAccountList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "card-accounts" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockCardAccountList))
   }
@@ -199,7 +199,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getCardAccountDetails)
   )
 
-  val getCardAccountDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "card-accounts" / accountId if !accountId.contains("/") =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockCardAccountDetails(accountId)))
   }
@@ -220,7 +220,7 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getCardAccountBalances)
   )
 
-  val getCardAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "card-accounts" / accountId / "balances" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockCardAccountBalances(accountId)))
   }
@@ -241,22 +241,24 @@ object Http4sBGv2AIS extends MdcLoggable {
     http4sPartialFunction = Some(getCardAccountTransactionList)
   )
 
-  val getCardAccountTransactionList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountTransactionList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "card-accounts" / accountId / "transactions" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockCardAccountTransactions(accountId)))
   }
 
   // ── Combined routes ───────────────────────────────────────────────
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountList(req)
-      .orElse(getAccountBalances(req))
-      .orElse(getTransactionDetails(req))
-      .orElse(getTransactionList(req))
-      .orElse(getAccountDetails(req))
-      .orElse(getCardAccountList(req))
-      .orElse(getCardAccountBalances(req))
-      .orElse(getCardAccountTransactionList(req))
-      .orElse(getCardAccountDetails(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountList,
+    getAccountBalances,
+    getTransactionDetails,
+    getTransactionList,
+    getAccountDetails,
+    getCardAccountList,
+    getCardAccountBalances,
+    getCardAccountTransactionList,
+    getCardAccountDetails
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

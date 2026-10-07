@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -59,7 +59,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("International Payments") :: apiTagMockedData :: Nil
 
-  lazy val createInternationalPaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalPaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "international-payment-consents" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -204,7 +204,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     http4sPartialFunction = Some(createInternationalPaymentConsents)
   )
 
-  lazy val createInternationalPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "international-payments" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -339,7 +339,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
   )
 
   // Deeper path must come before single-wildcard path in `routes`
-  lazy val getInternationalPaymentConsentsConsentIdFundsConfirmation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalPaymentConsentsConsentIdFundsConfirmation: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "international-payment-consents" / _ / "funds-confirmation" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -376,7 +376,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     http4sPartialFunction = Some(getInternationalPaymentConsentsConsentIdFundsConfirmation)
   )
 
-  lazy val getInternationalPaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalPaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "international-payment-consents" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -521,7 +521,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     http4sPartialFunction = Some(getInternationalPaymentConsentsConsentId)
   )
 
-  lazy val getInternationalPaymentsInternationalPaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalPaymentsInternationalPaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "international-payments" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -655,11 +655,13 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     http4sPartialFunction = Some(getInternationalPaymentsInternationalPaymentId)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createInternationalPaymentConsents(req)
-      .orElse(createInternationalPayments(req))
-      .orElse(getInternationalPaymentConsentsConsentIdFundsConfirmation(req))
-      .orElse(getInternationalPaymentConsentsConsentId(req))
-      .orElse(getInternationalPaymentsInternationalPaymentId(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createInternationalPaymentConsents,
+    createInternationalPayments,
+    getInternationalPaymentConsentsConsentIdFundsConfirmation,
+    getInternationalPaymentConsentsConsentId,
+    getInternationalPaymentsInternationalPaymentId
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }
