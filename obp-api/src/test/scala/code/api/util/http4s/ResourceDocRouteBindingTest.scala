@@ -56,17 +56,51 @@ class ResourceDocRouteBindingTest extends ServerSetup {
    * registration order could pass while production picks another doc.
    */
   private def convertedCatalogs: List[(String, ArrayBuffer[ResourceDoc])] = List(
-    "v7.0.0" -> code.api.v7_0_0.Http4s700.Implementations7_0_0.orderedResourceDocs
+    "v1.2.1" -> code.api.v1_2_1.Http4s121.Implementations1_2_1.orderedResourceDocs,
+    "v1.3.0" -> code.api.v1_3_0.Http4s130.Implementations1_3_0.orderedResourceDocs,
+    "v1.4.0" -> code.api.v1_4_0.Http4s140.Implementations1_4_0.orderedResourceDocs,
+    "v2.0.0" -> code.api.v2_0_0.Http4s200.Implementations2_0_0.orderedResourceDocs,
+    "v2.1.0" -> code.api.v2_1_0.Http4s210.Implementations2_1_0.orderedResourceDocs,
+    "v2.2.0" -> code.api.v2_2_0.Http4s220.Implementations2_2_0.orderedResourceDocs,
+    "v3.0.0" -> code.api.v3_0_0.Http4s300.Implementations3_0_0.orderedResourceDocs,
+    "v3.1.0" -> code.api.v3_1_0.Http4s310.Implementations3_1_0.orderedResourceDocs,
+    "v4.0.0" -> code.api.v4_0_0.Http4s400.Implementations4_0_0.orderedResourceDocs,
+    "v5.0.0" -> code.api.v5_0_0.Http4s500.Implementations5_0_0.orderedResourceDocs,
+    "v5.1.0" -> code.api.v5_1_0.Http4s510.Implementations5_1_0.orderedResourceDocs,
+    "v6.0.0" -> code.api.v6_0_0.Http4s600.Implementations6_0_0.orderedResourceDocs,
+    "v7.0.0" -> code.api.v7_0_0.Http4s700.Implementations7_0_0.orderedResourceDocs,
+    "Berlin Group v1.3" -> code.api.berlin.group.v1_3.Http4sBGv13.orderedResourceDocs,
+    "Berlin Group v2" -> code.api.berlin.group.v2.Http4sBGv2.orderedResourceDocs,
+    "UK Open Banking v2.0.0" -> code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.orderedResourceDocs,
+    "UK Open Banking v3.1.0" -> code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.orderedResourceDocs,
+    "UK Open Banking v4.0.1" -> code.api.UKOpenBanking.v4_0_1.Http4sUKOBv401.orderedResourceDocs
   )
 
   private def describe(doc: ResourceDoc): String =
     s"${doc.partialFunctionName} (${doc.requestVerb} ${doc.requestUrl})"
 
+  /**
+   * Docs whose route serves a longer or narrower URL than the template documents, or accepts only some
+   * values of a segment, so the template text itself is not a request the route serves. The documented
+   * URL is kept as it is (resource-docs and Swagger show it); this gives the URL to test instead.
+   */
+  private val sampleUrlOf: Map[String, String] = Map(
+    // Lift documented /search/warehouse, and served /search/warehouse/{query}
+    "elasticSearchWarehouse" -> "/search/warehouse/QUERY",
+    "elasticSearchMetrics" -> "/search/metrics/QUERY",
+    // (the Berlin Group payment routes accept only real payment services and products, see below)
+  )
+
   private def requestFor(doc: ResourceDoc): Request[IO] = {
     val version = doc.implementedInApiVersion
+    // Berlin Group payment routes accept only the values of PaymentServiceTypes and TransactionRequestTypes
+    // in their first two segments, so the template's placeholders are given real values.
+    val url = sampleUrlOf.getOrElse(
+      doc.partialFunctionName,
+      doc.requestUrl.replace("/PAYMENT_SERVICE/", "/payments/").replace("/PAYMENT_PRODUCT/", "/sepa-credit-transfers/"))
     Request[IO](
       Method.fromString(doc.requestVerb.toUpperCase).fold(throw _, identity),
-      Uri.unsafeFromString(s"/${version.urlPrefix}/$version${doc.requestUrl}")
+      Uri.unsafeFromString(s"/${version.urlPrefix}/${version.apiShortVersion}$url")
     )
   }
 
@@ -74,8 +108,8 @@ class ResourceDocRouteBindingTest extends ServerSetup {
   private def unbound(docs: ArrayBuffer[ResourceDoc]): List[String] = {
     val sameVerbAndUrlCount = docs.groupBy(doc => (doc.requestVerb.toUpperCase, doc.requestUrl)).view.mapValues(_.size).toMap
     docs.toList.flatMap { doc =>
-      doc.http4sPartialFunction.flatMap(_.route) match {
-        case None => Some(s"${describe(doc)} carries no Http4sRoute")
+      doc.http4sPartialFunction.flatMap(h => Option(h)).flatMap(_.route) match {
+        case None => Some(s"${describe(doc)} carries no Http4sRoute (or its route val is declared after the resourceDocs += line)")
         case Some(route) =>
           val req = requestFor(doc)
           if (!route.isDefinedAt(req)) Some(s"${describe(doc)}: its own route does not serve its own URL")
