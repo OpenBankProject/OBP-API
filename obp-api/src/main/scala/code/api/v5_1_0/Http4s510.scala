@@ -275,7 +275,8 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(httpParams, Some(cc))
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(limitedHttpParams, Some(cc))
             aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, true)
               .map(x => unboxFullOrFail(x, Some(cc), GetAggregateMetricsError))
           } yield createAggregateMetricJson(aggregateMetrics).headOption
@@ -296,7 +297,9 @@ object Http4s510 {
          |&verb=GET&anon=false&app_name=MapperPostman
          |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
          |
-         |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
+         |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
+         |
+         |1 from_date (defaults to ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days before to_date): eg:from_date=$DateWithMsExampleString
          |
          |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
          |
@@ -330,7 +333,7 @@ object Http4s510 {
          |
       """.stripMargin,
       EmptyBody, aggregateMetricsJSONV300,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, AggregateMetricsDateRangeTooLong, UnknownError),
       List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)),
       http4sPartialFunction = Some(getAggregateMetrics)

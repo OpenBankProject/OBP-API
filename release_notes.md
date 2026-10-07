@@ -3,6 +3,19 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+07/10/2026    TBD           CHANGED: GET /management/aggregate-metrics (v3.0.0, v5.1.0 and v6.0.0)
+                            covers at most 31 days of metrics per call, set by the new prop
+                            aggregate_metrics_max_days (default 31). A range between from_date and
+                            to_date longer than that returns 400 with the new error OBP-10069. In
+                            v3.0.0 and v5.1.0 a call without from_date used to aggregate the whole
+                            metric table; it now covers the 31 days before to_date (or before now).
+                            v6.0.0 keeps its own default of the last few minutes. Response bodies are
+                            unchanged. The query is also given the endpoint timeout, so the database
+                            stops it once the caller has already been answered.
+                            FIXED: v3.1.0 top-consumers with anon=true or anon=false returned no rows;
+                            it now filters as documented. v5.1.0 and v6.0.0 aggregate-metrics with
+                            several include_url_patterns now count a url matching any of them, not
+                            only one matching all of them.
 04/10/2026    TBD           CHANGED: GET /obp/v5.1.0/system/log-cache/LEVEL (trace, debug, info, warning,
                             error, all) and GET /obp/v7.0.0/management/telemetry accept a Consumer that
                             holds the Role as a Scope, as well as a User who holds it as an Entitlement

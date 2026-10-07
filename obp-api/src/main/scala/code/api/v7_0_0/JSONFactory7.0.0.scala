@@ -1021,27 +1021,37 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class GlossaryJsonV700(glossary_items: List[GlossaryItemJsonV700], total_count: Int)
 
   /**
-   * One Item as the Glossary serves it.
+   * The description of one Item as the Glossary serves it, in markdown and in HTML.
    *
    * `expanded` controls the Glossary placeholders that Items use to quote each other: true gives
    * the text a reader wants, false the text as authored, which is what an editor must PUT back.
-   * `includeAuthor` keeps created_by_user_id out of anonymous responses.
+   * This is the expensive part of serving an Item (placeholder expansion and a markdown to HTML
+   * conversion), so the Glossary endpoints cache its result rather than calling it per request.
+   */
+  def createGlossaryItemDescriptionJsonV700(item: Glossary.GlossaryItem, expanded: Boolean): GlossaryItemDescriptionJsonV700 = {
+    val raw = item.description()
+    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+    GlossaryItemDescriptionJsonV700(
+      markdown = markdown,
+      html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
+    )
+  }
+
+  /**
+   * One Item as the Glossary serves it, with its description already rendered by
+   * createGlossaryItemDescriptionJsonV700. `includeAuthor` keeps created_by_user_id out of
+   * anonymous responses.
    */
   def createServedGlossaryItemJsonV700(
       item: Glossary.GlossaryItem,
       meta: Option[code.glossaryitem.DynamicGlossaryItemTrait],
-      expanded: Boolean,
+      description: GlossaryItemDescriptionJsonV700,
       includeAuthor: Boolean
-  ): GlossaryItemJsonV700 = {
-    val raw = item.description()
-    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+  ): GlossaryItemJsonV700 =
     GlossaryItemJsonV700(
       glossary_item_id = meta.map(_.glossaryItemId),
       title = item.title,
-      description = GlossaryItemDescriptionJsonV700(
-        markdown = markdown,
-        html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
-      ),
+      description = description,
       is_dynamic = item.isDynamic,
       overrides_static_item = item.overridesStaticItem,
       shadows_static_glossary_item = item.shadowsStaticItem,
@@ -1049,7 +1059,6 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       created_at = meta.map(_.createdAt),
       updated_at = meta.map(_.updatedAt)
     )
-  }
 
   def createGlossaryJsonV700(items: List[GlossaryItemJsonV700], totalCount: Int): GlossaryJsonV700 =
     GlossaryJsonV700(glossary_items = items, total_count = totalCount)
@@ -2256,6 +2265,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     consumer_id = ExampleValue.consumerIdExample.value,
     scopes = List(CurrentConsumerScopeJsonV700(role_name = "CanGetDynamicEntityDefinitions", bank_id = "SYS"))
   )
+
+  /** One Scope on this instance: which Consumer holds which Role, and where. */
+  case class ScopeJsonV700(
+    bank_id: String,
+    role_name: String,
+    consumer_id: String
+  )
+
+  case class ScopesJsonV700(scopes: List[ScopeJsonV700])
+
+  def createAllScopesJsonV700(scopes: List[code.scope.Scope]): ScopesJsonV700 =
+    ScopesJsonV700(scopes.map(s => ScopeJsonV700(bank_id = s.bankId, role_name = s.roleName, consumer_id = s.consumerId))
+      .sortBy(s => (s.role_name, s.bank_id, s.consumer_id)))
+
+  lazy val allScopesJsonV700Example = ScopesJsonV700(List(
+    ScopeJsonV700(bank_id = "", role_name = "CanGetTelemetry", consumer_id = ExampleValue.consumerIdExample.value)))
+
+  /** The Role names someone holds, as an Entitlement or a Scope, each once. No Users, Consumers or bank ids. */
+  case class ReachableRolesJsonV700(role_names: List[String])
+
+  def createReachableRolesJsonV700(roleNames: List[String]): ReachableRolesJsonV700 =
+    ReachableRolesJsonV700(roleNames.distinct.sorted)
+
+  lazy val reachableRolesJsonV700Example = ReachableRolesJsonV700(List("CanGetCustomersAtOneBank", "CanGetTelemetry"))
 
   case class PasswordPolicyJsonV700(
     description: String,

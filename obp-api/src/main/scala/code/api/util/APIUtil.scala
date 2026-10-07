@@ -5220,7 +5220,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
     // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
     // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that
-    // re-checks the database at most once a second.
+    // re-checks the Dynamic Glossary Items every ten minutes and the glossary cache namespace every ten seconds.
     s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-glossary:${Glossary.glossaryVersionForCacheKey}".intern()
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 

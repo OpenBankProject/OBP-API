@@ -175,41 +175,87 @@ object Glossary extends MdcLoggable  {
 
 	// Expansion runs once per Resource Doc per Resource Doc cache TTL, and a cold cache expands
 	// hundreds of docs in one burst, so they share a lookup map rather than each reading the
-	// database. The map is keyed on the Dynamic Glossary Item watermark, and the watermark itself
-	// is re-read at most once a second.
-	private val GlossaryCacheRecheckMillis = 1000L
-	private val cachedItemsByTitle =
-		new java.util.concurrent.atomic.AtomicReference[(Long, String, Map[String, GlossaryItem])]((0L, "", Map.empty))
+	// database. The map is keyed on two versions, checked on different schedules:
+	//  - the glossary cache namespace counter, a Redis read, at most once every ten seconds. Every
+	//    Dynamic Glossary Item write bumps it (see dynamicGlossaryItemsChanged), as does the cache
+	//    page in API Manager, so a change reaches every node within those ten seconds.
+	//  - the Dynamic Glossary Item watermark, a database read, at most once every ten minutes. This
+	//    is the fallback for when the bump could not be made, for example with Redis unreachable.
+	private val GlossaryWatermarkRecheckMillis = 600000L
+	private val GlossaryNamespaceRecheckMillis = 10000L
+
+	/**
+	 * This holds the Glossary lookup map together with the two versions it was built from and
+	 * when each version was last read. A watermarkCheckedAt of 0 means nothing has been built yet.
+	 */
+	private case class GlossaryCacheState(
+		watermarkCheckedAt: Long,
+		watermark: String,
+		namespaceCheckedAt: Long,
+		namespaceVersion: Long,
+		itemsByTitle: Map[String, GlossaryItem]
+	) {
+		def token: String = s"$watermark-ns$namespaceVersion"
+	}
+
+	private val EmptyGlossaryCacheState = GlossaryCacheState(0L, "", 0L, 0L, Map.empty)
+
+	private val cachedGlossaryState =
+		new java.util.concurrent.atomic.AtomicReference[GlossaryCacheState](EmptyGlossaryCacheState)
 
 	/**
 	 * Drops the placeholder lookup cache so a write made on this node is reflected at once, rather
 	 * than on the next watermark re-read. Other nodes still pick the write up via the watermark.
 	 */
-	def invalidateGlossaryItemCache(): Unit = cachedItemsByTitle.set((0L, "", Map.empty))
+	def invalidateGlossaryItemCache(): Unit = cachedGlossaryState.set(EmptyGlossaryCacheState)
+
+	/**
+	 * Call this after creating, updating or deleting a Dynamic Glossary Item. It bumps the glossary
+	 * cache namespace, which every node re-reads every ten seconds, so all of them serve the change
+	 * within that time instead of waiting for the ten-minute watermark check. This node's own cache
+	 * is dropped at once.
+	 *
+	 * Both happen only after the request's transaction has committed. Done earlier, a node could
+	 * see the bump, read the Glossary before the write was visible, and keep the old text until
+	 * its next watermark check.
+	 */
+	def dynamicGlossaryItemsChanged(): Unit =
+		code.api.util.http4s.RequestScopeConnection.afterCommit {
+			code.api.Constant.incrementCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE)
+			invalidateGlossaryItemCache()
+		}
 
 	private def glossaryState: (String, Map[String, GlossaryItem]) = {
 		val now = System.currentTimeMillis
-		val (checkedAt, version, byTitle) = cachedItemsByTitle.get()
-		if (checkedAt != 0L && now - checkedAt < GlossaryCacheRecheckMillis) (version, byTitle)
+		val cached = cachedGlossaryState.get()
+		val isBuilt = cached.watermarkCheckedAt != 0L
+		val watermarkIsFresh = isBuilt && now - cached.watermarkCheckedAt < GlossaryWatermarkRecheckMillis
+		val namespaceIsFresh = isBuilt && now - cached.namespaceCheckedAt < GlossaryNamespaceRecheckMillis
+		if (watermarkIsFresh && namespaceIsFresh) (cached.token, cached.itemsByTitle)
 		else {
-			// The glossary cache namespace version is part of the token: bumping it (for example from
-			// the cache page in API Manager) reloads the Glossary here and, because the token is in
-			// every resource-docs cache key, rebuilds every cached document that embeds Glossary text.
-			val currentVersion =
-				s"$dynamicGlossaryItemsVersion-ns${code.api.Constant.recentCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE)}"
-			if (checkedAt != 0L && currentVersion == version) {
-				cachedItemsByTitle.set((now, version, byTitle))
-				(version, byTitle)
+			// The glossary cache namespace version is part of the token: bumping it reloads the
+			// Glossary here and, because the token is in every resource-docs cache key, rebuilds every
+			// cached document that embeds Glossary text.
+			val (watermarkCheckedAt, watermark) =
+				if (watermarkIsFresh) (cached.watermarkCheckedAt, cached.watermark)
+				else (now, dynamicGlossaryItemsVersion)
+			val (namespaceCheckedAt, namespaceVersion) =
+				if (namespaceIsFresh) (cached.namespaceCheckedAt, cached.namespaceVersion)
+				else (now, code.api.Constant.getCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE))
+			val checked = GlossaryCacheState(watermarkCheckedAt, watermark, namespaceCheckedAt, namespaceVersion, cached.itemsByTitle)
+			if (isBuilt && checked.token == cached.token) {
+				cachedGlossaryState.set(checked)
+				(checked.token, checked.itemsByTitle)
 			} else {
 				// allGlossaryItems yields one Item per exact title, but titles differing only in case
 				// survive and collapse together in this case-insensitive map. Reversing makes the first
 				// of those spellings win, as find() used to.
 				val items = allGlossaryItems
-				val rebuilt = items.reverse.map(item => item.title.toLowerCase -> item).toMap
-				cachedItemsByTitle.set((now, currentVersion, rebuilt))
+				val rebuilt = checked.copy(itemsByTitle = items.reverse.map(item => item.title.toLowerCase -> item).toMap)
+				cachedGlossaryState.set(rebuilt)
 				// Only on a real change, so this reports each edit once rather than on every read.
 				logStaticOverrides(items.filter(_.shadowsStaticItem))
-				(currentVersion, rebuilt)
+				(rebuilt.token, rebuilt.itemsByTitle)
 			}
 		}
 	}

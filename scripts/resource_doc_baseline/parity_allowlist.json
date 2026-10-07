@@ -1007,9 +1007,49 @@
       "version": "v6_0_0",
       "endpoint": "getAggregateMetrics",
       "field": "description",
-      "reason": "Documents real new response fields (distinct_user_count etc.) verified present in MappedMetrics.scala, and who may call it: a User with CanReadAggregateMetrics or an application whose Consumer holds it.",
+      "reason": "Documents real new response fields (distinct_user_count etc.) verified present in MappedMetrics.scala, who may call it (a User with CanReadAggregateMetrics or an application whose Consumer holds it), and the per-call date range limit enforced by APIMetrics.limitAggregateMetricsWindow.",
       "lift_digest": "21e12b117560d354f2ee58bb845e9a5d39d9f47721da8195868cf7a6ed9a216d",
-      "http4s_digest": "a1631529945acf190378edeff834bbdef9040aee86cb0282008bb7ee6ac539a8"
+      "http4s_digest": "b340b1bf1f8fddc121972bb407c327a196d85429f72f6cf80864595f7a76fcce"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "errorResponseBodies",
+      "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "8f16b7299b9d91cda6127a8a1b18fd8ef7bda1ef93177f22d159fcad017a4428"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "description",
+      "reason": "Documents the per-call date range limit enforced by APIMetrics.limitAggregateMetricsWindow, and corrects the from_date default: it was 1 January 1970, not the day before, and is now aggregate_metrics_max_days before to_date.",
+      "lift_digest": "2407b22d7271118a65e34d3400d7af72580aeb8a6cb9521103a991fa464cf3f1",
+      "http4s_digest": "e19a45086f2e479d8cf6744f950678ab224c0460ecad0de8847645450ff4c6ef"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "errorResponseBodies",
+      "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "8f16b7299b9d91cda6127a8a1b18fd8ef7bda1ef93177f22d159fcad017a4428"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "description",
+      "reason": "Documents the per-call date range limit enforced by APIMetrics.limitAggregateMetricsWindow, and corrects the from_date default: it was 1 January 1970, not the day before, and is now aggregate_metrics_max_days before to_date.",
+      "lift_digest": "dc8534c5f01cfb8aa8a495f490d136e257788f51f06322ed87d08157831bb874",
+      "http4s_digest": "85dfb572d4097570ef0ab17ed201f6204dfff63c6c589c9c1730a3982ba96744"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "errorResponseBodies",
+      "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "8f16b7299b9d91cda6127a8a1b18fd8ef7bda1ef93177f22d159fcad017a4428"
     },
     {
       "version": "v6_0_0",

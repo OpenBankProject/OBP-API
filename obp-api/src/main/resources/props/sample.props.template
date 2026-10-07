@@ -1960,6 +1960,10 @@ user_account_is_validated = false
 # than 600 so successive runs drift across the wall clock instead of phase-locking
 # to every 10th minute and to other periodic schedulers.
 # retain_metrics_scheduler_interval_in_seconds = 599
+# The longest date range, in days, that one GET /management/aggregate-metrics call may cover.
+# An aggregate reads every metric row in its range, so the cost grows with the range; a
+# longer range is refused with 400. A call without from_date covers this many days.
+# aggregate_metrics_max_days = 31
 
 
 # Defines endpoints we want to store responses at Metric table

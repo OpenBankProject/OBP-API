@@ -40,7 +40,7 @@ object DBUtil {
   def isSqlServer: Boolean = dbUrl.contains("sqlserver")
 
   /** The endpoint timeout in whole seconds, rounded up, which is the unit JDBC takes. */
-  private[util] def queryTimeoutSeconds: Int =
+  private[code] def queryTimeoutSeconds: Int =
     math.max(1L, (Constant.longEndpointTimeoutInMillis + 999) / 1000).toInt
 
   /**

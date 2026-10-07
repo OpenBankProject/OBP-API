@@ -606,7 +606,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // (Superset of upstream's specifiedUrl-only fix in 17faa09ac.)
     // The Glossary version belongs in the key too: descriptions embed Glossary text, so a Dynamic
     // Glossary Item that overrides a static one must not be masked by an hour-old cache entry.
-    // The value is read from an in-memory cache that re-checks the database at most once a second.
+    // The value is read from an in-memory cache that re-checks the Dynamic Glossary Items every ten minutes and the glossary cache namespace every ten seconds.
     val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology-requestUrl:${resourceDocUpdatedTags.requestUrl}-specifiedUrl:${resourceDocUpdatedTags.specifiedUrl.getOrElse("")}-glossary:${Glossary.glossaryVersionForCacheKey}".intern()
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
       val fieldsDescription =

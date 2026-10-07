@@ -569,6 +569,14 @@ object ApiRole extends MdcLoggable{
   case class CanGetTelemetry(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetTelemetry = CanGetTelemetry()
 
+  // What has been granted, across all Users and Consumers. CanGetReachableRoles shows only Role names,
+  // never who holds them, so it can be given to a code-review service; CanGetAllScopes shows the Consumers too.
+  case class CanGetAllScopes(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllScopes = CanGetAllScopes()
+
+  case class CanGetReachableRoles(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetReachableRoles = CanGetReachableRoles()
+
   // IP penalties restrict an address on the whole instance, which belongs to no bank, so these
   // Roles are held at the empty bank id.
   case class CanCreateIpPenalty(requiresBankId: Boolean = false) extends ApiRole
