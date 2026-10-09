@@ -1688,6 +1688,11 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 ## Berlin Group Create Consent ASPSP-SCA-Approach response header value
 #berlin_group_aspsp_sca_approach = redirect
 
+# Whether a Berlin Group signing basket may be authorised (PUT /signing-baskets/{basketId}/authorisations/{authorisationId}).
+# Default false: the call answers 403 SERVICE_BLOCKED. Answering the authorisation books the basket's payments one
+# after another. Creating, reading, starting an authorisation on and deleting baskets are not affected.
+#signing_basket_authorisation_enabled = false
+
 # Support multiple brands on one instance. Note this needs checking on a clustered environment
 #brands_enabled=false
 

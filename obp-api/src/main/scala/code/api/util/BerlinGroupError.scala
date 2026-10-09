@@ -115,6 +115,21 @@ object BerlinGroupError {
       case "403" if message.contains("OBP-20060") => "ROLE_INVALID"
 
       case "400" if message.contains("OBP-10034") => "PARAMETER_NOT_CONSISTENT"
+      case "400" if message.contains("OBP-35050") => "SERVICE_INVALID"
+      // One answer for a signing basket that does not exist and one the caller may not address, so the
+      // endpoint is not a way to learn which basket ids exist.
+      case "403" if message.contains("OBP-35051") => "RESOURCE_UNKNOWN"
+      case "404" if message.contains("OBP-35052") => "RESOURCE_UNKNOWN"
+      case "409" if message.contains("OBP-35053") => "STATUS_INVALID"
+      case "403" if message.contains("OBP-35054") => "SERVICE_BLOCKED"
+      case "400" if message.contains("OBP-35056") => "RESOURCE_UNKNOWN"
+      case "409" if message.contains("OBP-35057") => "REFERENCE_STATUS_INVALID"
+      case "400" if message.contains("OBP-35058") => "SERVICE_INVALID"
+      // A wrong or expired one-time password on a signing basket. The standard's code for "the
+      // password/OTP is incorrect" is a 401 one; the basket answers these at 401 so it can use it.
+      case "401" if message.contains("OBP-40016") => "PSU_CREDENTIALS_INVALID"
+      case "401" if message.contains("OBP-20211") => "PSU_CREDENTIALS_INVALID"
+      case "401" if message.contains("OBP-40014") => "PSU_CREDENTIALS_INVALID"
 
       case "400" if message.contains("OBP-35018") => "CONSENT_UNKNOWN"
       case "400" if message.contains("OBP-35001") => "CONSENT_UNKNOWN"
