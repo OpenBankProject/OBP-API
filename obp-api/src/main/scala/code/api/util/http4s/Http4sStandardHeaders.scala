@@ -74,6 +74,11 @@ object Http4sStandardHeaders {
     if (!hasHeader("X-Frame-Options")) {
       extraHeaders += Header.Raw(CIString("X-Frame-Options"), "DENY")
     }
+    // Tells browsers to trust the declared Content-Type rather than guess one from the body. Without
+    // it, a browser can decide that a JSON response carrying user-written text is HTML and run it.
+    if (!hasHeader("X-Content-Type-Options")) {
+      extraHeaders += Header.Raw(CIString("X-Content-Type-Options"), "nosniff")
+    }
     val headersToAdd = extraHeaders.result()
     if (headersToAdd.isEmpty) resp
     else {
