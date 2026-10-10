@@ -307,6 +307,25 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         .map(_._2) shouldBe Some("DENY")
     }
 
+    scenario("All responses include X-Content-Type-Options: nosniff", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/root")
+      val (_, _, headers) = makeHttpRequest("/obp/v7.0.0/root")
+
+      Then("Response includes X-Content-Type-Options: nosniff")
+      headers.find { case (k, _) => k.equalsIgnoreCase("X-Content-Type-Options") }
+        .map(_._2) shouldBe Some("nosniff")
+    }
+
+    scenario("Error responses also include X-Content-Type-Options: nosniff", Http4s700RoutesTag) {
+      Given("DELETE /obp/v7.0.0/entitlements/no-such-id without auth (will 401)")
+      val (statusCode, _, headers) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/entitlements/no-such-id")
+
+      Then("The error response includes X-Content-Type-Options: nosniff")
+      statusCode shouldBe 401
+      headers.find { case (k, _) => k.equalsIgnoreCase("X-Content-Type-Options") }
+        .map(_._2) shouldBe Some("nosniff")
+    }
+
     scenario("Error responses also include Correlation-Id header", Http4s700RoutesTag) {
       Given("DELETE /obp/v7.0.0/entitlements/no-such-id without auth (will 401)")
       val (statusCode, _, headers) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/entitlements/no-such-id")

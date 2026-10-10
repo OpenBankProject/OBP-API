@@ -372,7 +372,7 @@ To populate the OBP database with sandbox data:
 
 ## Production Options
 
-OBP-API runs on http4s Ember. Standard security headers (Cache-Control, X-Frame-Options, Correlation-Id, etc.) are applied automatically by `Http4sStandardHeaders` (wired into `Http4sApp.httpApp`) to all responses. Cookie flags and other session-related settings can be configured via the props file.
+OBP-API runs on http4s Ember. Standard security headers (Cache-Control, X-Frame-Options, X-Content-Type-Options, Correlation-Id, etc.) are applied automatically by `Http4sStandardHeaders` (wired into `Http4sApp.httpApp`) to all responses. Cookie flags and other session-related settings can be configured via the props file.
 
 ## Server Mode Configuration (Removed)
 

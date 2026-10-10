@@ -345,6 +345,9 @@ object ApiRole extends MdcLoggable{
   case class CanGetOidcClient(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetOidcClient = CanGetOidcClient()
 
+  case class CanGetOidcConsent(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetOidcConsent = CanGetOidcConsent()
+
   case class CanCreateTestEmail(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateTestEmail = CanCreateTestEmail()
 
