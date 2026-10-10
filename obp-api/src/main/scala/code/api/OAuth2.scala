@@ -32,6 +32,7 @@ import code.consumer.Consumers
 import code.consumer.Consumers.consumers
 import code.loginattempts.LoginAttempt
 import code.model.{AppType, Consumer}
+import code.model.dataAccess.AuthUser
 import code.scope.Scope
 import code.users.Users
 import code.util.Helper.MdcLoggable
@@ -41,6 +42,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box.tryo
 import net.liftweb.common._
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import org.apache.commons.lang3.StringUtils
 
@@ -428,7 +430,11 @@ object OAuth2Login extends MdcLoggable {
     def getOrCreateResourceUser(jwtToken: String): Box[User] = {
       val uniqueIdGivenByProvider = JwtUtil.getSubject(jwtToken).getOrElse("")
       val provider = resolveProvider(jwtToken)
-      KeycloakFederatedUserReference.parse(uniqueIdGivenByProvider) match {
+      // Only Keycloak issues the federated form. From any other issuer it would name an arbitrary user_id.
+      val federatedRef =
+        if (Keycloak.isIssuer(jwtToken)) KeycloakFederatedUserReference.parse(uniqueIdGivenByProvider)
+        else Left("not issued by Keycloak")
+      federatedRef match {
         case Right(fedRef) => // Users log on via Keycloak, which uses User Federation to access the external OBP database.
           logger.debug(s"External ID = ${fedRef.externalId}")
           logger.debug(s"Storage Provider ID = ${fedRef.storageProviderId}")
@@ -452,13 +458,17 @@ object OAuth2Login extends MdcLoggable {
     }
 
       def resolveProvider(jwtToken: String) = {
-      // First try to get provider from token's provider claim
+      // First try to get provider from token's provider claim. Only OBP's own identity providers, which read
+      // OBP's user store, may name it: from any other issuer it could point a token at someone else's user.
       val providerFromToken = JwtUtil.getProvider(jwtToken)
-      
+        .filter(_ => OBPOIDC.isIssuer(jwtToken) || Keycloak.isIssuer(jwtToken))
+
       providerFromToken.filter(_.trim.nonEmpty) match {
         case Some(provider) =>
           logger.debug(s"resolveProvider says: using provider from token claim: $provider")
           provider
+        case None if OBPOIDC.isIssuer(jwtToken) && isClientCredentials(jwtToken) =>
+          clientCredentialsProvider(jwtToken)
         case None if OBPOIDC.isIssuer(jwtToken) =>
           // OBP-OIDC authenticates against the OBP-API user store, so its users ARE local users —
           // use the local provider to avoid creating a duplicate user during the OIDC flow.
@@ -468,6 +478,29 @@ object OAuth2Login extends MdcLoggable {
           logger.debug("resolveProvider says: Other cases ")
           // TODO raise exception in case of else case
           JwtUtil.getIssuer(jwtToken).getOrElse("")
+      }
+    }
+
+    /** A token with no person behind it: OBP-OIDC puts the client id in sub and names no provider. */
+    def isClientCredentials(jwtToken: String): Boolean =
+      getClaim(name = "grant_type", jwtToken = jwtToken).contains("client_credentials") ||
+        JwtUtil.getSubject(jwtToken).exists(sub => sub.nonEmpty && getClaim(name = "azp", jwtToken = jwtToken).contains(sub))
+
+    /** Where an app's own user lives. Not the local provider, where anyone may sign up with a username equal
+      * to a client id and then be the user everything the app does is recorded as. An app that already has a
+      * user there keeps it, unless that user is a person who signed up with the client id as username. */
+    private def clientCredentialsProvider(jwtToken: String): String = {
+      val clientId = JwtUtil.getSubject(jwtToken).getOrElse("")
+      val local = Constant.localIdentityProvider
+      lazy val localUser = Users.users.vend.getUserByProviderId(provider = local, idGivenByProvider = clientId)
+      lazy val signedUp = localUser.isDefined &&
+        AuthUser.find(By(AuthUser.username, clientId), By(AuthUser.provider, local)).isDefined
+      if (Users.users.vend.getUserByProviderId(provider = OBPOIDC.clientCredentialsProvider, idGivenByProvider = clientId).isDefined)
+        OBPOIDC.clientCredentialsProvider
+      else if (localUser.isDefined && !signedUp) local
+      else {
+        if (signedUp) logger.warn(s"resolveProvider says: a person signed up with the client id $clientId as username; the client gets a user of its own")
+        OBPOIDC.clientCredentialsProvider
       }
     }
 
@@ -768,6 +801,8 @@ object OAuth2Login extends MdcLoggable {
   object OBPOIDC extends OAuth2Util {
     val obpOidcHost = APIUtil.getPropsValue(nameOfProperty = "oauth2.obp_oidc.host", "http://localhost:9000")
     val obpOidcIssuer = "obp-oidc"
+    // The provider of the users OBP-OIDC's client-credentials tokens resolve to: one no person can sign up under.
+    val clientCredentialsProvider = "obp-oidc#client"
     /**
       * OBP-OIDC (Open Bank Project OIDC Provider)
       * OBP-OIDC exposes OpenID Connect discovery documents at /.well-known/openid-configuration
