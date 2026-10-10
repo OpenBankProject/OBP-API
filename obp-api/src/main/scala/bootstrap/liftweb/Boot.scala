@@ -872,7 +872,7 @@ class Boot extends MdcLoggable {
   /**
    * Bootstrap OIDC Operator User
    * Given the following credentials, OBP will create a user *if it does not exist already*.
-   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
+   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetOidcConsent, CanGetConsumers, CanCreateConsumer
    */
   private def createBootstrapOidcOperatorUser() = {
 
@@ -912,6 +912,7 @@ class Boot extends MdcLoggable {
           CanVerifyUserCredentials,
           CanVerifyOidcClient,
           CanGetOidcClient,
+          CanGetOidcConsent,
           CanGetConsumers,
           CanCreateConsumer
         )
@@ -934,7 +935,7 @@ class Boot extends MdcLoggable {
   /**
    * Bootstrap OIDC Operator Consumer
    * Given the following key and secret, OBP will create a consumer *if it does not exist already*.
-   * This consumer will be granted scopes: CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient
+   * This consumer will be granted scopes: CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient, CanGetOidcConsent
    * This allows OBP-OIDC to authenticate as an application (without a user) and manage consumers via the API.
    */
   private def createBootstrapOidcOperatorConsumer() = {
@@ -982,7 +983,7 @@ class Boot extends MdcLoggable {
     consumerBox match {
       case Full(consumer) =>
         logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId.get}")
-        val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient)
+        val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient, CanGetOidcConsent)
         scopes.foreach { role =>
           val resultBox = Scope.scope.vend.addScope("", consumer.id.get.toString, role.toString)
           if (resultBox.isEmpty) {

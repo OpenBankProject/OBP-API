@@ -343,4 +343,64 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
     }
 
   }
+
+  // ─── Standard response headers ───────────────────────────────────────────────
+
+  // Http4sApp.httpApp adds these to every response it sends. Http4s700RoutesTest applies
+  // Http4sStandardHeaders itself, so only a request through the running server shows that
+  // httpApp really does, whichever route or error path produced the response.
+  private val standardResponseHeaders: List[(String, String)] = List(
+    "X-Frame-Options" -> "DENY",
+    "X-Content-Type-Options" -> "nosniff",
+    "Cache-Control" -> "no-cache, private, no-store",
+    "Pragma" -> "no-cache"
+  )
+
+  private def headerValue(headers: Map[String, String], name: String): Option[String] =
+    headers.find { case (key, _) => key.equalsIgnoreCase(name) }.map(_._2)
+
+  feature("HTTP4S standard response headers") {
+
+    val requests = List(
+      ("an old API version", "/obp/v1.2.1/root", 200),
+      ("a current API version", "/obp/v6.0.0/root", 200),
+      ("an unknown path (JSON 404)", "/obp/v6.0.0/this-does-not-exist", 404),
+      ("an unauthenticated call to an endpoint that needs a User (401)", "/obp/v6.0.0/users/current", 401),
+      ("the Kubernetes probe /health", "/health", 200),
+      ("the Kubernetes probe /alive", "/alive", 200)
+    )
+
+    requests.foreach { case (description, path, expectedStatus) =>
+      scenario(s"Every standard header is sent for $description", Http4sServerIntegrationTag) {
+        When(s"GET $path")
+        val (status, _, headers) = execOkHttp(buildHttp4sReq(path, "GET"))
+
+        Then(s"The status is $expectedStatus")
+        status should equal(expectedStatus)
+
+        And("Every standard header is present with its value")
+        standardResponseHeaders.foreach { case (name, value) =>
+          withClue(s"$name on $path: ") { headerValue(headers, name) should equal(Some(value)) }
+        }
+        headerValue(headers, "Correlation-Id").getOrElse("") should not be empty
+      }
+    }
+
+    // Kubernetes decides whether a pod is alive from these two responses, so pin them exactly.
+    scenario("The Kubernetes probes keep their status, body and content type", Http4sServerIntegrationTag) {
+      When("GET /health")
+      val (healthStatus, healthBody, healthHeaders) = execOkHttp(buildHttp4sReq("/health", "GET"))
+      Then("It answers 200 {\"status\":\"ok\"} as JSON")
+      healthStatus should equal(200)
+      healthBody should equal("""{"status":"ok"}""")
+      headerValue(healthHeaders, "Content-Type").getOrElse("") should startWith("application/json")
+
+      When("GET /alive")
+      val (aliveStatus, aliveBody, aliveHeaders) = execOkHttp(buildHttp4sReq("/alive", "GET"))
+      Then("It answers 200 true as JSON")
+      aliveStatus should equal(200)
+      aliveBody should equal("true")
+      headerValue(aliveHeaders, "Content-Type").getOrElse("") should startWith("application/json")
+    }
+  }
 }

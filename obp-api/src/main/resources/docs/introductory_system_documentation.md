@@ -2697,7 +2697,7 @@ super_admin_user_ids=uuid-1,uuid-2
 
 OBP can bootstrap a Consumer (Application) for OBP-OIDC at startup. This allows OBP-OIDC to authenticate as an application (without a User) and manage consumers via the API, eliminating the need for direct database access.
 
-The bootstrap consumer is granted the following Scopes: `CanGetConsumers`, `CanCreateConsumer`, `CanVerifyOidcClient`, `CanGetOidcClient`.
+The bootstrap consumer is granted the following Scopes: `CanGetConsumers`, `CanCreateConsumer`, `CanVerifyOidcClient`, `CanGetOidcClient`, `CanGetOidcConsent`.
 
 These endpoints use `authMode = UserOrApplication`, meaning they can be accessed either by a logged-in User with Entitlements, or by an Application using a Consumer Key with Scopes.
 

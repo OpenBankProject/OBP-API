@@ -7512,6 +7512,9 @@ object Http4s700 {
     // The asset registry: the currencies, metals, accounting units, crypto assets and bank-issued assets amounts are held in.
     resourceDocs ++= Http4s700Assets.resourceDocs
 
+    // What an OIDC provider reads from OBP-API to finish signing a User in for a Consumer.
+    resourceDocs ++= Http4s700OpenIdConnect.resourceDocs
+
     val allRoutes: HttpRoutes[IO] = {
       val sorted = resourceDocs
         .sortBy(rd => -rd.requestUrl.split("/").count(_.nonEmpty))
