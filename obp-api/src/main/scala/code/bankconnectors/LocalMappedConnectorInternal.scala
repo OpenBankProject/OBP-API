@@ -850,12 +850,25 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             // received, so it is a credit. Either way its other party has to be the named party.
             requestsMoneyBack = transactionRequestBodyRefundJson.to.isDefined
             otherParty = if (requestsMoneyBack) toAccount else fromAccount
-            otherPartyIdentifiers = (otherParty.accountId.value :: otherParty.number :: otherParty.accountRoutings.map(_.address))
-              .map(_.trim).filter(_.nonEmpty).toSet
+            (otherPartyOnThisInstance, callContext) <- Connector.connector.vend.checkBankAccountExists(otherParty.bankId, otherParty.accountId, callContext)
             _ <- Helper.booleanToFuture(s"$RefundTransactionNotWithThisParty Current TRANSACTION_ID(${transactionId.value})", cc=callContext) {
               val wasPaidInTheRightDirection = if (requestsMoneyBack) transaction.amount < 0 else transaction.amount > 0
-              val originalOtherParty = transaction.otherAccount.otherAccountRoutingAddress.map(_.trim).getOrElse("")
-              wasPaidInTheRightDirection && originalOtherParty.nonEmpty && otherPartyIdentifiers.contains(originalOtherParty)
+              // The transaction records one routing of its other party (scheme and address) and that party's
+              // bank routing. The routing must be one of the named party's routings. Only an IBAN identifies
+              // an account on its own; any other routing (an account id, an account number) is unique only
+              // within its bank, so the bank must match too, and for an account on this instance an empty
+              // bank routing can't tell banks apart, so it is refused.
+              val originalScheme = transaction.otherAccount.otherAccountRoutingScheme.trim.toUpperCase
+              val originalAddress = transaction.otherAccount.otherAccountRoutingAddress.map(_.trim).getOrElse("")
+              val originalBank = transaction.otherAccount.otherBankRoutingAddress.map(_.trim).getOrElse("")
+              val otherPartyBank = otherParty.bankRoutingAddress.trim
+              val sameAccountRouting = originalAddress.nonEmpty && otherParty.accountRoutings.exists(routing =>
+                routing.scheme.trim.toUpperCase == originalScheme && routing.address.trim == originalAddress)
+              val sameBank =
+                if (originalScheme == AccountRoutingScheme.IBAN.toString) true
+                else if (otherPartyOnThisInstance.isDefined) originalBank.nonEmpty && originalBank == otherPartyBank
+                else originalBank == otherPartyBank
+              wasPaidInTheRightDirection && sameAccountRouting && sameBank
             }
 
             // A transaction can be refunded only once. Each refund records the transaction it refunds in its
