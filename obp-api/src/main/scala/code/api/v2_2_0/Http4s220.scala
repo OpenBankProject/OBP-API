@@ -683,6 +683,10 @@ object Http4s220 {
             }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bank.bankId.value) }
             accountId = AccountId(accountIdStr)
+            // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
+            // and make the caller one of its holders.
+            (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
             loggedInUserId = user.userId
             userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else loggedInUserId
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))

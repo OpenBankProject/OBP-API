@@ -49,6 +49,7 @@ import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200._
 import code.customer.CustomerX
 import code.entitlement.Entitlement
+import code.bankconnectors.Connector
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{BankAccountX, BankExtended, UserX, _}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
@@ -864,14 +865,19 @@ object Http4s200 {
     val createAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ =>
         EndpointHelpers.withUserAndBankAndBody[CreateAccountJSON, CoreAccountJSON](req) { (user, bank, body, cc) =>
+          val accountId = cc.bankAccount.map(_.accountId).getOrElse(
+            AccountId(req.uri.path.segments.lastOption.map(_.encoded).getOrElse("")))
           for {
             _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) {
-              isValidID(cc.bankAccount.map(_.accountId.value).getOrElse(
-                req.uri.path.segments.lastOption.map(_.encoded).getOrElse("")))
+              isValidID(accountId.value)
             }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) {
               isValidID(bank.bankId.value)
             }
+            // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
+            // and make the caller one of its holders.
+            (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
             loggedInUserId   = user.userId
             // Implicit owner resolves to the HUMAN: under a Consent the caller is the
             // per-consent shadow, and an account held by it strands when the consent dies.
@@ -895,8 +901,6 @@ object Http4s200 {
             _ <- code.util.Helper.booleanToFuture(InvalidISOCurrencyCode, cc = cc2) {
               isValidCurrencyISOCode(body.balance.currency)
             }
-            accountId = cc.bankAccount.map(_.accountId).getOrElse(
-              AccountId(req.uri.path.segments.lastOption.map(_.encoded).getOrElse("")))
             (bankAccount, cc3) <- NewStyle.function.createBankAccount(
               bank.bankId, accountId, body.`type`, body.label, body.balance.currency,
               initialBalanceAsNumber, postedOrLoggedInUser.name, "", List.empty, cc2)
@@ -926,7 +930,7 @@ object Http4s200 {
       coreAccountJSON,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidUserId, InvalidAccountIdFormat, InvalidBankIdFormat,
         UserNotFoundById, InvalidAccountBalanceAmount, InvalidAccountType, InvalidAccountInitialBalance,
-        InvalidAccountBalanceCurrency, UnknownError),
+        InvalidAccountBalanceCurrency, AccountIdAlreadyExists, UnknownError),
       List(apiTagAccount, apiTagOldStyle),
       None,
       http4sPartialFunction = Some(createAccount))

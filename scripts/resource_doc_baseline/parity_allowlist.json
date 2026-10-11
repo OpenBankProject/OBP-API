@@ -2122,6 +2122,14 @@
       "reason": "Always says User Authentication is Required; it used apiOptions.getTransactionTypesIsPublic (the read setting) un-negated, so with that prop false the docs called login optional for this create endpoint.",
       "lift_digest": "4da376be772a5df5ca18eb378056a8b6cd06359b9e1b716e39590cddc035bd6b",
       "http4s_digest": "d11d7022ff409e6f65b2d8fe4f56b8dd54bfd7744dd946806347c91d3ed355b6"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createAccount",
+      "field": "errorResponseBodies",
+      "reason": "Adds AccountIdAlreadyExists: an existing ACCOUNT_ID is now refused, where it used to return the existing account and make the caller one of its holders.",
+      "lift_digest": "30b24bdbcdb523f00b5e4655fbdb91d8648ab84ee92f1f2292008816b8e31012",
+      "http4s_digest": "c48cc1204d4ea66a5f131c599ace7f8d502c91ce16a36bf0e507e06b915b8055"
     }
   ]
 }
