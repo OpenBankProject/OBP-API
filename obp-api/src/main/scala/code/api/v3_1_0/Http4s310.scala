@@ -3904,21 +3904,9 @@ object Http4s310 {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "users" / "current" / "auth-context-updates" / authContextUpdateIdStr / "challenge" =>
         EndpointHelpers.executeFutureWithBody[PostUserAuthContextUpdateJsonV310, Any](req) { (postBody, cc) =>
           for {
-            (userAuthContextUpdate, _) <- NewStyle.function.checkAnswer(authContextUpdateIdStr, postBody.answer, Some(cc))
-            (subjectUser, _) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, Some(cc))
-            _ <- userAuthContextUpdate.status match {
-              case status if status == com.openbankproject.commons.model.UserAuthContextUpdateStatus.ACCEPTED.toString =>
-                NewStyle.function.createUserAuthContext(
-                  subjectUser, userAuthContextUpdate.key, userAuthContextUpdate.value, Some(cc)
-                ).map(x => (Some(x._1), x._2))
-              case _ => Future((None, Some(cc)))
-            }
-            _ <- userAuthContextUpdate.key match {
-              case "CUSTOMER_NUMBER" =>
-                NewStyle.function.getOCreateUserCustomerLink(
-                  BankId(bankIdStr), userAuthContextUpdate.value, subjectUser.userId, Some(cc))
-              case _ => Future((None, Some(cc)))
-            }
+            (userAuthContextUpdate, _) <- NewStyle.function.answerUserAuthContextUpdateChallenge(
+              BankId(bankIdStr), authContextUpdateIdStr, postBody.answer,
+              cc.user.openOrThrowException(AuthenticatedUserIsRequired), Some(cc))
           } yield createUserAuthContextUpdateJson(userAuthContextUpdate)
         }
     }

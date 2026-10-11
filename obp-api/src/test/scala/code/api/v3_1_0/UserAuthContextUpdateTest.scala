@@ -36,6 +36,8 @@ import code.consumer.Consumers
 import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement
 import code.scope.Scope
+import code.usercustomerlinks.UserCustomerLink
+import code.api.util.ErrorMessages
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.UserAuthContextUpdateStatus
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
@@ -110,6 +112,42 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       responseUserAuthContextUpdate310.code should equal(200)
       val status = responseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].status
       status should equal(UserAuthContextUpdateStatus.REJECTED.toString)
+
+      And("A wrong answer must not link the User to the Customer")
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, infoPost.customer_id).isDefined should equal(false)
+    }
+    scenario("Another User cannot answer, or use up, the challenge of a User's update", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+      val bankId = randomBankId
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      val response310 = makePostRequest((v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1), write(postCustomerJson))
+      response310.code should equal(201)
+      val infoPost = response310.body.extract[CustomerJsonV310]
+
+      val scaMethod = StrongCustomerAuthentication.SMS.toString
+      val createResponse = makePostRequest(
+        (v3_1_0_Request / "banks" / bankId / "users" / "current" / "auth-context-updates" / scaMethod).POST <@(user1),
+        write(postUserAuthContextJson.copy(value = infoPost.customer_number)))
+      createResponse.code should equal(201)
+      val authContextUpdateId = createResponse.body.extract[UserAuthContextUpdateJson].user_auth_context_update_id
+      val challenge = UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.getUserAuthContextUpdatesBox(resourceUser1.userId)
+        .toList.flatten.filter(_.userAuthContextUpdateId == authContextUpdateId).map(_.challenge).head
+
+      When("User2 answers User1's update, even with the right answer")
+      val answerPath = v3_1_0_Request / "banks" / bankId / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge"
+      val responseOfUser2 = makePostRequest(answerPath.POST <@(user2), write(PostUserAuthContextUpdateJsonV310(answer = challenge)))
+      Then("It is refused as not found, and nobody is linked to the Customer")
+      responseOfUser2.code should equal(400)
+      (responseOfUser2.body \ "message").extract[String] should include(ErrorMessages.UserAuthContextUpdateNotFound)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser2.userId, infoPost.customer_id).isDefined should equal(false)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, infoPost.customer_id).isDefined should equal(false)
+
+      And("User1 can still answer it, because the challenge was not used up")
+      val responseOfUser1 = makePostRequest(answerPath.POST <@(user1), write(PostUserAuthContextUpdateJsonV310(answer = challenge)))
+      responseOfUser1.code should equal(200)
+      responseOfUser1.body.extract[UserAuthContextUpdateJson].status should equal(UserAuthContextUpdateStatus.ACCEPTED.toString)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, infoPost.customer_id).isDefined should equal(true)
     }
     scenario("We will call the Answer endpoint with user credentials and right challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We try to answer the User Auth Context Update v3.1.0")
@@ -150,7 +188,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
 
       When("We try to make the GET request v3.1.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
-      val successGetReq = (v3_1_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
+      val successGetReq = (v3_1_0_Request / "users" / resourceUser1.userId / "auth-context").GET <@(user1)
       val successGetRes = makeGetRequest(successGetReq)
       Then("We should get a 200")
       successGetRes.code should equal(200)
