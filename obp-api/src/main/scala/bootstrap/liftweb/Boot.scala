@@ -525,6 +525,7 @@ class Boot extends MdcLoggable {
 
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
+    logger.info(s"Boot says: redirect URL host allow list (redirect_url_allowed_hosts): ${code.api.util.RedirectUrlValidation.allowedHostsDescription}")
 
     logger.debug(s"If you can read this, logging level is debug")
 

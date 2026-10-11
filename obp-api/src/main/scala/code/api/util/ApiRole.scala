@@ -121,6 +121,10 @@ object ApiRole extends MdcLoggable{
   case class CanGetCustomersAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomersAtOneBank = CanGetCustomersAtOneBank()
   
+  // Reading every CRM event (customer name, number and the staff notes) at one bank.
+  case class CanGetCrmEvents(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCrmEvents = CanGetCrmEvents()
+
   case class CanGetCustomersMinimalAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomersMinimalAtOneBank = CanGetCustomersMinimalAtOneBank()
   
@@ -152,6 +156,10 @@ object ApiRole extends MdcLoggable{
   // ALL
   case class CanGetSystemLogCacheAll(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSystemLogCacheAll = CanGetSystemLogCacheAll()
+
+  // Calling waitingForGodot, a diagnostic endpoint that delays its response on request.
+  case class CanGetWaitingForGodot(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetWaitingForGodot = CanGetWaitingForGodot()
 
   case class CanUpdateAgentStatusAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAgentStatusAtAnyBank = CanUpdateAgentStatusAtAnyBank()

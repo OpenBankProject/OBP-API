@@ -828,22 +828,9 @@ object Http4s500 {
             postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextUpdateJsonV310]
             }
-            (userAuthContextUpdate, _) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, Some(cc))
-            (user, _) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, Some(cc))
-            _ <- userAuthContextUpdate.status match {
-              case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString =>
-                NewStyle.function.createUserAuthContext(
-                  user, userAuthContextUpdate.key.trim, userAuthContextUpdate.value.trim, Some(cc))
-                  .map(x => (Some(x._1), x._2))
-              case _ =>
-                Future.successful((None, Some(cc)))
-            }
-            _ <- userAuthContextUpdate.key match {
-              case "CUSTOMER_NUMBER" =>
-                NewStyle.function.getOCreateUserCustomerLink(bankId, userAuthContextUpdate.value, user.userId, Some(cc))
-              case _ =>
-                Future.successful((None, Some(cc)))
-            }
+            (userAuthContextUpdate, _) <- NewStyle.function.answerUserAuthContextUpdateChallenge(
+              bankId, authContextUpdateId, postUserAuthContextUpdateJson.answer,
+              cc.user.openOrThrowException(AuthenticatedUserIsRequired), Some(cc))
           } yield JSONFactory500.createUserAuthContextUpdateJson(userAuthContextUpdate)
         }
     }

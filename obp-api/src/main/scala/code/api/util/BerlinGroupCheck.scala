@@ -56,6 +56,13 @@ object BerlinGroupCheck extends MdcLoggable {
     .map(_.trim.toLowerCase)
     .toList.filterNot(_.isEmpty)
 
+  // When true, a request carrying TPP-Redirect-URI or TPP-Nok-Redirect-URI must list that header in its
+  // Signature header, so the redirect target cannot be swapped without breaking the TPP's signature.
+  private def requireSignedTppRedirectUri: Boolean =
+    APIUtil.getPropsAsBoolValue("berlin_group_require_signed_tpp_redirect_uri", defaultValue = false)
+
+  private val tppRedirectHeaders = List(RequestHeader.`TPP-Redirect-URI`, RequestHeader.`TPP-Nok-Redirect-URI`)
+
   def hasUnwantedConsentIdHeaderForBGEndpoint(path: String, reqHeaders: List[HTTPParam]): Boolean = {
     val hasConsentIdId = RequestHeadersUtil.find(reqHeaders, RequestHeader.`Consent-ID`).flatMap(_.values.headOption).isDefined
 
@@ -151,6 +158,44 @@ object BerlinGroupCheck extends MdcLoggable {
     }
 
 
+    // === TPP redirect URIs ===
+    // The PSU's browser is sent to these after authorisation, so they must meet the same redirect URL
+    // rules as a Consumer's redirect URL: a javascript: or plain-http public target is refused here.
+    val resultWithInvalidTppRedirectUriCheck: Option[(Box[User], Option[CallContext])] =
+      tppRedirectHeaders.iterator.flatMap { headerName =>
+        RequestHeadersUtil.find(reqHeaders, headerName).flatMap(_.values.headOption).flatMap { value =>
+          RedirectUrlValidation.problemWith(value.trim).map(problem => s"${ErrorMessages.InvalidRedirectUrl}$headerName '$value': $problem")
+        }
+      }.toList.headOption.map { message =>
+        (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, forwardResult._2.map(_.toLight))), forwardResult._2)
+      }
+
+    val resultWithUnsignedTppRedirectUriCheck: Option[(Box[User], Option[CallContext])] =
+      if (!requireSignedTppRedirectUri) None
+      else {
+        val signedHeaders: List[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.Signature)
+          .flatMap(_.values.headOption)
+          .flatMap(header => BerlinGroupSignatureHeaderParser.parseSignatureHeader(header).toOption)
+          .map(_.headers.map(_.toLowerCase))
+          .getOrElse(Nil)
+        val unsignedRedirectHeaders = tppRedirectHeaders
+          .filter(RequestHeadersUtil.exists(reqHeaders, _))
+          .filterNot(headerName => signedHeaders.contains(headerName.toLowerCase))
+        if (unsignedRedirectHeaders.isEmpty) None
+        else Some(
+          (
+            fullBoxOrException(
+              Empty ~> APIFailureNewStyle(
+                s"${ErrorMessages.InvalidSignatureHeader} The signature must cover ${unsignedRedirectHeaders.mkString(", ")}.",
+                400,
+                forwardResult._2.map(_.toLight)
+              )
+            ),
+            forwardResult._2
+          )
+        )
+      }
+
     // === Signature Header Parsing ===
     val resultWithInvalidSignatureHeaderCheck: Option[(Box[User], Option[CallContext])] = {
       val maybeSignature: Option[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.Signature).flatMap(_.values.headOption)
@@ -217,6 +262,8 @@ object BerlinGroupCheck extends MdcLoggable {
       .orElse(resultWithWrongDateHeaderCheck)
       .orElse(resultWithInvalidRequestIdCheck)
       .orElse(resultWithRequestIdUsedTwiceCheck)
+      .orElse(resultWithInvalidTppRedirectUriCheck)
+      .orElse(resultWithUnsignedTppRedirectUriCheck)
       .orElse(resultWithInvalidSignatureHeaderCheck)
       .getOrElse(forwardResult)
   }

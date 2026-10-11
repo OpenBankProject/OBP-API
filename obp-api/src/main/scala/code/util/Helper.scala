@@ -30,7 +30,7 @@ package code.util
 import org.json4s._
 import code.api.cache.{Redis, RedisLogger}
 
-import java.net.{Socket, SocketException, URL}
+import java.net.{Socket, SocketException}
 import java.util.UUID.randomUUID
 import java.util.Date
 import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
@@ -41,7 +41,6 @@ import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.transaction.internalMapping.MappedTransactionIdMappingProvider
 import net.liftweb.common._
 import org.json4s.Extraction._
-import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId, Transaction, TransactionCore, TransactionId}
 import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
@@ -197,50 +196,6 @@ object Helper extends Loggable {
     prettyRender(decompose(input))
   }
 
-
-  /**
-   * @param redirectUrl eg: http://localhost:8082/callback?foo=bar
-   * @return http://localhost:8082/callback
-   */
-  def getStaticPortionOfRedirectURL(redirectUrl: String): Box[String] = {
-    tryo(redirectUrl.split("\\?")(0)) //return everything before the "?"
-  }
-
-  /**
-   * extract the host-only portion of a redirect URL.
-   *
-   * @param redirectUrl -> http://localhost:8082/callback?foo=bar
-   * @return hostOnlyOfRedirectURL -> http://localhost:8082
-   */
-  @deprecated("We can not only use hostname as the redirectUrl, now add new method `getStaticPortionOfRedirectURL` ","05.12.2023")
-  def getHostOnlyOfRedirectURL(redirectUrl: String): Box[String] = {
-    val url = new URL(redirectUrl)
-    val protocol = url.getProtocol() // http
-    val authority = url.getAuthority()// localhost:8082, this will contain the port.
-    tryo(s"$protocol://$authority") // http://localhost:8082
-  }
-
-  /**
-    * check the redirect url is valid with default values.
-    */
-  def isValidInternalRedirectUrl(url: String) : Boolean = {
-    val internalRedirectUrlsWhiteList = List(
-      "/",
-      "/dummy-user-tokens","/create-sandbox-account",
-      "/add-user-auth-context-update-request","/otp",
-      "/terms-and-conditions", "/privacy-policy",
-      "/confirm-bg-consent-request",
-      "/confirm-bg-consent-request-sca",
-      "/confirm-vrp-consent-request",
-      "/confirm-vrp-consent",
-      "/consent-screen",
-      "/consent",
-    )
-
-    val extractCleanURL = StringUtils.substringBefore(url, "?")
-
-    internalRedirectUrlsWhiteList.contains(extractCleanURL)
-  }
 
    /**
     * Used for version extraction from props string

@@ -31,6 +31,10 @@ import code.api.Constant._
 import com.openbankproject.commons.util.ApiVersion
 import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import com.github.dwickern.macros.NameOf.nameOf
+import code.api.util.ErrorMessages.CounterpartyNotFound
+import code.metadata.counterparties.Counterparties
+import code.api.v2_0_0.BasicAccountsJSON
+import com.openbankproject.commons.model.{AccountId, BankId, ErrorMessage}
 import org.scalatest.Tag
 
 class CounterpartyTest extends V300ServerSetup {
@@ -71,6 +75,43 @@ class CounterpartyTest extends V300ServerSetup {
       Then("We should get a 200 and check the response body")
       httpResponseAccount.code should equal(200)
       httpResponseAccount.body.extract[OtherAccountJsonV300]
+    }
+  }
+
+  feature("Get Other Account by Id only returns counterparties of the account in the URL - V300") {
+    scenario("A counterparty of the account in the URL is returned", VersionOfApi, ApiEndpoint2) {
+      Given("A counterparty that belongs to the account in the URL")
+      val bankId = randomBankId
+      val accountId = randomPrivateAccountId(bankId)
+      val counterparty = createCounterparty(bankId, accountId, accountId, true, resourceUser1.userId)
+      Counterparties.counterparties.vend.getOrCreateMetadata(
+        BankId(bankId), AccountId(accountId), counterparty.counterpartyId, counterparty.name)
+
+      When("We ask for it through that account")
+      val response = getOtherAccountByIdForBankAccount(bankId, accountId, SYSTEM_OWNER_VIEW_ID, counterparty.counterpartyId, user1)
+
+      Then("We should get a 200 with that counterparty")
+      response.code should equal(200)
+      response.body.extract[OtherAccountJsonV300].id should equal(counterparty.counterpartyId)
+    }
+
+    scenario("A counterparty of a different account is not found", VersionOfApi, ApiEndpoint2) {
+      Given("A counterparty that belongs to a different account than the one in the URL")
+      val bankId = randomBankId
+      val accountIds = getPrivateAccounts(bankId, user1).body.extract[BasicAccountsJSON].accounts.map(_.id)
+      accountIds.size should be >= 2
+      val accountInUrl = accountIds(0)
+      val otherAccount = accountIds(1)
+      val counterparty = createCounterparty(bankId, otherAccount, otherAccount, true, resourceUser1.userId)
+      Counterparties.counterparties.vend.getOrCreateMetadata(
+        BankId(bankId), AccountId(otherAccount), counterparty.counterpartyId, counterparty.name)
+
+      When("We ask for it through the account in the URL")
+      val response = getOtherAccountByIdForBankAccount(bankId, accountInUrl, SYSTEM_OWNER_VIEW_ID, counterparty.counterpartyId, user1)
+
+      Then("We should get a 400 CounterpartyNotFound, even though the caller can also see the other account")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should startWith(CounterpartyNotFound)
     }
   }
 

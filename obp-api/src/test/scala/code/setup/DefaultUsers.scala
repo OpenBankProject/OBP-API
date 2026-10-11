@@ -71,7 +71,9 @@ trait DefaultUsers {
     description = Some("test1 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId1,
+    // The ResourceUser can survive from an earlier run with a different user id (the reset keeps that
+    // table, while userId1 is new on every JVM start), so take the owner from the user actually used.
+    createdByUserId = Some(resourceUser1.userId),
     None,
     None,
     None
@@ -87,7 +89,7 @@ trait DefaultUsers {
     description = Some("test2 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId2,
+    createdByUserId = Some(resourceUser2.userId),
     None,
     None,
     None,
@@ -103,7 +105,7 @@ trait DefaultUsers {
     description = Some("test3 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId3,
+    createdByUserId = Some(resourceUser3.userId),
     None,
     None,
     None
@@ -119,7 +121,7 @@ trait DefaultUsers {
     description = Some("test4 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId4,
+    createdByUserId = Some(resourceUser4.userId),
     None,
     None,
     None

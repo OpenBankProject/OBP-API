@@ -259,10 +259,13 @@ class ConsumerTest extends V510ServerSetup {
       }
 
 
+      // A Consumer name that is already taken gets a random suffix, and the Consumer table survives
+      // between runs, so this Consumer gets a name no earlier run can have used.
+      val myConsumerRequestJson = createConsumerRequestJsonV510.copy(app_name = "myConsumer" + java.util.UUID.randomUUID.toString)
       val requestApiEndpoint6 = (v5_1_0_Request / "my" / "consumers").POST<@ (user1)
-      val responseApiEndpoint6 = makePostRequest(requestApiEndpoint6, write(createConsumerRequestJsonV510))
+      val responseApiEndpoint6 = makePostRequest(requestApiEndpoint6, write(myConsumerRequestJson))
       val consumerJson6 = responseApiEndpoint6.body.extract[ConsumerJsonOnlyForPostResponseV510]
-      consumerJson6.app_name shouldBe createConsumerRequestJsonV510.app_name
+      consumerJson6.app_name shouldBe myConsumerRequestJson.app_name
       consumerJson6.redirect_url shouldBe createConsumerRequestJsonV510.redirect_url
       consumerJson6.logo_url.headOption shouldBe createConsumerRequestJsonV510.logo_url.headOption
       consumerJson6.description shouldBe createConsumerRequestJsonV510.description

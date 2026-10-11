@@ -101,8 +101,6 @@ object Http4s210 {
   // and we keep the bug-for-bug compatibility so the restoration runs
   // verbatim against Lift's source-of-truth.
   private val createCustomeEntitlementsRequiredText: String = createCustomerEntitlementsRequiredText
-  private val getTransactionTypesIsPublic =
-    APIUtil.getPropsAsBoolValue("apiOptions.getTransactionTypesIsPublic", true)
 
   object Implementations2_1_0 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
@@ -357,8 +355,8 @@ object Http4s210 {
                 s"${InvalidJsonFormat}, it should be $COUNTERPARTY json format", 400, Some(cc)) {
                 parsedJson.extract[TransactionRequestBodyCounterpartyJSON]
               }
-              (toCounterparty, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
-                CounterpartyId(body.to.counterparty_id), Some(cc))
+              (toCounterparty, _) <- NewStyle.function.getCounterpartyTrait(
+                fromAccount.bankId, fromAccount.accountId, body.to.counterparty_id, Some(cc))
               (toAccount, _) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, Some(cc))
               _ <- code.util.Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc = Some(cc)) {
                 toCounterparty.isBeneficiary
@@ -908,7 +906,7 @@ object Http4s210 {
          |  * description : A longer description
          |  * charge : The charge to the customer for each one of these
          |
-         |${userAuthenticationMessage(getTransactionTypesIsPublic)}""".stripMargin,
+         |${userAuthenticationMessage(true)}""".stripMargin,
       transactionTypeJsonV200, transactionType,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
         InsufficientAuthorisationToCreateTransactionType, UnknownError),
@@ -1269,13 +1267,6 @@ object Http4s210 {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "redirect_url" =>
         EndpointHelpers.withUserAndBody[ConsumerRedirectUrlJSON, ConsumerJsonV210](req) { (user, body, cc) =>
           for {
-            _ <- APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) match {
-              case true => Future.unit
-              case false =>
-                code.util.Helper.booleanToFuture(UserHasMissingRoles + canUpdateConsumerRedirectUrl, failCode = 403, cc = Some(cc)) {
-                  APIUtil.hasEntitlement("", user.userId, canUpdateConsumerRedirectUrl)
-                }
-            }
             consumerIdLong <- NewStyle.function.tryons(InvalidConsumerId, 400, Some(cc)) {
               consumerId.toLong
             }
@@ -1283,6 +1274,7 @@ object Http4s210 {
             _ <- code.util.Helper.booleanToFuture(UserNoPermissionUpdateConsumer, failCode = 400, cc = Some(cc)) {
               consumer.createdByUserId.equals(user.userId)
             }
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(body.redirect_url, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id          = consumer.id.get,
               isActive    = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)),
@@ -1305,9 +1297,9 @@ object Http4s210 {
         | 
       """.stripMargin,
       consumerRedirectUrlJSON, consumerJSON,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
-      None,
+      Some(List(canUpdateConsumerRedirectUrl)),
       http4sPartialFunction = Some(updateConsumerRedirectUrl))
 
     // ─── getMetrics ───────────────────────────────────────────────────────────

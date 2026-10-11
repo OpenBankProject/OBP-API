@@ -2959,7 +2959,7 @@ object SwaggerDefinitionsJSON {
     app_type = "Web",
     description = "Account Management",
     developer_email = ExampleValue.emailExample.value,
-    redirect_url = "www.openbankproject.com",
+    redirect_url = redirectUrlExample.value,
     created_by_user_id = ExampleValue.userIdExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,
@@ -3051,7 +3051,7 @@ object SwaggerDefinitionsJSON {
     app_type = "Web",
     description = "Account Management",
     developer_email = ExampleValue.emailExample.value,
-    redirect_url = "www.openbankproject.com",
+    redirect_url = redirectUrlExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,
     created = DateWithDayExampleObject
@@ -3068,7 +3068,7 @@ object SwaggerDefinitionsJSON {
                            |client_certificate_content
                            |-----END CERTIFICATE-----""".stripMargin,
     developer_email = ExampleValue.emailExample.value,
-    redirect_url = "www.openbankproject.com",
+    redirect_url = redirectUrlExample.value,
     created_by_user_id = ExampleValue.userIdExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,

@@ -79,6 +79,7 @@ import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model._
+import code.context.UserAuthContextUpdateProvider
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{SuppliedAnswerType, _}
@@ -933,10 +934,18 @@ object NewStyle extends MdcLoggable{
       } map { unboxFull(_) }
     }
 
-    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    /**
+     * This returns the counterparty COUNTERPARTY_ID only if it belongs to the account BANK_ID / ACCOUNT_ID.
+     * A counterparty id is unique on its own, but the caller's access is checked for one account, so a
+     * counterparty of any other account must be treated as not found. The check is made here, whatever
+     * the connector returns, so that every endpoint which names a bank and account is held to them.
+     */
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] =
     {
       Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+        val counterpartyOfThisAccount = i._1.filter(counterparty =>
+          counterparty.thisBankId == bankId.value && counterparty.thisAccountId == accountId.value)
+        (unboxFullOrFail(counterpartyOfThisAccount, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
           i._2)
       }
     }
@@ -4704,6 +4713,44 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
+    }
+
+    /**
+     * This answers the challenge of a User Auth Context Update on behalf of the User who requested it, and is
+     * shared by the v3.1.0 and v5.0.0 answer endpoints.
+     *
+     * The update must belong to the answering User. Otherwise any logged-in User could answer, or simply use up,
+     * the challenge of someone else's update, so an update of another User is reported exactly like one that does
+     * not exist. Only an ACCEPTED answer (the right one-time password) has any effect: it creates the User Auth
+     * Context and, for the key CUSTOMER_NUMBER, links the User to the Customer with that number at the bank. A
+     * REJECTED answer changes nothing, so a wrong answer can never link a User to someone else's Customer.
+     */
+    def answerUserAuthContextUpdateChallenge(
+      bankId: BankId,
+      authContextUpdateId: String,
+      answer: String,
+      answeringUser: User,
+      callContext: Option[CallContext]
+    ): OBPReturnType[UserAuthContextUpdate] = {
+      val updatesOfTheAnsweringUser = UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+        .getUserAuthContextUpdatesBox(answeringUser.userId).toList.flatten
+      for {
+        _ <- Helper.booleanToFuture(UserAuthContextUpdateNotFound, cc = callContext) {
+          updatesOfTheAnsweringUser.exists(_.userAuthContextUpdateId == authContextUpdateId)
+        }
+        (userAuthContextUpdate, callContext) <- checkAnswer(authContextUpdateId, answer, callContext)
+        callContext <- if (userAuthContextUpdate.status == UserAuthContextUpdateStatus.ACCEPTED.toString) {
+          val key = userAuthContextUpdate.key.trim
+          val value = userAuthContextUpdate.value.trim
+          for {
+            (_, callContext) <- createUserAuthContext(answeringUser, key, value, callContext)
+            callContext <- key match {
+              case "CUSTOMER_NUMBER" => getOCreateUserCustomerLink(bankId, value, answeringUser.userId, callContext).map(_._2)
+              case _ => Future.successful(callContext)
+            }
+          } yield callContext
+        } else Future.successful(callContext)
+      } yield (userAuthContextUpdate, callContext)
     }
 
     def sendCustomerNotification(

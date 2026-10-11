@@ -683,6 +683,10 @@ object Http4s220 {
             }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bank.bankId.value) }
             accountId = AccountId(accountIdStr)
+            // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
+            // and make the caller one of its holders.
+            (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
             loggedInUserId = user.userId
             userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else loggedInUserId
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
@@ -823,6 +827,7 @@ object Http4s220 {
                 NewStyle.function.ownEntitlement("", user.userId, canCreateConsumer, Some(cc)),
                 Some(cc), UserHasMissingRoles + canCreateConsumer)
             }
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(body.redirect_url, Some(cc))
             consumer <- Future {
               Consumers.consumers.vend.createConsumer(
                 Some(generateUUID()), Some(generateUUID()),
@@ -852,7 +857,7 @@ object Http4s220 {
         "Test",
         "Description",
         "some@email.com",
-        "redirecturl",
+        "https://app.example.com/callback",
         "createdby",
         true,
         new Date(),
@@ -865,7 +870,7 @@ object Http4s220 {
         "App type",
         "Description",
         "some.email@example.com",
-        "Some redirect url",
+        "https://app.example.com/callback",
         "Created by UUID",
         true,
         new Date(),
@@ -873,7 +878,7 @@ object Http4s220 {
           |client_certificate_content
           |-----END CERTIFICATE-----""".stripMargin
       ),
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer, apiTagOldStyle),
       Some(List(canCreateConsumer)),
       http4sPartialFunction = Some(createConsumer))

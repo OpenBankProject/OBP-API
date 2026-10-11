@@ -350,6 +350,8 @@ object ErrorMessages {
   val BankAccountBalanceNotFoundById = "OBP-20105: BankAccountBalance not found. Please specify a valid value for BALANCE_ID."
   val UserNotFoundByToken = "OBP-20106: User not found by token. The validation token is invalid or expired."
   val UserAlreadyValidated = "OBP-20107: User email is already validated."
+  val InvalidRedirectUrl = "OBP-20108: Invalid redirect URL. Each redirect URL must use https, use http only for localhost, 127.0.0.1 or [::1], or use an app scheme in reverse-domain form such as com.example.app, and must not contain a wildcard, user information or a fragment. Rejected entry: "
+  val RedirectUrlHostNotAllowed = "OBP-20109: Redirect URL host not allowed. This instance only accepts redirect URLs that point to the hosts listed for it. Rejected entry: "
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
@@ -507,6 +509,7 @@ object ErrorMessages {
   val CardNotFound = "OBP-30059: This Card can not be found for the user "
   val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
   val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
+  val CounterpartyAttributeNotFound = "OBP-30121: Counterparty Attribute not found. Please specify a valid value for COUNTERPARTY_ATTRIBUTE_ID for this COUNTERPARTY_ID."
   val ParentProductNotFoundByProductCode = "OBP-30062: Parent product not found. Please specify an existing product code for parent_product_code. Leave empty if no parent product exists."
   val CannotGrantAccountAccess = "OBP-30063: Cannot grant account access."
   val CannotRevokeAccountAccess = "OBP-30064: Cannot revoke account access."
@@ -514,6 +517,7 @@ object ErrorMessages {
   val CannotGetAccounts = "OBP-30066: Could not get accounts."
   val TransactionNotFound = "OBP-30067: Transaction not found. Please specify a valid value for TRANSACTION_ID."
   val RefundedTransaction = "OBP-30068: Transaction was already refunded . Please specify a valid value for TRANSACTION_ID."
+  val RefundTransactionNotWithThisParty = "OBP-30122: The transaction to refund was not made with this party. Please specify a TRANSACTION_ID of a payment between this account and the party named in the request."
   val CustomerAttributeNotFound = "OBP-30069: Customer Attribute not found. Please specify a valid value for CUSTOMER_ATTRIBUTE_ID."
   val TransactionAttributeNotFound = "OBP-30070: Transaction Attribute not found. Please specify a valid value for TRANSACTION_ATTRIBUTE_ID."
   val AttributeNotFound = "OBP-30071: Attribute Definition not found. Please specify a valid value for ATTRIBUTE_DEFINITION_ID."

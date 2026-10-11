@@ -3284,6 +3284,36 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Redirect URL",
+		description =
+			s"""
+|A Consumer's redirect URL is where an OIDC provider (such as OBP-OIDC) sends the User's browser, with an authorisation code, after the User signs in.
+|Because the code goes wherever the redirect URL points, OBP checks every redirect URL when a Consumer is created or its redirect URL is updated.
+|
+|The redirect URL field can hold several URLs separated by commas or spaces. Each one must:
+|
+|* use https with a host, or
+|* use http only for localhost, 127.0.0.1 or [::1] (for development), or
+|* use an app scheme in reverse-domain form, such as com.example.app:/callback
+|
+|and must not contain a wildcard (*), user information (user@host) or a fragment (#). A redirect URL that breaks these rules is refused with OBP-20108.
+|
+|## Allowed hosts
+|
+|${code.api.util.RedirectUrlValidation.allowedHostsDescription}
+|
+|An instance can optionally limit the hosts redirect URLs may point to. When it does, each https or http redirect URL must name one of the listed hosts,
+|or a host under a listed domain, and the API's own host is always allowed. A redirect URL whose host is not listed is refused with OBP-20109.
+|The host list is checked when a Consumer's redirect URL is created or updated. App schemes are not affected, and neither are
+|Berlin Group dynamic registration and TPP-Redirect-URI headers, which belong to third parties by definition, nor redirect URLs already stored.
+|
+|## Redirect URLs saved before these checks
+|
+|A Consumer saved before these checks existed may still hold a redirect URL that breaks them. Such an entry is left out when an OIDC provider reads the Consumer,
+|so it is never used as a redirect target, and the Consumer's owner should update it.
+|""")
+
+	glossaryItems += GlossaryItem(
 		title = "Berlin Group Mandatory Headers",
 		description =
 			s"""
@@ -3311,6 +3341,12 @@ object Glossary extends MdcLoggable  {
 |
 |* **TPP-Redirect-URI** - URI to redirect the PSU to after consent authorization
 |
+|Whenever TPP-Redirect-URI or TPP-Nok-Redirect-URI is sent, on any Berlin Group request, its value must meet the redirect URL rules:
+|https with a host; http only for localhost, 127.0.0.1 or [::1]; or an app scheme in reverse-domain form such as com.example.app.
+|It must not contain a wildcard, user information or a fragment. A value that breaks them is refused with HTTP 400 (OBP-20108).
+|
+|On this instance a signature that does not cover TPP-Redirect-URI and TPP-Nok-Redirect-URI is ${if (APIUtil.getPropsAsBoolValue("berlin_group_require_signed_tpp_redirect_uri", false)) "refused: when either header is sent, the Signature header's headers list must include it" else "accepted"}.
+|
 |## TPP Requests Without PSU Involvement
 |
 |For background/batch requests where no PSU is directly involved, set:
@@ -3327,6 +3363,7 @@ object Glossary extends MdcLoggable  {
 |
 |* `berlin_group_mandatory_headers` - Comma-separated list of mandatory header names. Set to empty to disable header checks.
 |* `berlin_group_mandatory_header_consent` - Additional headers required for consent creation endpoints.
+|* `berlin_group_require_signed_tpp_redirect_uri` - When true, a request that sends TPP-Redirect-URI or TPP-Nok-Redirect-URI must list that header in its Signature header. Default false.
 |
 |Example Props configuration:
 |
@@ -3346,10 +3383,12 @@ object Glossary extends MdcLoggable  {
 |2. **Date format check** - Validates the Date header conforms to RFC 7231
 |3. **X-Request-ID format check** - Validates the X-Request-ID is a valid UUID
 |4. **X-Request-ID uniqueness check** - Ensures the X-Request-ID has not been used in a previous successful POST (201) request
-|5. **Signature header check** - Parses the Signature header and verifies the keyId serial number matches the TPP certificate
-|6. **Consent-ID usage check** - Ensures the Consent-ID header is not sent on consent management endpoints where it is not expected
+|5. **TPP redirect URI check** - Refuses a TPP-Redirect-URI or TPP-Nok-Redirect-URI that breaks the redirect URL rules (OBP-20108)
+|6. **Signed TPP redirect URI check** - When `berlin_group_require_signed_tpp_redirect_uri` is true, refuses a request whose signature does not cover the TPP redirect headers it sends
+|7. **Signature header check** - Parses the Signature header and verifies the keyId serial number matches the TPP certificate
+|8. **Consent-ID usage check** - Ensures the Consent-ID header is not sent on consent management endpoints where it is not expected
 |
-|If any check fails, OBP returns an appropriate error message (OBP-20251 through OBP-20256) with HTTP status 400.
+|If any check fails, OBP returns an appropriate error message (OBP-20251 through OBP-20256, or OBP-20108 for a TPP redirect URI) with HTTP status 400.
 |
  """)
 

@@ -68,6 +68,25 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       error should equal(UserHasMissingRoles + CanUpdateConsumerRedirectUrl)
     }
 
+    scenario("Try to Update Redirect Url without proper role when consumers are enabled by default") {
+      // The role used to be checked only when consumers_enabled_by_default was false,
+      // so on an instance with the prop set to true the creator could change it without the role.
+      setPropsValues("consumers_enabled_by_default" -> "true")
+
+      When("We make the request Update Redirect Url for a Consumer")
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
+
+      Then("We should get a 403")
+      responsePut.code should equal(403)
+
+      val error = (responsePut.body \ "message" ) match {
+        case JString(i) => i
+        case _ => ""
+      }
+      error should equal(UserHasMissingRoles + CanUpdateConsumerRedirectUrl)
+    }
+
     scenario("Try to Update Redirect Url created by other user ") {
 
       Then("We add entitlement to user2")
