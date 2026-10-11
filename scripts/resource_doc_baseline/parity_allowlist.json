@@ -2050,6 +2050,22 @@
       "reason": "Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry.",
       "lift_digest": "d2319e98d44314c5142a17c76318478bd3f2e88a41c560f30fd99ebde75a6b9b",
       "http4s_digest": "6ae0abfeccdb9959fc3efe679b4a279e6aefb89f584a3d8d0f025620f03329f9"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "waitingForGodot",
+      "field": "description",
+      "reason": "States that authentication and the Role CanGetWaitingForGodot are required, and the delay cap on this instance (waiting_for_godot_max_sleep_in_milliseconds); negative or unreadable values count as 0.",
+      "lift_digest": "ecc556ba40db508705a57cb4f877b21bbb12a30a3fb48193c2f93da9ea4295ea",
+      "http4s_digest": "4aa1ed75cf6fb788d6f268f1693820ab5eb3dd20ea771cfb36d798abbb5371f9"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "waitingForGodot",
+      "field": "errorResponseBodies",
+      "reason": "The endpoint now requires authentication and the Role CanGetWaitingForGodot (it was anonymous and could tie up the shared thread pool); MandatoryPropertyIsNotSet was never raised.",
+      "lift_digest": "6ba561b556cbd54b3708ddc50db90e03301fda0b10101c168c80e590bcbdeb8c",
+      "http4s_digest": "cb07b8a8074c71a21a64f9030e412d57858383e4f503c2444c6c7000be5f4030"
     }
   ]
 }

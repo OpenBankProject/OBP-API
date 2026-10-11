@@ -971,6 +971,10 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # Configure Bearer-JWT validation via the oauth2.* props further below
 # (oauth2.jwk_set.url, oauth2.keycloak.*, oauth2.obp_oidc.*).
 
+# The longest delay GET /obp/v5.1.0/waiting-for-godot?sleep=N will make, in milliseconds.
+# A larger requested value is reduced to this. (The endpoint also needs the Role CanGetWaitingForGodot.)
+#waiting_for_godot_max_sleep_in_milliseconds = 5000
+
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
 

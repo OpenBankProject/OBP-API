@@ -153,6 +153,10 @@ object ApiRole extends MdcLoggable{
   case class CanGetSystemLogCacheAll(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSystemLogCacheAll = CanGetSystemLogCacheAll()
 
+  // Calling waitingForGodot, a diagnostic endpoint that delays its response on request.
+  case class CanGetWaitingForGodot(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetWaitingForGodot = CanGetWaitingForGodot()
+
   case class CanUpdateAgentStatusAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAgentStatusAtAnyBank = CanUpdateAgentStatusAtAnyBank()
   

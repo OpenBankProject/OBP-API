@@ -3470,8 +3470,8 @@ GET /obp/v5.1.0/management/logs/INFO
 **Testing Endpoints:**
 
 ```bash
-# Test delay/timeout handling
-GET /obp/v5.1.0/development/waiting-for-godot?sleep=1000
+# Test delay/timeout handling (needs the Role CanGetWaitingForGodot; the delay is capped per instance)
+GET /obp/v5.1.0/waiting-for-godot?sleep=1000
 
 # Test rate limiting
 GET /obp/v5.1.0/rate-limiting

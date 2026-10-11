@@ -1363,14 +1363,24 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
+    // The longest delay waitingForGodot will make. Even with the Role required, an unbounded delay would let
+    // one caller hold requests open for as long as they liked.
+    private def waitingForGodotMaxSleepInMilliseconds: Long =
+      APIUtil.getPropsAsLongValue("waiting_for_godot_max_sleep_in_milliseconds", 5000L).max(0L)
+
     val waitingForGodot: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "waiting-for-godot" =>
-        EndpointHelpers.executeFuture(req) {
-          val sleep = req.uri.query.params.get("sleep").getOrElse("0")
-          val sleepInMillis: Long = scala.util.Try(sleep.trim.toLong).getOrElse(0L)
-          for { _ <- Future(Thread.sleep(sleepInMillis)) }
-            yield JSONFactory510.waitingForGodot(sleepInMillis)
-        }
+        val requested = req.uri.query.params.get("sleep").getOrElse("0")
+        // Clamped to [0, max]: a negative value used to reach Thread.sleep and fail with a 500.
+        val sleepInMillis: Long = scala.util.Try(requested.trim.toLong).getOrElse(0L)
+          .max(0L).min(waitingForGodotMaxSleepInMilliseconds)
+        // IO.sleep waits on the cats-effect timer without occupying a thread. The old
+        // Future(Thread.sleep(...)) blocked a thread of the shared global pool (one thread per core)
+        // for the whole delay, so a few concurrent calls stopped every other endpoint using that pool.
+        IO.sleep(scala.concurrent.duration.Duration(sleepInMillis, java.util.concurrent.TimeUnit.MILLISECONDS)) *>
+          EndpointHelpers.executeFuture(req) {
+            Future.successful(JSONFactory510.waitingForGodot(sleepInMillis))
+          }
     }
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
@@ -1378,16 +1388,23 @@ object Http4s510 {
       "GET",
       "/waiting-for-godot",
       "Waiting For Godot",
-      """Waiting For Godot
+      s"""Waiting For Godot
+      |
+      |A diagnostic endpoint for testing how clients, proxies and gateways handle a slow response.
+      |
+      |Authentication is Required, and the User needs the Role CanGetWaitingForGodot.
       |
       |Uses query parameter "sleep" in milliseconds.
       |For instance: .../waiting-for-godot?sleep=50 means postpone response in 50 milliseconds.
+      |
+      |On this instance the delay is at most ${waitingForGodotMaxSleepInMilliseconds} milliseconds: a larger value is reduced to that,
+      |and a negative or unreadable value counts as 0. The response reports the delay actually made.
       |""".stripMargin,
       EmptyBody,
       WaitingForGodotJsonV510(sleep_in_milliseconds = 50),
-      List(UnknownError, MandatoryPropertyIsNotSet),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagApi :: Nil,
-      None,
+      Some(List(canGetWaitingForGodot)),
       http4sPartialFunction = Some(waitingForGodot)
     )
 
