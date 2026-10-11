@@ -938,10 +938,15 @@ object Http4s200 {
     val getTransactionTypes: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / _ / "transaction-types" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
-          Future {
-            val types = TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId)
-            JSONFactory200.createTransactionTypeJSON(connectorEmptyResponse(types, Some(cc)))
-          }
+          // The prop is read per request as well as at boot: the ResourceDoc (built at boot) only makes the
+          // middleware require a login when the prop was false then, and this check covers the handler itself.
+          val isPublic = APIUtil.getPropsAsBoolValue("apiOptions.getTransactionTypesIsPublic", true)
+          for {
+            _ <- if (!isPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
+            types <- Future(TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId))
+          } yield JSONFactory200.createTransactionTypeJSON(connectorEmptyResponse(types, Some(cc)))
         }
     }
 
@@ -963,7 +968,7 @@ object Http4s200 {
          |
          |${userAuthenticationMessage(!getTransactionTypesIsPublic)}""".stripMargin,
       EmptyBody, transactionTypesJsonV200,
-      List(BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagBank, apiTagPSD2AIS, apiTagPsd2), None,
       http4sPartialFunction = Some(getTransactionTypes))
 

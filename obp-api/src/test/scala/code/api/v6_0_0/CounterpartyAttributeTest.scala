@@ -224,4 +224,55 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
   }
+
+  feature("Counterparty Attributes are only reachable through the counterparty's own account") {
+
+    scenario("400 when the counterparty belongs to a different account", Create, GetAll, VersionOfApi) {
+      Given("A counterparty of testAccount0, addressed through testAccount1")
+      val otherAccountId = testAccountId0.value
+      val counterpartyOfOtherAccount = createCounterparty(bankId, otherAccountId, otherAccountId, true, UUID.randomUUID.toString).counterpartyId
+      val createEntitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCounterpartyAttribute.toString)
+      val getEntitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCounterpartyAttributes.toString)
+      val attributesUrl = v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyOfOtherAccount / "attributes"
+
+      Then("Creating an attribute is refused and nothing is created")
+      val createResponse = makePostRequest(attributesUrl.POST <@ user1, write(counterpartyAttributeRequestJsonV600))
+      createResponse.code should equal(400)
+      createResponse.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyNotFoundByCounterpartyId)
+
+      And("Listing its attributes is refused")
+      val listResponse = makeGetRequest(attributesUrl.GET <@ user1)
+      listResponse.code should equal(400)
+      listResponse.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyNotFoundByCounterpartyId)
+
+      Entitlement.entitlement.vend.deleteEntitlement(createEntitlement)
+      Entitlement.entitlement.vend.deleteEntitlement(getEntitlement)
+    }
+
+    scenario("404 when the attribute belongs to a different counterparty", GetOne, Update, Delete, VersionOfApi) {
+      Given("An attribute of one counterparty, addressed through another counterparty of the same account")
+      val attributeOfFirstCounterparty = createMockAttribute(createMockCounterparty())
+      val secondCounterparty = createMockCounterparty()
+      val entitlements = List(CanGetCounterpartyAttribute, CanUpdateCounterpartyAttribute, CanDeleteCounterpartyAttribute).map(role =>
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, role.toString))
+      val attributeUrl = v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / secondCounterparty / "attributes" / attributeOfFirstCounterparty
+
+      Then("Getting, updating and deleting it are all refused")
+      val getResponse = makeGetRequest(attributeUrl.GET <@ user1)
+      getResponse.code should equal(404)
+      getResponse.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyAttributeNotFound)
+      val updateResponse = makePutRequest(attributeUrl.PUT <@ user1, write(counterpartyAttributeRequestJsonV600))
+      updateResponse.code should equal(404)
+      val deleteResponse = makeDeleteRequest(attributeUrl.DELETE <@ user1)
+      deleteResponse.code should equal(404)
+
+      And("The attribute is untouched")
+      scala.concurrent.Await.result(
+        code.counterpartyattribute.CounterpartyAttributeX.counterpartyAttributeProvider.vend
+          .getCounterpartyAttributeById(attributeOfFirstCounterparty),
+        scala.concurrent.duration.Duration(10, "seconds")).isDefined should equal(true)
+
+      entitlements.foreach(Entitlement.entitlement.vend.deleteEntitlement(_))
+    }
+  }
 }

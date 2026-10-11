@@ -1624,7 +1624,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
+    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext).map { case (counterparty, callContext) =>
+      (counterparty.filter(found => found.thisBankId == bankId.value && found.thisAccountId == accountId.value), callContext)
+    }
   }
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = Future {

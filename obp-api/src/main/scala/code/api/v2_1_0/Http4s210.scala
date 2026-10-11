@@ -357,8 +357,8 @@ object Http4s210 {
                 s"${InvalidJsonFormat}, it should be $COUNTERPARTY json format", 400, Some(cc)) {
                 parsedJson.extract[TransactionRequestBodyCounterpartyJSON]
               }
-              (toCounterparty, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
-                CounterpartyId(body.to.counterparty_id), Some(cc))
+              (toCounterparty, _) <- NewStyle.function.getCounterpartyTrait(
+                fromAccount.bankId, fromAccount.accountId, body.to.counterparty_id, Some(cc))
               (toAccount, _) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, Some(cc))
               _ <- code.util.Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc = Some(cc)) {
                 toCounterparty.isBeneficiary

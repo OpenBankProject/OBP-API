@@ -2852,8 +2852,8 @@ object Http4s400 {
               failMsg = s"${NoViewPermission}can_get_counterparty", failCode = 403, cc = Some(cc)) {
               view.allowed_actions.exists(_ == CAN_GET_COUNTERPARTY)
             }
-            (counterparty, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
-              CounterpartyId(counterpartyIdStr), Some(cc))
+            (counterparty, _) <- NewStyle.function.getCounterpartyTrait(
+              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
             counterpartyMetadata <- NewStyle.function.getMetadata(
               account.bankId, account.accountId, counterparty.counterpartyId, Some(cc))
           } yield JSONFactory400.createCounterpartyWithMetadataJson400(counterparty, counterpartyMetadata)
@@ -2873,7 +2873,7 @@ object Http4s400 {
       |""".stripMargin,
       EmptyBody, counterpartyWithMetadataJson400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-        $UserNoPermissionAccessView, UnknownError),
+        $UserNoPermissionAccessView, CounterpartyNotFoundByCounterpartyId, UnknownError),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData), None,
       http4sPartialFunction = Some(getExplicitCounterpartyById))
 
@@ -3951,8 +3951,8 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "management" / "banks" / _ / "accounts" / _ / _ / "counterparties" / counterpartyIdStr =>
         EndpointHelpers.withBankAccount(req) { (_, account, cc) =>
           for {
-            (counterparty, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
-              CounterpartyId(counterpartyIdStr), Some(cc))
+            (counterparty, _) <- NewStyle.function.getCounterpartyTrait(
+              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
             counterpartyMetadata <- NewStyle.function.getMetadata(
               account.bankId, account.accountId, counterpartyIdStr, Some(cc))
           } yield JSONFactory400.createCounterpartyWithMetadataJson400(counterparty, counterpartyMetadata)
@@ -4022,7 +4022,7 @@ object Http4s400 {
         EmptyBody,
         counterpartyWithMetadataJson400,
         List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
-        $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound, UnknownError),
+        $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound, CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)),
         http4sPartialFunction = Some(getCounterpartyByIdForAnyAccount)
@@ -4080,6 +4080,9 @@ object Http4s400 {
               failCode = 403, cc = Some(cc)) {
               view.allowed_actions.exists(_ == code.api.Constant.CAN_DELETE_COUNTERPARTY)
             }
+            // Check that the counterparty belongs to this account before deleting anything.
+            _ <- NewStyle.function.getCounterpartyTrait(
+              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
             (counterparty, _) <- NewStyle.function.deleteCounterpartyByCounterpartyId(
               CounterpartyId(counterpartyIdStr), Some(cc))
             _ <- NewStyle.function.deleteMetadata(
@@ -4094,6 +4097,9 @@ object Http4s400 {
           for {
             _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
+            // Check that the counterparty belongs to this account before deleting anything.
+            _ <- NewStyle.function.getCounterpartyTrait(
+              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
             (counterparty, _) <- NewStyle.function.deleteCounterpartyByCounterpartyId(
               CounterpartyId(counterpartyIdStr), Some(cc))
             _ <- NewStyle.function.deleteMetadata(
@@ -4341,7 +4347,7 @@ object Http4s400 {
           $BankNotFound,
           $BankAccountNotFound,
           $UserNoPermissionAccessView,
-          UnknownError
+          CounterpartyNotFoundByCounterpartyId, UnknownError
         ),
         List(apiTagCounterparty, apiTagAccount),
         None,
@@ -4364,7 +4370,7 @@ object Http4s400 {
         EmptyBody,
         EmptyBody,
         List($AuthenticatedUserIsRequired, $BankAccountNotFound, $BankNotFound,
-        InvalidAccountIdFormat, InvalidBankIdFormat, UserHasMissingRoles, UnknownError),
+        InvalidAccountIdFormat, InvalidBankIdFormat, UserHasMissingRoles, CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canDeleteCounterparty, canDeleteCounterpartyAtAnyBank)),
         http4sPartialFunction = Some(deleteCounterpartyForAnyAccount)
@@ -5561,8 +5567,8 @@ object Http4s400 {
         _ <- code.users.Users.users.vend.getUserByUserIdFuture(postJson.user_id) map { box =>
           unboxFullOrFail(box, Some(cc), s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
         }
-        (_, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
-          CounterpartyId(postJson.counterparty_id), Some(cc))
+        (_, _) <- NewStyle.function.getCounterpartyTrait(
+          BankId(bankIdStr), AccountId(accountIdStr), postJson.counterparty_id, Some(cc))
         (directDebit, _) <- NewStyle.function.createDirectDebit(
           bankIdStr, accountIdStr, postJson.customer_id, postJson.user_id,
           postJson.counterparty_id,
@@ -5615,8 +5621,8 @@ object Http4s400 {
         _ <- code.users.Users.users.vend.getUserByUserIdFuture(postJson.user_id) map { box =>
           unboxFullOrFail(box, Some(cc), s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
         }
-        (_, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
-          CounterpartyId(postJson.counterparty_id), Some(cc))
+        (_, _) <- NewStyle.function.getCounterpartyTrait(
+          BankId(bankIdStr), AccountId(accountIdStr), postJson.counterparty_id, Some(cc))
         (order, _) <- NewStyle.function.createStandingOrder(
           bankIdStr, accountIdStr, postJson.customer_id, postJson.user_id,
           postJson.counterparty_id, amountValue, postJson.amount.currency,
@@ -5791,7 +5797,7 @@ object Http4s400 {
           CustomerNotFoundByCustomerId,
           UserNotFoundByUserId,
           $UserNoPermissionAccessView,
-          UnknownError
+          CounterpartyNotFoundByCounterpartyId, UnknownError
         ),
         List(apiTagStandingOrder, apiTagAccount),
         None,
@@ -5815,7 +5821,7 @@ object Http4s400 {
         standingOrderJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
         NoViewPermission, InvalidJsonFormat, InvalidNumber, InvalidISOCurrencyCode,
-        CustomerNotFoundByCustomerId, UserNotFoundByUserId, UnknownError),
+        CustomerNotFoundByCustomerId, UserNotFoundByUserId, CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagStandingOrder, apiTagAccount),
         Some(List(canCreateStandingOrderAtOneBank)),
         http4sPartialFunction = Some(createStandingOrderManagement)

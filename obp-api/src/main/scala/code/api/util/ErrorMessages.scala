@@ -509,6 +509,7 @@ object ErrorMessages {
   val CardNotFound = "OBP-30059: This Card can not be found for the user "
   val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
   val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
+  val CounterpartyAttributeNotFound = "OBP-30121: Counterparty Attribute not found. Please specify a valid value for COUNTERPARTY_ATTRIBUTE_ID for this COUNTERPARTY_ID."
   val ParentProductNotFoundByProductCode = "OBP-30062: Parent product not found. Please specify an existing product code for parent_product_code. Leave empty if no parent product exists."
   val CannotGrantAccountAccess = "OBP-30063: Cannot grant account access."
   val CannotRevokeAccountAccess = "OBP-30064: Cannot revoke account access."

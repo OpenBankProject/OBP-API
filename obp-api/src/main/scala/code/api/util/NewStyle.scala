@@ -933,10 +933,18 @@ object NewStyle extends MdcLoggable{
       } map { unboxFull(_) }
     }
 
-    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    /**
+     * This returns the counterparty COUNTERPARTY_ID only if it belongs to the account BANK_ID / ACCOUNT_ID.
+     * A counterparty id is unique on its own, but the caller's access is checked for one account, so a
+     * counterparty of any other account must be treated as not found. The check is made here, whatever
+     * the connector returns, so that every endpoint which names a bank and account is held to them.
+     */
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] =
     {
       Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+        val counterpartyOfThisAccount = i._1.filter(counterparty =>
+          counterparty.thisBankId == bankId.value && counterparty.thisAccountId == accountId.value)
+        (unboxFullOrFail(counterpartyOfThisAccount, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
           i._2)
       }
     }

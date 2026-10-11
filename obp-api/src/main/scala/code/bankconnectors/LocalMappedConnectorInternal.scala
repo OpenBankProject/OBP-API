@@ -816,7 +816,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               case Some(refundRequestTo) if refundRequestTo.counterparty_id.isDefined =>
                 val toCounterpartyId = CounterpartyId(refundRequestTo.counterparty_id.get)
                 for {
-                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(toCounterpartyId, callContext)
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, toCounterpartyId.value, callContext)
                   (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, isOutgoingAccount = true, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     toCounterparty.isBeneficiary
@@ -828,7 +828,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
                 val fromCounterpartyId = CounterpartyId(transactionRequestBodyRefundJson.from.get.counterparty_id)
                 val toAccount = fromAccount
                 for {
-                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(fromCounterpartyId, callContext)
+                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(toAccount.bankId, toAccount.accountId, fromCounterpartyId.value, callContext)
                   (fromAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, isOutgoingAccount = false, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     fromCounterparty.isBeneficiary
@@ -963,7 +963,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             }
             toCounterpartyId = transactionRequestBodyCounterparty.to.counterparty_id
             _ <- Future { logger.debug(s"After extracting counterparty id: $toCounterpartyId") }
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, toCounterpartyId, callContext)
 
             transactionRequestAttributes <- if(transactionRequestBodyCounterparty.attributes.isDefined && transactionRequestBodyCounterparty.attributes.head.length > 0 ) {
 

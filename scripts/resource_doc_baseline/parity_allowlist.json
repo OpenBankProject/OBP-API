@@ -2082,6 +2082,102 @@
       "reason": "The endpoint now requires the bank-level Role CanGetCrmEvents; it returned every customer's CRM events to any logged-in User (the 2015 code was marked TODO Require Role).",
       "lift_digest": "17b115e7d973045ce988c14715fa934e8dbb506b02316d0736dbc19c82ce75b3",
       "http4s_digest": "26b2f283fe3019f4c20bec2d8666686efcc376f0250fcfe43933a1c4236c2747"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getTransactionTypes",
+      "field": "errorResponseBodies",
+      "reason": "Lists AuthenticatedUserIsRequired so the middleware requires a login when apiOptions.getTransactionTypesIsPublic is false, as the Lift version did; the ResourceDoc drops it again when the prop is true.",
+      "lift_digest": "3bdcd0c958443de6b8a40314fb0e25bb976e6a734c73b4877302491756cb2ab9",
+      "http4s_digest": "266858573788363b20c268a76fb993e29a82e884667ec1a8f2ec8d27a9b88700"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createStandingOrder",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "06a05f5082af05f86fb2d03f146a4a0d5f509405599781682198421383d24b1d",
+      "http4s_digest": "00a4a41b6dd6180c22589c39c7f504812330325232d1500fa4e1de0db4d649f1"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createStandingOrderManagement",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "56a8a987f7348394c50e8f41e8cd0490b0ce68b266f898088c19334fa6b9e3a1",
+      "http4s_digest": "b716ea78d9cd1c02ef8aadef73ae10bb8870c0072b6156de4bb4017d04b2cedb"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteCounterpartyForAnyAccount",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "74e48268b3b2dcc8120085167677f93e918c82246f2974bf90dbe4e8fa1ee761",
+      "http4s_digest": "071d862f3de4ab99080b7109378507695ecffe1ccd41d45ef5a4e83733864120"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteExplicitCounterparty",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "ad616f0980b99d4e23758a08c4983d6e05fd48e3ee6160832a4058bf0cba0ac5",
+      "http4s_digest": "d204e979320471c0139130e34c7765d2dfeaa169b09af31dd3a6f1f9bdc9d4e7"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getCounterpartyByIdForAnyAccount",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "049483db4c37fe0fed677d64c700f3120cc5683a749b8316c47cec7f7918409b",
+      "http4s_digest": "0d54c908bec1c5684b2926ea0b9fd355db25acbb31ed74e6f6b04cc589a4a23e"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getExplicitCounterpartyById",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "86bc4572566bcf1dd26b36429bd2e18bcea94b288b76100f9c842a383f6ca8a6",
+      "http4s_digest": "6767b0f67b450956e39ad7e518ff52008325b6ad6a2f6868c082a5c9b8881521"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCounterpartyAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "823dc9e12cf7138a5f62627ad84dac73dc3a17e7e7843f76b506e5af737cffa2"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAllCounterpartyAttributes",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
+      "http4s_digest": "109dcc025dec45235097edd5fb5d31ba8a17be9c2de60f6f3b1bfa1718aee827"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteCounterpartyAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
+      "http4s_digest": "c410eb7a6436f981b5aaa7cffe46eecb6526bf87d5b8ddaa056e3d2a18073524"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getCounterpartyAttributeById",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
+      "http4s_digest": "c410eb7a6436f981b5aaa7cffe46eecb6526bf87d5b8ddaa056e3d2a18073524"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateCounterpartyAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "66d6504c9793abdd1f78cc1e335235dc830a6bc64318113af4d5419b16b95926"
     }
   ]
 }

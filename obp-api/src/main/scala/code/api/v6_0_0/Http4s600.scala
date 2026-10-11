@@ -2393,13 +2393,35 @@ object Http4s600 {
       s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
         AttributeTypeDocs.typesWithExamples
 
+    /**
+     * This checks that the counterparty in the URL belongs to the bank and account in the URL.
+     * A counterparty id is unique on its own, but these endpoints are addressed through one account,
+     * so a counterparty of any other account is treated as not found.
+     */
+    private def checkCounterpartyOfAccount(bankIdStr: String, accountIdStr: String, counterpartyIdStr: String, cc: CallContext): Future[Unit] =
+      NewStyle.function.getCounterpartyTrait(
+        BankId(bankIdStr), com.openbankproject.commons.model.AccountId(accountIdStr), counterpartyIdStr, Some(cc)).map(_ => ())
+
+    /**
+     * This returns the attribute COUNTERPARTY_ATTRIBUTE_ID only if it belongs to the counterparty in the URL,
+     * and that counterparty belongs to the bank and account in the URL.
+     */
+    private def counterpartyAttributeOfAccount(bankIdStr: String, accountIdStr: String, counterpartyIdStr: String,
+                                               attributeId: String, cc: CallContext): Future[com.openbankproject.commons.model.CounterpartyAttributeTrait] =
+      for {
+        _ <- checkCounterpartyOfAccount(bankIdStr, accountIdStr, counterpartyIdStr, cc)
+        attributeBox <- code.counterpartyattribute.CounterpartyAttributeX.counterpartyAttributeProvider.vend.getCounterpartyAttributeById(attributeId)
+      } yield unboxFullOrFail(
+        attributeBox.filter(_.counterpartyId.value == counterpartyIdStr), Some(cc), CounterpartyAttributeNotFound, 404)
+
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes (201)
     lazy val createCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "counterparties" / counterpartyId / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- checkCounterpartyOfAccount(bankIdStr, accountIdStr, counterpartyId, cc)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
             }
@@ -2420,27 +2442,31 @@ object Http4s600 {
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val deleteCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.executeDelete(req) { cc =>
-          code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
+          for {
+            _ <- counterpartyAttributeOfAccount(bankIdStr, accountIdStr, counterpartyId, attributeId, cc)
+            deleted <- code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
+          } yield deleted
         }
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val getCounterpartyAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
-            (attribute, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.getCounterpartyAttributeById(attributeId, Some(cc))
+            attribute <- counterpartyAttributeOfAccount(bankIdStr, accountIdStr, counterpartyId, attributeId, cc)
           } yield JSONFactory600.createCounterpartyAttributeJson(attribute)
         }
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes
     lazy val getAllCounterpartyAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "counterparties" / counterpartyId / "attributes" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
+            _ <- checkCounterpartyOfAccount(bankIdStr, accountIdStr, counterpartyId, cc)
             (attributes, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.getCounterpartyAttributes(
               com.openbankproject.commons.model.CounterpartyId(counterpartyId), Some(cc))
           } yield JSONFactory600.createCounterpartyAttributesJson(attributes)
@@ -2449,10 +2475,11 @@ object Http4s600 {
 
     // PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val updateCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- counterpartyAttributeOfAccount(bankIdStr, accountIdStr, counterpartyId, attributeId, cc)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
             }
@@ -9990,7 +10017,7 @@ object Http4s600 {
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canCreateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(createCounterpartyAttribute)
@@ -10009,7 +10036,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canDeleteCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(deleteCounterpartyAttribute)
@@ -10028,7 +10055,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(getCounterpartyAttributeById)
@@ -10047,7 +10074,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttributes :: Nil),
         http4sPartialFunction = Some(getAllCounterpartyAttributes)
@@ -10066,7 +10093,7 @@ object Http4s600 {
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canUpdateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(updateCounterpartyAttribute)
