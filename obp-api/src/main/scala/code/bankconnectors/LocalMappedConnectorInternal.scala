@@ -844,10 +844,35 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})", cc=callContext) {
               (transaction.amount).abs  >= transactionAmountNumber
             }
-            //TODO, we need additional field to guarantee the transaction is refunded...
-            //                  _ <- Helper.booleanToFuture(s"${RefundedTransaction}") {
-            //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
-            //                  }
+            // A refund must be for a payment between the account in the URL and the party named in the
+            // request. With `to`, the caller asks for money they paid out to be sent back, so the original
+            // transaction is a debit on their account. With `from`, the caller pays back money they
+            // received, so it is a credit. Either way its other party has to be the named party.
+            requestsMoneyBack = transactionRequestBodyRefundJson.to.isDefined
+            otherParty = if (requestsMoneyBack) toAccount else fromAccount
+            otherPartyIdentifiers = (otherParty.accountId.value :: otherParty.number :: otherParty.accountRoutings.map(_.address))
+              .map(_.trim).filter(_.nonEmpty).toSet
+            _ <- Helper.booleanToFuture(s"$RefundTransactionNotWithThisParty Current TRANSACTION_ID(${transactionId.value})", cc=callContext) {
+              val wasPaidInTheRightDirection = if (requestsMoneyBack) transaction.amount < 0 else transaction.amount > 0
+              val originalOtherParty = transaction.otherAccount.otherAccountRoutingAddress.map(_.trim).getOrElse("")
+              wasPaidInTheRightDirection && originalOtherParty.nonEmpty && otherPartyIdentifiers.contains(originalOtherParty)
+            }
+
+            // A transaction can be refunded only once. Each refund records the transaction it refunds in its
+            // `original_transaction_id` attribute; a refund that was rejected, failed or cancelled doesn't count.
+            earlierRefundIds <- Future {
+              code.transactionRequestAttribute.TransactionRequestAttribute.findAll(
+                By(code.transactionRequestAttribute.TransactionRequestAttribute.BankId, bankId.value),
+                By(code.transactionRequestAttribute.TransactionRequestAttribute.Name, "original_transaction_id"),
+                By(code.transactionRequestAttribute.TransactionRequestAttribute.`Value`, transactionId.value)
+              ).map(_.transactionRequestId)
+            }
+            _ <- Helper.booleanToFuture(s"$RefundedTransaction Current TRANSACTION_ID(${transactionId.value})", cc=callContext) {
+              val endedWithoutPaying = Set(TransactionRequestStatus.REJECTED, TransactionRequestStatus.FAILED, TransactionRequestStatus.CANCELLED).map(_.toString)
+              earlierRefundIds
+                .flatMap(id => Connector.connector.vend.getTransactionRequestImpl(id, callContext).map(_._1).toList)
+                .forall(earlierRefund => endedWithoutPaying.contains(earlierRefund.status))
+            }
 
             //we add the extra info (counterparty name + transaction_id) for this special Refund endpoint.
             newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"

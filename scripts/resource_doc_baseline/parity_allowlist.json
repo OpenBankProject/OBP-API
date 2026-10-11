@@ -765,14 +765,6 @@
     },
     {
       "version": "v4_0_0",
-      "endpoint": "deleteExplicitCounterparty",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID -> COUNTERPARTY_ID_PARAM rename, same shape.",
-      "lift_digest": "921d75d9e3f3f8829417e01b547c83bb66305f39e6125d07641d70228ba12762",
-      "http4s_digest": "f17aeac76f848755b702722badaf8024590ced0c796cdf6467cc8f3ca0cabf2e"
-    },
-    {
-      "version": "v4_0_0",
       "endpoint": "deleteUser",
       "field": "description",
       "reason": "Expanded description accurately documents verified soft-delete/PII-scramble behavior (AuthUser.scrambleAuthUser, scrambleDataOfResourceUser in the real handler).",
@@ -805,27 +797,11 @@
     },
     {
       "version": "v4_0_0",
-      "endpoint": "getCounterpartyByIdForAnyAccount",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "10cc23745c9f2e446f7128aebff01d4cd79e7390299d1ff9d53782c8e199a0c8",
-      "http4s_digest": "ca07ee2eaee48c958711ac6e697032ac41035a9fdfe4ee4cdc71ff6ea4412cb9"
-    },
-    {
-      "version": "v4_0_0",
       "endpoint": "getDynamicResourceDoc",
       "field": "requestUrl",
       "reason": "Hyphen -> underscore template fix.",
       "lift_digest": "1121e061bb57d86b7b28c331cfd46382f6bc01b163301a62871d5c95b0240eab",
       "http4s_digest": "1216685612894e081ee8c9fa73e16bec14351fa08675b4c15c7f5043a3578c03"
-    },
-    {
-      "version": "v4_0_0",
-      "endpoint": "getExplicitCounterpartyById",
-      "field": "requestUrl",
-      "reason": "EXPLICIT_COUNTERPARTY_ID rename.",
-      "lift_digest": "921d75d9e3f3f8829417e01b547c83bb66305f39e6125d07641d70228ba12762",
-      "http4s_digest": "51b5c4487bf594005cbd5895f0fa7f8f2ef4ed246386e9cd2fb154c386d5289b"
     },
     {
       "version": "v4_0_0",
@@ -941,14 +917,6 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "createCounterpartyAttribute",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "4afc1baca0551e1cb89611a42c0d7652e3040468728f465d9061052414e6e1a9",
-      "http4s_digest": "5f2aedc26f7688fd913b6f9dffe12c6858fb3814c7515530861a1613afb8a5b5"
-    },
-    {
-      "version": "v6_0_0",
       "endpoint": "createPersonalDataField",
       "field": "description",
       "reason": "Additive clarification (USER_ATTRIBUTE_ID identity, non-unique name, PUT-to-update guidance); nothing removed. Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
@@ -970,14 +938,6 @@
       "reason": "Same real-route verification as createTransactionRequestCardano.",
       "lift_digest": "f171234e229c0a8c5636773ff0eef555a86cc86cbce6dd89854d72157d56c76a",
       "http4s_digest": "4f6ba60ae9bfce501646d1311bfb1d544d3ecbf02b4b5e522e8da293d3407c04"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "deleteCounterpartyAttribute",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
-      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
     },
     {
       "version": "v6_0_0",
@@ -1061,14 +1021,6 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "getAllCounterpartyAttributes",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "4afc1baca0551e1cb89611a42c0d7652e3040468728f465d9061052414e6e1a9",
-      "http4s_digest": "5f2aedc26f7688fd913b6f9dffe12c6858fb3814c7515530861a1613afb8a5b5"
-    },
-    {
-      "version": "v6_0_0",
       "endpoint": "getAllProductsV600",
       "field": "description",
       "reason": "Same withUser-mandatory-auth verification as getAllApiProductsV600.",
@@ -1098,14 +1050,6 @@
       "reason": "Same wording normalization as getConfigProps.",
       "lift_digest": "f41cdd1dbacdfd52a114a2dc76487367b4b20746184d32d3b0709bd858b8363d",
       "http4s_digest": "835e4890e3775490f00f47ca65a16e63acc63d6cf1961976712b585b643e54e2"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "getCounterpartyAttributeById",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
-      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
     },
     {
       "version": "v6_0_0",
@@ -1186,14 +1130,6 @@
       "reason": "Verified the handler genuinely no longer returns the reset URL in the response body (only {\"status\":\"sent\",\"to\":email}) -- a documented, reasoned security fix closing an account-takeover vector (see also the successResponseBody allowlist entry for this same endpoint).",
       "lift_digest": "dca0922381fb4c5f1fb34ab5a531d440b068f2170fd933c3c2eeddb4c52eaf94",
       "http4s_digest": "f0bea922b31c331bae138d58990bf31a6bc5ca0099055f4cff4fdaf62c0a6263"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "updateCounterpartyAttribute",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
-      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
     },
     {
       "version": "v6_0_0",
@@ -1639,9 +1575,9 @@
       "version": "v4_0_0",
       "endpoint": "answerTransactionRequestChallenge",
       "field": "errorResponseBodies",
-      "reason": "Adds ChallengeNotAddressedToCaller (OBP-40063): a payment challenge is answered by the person the payment is for, so an agent acting under a Consent is refused rather than allowed to relay a code it was never sent. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "reason": "Adds ChallengeNotAddressedToCaller (OBP-40063): a payment challenge is answered by the person the payment is for, so an agent acting under a Consent is refused rather than allowed to relay a code it was never sent. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9. Lists InvalidTransactionRequestId, returned when the transaction request does not involve the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "13648f17562c1654881963b4978024f82e1edcdb92729397a2b015b291939ddb",
-      "http4s_digest": "c584fa1579db6b30ed7c21cf3dc7da57f50dcad7abba332ea1a58dd4c37808c4"
+      "http4s_digest": "82c6ce31f384147541e77f70a52e17ab45e7230c8543a92eaf9df446070317b2"
     },
     {
       "version": "v4_0_0",
@@ -1695,9 +1631,9 @@
       "version": "v4_0_0",
       "endpoint": "createTransactionRequestRefund",
       "field": "errorResponseBodies",
-      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9. Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the account in the URL), RefundTransactionNotWithThisParty (the refunded transaction was not a payment between this account and the named party, in the right direction) and RefundedTransaction (the transaction was already refunded).",
       "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
-      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+      "http4s_digest": "d60c90fc7e51d9f5b050dd3ca31d0c4176292041c962433830f47f8767270800"
     },
     {
       "version": "v4_0_0",
@@ -2111,73 +2047,81 @@
       "version": "v4_0_0",
       "endpoint": "deleteCounterpartyForAnyAccount",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "74e48268b3b2dcc8120085167677f93e918c82246f2974bf90dbe4e8fa1ee761",
-      "http4s_digest": "071d862f3de4ab99080b7109378507695ecffe1ccd41d45ef5a4e83733864120"
+      "http4s_digest": "5b86622b4bf6256e1840f581347312adad4de3cc6715d9f1c89a876827ca8026"
     },
     {
       "version": "v4_0_0",
       "endpoint": "deleteExplicitCounterparty",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "ad616f0980b99d4e23758a08c4983d6e05fd48e3ee6160832a4058bf0cba0ac5",
-      "http4s_digest": "d204e979320471c0139130e34c7765d2dfeaa169b09af31dd3a6f1f9bdc9d4e7"
+      "http4s_digest": "dec64daf6eb1d796825733dc5a90de2abcb947d14fbc83d6ce8d8409daf83501"
     },
     {
       "version": "v4_0_0",
       "endpoint": "getCounterpartyByIdForAnyAccount",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "049483db4c37fe0fed677d64c700f3120cc5683a749b8316c47cec7f7918409b",
-      "http4s_digest": "0d54c908bec1c5684b2926ea0b9fd355db25acbb31ed74e6f6b04cc589a4a23e"
+      "http4s_digest": "0237a2b1b407cb784cb0c9f09c5cbf503210e00ebe9866a351f41d18e77b2a2a"
     },
     {
       "version": "v4_0_0",
       "endpoint": "getExplicitCounterpartyById",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "86bc4572566bcf1dd26b36429bd2e18bcea94b288b76100f9c842a383f6ca8a6",
-      "http4s_digest": "6767b0f67b450956e39ad7e518ff52008325b6ad6a2f6868c082a5c9b8881521"
+      "http4s_digest": "1227ef34c7cabd8837842965f7b4997fa41219f5bd6b41d8503b277c12d24d3a"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createCounterpartyAttribute",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
-      "http4s_digest": "823dc9e12cf7138a5f62627ad84dac73dc3a17e7e7843f76b506e5af737cffa2"
+      "http4s_digest": "8688a59895b39a1fa023ea1dd7713a6f32154a76d772736dbef5d05d970ab5e4"
     },
     {
       "version": "v6_0_0",
       "endpoint": "getAllCounterpartyAttributes",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
-      "http4s_digest": "109dcc025dec45235097edd5fb5d31ba8a17be9c2de60f6f3b1bfa1718aee827"
+      "http4s_digest": "956f30cff3ef2d5eeb625620e71e67ff08f6d9934d9d7e36aeb5c7e9f8f465fe"
     },
     {
       "version": "v6_0_0",
       "endpoint": "deleteCounterpartyAttribute",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check: the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
       "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
-      "http4s_digest": "c410eb7a6436f981b5aaa7cffe46eecb6526bf87d5b8ddaa056e3d2a18073524"
+      "http4s_digest": "ad3a9a07f9f61f02744348beab43a6723b64032ad869dfefd4e2c8f8cd92b752"
     },
     {
       "version": "v6_0_0",
       "endpoint": "getCounterpartyAttributeById",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check: the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
       "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
-      "http4s_digest": "c410eb7a6436f981b5aaa7cffe46eecb6526bf87d5b8ddaa056e3d2a18073524"
+      "http4s_digest": "ad3a9a07f9f61f02744348beab43a6723b64032ad869dfefd4e2c8f8cd92b752"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateCounterpartyAttribute",
       "field": "errorResponseBodies",
-      "reason": "Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check: the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
       "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
-      "http4s_digest": "66d6504c9793abdd1f78cc1e335235dc830a6bc64318113af4d5419b16b95926"
+      "http4s_digest": "4776e3f23e3c01fc6a4a433289d9d2a1241b60e92eb44145cf4218ed5b6d1198"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionType",
+      "field": "description",
+      "reason": "Always says User Authentication is Required; it used apiOptions.getTransactionTypesIsPublic (the read setting) un-negated, so with that prop false the docs called login optional for this create endpoint.",
+      "lift_digest": "4da376be772a5df5ca18eb378056a8b6cd06359b9e1b716e39590cddc035bd6b",
+      "http4s_digest": "d11d7022ff409e6f65b2d8fe4f56b8dd54bfd7744dd946806347c91d3ed355b6"
     }
   ]
 }

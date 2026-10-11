@@ -2862,7 +2862,7 @@ object Http4s400 {
 
     staticResourceDocs += ResourceDoc(
       implementedInApiVersion, "getExplicitCounterpartyById", "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/EXPLICIT_COUNTERPARTY_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
       "Get Counterparty by Id (Explicit)",
       s"""This endpoint returns a single Counterparty on an Account View specified by its COUNTERPARTY_ID:
       |
@@ -2873,7 +2873,7 @@ object Http4s400 {
       |""".stripMargin,
       EmptyBody, counterpartyWithMetadataJson400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-        $UserNoPermissionAccessView, CounterpartyNotFoundByCounterpartyId, UnknownError),
+        $UserNoPermissionAccessView, $CounterpartyNotFoundByCounterpartyId, UnknownError),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData), None,
       http4sPartialFunction = Some(getExplicitCounterpartyById))
 
@@ -3369,6 +3369,7 @@ object Http4s400 {
           InvalidTransactionRequestCurrency,
           PaymentChallengeHasNoOnBehalfOfUser,
           TransactionDisabled,
+          CounterpartyNotFoundByCounterpartyId, RefundTransactionNotWithThisParty, RefundedTransaction,
           UnknownError
         ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
@@ -3566,6 +3567,21 @@ object Http4s400 {
         }
     }
 
+    /**
+     * This says whether a transaction request involves the account BANK_ID / ACCOUNT_ID, either as the
+     * account it pays from or as the account it pays to. The pays-to side matters for a REFUND that
+     * asks another party for money back: the requester answers its challenge on their own account,
+     * which is the request's pays-to account. The pays-to account is read from the stored request,
+     * because the TransactionRequest model only exposes it for some types.
+     */
+    private def transactionRequestInvolvesAccount(transactionRequest: TransactionRequest, bankId: BankId, accountId: AccountId): Boolean = {
+      val paysFrom = transactionRequest.from.bank_id == bankId.value && transactionRequest.from.account_id == accountId.value
+      lazy val paysTo = code.transactionrequests.MappedTransactionRequest
+        .find(net.liftweb.mapper.By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, transactionRequest.id.value))
+        .exists(stored => stored.mTo_BankId.get == bankId.value && stored.mTo_AccountId.get == accountId.value)
+      paysFrom || paysTo
+    }
+
     private def answerTransactionRequestChallengeImpl(
       user: User,
       fromAccount: BankAccount,
@@ -3597,6 +3613,12 @@ object Http4s400 {
           code.bankconnectors.DoobieTransactionRequestQueries.lockTransactionRequest(transReqId.value).isDefined
         }
         (existingTransactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(transReqId, Some(cc))
+        // The transaction request is found by its id alone, but the caller was authorised only on the
+        // account in the URL, so the request must involve that account: as the account it pays from,
+        // or (for a REFUND the caller asked for) as the account it pays to.
+        _ <- code.util.Helper.booleanToFuture(s"$InvalidTransactionRequestId Current TRANSACTION_REQUEST_ID(${transReqId.value})", cc = Some(cc)) {
+          transactionRequestInvolvesAccount(existingTransactionRequest, fromAccount.bankId, fromAccount.accountId)
+        }
         _ <- code.util.Helper.booleanToFuture(
           TransactionRequestStatusNotInitiatedOrPendingOrForwarded, cc = Some(cc)) {
           existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
@@ -3781,7 +3803,8 @@ object Http4s400 {
         AllowedAttemptsUsedUp,
         ChallengeNotAddressedToCaller,
         TransactionDisabled,
-        UnknownError
+        InvalidTransactionRequestId,
+          UnknownError
       ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(answerTransactionRequestChallenge))
@@ -4008,7 +4031,7 @@ object Http4s400 {
         implementedInApiVersion,
         nameOf(getCounterpartyByIdForAnyAccount),
         "GET",
-        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID_PARAM",
+        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
         "Get Counterparty by Id for any account (Explicit)",
         s"""This is a management endpoint that gets information about any single explicitly created Counterparty on an Account / View specified by its COUNTERPARTY_ID",
         |
@@ -4022,7 +4045,7 @@ object Http4s400 {
         EmptyBody,
         counterpartyWithMetadataJson400,
         List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
-        $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound, CounterpartyNotFoundByCounterpartyId, UnknownError),
+        $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound, $CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)),
         http4sPartialFunction = Some(getCounterpartyByIdForAnyAccount)
@@ -4080,9 +4103,6 @@ object Http4s400 {
               failCode = 403, cc = Some(cc)) {
               view.allowed_actions.exists(_ == code.api.Constant.CAN_DELETE_COUNTERPARTY)
             }
-            // Check that the counterparty belongs to this account before deleting anything.
-            _ <- NewStyle.function.getCounterpartyTrait(
-              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
             (counterparty, _) <- NewStyle.function.deleteCounterpartyByCounterpartyId(
               CounterpartyId(counterpartyIdStr), Some(cc))
             _ <- NewStyle.function.deleteMetadata(
@@ -4097,9 +4117,6 @@ object Http4s400 {
           for {
             _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
-            // Check that the counterparty belongs to this account before deleting anything.
-            _ <- NewStyle.function.getCounterpartyTrait(
-              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
             (counterparty, _) <- NewStyle.function.deleteCounterpartyByCounterpartyId(
               CounterpartyId(counterpartyIdStr), Some(cc))
             _ <- NewStyle.function.deleteMetadata(
@@ -4326,7 +4343,7 @@ object Http4s400 {
         implementedInApiVersion,
         nameOf(deleteExplicitCounterparty),
         "DELETE",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID_PARAM",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
         "Delete Counterparty (Explicit)",
         s"""This endpoint deletes the Counterparty on the Account / View specified by the COUNTERPARTY_ID.
         |It also deletes any related Counterparty Metadata.
@@ -4347,7 +4364,7 @@ object Http4s400 {
           $BankNotFound,
           $BankAccountNotFound,
           $UserNoPermissionAccessView,
-          CounterpartyNotFoundByCounterpartyId, UnknownError
+          $CounterpartyNotFoundByCounterpartyId, UnknownError
         ),
         List(apiTagCounterparty, apiTagAccount),
         None,
@@ -4370,7 +4387,7 @@ object Http4s400 {
         EmptyBody,
         EmptyBody,
         List($AuthenticatedUserIsRequired, $BankAccountNotFound, $BankNotFound,
-        InvalidAccountIdFormat, InvalidBankIdFormat, UserHasMissingRoles, CounterpartyNotFoundByCounterpartyId, UnknownError),
+        InvalidAccountIdFormat, InvalidBankIdFormat, UserHasMissingRoles, $CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canDeleteCounterparty, canDeleteCounterpartyAtAnyBank)),
         http4sPartialFunction = Some(deleteCounterpartyForAnyAccount)

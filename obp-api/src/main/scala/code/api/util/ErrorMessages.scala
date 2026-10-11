@@ -517,6 +517,7 @@ object ErrorMessages {
   val CannotGetAccounts = "OBP-30066: Could not get accounts."
   val TransactionNotFound = "OBP-30067: Transaction not found. Please specify a valid value for TRANSACTION_ID."
   val RefundedTransaction = "OBP-30068: Transaction was already refunded . Please specify a valid value for TRANSACTION_ID."
+  val RefundTransactionNotWithThisParty = "OBP-30122: The transaction to refund was not made with this party. Please specify a TRANSACTION_ID of a payment between this account and the party named in the request."
   val CustomerAttributeNotFound = "OBP-30069: Customer Attribute not found. Please specify a valid value for CUSTOMER_ATTRIBUTE_ID."
   val TransactionAttributeNotFound = "OBP-30070: Transaction Attribute not found. Please specify a valid value for TRANSACTION_ATTRIBUTE_ID."
   val AttributeNotFound = "OBP-30071: Attribute Definition not found. Please specify a valid value for ATTRIBUTE_DEFINITION_ID."

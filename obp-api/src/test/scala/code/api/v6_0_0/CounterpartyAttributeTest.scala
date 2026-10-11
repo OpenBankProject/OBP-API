@@ -53,8 +53,25 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
 
   val bankId = testBankId1.value
   val accountId = testAccountId1.value
-  lazy val counterpartyId = createMockCounterparty()
-  lazy val attributeId = createMockAttribute(counterpartyId)
+  // The test data, counterparties included, is wiped before every scenario, so each scenario gets its
+  // own counterparty and attribute, created on first use after that wipe.
+  private var counterpartyOfThisScenario: Option[String] = None
+  private var attributeOfThisScenario: Option[String] = None
+  def counterpartyId: String = counterpartyOfThisScenario.getOrElse {
+    val created = createMockCounterparty()
+    counterpartyOfThisScenario = Some(created)
+    created
+  }
+  def attributeId: String = attributeOfThisScenario.getOrElse {
+    val created = createMockAttribute(counterpartyId)
+    attributeOfThisScenario = Some(created)
+    created
+  }
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    counterpartyOfThisScenario = None
+    attributeOfThisScenario = None
+  }
 
   def createMockCounterparty(): String = {
     val counterparty = createCounterparty(bankId, accountId, accountId, true, UUID.randomUUID.toString)
@@ -148,8 +165,6 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
   }
 
   feature("Delete Counterparty Attribute") {
-    lazy val counterpartyId = createMockCounterparty()
-    lazy val attributeId = createMockAttribute(counterpartyId)
     scenario("401 Unauthorized", Delete, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).DELETE
       val response = makeDeleteRequest(request)
@@ -175,8 +190,6 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
   }
 
   feature("Get All Counterparty Attributes") {
-    lazy val counterpartyId = createMockCounterparty()
-    lazy val attributeId = createMockAttribute(counterpartyId)
     scenario("401 Unauthorized", GetAll, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes").GET
       val response = makeGetRequest(request)
@@ -200,7 +213,6 @@ class CounterpartyAttributeTest extends V600ServerSetup with DefaultUsers {
   }
 
   feature("Get Counterparty Attribute by ID") {
-    lazy val counterpartyId = createMockCounterparty()
 
     scenario("401 Unauthorized", GetOne, VersionOfApi) {
       val request = (v6_0_0_Request / "banks" / bankId / "accounts" / accountId / "counterparties" / counterpartyId / "attributes" / attributeId).GET

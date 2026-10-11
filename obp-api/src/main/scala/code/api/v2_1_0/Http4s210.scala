@@ -101,8 +101,6 @@ object Http4s210 {
   // and we keep the bug-for-bug compatibility so the restoration runs
   // verbatim against Lift's source-of-truth.
   private val createCustomeEntitlementsRequiredText: String = createCustomerEntitlementsRequiredText
-  private val getTransactionTypesIsPublic =
-    APIUtil.getPropsAsBoolValue("apiOptions.getTransactionTypesIsPublic", true)
 
   object Implementations2_1_0 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
@@ -908,7 +906,7 @@ object Http4s210 {
          |  * description : A longer description
          |  * charge : The charge to the customer for each one of these
          |
-         |${userAuthenticationMessage(getTransactionTypesIsPublic)}""".stripMargin,
+         |${userAuthenticationMessage(true)}""".stripMargin,
       transactionTypeJsonV200, transactionType,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
         InsufficientAuthorisationToCreateTransactionType, UnknownError),

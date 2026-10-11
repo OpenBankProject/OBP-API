@@ -5552,6 +5552,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 for {
                   (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(fromCounterpartyIban, toAccount.bankId, toAccount.accountId, callContext)
                   (fromAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
+                  // Here the caller is the party being refunded, so the money comes from the other party.
+                  // The caller was authorised only on their own account, so the other party may not be an
+                  // account on this instance: OBP-API can't debit an account the caller has no access to.
+                  // The other party is an external account, and the payment goes through an adapter
+                  // (for example a SEPA recall that the other bank has accepted).
+                  (otherPartyAccountOnThisInstance, callContext) <- checkBankAccountExists(fromAccount.bankId, fromAccount.accountId, callContext)
+                  _ <- Helper.booleanToFuture(
+                    s"$InsufficientAuthorisationToCreateTransactionRequest A REFUND can't debit the account BANK_ID(${fromAccount.bankId.value}) ACCOUNT_ID(${fromAccount.accountId.value}), because the caller is not authorised on it.",
+                    cc = callContext) {
+                    otherPartyAccountOnThisInstance.isEmpty
+                  }
+                  // Money from an external account can only arrive through an adapter that really collects
+                  // it (the SEPA adapter routes makePaymentv210 to itself). When this connector would make
+                  // the payment, it would credit the account from a stand-in for the external account with
+                  // no money behind it, so the refund is refused.
+                  paymentConnectorName = code.api.Constant.CONNECTOR.openOr("mapped") match {
+                    case "star" => code.bankconnectors.getConnectorNameAndMethodRouting(
+                      "makePaymentv210", Array[(String, AnyRef)]("bankId" -> toAccount.bankId.value))._2
+                    case connectorName => connectorName
+                  }
+                  _ <- Helper.booleanToFuture(
+                    s"$InvalidTransactionRequestType A REFUND that takes money from an external account needs an adapter that makes the payment (makePaymentv210); on this instance it would be made by the $paymentConnectorName connector.",
+                    cc = callContext) {
+                    paymentConnectorName != "mapped"
+                  }
                 } yield (fromAccount, toAccount, callContext)
               }
             }

@@ -418,7 +418,9 @@ class CounterpartyTest extends V400ServerSetup {
       }
 
       Then(s"we can test the $ApiEndpoint7")
-      val requestDelete = (v4_0_0_Request /  "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" / "xxx" ).DELETE <@ (user1)
+      // A real counterparty of this account, so that the view's missing permission is what refuses the request.
+      val existingCounterpartyId = createCounterparty(bankId.value, accountId.value, accountId.value, true, resourceUser1.userId).counterpartyId
+      val requestDelete = (v4_0_0_Request /  "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" / existingCounterpartyId ).DELETE <@ (user1)
       val responseDelete = makeDeleteRequest(requestDelete)
       responseDelete.code should equal(403)
       responseDelete.body.toString contains(s"${ErrorMessages.NoViewPermission}")
