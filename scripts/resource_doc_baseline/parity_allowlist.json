@@ -2066,6 +2066,22 @@
       "reason": "The endpoint now requires authentication and the Role CanGetWaitingForGodot (it was anonymous and could tie up the shared thread pool); MandatoryPropertyIsNotSet was never raised.",
       "lift_digest": "6ba561b556cbd54b3708ddc50db90e03301fda0b10101c168c80e590bcbdeb8c",
       "http4s_digest": "cb07b8a8074c71a21a64f9030e412d57858383e4f503c2444c6c7000be5f4030"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getCrmEvents",
+      "field": "description",
+      "reason": "The description was empty; it now says the endpoint returns every customer's CRM events at the bank and needs authentication and the Role CanGetCrmEvents.",
+      "lift_digest": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+      "http4s_digest": "dec619a40558e96f890969e02eb8f036f8c2427d43139f8f02fec670b5762957"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getCrmEvents",
+      "field": "errorResponseBodies",
+      "reason": "The endpoint now requires the bank-level Role CanGetCrmEvents; it returned every customer's CRM events to any logged-in User (the 2015 code was marked TODO Require Role).",
+      "lift_digest": "17b115e7d973045ce988c14715fa934e8dbb506b02316d0736dbc19c82ce75b3",
+      "http4s_digest": "26b2f283fe3019f4c20bec2d8666686efcc376f0250fcfe43933a1c4236c2747"
     }
   ]
 }

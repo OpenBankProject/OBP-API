@@ -333,12 +333,15 @@ object Http4s140 {
       "GET",
       "/banks/BANK_ID/crm-events",
       "Get CRM Events",
-      "",
+      s"""Returns every CRM event recorded at the bank BANK_ID, for all customers. Each event includes the customer's
+        |name and number, the category, channel, scheduled and actual dates, and the detail and result notes.
+        |
+        |Authentication is Required, and the User needs the Role ${canGetCrmEvents} at the bank.""".stripMargin,
       EmptyBody,
       crmEventsJson,
-      List(AuthenticatedUserIsRequired, BankNotFound, "No CRM Events available.", UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, "No CRM Events available.", UnknownError),
       List(apiTagCustomer),
-      None,
+      Some(List(canGetCrmEvents)),
       http4sPartialFunction = Some(getCrmEvents)
     )
 
