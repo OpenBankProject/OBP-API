@@ -4359,6 +4359,8 @@ object Glossary extends MdcLoggable  {
 |
 |**Managing.** `/obp/v7.0.0/management/banks/BANK_ID/domain-apis` creates and lists a space's Domain APIs, and `/obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID` reads, updates and deletes one. BANK_ID is a bank's id or `SYS`. The Roles are CanCreateDomainApi, CanGetDomainApis, CanUpdateDomainApi and CanDeleteDomainApi, held at that BANK_ID.
 |
+|**Discovery.** A Domain API whose `is_publicly_discoverable` is true is listed, without logging in, at `/obp/v7.0.0/banks/BANK_ID/domain-apis`, with its base path, version, title, description, URL and OpenAPI document. It is false unless set, so a Domain API is only listed publicly on purpose. It only controls that listing: the calls under the base path and the OpenAPI document are served the same either way.
+|
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
