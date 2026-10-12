@@ -529,11 +529,20 @@ object OAuth2Login extends MdcLoggable {
       */
     def getOrCreateConsumer(jwtToken: String, userId: Box[String], description: Option[String]): Box[Consumer] = {
       val aud = Some(JwtUtil.getAudience(jwtToken).mkString(","))
-      val azp = getClaim(name = "azp", jwtToken = jwtToken)
+      // azp identifies the OAuth client. Some IdPs put the client only in client_id (RFC 9068),
+      // e.g. on client_credentials tokens, so fall back to that.
+      val azp = getClaim(name = "azp", jwtToken = jwtToken).filter(_.nonEmpty)
+        .orElse(getClaim(name = "client_id", jwtToken = jwtToken).filter(_.nonEmpty))
       val iss = getClaim(name = "iss", jwtToken = jwtToken)
       val sub = getClaim(name = "sub", jwtToken = jwtToken)
       val email = getClaim(name = "email", jwtToken = jwtToken)
       val name = getClaim(name = "name", jwtToken = jwtToken).orElse(description)
+      // Without a client identifier no lookup can ever match, so every request would auto-create
+      // a new Consumer. Refuse instead.
+      if (azp.isEmpty) {
+        logger.warn(s"getOrCreateConsumer says: token from iss=${iss.getOrElse("None")} sub=${sub.getOrElse("None")} has neither azp nor client_id claim; not creating a Consumer")
+        return Failure(s"$Oauth2TokenHaveNoConsumer The token has neither an azp nor a client_id claim.")
+      }
       Consumers.consumers.vend.getOrCreateConsumer(
         consumerId = None,
         key = None,

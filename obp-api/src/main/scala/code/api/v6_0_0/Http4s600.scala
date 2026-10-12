@@ -7096,7 +7096,7 @@ object Http4s600 {
         |
         |This endpoint returns all consumer fields including:
         |- Basic info: consumer_id, app_name, app_type, description, developer_email, company
-        |- OAuth: consumer_key, redirect_url
+        |- OAuth: redirect_url
         |- Status: enabled, created
         |- Certificate: certificate_pem, certificate_info (subject, issuer, validity dates, PSD2 roles)
         |- Branding: logo_url
@@ -7104,7 +7104,8 @@ object Http4s600 {
         |- Rate limits: active_rate_limits showing current rate limiting configuration
         |- Call counters: call_counters showing current API call usage from Redis
         |
-        |Note: consumer_secret is never returned for security reasons.
+        |Note: consumer_secret is never returned, and consumer_key is returned as `${APIUtil.RedactedConsumerKey}`:
+        |both are credentials. Get Consumer v7.0.0 leaves consumer_key out.
         |
         |${userAuthenticationMessage(true)}
         |

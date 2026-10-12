@@ -147,8 +147,8 @@ object Http4s510 {
       ConsentStatus.REVOKED.toString
     )
 
-    // Used by lifted consumer-management endpoint descriptions.
-    private def consumerDisabledText(): String = {
+    // Used by lifted consumer-management endpoint descriptions (and their v7.0.0 versions).
+    def consumerDisabledText(): String = {
       if (APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) == false) {
         "Please note: Your consumer may be disabled as a result of this action."
       } else {
@@ -679,7 +679,7 @@ object Http4s510 {
     }
 
     // For the Consumer docs that take a redirect_url: the rules it must meet and this instance's host list.
-    private val redirectUrlRulesText =
+    val redirectUrlRulesText =
       s"""**redirect_url** must meet the redirect URL rules (https; http only for localhost; or an app scheme in
       |reverse-domain form; no wildcard, user information or fragment). ${code.api.util.RedirectUrlValidation.allowedHostsDescription}
       |See ${Glossary.getGlossaryItemLink("Redirect URL")}
@@ -840,6 +840,8 @@ object Http4s510 {
       implementedInApiVersion, nameOf(getConsumers), "GET",
       "/management/consumers", "Get Consumers",
       s"""Get the all Consumers.
+      |
+      |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. Get Consumers v7.0.0 leaves the field out.
       |
       |${userAuthenticationMessage(true)}
       |
@@ -2904,7 +2906,7 @@ object Http4s510 {
               isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
               redirectURL = Some(postJson.redirect_url),
               callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2914,6 +2916,8 @@ object Http4s510 {
       "/management/consumers/CONSUMER_ID/consumer/redirect_url",
       "Update Consumer RedirectURL",
       s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+        |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
         |
         | ${consumerDisabledText()}
         |
@@ -2942,7 +2946,7 @@ object Http4s510 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2952,6 +2956,8 @@ object Http4s510 {
       "/management/consumers/CONSUMER_ID/consumer/logo_url",
       "Update Consumer LogoURL",
       s"""Update an existing logoURL for a Consumer specified by CONSUMER_ID.
+        |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
         |
         | ${consumerDisabledText()}
         |
@@ -2979,7 +2985,7 @@ object Http4s510 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2989,6 +2995,8 @@ object Http4s510 {
       "/management/consumers/CONSUMER_ID/consumer/certificate",
       "Update Consumer Certificate",
       s"""Update a Certificate for a Consumer specified by CONSUMER_ID.
+        |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
         |
         | ${consumerDisabledText()}
         |
@@ -3016,7 +3024,7 @@ object Http4s510 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -3026,6 +3034,8 @@ object Http4s510 {
       "/management/consumers/CONSUMER_ID/consumer/name",
       "Update Consumer Name",
       s"""Update an existing name for a Consumer specified by CONSUMER_ID.
+        |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
         |
         | ${consumerDisabledText()}
         |
