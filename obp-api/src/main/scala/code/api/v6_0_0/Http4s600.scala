@@ -5017,48 +5017,11 @@ object Http4s600 {
         }
     }
 
-    // DirectLogin header parser — mirrors the parsing in code.api.directlogin.DirectLogin.getAllParameters
-    // but reads from CallContext.requestHeaders (populated by the http4s context builder) instead of
-    // Lift's thread-local S.request.
-    private def parseDirectLoginParams(cc: CallContext): Map[String, String] = {
-      def find(name: String): Option[String] = code.api.util.RequestHeadersUtil.find(cc.requestHeaders, name)
-        .flatMap(_.values.headOption)
-      val directLoginHeader = find("DirectLogin")
-      val authHeader = find("Authorization")
-      val raw = directLoginHeader
-        .orElse(authHeader.filter(h => h.startsWith("DirectLogin") || h.contains("DirectLogin")))
-        .getOrElse("")
-      val cleaned = raw.stripPrefix("DirectLogin").split(",").map(_.trim).toList
-      val keys = Set("consumer_key", "token", "username", "password")
-      cleaned.flatMap { entry =>
-        if (entry.contains("=")) {
-          val s = entry.split("=", 2)
-          val v = s(1).replaceAll("^\"|\"$", "")
-          if (keys.contains(s(0)) && v.nonEmpty) Some(s(0) -> v) else None
-        } else None
-      }.toMap
-    }
-
+    // The token flow, including the allow_direct_login check, is shared with the unversioned route.
     lazy val directLoginEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "my" / "logins" / "direct" =>
         EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc: CallContext = req.callContext
-          // If the parser found nothing usable, fall back to a single "error" key so that
-          // validatorFutureWithParams returns the MissingDirectLoginHeader message (preserves
-          // Lift's getAllParameters behaviour for the no-header case).
-          val parsed = parseDirectLoginParams(cc)
-          val params =
-            if (parsed.isEmpty) Map("error" -> code.api.util.ErrorMessages.MissingDirectLoginHeader)
-            else parsed
-          for {
-            triple <- code.api.DirectLogin.validatorFutureWithParams("authorizationToken", "POST", params)
-            (httpCode, message, dlParams) = triple
-            tokenTriple = code.api.DirectLogin.createTokenCommonPart(httpCode, message, dlParams)
-            _ <- Future(code.api.DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
-          } yield {
-            if (tokenTriple._1 == 200) JSONFactory600.createTokenJSON(tokenTriple._2)
-            else unboxFullOrFail(Empty, None, tokenTriple._2, tokenTriple._1)
-          }
+          code.api.DirectLoginRoutes.issueToken(req.callContext)
         }
     }
 
@@ -13219,10 +13182,13 @@ object Http4s600 {
           |
           |    DirectLogin: token=YOUR_TOKEN
           |
+          |On this instance DirectLogin is ${if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) "enabled" else "disabled: this endpoint refuses every request with DirectLoginIsDisabled, without checking any credentials"}.
+          |
           |""".stripMargin,
           EmptyBody,
           JSONFactory600.createTokenJSON("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc"),
           List(
+            DirectLoginIsDisabled,
             InvalidDirectLoginParameters,
             InvalidLoginCredentials,
             InvalidConsumerCredentials,

@@ -7165,6 +7165,100 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "OBP-Sentinel",
+		description =
+			s"""
+				 |# OBP-Sentinel
+				 |
+				 |**OBP-Sentinel** watches running OBP-API instances, and the apps around them (API Explorer II, the API Manager, the Portal, OBP-OIDC), for hours. It works out what is actually going wrong or getting slower, and suggests the few improvements that matter most. Fewer, better suggestions is the point.
+				 |
+				 |Watching is plain code and costs nothing. Only the analyst, the source review and the questions a person asks on a finding (Trace history, Look again) use Claude, each with a spending limit.
+				 |
+				 |## 1. Watching
+				 |
+				 |Every 2 minutes (by default) Sentinel reads from each instance, with its own token:
+				 |
+				 |- the **log cache**: the newest log lines for each level (GET /obp/v5.1.0/system/log-cache/LEVEL);
+				 |- **Telemetry**: counters and timings, such as how many calls each endpoint gets and how long they take (GET /obp/v7.0.0/management/telemetry);
+				 |- **aggregate metrics**: calls, response times, users and consumers, once per 15-minute period after it ends (GET /obp/v6.0.0/management/aggregate-metrics);
+				 |- which **commit** the instance runs, and once a day which endpoints it serves and which Roles anyone holds.
+				 |
+				 |The apps are watched too: see **The apps' monitoring endpoints** below.
+				 |
+				 |Each log line becomes a **signature**: the same message with its ids, numbers, quoted values, emails and IP addresses taken out. So one problem counts once, however many users hit it. Signatures are counted per 15-minute period, so Sentinel can tell a new or rising problem from an old, steady one. The log cache keeps only the newest 1000 lines per level: if more arrive between two reads, the read is marked as possibly missing lines.
+				 |
+				 |## The apps' monitoring endpoints
+				 |
+				 |API Explorer II, the API Manager, the Portal and OBP-OIDC each serve their own log cache and Telemetry, in the same shape as OBP-API's:
+				 |
+				 || App | Log cache | Telemetry |
+				 ||---|---|---|
+				 || API Explorer II | GET /api/monitoring/log-cache/LEVEL | GET /api/monitoring/telemetry |
+				 || API Manager | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+				 || Portal | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+				 || OBP-OIDC | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+				 |
+				 |LEVEL is a log level (error, warning, info, debug, trace) or `all`. Each app lists these endpoints on its `/status` page.
+				 |
+				 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheLEVEL (or CanGetSystemLogCacheAll; `all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself: it passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE) and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
+				 |
+				 |Sentinel finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_oidc_url) and watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
+				 |
+				 |## 2. The analyst
+				 |
+				 |Every few hours, once Sentinel has watched for long enough, Claude reads a summary of what was collected (the last hours compared with the hours before) and reads the source code to find the cause of what stands out. Each problem it is confident about becomes a **finding**, scored by:
+				 |
+				 |- **Impact**: how much it hurts users or the service;
+				 |- **Confidence**: how sure the analyst is about the cause;
+				 |- **Effort**: how much work the fix is;
+				 |- **Trend**: new, rising, stable or falling;
+				 |- **Priority**: these combined, what is worth doing first.
+				 |
+				 |## 3. Source review
+				 |
+				 |Besides following the logs, Sentinel can read the code of the endpoints each instance serves, looking for security problems such as SQL injection or missing authorisation checks. Go and Stop turn it on and off. It starts with the endpoints anyone can call without a login, then those that need a login, then those whose Role someone holds. It remembers what it read: an endpoint is read again only when its code changes.
+				 |
+				 |## 4. Suggestions
+				 |
+				 |A finding is suggested only if Sentinel has watched for long enough (4 hours by default), its priority is high enough, it was seen in more than one 15-minute period, and it was not already suggested, acted on, dismissed or fixed. At most 3 suggestions are made at a time, and at most 10 a week. When nothing qualifies, Sentinel says so rather than inventing work.
+				 |
+				 |## Using the page
+				 |
+				 |The tabs above the list sort the findings: **To review** (suggested and waiting for an answer), **Not yet suggested**, **Snoozed** and **Done**. Below them, three sections show Sentinel at work: monitoring activity, the Analyst (Run analysis now starts a run without waiting) and the Source review. With several instances, the first row of tabs chooses an OBP-API instance and the second row its apps.
+				 |
+				 |Each finding shows its evidence, why it happens, where in the code, and the suggested change. The copy button next to its title copies it all as text, ready to give to a coding agent.
+				 |
+				 |- **Trace history** lists the commits that changed the lines the finding names, and Claude says which commit introduced the problem (at most $$0.30).
+				 |- **Look again: still an issue?** has Claude read the code the instance runs now, the commits since the finding was made, and whether its log messages are still seen. It answers in one line: still an issue, fixed (and by which commit), or could not tell. It takes a few minutes and costs at most $$0.50. While it works, the page shows how long it has been going and the command it is running. It does not change the finding's status.
+				 |
+				 |Then answer, with a comment for the analyst if you like:
+				 |
+				 |- **Accept**: worth doing.
+				 |- **Later**: snooze it.
+				 |- **Some action taken**: someone tried to fix it; the analyst checks whether the problem went away.
+				 |- **Should be fixed now**: fixed; if it comes back, it will be suggested again.
+				 |- **Dismiss, never suggest again**: not useful; its log messages are also left out of future summaries.
+				 |
+				 |These answers teach the analyst what is worth suggesting.
+				 |
+				 |## The Secured check
+				 |
+				 |Once an hour Sentinel calls the endpoints it reads (log cache, Telemetry and, for OBP-API, aggregate metrics) without a token. They must refuse. The header shows **Secured** when every one refused (401 or 403), **Open** when at least one answered with data (fix this first: anyone can read those logs), and **Could not tell** when some gave no answer or an unexpected one, such as 404.
+				 |
+				 |## What Sentinel needs
+				 |
+				 |Its Consumer is a Platform App: an administrator marks it, Sentinel declares the Scopes it needs, and the administrator grants them. They are CanGetSystemLogCacheAll (or one per level), CanGetTelemetry and the Role for aggregate metrics. When something stops Sentinel from watching an instance, its page lists what to fix, most blocking first, with what OBP-API answered.
+				 |
+				 |## What Sentinel never does
+				 |
+				 |- It only reads OBP-API: it does not change settings or log levels, edit code, commit or open pull requests.
+				 |- It reads source code with git only, and never changes the checkout.
+				 |- Log text is treated as data: instructions inside a log line are never followed.
+				 |- Its page has no login: keep it on 127.0.0.1, or behind a proxy that asks for one.
+				 |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
 		title = "Platform Apps",
 		description =
 			s"""

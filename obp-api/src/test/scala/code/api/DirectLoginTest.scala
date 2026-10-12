@@ -234,6 +234,30 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
+    scenario("DirectLogin is refused, on both paths, when allow_direct_login is false") {
+      Given("an instance where DirectLogin is turned off")
+      setPropsValues("allow_direct_login" -> "false")
+
+      When("valid credentials are posted, in the DirectLogin header only, to the unversioned and the v6.0.0 endpoint")
+      val versionedRequest = baseRequest / "obp" / "v6.0.0" / "my" / "logins" / "direct"
+      List(directLoginRequest, versionedRequest).foreach { request =>
+        val response = makePostRequestAdditionalHeader(request, "", List(accessControlOriginHeader, validHeader))
+        Then("each is refused with 403 DirectLoginIsDisabled and no token is issued")
+        withClue(s"${request.url} ${org.json4s.native.JsonMethods.compact(org.json4s.native.JsonMethods.render(response.body))}") {
+          response.code should equal(403)
+          assertResponse(response, ErrorMessages.DirectLoginIsDisabled)
+          (response.body \ "token") should equal(JNothing)
+        }
+      }
+    }
+
+    scenario("The v6.0.0 endpoint issues a token when DirectLogin is allowed") {
+      val response = makePostRequestAdditionalHeader(
+        baseRequest / "obp" / "v6.0.0" / "my" / "logins" / "direct", "", validHeaders)
+      response.code should equal(201)
+      (response.body \ "token").extract[String].length should be > 0
+    }
+
     scenario("Missing DirectLogin header") {
 
       //setupUserAndConsumer

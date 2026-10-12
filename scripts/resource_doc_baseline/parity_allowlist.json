@@ -2194,6 +2194,22 @@
       "reason": "Adds ConsumerHasMissingRoles, returned when neither the App has the Scope nor the User the Role CanCreateUserAuthContextUpdate at BANK_ID.",
       "lift_digest": "cdb22d6afff7a90bf4a665f9d7d1eed2d90324a073db56537360b1b61618cce3",
       "http4s_digest": "ebe1e09a8ffca0760b403f3e695374ae943920e6c06ad876abf65b7aa0d82353"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "directLoginEndpoint",
+      "field": "description",
+      "reason": "Shows whether DirectLogin is enabled on this instance (allow_direct_login), and that when it is disabled every request is refused without checking credentials.",
+      "lift_digest": "cf1c92e99d25e17c7dbe3e026b3a7220df05647420fd298bdf4c71a8ef4265cb",
+      "http4s_digest": "fd9706da918ddc0d030f1d2b69264d4a9b6d3601702a4b00b9b118adf3fe3f3b"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "directLoginEndpoint",
+      "field": "errorResponseBodies",
+      "reason": "Adds DirectLoginIsDisabled: the endpoint now honours allow_direct_login=false, as the unversioned route does.",
+      "lift_digest": "dd71e2633d445b2639d923d757b5bcb72428648a15516b6f52ded226389118fd",
+      "http4s_digest": "be58d5096fa4da0374d728c775884b48c701e0b918021bf1bd4e50c8116da92a"
     }
   ]
 }
