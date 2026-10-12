@@ -1607,9 +1607,9 @@
       "version": "v4_0_0",
       "endpoint": "createTransactionRequestCard",
       "field": "errorResponseBodies",
-      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9. Also adds CounterpartyNotFoundByCounterpartyId, returned when the payee is not a counterparty of the card's account.",
       "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
-      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+      "http4s_digest": "8723ffa249614fed5a40227e79508a1dcbec5e5009357455d6a3204fe0db61fd"
     },
     {
       "version": "v4_0_0",
@@ -2250,6 +2250,14 @@
       "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
       "lift_digest": "36e9d04801335bdeaf8c6db9f748a43a9093d49933f7e9f173a2350acae7d51d",
       "http4s_digest": "3b4b63fce351b6ea6e44e6be2fa6c7fe59ca5051b5a69cd755b4a3478798ac1c"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCard",
+      "field": "description",
+      "reason": "States that the paying account is the card's account, that the User needs the owner view with permission to add transaction requests (or CanCreateAnyTransactionRequest), and that the payee must be a counterparty of that account.",
+      "lift_digest": "b670d8181d5d2d563db3a015bb357107c827ad273e2097c4215032c07e39502b",
+      "http4s_digest": "b60ff8942421ae14a3245bcc8625bac7409abef79994972c629d56dafc582840"
     }
   ]
 }
