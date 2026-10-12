@@ -5437,7 +5437,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               body.to_counterparty.get
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
+            // The payee was checked against the paying account when the request was created; check it again
+            // here, so a stored request can never pay a counterparty of another account.
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, counterpartyId.value, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),

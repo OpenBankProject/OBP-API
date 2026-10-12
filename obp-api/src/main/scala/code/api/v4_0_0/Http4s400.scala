@@ -3520,6 +3520,10 @@ object Http4s400 {
         |
         |Money goes into the Counterparty in the request body.
         |
+        |The paying account is the account of the card in the request body. The User needs access to the owner view of
+        |that account with permission to add transaction requests (or the Role CanCreateAnyTransactionRequest at its
+        |bank), and the payee must be a counterparty of that account; a counterparty of any other account is not found.
+        |
         |$transactionRequestGeneralText
         |
       """.stripMargin,
@@ -3533,6 +3537,7 @@ object Http4s400 {
         AccountNotFound,
         $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
+        CounterpartyNotFoundByCounterpartyId,
         InvalidTransactionRequestType,
         InvalidJsonFormat,
         InvalidNumber,

@@ -1983,9 +1983,9 @@
       "version": "v5_1_0",
       "endpoint": "updateConsumerRedirectURL",
       "field": "description",
-      "reason": "Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry.",
+      "reason": "Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry. States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
       "lift_digest": "d2319e98d44314c5142a17c76318478bd3f2e88a41c560f30fd99ebde75a6b9b",
-      "http4s_digest": "6ae0abfeccdb9959fc3efe679b4a279e6aefb89f584a3d8d0f025620f03329f9"
+      "http4s_digest": "d6d8aec47ff86dde95311cac66a3af9541941a575e32cc437a1ee51624d30b88"
     },
     {
       "version": "v5_1_0",
@@ -2210,6 +2210,46 @@
       "reason": "Adds DirectLoginIsDisabled: the endpoint now honours allow_direct_login=false, as the unversioned route does.",
       "lift_digest": "dd71e2633d445b2639d923d757b5bcb72428648a15516b6f52ded226389118fd",
       "http4s_digest": "be58d5096fa4da0374d728c775884b48c701e0b918021bf1bd4e50c8116da92a"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getConsumers",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "3b89fa570a230d88a3f7986fef724e5ab07e148edf5b8052c86d1ea0b6f7ddd6",
+      "http4s_digest": "cc45fd404de4e435f603c1192dc63b2f777b7a0efd39c8ad8cd608ef0e604729"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerCertificate",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "7053f9b9b8a84366fb168cfabac9a9a2eddc764b1cddc5553d277b5b1ee6a3b4",
+      "http4s_digest": "5107ec99851efcb86f14ff4181f34cc49136bad40dfa275bc2354ef965c4c37a"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerLogoURL",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "24970bab545a3bde99ab3755beb387be7428f0e759697ead1cf38482e932ee7b",
+      "http4s_digest": "2c520696ebcc58f97d55da0f0b7bf583bf809b92a07a98975f879056bfd5a5f1"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerName",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "692ebc3c9d61794ffa3032f1cd759b586823239cccdf3a78c58ea9253bd3a159",
+      "http4s_digest": "a8bdac82543f60b89328544bdd0027259566919925b24729a7c84f30a795ca56"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getConsumer",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "36e9d04801335bdeaf8c6db9f748a43a9093d49933f7e9f173a2350acae7d51d",
+      "http4s_digest": "3b4b63fce351b6ea6e44e6be2fa6c7fe59ca5051b5a69cd755b4a3478798ac1c"
     }
   ]
 }

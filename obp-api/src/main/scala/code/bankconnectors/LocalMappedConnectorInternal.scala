@@ -1250,7 +1250,9 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               json.extract[TransactionRequestBodyCardJsonV400]
             }
             toCounterpartyId = transactionRequestBodyCard.to.counterparty_id
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+            // The payee must be a counterparty of the card's account, as for COUNTERPARTY. Otherwise whoever
+            // presents the card could pay any beneficiary counterparty of any other account.
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, toCounterpartyId, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             // Check we can send money to it.
             _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
