@@ -47,6 +47,9 @@ class MappedUserAuthContextUpdate extends UserAuthContextUpdate with LongKeyedMa
     override def defaultValue = SecureRandomUtil.csprng.nextInt(99999999).toString()
   }
   object mStatus extends MappedString(this, 20)
+  // The bank the update was requested at. Its answer is only accepted at the same bank, because a key such as
+  // CUSTOMER_NUMBER names a Customer only within one bank. Empty for updates requested before this was recorded.
+  object BankId extends MappedString(this, 255)
 
   override def userId = mUserId.get   
   override def consumerId: String = mConsumerId.get
@@ -55,6 +58,7 @@ class MappedUserAuthContextUpdate extends UserAuthContextUpdate with LongKeyedMa
   override def userAuthContextUpdateId = mUserAuthContextUpdateId.get
   override def challenge: String = mChallenge.get
   override def status: String = mStatus.get
+  def bankId: String = BankId.get
   
 }
 

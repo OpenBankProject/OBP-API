@@ -4716,12 +4716,30 @@ object NewStyle extends MdcLoggable{
     }
 
     /**
+     * This checks that a User Auth Context Update may be requested at the bank bankId. A request emails a challenge
+     * to a Customer of that bank, so it must come from an App the bank has granted the Scope
+     * CanCreateUserAuthContextUpdate, or from a User it has granted the Role CanCreateUserAuthContextUpdate, in
+     * both cases at that bank. Either is enough. The check applies whatever the instance's scope settings are.
+     */
+    def checkCanRequestUserAuthContextUpdate(bankId: BankId, user: User, callContext: Option[CallContext]): Future[Box[Unit]] = {
+      val role = ApiRole.canCreateUserAuthContextUpdate
+      Helper.booleanToFuture(
+        s"$ConsumerHasMissingRoles $role at bank ${bankId.value}, and the User does not have the Role $role there either.",
+        failCode = 403, cc = callContext) {
+        APIUtil.hasScope(bankId.value, APIUtil.getConsumerPrimaryKey(callContext), role) ||
+          APIUtil.hasEntitlement(bankId.value, user.userId, role)
+      }
+    }
+
+    /**
      * This answers the challenge of a User Auth Context Update on behalf of the User who requested it, and is
      * shared by the v3.1.0 and v5.0.0 answer endpoints.
      *
-     * The update must belong to the answering User. Otherwise any logged-in User could answer, or simply use up,
-     * the challenge of someone else's update, so an update of another User is reported exactly like one that does
-     * not exist. Only an ACCEPTED answer (the right one-time password) has any effect: it creates the User Auth
+     * The update must belong to the answering User and have been requested at the bank bankId. Otherwise any
+     * logged-in User could answer, or simply use up, the challenge of someone else's update, and a User who
+     * answered correctly for a CUSTOMER_NUMBER at one bank could be linked to the Customer with the same number at
+     * another bank. An update of another User or another bank is reported exactly like one that does not exist,
+     * and is checked before the answer, so its challenge is not used up. Only an ACCEPTED answer (the right one-time password) has any effect: it creates the User Auth
      * Context and, for the key CUSTOMER_NUMBER, links the User to the Customer with that number at the bank. A
      * REJECTED answer changes nothing, so a wrong answer can never link a User to someone else's Customer.
      */
@@ -4732,11 +4750,10 @@ object NewStyle extends MdcLoggable{
       answeringUser: User,
       callContext: Option[CallContext]
     ): OBPReturnType[UserAuthContextUpdate] = {
-      val updatesOfTheAnsweringUser = UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
-        .getUserAuthContextUpdatesBox(answeringUser.userId).toList.flatten
       for {
         _ <- Helper.booleanToFuture(UserAuthContextUpdateNotFound, cc = callContext) {
-          updatesOfTheAnsweringUser.exists(_.userAuthContextUpdateId == authContextUpdateId)
+          UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+            .getUserAuthContextUpdateOfUserAtBank(authContextUpdateId, answeringUser.userId, bankId.value).isDefined
         }
         (userAuthContextUpdate, callContext) <- checkAnswer(authContextUpdateId, answer, callContext)
         callContext <- if (userAuthContextUpdate.status == UserAuthContextUpdateStatus.ACCEPTED.toString) {

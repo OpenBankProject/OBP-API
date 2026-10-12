@@ -44,7 +44,9 @@ object UserAuthContextUpdateProvider extends SimpleInjector {
 }
 
 trait UserAuthContextUpdateProvider {
-  def createUserAuthContextUpdates(userId: String, consumerId:String, key: String, value: String): Future[Box[UserAuthContextUpdate]]
+  def createUserAuthContextUpdates(userId: String, consumerId:String, bankId: String, key: String, value: String): Future[Box[UserAuthContextUpdate]]
+  /** This returns the update only if it was requested by the User userId at the bank bankId. */
+  def getUserAuthContextUpdateOfUserAtBank(authContextUpdateId: String, userId: String, bankId: String): Box[UserAuthContextUpdate]
   def getUserAuthContextUpdates(userId: String): Future[Box[List[UserAuthContextUpdate]]]
   def getUserAuthContextUpdatesBox(userId: String): Box[List[UserAuthContextUpdate]]
   def deleteUserAuthContextUpdates(userId: String): Future[Box[Boolean]]

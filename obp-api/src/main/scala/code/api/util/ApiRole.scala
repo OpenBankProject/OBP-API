@@ -770,7 +770,9 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteUserAuthContext = CanDeleteUserAuthContext()
 
-  case class CanCreateUserAuthContextUpdate(requiresBankId: Boolean = false) extends ApiRole
+  // Starting a User Auth Context Update (which emails a challenge to a Customer of the bank). Held either by the
+  // App, as a Scope, or by the User, as an Entitlement, always at one bank.
+  case class CanCreateUserAuthContextUpdate(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateUserAuthContextUpdate = CanCreateUserAuthContextUpdate()
 
   case class CanGetTaxResidence(requiresBankId: Boolean = true) extends ApiRole
