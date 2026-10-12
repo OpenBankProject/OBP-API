@@ -221,14 +221,15 @@ object Http4sRequestAttributes {
     // Not fired as a background fiber: response waits for metric to be written,
     // matching v6 behaviour and avoiding unbounded concurrent H2 write contention.
     private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] =
-      if (!code.metrics.MetricsProps.writeMetrics) IO.unit
+      IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId.get).toOption, cc.startTime)) >>
+      (if (!code.metrics.MetricsProps.writeMetrics) IO.unit
       else IO.blocking {
         val endTime = new Date()
         val duration = cc.startTime.map(s => endTime.getTime - s.getTime).getOrElse(-1L)
         val ccLight = cc.copy(httpCode = Some(response.status.code), endTime = Some(endTime)).toLight
         logger.info(s"Endpoint (${cc.verb}) ${cc.url} returned ${response.status.code}, took $duration Milliseconds")
         WriteMetricUtil.writeEndpointMetric(responseBody, Some(ccLight))
-      }
+      })
 
     /**
      * This records the endpoint metric for a response that was built outside these helpers, such as
@@ -239,7 +240,8 @@ object Http4sRequestAttributes {
      * in-memory strings, so reading it here does not consume what the client receives.
      */
     def recordMetricFor(response: Response[IO])(implicit cc: CallContext): IO[Response[IO]] =
-      if (!code.metrics.MetricsProps.writeMetrics) IO.pure(response)
+      if (!code.metrics.MetricsProps.writeMetrics)
+        IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId.get).toOption, cc.startTime)).as(response)
       else response.bodyText.compile.string.flatMap { text =>
         val body: Any = scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(text)).getOrElse(text)
         recordMetric(body, response)

@@ -42,13 +42,14 @@ import scala.concurrent.Future
 
 object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider with MdcLoggable {
   
-  override def createUserAuthContextUpdates(userId: String, consumerId:String, key: String, value: String): Future[Box[MappedUserAuthContextUpdate]] =
+  override def createUserAuthContextUpdates(userId: String, consumerId:String, bankId: String, key: String, value: String): Future[Box[MappedUserAuthContextUpdate]] =
     Future {
       tryo {
         MappedUserAuthContextUpdate
           .create
           .mUserId(userId)
           .mConsumerId(consumerId)
+          .BankId(bankId)
           .mKey(key)
           .mValue(value)
           .mStatus(UserAuthContextUpdateStatus.INITIATED.toString)
@@ -59,6 +60,13 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
   override def getUserAuthContextUpdates(userId: String): Future[Box[List[MappedUserAuthContextUpdate]]] = Future {
     getUserAuthContextUpdatesBox(userId)
   }
+  override def getUserAuthContextUpdateOfUserAtBank(authContextUpdateId: String, userId: String, bankId: String): Box[MappedUserAuthContextUpdate] =
+    MappedUserAuthContextUpdate.find(
+      By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, authContextUpdateId),
+      By(MappedUserAuthContextUpdate.mUserId, userId),
+      By(MappedUserAuthContextUpdate.BankId, bankId)
+    )
+
   override def getUserAuthContextUpdatesBox(userId: String): Box[List[MappedUserAuthContextUpdate]] = {
     tryo {
       MappedUserAuthContextUpdate.findAll(By(MappedUserAuthContextUpdate.mUserId, userId))

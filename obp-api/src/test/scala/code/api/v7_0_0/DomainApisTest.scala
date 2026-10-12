@@ -64,6 +64,7 @@ class DomainApisTest extends V600ServerSetup {
   object ApiEndpoint3 extends Tag("getDomainApi")
   object ApiEndpoint4 extends Tag("updateDomainApi")
   object ApiEndpoint5 extends Tag("deleteDomainApi")
+  object ApiEndpoint6 extends Tag("getPubliclyDiscoverableDomainApis")
 
   private val SYS = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
   private val owner = "domain-api-owner"
@@ -73,8 +74,11 @@ class DomainApisTest extends V600ServerSetup {
 
   private def v7 = baseRequest / "obp" / "v7.0.0"
   private def domainApis(bankId: String) = v7 / "management" / "banks" / bankId / "domain-apis"
-  private def registration(basePath: String, version: String, title: String = "Test Domain API") =
-    compact(render(("base_path" -> basePath) ~ ("version" -> version) ~ ("title" -> title) ~ ("description" -> "For the test.")))
+  private def publicDomainApis(bankId: String) = v7 / "banks" / bankId / "domain-apis"
+  private def registration(basePath: String, version: String, title: String = "Test Domain API",
+                           publiclyDiscoverable: Option[Boolean] = None) =
+    compact(render(("base_path" -> basePath) ~ ("version" -> version) ~ ("title" -> title) ~ ("description" -> "For the test.") ~
+      ("is_publicly_discoverable" -> publiclyDiscoverable)))
   private def message(response: code.setup.APIResponse) = response.body.extract[ErrorMessage].message
   private def grantAt(bankId: String, role: code.api.util.ApiRole) =
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, role.toString)
@@ -164,6 +168,50 @@ class DomainApisTest extends V600ServerSetup {
       val gone = makeGetRequest((domainApis(SYS) / domainApiId).GET <@ (user1))
       gone.code should equal(404)
       message(gone) should include(DomainApiNotFound)
+    }
+
+    scenario("a Domain API is listed publicly only once it is made publicly discoverable",
+      ApiEndpoint1, ApiEndpoint4, ApiEndpoint6, VersionOfApi) {
+      grantAllAt(SYS)
+      val basePath = s"discoverable-$suffix/v1"
+      def publiclyListed: List[String] = {
+        val listed = makeGetRequest(publicDomainApis(SYS).GET)
+        withClue(listed.body) { listed.code should equal(200) }
+        valuesOf(listed.body \ "domain_apis", "base_path")
+      }
+
+      When("one is created without saying")
+      val created = makePostRequest(domainApis(SYS).POST <@ (user1), registration(basePath, "1.0.0"))
+      withClue(created.body) { created.code should equal(201) }
+      val domainApiId = (created.body \ "domain_api_id").extract[String]
+      Then("it is not publicly discoverable, and an anonymous caller does not find it")
+      (created.body \ "is_publicly_discoverable").extract[Boolean] should equal(false)
+      publiclyListed should not contain basePath
+
+      When("it is made publicly discoverable")
+      val made = makePutRequest((domainApis(SYS) / domainApiId).PUT <@ (user1), registration(basePath, "1.0.0", publiclyDiscoverable = Some(true)))
+      withClue(made.body) { made.code should equal(200) }
+      (made.body \ "is_publicly_discoverable").extract[Boolean] should equal(true)
+      Then("an anonymous caller finds it, with where it is published but not who made it")
+      publiclyListed should contain(basePath)
+      val listed = (makeGetRequest(publicDomainApis(SYS).GET).body \ "domain_apis").children
+        .find(api => (api \ "base_path").extract[String] == basePath).get
+      (listed \ "url").extract[String] should endWith(s"/$basePath")
+      (listed \ "openapi_url").extract[String] should endWith(s"/$basePath/openapi.yaml")
+      (listed \ "created_by_user_id") should equal(JNothing)
+
+      When("it is updated without saying")
+      val kept = makePutRequest((domainApis(SYS) / domainApiId).PUT <@ (user1), registration(basePath, "1.1.0"))
+      Then("it stays publicly discoverable")
+      (kept.body \ "is_publicly_discoverable").extract[Boolean] should equal(true)
+      publiclyListed should contain(basePath)
+
+      When("it is made not publicly discoverable")
+      makePutRequest((domainApis(SYS) / domainApiId).PUT <@ (user1), registration(basePath, "1.1.0", publiclyDiscoverable = Some(false))).code should equal(200)
+      Then("an anonymous caller no longer finds it")
+      publiclyListed should not contain basePath
+
+      makeDeleteRequest((domainApis(SYS) / domainApiId).DELETE <@ (user1)).code should equal(204)
     }
 
     scenario("base path, version and title are checked", ApiEndpoint1, VersionOfApi) {

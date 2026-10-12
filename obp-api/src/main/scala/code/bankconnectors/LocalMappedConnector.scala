@@ -3945,7 +3945,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                            value: String,
                                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = {
     val consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
-    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId,consumerId, key, value) map {
+    // This connector method has no bank, so the update it creates is bound to none and its answer is refused
+    // at every bank. validateUserAuthContextUpdateRequest creates updates bound to their bank.
+    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId, consumerId, "", key, value) map {
       (_, callContext)
     }
   }
@@ -5435,7 +5437,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               body.to_counterparty.get
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
+            // The payee was checked against the paying account when the request was created; check it again
+            // here, so a stored request can never pay a counterparty of another account.
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, counterpartyId.value, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),
@@ -5739,8 +5743,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       //1st: check if the customer is existing 
       (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(value, BankId(bankId), callContext)
-      //2rd: if the customer is existing, we can create the userAuthContextUpdateChallenge
-      (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(userId, key, value, callContext)
+      //2rd: if the customer is existing, we can create the userAuthContextUpdateChallenge, bound to this bank and only answerable here
+      consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
+      userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+        .createUserAuthContextUpdates(userId, consumerId, bankId, key, value)
+        .map(update => unboxFullOrFail(update, callContext, CreateUserAuthContextError, 400))
       //3rd: send the challenge to the user.
       _ <- Future{
         scaMethod match {

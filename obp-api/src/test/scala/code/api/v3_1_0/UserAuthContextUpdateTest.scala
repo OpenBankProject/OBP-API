@@ -36,6 +36,9 @@ import code.consumer.Consumers
 import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement
 import code.scope.Scope
+import code.customer.CustomerX
+import com.openbankproject.commons.model.{BankId, CustomerFaceImage}
+import java.util.Date
 import code.usercustomerlinks.UserCustomerLink
 import code.api.util.ErrorMessages
 import com.github.dwickern.macros.NameOf.nameOf
@@ -115,6 +118,84 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
 
       And("A wrong answer must not link the User to the Customer")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, infoPost.customer_id).isDefined should equal(false)
+    }
+    scenario("A request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at the bank", ApiEndpoint1, VersionOfApi) {
+      val bankId = testBankId1.value
+      val otherBankId = testBankId2.value
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser2.userId, CanCreateCustomer.toString)
+      val customerResponse = makePostRequest((v3_1_0_Request / "banks" / bankId / "customers").POST <@(user2), write(postCustomerJson))
+      customerResponse.code should equal(201)
+      val customerNumber = customerResponse.body.extract[CustomerJsonV310].customer_number
+      val scaMethod = StrongCustomerAuthentication.EMAIL.toString
+      def requestUpdate() = makePostRequest(
+        (v3_1_0_Request / "banks" / bankId / "users" / "current" / "auth-context-updates" / scaMethod).POST <@(user2),
+        write(postUserAuthContextJson.copy(value = customerNumber)))
+      def numberOfUpdatesOfUser2 = UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+        .getUserAuthContextUpdatesBox(resourceUser2.userId).toList.flatten.size
+
+      When("Neither the App nor the User has it")
+      val updatesBefore = numberOfUpdatesOfUser2
+      val refused = requestUpdate()
+      Then("It is refused with 403 and no update is created, so nothing is sent")
+      refused.code should equal(403)
+      (refused.body \ "message").extract[String] should include(ErrorMessages.ConsumerHasMissingRoles)
+      numberOfUpdatesOfUser2 should equal(updatesBefore)
+
+      When("Only the User has the Role, at another bank")
+      Entitlement.entitlement.vend.addEntitlement(otherBankId, resourceUser2.userId, ApiRole.canCreateUserAuthContextUpdate.toString)
+      Then("It is still refused")
+      requestUpdate().code should equal(403)
+
+      When("The User has the Role at the bank, and the App has no Scope")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser2.userId, ApiRole.canCreateUserAuthContextUpdate.toString)
+      Then("The update is created")
+      requestUpdate().code should equal(201)
+    }
+    scenario("An update can only be answered at the bank it was requested at", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+      val requestBankId = testBankId1.value
+      val otherBankId = testBankId2.value
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(requestBankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
+      Entitlement.entitlement.vend.addEntitlement(requestBankId, resourceUser1.userId, CanCreateCustomer.toString)
+
+      Given("A Customer with the same customer number at each of two banks")
+      val customerAtRequestBank = makePostRequest(
+        (v3_1_0_Request / "banks" / requestBankId / "customers").POST <@(user1), write(postCustomerJson))
+      customerAtRequestBank.code should equal(201)
+      val customerNumber = customerAtRequestBank.body.extract[CustomerJsonV310].customer_number
+      val customerIdAtRequestBank = customerAtRequestBank.body.extract[CustomerJsonV310].customer_id
+      val customerIdAtOtherBank = CustomerX.customerProvider.vend.addCustomer(
+        BankId(otherBankId), customerNumber, "Customer At Other Bank", "+49 123 456", "other-bank-customer@example.com",
+        CustomerFaceImage(new Date(), "http://example.com/face.png"),
+        new Date(), "single", 0, Nil, "Bachelor", "employed", true, new Date(),
+        None, None, "", "", ""
+      ).openOrThrowException("expected the customer at the other bank to be created").customerId
+
+      val scaMethod = StrongCustomerAuthentication.SMS.toString
+      val createResponse = makePostRequest(
+        (v3_1_0_Request / "banks" / requestBankId / "users" / "current" / "auth-context-updates" / scaMethod).POST <@(user1),
+        write(postUserAuthContextJson.copy(value = customerNumber)))
+      createResponse.code should equal(201)
+      val authContextUpdateId = createResponse.body.extract[UserAuthContextUpdateJson].user_auth_context_update_id
+      val challenge = UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.getUserAuthContextUpdatesBox(resourceUser1.userId)
+        .toList.flatten.filter(_.userAuthContextUpdateId == authContextUpdateId).map(_.challenge).head
+      def answerAt(bankId: String) = makePostRequest(
+        (v3_1_0_Request / "banks" / bankId / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge").POST <@(user1),
+        write(PostUserAuthContextUpdateJsonV310(answer = challenge)))
+
+      When("The right answer is sent with the other bank in the path")
+      val answerAtOtherBank = answerAt(otherBankId)
+      Then("It is refused as not found, and the User is not linked to the other bank's Customer")
+      answerAtOtherBank.code should equal(400)
+      (answerAtOtherBank.body \ "message").extract[String] should include(ErrorMessages.UserAuthContextUpdateNotFound)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, customerIdAtOtherBank).isDefined should equal(false)
+
+      And("The same answer at the bank of the request is accepted and links only that bank's Customer")
+      val answerAtRequestBank = answerAt(requestBankId)
+      answerAtRequestBank.code should equal(200)
+      answerAtRequestBank.body.extract[UserAuthContextUpdateJson].status should equal(UserAuthContextUpdateStatus.ACCEPTED.toString)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, customerIdAtRequestBank).isDefined should equal(true)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, customerIdAtOtherBank).isDefined should equal(false)
     }
     scenario("Another User cannot answer, or use up, the challenge of a User's update", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId

@@ -1607,9 +1607,9 @@
       "version": "v4_0_0",
       "endpoint": "createTransactionRequestCard",
       "field": "errorResponseBodies",
-      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9. Also adds CounterpartyNotFoundByCounterpartyId, returned when the payee is not a counterparty of the card's account.",
       "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
-      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+      "http4s_digest": "8723ffa249614fed5a40227e79508a1dcbec5e5009357455d6a3204fe0db61fd"
     },
     {
       "version": "v4_0_0",
@@ -1983,9 +1983,9 @@
       "version": "v5_1_0",
       "endpoint": "updateConsumerRedirectURL",
       "field": "description",
-      "reason": "Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry.",
+      "reason": "Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry. States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
       "lift_digest": "d2319e98d44314c5142a17c76318478bd3f2e88a41c560f30fd99ebde75a6b9b",
-      "http4s_digest": "6ae0abfeccdb9959fc3efe679b4a279e6aefb89f584a3d8d0f025620f03329f9"
+      "http4s_digest": "d6d8aec47ff86dde95311cac66a3af9541941a575e32cc437a1ee51624d30b88"
     },
     {
       "version": "v5_1_0",
@@ -2130,6 +2130,134 @@
       "reason": "Adds AccountIdAlreadyExists: an existing ACCOUNT_ID is now refused, where it used to return the existing account and make the caller one of its holders.",
       "lift_digest": "30b24bdbcdb523f00b5e4655fbdb91d8648ab84ee92f1f2292008816b8e31012",
       "http4s_digest": "c48cc1204d4ea66a5f131c599ace7f8d502c91ce16a36bf0e507e06b915b8055"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "description",
+      "reason": "States that only the User who requested the update can answer it, only at the bank it was requested at, and that only a right answer adds the User Auth Context and the Customer link.",
+      "lift_digest": "c2bb04751b64677723b0a5bfedfa0f92999b6277d60ff9172272ca4f454d39d1",
+      "http4s_digest": "45e6b2ef5bb600b2781f7f9e7392a0c952844ff67e6d893ab2aad2c028228d6f"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "errorResponseBodies",
+      "reason": "Adds UserAuthContextUpdateNotFound, returned for an update that does not exist or belongs to another User or another bank.",
+      "lift_digest": "837babe0c6517335a32569673d5cdf0bdfb1cc40c06f8035e8e2f6099d3a6ab8",
+      "http4s_digest": "f1806abaa2f1ffebc6bcc48875179391170d2545566cc10d54b38f82172aa9e0"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "description",
+      "reason": "States that only the User who requested the update can answer it, only at the bank it was requested at, and that only a right answer adds the User Auth Context and the Customer link.",
+      "lift_digest": "b84d8a8ba5729b2af8dd67bf06884afcef6b7f71ad5a0ea2a1bc125d59b4dcd1",
+      "http4s_digest": "83f377f201005db11bd081607fdf62ae680615e8cd55b3355473e31f9e9d14e8"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "errorResponseBodies",
+      "reason": "Adds UserAuthContextUpdateNotFound, returned for an update that does not exist or belongs to another User or another bank.",
+      "lift_digest": "84013a06c4127d2ad932f7813a03432776c5a05651afca08dea52dcac780b8fb",
+      "http4s_digest": "3f2fa1dc012d5dcc93e4542e85d0ef5a5a03de2c3fa750aca33af628ee6c3073"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "description",
+      "reason": "Says the challenge goes to the Customer's own contact details (not the User), and that the request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at BANK_ID, which is now always checked.",
+      "lift_digest": "2bcfb3fcfe68cfeada6614a6a2bf57b289e488b3a4f029a733145e5c55e2c2f2",
+      "http4s_digest": "150d6804f8ea2eaba8edb3c8a11072ab626d87b38a200aba0a11d80d28cf6bd9"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "errorResponseBodies",
+      "reason": "Adds ConsumerHasMissingRoles, returned when neither the App has the Scope nor the User the Role CanCreateUserAuthContextUpdate at BANK_ID.",
+      "lift_digest": "6a0652dbac6383372df2418f0456676eb1ab4ea8d7e3d5e10efa2e2bb81ff510",
+      "http4s_digest": "1769e014d63887938573f77828aaa7669b69c23f8c4de3bb286767aad5185754"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "description",
+      "reason": "Says the challenge goes to the Customer's own contact details (not the User), and that the request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at BANK_ID, which is now always checked.",
+      "lift_digest": "2bcfb3fcfe68cfeada6614a6a2bf57b289e488b3a4f029a733145e5c55e2c2f2",
+      "http4s_digest": "150d6804f8ea2eaba8edb3c8a11072ab626d87b38a200aba0a11d80d28cf6bd9"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "errorResponseBodies",
+      "reason": "Adds ConsumerHasMissingRoles, returned when neither the App has the Scope nor the User the Role CanCreateUserAuthContextUpdate at BANK_ID.",
+      "lift_digest": "cdb22d6afff7a90bf4a665f9d7d1eed2d90324a073db56537360b1b61618cce3",
+      "http4s_digest": "ebe1e09a8ffca0760b403f3e695374ae943920e6c06ad876abf65b7aa0d82353"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "directLoginEndpoint",
+      "field": "description",
+      "reason": "Shows whether DirectLogin is enabled on this instance (allow_direct_login), and that when it is disabled every request is refused without checking credentials.",
+      "lift_digest": "cf1c92e99d25e17c7dbe3e026b3a7220df05647420fd298bdf4c71a8ef4265cb",
+      "http4s_digest": "fd9706da918ddc0d030f1d2b69264d4a9b6d3601702a4b00b9b118adf3fe3f3b"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "directLoginEndpoint",
+      "field": "errorResponseBodies",
+      "reason": "Adds DirectLoginIsDisabled: the endpoint now honours allow_direct_login=false, as the unversioned route does.",
+      "lift_digest": "dd71e2633d445b2639d923d757b5bcb72428648a15516b6f52ded226389118fd",
+      "http4s_digest": "be58d5096fa4da0374d728c775884b48c701e0b918021bf1bd4e50c8116da92a"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getConsumers",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "3b89fa570a230d88a3f7986fef724e5ab07e148edf5b8052c86d1ea0b6f7ddd6",
+      "http4s_digest": "cc45fd404de4e435f603c1192dc63b2f777b7a0efd39c8ad8cd608ef0e604729"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerCertificate",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "7053f9b9b8a84366fb168cfabac9a9a2eddc764b1cddc5553d277b5b1ee6a3b4",
+      "http4s_digest": "5107ec99851efcb86f14ff4181f34cc49136bad40dfa275bc2354ef965c4c37a"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerLogoURL",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "24970bab545a3bde99ab3755beb387be7428f0e759697ead1cf38482e932ee7b",
+      "http4s_digest": "2c520696ebcc58f97d55da0f0b7bf583bf809b92a07a98975f879056bfd5a5f1"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerName",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "692ebc3c9d61794ffa3032f1cd759b586823239cccdf3a78c58ea9253bd3a159",
+      "http4s_digest": "a8bdac82543f60b89328544bdd0027259566919925b24729a7c84f30a795ca56"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getConsumer",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "36e9d04801335bdeaf8c6db9f748a43a9093d49933f7e9f173a2350acae7d51d",
+      "http4s_digest": "3b4b63fce351b6ea6e44e6be2fa6c7fe59ca5051b5a69cd755b4a3478798ac1c"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCard",
+      "field": "description",
+      "reason": "States that the paying account is the card's account, that the User needs the owner view with permission to add transaction requests (or CanCreateAnyTransactionRequest), and that the payee must be a counterparty of that account.",
+      "lift_digest": "b670d8181d5d2d563db3a015bb357107c827ad273e2097c4215032c07e39502b",
+      "http4s_digest": "b60ff8942421ae14a3245bcc8625bac7409abef79994972c629d56dafc582840"
     }
   ]
 }

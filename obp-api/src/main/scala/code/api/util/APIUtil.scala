@@ -2584,6 +2584,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ =>
       // There are no enough information for logging
     }
+    callContext.foreach(cc => WriteMetricUtil.recordConsumerLastCall(cc.consumerId, cc.startTime))
     WriteMetricUtil.writeEndpointMetric(responseBody, callContext.map(_.copy(endTime = Some(endTime))))
     result
   }
@@ -3882,6 +3883,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else if (sensitivePropsPatterns.exists(p => value.toLowerCase.contains(p)) && value.nonEmpty) "****"
     else value
   }
+
+  // A consumer key is a credential. Response formats that carry a consumer_key field from before
+  // this rule keep the field and return this value; newer versions leave the field out.
+  // Create responses still return the real key: that is how the creator learns it.
+  val RedactedConsumerKey = "**redacted**"
+
+  def redactConsumerKey(consumerKey: String): String = RedactedConsumerKey
 
   // Convention-based public app URL props.
   // Every key registered here appears in getConfigPropsPairs and so in the App Directory.

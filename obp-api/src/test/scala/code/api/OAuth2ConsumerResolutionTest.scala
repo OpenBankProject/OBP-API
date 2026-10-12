@@ -34,7 +34,7 @@ import code.setup.ServerSetup
 import com.nimbusds.jose.crypto.MACSigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
-import net.liftweb.common.Empty
+import net.liftweb.common.{Empty, Failure}
 import net.liftweb.mapper.By
 
 import java.net.URI
@@ -97,6 +97,38 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
       Then("each issuer gets its own consumer for that client ID")
       otherConsumer.consumerId.get should not equal googleConsumer.consumerId.get
       Consumer.findAll(By(Consumer.azp, clientId)).size should equal(2)
+    }
+  }
+
+  // A client_credentials-style token: no azp, optionally a client_id claim, sub = the client.
+  private def clientCredentialsToken(clientId: Option[String], iss: String): String = {
+    val builder = new JWTClaimsSet.Builder().issuer(iss).subject(clientId.getOrElse(APIUtil.generateUUID())).audience(iss)
+    clientId.foreach(builder.claim("client_id", _))
+    val jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), builder.build())
+    jwt.sign(new MACSigner("0123456789abcdef0123456789abcdef"))
+    jwt.serialize()
+  }
+
+  feature("tokens without an azp claim") {
+
+    scenario("the client_id claim stands in for azp, so repeated calls reuse one consumer") {
+      val clientId = APIUtil.generateUUID()
+      When("the same client presents two tokens carrying client_id but no azp")
+      val first = resolve(clientCredentialsToken(Some(clientId), googleIssuer))
+      val second = resolve(clientCredentialsToken(Some(clientId), googleIssuer))
+      Then("both resolve to one consumer keyed by the client_id")
+      second.consumerId.get should equal(first.consumerId.get)
+      first.azp.get should equal(clientId)
+      Consumer.findAll(By(Consumer.azp, clientId)).size should equal(1)
+    }
+
+    scenario("a token with neither azp nor client_id does not auto-create a consumer") {
+      val before = Consumer.count()
+      When("a token identifies no client")
+      val result = oidcProvider.getOrCreateConsumer(clientCredentialsToken(None, googleIssuer), Empty, Some("OpenID Connect"))
+      Then("resolution fails and no consumer is created")
+      result shouldBe a[Failure]
+      Consumer.count() should equal(before)
     }
   }
 

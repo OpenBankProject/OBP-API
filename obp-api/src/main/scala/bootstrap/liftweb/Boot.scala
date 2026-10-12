@@ -568,8 +568,8 @@ class Boot extends MdcLoggable {
     // DirectLogin (POST /my/logins/direct) and aliveCheck (GET /alive) are now served
     // by their native http4s counterparts wired into Http4sApp.baseServices
     // (DirectLoginRoutes / AliveCheckRoutes). The Lift dispatches were retired in the
-    // http4s migration; any prop gates (e.g. `allow_direct_login`) live with those
-    // routes. The OBP-as-relying-party OpenID Connect callback was removed: OBP is a
+    // http4s migration; any prop gates live with those routes (`allow_direct_login` is
+    // checked in DirectLoginRoutes.issueToken, which the v6.0.0 route also uses). The OBP-as-relying-party OpenID Connect callback was removed: OBP is a
     // pure OAuth2 resource server (Bearer-JWT validation), login is done by the client/BFF.
 
     //////////////////////////////////////////////////////////////////////////////////////////////////

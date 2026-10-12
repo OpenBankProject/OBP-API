@@ -304,6 +304,7 @@ object ErrorMessages {
   val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
   val DAuthIsDisabled = "OBP-20407: DAuth is disabled. Set allow_dauth=true to enable."
   val OpenIDConnectIsDisabled = "OBP-20408: OpenID Connect is disabled. Set allow_openid_connect=true to enable."
+  val DirectLoginIsDisabled = "OBP-20409: DirectLogin is disabled. Set allow_direct_login=true to enable."
 
   val InvalidProviderUrl = "OBP-20079: Cannot match the local identity provider."
 

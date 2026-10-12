@@ -165,6 +165,7 @@ class UserAuthContextTest extends V500ServerSetup {
       val customerNumner = infoPost.customer_number
       
       When(s"We try to create the UserAuthContextRequestUpdate v5.0.0 $ApiEndpoint3")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateUserAuthContextUpdate.toString)
       val requestUserAuthContext500 = (v5_0_0_Request / "banks"/testBankId1.value /  "users" / "current" / "auth-context-updates" / "SMS" ).POST <@(user1)
       val responseUserAuthContext500 = makePostRequest(requestUserAuthContext500, write(postUserAuthContextJsonV310.copy(value = customerNumner)))
       Then("We should get a 201")

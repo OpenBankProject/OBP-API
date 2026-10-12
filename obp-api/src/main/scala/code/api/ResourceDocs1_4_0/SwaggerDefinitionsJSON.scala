@@ -2994,7 +2994,7 @@ object SwaggerDefinitionsJSON {
 
   lazy val consumerJsonV600: ConsumerJsonV600 = ConsumerJsonV600(
     consumer_id = consumerIdExample.value,
-    consumer_key = consumerKeyExample.value,
+    consumer_key = code.api.util.APIUtil.RedactedConsumerKey,
     app_name = appNameExample.value,
     app_type = appTypeExample.value,
     description = descriptionExample.value,
@@ -6126,7 +6126,7 @@ object SwaggerDefinitionsJSON {
   )
   
   lazy val consumersJsonV510 = ConsumersJsonV510(
-    List(consumerJsonV510)
+    List(consumerJsonV510.copy(consumer_key = code.api.util.APIUtil.RedactedConsumerKey))
   )
 
   lazy val agentIdJson = AgentCashWithdrawalJson(

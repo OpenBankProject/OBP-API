@@ -251,6 +251,8 @@ class ConsumerTest extends V510ServerSetup {
         val consumers = responseApiEndpoint2.body.extract[ConsumersJsonV510].consumers
         consumers.find(_.consumer_id ==consumerId).head.redirect_url shouldBe(consumerRedirectUrlJSON.redirect_url)
         consumers.find(_.consumer_id ==consumerId).head.logo_url.head shouldBe(consumerLogoUrlJson.logo_url)
+        And("no consumer key is handed out by the list")
+        consumers.map(_.consumer_key).distinct shouldBe List(code.api.util.APIUtil.RedactedConsumerKey)
 
         // Endpoint GetConsumer
         val requestApiEndpoint5 = (v5_1_0_Request / "management" / "consumers" / consumerId).GET <@ user1

@@ -820,6 +820,233 @@ object Http4s700 {
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
 
+    // Route: GET /obp/v7.0.0/management/consumers
+    // Same list as v5.1.0 Get Consumers without consumer_key: the key is a credential, the list references Consumers by consumer_id.
+    val getConsumers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consumers" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            consumers <- code.consumer.Consumers.consumers.vend.getConsumersFuture(obpQueryParams, Some(cc))
+          } yield JSONFactory700.createConsumersJsonV700(consumers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumers),
+      "GET",
+      "/management/consumers",
+      "Get Consumers",
+      s"""Get all Consumers.
+        |
+        |The response has no `consumer_key`: the key is a credential. Refer to a Consumer by its `consumer_id`.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |${urlParametersDocument(true, true)}
+        |
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.consumersJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canGetConsumers)),
+      authMode = UserOrApplication,
+      http4sPartialFunction = Some(getConsumers)
+    )
+
+    // Route: GET /obp/v7.0.0/management/consumers/CONSUMER_ID
+    // v6.0.0 Get Consumer without consumer_key.
+    val getConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            callCounters <- Future(code.api.util.RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            date = new java.util.Date()
+            (activeRateLimit, rateLimitIds) <- code.api.util.RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+          } yield JSONFactory700.createConsumerDetailsJsonV700(
+            JSONFactory600.createConsumerJsonV600(
+              consumer,
+              None,
+              JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, rateLimitIds, date),
+              JSONFactory600.createRedisCallCountersJson(callCounters)
+            )
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumer),
+      "GET",
+      "/management/consumers/CONSUMER_ID",
+      "Get Consumer",
+      s"""Get the Consumer specified by CONSUMER_ID, with its active rate limits and current call counters.
+        |
+        |The response has no `consumer_key` and no `consumer_secret`: both are credentials.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.consumerDetailsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canGetConsumers)),
+      http4sPartialFunction = Some(getConsumer)
+    )
+
+    // The four Consumer field updates share everything but the field: read the body, find the Consumer,
+    // apply the change, answer without the key.
+    private def updateConsumerField[T: Manifest](req: Request[IO], consumerId: String)(
+      update: (T, code.model.Consumer, CallContext) => Future[code.model.Consumer]
+    ): IO[Response[IO]] =
+      EndpointHelpers.executeFuture(req) {
+        implicit val cc: CallContext = req.callContext
+        for {
+          postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+            com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[T]
+          }
+          consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+          updatedConsumer <- update(postJson, consumer, cc)
+        } yield JSONFactory700.createConsumerJsonV700(updatedConsumer)
+      }
+
+    private val updateConsumerNoKeyText = "The response has no `consumer_key`: the key is a credential."
+    private val Implementations5_1_0 = code.api.v5_1_0.Http4s510.Implementations5_1_0
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/redirect_url
+    val updateConsumerRedirectURL: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "redirect_url" =>
+        updateConsumerField[code.api.v2_1_0.ConsumerRedirectUrlJSON](req, consumerId) { (postJson, consumer, cc) =>
+          implicit val callContext: CallContext = cc
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            _ <- Helper.booleanToFuture(UserNoPermissionUpdateConsumer, 400, Some(cc)) {
+              consumer.createdByUserId.equals(user.userId)
+            }
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postJson.redirect_url, Some(cc))
+            updatedConsumer <- NewStyle.function.updateConsumer(
+              id = consumer.id.get,
+              isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
+              redirectURL = Some(postJson.redirect_url),
+              callContext = Some(cc))
+          } yield updatedConsumer
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerRedirectURL),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/redirect_url",
+      "Update Consumer RedirectURL",
+      s"""Update the redirect URL of the Consumer specified by CONSUMER_ID. Only the user who created the Consumer may change it.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |
+        |${Implementations5_1_0.redirectUrlRulesText}
+        |""".stripMargin,
+      consumerRedirectUrlJSON,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId,
+        UserNoPermissionUpdateConsumer, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerRedirectUrl)),
+      http4sPartialFunction = Some(updateConsumerRedirectURL)
+    )
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/logo_url
+    val updateConsumerLogoURL: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "logo_url" =>
+        updateConsumerField[code.api.v5_1_0.ConsumerLogoUrlJson](req, consumerId) { (postJson, consumer, cc) =>
+          NewStyle.function.updateConsumer(id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerLogoURL),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/logo_url",
+      "Update Consumer LogoURL",
+      s"""Update the logo URL of the Consumer specified by CONSUMER_ID.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |""".stripMargin,
+      consumerLogoUrlJson,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerLogoUrl)),
+      http4sPartialFunction = Some(updateConsumerLogoURL)
+    )
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/certificate
+    val updateConsumerCertificate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "certificate" =>
+        updateConsumerField[code.api.v5_1_0.ConsumerCertificateJson](req, consumerId) { (postJson, consumer, cc) =>
+          NewStyle.function.updateConsumer(id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerCertificate),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/certificate",
+      "Update Consumer Certificate",
+      s"""Update the certificate of the Consumer specified by CONSUMER_ID.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |""".stripMargin,
+      consumerCertificateJson,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerCertificate)),
+      http4sPartialFunction = Some(updateConsumerCertificate)
+    )
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/name
+    val updateConsumerName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "name" =>
+        updateConsumerField[code.api.v5_1_0.ConsumerNameJson](req, consumerId) { (postJson, consumer, cc) =>
+          NewStyle.function.updateConsumer(id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerName),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/name",
+      "Update Consumer Name",
+      s"""Update the name of the Consumer specified by CONSUMER_ID.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |""".stripMargin,
+      consumerNameJson,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerName)),
+      http4sPartialFunction = Some(updateConsumerName)
+    )
+
     // Route: GET /obp/v7.0.0/consumers/current/scopes
     // The Roles the calling Consumer holds as Scopes. No Role, like the identity above: a service may always
     // learn what it has been granted, so its status page can say which Scopes it still needs.
@@ -1605,6 +1832,51 @@ object Http4s700 {
       apiTagMetric :: apiTagApi :: Nil,
       Some(canReadMetrics :: Nil),
       http4sPartialFunction = Some(getTopConsumers)
+    )
+
+    // ─── getConsumerLastCalls ─────────────────────────────────────────────────────
+    // Read from Redis only (code.metrics.ConsumerLastCall), so it costs one HGETALL whatever the
+    // metric table holds. Without Redis the list is empty rather than an error.
+
+    val getConsumerLastCalls: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "metrics" / "consumer-last-calls" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val lastCalls =
+              try code.metrics.ConsumerLastCall.getAll()
+              catch {
+                case scala.util.control.NonFatal(e) =>
+                  logger.warn(s"getConsumerLastCalls says: Redis read failed: ${e.getMessage}")
+                  code.metrics.ConsumerLastCall.LastCalls(None, Map.empty)
+              }
+            JSONFactory700.createConsumerLastCallsJsonV700(lastCalls)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumerLastCalls),
+      "GET",
+      "/management/metrics/consumer-last-calls",
+      "Get Consumer Last Calls",
+      s"""When each Consumer last called the API, most recent first.
+        |
+        |Kept in Redis, not in the metric table, so it is cheap to read for every Consumer at once. Each node records a
+        |Consumer at most once a minute, so `last_call_at` can be up to a minute early. The data is lost when Redis
+        |restarts: `tracked_since` is when recording began, and a Consumer that is not listed has made no call since then.
+        |`tracked_since` is null when nothing has been recorded yet, or Redis is not available.
+        |
+        |Recorded whether or not `write_metrics` is on.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.consumerLastCallsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagMetric :: apiTagConsumer :: Nil,
+      Some(canReadMetrics :: Nil),
+      http4sPartialFunction = Some(getConsumerLastCalls)
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────

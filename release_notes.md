@@ -3,6 +3,13 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+13/10/2026    TBD           ADDED: Domain APIs have is_publicly_discoverable (new column
+                            domain_api.is_publicly_discoverable, false by default). The new public
+                            GET /obp/v7.0.0/banks/BANK_ID/domain-apis lists, without authentication, the
+                            space's Domain APIs that have it set, with base path, version, title,
+                            description, url and openapi_url. POST and PUT .../management/banks/BANK_ID/
+                            domain-apis take it as an optional field: false when left out on create,
+                            unchanged when left out on update. The management responses include it.
 07/10/2026    TBD           CHANGED: GET /management/aggregate-metrics (v3.0.0, v5.1.0 and v6.0.0)
                             covers at most 31 days of metrics per call, set by the new prop
                             aggregate_metrics_max_days (default 31). A range between from_date and

@@ -1454,7 +1454,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
     ConsumerJsonV600(
       consumer_id = c.consumerId.get,
-      consumer_key = c.key.get,
+      // v7.0.0 Get Consumer leaves the field out
+      consumer_key = code.api.util.APIUtil.redactConsumerKey(c.key.get),
       app_name = c.name.get,
       app_type = c.appType.toString(),
       description = c.description.get,

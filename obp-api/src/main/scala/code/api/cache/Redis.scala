@@ -310,6 +310,36 @@ object Redis extends MdcLoggable {
   }
 
   /**
+   * HSET field to value in KEYS[1] only when the field is absent or holds a smaller number, so
+   * writers that arrive out of order (several nodes, async writes) never move a value backwards.
+   * Also SET KEYS[2] to the same value if it does not exist yet: it records when the hash started
+   * filling, which is when its values became meaningful (the hash is empty after a Redis restart).
+   */
+  private val hashSetIfGreaterScript =
+    """local current = redis.call('HGET', KEYS[1], ARGV[1])
+      |if (not current) or tonumber(current) < tonumber(ARGV[2]) then
+      |  redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+      |end
+      |redis.call('SET', KEYS[2], ARGV[2], 'NX')
+      |return 1""".stripMargin
+
+  /** See hashSetIfGreaterScript. One round trip, atomic server-side. */
+  def hashSetIfGreater(hashKey: String, sinceKey: String, field: String, value: Long): Unit = withJedis { jedis =>
+    jedis.eval(
+      hashSetIfGreaterScript,
+      java.util.Arrays.asList(hashKey, sinceKey),
+      java.util.Arrays.asList(field, value.toString)
+    )
+    ()
+  }
+
+  /** HGETALL; an absent key is an empty map. */
+  def hashGetAll(hashKey: String): Map[String, String] = withJedis { jedis =>
+    import scala.jdk.CollectionConverters._
+    jedis.hgetAll(hashKey).asScala.toMap
+  }
+
+  /**
    * Delete all Redis keys matching a pattern using KEYS command
    * @param pattern Redis key pattern (e.g., "rl_active_CONSUMER123_*")
    * @return Number of keys deleted
