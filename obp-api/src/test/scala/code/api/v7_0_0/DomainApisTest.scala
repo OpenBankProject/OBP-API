@@ -65,6 +65,7 @@ class DomainApisTest extends V600ServerSetup {
   object ApiEndpoint4 extends Tag("updateDomainApi")
   object ApiEndpoint5 extends Tag("deleteDomainApi")
   object ApiEndpoint6 extends Tag("getPubliclyDiscoverableDomainApis")
+  object ApiEndpoint7 extends Tag("getDomainApiResourceDocs")
 
   private val SYS = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
   private val owner = "domain-api-owner"
@@ -300,6 +301,26 @@ class DomainApisTest extends V600ServerSetup {
       paths.exists(_.contains("dynamic-entities")) shouldBe false
       paths.exists(_.contains("banks")) shouldBe false
       makeGetRequest((under(basePath) / "openapi.yaml").GET).code should equal(200)
+
+      When("its Resource Docs are read, without logging in")
+      val resourceDocsAt = v7 / "banks" / SYS / "domain-apis" / "resource-docs"
+      val resourceDocs = makeGetRequest(resourceDocsAt.GET <<? List("base_path" -> basePath))
+      withClue(resourceDocs.body) { resourceDocs.code should equal(200) }
+      Then("they are the OpenAPI document's endpoints, each at its full published path")
+      val docUrls = (resourceDocs.body \ "resource_docs").children.map(doc =>
+        ((doc \ "request_url").extract[String], (doc \ "specified_url").extract[String]))
+      docUrls.map(_._1) should contain(s"/$basePath/$entity")
+      docUrls.map(_._1) should contain(s"/$basePath/$queryPath/names")
+      docUrls.foreach { case (requestUrl, specifiedUrl) =>
+        requestUrl should startWith(s"/$basePath/")
+        specifiedUrl should equal(requestUrl)
+      }
+      And("base_path is required, and must be a Domain API of that space")
+      makeGetRequest(resourceDocsAt.GET).code should equal(400)
+      val unknown = makeGetRequest(resourceDocsAt.GET <<? List("base_path" -> s"unknown-$suffix/v1"))
+      unknown.code should equal(404)
+      message(unknown) should include(DomainApiNotFound)
+      makeGetRequest((v7 / "banks" / testBankId1.value / "domain-apis" / "resource-docs").GET <<? List("base_path" -> basePath)).code should equal(404)
 
       Then("the documentation is true to the endpoints: each documented path without a placeholder is served, and the documented example has the response's fields")
       val route = DomainApis.domainApiProvider.vend.routes().find(_.basePath == basePath)

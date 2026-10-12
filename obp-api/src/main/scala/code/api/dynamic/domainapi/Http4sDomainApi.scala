@@ -117,6 +117,19 @@ object Http4sDomainApi extends MdcLoggable {
       }
     }
 
+  /**
+   * The space's docs as OBP Resource Docs for the Domain API: at their full published path, base path
+   * included, as both request_url and specified_url, so a caller such as API Explorer can call each one
+   * as it stands.
+   */
+  def publishedResourceDocs(route: DomainApiRoute): List[ResourceDoc] =
+    publishedDocs(route).map { doc =>
+      val url = s"/${route.basePath}${doc.requestUrl}"
+      val full = doc.copy(requestUrl = url, specifiedUrl = Some(url))
+      full.connectorMethods = doc.connectorMethods
+      full
+    }
+
   /** The Domain API's OpenAPI 3.1 document: the published docs, with the Domain API's own title, version and server. */
   def openApi(route: DomainApiRoute): JValue = {
     val docsJson = JSONFactory1_4_0.createResourceDocsJson(publishedDocs(route), isVersion4OrHigher = true, locale = None).resource_docs

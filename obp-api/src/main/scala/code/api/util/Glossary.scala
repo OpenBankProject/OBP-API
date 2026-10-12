@@ -4361,6 +4361,8 @@ object Glossary extends MdcLoggable  {
 |
 |**Discovery.** A Domain API whose `is_publicly_discoverable` is true is listed, without logging in, at `/obp/v7.0.0/banks/BANK_ID/domain-apis`, with its base path, version, title, description, URL and OpenAPI document. It is false unless set, so a Domain API is only listed publicly on purpose. It only controls that listing: the calls under the base path and the OpenAPI document are served the same either way.
 |
+|**Resource Docs.** `/obp/v7.0.0/banks/BANK_ID/domain-apis/resource-docs?base_path=BASE_PATH` gives the same endpoints as the OpenAPI document as OBP Resource Docs, each at its full published path, for API Explorer and other OBP tools. No login is needed.
+|
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
