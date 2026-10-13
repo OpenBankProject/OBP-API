@@ -430,11 +430,12 @@ class DomainApisTest extends V600ServerSetup {
         withClue(registered.body) { registered.code should equal(201) }
 
         def at(segments: String*) = segments.foldLeft(under(basePath))(_ / _)
-        def idOf(response: code.setup.APIResponse) = (response.body \ s"${name}_id") match {
+        // A v7.0.0 record response holds the record under the entity's name, next to its metadata.
+        def idOf(response: code.setup.APIResponse) = (response.body \ name \ s"${name}_id") match {
           case JString(id) => id
           case other => fail(s"no ${name}_id in ${response.body}: $other")
         }
-        def nameOf(response: code.setup.APIResponse) = (response.body \ "name") match {
+        def nameOf(response: code.setup.APIResponse) = (response.body \ name \ "name") match {
           case JString(value) => value
           case other => fail(s"no name in ${response.body}: $other")
         }
