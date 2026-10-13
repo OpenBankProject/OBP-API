@@ -1763,7 +1763,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityNameHasHyphenOrSpace, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createSystemDynamicEntity))
@@ -1800,7 +1800,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityNameHasHyphenOrSpace, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canCreateDynamicEntityDefinition)),
       http4sPartialFunction = Some(createBankLevelDynamicEntity))
@@ -1837,7 +1837,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityNameHasHyphenOrSpace, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateSystemDynamicEntity))
@@ -1874,7 +1874,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
+      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicEntityNameHasHyphenOrSpace, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canUpdateDynamicEntityDefinition)),
       http4sPartialFunction = Some(updateBankLevelDynamicEntity))
@@ -2002,7 +2002,7 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
-      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, InvalidJsonFormat, DynamicEntityNameHasHyphenOrSpace, DynamicEntityUpdateNotSchemaCompatible, DynamicPathAmbiguous, UnknownError),
       List(apiTagManageDynamicEntity, apiTagApi), None,
       http4sPartialFunction = Some(updateMyDynamicEntity))
 

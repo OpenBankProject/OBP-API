@@ -279,6 +279,37 @@ object Http4s700DomainApis {
     http4sPartialFunction = Some(getPubliclyDiscoverableDomainApis)
   ).allowSystemSpace()
 
+  // Route: GET /obp/v7.0.0/domain-apis (public)
+  lazy val getPubliclyDiscoverableDomainApisInEverySpace: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `prefixPath` / "domain-apis" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        Future(provider.getPubliclyDiscoverableInEverySpace()).map(box =>
+          PublicDomainApisJsonV700(fullOrFail(box, cc).map(JSONFactory700DomainApis.createPublicDomainApiJson)))
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getPubliclyDiscoverableDomainApisInEverySpace),
+    "GET",
+    "/domain-apis",
+    "Get Publicly Discoverable Domain APIs in Every Space",
+    s"""The publicly discoverable Domain APIs (`is_publicly_discoverable`) of every space on this instance, each
+       |with its space (`bank_id`), base path, version, title, description, `url` and `openapi_url`. For a tool
+       |such as API Explorer that offers every published API without knowing the spaces in advance;
+       |`GET /obp/v7.0.0/banks/BANK_ID/domain-apis` gives one space's.
+       |
+       |No Authentication is Required.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink("Domain APIs")}""".stripMargin,
+    EmptyBody,
+    JSONFactory700DomainApis.publicDomainApisJsonV700Example,
+    List(UnknownError),
+    apiTagDynamic :: apiTagApi :: Nil,
+    None,
+    http4sPartialFunction = Some(getPubliclyDiscoverableDomainApisInEverySpace)
+  )
+
   // Route: GET /obp/v7.0.0/banks/BANK_ID/domain-apis/resource-docs?base_path=BASE_PATH (public)
   lazy val getDomainApiResourceDocs: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `prefixPath` / "banks" / bankIdInUrl / "domain-apis" / "resource-docs" =>

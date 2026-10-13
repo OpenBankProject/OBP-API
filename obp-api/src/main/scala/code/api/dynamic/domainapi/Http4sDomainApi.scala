@@ -56,7 +56,11 @@ import org.json4s.native.JsonMethods.compact
  * the OBP URL. A Domain API adds no access of its own: a call under its base path is allowed or refused
  * exactly as the same call to the OBP URL would be.
  *
- * A Dynamic Resource Doc of the space is tried first, then a Dynamic Entity of the space. Every space is
+ * A Dynamic Resource Doc of the space is tried first, then a Dynamic Entity of the space: first under the
+ * entity name as written, then, when it has hyphens, under the name with those hyphens turned into
+ * underscores, so `technologies-practices-processes` reaches the entity `technologies_practices_processes`
+ * (see [[DomainApiPaths.withUnderscoredEntityName]]). An unknown entity name falls through, so the second
+ * try only runs when the first found nothing. Every space is
  * kept free of ambiguous paths (see [[DomainApiPaths.resourceDocAmbiguities]]), with or without a Domain
  * API, so at most one of them matches a call and the order does not change which one answers. Should an
  * ambiguity that predates those rules remain, the Dynamic Resource Doc wins: its path names a literal
@@ -94,8 +98,11 @@ object Http4sDomainApi extends MdcLoggable {
             case _ =>
               val marked = req.withAttribute(domainApiCallKey,
                 DomainApiCall(route.domainApiId, route.basePath, req.uri.renderString))
+              def entity(path: List[String]) =
+                Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(withPath(marked, DomainApiPaths.dynamicEntityPath(route.bankId, path)))
               Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint.run(withPath(marked, DomainApiPaths.dynamicResourceDocPath(route.bankId, rest)))
-                .orElse(Http4sDynamicEntity.wrappedRoutesDynamicEntityV700.run(withPath(marked, DomainApiPaths.dynamicEntityPath(route.bankId, rest))))
+                .orElse(entity(rest))
+                .orElse(DomainApiPaths.withUnderscoredEntityName(rest).fold(OptionT.none[IO, Response[IO]])(entity))
           }
       }
     }

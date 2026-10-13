@@ -10,6 +10,10 @@ Date          Commit        Action
                             description, url and openapi_url. POST and PUT .../management/banks/BANK_ID/
                             domain-apis take it as an optional field: false when left out on create,
                             unchanged when left out on update. The management responses include it.
+                            ADDED: public GET /obp/v7.0.0/domain-apis lists the publicly discoverable
+                            Domain APIs of every space. Public GET /obp/v7.0.0/banks/BANK_ID/domain-apis/
+                            resource-docs?base_path=BASE_PATH gives a Domain API's endpoints as OBP
+                            Resource Docs, at their full published paths, for API Explorer.
 07/10/2026    TBD           CHANGED: GET /management/aggregate-metrics (v3.0.0, v5.1.0 and v6.0.0)
                             covers at most 31 days of metrics per call, set by the new prop
                             aggregate_metrics_max_days (default 31). A range between from_date and

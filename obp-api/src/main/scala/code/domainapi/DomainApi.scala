@@ -79,6 +79,8 @@ trait DomainApiProvider {
   def getAll(bankId: String): Box[List[DomainApiTrait]]
   /** The Domain APIs of a space that are publicly discoverable. */
   def getPubliclyDiscoverable(bankId: String): Box[List[DomainApiTrait]]
+  /** The publicly discoverable Domain APIs of every space. */
+  def getPubliclyDiscoverableInEverySpace(): Box[List[DomainApiTrait]]
   /** Every Domain API of every space, read from the table (not the request path's cached list). */
   def getAllInEverySpace(): Box[List[DomainApiTrait]]
   def update(bankId: String, domainApiId: String, basePath: String, version: String, title: String,
@@ -143,6 +145,9 @@ object DomainApiDbProvider extends DomainApiProvider {
 
   override def getPubliclyDiscoverable(bankId: String): Box[List[DomainApiTrait]] =
     tryo(DomainApi.findAll(By(DomainApi.BankId, bankId), By(DomainApi.IsPubliclyDiscoverable, true), OrderBy(DomainApi.BasePath, Ascending)))
+
+  override def getPubliclyDiscoverableInEverySpace(): Box[List[DomainApiTrait]] =
+    tryo(DomainApi.findAll(By(DomainApi.IsPubliclyDiscoverable, true), OrderBy(DomainApi.BasePath, Ascending)))
 
   override def getAllInEverySpace(): Box[List[DomainApiTrait]] =
     tryo(DomainApi.findAll(OrderBy(DomainApi.BasePath, Ascending)))

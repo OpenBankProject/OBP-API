@@ -3553,6 +3553,20 @@ object NewStyle extends MdcLoggable{
       Constant.incrementCacheNamespaceVersion(Constant.RD_ALL_NAMESPACE)
     }
 
+    /**
+     * This says whether a new Dynamic Entity name is allowed in every API version: it may not contain a
+     * hyphen or any whitespace. A Domain API reads a hyphen in an entity-name segment of its URLs as an
+     * underscore, so a name with a hyphen could be confused with the name that has an underscore there.
+     * v6.0.0 and later also require lowercase snake_case; v4.0.0 still accepts other letters and digits.
+     * Entities created before this rule keep their names, and only a new or changed name is checked.
+     */
+    private def dynamicEntityNameIsAllowed(entityName: String): Boolean =
+      !entityName.exists(character => character == '-' || character.isWhitespace)
+
+    private def refuseDynamicEntityName(entityName: String, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] =
+      Helper.booleanToFuture(s"$DynamicEntityNameHasHyphenOrSpace Current value: '$entityName'", 400, cc=callContext)(false)
+        .map(_.asInstanceOf[Box[DynamicEntityT]])
+
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
       val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
 
@@ -3565,7 +3579,11 @@ object NewStyle extends MdcLoggable{
         return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
-      val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+      if (!dynamicEntityNameIsAllowed(dynamicEntity.entityName)) {
+        return refuseDynamicEntityName(dynamicEntity.entityName, callContext)
+      }
+
+      val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName, None)
       if (ambiguities.nonEmpty) {
         return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
@@ -3600,9 +3618,12 @@ object NewStyle extends MdcLoggable{
           return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
         }
 
-        // Only a new name is checked, so an entity caught in an ambiguity that predates the rule can
-        // still have its definition changed.
-        val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+        // Only a new name is checked, so an entity caught in an ambiguity that predates the rule, or named
+        // with a hyphen before hyphens were refused, can still have its definition changed.
+        if (!dynamicEntityNameIsAllowed(dynamicEntity.entityName)) {
+          return refuseDynamicEntityName(dynamicEntity.entityName, callContext)
+        }
+        val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName, Some(originEntityName))
         if (ambiguities.nonEmpty) {
           return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
         }

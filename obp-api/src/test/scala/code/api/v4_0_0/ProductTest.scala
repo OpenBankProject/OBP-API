@@ -150,6 +150,39 @@ class ProductTest extends V400ServerSetup {
       products.products.head.product_code should be ("PRODUCT_CODE")
 
     }
+
+    scenario("Filtering getProducts by attribute returns only this bank's products, even when another bank uses the same product code", ApiEndpoint3, VersionOfApi) {
+      val sharedCode = "SHARED_" + java.util.UUID.randomUUID().toString.take(8)
+      val otherBankId = "other-bank-" + java.util.UUID.randomUUID().toString.take(8)
+      val attributeName = "filter_test_" + java.util.UUID.randomUUID().toString.take(8)
+
+      Given("A product with the same code at this bank and at another bank")
+      List(testBankId, otherBankId).foreach { bankId =>
+        code.products.MappedProduct.create
+          .mBankId(bankId)
+          .mCode(sharedCode)
+          .mName(s"Product $sharedCode at $bankId")
+          .saveMe()
+      }
+
+      And("Only this bank's product has the attribute being filtered on")
+      code.productAttributeattribute.MappedProductAttribute.create
+        .mBankId(testBankId)
+        .mCode(sharedCode)
+        .mName(attributeName)
+        .mType("STRING")
+        .mValue("yes")
+        .saveMe()
+
+      When("We get this bank's products filtered by that attribute")
+      val request400 = (v4_0_0_Request / "banks" / testBankId / "products").GET <@(user1) <<? List(attributeName -> "yes")
+      val response400 = makeGetRequest(request400)
+
+      Then("We should get a 200 with this bank's product only")
+      response400.code should equal(200)
+      val products = response400.body.extract[ProductsJsonV400].products
+      products.map(product => (product.bank_id, product.product_code)) should equal(List((testBankId, sharedCode)))
+    }
   }
 
 

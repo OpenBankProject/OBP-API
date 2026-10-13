@@ -66,11 +66,14 @@ class DomainApisTest extends V600ServerSetup {
   object ApiEndpoint5 extends Tag("deleteDomainApi")
   object ApiEndpoint6 extends Tag("getPubliclyDiscoverableDomainApis")
   object ApiEndpoint7 extends Tag("getDomainApiResourceDocs")
+  object ApiEndpoint8 extends Tag("getPubliclyDiscoverableDomainApisInEverySpace")
 
   private val SYS = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
   private val owner = "domain-api-owner"
   private val suffix = java.util.UUID.randomUUID().toString.replace("-", "").take(8)
   private val entity = s"activity_$suffix"
+  /** The form in which the Domain API publishes an entity name: with hyphens for underscores. */
+  private def hyphenated(entityName: String) = entityName.replace('_', '-')
   private val queryPath = s"summary_$suffix"
 
   private def v7 = baseRequest / "obp" / "v7.0.0"
@@ -172,13 +175,18 @@ class DomainApisTest extends V600ServerSetup {
     }
 
     scenario("a Domain API is listed publicly only once it is made publicly discoverable",
-      ApiEndpoint1, ApiEndpoint4, ApiEndpoint6, VersionOfApi) {
+      ApiEndpoint1, ApiEndpoint4, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
       grantAllAt(SYS)
       val basePath = s"discoverable-$suffix/v1"
+      // Listed for its space, and for every space at once: the two must agree.
       def publiclyListed: List[String] = {
         val listed = makeGetRequest(publicDomainApis(SYS).GET)
         withClue(listed.body) { listed.code should equal(200) }
-        valuesOf(listed.body \ "domain_apis", "base_path")
+        val inEverySpace = makeGetRequest((v7 / "domain-apis").GET)
+        withClue(inEverySpace.body) { inEverySpace.code should equal(200) }
+        val inSpace = valuesOf(listed.body \ "domain_apis", "base_path")
+        valuesOf(inEverySpace.body \ "domain_apis", "base_path").contains(basePath) should equal(inSpace.contains(basePath))
+        inSpace
       }
 
       When("one is created without saying")
@@ -296,7 +304,8 @@ class DomainApisTest extends V600ServerSetup {
         case other => fail(s"no server url: $other")
       }
       val paths = (document.body \ "paths") match { case JObject(fields) => fields.map(_._1); case _ => Nil }
-      paths should contain(s"/$entity")
+      paths should contain(s"/${hyphenated(entity)}")
+      paths should not contain (s"/$entity")
       paths should contain(s"/$queryPath/names")
       paths.exists(_.contains("dynamic-entities")) shouldBe false
       paths.exists(_.contains("banks")) shouldBe false
@@ -309,7 +318,7 @@ class DomainApisTest extends V600ServerSetup {
       Then("they are the OpenAPI document's endpoints, each at its full published path")
       val docUrls = (resourceDocs.body \ "resource_docs").children.map(doc =>
         ((doc \ "request_url").extract[String], (doc \ "specified_url").extract[String]))
-      docUrls.map(_._1) should contain(s"/$basePath/$entity")
+      docUrls.map(_._1) should contain(s"/$basePath/${hyphenated(entity)}")
       docUrls.map(_._1) should contain(s"/$basePath/$queryPath/names")
       docUrls.foreach { case (requestUrl, specifiedUrl) =>
         requestUrl should startWith(s"/$basePath/")
@@ -338,6 +347,148 @@ class DomainApisTest extends V600ServerSetup {
             val answered = response.body match { case JObject(fields) => fields.map(_._1).toSet; case _ => Set.empty[String] }
             answered should equal(documented)
           }
+        }
+      }
+    }
+
+    scenario("the hyphenated form of a Dynamic Entity name answers what the underscored name answers") {
+      val name = s"tech_practices_$suffix"
+      val hyphenName = hyphenated(name)
+      Given("an entity at SYS with personal, public and community access, holding one record whose id has hyphens")
+      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(DynamicEntityCommons(
+        name, s"""{"$name":{"properties":{"name":{"type":"string","example":"no-till farming"}}}}""",
+        None, owner, None, hasPersonalEntity = true, hasPublicAccess = true, hasCommunityAccess = true)).openOrThrowException("definition")
+      val recordId = java.util.UUID.randomUUID().toString
+      DynamicDataProvider.connectorMethodProvider.vend.save(None, name,
+        JObject(JField(s"${name}_id", JString(recordId)), JField("name", JString("no-till farming"))), Some(owner), false).openOrThrowException("record")
+      Entitlement.entitlement.vend.addEntitlement(SYS, resourceUser1.userId, s"CanGetDynamicEntityRecord_$name")
+      And("a Dynamic Query whose own path has a hyphen")
+      val queryWithHyphen = s"registry-$suffix"
+      queryDoc(None, s"/$queryWithHyphen/activities-query", name, s"activitiesQuery$suffix")
+      grantAllAt(SYS)
+      val basePath = s"hyphens-$suffix/v1"
+      val created = makePostRequest(domainApis(SYS).POST <@ (user1), registration(basePath, "1.0.0"))
+      withClue(created.body) { created.code should equal(201) }
+
+      def both(segments: String*)(call: code.setup.APIResponse => Unit = _ => ()): Unit = {
+        def path(entityName: String) = segments.map(segment => if (segment == name) entityName else segment)
+          .foldLeft(under(basePath))(_ / _).GET <@ (user1)
+        val underscored = makeGetRequest(path(name))
+        val withHyphens = makeGetRequest(path(hyphenName))
+        withClue(s"${segments.mkString("/")}: ${withHyphens.body}") {
+          withHyphens.code should not equal (404)
+          withHyphens.code should equal(underscored.code)
+          withHyphens.body should equal(underscored.body)
+        }
+        call(withHyphens)
+      }
+
+      Then("the list, a record by its id, my, public, community and a record's access answer the same in both spellings")
+      both(name) { response =>
+        response.code should equal(200)
+        valuesOf(response.body, "name") should contain("no-till farming")
+      }
+      both(name, recordId) { response =>
+        response.code should equal(200)
+        valuesOf(response.body, s"${name}_id") should contain(recordId)
+      }
+      both("my", name)()
+      both("public", name) { _.code should equal(200) }
+      both("community", name) { _.code should equal(200) }
+      both(name, recordId, "access")()
+
+      And("a Dynamic Query whose path has hyphens still answers as the doc, not as an entity")
+      val query = makeGetRequest((under(basePath) / queryWithHyphen / "activities-query").GET <@ (user1))
+      withClue(query.body) { query.code should equal(200) }
+      valuesOf(query.body \ "names", "name") should contain("no-till farming")
+
+      And("the OpenAPI document lists each of the entity's paths once, with hyphens")
+      val document = makeGetRequest((under(basePath) / "openapi.json").GET)
+      withClue(document.body) { document.code should equal(200) }
+      val paths = (document.body \ "paths") match { case JObject(fields) => fields.map(_._1); case _ => Nil }
+      List(s"/$hyphenName", s"/public/$hyphenName", s"/community/$hyphenName", s"/my/$hyphenName").foreach { published =>
+        paths should contain(published)
+      }
+      paths.exists(_.contains(name)) shouldBe false
+      paths should contain(s"/$queryWithHyphen/activities-query")
+    }
+
+    scenario("every Dynamic Entity record operation works under a base path, in both spellings, at SYS and at a bank") {
+      for (space <- List(SYS, testBankId1.value)) {
+        val name = s"crud_${space.filter(_.isLetterOrDigit).take(6).toLowerCase}_$suffix"
+        Given(s"an entity $name at $space with personal, public and community access, and a Domain API over $space")
+        grantAt(space, canCreateDynamicEntityDefinition)
+        val definition = compact(render(("entity_name" -> name) ~ ("has_personal_entity" -> true) ~
+          ("has_public_access" -> true) ~ ("has_community_access" -> true) ~
+          ("schema" -> (("description" -> "Records written under a Domain API.") ~ ("required" -> List("name")) ~
+            ("properties" -> ("name" -> (("type" -> "string") ~ ("example" -> "a name"))))))))
+        val defined = makePostRequest((v7 / "management" / "banks" / space / "dynamic-entities").POST <@ (user1), definition)
+        withClue(defined.body) { defined.code should equal(201) }
+        grantAllAt(space)
+        val basePath = s"crud-${space.filter(_.isLetterOrDigit).take(6).toLowerCase}-$suffix/v1"
+        val registered = makePostRequest(domainApis(space).POST <@ (user1), registration(basePath, "1.0.0"))
+        withClue(registered.body) { registered.code should equal(201) }
+
+        def at(segments: String*) = segments.foldLeft(under(basePath))(_ / _)
+        def idOf(response: code.setup.APIResponse) = (response.body \ s"${name}_id") match {
+          case JString(id) => id
+          case other => fail(s"no ${name}_id in ${response.body}: $other")
+        }
+        def nameOf(response: code.setup.APIResponse) = (response.body \ "name") match {
+          case JString(value) => value
+          case other => fail(s"no name in ${response.body}: $other")
+        }
+
+        for (spelling <- List(name, hyphenated(name))) {
+          When(s"a record is created, read, listed, replaced, patched and deleted at /$basePath/$spelling")
+          val created = makePostRequest(at(spelling).POST <@ (user1), write(("name" -> "first"): JValue))
+          withClue(s"POST $spelling: ${created.body}") { created.code should equal(201) }
+          val recordId = idOf(created)
+
+          val one = makeGetRequest(at(spelling, recordId).GET <@ (user1))
+          withClue(s"GET $spelling/id: ${one.body}") { one.code should equal(200) }
+          nameOf(one) should equal("first")
+
+          val listed = makeGetRequest(at(spelling).GET <@ (user1))
+          withClue(s"GET $spelling: ${listed.body}") { listed.code should equal(200) }
+          valuesOf(listed.body, s"${name}_id") should contain(recordId)
+
+          val replaced = makePutRequest(at(spelling, recordId).PUT <@ (user1), write(("name" -> "second"): JValue))
+          withClue(s"PUT $spelling/id: ${replaced.body}") { replaced.code should equal(200) }
+          nameOf(replaced) should equal("second")
+
+          val patched = makePatchRequest(at(spelling, recordId).PATCH <@ (user1), write(("name" -> "third"): JValue))
+          withClue(s"PATCH $spelling/id: ${patched.body}") { patched.code should equal(200) }
+          nameOf(patched) should equal("third")
+
+          Then("the OBP URL sees the same record")
+          val obp = makeGetRequest((v7 / "banks" / space / "dynamic-entities" / name / recordId).GET <@ (user1))
+          withClue(obp.body) { obp.code should equal(200) }
+          nameOf(obp) should equal("third")
+
+          When(s"the personal form /my/$spelling is used")
+          val mine = makePostRequest(at("my", spelling).POST <@ (user1), write(("name" -> "mine"): JValue))
+          withClue(s"POST my/$spelling: ${mine.body}") { mine.code should equal(201) }
+          val myId = idOf(mine)
+          val myList = makeGetRequest(at("my", spelling).GET <@ (user1))
+          withClue(s"GET my/$spelling: ${myList.body}") { myList.code should equal(200) }
+          valuesOf(myList.body, s"${name}_id") should contain(myId)
+          val myPut = makePutRequest(at("my", spelling, myId).PUT <@ (user1), write(("name" -> "mine again"): JValue))
+          withClue(s"PUT my/$spelling/id: ${myPut.body}") { myPut.code should equal(200) }
+          val myDeleted = makeDeleteRequest(at("my", spelling, myId).DELETE <@ (user1))
+          withClue(s"DELETE my/$spelling/id: ${myDeleted.body}") { myDeleted.code should equal(200) }
+
+          And("the public and community forms list the record")
+          val public = makeGetRequest(at("public", spelling).GET)
+          withClue(s"GET public/$spelling: ${public.body}") { public.code should equal(200) }
+          valuesOf(public.body, s"${name}_id") should contain(recordId)
+          val community = makeGetRequest(at("community", spelling).GET <@ (user1))
+          withClue(s"GET community/$spelling: ${community.body}") { community.code should equal(200) }
+
+          Then("the record is deleted, and is gone")
+          val deleted = makeDeleteRequest(at(spelling, recordId).DELETE <@ (user1))
+          withClue(s"DELETE $spelling/id: ${deleted.body}") { deleted.code should equal(200) }
+          makeGetRequest(at(spelling, recordId).GET <@ (user1)).code should equal(404)
         }
       }
     }
@@ -424,6 +575,60 @@ class DomainApisTest extends V600ServerSetup {
       withClue(refused.body) { refused.code should equal(409) }
       message(refused) should include(DynamicPathAmbiguous)
       message(refused) should include(s"/$taken/names")
+    }
+
+    scenario("the ambiguity rules read a hyphen in a path's first segment as an underscore") {
+      val bankId = testBankId1.value
+      val name = s"like_this_$suffix"
+      entityWithRecord(Some(bankId), name, "like this")
+      grantAt(bankId, canCreateBankLevelDynamicResourceDoc)
+      grantAt(bankId, canCreateDynamicEntityDefinition)
+
+      When(s"a Dynamic Query is created at the hyphenated form of the entity's name, /${hyphenated(name)}/summary")
+      val refused = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/${hyphenated(name)}/summary", name, s"likeThisSummary$suffix"))
+      Then("it is refused, naming the entity")
+      withClue(refused.body) { refused.code should equal(409) }
+      message(refused) should include(DynamicPathAmbiguous)
+      message(refused) should include(s"the Dynamic Entity $name")
+
+      Given("a Dynamic Query at a hyphenated path no entity uses yet")
+      val later = s"later_entity_$suffix"
+      val doc = makePostRequest(dynamicResourceDocsAt(bankId).POST <@ (user1), queryDocBody(bankId, s"/${hyphenated(later)}/names", name, s"laterNames$suffix"))
+      withClue(doc.body) { doc.code should equal(201) }
+      When(s"a Dynamic Entity named $later is created")
+      val definition = compact(render(("entity_name" -> later) ~ ("has_personal_entity" -> false) ~
+        ("schema" -> (("description" -> "Later.") ~ ("required" -> List("name")) ~
+          ("properties" -> ("name" -> (("type" -> "string") ~ ("example" -> "a name"))))))))
+      val refusedEntity = makePostRequest((baseRequest / "obp" / "v6.0.0" / "management" / "banks" / bankId / "dynamic-entities").POST <@ (user1), definition)
+      Then("it is refused, naming the doc")
+      withClue(refusedEntity.body) { refusedEntity.code should equal(409) }
+      message(refusedEntity) should include(DynamicPathAmbiguous)
+      message(refusedEntity) should include(s"/${hyphenated(later)}/names")
+    }
+
+    scenario("a new Dynamic Entity name with a hyphen or a space is refused, also in v4.0.0") {
+      val bankId = testBankId1.value
+      grantAt(bankId, canCreateDynamicEntityDefinition)
+      def v4Definition(entityName: String) = compact(render((entityName ->
+        (("description" -> "A name with a hyphen.") ~ ("required" -> List("name")) ~
+          ("properties" -> ("name" -> (("type" -> "string") ~ ("example" -> "a name")))))) ~ ("hasPersonalEntity" -> false)))
+      val v4Entities = baseRequest / "obp" / "v4.0.0" / "management" / "banks" / bankId / "dynamic-entities"
+
+      When("v4.0.0 is asked to create an entity whose name has a hyphen")
+      val hyphen = makePostRequest(v4Entities.POST <@ (user1), v4Definition(s"with-hyphen-$suffix"))
+      Then("it is refused")
+      withClue(hyphen.body) { hyphen.code should equal(400) }
+      message(hyphen) should include(DynamicEntityNameHasHyphenOrSpace)
+
+      When("v4.0.0 is asked to create an entity whose name has a space")
+      val space = makePostRequest(v4Entities.POST <@ (user1), v4Definition(s"with space $suffix"))
+      Then("it is refused")
+      space.code should equal(400)
+
+      When("the same name with underscores is created")
+      val accepted = makePostRequest(v4Entities.POST <@ (user1), v4Definition(s"with_hyphen_$suffix"))
+      Then("it is accepted")
+      withClue(accepted.body) { accepted.code should equal(201) }
     }
 
     scenario("under a Domain API a Dynamic Resource Doc is tried before a Dynamic Entity") {
