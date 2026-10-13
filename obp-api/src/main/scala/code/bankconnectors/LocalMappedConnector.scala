@@ -2708,7 +2708,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case Some(tagSet) => codesFromAttrs.filter(tagSet.contains)
           case None => codesFromAttrs
         }
-        MappedProduct.findAll(ByList(MappedProduct.mCode, finalCodes))
+        // Product codes are unique only within a bank, so the bank has to be named here as well.
+        MappedProduct.findAll(
+          By(MappedProduct.mBankId, bankId.value),
+          ByList(MappedProduct.mCode, finalCodes)
+        )
       }
     }
   }}.map(products => (products, callContext))

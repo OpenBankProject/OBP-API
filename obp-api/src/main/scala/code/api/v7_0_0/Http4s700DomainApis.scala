@@ -36,6 +36,8 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.{CallContext, CustomJsonFormats, Glossary}
+import code.api.v1_4_0.JSONFactory1_4_0
+import code.api.dynamic.domainapi.Http4sDomainApi
 import code.domainapi.{DomainApiDbProvider, DomainApiTrait, DomainApis}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -275,6 +277,80 @@ object Http4s700DomainApis {
     apiTagDynamic :: apiTagApi :: Nil,
     None,
     http4sPartialFunction = Some(getPubliclyDiscoverableDomainApis)
+  ).allowSystemSpace()
+
+  // Route: GET /obp/v7.0.0/domain-apis (public)
+  lazy val getPubliclyDiscoverableDomainApisInEverySpace: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `prefixPath` / "domain-apis" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        Future(provider.getPubliclyDiscoverableInEverySpace()).map(box =>
+          PublicDomainApisJsonV700(fullOrFail(box, cc).map(JSONFactory700DomainApis.createPublicDomainApiJson)))
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getPubliclyDiscoverableDomainApisInEverySpace),
+    "GET",
+    "/domain-apis",
+    "Get Publicly Discoverable Domain APIs in Every Space",
+    s"""The publicly discoverable Domain APIs (`is_publicly_discoverable`) of every space on this instance, each
+       |with its space (`bank_id`), base path, version, title, description, `url` and `openapi_url`. For a tool
+       |such as API Explorer that offers every published API without knowing the spaces in advance;
+       |`GET /obp/v7.0.0/banks/BANK_ID/domain-apis` gives one space's.
+       |
+       |No Authentication is Required.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink("Domain APIs")}""".stripMargin,
+    EmptyBody,
+    JSONFactory700DomainApis.publicDomainApisJsonV700Example,
+    List(UnknownError),
+    apiTagDynamic :: apiTagApi :: Nil,
+    None,
+    http4sPartialFunction = Some(getPubliclyDiscoverableDomainApisInEverySpace)
+  )
+
+  // Route: GET /obp/v7.0.0/banks/BANK_ID/domain-apis/resource-docs?base_path=BASE_PATH (public)
+  lazy val getDomainApiResourceDocs: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `prefixPath` / "banks" / bankIdInUrl / "domain-apis" / "resource-docs" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        val spaceId = space(bankIdInUrl)
+        val basePath = req.uri.query.params.get("base_path").map(_.trim.stripPrefix("/").stripSuffix("/")).getOrElse("")
+        for {
+          _ <- Helper.booleanToFuture(s"$MissingQueryParams base_path", 400, Some(cc)) {
+            basePath.nonEmpty
+          }
+          route <- Future(provider.routes().find(route => route.bankId == spaceId && route.basePath == basePath)).map(found =>
+            code.api.util.APIUtil.unboxFullOrFail(Box(found), Some(cc), s"$DomainApiNotFound Current base_path is $basePath.", 404))
+        } yield JSONFactory1_4_0.createResourceDocsJson(Http4sDomainApi.publishedResourceDocs(route), isVersion4OrHigher = true, locale = None)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getDomainApiResourceDocs),
+    "GET",
+    "/banks/BANK_ID/domain-apis/resource-docs",
+    "Get Domain API Resource Docs",
+    s"""The endpoints a Domain API publishes, as OBP Resource Docs: the same endpoints as its OpenAPI document
+       |(`BASE_PATH/openapi.json`), in the format API Explorer and other OBP tools read. Each one's `request_url`
+       |and `specified_url` is its full published path, base path included (for example
+       |`/carbon-registry/v1/public/activity`), so it can be called as it stands.
+       |
+       |`base_path` (required) is the Domain API's base path, for example `carbon-registry/v1`. BANK_ID is its
+       |space: a bank's id, or `SYS` for the system space.
+       |
+       |Like the OpenAPI document, these are served whether or not the Domain API is publicly discoverable.
+       |
+       |No Authentication is Required.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink("Domain APIs")}""".stripMargin,
+    EmptyBody,
+    EmptyBody,
+    List($BankNotFound, MissingQueryParams, DomainApiNotFound, UnknownError),
+    apiTagDynamic :: apiTagApi :: apiTagDocumentation :: Nil,
+    None,
+    http4sPartialFunction = Some(getDomainApiResourceDocs)
   ).allowSystemSpace()
 
   // Route: PUT /obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID

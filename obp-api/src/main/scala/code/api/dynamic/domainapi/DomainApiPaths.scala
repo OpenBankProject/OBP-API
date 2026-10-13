@@ -87,6 +87,38 @@ object DomainApiPaths {
    */
   val reservedUnderBasePath: Set[String] = Set("my", "public", "community", "openapi.json", "openapi.yaml")
 
+  /** The segments after which a Dynamic Entity URL names the entity: `my/ENTITY`, `public/ENTITY`, `community/ENTITY`. */
+  private val entityAccessPrefixes: Set[String] = Set("my", "public", "community")
+
+  /**
+   * This is the form in which two names are compared to see whether they would answer the same URL under
+   * a Domain API: a hyphen in the entity-name segment of a call stands for an underscore, so `like-this` and
+   * `like_this` are the same name. Case is ignored, as in the comparisons that predate the hyphen rule.
+   */
+  def comparableName(name: String): String = name.replace('-', '_').toLowerCase
+
+  /**
+   * This applies a function to the segment that names the Dynamic Entity in a path under a base path: the
+   * first segment, or the one after `my`, `public` or `community`. Every other segment, such as a record
+   * id (which may contain hyphens) or `access`, is left as it is.
+   */
+  private def mapEntityNameSegment(rest: List[String])(change: String => String): List[String] = rest match {
+    case prefix :: name :: tail if entityAccessPrefixes.contains(prefix) => prefix :: change(name) :: tail
+    case name :: tail => change(name) :: tail
+    case Nil => Nil
+  }
+
+  /**
+   * A Domain API accepts the hyphenated form of a Dynamic Entity name in its URLs, because hyphens are the
+   * more usual word separator in a URL while entity names use underscores. This gives the path under the
+   * base path with the hyphens of the entity-name segment turned into underscores, or None when that
+   * segment has no hyphen (the path is then already in the only form there is).
+   */
+  def withUnderscoredEntityName(rest: List[String]): Option[List[String]] = {
+    val underscored = mapEntityNameSegment(rest)(_.replace('-', '_'))
+    if (underscored == rest) None else Some(underscored)
+  }
+
   private val Segment = "[a-z0-9]([a-z0-9.-]*[a-z0-9])?"
   private val MajorVersionSegment = "v(0|[1-9][0-9]*)".r
   private val SemanticVersion = "(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)".r
@@ -144,7 +176,13 @@ object DomainApiPaths {
     // space starts at `banks`.
     val segments = docRequestUrl.split("/").filter(_.nonEmpty).toList.dropWhile(_ != "banks")
     segments match {
-      case "banks" :: `space` :: kind :: rest if rest.nonEmpty && (kind == dynamicEntitiesSegment || kind == dynamicResourceDocSegment) =>
+      // A Dynamic Entity is published under the hyphenated form of its name, so the documentation shows
+      // one spelling; the front door also serves the underscored one, which existing clients may use. A
+      // name that already has a hyphen (possible for entities created before hyphens were refused) is
+      // published as it is, because the front door only maps a name that is not found as written.
+      case "banks" :: `space` :: `dynamicEntitiesSegment` :: rest if rest.nonEmpty =>
+        Some(mapEntityNameSegment(rest)(name => if (name.contains('-')) name else name.replace('_', '-')).mkString("/", "/", ""))
+      case "banks" :: `space` :: `dynamicResourceDocSegment` :: rest if rest.nonEmpty =>
         Some(rest.mkString("/", "/", ""))
       case _ => None
     }
@@ -172,7 +210,8 @@ object DomainApiPaths {
    * name. The rules hold in every space, with or without a Domain API, so that one can be registered over
    * any space at any time. A path may not start with a path variable (it would match every entity name),
    * with a segment a Dynamic Entity URL or the Domain API's documentation already uses, or with the name
-   * of one of the space's Dynamic Entities, and no other doc of the same verb may match a request it
+   * of one of the space's Dynamic Entities, in either spelling (a Domain API reads `like-this` as the
+   * entity `like_this`, see [[comparableName]]), and no other doc of the same verb may match a request it
    * matches. A doc is never compared with itself (the same dynamicResourceDocId).
    */
   def resourceDocAmbiguities(doc: ResourceDocPath, entityNames: List[String], otherDocs: List[ResourceDocPath]): List[String] =
@@ -183,8 +222,8 @@ object DomainApiPaths {
           if (isPathVariable(first)) List(s"${doc.describe} starts with the path variable $first, which would also match every Dynamic Entity name") else Nil
         val reserved =
           if (reservedUnderBasePath.contains(first)) List(s"${doc.describe} starts with $first, which a Dynamic Entity URL or a Domain API's documentation already uses") else Nil
-        val entities = entityNames.filter(_.equalsIgnoreCase(first))
-          .map(entityName => s"${doc.describe} starts with $first, the name of the Dynamic Entity $entityName")
+        val entities = entityNames.filter(entityName => comparableName(entityName) == comparableName(first))
+          .map(entityName => s"${doc.describe} starts with $first, which a Domain API reads as the name of the Dynamic Entity $entityName")
         val docs = otherDocs
           .filterNot(other => doc.dynamicResourceDocId.isDefined && other.dynamicResourceDocId == doc.dynamicResourceDocId)
           .filter(other => other.verb.equalsIgnoreCase(doc.verb) && ambiguous(other.segments, doc.segments))
@@ -194,14 +233,20 @@ object DomainApiPaths {
 
   /**
    * This lists why a Dynamic Entity name would be ambiguous in its space, given the space's Dynamic
-   * Resource Docs: a doc whose path starts with the name (compared ignoring case), or a name that is a
-   * segment a Dynamic Entity URL or a Domain API's documentation already uses. Empty when it is neither.
+   * Resource Docs and its other Dynamic Entities: a doc whose path starts with the name, or another entity
+   * whose name is the same, both compared by [[comparableName]] (so `like-this` and `like_this` clash), or
+   * a name that is a segment a Dynamic Entity URL or a Domain API's documentation already uses. Empty when
+   * it is none of these. `otherEntityNames` must not include the entity itself, under its old name when it
+   * is being renamed.
    */
-  def entityNameAmbiguities(entityName: String, docs: List[ResourceDocPath]): List[String] = {
+  def entityNameAmbiguities(entityName: String, docs: List[ResourceDocPath], otherEntityNames: List[String]): List[String] = {
     val reserved =
       if (reservedUnderBasePath.contains(entityName.toLowerCase)) List(s"the Dynamic Entity name $entityName is a segment a Dynamic Entity URL or a Domain API's documentation already uses") else Nil
-    reserved ++ docs.filter(_.segments.headOption.exists(_.equalsIgnoreCase(entityName)))
-      .map(doc => s"${doc.describe} starts with $entityName, the name of the Dynamic Entity")
+    val clashingDocs = docs.filter(_.segments.headOption.exists(first => comparableName(first) == comparableName(entityName)))
+      .map(doc => s"${doc.describe} starts with ${doc.segments.head}, which a Domain API reads as the name of the Dynamic Entity $entityName")
+    val clashingEntities = otherEntityNames.filter(other => comparableName(other) == comparableName(entityName))
+      .map(other => s"the Dynamic Entity names $entityName and $other would answer the same URL under a Domain API")
+    reserved ++ clashingDocs ++ clashingEntities
   }
 
   /**
@@ -211,7 +256,9 @@ object DomainApiPaths {
    */
   def ambiguitiesInSpace(entityNames: List[String], docs: List[ResourceDocPath]): List[String] = {
     val docAmbiguities = docs.zipWithIndex.flatMap { case (doc, index) => resourceDocAmbiguities(doc, entityNames, docs.drop(index + 1)) }
-    val entityAmbiguities = entityNames.flatMap(entityNameAmbiguities(_, Nil))
+    val entityAmbiguities = entityNames.zipWithIndex.flatMap { case (entityName, index) =>
+      entityNameAmbiguities(entityName, Nil, entityNames.drop(index + 1))
+    }
     (docAmbiguities ++ entityAmbiguities).distinct.sorted
   }
 
@@ -228,9 +275,12 @@ object DomainApiPaths {
   def storedResourceDocAmbiguities(space: Option[String], dynamicResourceDocId: Option[String], verb: String, path: String, name: String): List[String] =
     resourceDocAmbiguities(ResourceDocPath(dynamicResourceDocId, verb, path, name), entityNamesIn(space), resourceDocPathsIn(space))
 
-  /** [[entityNameAmbiguities]] for a Dynamic Entity about to be created or renamed in a space. */
-  def storedEntityNameAmbiguities(space: Option[String], entityName: String): List[String] =
-    entityNameAmbiguities(entityName, resourceDocPathsIn(space))
+  /**
+   * [[entityNameAmbiguities]] for a Dynamic Entity about to be created (`currentName` None) or renamed
+   * (`currentName` its name now, which is left out of the comparison with the space's other entities).
+   */
+  def storedEntityNameAmbiguities(space: Option[String], entityName: String, currentName: Option[String]): List[String] =
+    entityNameAmbiguities(entityName, resourceDocPathsIn(space), entityNamesIn(space).filterNot(name => currentName.contains(name)))
 
   /** [[ambiguitiesInSpace]] for a space as the database holds it now. */
   def storedAmbiguitiesInSpace(space: Option[String]): List[String] =
