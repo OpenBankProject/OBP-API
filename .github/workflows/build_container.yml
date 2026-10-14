@@ -303,10 +303,10 @@ jobs:
             docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'ObpTests2026!Ci' -No -b -Q "CREATE DATABASE obp_test_only"
 
           elif [ "$DB_CHOICE" = "postgres" ]; then
-            echo "Starting PostgreSQL 15 container..."
+            echo "Starting PostgreSQL 16 container..."
             docker run -d --name postgres -p 5432:5432 \
               -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=obp_test \
-              postgres:15-alpine
+              postgres:16-alpine
 
             echo "Waiting for PostgreSQL to be healthy..."
             for i in $(seq 1 30); do

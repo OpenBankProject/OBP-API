@@ -2,6 +2,7 @@ name: Build on Pull Request
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     branches:
       - "**"
   workflow_dispatch:
@@ -262,15 +263,14 @@ jobs:
         env:
           INPUT_DB: ${{ inputs.database }}
           PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           DB_CHOICE="${INPUT_DB:-h2}"
 
-          # If triggered by pull_request or push, check labels / commit messages for manual opt-in
+          # On pull_request runs, a test-sqlserver / test-postgres label opts in to that database
           if [ "$DB_CHOICE" = "h2" ]; then
-            if echo "$PR_LABELS_JSON" | grep -q "test-sqlserver" || echo "$COMMIT_MSG" | grep -q "\[test-sqlserver\]"; then
+            if echo "$PR_LABELS_JSON" | grep -q "test-sqlserver"; then
               DB_CHOICE="sqlserver"
-            elif echo "$PR_LABELS_JSON" | grep -q "test-postgres" || echo "$COMMIT_MSG" | grep -q "\[test-postgres\]"; then
+            elif echo "$PR_LABELS_JSON" | grep -q "test-postgres"; then
               DB_CHOICE="postgres"
             fi
           fi
@@ -296,10 +296,10 @@ jobs:
             docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'ObpTests2026!Ci' -No -b -Q "CREATE DATABASE obp_test_only"
 
           elif [ "$DB_CHOICE" = "postgres" ]; then
-            echo "Starting PostgreSQL 15 container..."
+            echo "Starting PostgreSQL 16 container..."
             docker run -d --name postgres -p 5432:5432 \
               -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=obp_test \
-              postgres:15-alpine
+              postgres:16-alpine
 
             echo "Waiting for PostgreSQL to be healthy..."
             for i in $(seq 1 30); do
