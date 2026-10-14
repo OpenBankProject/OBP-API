@@ -60,12 +60,20 @@ object OpenAPI31JSONFactory extends MdcLoggable {
   // If you need to change authentication documentation, change it here.
   // =====================================================================================
 
+  def consumerRegistrationUrl(hostname: String): String =
+    APIUtil.getPropsValue("consumer_registration_url").filter(_.trim.nonEmpty)
+      .openOr(
+        APIUtil.getPortalUrl
+          .map(portal => s"${portal.stripSuffix("/")}/developers/consumer-creation")
+          .openOr(s"${hostname}/consumer-registration")
+      )
+
   def directLoginDescription(hostname: String): String =
     s"""Direct Login is a simple authentication process for trusted environments and testing.
        |
        |### Step 1: Get your Consumer Key
        |
-       |Register your application at ${hostname}/consumer-registration to obtain a consumer_key.
+       |Register your application at ${consumerRegistrationUrl(hostname)} to obtain a consumer_key.
        |
        |### Step 2: Obtain a token
        |
@@ -112,7 +120,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |Use this flow when your application needs to act on behalf of a user.
        |
-       |1. Register your application at ${hostname}/consumer-registration to obtain a client_id and client_secret.
+       |1. Register your application at ${consumerRegistrationUrl(hostname)} to obtain a client_id and client_secret.
        |2. Redirect the user to the authorization URL with your client_id and redirect_uri.
        |3. After the user authenticates and consents, they are redirected back with an authorization code.
        |4. Exchange the authorization code for an access token at the token endpoint.

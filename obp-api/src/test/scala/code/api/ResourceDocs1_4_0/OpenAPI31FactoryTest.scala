@@ -122,4 +122,20 @@ class OpenAPI31FactoryTest extends FlatSpec with Matchers {
     noException should be thrownBy
       OpenAPI31JSONFactory.createOpenAPI31Json(List(doc("testOp", JNothing)), "v4.0.0", "http://localhost:8080")
   }
+
+  "consumerRegistrationUrl" should "fall back to hostname/consumer-registration when no portal URL is set" in {
+    OpenAPI31JSONFactory.consumerRegistrationUrl("https://api.example.com") should equal("https://api.example.com/consumer-registration")
+  }
+
+  "oAuth2Description" should "use consumerRegistrationUrl for registration and hostname for API endpoints" in {
+    val desc = OpenAPI31JSONFactory.oAuth2Description("https://api.example.com")
+    desc should include("Register your application at https://api.example.com/consumer-registration to obtain a client_id and client_secret.")
+    desc should include("GET https://api.example.com/obp/v6.0.0/my/banks")
+  }
+
+  "directLoginDescription" should "use consumerRegistrationUrl for registration and hostname for API endpoints" in {
+    val desc = OpenAPI31JSONFactory.directLoginDescription("https://api.example.com")
+    desc should include("Register your application at https://api.example.com/consumer-registration to obtain a consumer_key.")
+    desc should include("POST https://api.example.com/obp/v6.0.0/my/logins/direct")
+  }
 }
