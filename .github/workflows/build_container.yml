@@ -139,7 +139,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: ${{ (inputs.database == 'sqlserver' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.head_commit.message, '[test-sqlserver]')) && 60 || 35 }}
     strategy:
       fail-fast: false
       matrix:
@@ -265,62 +265,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup test database container (optional)
-        env:
-          INPUT_DB: ${{ inputs.database }}
-          PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-        run: |
-          DB_CHOICE="${INPUT_DB:-h2}"
-
-          # If triggered by pull_request or push, check labels / commit messages for manual opt-in
-          if [ "$DB_CHOICE" = "h2" ]; then
-            if echo "$PR_LABELS_JSON" | grep -q "test-sqlserver" || echo "$COMMIT_MSG" | grep -q "\[test-sqlserver\]"; then
-              DB_CHOICE="sqlserver"
-            elif echo "$PR_LABELS_JSON" | grep -q "test-postgres" || echo "$COMMIT_MSG" | grep -q "\[test-postgres\]"; then
-              DB_CHOICE="postgres"
-            fi
-          fi
-
-          echo "TEST_DB=$DB_CHOICE" >> $GITHUB_ENV
-          echo "Selected test database: $DB_CHOICE"
-
-          if [ "$DB_CHOICE" = "sqlserver" ]; then
-            echo "Starting SQL Server 2022 container..."
-            docker run -d --name sqlserver -p 1433:1433 \
-              -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e 'MSSQL_SA_PASSWORD=ObpTests2026!Ci' \
-              mcr.microsoft.com/mssql/server:2022-latest
-
-            echo "Waiting for SQL Server to be healthy..."
-            for i in $(seq 1 30); do
-              if docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'ObpTests2026!Ci' -No -Q 'SELECT 1' -b >/dev/null 2>&1; then
-                echo "SQL Server is ready!"
-                break
-              fi
-              echo "Waiting for SQL Server ($i/30)..."
-              sleep 5
-            done
-            docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'ObpTests2026!Ci' -No -b -Q "CREATE DATABASE obp_test_only"
-
-          elif [ "$DB_CHOICE" = "postgres" ]; then
-            echo "Starting PostgreSQL 16 container..."
-            docker run -d --name postgres -p 5432:5432 \
-              -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=obp_test \
-              postgres:16-alpine
-
-            echo "Waiting for PostgreSQL to be healthy..."
-            for i in $(seq 1 30); do
-              if docker exec postgres pg_isready -U postgres >/dev/null 2>&1; then
-                echo "PostgreSQL is ready!"
-                break
-              fi
-              echo "Waiting for PostgreSQL ($i/30)..."
-              sleep 2
-            done
-
-          else
-            echo "Running with default H2 in-memory database (no container required)."
-          fi
+      - name: Set up the test database
+        uses: ./.github/actions/setup-test-database
+        with:
+          database: ${{ inputs.database }}
+          pr-labels: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          commit-message: ${{ github.event.head_commit.message }}
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
@@ -371,14 +321,10 @@ jobs:
              obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
 
-          if [ "$TEST_DB" = "sqlserver" ]; then
-            echo "Configuring SQL Server connection properties..."
-            echo db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver >> obp-api/src/main/resources/props/test.default.props
-            echo 'db.url=jdbc:sqlserver://localhost:1433;databaseName=obp_test_only;user=sa;password=ObpTests2026!Ci;encrypt=false' >> obp-api/src/main/resources/props/test.default.props
-          elif [ "$TEST_DB" = "postgres" ]; then
-            echo "Configuring PostgreSQL connection properties..."
-            echo db.driver=org.postgresql.Driver >> obp-api/src/main/resources/props/test.default.props
-            echo 'db.url=jdbc:postgresql://localhost:5432/obp_test?user=postgres&password=password' >> obp-api/src/main/resources/props/test.default.props
+          if [ -n "$TEST_DB_URL" ]; then
+            echo "Configuring $TEST_DB connection properties..."
+            echo "db.driver=$TEST_DB_DRIVER" >> obp-api/src/main/resources/props/test.default.props
+            echo "db.url=$TEST_DB_URL" >> obp-api/src/main/resources/props/test.default.props
           else
             echo "Using default H2 database."
           fi
@@ -515,14 +461,14 @@ jobs:
           # -pl obp-commons,obp-api: obp-commons' own 5 util suites run on whichever
           # shard's filter matches com.openbankproject.* (the catch-all shard); on every
           # other shard the filter matches nothing in obp-commons → 0 tests there.
-          # timeout 3000: hard-kill after 50 min to prevent Pekko non-daemon threads
+          # timeout $TEST_TIMEOUT_SECONDS (25 min, 50 on SQL Server): hard-kill to prevent Pekko non-daemon threads
           # (ConsentScheduler etc.) from keeping the JVM alive after tests complete.
           # Exit code 124 (timeout) is treated as success — tests are done, JVM just hung.
           # set +e: GitHub Actions uses -eo pipefail by default; without it, a 124 exit from
           # timeout would abort the step before the rc check below can run.
           set +e
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            timeout 3000 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
+            timeout "$TEST_TIMEOUT_SECONDS" mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" $EXTRA_MVN_ARGS \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?
