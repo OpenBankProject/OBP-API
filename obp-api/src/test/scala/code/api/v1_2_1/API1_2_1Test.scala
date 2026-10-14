@@ -280,8 +280,24 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   def randomTransaction(bankId : String, accountId : String, viewId: String) : TransactionJSON = {
     val transactionsJson = getTransactions(bankId, accountId, viewId, user1).body.extract[TransactionsJSON].transactions
-    val randomPosition = nextInt(transactionsJson.size)
-    transactionsJson(randomPosition)
+    val candidates = if (transactionsJson.nonEmpty) {
+      transactionsJson
+    } else {
+      val ownerList = getTransactions(bankId, accountId, SYSTEM_OWNER_VIEW_ID, user1).body.extract[TransactionsJSON].transactions
+      if (ownerList.nonEmpty) {
+        ownerList
+      } else {
+        code.model.dataAccess.MappedBankAccount.find(
+          net.liftweb.mapper.By(code.model.dataAccess.MappedBankAccount.bank, bankId),
+          net.liftweb.mapper.By(code.model.dataAccess.MappedBankAccount.theAccountId, accountId)
+        ).foreach { mba =>
+          createTransaction(mba, new java.util.Date(), new java.util.Date(), true)
+        }
+        getTransactions(bankId, accountId, SYSTEM_OWNER_VIEW_ID, user1).body.extract[TransactionsJSON].transactions
+      }
+    }
+    val randomPosition = nextInt(candidates.size)
+    candidates(randomPosition)
   }
 
   def randomCustomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {

@@ -1349,6 +1349,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
+    val ownersConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CONCAT('user_id:', resourceuser.userid_, ',provider:', resourceuser.provider_, ',user_name:', resourceuser.name_)"
+    } else {
+      fr"'user_id:' || resourceuser.userid_ || ',provider:' || resourceuser.provider_ || ',user_name:' || resourceuser.name_"
+    }
+
+    val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CONCAT('bank_id:', bankaccountrouting.bankid, ',account_id:', bankaccountrouting.accountid)"
+    } else {
+      fr"'bank_id:' || bankaccountrouting.bankid || ',account_id:' || bankaccountrouting.accountid"
+    }
+
+    val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue)"
+    } else {
+      fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
+    }
+
+    val pagination = if (code.api.util.DBUtil.isSqlServer) {
+      fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
+    } else {
+      fr"LIMIT $limit OFFSET $offset"
+    }
+
     val query = (fr"""
        select
            mappedbankaccount.theaccountid as account_id,
@@ -1356,13 +1380,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.accountlabel as account_label,
            mappedbankaccount.accountnumber as account_number,
            (select
-               string_agg(
-                   'user_id:'
-                   || resourceuser.userid_
-                   ||',provider:'
-                   ||resourceuser.provider_
-                   ||',user_name:'
-                   ||resourceuser.name_,
+               string_agg(""" ++ ownersConcat ++ fr""",
                 '::') as owners
             from resourceuser
             where
@@ -1372,11 +1390,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.accountcurrency as account_currency ,
            mappedbankaccount.accountbalance as account_balance,
            (select
-               string_agg(
-                   'bank_id:'
-                   ||bankaccountrouting.bankid
-                   ||',account_id:'
-                   ||bankaccountrouting.accountid,
+               string_agg(""" ++ routingConcat ++ fr""",
                    '::'
                    ) as account_routings
                from bankaccountrouting
@@ -1384,13 +1398,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                      bankaccountrouting.accountid = mappedbankaccount.theaccountid
             ),
            (select
-               string_agg(
-                       'type:'
-                       || mappedaccountattribute.mtype
-                       ||',code:'
-                       ||mappedaccountattribute.mcode
-                       ||',value:'
-                       ||mappedaccountattribute.mvalue,
+               string_agg(""" ++ attrConcat ++ fr""",
                    '::') as account_attributes
            from mappedaccountattribute
            where
@@ -1400,10 +1408,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 LEFT JOIN mapperaccountholders
                           ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink)
        WHERE mappedbankaccount.bank = ${bankId.value}
-       ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr"""
-       LIMIT $limit
-       OFFSET $offset
-       """)
+       ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr" " ++ pagination)
       .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.math.BigDecimal], Option[String], Option[String])]
       .to[List]
       .map(_.map { case (id, bankIdCol, label, number, owners, kind, currency, balance, routings, attributes) =>
