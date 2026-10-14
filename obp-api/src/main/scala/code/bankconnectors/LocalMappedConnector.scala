@@ -1350,19 +1350,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
 
     val ownersConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CONCAT('user_id:', resourceuser.userid_, ',provider:', resourceuser.provider_, ',user_name:', resourceuser.name_)"
+      fr"CAST(CONCAT('user_id:', resourceuser.userid_, ',provider:', resourceuser.provider_, ',user_name:', resourceuser.name_) AS NVARCHAR(MAX))"
     } else {
       fr"'user_id:' || resourceuser.userid_ || ',provider:' || resourceuser.provider_ || ',user_name:' || resourceuser.name_"
     }
 
     val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CONCAT('bank_id:', bankaccountrouting.bankid, ',account_id:', bankaccountrouting.accountid)"
+      fr"CAST(CONCAT('bank_id:', bankaccountrouting.bankid, ',account_id:', bankaccountrouting.accountid) AS NVARCHAR(MAX))"
     } else {
       fr"'bank_id:' || bankaccountrouting.bankid || ',account_id:' || bankaccountrouting.accountid"
     }
 
     val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue)"
+      fr"CAST(CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue) AS NVARCHAR(MAX))"
     } else {
       fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
     }
@@ -1491,13 +1491,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
 
     val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CONCAT('scheme:', bankaccountrouting.accountroutingscheme, ',address:', bankaccountrouting.accountroutingaddress)"
+      fr"CAST(CONCAT('scheme:', bankaccountrouting.accountroutingscheme, ',address:', bankaccountrouting.accountroutingaddress) AS NVARCHAR(MAX))"
     } else {
       fr"'scheme:' || bankaccountrouting.accountroutingscheme || ',address:' || bankaccountrouting.accountroutingaddress"
     }
 
     val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue)"
+      fr"CAST(CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue) AS NVARCHAR(MAX))"
     } else {
       fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
     }
