@@ -60,12 +60,49 @@ object OpenAPI31JSONFactory extends MdcLoggable {
   // If you need to change authentication documentation, change it here.
   // =====================================================================================
 
+  def consumerRegistrationUrl(hostname: String): String =
+    APIUtil.getPropsValue("consumer_registration_url").filter(_.trim.nonEmpty)
+      .openOr(
+        APIUtil.getPortalUrl
+          .map(portal => s"${portal.stripSuffix("/")}/consumers/register")
+          .openOr(s"${hostname}/consumer-registration")
+      )
+
+  def consumerCreationGuideUrl: Option[String] =
+    APIUtil.getPortalUrl
+      .map(portal => s"${portal.stripSuffix("/")}/developers/consumer-creation")
+      .toOption
+
+  def consumerRegistrationInstruction(hostname: String, credentialDescription: String): String =
+    consumerCreationGuideUrl match {
+      case Some(guideUrl) =>
+        s"Read the registration instructions at $guideUrl, log in and proceed to ${consumerRegistrationUrl(hostname)} to register your application and obtain a $credentialDescription."
+      case None =>
+        s"Register your application at ${consumerRegistrationUrl(hostname)} to obtain a $credentialDescription."
+    }
+
+  def oidcTokenEndpoint: String =
+    APIUtil.getPropsValue("oauth2.obp_oidc.host")
+      .or(APIUtil.getPropsValue("public_obp_oidc_url"))
+      .filter(_.trim.nonEmpty)
+      .map(host => s"${host.stripSuffix("/")}/obp-oidc/token")
+      .openOr("<OIDC_provider_token_endpoint>")
+
+  def oidcDiscoveryUrl: Option[String] =
+    APIUtil.getPropsValue("oauth2.obp_oidc.well_known").filter(_.trim.nonEmpty)
+      .or(
+        APIUtil.getPropsValue("oauth2.obp_oidc.host")
+          .or(APIUtil.getPropsValue("public_obp_oidc_url"))
+          .filter(_.trim.nonEmpty)
+          .map(host => s"${host.stripSuffix("/")}/obp-oidc/.well-known/openid-configuration")
+      ).toOption
+
   def directLoginDescription(hostname: String): String =
     s"""Direct Login is a simple authentication process for trusted environments and testing.
        |
        |### Step 1: Get your Consumer Key
        |
-       |Register your application at ${hostname}/consumer-registration to obtain a consumer_key.
+       |${consumerRegistrationInstruction(hostname, "consumer_key")}
        |
        |### Step 2: Obtain a token
        |
@@ -85,7 +122,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |Include the token in the DirectLogin header on all subsequent requests:
        |
-       |    GET ${hostname}/obp/v6.0.0/my/banks
+       |    GET ${hostname}/obp/v7.0.0/my/banks
        |    DirectLogin: token=your-token-string
        |
        |### Parameters
@@ -102,7 +139,15 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |- Direct Login is intended for hackathons, testing, and trusted environments.
        |- For production use with third-party applications, use OAuth2 / OIDC instead.""".stripMargin
 
-  def oAuth2Description(hostname: String): String =
+  def oAuth2Description(hostname: String): String = {
+    val discoveryNote = oidcDiscoveryUrl match {
+      case Some(discoveryUrl) =>
+        s"- OIDC discovery endpoint: $discoveryUrl (contains token_endpoint, authorization_endpoint, and jwks_uri).\n" +
+        s"- All configured discovery URIs can be queried via: GET ${hostname}/obp/v5.1.0/well-known"
+      case None =>
+        s"- Configured discovery URIs can be queried via: GET ${hostname}/obp/v5.1.0/well-known"
+    }
+
     s"""OAuth2 / OpenID Connect (OIDC) is the recommended authentication method for production use.
        |
        |OBP supports the OAuth2 Authorization Code flow for user-facing applications and the
@@ -112,13 +157,13 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |Use this flow when your application needs to act on behalf of a user.
        |
-       |1. Register your application at ${hostname}/consumer-registration to obtain a client_id and client_secret.
+       |1. ${consumerRegistrationInstruction(hostname, "client_id and client_secret")}
        |2. Redirect the user to the authorization URL with your client_id and redirect_uri.
        |3. After the user authenticates and consents, they are redirected back with an authorization code.
        |4. Exchange the authorization code for an access token at the token endpoint.
        |5. Use the access token as a Bearer token in the Authorization header:
        |
-       |       GET ${hostname}/obp/v6.0.0/my/banks
+       |       GET ${hostname}/obp/v7.0.0/my/banks
        |       Authorization: Bearer your-access-token
        |
        |### Client Credentials Flow (2-legged / Application Only)
@@ -126,7 +171,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |Use this flow for endpoints with authMode ApplicationOnly or UserOrApplication.
        |The application authenticates itself using its client_id and client_secret without a user login.
        |
-       |    POST <OIDC_provider_token_endpoint>
+       |    POST $oidcTokenEndpoint
        |    Content-Type: application/x-www-form-urlencoded
        |
        |    grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET
@@ -136,8 +181,10 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |### Notes
        |
        |- The authorization and token endpoint URLs depend on the OIDC provider configured for this OBP instance.
+       |$discoveryNote
        |- Token expiry and refresh behaviour depend on the OIDC provider configuration.
        |- OAuth2 / OIDC is the recommended method for production deployments.""".stripMargin
+  }
 
   def gatewayLoginDescription(hostname: String): String =
     s"""Gateway Login allows a gateway (e.g. API Gateway) to authenticate on behalf of a user.
@@ -146,7 +193,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |between the gateway and OBP. This method does not require a separate token-obtaining step —
        |the JWT is sent directly with each API request.
        |
-       |    GET ${hostname}/obp/v6.0.0/my/banks
+       |    GET ${hostname}/obp/v7.0.0/my/banks
        |    Authorization: GatewayLogin token="your-jwt-token"
        |
        |### Notes

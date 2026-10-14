@@ -3803,7 +3803,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *  This value is used to construct some urls in Resource Docs
    *  Its the root of the server as opposed to the root of the api
    */
-  def getServerUrl: String = getPropsValue("documented_server_url").openOr(MissingPropsValueAtThisInstance + "documented_server_url")
+  def getServerUrl: String =
+    getPropsValue("documented_server_url").filter(_.trim.nonEmpty)
+      .openOr(getPropsValue("public_obp_api_url").filter(_.trim.nonEmpty)
+        .openOr(getPropsValue("hostname").filter(_.trim.nonEmpty)
+          .openOr(MissingPropsValueAtThisInstance + "documented_server_url")))
 
   // All OBP REST end points start with /obp
   def getObpApiRoot: String = s"$getServerUrl/obp"
@@ -3922,6 +3926,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getPortalUrl: Box[String] =
     getPropsValue("public_obp_portal_url").filter(_.trim.nonEmpty)
       .or(getPropsValue("portal_external_url").filter(_.trim.nonEmpty))
+      .or(getPropsValue("portal_hostname").filter(_.trim.nonEmpty))
 
   // Returns config props matching the public_*_url convention.
   // Empty values are excluded (prop not configured).
