@@ -125,7 +125,7 @@ class OpenAPI31FactoryTest extends ServerSetup {
     scenario("oAuth2Description uses consumerRegistrationUrl for registration and hostname for API endpoints") {
       val desc = OpenAPI31JSONFactory.oAuth2Description("https://api.example.com")
       desc should include("Register your application at https://api.example.com/consumer-registration to obtain a client_id and client_secret.")
-      desc should include("GET https://api.example.com/obp/v6.0.0/my/banks")
+      desc should include("GET https://api.example.com/obp/v7.0.0/my/banks")
     }
 
     scenario("oAuth2Description guides users through portal guide and registration form when portal URL is set") {
@@ -138,12 +138,18 @@ class OpenAPI31FactoryTest extends ServerSetup {
       val desc = OpenAPI31JSONFactory.directLoginDescription("https://api.example.com")
       desc should include("Register your application at https://api.example.com/consumer-registration to obtain a consumer_key.")
       desc should include("POST https://api.example.com/obp/v6.0.0/my/logins/direct")
+      desc should include("GET https://api.example.com/obp/v7.0.0/my/banks")
     }
 
     scenario("directLoginDescription guides users through portal guide and registration form when portal URL is set") {
       setPropsValues("public_obp_portal_url" -> "https://portal.example.com")
       val desc = OpenAPI31JSONFactory.directLoginDescription("https://api.example.com")
       desc should include("Read the registration instructions at https://portal.example.com/developers/consumer-creation, log in and proceed to https://portal.example.com/consumers/register to register your application and obtain a consumer_key.")
+    }
+
+    scenario("gatewayLoginDescription uses hostname for API endpoints") {
+      val desc = OpenAPI31JSONFactory.gatewayLoginDescription("https://api.example.com")
+      desc should include("GET https://api.example.com/obp/v7.0.0/my/banks")
     }
 
     scenario("oidcTokenEndpoint falls back to <OIDC_provider_token_endpoint> when no OIDC host is set") {

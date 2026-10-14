@@ -122,7 +122,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |Include the token in the DirectLogin header on all subsequent requests:
        |
-       |    GET ${hostname}/obp/v6.0.0/my/banks
+       |    GET ${hostname}/obp/v7.0.0/my/banks
        |    DirectLogin: token=your-token-string
        |
        |### Parameters
@@ -163,7 +163,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |4. Exchange the authorization code for an access token at the token endpoint.
        |5. Use the access token as a Bearer token in the Authorization header:
        |
-       |       GET ${hostname}/obp/v6.0.0/my/banks
+       |       GET ${hostname}/obp/v7.0.0/my/banks
        |       Authorization: Bearer your-access-token
        |
        |### Client Credentials Flow (2-legged / Application Only)
@@ -193,7 +193,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |between the gateway and OBP. This method does not require a separate token-obtaining step —
        |the JWT is sent directly with each API request.
        |
-       |    GET ${hostname}/obp/v6.0.0/my/banks
+       |    GET ${hostname}/obp/v7.0.0/my/banks
        |    Authorization: GatewayLogin token="your-jwt-token"
        |
        |### Notes
