@@ -195,6 +195,7 @@ object Migration extends MdcLoggable {
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()
       alterSqlServerDateTimeColumns()
+      MigrationOfConsentView.addConsentView("ensure_v_consent_exists_final")
     }
 
     /**

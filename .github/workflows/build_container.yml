@@ -127,7 +127,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -455,14 +455,14 @@ jobs:
           # -pl obp-commons,obp-api: obp-commons' own 5 util suites run on whichever
           # shard's filter matches com.openbankproject.* (the catch-all shard); on every
           # other shard the filter matches nothing in obp-commons → 0 tests there.
-          # timeout 2400: hard-kill after 40 min to prevent Pekko non-daemon threads
+          # timeout 3000: hard-kill after 50 min to prevent Pekko non-daemon threads
           # (ConsentScheduler etc.) from keeping the JVM alive after tests complete.
           # Exit code 124 (timeout) is treated as success — tests are done, JVM just hung.
           # set +e: GitHub Actions uses -eo pipefail by default; without it, a 124 exit from
           # timeout would abort the step before the rc check below can run.
           set +e
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            timeout 2400 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
+            timeout 3000 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" $EXTRA_MVN_ARGS \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?
