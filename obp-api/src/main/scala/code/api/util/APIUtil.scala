@@ -2252,7 +2252,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // Virtual roles granted by super_admin_user_ids prop
   val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
   // Virtual roles granted by oidc_operator_user_ids prop
-  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanGetConsumers", "CanCreateConsumer")
+  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanGetOidcConsent", "CanGetConsumers", "CanCreateConsumer")
 
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
@@ -2584,6 +2584,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ =>
       // There are no enough information for logging
     }
+    callContext.foreach(cc => WriteMetricUtil.recordConsumerLastCall(cc.consumerId, cc.startTime))
     WriteMetricUtil.writeEndpointMetric(responseBody, callContext.map(_.copy(endTime = Some(endTime))))
     result
   }
@@ -3844,7 +3845,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *  This value is used to construct some urls in Resource Docs
    *  Its the root of the server as opposed to the root of the api
    */
-  def getServerUrl: String = getPropsValue("documented_server_url").openOr(MissingPropsValueAtThisInstance + "documented_server_url")
+  def getServerUrl: String =
+    getPropsValue("documented_server_url").filter(_.trim.nonEmpty)
+      .openOr(getPropsValue("public_obp_api_url").filter(_.trim.nonEmpty)
+        .openOr(getPropsValue("hostname").filter(_.trim.nonEmpty)
+          .openOr(MissingPropsValueAtThisInstance + "documented_server_url")))
 
   // All OBP REST end points start with /obp
   def getObpApiRoot: String = s"$getServerUrl/obp"
@@ -3925,6 +3930,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else value
   }
 
+  // A consumer key is a credential. Response formats that carry a consumer_key field from before
+  // this rule keep the field and return this value; newer versions leave the field out.
+  // Create responses still return the real key: that is how the creator learns it.
+  val RedactedConsumerKey = "**redacted**"
+
+  def redactConsumerKey(consumerKey: String): String = RedactedConsumerKey
+
   // Convention-based public app URL props.
   // Every key registered here appears in getConfigPropsPairs and so in the App Directory.
   // The set is fixed in code: an operator-added public_*_url prop is NOT picked up
@@ -3956,6 +3968,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getPortalUrl: Box[String] =
     getPropsValue("public_obp_portal_url").filter(_.trim.nonEmpty)
       .or(getPropsValue("portal_external_url").filter(_.trim.nonEmpty))
+      .or(getPropsValue("portal_hostname").filter(_.trim.nonEmpty))
 
   // Returns config props matching the public_*_url convention.
   // Empty values are excluded (prop not configured).
@@ -5262,7 +5275,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
     // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
     // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that
-    // re-checks the database at most once a second.
+    // re-checks the Dynamic Glossary Items every ten minutes and the glossary cache namespace every ten seconds.
     s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-glossary:${Glossary.glossaryVersionForCacheKey}".intern()
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 

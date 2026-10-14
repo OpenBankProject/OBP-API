@@ -703,7 +703,9 @@ object ResourceDocMiddleware extends MdcLoggable {
               case Right((cp, Some(updatedCC))) => IO.pure(Right(ctx.copy(counterparty = Some(cp), callContext = updatedCC)))
               case Right((cp, None))            => IO.pure(Right(ctx.copy(counterparty = Some(cp))))
               case Left(e: APIFailureNewStyle)  => ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
-              case Left(_)                       => ErrorResponseConverter.createErrorResponse(404, CounterpartyNotFound + s": counterpartyId=$counterpartyId", ctx.callContext).map(Left(_))
+              // The lookup's own failure: 400 CounterpartyNotFoundByCounterpartyId when the counterparty doesn't
+              // exist or belongs to another account, the code Lift's COUNTERPARTY_ID check answered with.
+              case Left(e)                       => ErrorResponseConverter.toHttp4sResponse(e, ctx.callContext).map(Left(_))
             }
         )
       case _ => DSL.success(ctx)

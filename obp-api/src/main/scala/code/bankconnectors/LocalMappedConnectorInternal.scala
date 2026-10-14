@@ -816,7 +816,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               case Some(refundRequestTo) if refundRequestTo.counterparty_id.isDefined =>
                 val toCounterpartyId = CounterpartyId(refundRequestTo.counterparty_id.get)
                 for {
-                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(toCounterpartyId, callContext)
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, toCounterpartyId.value, callContext)
                   (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, isOutgoingAccount = true, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     toCounterparty.isBeneficiary
@@ -828,7 +828,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
                 val fromCounterpartyId = CounterpartyId(transactionRequestBodyRefundJson.from.get.counterparty_id)
                 val toAccount = fromAccount
                 for {
-                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(fromCounterpartyId, callContext)
+                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(toAccount.bankId, toAccount.accountId, fromCounterpartyId.value, callContext)
                   (fromAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, isOutgoingAccount = false, callContext)
                   _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     fromCounterparty.isBeneficiary
@@ -844,10 +844,48 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})", cc=callContext) {
               (transaction.amount).abs  >= transactionAmountNumber
             }
-            //TODO, we need additional field to guarantee the transaction is refunded...
-            //                  _ <- Helper.booleanToFuture(s"${RefundedTransaction}") {
-            //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
-            //                  }
+            // A refund must be for a payment between the account in the URL and the party named in the
+            // request. With `to`, the caller asks for money they paid out to be sent back, so the original
+            // transaction is a debit on their account. With `from`, the caller pays back money they
+            // received, so it is a credit. Either way its other party has to be the named party.
+            requestsMoneyBack = transactionRequestBodyRefundJson.to.isDefined
+            otherParty = if (requestsMoneyBack) toAccount else fromAccount
+            (otherPartyOnThisInstance, callContext) <- Connector.connector.vend.checkBankAccountExists(otherParty.bankId, otherParty.accountId, callContext)
+            _ <- Helper.booleanToFuture(s"$RefundTransactionNotWithThisParty Current TRANSACTION_ID(${transactionId.value})", cc=callContext) {
+              val wasPaidInTheRightDirection = if (requestsMoneyBack) transaction.amount < 0 else transaction.amount > 0
+              // The transaction records one routing of its other party (scheme and address) and that party's
+              // bank routing. The routing must be one of the named party's routings. Only an IBAN identifies
+              // an account on its own; any other routing (an account id, an account number) is unique only
+              // within its bank, so the bank must match too, and for an account on this instance an empty
+              // bank routing can't tell banks apart, so it is refused.
+              val originalScheme = transaction.otherAccount.otherAccountRoutingScheme.trim.toUpperCase
+              val originalAddress = transaction.otherAccount.otherAccountRoutingAddress.map(_.trim).getOrElse("")
+              val originalBank = transaction.otherAccount.otherBankRoutingAddress.map(_.trim).getOrElse("")
+              val otherPartyBank = otherParty.bankRoutingAddress.trim
+              val sameAccountRouting = originalAddress.nonEmpty && otherParty.accountRoutings.exists(routing =>
+                routing.scheme.trim.toUpperCase == originalScheme && routing.address.trim == originalAddress)
+              val sameBank =
+                if (originalScheme == AccountRoutingScheme.IBAN.toString) true
+                else if (otherPartyOnThisInstance.isDefined) originalBank.nonEmpty && originalBank == otherPartyBank
+                else originalBank == otherPartyBank
+              wasPaidInTheRightDirection && sameAccountRouting && sameBank
+            }
+
+            // A transaction can be refunded only once. Each refund records the transaction it refunds in its
+            // `original_transaction_id` attribute; a refund that was rejected, failed or cancelled doesn't count.
+            earlierRefundIds <- Future {
+              code.transactionRequestAttribute.TransactionRequestAttribute.findAll(
+                By(code.transactionRequestAttribute.TransactionRequestAttribute.BankId, bankId.value),
+                By(code.transactionRequestAttribute.TransactionRequestAttribute.Name, "original_transaction_id"),
+                By(code.transactionRequestAttribute.TransactionRequestAttribute.`Value`, transactionId.value)
+              ).map(_.transactionRequestId)
+            }
+            _ <- Helper.booleanToFuture(s"$RefundedTransaction Current TRANSACTION_ID(${transactionId.value})", cc=callContext) {
+              val endedWithoutPaying = Set(TransactionRequestStatus.REJECTED, TransactionRequestStatus.FAILED, TransactionRequestStatus.CANCELLED).map(_.toString)
+              earlierRefundIds
+                .flatMap(id => Connector.connector.vend.getTransactionRequestImpl(id, callContext).map(_._1).toList)
+                .forall(earlierRefund => endedWithoutPaying.contains(earlierRefund.status))
+            }
 
             //we add the extra info (counterparty name + transaction_id) for this special Refund endpoint.
             newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
@@ -963,7 +1001,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             }
             toCounterpartyId = transactionRequestBodyCounterparty.to.counterparty_id
             _ <- Future { logger.debug(s"After extracting counterparty id: $toCounterpartyId") }
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, toCounterpartyId, callContext)
 
             transactionRequestAttributes <- if(transactionRequestBodyCounterparty.attributes.isDefined && transactionRequestBodyCounterparty.attributes.head.length > 0 ) {
 
@@ -1212,7 +1250,9 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               json.extract[TransactionRequestBodyCardJsonV400]
             }
             toCounterpartyId = transactionRequestBodyCard.to.counterparty_id
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+            // The payee must be a counterparty of the card's account, as for COUNTERPARTY. Otherwise whoever
+            // presents the card could pay any beneficiary counterparty of any other account.
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, toCounterpartyId, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             // Check we can send money to it.
             _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {

@@ -1624,7 +1624,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
+    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext).map { case (counterparty, callContext) =>
+      (counterparty.filter(found => found.thisBankId == bankId.value && found.thisAccountId == accountId.value), callContext)
+    }
   }
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = Future {
@@ -2706,7 +2708,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case Some(tagSet) => codesFromAttrs.filter(tagSet.contains)
           case None => codesFromAttrs
         }
-        MappedProduct.findAll(ByList(MappedProduct.mCode, finalCodes))
+        // Product codes are unique only within a bank, so the bank has to be named here as well.
+        MappedProduct.findAll(
+          By(MappedProduct.mBankId, bankId.value),
+          ByList(MappedProduct.mCode, finalCodes)
+        )
       }
     }
   }}.map(products => (products, callContext))
@@ -3943,7 +3949,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                            value: String,
                                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = {
     val consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
-    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId,consumerId, key, value) map {
+    // This connector method has no bank, so the update it creates is bound to none and its answer is refused
+    // at every bank. validateUserAuthContextUpdateRequest creates updates bound to their bank.
+    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId, consumerId, "", key, value) map {
       (_, callContext)
     }
   }
@@ -5433,7 +5441,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               body.to_counterparty.get
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
+            // The payee was checked against the paying account when the request was created; check it again
+            // here, so a stored request can never pay a counterparty of another account.
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, counterpartyId.value, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),
@@ -5550,6 +5560,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 for {
                   (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(fromCounterpartyIban, toAccount.bankId, toAccount.accountId, callContext)
                   (fromAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
+                  // Here the caller is the party being refunded, so the money comes from the other party.
+                  // The caller was authorised only on their own account, so the other party may not be an
+                  // account on this instance: OBP-API can't debit an account the caller has no access to.
+                  // The other party is an external account, and the payment goes through an adapter
+                  // (for example a SEPA recall that the other bank has accepted).
+                  (otherPartyAccountOnThisInstance, callContext) <- checkBankAccountExists(fromAccount.bankId, fromAccount.accountId, callContext)
+                  _ <- Helper.booleanToFuture(
+                    s"$InsufficientAuthorisationToCreateTransactionRequest A REFUND can't debit the account BANK_ID(${fromAccount.bankId.value}) ACCOUNT_ID(${fromAccount.accountId.value}), because the caller is not authorised on it.",
+                    cc = callContext) {
+                    otherPartyAccountOnThisInstance.isEmpty
+                  }
+                  // Money from an external account can only arrive through an adapter that really collects
+                  // it (the SEPA adapter routes makePaymentv210 to itself). When this connector would make
+                  // the payment, it would credit the account from a stand-in for the external account with
+                  // no money behind it, so the refund is refused.
+                  paymentConnectorName = code.api.Constant.CONNECTOR.openOr("mapped") match {
+                    case "star" => code.bankconnectors.getConnectorNameAndMethodRouting(
+                      "makePaymentv210", Array[(String, AnyRef)]("bankId" -> toAccount.bankId.value))._2
+                    case connectorName => connectorName
+                  }
+                  _ <- Helper.booleanToFuture(
+                    s"$InvalidTransactionRequestType A REFUND that takes money from an external account needs an adapter that makes the payment (makePaymentv210); on this instance it would be made by the $paymentConnectorName connector.",
+                    cc = callContext) {
+                    paymentConnectorName != "mapped"
+                  }
                 } yield (fromAccount, toAccount, callContext)
               }
             }
@@ -5712,8 +5747,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       //1st: check if the customer is existing 
       (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(value, BankId(bankId), callContext)
-      //2rd: if the customer is existing, we can create the userAuthContextUpdateChallenge
-      (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(userId, key, value, callContext)
+      //2rd: if the customer is existing, we can create the userAuthContextUpdateChallenge, bound to this bank and only answerable here
+      consumerId = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
+      userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+        .createUserAuthContextUpdates(userId, consumerId, bankId, key, value)
+        .map(update => unboxFullOrFail(update, callContext, CreateUserAuthContextError, 400))
       //3rd: send the challenge to the user.
       _ <- Future{
         scaMethod match {

@@ -29,9 +29,10 @@ package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadAggregateMetrics
-import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
+import code.api.util.APIUtil
+import code.api.util.ErrorMessages.{AggregateMetricsDateRangeTooLong, ApplicationNotIdentified, UserHasMissingRoles}
 import code.entitlement.Entitlement
-import code.metrics.MetricBatchWriter
+import code.metrics.{MetricBatchWriter, MetricsProps}
 import code.scope.Scope
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -138,6 +139,57 @@ class AggregateMetricsTest extends V600ServerSetup {
         Then("aggregate metrics are returned")
         makeGetRequest(request).code should equal(200)
       } finally Scope.scope.vend.deleteScope(granted)
+    }
+  }
+
+  private def metricsDate(millisecondsAgo: Long): String =
+    APIUtil.DateWithMsFormat.format(new java.util.Date(System.currentTimeMillis() - millisecondsAgo))
+
+  private val oneDayInMillis = 24L * 60 * 60 * 1000
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - Date range limit") {
+    scenario("A range longer than the limit is refused, and one within it is answered", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadAggregateMetrics.toString)
+      val maxDays = MetricsProps.aggregateMetricsMaxDays
+
+      When(s"We ask for ${maxDays + 1} days")
+      val tooLong = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
+        ("from_date", metricsDate((maxDays + 1) * oneDayInMillis)))
+      val tooLongResponse = makeGetRequest(tooLong)
+      Then("We get a 400 naming the limit")
+      tooLongResponse.code should equal(400)
+      tooLongResponse.body.extract[ErrorMessage].message should startWith(AggregateMetricsDateRangeTooLong)
+
+      When(s"We ask for ${maxDays - 1} days")
+      val withinLimit = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
+        ("from_date", metricsDate((maxDays - 1) * oneDayInMillis)))
+      Then("We get an answer")
+      makeGetRequest(withinLimit).code should equal(200)
+
+      When("We ask for an old range that is short enough")
+      val oldButShort = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
+        ("from_date", metricsDate(400 * oneDayInMillis)),
+        ("to_date", metricsDate(390 * oneDayInMillis)))
+      Then("We get an answer, because only the length of the range is limited")
+      makeGetRequest(oldButShort).code should equal(200)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - Filter values are matched exactly") {
+    scenario("A filter value containing a quote is matched as text", ApiEndpoint1, VersionOfApi) {
+      setPropsValues("write_metrics" -> "true")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadAggregateMetrics.toString)
+      makeGetRequest((v5_1_0_Request / "banks").GET <@ (user1))
+      MetricBatchWriter.flush()
+
+      When("We filter on a url containing a quote, which no metric has")
+      val request = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user1) <<? List(
+        ("from_date", metricsDate(oneDayInMillis)),
+        ("url", "/obp/v5.1.0/banks' OR '1'='1"))
+      val response = makeGetRequest(request)
+      Then("No metric has that url, so the count is 0")
+      response.code should equal(200)
+      response.body.extract[List[AggregateMetricJsonV600]].head.count shouldBe 0
     }
   }
 }

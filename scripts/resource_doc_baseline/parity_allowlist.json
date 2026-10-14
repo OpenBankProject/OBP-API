@@ -765,14 +765,6 @@
     },
     {
       "version": "v4_0_0",
-      "endpoint": "deleteExplicitCounterparty",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID -> COUNTERPARTY_ID_PARAM rename, same shape.",
-      "lift_digest": "921d75d9e3f3f8829417e01b547c83bb66305f39e6125d07641d70228ba12762",
-      "http4s_digest": "f17aeac76f848755b702722badaf8024590ced0c796cdf6467cc8f3ca0cabf2e"
-    },
-    {
-      "version": "v4_0_0",
       "endpoint": "deleteUser",
       "field": "description",
       "reason": "Expanded description accurately documents verified soft-delete/PII-scramble behavior (AuthUser.scrambleAuthUser, scrambleDataOfResourceUser in the real handler).",
@@ -805,27 +797,11 @@
     },
     {
       "version": "v4_0_0",
-      "endpoint": "getCounterpartyByIdForAnyAccount",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "10cc23745c9f2e446f7128aebff01d4cd79e7390299d1ff9d53782c8e199a0c8",
-      "http4s_digest": "ca07ee2eaee48c958711ac6e697032ac41035a9fdfe4ee4cdc71ff6ea4412cb9"
-    },
-    {
-      "version": "v4_0_0",
       "endpoint": "getDynamicResourceDoc",
       "field": "requestUrl",
       "reason": "Hyphen -> underscore template fix.",
       "lift_digest": "1121e061bb57d86b7b28c331cfd46382f6bc01b163301a62871d5c95b0240eab",
       "http4s_digest": "1216685612894e081ee8c9fa73e16bec14351fa08675b4c15c7f5043a3578c03"
-    },
-    {
-      "version": "v4_0_0",
-      "endpoint": "getExplicitCounterpartyById",
-      "field": "requestUrl",
-      "reason": "EXPLICIT_COUNTERPARTY_ID rename.",
-      "lift_digest": "921d75d9e3f3f8829417e01b547c83bb66305f39e6125d07641d70228ba12762",
-      "http4s_digest": "51b5c4487bf594005cbd5895f0fa7f8f2ef4ed246386e9cd2fb154c386d5289b"
     },
     {
       "version": "v4_0_0",
@@ -941,14 +917,6 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "createCounterpartyAttribute",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "4afc1baca0551e1cb89611a42c0d7652e3040468728f465d9061052414e6e1a9",
-      "http4s_digest": "5f2aedc26f7688fd913b6f9dffe12c6858fb3814c7515530861a1613afb8a5b5"
-    },
-    {
-      "version": "v6_0_0",
       "endpoint": "createPersonalDataField",
       "field": "description",
       "reason": "Additive clarification (USER_ATTRIBUTE_ID identity, non-unique name, PUT-to-update guidance); nothing removed. Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
@@ -970,14 +938,6 @@
       "reason": "Same real-route verification as createTransactionRequestCardano.",
       "lift_digest": "f171234e229c0a8c5636773ff0eef555a86cc86cbce6dd89854d72157d56c76a",
       "http4s_digest": "4f6ba60ae9bfce501646d1311bfb1d544d3ecbf02b4b5e522e8da293d3407c04"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "deleteCounterpartyAttribute",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
-      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
     },
     {
       "version": "v6_0_0",
@@ -1007,9 +967,49 @@
       "version": "v6_0_0",
       "endpoint": "getAggregateMetrics",
       "field": "description",
-      "reason": "Documents real new response fields (distinct_user_count etc.) verified present in MappedMetrics.scala, and who may call it: a User with CanReadAggregateMetrics or an application whose Consumer holds it.",
+      "reason": "Documents real new response fields (distinct_user_count etc.) verified present in MappedMetrics.scala, who may call it (a User with CanReadAggregateMetrics or an application whose Consumer holds it), and the per-call date range limit enforced by APIMetrics.limitAggregateMetricsWindow.",
       "lift_digest": "21e12b117560d354f2ee58bb845e9a5d39d9f47721da8195868cf7a6ed9a216d",
-      "http4s_digest": "a1631529945acf190378edeff834bbdef9040aee86cb0282008bb7ee6ac539a8"
+      "http4s_digest": "b340b1bf1f8fddc121972bb407c327a196d85429f72f6cf80864595f7a76fcce"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "errorResponseBodies",
+      "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "8f16b7299b9d91cda6127a8a1b18fd8ef7bda1ef93177f22d159fcad017a4428"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "description",
+      "reason": "Documents the per-call date range limit enforced by APIMetrics.limitAggregateMetricsWindow, and corrects the from_date default: it was 1 January 1970, not the day before, and is now aggregate_metrics_max_days before to_date.",
+      "lift_digest": "2407b22d7271118a65e34d3400d7af72580aeb8a6cb9521103a991fa464cf3f1",
+      "http4s_digest": "e19a45086f2e479d8cf6744f950678ab224c0460ecad0de8847645450ff4c6ef"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "errorResponseBodies",
+      "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "8f16b7299b9d91cda6127a8a1b18fd8ef7bda1ef93177f22d159fcad017a4428"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "description",
+      "reason": "Documents the per-call date range limit enforced by APIMetrics.limitAggregateMetricsWindow, and corrects the from_date default: it was 1 January 1970, not the day before, and is now aggregate_metrics_max_days before to_date.",
+      "lift_digest": "dc8534c5f01cfb8aa8a495f490d136e257788f51f06322ed87d08157831bb874",
+      "http4s_digest": "85dfb572d4097570ef0ab17ed201f6204dfff63c6c589c9c1730a3982ba96744"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getAggregateMetrics",
+      "field": "errorResponseBodies",
+      "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "8f16b7299b9d91cda6127a8a1b18fd8ef7bda1ef93177f22d159fcad017a4428"
     },
     {
       "version": "v6_0_0",
@@ -1018,14 +1018,6 @@
       "reason": "Verified handler uses EndpointHelpers.withUser (mandatory auth) unconditionally; \"Required\" is accurate -- the conditional getApiProductsIsPublic flag governs a different sibling endpoint, not this one.",
       "lift_digest": "9940ac8e6f7dbf5a4e4e5d8a65635722e8ce8839f7954ad39f99c1eee3f12865",
       "http4s_digest": "b8f6c80d7d9aab5c1954d93d78e4e9caaf55bbba86cedc57b614c7350f5d8fda"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "getAllCounterpartyAttributes",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "4afc1baca0551e1cb89611a42c0d7652e3040468728f465d9061052414e6e1a9",
-      "http4s_digest": "5f2aedc26f7688fd913b6f9dffe12c6858fb3814c7515530861a1613afb8a5b5"
     },
     {
       "version": "v6_0_0",
@@ -1058,14 +1050,6 @@
       "reason": "Same wording normalization as getConfigProps.",
       "lift_digest": "f41cdd1dbacdfd52a114a2dc76487367b4b20746184d32d3b0709bd858b8363d",
       "http4s_digest": "835e4890e3775490f00f47ca65a16e63acc63d6cf1961976712b585b643e54e2"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "getCounterpartyAttributeById",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
-      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
     },
     {
       "version": "v6_0_0",
@@ -1146,14 +1130,6 @@
       "reason": "Verified the handler genuinely no longer returns the reset URL in the response body (only {\"status\":\"sent\",\"to\":email}) -- a documented, reasoned security fix closing an account-takeover vector (see also the successResponseBody allowlist entry for this same endpoint).",
       "lift_digest": "dca0922381fb4c5f1fb34ab5a531d440b068f2170fd933c3c2eeddb4c52eaf94",
       "http4s_digest": "f0bea922b31c331bae138d58990bf31a6bc5ca0099055f4cff4fdaf62c0a6263"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "updateCounterpartyAttribute",
-      "field": "requestUrl",
-      "reason": "COUNTERPARTY_ID_PARAM rename.",
-      "lift_digest": "6be19ba2409dbba4ae9f6ed783f5a2068645dd189761c83af8cd0d9f107a22f4",
-      "http4s_digest": "2cb204a9cd0b15471f6fdbe274209d3f4cce2a4d016f0fd8526b0b24fa640d8a"
     },
     {
       "version": "v6_0_0",
@@ -1599,9 +1575,9 @@
       "version": "v4_0_0",
       "endpoint": "answerTransactionRequestChallenge",
       "field": "errorResponseBodies",
-      "reason": "Adds ChallengeNotAddressedToCaller (OBP-40063): a payment challenge is answered by the person the payment is for, so an agent acting under a Consent is refused rather than allowed to relay a code it was never sent. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "reason": "Adds ChallengeNotAddressedToCaller (OBP-40063): a payment challenge is answered by the person the payment is for, so an agent acting under a Consent is refused rather than allowed to relay a code it was never sent. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9. Lists InvalidTransactionRequestId, returned when the transaction request does not involve the BANK_ID / ACCOUNT_ID in the URL.",
       "lift_digest": "13648f17562c1654881963b4978024f82e1edcdb92729397a2b015b291939ddb",
-      "http4s_digest": "c584fa1579db6b30ed7c21cf3dc7da57f50dcad7abba332ea1a58dd4c37808c4"
+      "http4s_digest": "82c6ce31f384147541e77f70a52e17ab45e7230c8543a92eaf9df446070317b2"
     },
     {
       "version": "v4_0_0",
@@ -1631,9 +1607,9 @@
       "version": "v4_0_0",
       "endpoint": "createTransactionRequestCard",
       "field": "errorResponseBodies",
-      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9. Also adds CounterpartyNotFoundByCounterpartyId, returned when the payee is not a counterparty of the card's account.",
       "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
-      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+      "http4s_digest": "8723ffa249614fed5a40227e79508a1dcbec5e5009357455d6a3204fe0db61fd"
     },
     {
       "version": "v4_0_0",
@@ -1655,9 +1631,9 @@
       "version": "v4_0_0",
       "endpoint": "createTransactionRequestRefund",
       "field": "errorResponseBodies",
-      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9.",
+      "reason": "Adds PaymentChallengeHasNoOnBehalfOfUser (OBP-40064): a payment needing Strong Customer Authentication is refused when no person can be determined to address the challenge to, instead of being parked behind a challenge nobody can answer. See ON_BEHALF_OF_USER_ID_PLAN.md Decision 9. Lists CounterpartyNotFoundByCounterpartyId (the counterparty does not belong to the account in the URL), RefundTransactionNotWithThisParty (the refunded transaction was not a payment between this account and the named party, in the right direction) and RefundedTransaction (the transaction was already refunded).",
       "lift_digest": "4eac30b6b708ad9f30e688ef1327a01ff7f4280f982f77063851c9483e3179c2",
-      "http4s_digest": "36b31730de78f93aa41f09da7fe44eff78fe76dac497497e7562b84454a2e3b0"
+      "http4s_digest": "d60c90fc7e51d9f5b050dd3ca31d0c4176292041c962433830f47f8767270800"
     },
     {
       "version": "v4_0_0",
@@ -1775,17 +1751,17 @@
       "version": "v5_1_0",
       "endpoint": "createConsumer",
       "field": "description",
-      "reason": "Adds a paragraph pointing the developer of an app the installation runs itself (Portal, API Manager, Opey, OBP-Sentinel) to Platform Apps, so its Consumer can be granted Roles as Scopes.",
+      "reason": "Adds a paragraph pointing the developer of an app the installation runs itself (Portal, API Manager, Opey, OBP-Sentinel) to Platform Apps, so its Consumer can be granted Roles as Scopes. Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry.",
       "lift_digest": "7e639520852912f5fbb9938d9d3f65943054eb8a158dfa7105416a43870d3ce4",
-      "http4s_digest": "983ad12ac6c61fc5637ee32d4fbc95592ed259c2588b8b50feab0376fec554a6"
+      "http4s_digest": "0dc9ec5c88cccd750dc082dad3a38334251bfcd2c4bdb1e1b48ac3076f91aed8"
     },
     {
       "version": "v5_1_0",
       "endpoint": "createMyConsumer",
       "field": "description",
-      "reason": "Adds a paragraph pointing the developer of an app the installation runs itself (Portal, API Manager, Opey, OBP-Sentinel) to Platform Apps, so its Consumer can be granted Roles as Scopes.",
+      "reason": "Adds a paragraph pointing the developer of an app the installation runs itself (Portal, API Manager, Opey, OBP-Sentinel) to Platform Apps, so its Consumer can be granted Roles as Scopes. Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry.",
       "lift_digest": "bba5099d62c01e4fd03073a2c54ef3f5669d0cb0f756d8c2556dd48c9dc8cbc2",
-      "http4s_digest": "fb85fa76f84dab2e7a328d65e38b2d1ecf9eabe90ca99efdd7e8d24ff9bcd152"
+      "http4s_digest": "ff968d07d614393257e9f40efd3293e0c4f1872e86ec07955e1429756b8b364c"
     },
     {
       "version": "v3_1_0",
@@ -1922,6 +1898,382 @@
       "reason": "The Lift doc named /search/metrics but the route serves /search/metrics/{query}: the query is a path segment, so the documented URL could not be called. The URL now includes it.",
       "lift_digest": "1132e0dd343990bc0b4b0258f46e9b13bcda43939f6cb99d6b4dc6b34f5080e2",
       "http4s_digest": "b79574c091ae746fdd0985366c387504e1a0fc0403438f4be6f64de9d7739585"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "updateConsumerRedirectUrl",
+      "field": "errorResponseBodies",
+      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "b1e42b699ef095f7b2a523062366197eee3538c96068563f1bd25f0197559e33"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createConsumer",
+      "field": "errorResponseBodies",
+      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "f1a3eab881d039a14b768fca036adc44759cc99d416fc176c8eea09829037ccf"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createConsumer",
+      "field": "exampleRequestBody",
+      "reason": "The example redirect URL is now a valid https callback; the old placeholder would be rejected by the redirect URL rules.",
+      "lift_digest": "7b5796ab8e816b80f886a5d44a8414394170d7e2d61ab2ed6edb6ae4a58841e0",
+      "http4s_digest": "28fbe0a0ed9a7eb4e229b285c1715bc32b77a0485d6db6c9a3661ea037859a8b"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createConsumer",
+      "field": "successResponseBody",
+      "reason": "The example redirect URL is now a valid https callback; the old placeholder would be rejected by the redirect URL rules.",
+      "lift_digest": "4cb0d642b4a86b86be87cad67a311c77f1d68aacafb957b2e4e83d23ae9695fb",
+      "http4s_digest": "5914176f0c140e0e56de59f39988dd4bd8312a0c873aa816729a12d5037ae936"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createConsumer",
+      "field": "errorResponseBodies",
+      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "f1a3eab881d039a14b768fca036adc44759cc99d416fc176c8eea09829037ccf"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createConsumer",
+      "field": "exampleRequestBody",
+      "reason": "The example redirect URL is now a valid https callback; the old placeholder would be rejected by the redirect URL rules.",
+      "lift_digest": "bedf35738b2bdbadfd0cf52925b59047394f1479aaf041401e689921a15d5da5",
+      "http4s_digest": "64bb412d6630509cccfda9d1cba36da072ace8e189a6798811648b1c2267aaa7"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createConsumer",
+      "field": "errorResponseBodies",
+      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "f1a3eab881d039a14b768fca036adc44759cc99d416fc176c8eea09829037ccf"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createMyConsumer",
+      "field": "errorResponseBodies",
+      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
+      "lift_digest": "ab6b9a504c9dafbcc134976d9f0b976cbe222c9054b9c811c5570adfb79ae6ce",
+      "http4s_digest": "8aea0f733a9dab1db64f8bcdc5e240c17467c6eee80d468b48c76dd8f7be81d3"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "createConsumerDynamicRegistration",
+      "field": "errorResponseBodies",
+      "reason": "Adds InvalidRedirectUrl (OBP-20108): the redirect URL is now checked against the redirect URL rules (https, http only for loopback, reverse-domain app schemes; no wildcard, user information or fragment) before it is stored.",
+      "lift_digest": "4e74e64b929f5a2a290113b4f8bfabd520ea39ad6fa4fe1a498fe76bbb805631",
+      "http4s_digest": "64c74c1413b68ad5553717d6ee442ed730ff08a383c419d597c5ddda9b711b72"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerRedirectURL",
+      "field": "errorResponseBodies",
+      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "b1e42b699ef095f7b2a523062366197eee3538c96068563f1bd25f0197559e33"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getOidcClient",
+      "field": "description",
+      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry.",
+      "lift_digest": "49ddd5f6ec985292ee48802cd18e479c5a1b46fee368ce0d06a653e07eb65e90",
+      "http4s_digest": "afb1da33f039efe8cff6de2d718c11e552434fb08f7e41a66d82a26d07be0de6"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "verifyOidcClient",
+      "field": "description",
+      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry.",
+      "lift_digest": "120f4c6ed1083567d078a7afbb5c2e97d8de69e68e7314166c05e3afcdf50ecd",
+      "http4s_digest": "670c0479be7d2aa3c8beb18d2e1708c3ec7e67b2a1b625018b07a89c770fe962"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerRedirectURL",
+      "field": "description",
+      "reason": "Adds the redirect URL rules, this instance's redirect URL host list, and a link to the Redirect URL glossary entry. States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "d2319e98d44314c5142a17c76318478bd3f2e88a41c560f30fd99ebde75a6b9b",
+      "http4s_digest": "d6d8aec47ff86dde95311cac66a3af9541941a575e32cc437a1ee51624d30b88"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "waitingForGodot",
+      "field": "description",
+      "reason": "States that authentication and the Role CanGetWaitingForGodot are required, and the delay cap on this instance (waiting_for_godot_max_sleep_in_milliseconds); negative or unreadable values count as 0.",
+      "lift_digest": "ecc556ba40db508705a57cb4f877b21bbb12a30a3fb48193c2f93da9ea4295ea",
+      "http4s_digest": "4aa1ed75cf6fb788d6f268f1693820ab5eb3dd20ea771cfb36d798abbb5371f9"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "waitingForGodot",
+      "field": "errorResponseBodies",
+      "reason": "The endpoint now requires authentication and the Role CanGetWaitingForGodot (it was anonymous and could tie up the shared thread pool); MandatoryPropertyIsNotSet was never raised.",
+      "lift_digest": "6ba561b556cbd54b3708ddc50db90e03301fda0b10101c168c80e590bcbdeb8c",
+      "http4s_digest": "cb07b8a8074c71a21a64f9030e412d57858383e4f503c2444c6c7000be5f4030"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getCrmEvents",
+      "field": "description",
+      "reason": "The description was empty; it now says the endpoint returns every customer's CRM events at the bank and needs authentication and the Role CanGetCrmEvents.",
+      "lift_digest": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+      "http4s_digest": "dec619a40558e96f890969e02eb8f036f8c2427d43139f8f02fec670b5762957"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getCrmEvents",
+      "field": "errorResponseBodies",
+      "reason": "The endpoint now requires the bank-level Role CanGetCrmEvents; it returned every customer's CRM events to any logged-in User (the 2015 code was marked TODO Require Role).",
+      "lift_digest": "17b115e7d973045ce988c14715fa934e8dbb506b02316d0736dbc19c82ce75b3",
+      "http4s_digest": "26b2f283fe3019f4c20bec2d8666686efcc376f0250fcfe43933a1c4236c2747"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getTransactionTypes",
+      "field": "errorResponseBodies",
+      "reason": "Lists AuthenticatedUserIsRequired so the middleware requires a login when apiOptions.getTransactionTypesIsPublic is false, as the Lift version did; the ResourceDoc drops it again when the prop is true.",
+      "lift_digest": "3bdcd0c958443de6b8a40314fb0e25bb976e6a734c73b4877302491756cb2ab9",
+      "http4s_digest": "266858573788363b20c268a76fb993e29a82e884667ec1a8f2ec8d27a9b88700"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createStandingOrder",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "06a05f5082af05f86fb2d03f146a4a0d5f509405599781682198421383d24b1d",
+      "http4s_digest": "00a4a41b6dd6180c22589c39c7f504812330325232d1500fa4e1de0db4d649f1"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createStandingOrderManagement",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId, returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "56a8a987f7348394c50e8f41e8cd0490b0ce68b266f898088c19334fa6b9e3a1",
+      "http4s_digest": "b716ea78d9cd1c02ef8aadef73ae10bb8870c0072b6156de4bb4017d04b2cedb"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteCounterpartyForAnyAccount",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "74e48268b3b2dcc8120085167677f93e918c82246f2974bf90dbe4e8fa1ee761",
+      "http4s_digest": "5b86622b4bf6256e1840f581347312adad4de3cc6715d9f1c89a876827ca8026"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteExplicitCounterparty",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "ad616f0980b99d4e23758a08c4983d6e05fd48e3ee6160832a4058bf0cba0ac5",
+      "http4s_digest": "dec64daf6eb1d796825733dc5a90de2abcb947d14fbc83d6ce8d8409daf83501"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getCounterpartyByIdForAnyAccount",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "049483db4c37fe0fed677d64c700f3120cc5683a749b8316c47cec7f7918409b",
+      "http4s_digest": "0237a2b1b407cb784cb0c9f09c5cbf503210e00ebe9866a351f41d18e77b2a2a"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getExplicitCounterpartyById",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "86bc4572566bcf1dd26b36429bd2e18bcea94b288b76100f9c842a383f6ca8a6",
+      "http4s_digest": "1227ef34c7cabd8837842965f7b4997fa41219f5bd6b41d8503b277c12d24d3a"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCounterpartyAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "8688a59895b39a1fa023ea1dd7713a6f32154a76d772736dbef5d05d970ab5e4"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getAllCounterpartyAttributes",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check), returned when the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL.",
+      "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
+      "http4s_digest": "956f30cff3ef2d5eeb625620e71e67ff08f6d9934d9d7e36aeb5c7e9f8f465fe"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "deleteCounterpartyAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check: the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
+      "http4s_digest": "ad3a9a07f9f61f02744348beab43a6723b64032ad869dfefd4e2c8f8cd92b752"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getCounterpartyAttributeById",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check: the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "lift_digest": "12ad62cb53de1ed64537da486e94cc24fab901e301123e5f601fcd17fade09b3",
+      "http4s_digest": "ad3a9a07f9f61f02744348beab43a6723b64032ad869dfefd4e2c8f8cd92b752"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateCounterpartyAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Lists CounterpartyNotFoundByCounterpartyId (400, from the middleware's COUNTERPARTY_ID check: the counterparty does not belong to the BANK_ID / ACCOUNT_ID in the URL) and CounterpartyAttributeNotFound (the attribute does not belong to the COUNTERPARTY_ID in the URL).",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "4776e3f23e3c01fc6a4a433289d9d2a1241b60e92eb44145cf4218ed5b6d1198"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionType",
+      "field": "description",
+      "reason": "Always says User Authentication is Required; it used apiOptions.getTransactionTypesIsPublic (the read setting) un-negated, so with that prop false the docs called login optional for this create endpoint.",
+      "lift_digest": "4da376be772a5df5ca18eb378056a8b6cd06359b9e1b716e39590cddc035bd6b",
+      "http4s_digest": "d11d7022ff409e6f65b2d8fe4f56b8dd54bfd7744dd946806347c91d3ed355b6"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createAccount",
+      "field": "errorResponseBodies",
+      "reason": "Adds AccountIdAlreadyExists: an existing ACCOUNT_ID is now refused, where it used to return the existing account and make the caller one of its holders.",
+      "lift_digest": "30b24bdbcdb523f00b5e4655fbdb91d8648ab84ee92f1f2292008816b8e31012",
+      "http4s_digest": "c48cc1204d4ea66a5f131c599ace7f8d502c91ce16a36bf0e507e06b915b8055"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "description",
+      "reason": "States that only the User who requested the update can answer it, only at the bank it was requested at, and that only a right answer adds the User Auth Context and the Customer link.",
+      "lift_digest": "c2bb04751b64677723b0a5bfedfa0f92999b6277d60ff9172272ca4f454d39d1",
+      "http4s_digest": "45e6b2ef5bb600b2781f7f9e7392a0c952844ff67e6d893ab2aad2c028228d6f"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "errorResponseBodies",
+      "reason": "Adds UserAuthContextUpdateNotFound, returned for an update that does not exist or belongs to another User or another bank.",
+      "lift_digest": "837babe0c6517335a32569673d5cdf0bdfb1cc40c06f8035e8e2f6099d3a6ab8",
+      "http4s_digest": "f1806abaa2f1ffebc6bcc48875179391170d2545566cc10d54b38f82172aa9e0"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "description",
+      "reason": "States that only the User who requested the update can answer it, only at the bank it was requested at, and that only a right answer adds the User Auth Context and the Customer link.",
+      "lift_digest": "b84d8a8ba5729b2af8dd67bf06884afcef6b7f71ad5a0ea2a1bc125d59b4dcd1",
+      "http4s_digest": "83f377f201005db11bd081607fdf62ae680615e8cd55b3355473e31f9e9d14e8"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "field": "errorResponseBodies",
+      "reason": "Adds UserAuthContextUpdateNotFound, returned for an update that does not exist or belongs to another User or another bank.",
+      "lift_digest": "84013a06c4127d2ad932f7813a03432776c5a05651afca08dea52dcac780b8fb",
+      "http4s_digest": "3f2fa1dc012d5dcc93e4542e85d0ef5a5a03de2c3fa750aca33af628ee6c3073"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "description",
+      "reason": "Says the challenge goes to the Customer's own contact details (not the User), and that the request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at BANK_ID, which is now always checked.",
+      "lift_digest": "2bcfb3fcfe68cfeada6614a6a2bf57b289e488b3a4f029a733145e5c55e2c2f2",
+      "http4s_digest": "150d6804f8ea2eaba8edb3c8a11072ab626d87b38a200aba0a11d80d28cf6bd9"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "errorResponseBodies",
+      "reason": "Adds ConsumerHasMissingRoles, returned when neither the App has the Scope nor the User the Role CanCreateUserAuthContextUpdate at BANK_ID.",
+      "lift_digest": "6a0652dbac6383372df2418f0456676eb1ab4ea8d7e3d5e10efa2e2bb81ff510",
+      "http4s_digest": "1769e014d63887938573f77828aaa7669b69c23f8c4de3bb286767aad5185754"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "description",
+      "reason": "Says the challenge goes to the Customer's own contact details (not the User), and that the request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at BANK_ID, which is now always checked.",
+      "lift_digest": "2bcfb3fcfe68cfeada6614a6a2bf57b289e488b3a4f029a733145e5c55e2c2f2",
+      "http4s_digest": "150d6804f8ea2eaba8edb3c8a11072ab626d87b38a200aba0a11d80d28cf6bd9"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "field": "errorResponseBodies",
+      "reason": "Adds ConsumerHasMissingRoles, returned when neither the App has the Scope nor the User the Role CanCreateUserAuthContextUpdate at BANK_ID.",
+      "lift_digest": "cdb22d6afff7a90bf4a665f9d7d1eed2d90324a073db56537360b1b61618cce3",
+      "http4s_digest": "ebe1e09a8ffca0760b403f3e695374ae943920e6c06ad876abf65b7aa0d82353"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "directLoginEndpoint",
+      "field": "description",
+      "reason": "Shows whether DirectLogin is enabled on this instance (allow_direct_login), and that when it is disabled every request is refused without checking credentials.",
+      "lift_digest": "cf1c92e99d25e17c7dbe3e026b3a7220df05647420fd298bdf4c71a8ef4265cb",
+      "http4s_digest": "fd9706da918ddc0d030f1d2b69264d4a9b6d3601702a4b00b9b118adf3fe3f3b"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "directLoginEndpoint",
+      "field": "errorResponseBodies",
+      "reason": "Adds DirectLoginIsDisabled: the endpoint now honours allow_direct_login=false, as the unversioned route does.",
+      "lift_digest": "dd71e2633d445b2639d923d757b5bcb72428648a15516b6f52ded226389118fd",
+      "http4s_digest": "be58d5096fa4da0374d728c775884b48c701e0b918021bf1bd4e50c8116da92a"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "getConsumers",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "3b89fa570a230d88a3f7986fef724e5ab07e148edf5b8052c86d1ea0b6f7ddd6",
+      "http4s_digest": "cc45fd404de4e435f603c1192dc63b2f777b7a0efd39c8ad8cd608ef0e604729"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerCertificate",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "7053f9b9b8a84366fb168cfabac9a9a2eddc764b1cddc5553d277b5b1ee6a3b4",
+      "http4s_digest": "5107ec99851efcb86f14ff4181f34cc49136bad40dfa275bc2354ef965c4c37a"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerLogoURL",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "24970bab545a3bde99ab3755beb387be7428f0e759697ead1cf38482e932ee7b",
+      "http4s_digest": "2c520696ebcc58f97d55da0f0b7bf583bf809b92a07a98975f879056bfd5a5f1"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateConsumerName",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "692ebc3c9d61794ffa3032f1cd759b586823239cccdf3a78c58ea9253bd3a159",
+      "http4s_digest": "a8bdac82543f60b89328544bdd0027259566919925b24729a7c84f30a795ca56"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getConsumer",
+      "field": "description",
+      "reason": "States that consumer_key is returned as the redacted placeholder (APIUtil.RedactedConsumerKey) because the key is a credential, and that the v7.0.0 version leaves the field out.",
+      "lift_digest": "36e9d04801335bdeaf8c6db9f748a43a9093d49933f7e9f173a2350acae7d51d",
+      "http4s_digest": "3b4b63fce351b6ea6e44e6be2fa6c7fe59ca5051b5a69cd755b4a3478798ac1c"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createTransactionRequestCard",
+      "field": "description",
+      "reason": "States that the paying account is the card's account, that the User needs the owner view with permission to add transaction requests (or CanCreateAnyTransactionRequest), and that the payee must be a counterparty of that account.",
+      "lift_digest": "b670d8181d5d2d563db3a015bb357107c827ad273e2097c4215032c07e39502b",
+      "http4s_digest": "b60ff8942421ae14a3245bcc8625bac7409abef79994972c629d56dafc582840"
     }
   ]
 }

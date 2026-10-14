@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v2_2_0
 
+import code.accountholders.AccountHolders
+import com.openbankproject.commons.model.AccountId
 import org.json4s._
 import code.api.Constant
 import code.api.util.APIUtil.OAuth._
@@ -224,4 +226,34 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
     }
   }
 
+  private def createAccountBodyFor(userId: String) =
+    CreateAccountJSONV220(
+      user_id = userId,
+      label = "Label",
+      `type` = "CURRENT",
+      balance = AmountOfMoneyJsonV121("EUR", "0"),
+      branch_id = "1234",
+      account_routing = AccountRoutingJsonV121(scheme = "OBP", address = "UK123456"))
+
+  feature("Create Account refuses an ACCOUNT_ID that already exists - v2.2.0") {
+
+    scenario("a second User PUTting an existing ACCOUNT_ID gets 409 AccountIdAlreadyExists and does not become a holder") {
+      val existingAccountId = "EXISTING_ACCOUNT_ID_V220"
+      val createdByUser1 = makePutRequest(
+        (v2_2Request / "banks" / testBankId1.value / "accounts" / existingAccountId).PUT <@ (user1),
+        write(createAccountBodyFor(resourceUser1.userId)))
+      createdByUser1.code should equal(200)
+
+      val attemptByUser2 = makePutRequest(
+        (v2_2Request / "banks" / testBankId1.value / "accounts" / existingAccountId).PUT <@ (user2),
+        write(createAccountBodyFor(resourceUser2.userId)))
+      attemptByUser2.code should equal(409)
+      (attemptByUser2.body \ "message").extract[String] should include(ErrorMessages.AccountIdAlreadyExists)
+
+      val holderUserIds = AccountHolders.accountHolders.vend
+        .getAccountHolders(testBankId1, AccountId(existingAccountId)).map(_.userId)
+      holderUserIds should contain(resourceUser1.userId)
+      holderUserIds should not contain(resourceUser2.userId)
+    }
+  }
 }

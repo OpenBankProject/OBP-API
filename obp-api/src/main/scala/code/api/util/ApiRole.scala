@@ -121,6 +121,10 @@ object ApiRole extends MdcLoggable{
   case class CanGetCustomersAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomersAtOneBank = CanGetCustomersAtOneBank()
   
+  // Reading every CRM event (customer name, number and the staff notes) at one bank.
+  case class CanGetCrmEvents(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCrmEvents = CanGetCrmEvents()
+
   case class CanGetCustomersMinimalAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomersMinimalAtOneBank = CanGetCustomersMinimalAtOneBank()
   
@@ -152,6 +156,10 @@ object ApiRole extends MdcLoggable{
   // ALL
   case class CanGetSystemLogCacheAll(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSystemLogCacheAll = CanGetSystemLogCacheAll()
+
+  // Calling waitingForGodot, a diagnostic endpoint that delays its response on request.
+  case class CanGetWaitingForGodot(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetWaitingForGodot = CanGetWaitingForGodot()
 
   case class CanUpdateAgentStatusAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAgentStatusAtAnyBank = CanUpdateAgentStatusAtAnyBank()
@@ -344,6 +352,9 @@ object ApiRole extends MdcLoggable{
 
   case class CanGetOidcClient(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetOidcClient = CanGetOidcClient()
+
+  case class CanGetOidcConsent(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetOidcConsent = CanGetOidcConsent()
 
   case class CanCreateTestEmail(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateTestEmail = CanCreateTestEmail()
@@ -569,6 +580,14 @@ object ApiRole extends MdcLoggable{
   case class CanGetTelemetry(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetTelemetry = CanGetTelemetry()
 
+  // What has been granted, across all Users and Consumers. CanGetReachableRoles shows only Role names,
+  // never who holds them, so it can be given to a code-review service; CanGetAllScopes shows the Consumers too.
+  case class CanGetAllScopes(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllScopes = CanGetAllScopes()
+
+  case class CanGetReachableRoles(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetReachableRoles = CanGetReachableRoles()
+
   // IP penalties restrict an address on the whole instance, which belongs to no bank, so these
   // Roles are held at the empty bank id.
   case class CanCreateIpPenalty(requiresBankId: Boolean = false) extends ApiRole
@@ -751,7 +770,9 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteUserAuthContext = CanDeleteUserAuthContext()
 
-  case class CanCreateUserAuthContextUpdate(requiresBankId: Boolean = false) extends ApiRole
+  // Starting a User Auth Context Update (which emails a challenge to a Customer of the bank). Held either by the
+  // App, as a Scope, or by the User, as an Entitlement, always at one bank.
+  case class CanCreateUserAuthContextUpdate(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateUserAuthContextUpdate = CanCreateUserAuthContextUpdate()
 
   case class CanGetTaxResidence(requiresBankId: Boolean = true) extends ApiRole

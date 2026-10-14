@@ -1559,6 +1559,49 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- CARD") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("A CARD payee must be a counterparty of the card's account", ApiEndpoint10) {}
+    } else {
+      scenario("A CARD payee must be a counterparty of the card's account", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        Given("a beneficiary counterparty that belongs to another account, not the card's")
+        val counterpartyOfAnotherAccount = createCounterparty(
+          helper.bankId.value, helper.accountId2.value, helper.accountId1.value, true, UUID.randomUUID.toString)
+        helper.transactionRequestBodyCard = helper.transactionRequestBodyCard.copy(
+          to = CounterpartyIdJson(counterpartyOfAnotherAccount.counterpartyId))
+
+        When("the card is charged with that payee")
+        val response = helper.makeCreateTransReqRequestCard
+
+        Then("it is refused as not found and no money moves")
+        response.code should equal(400)
+        (response.body \ "message").extract[String] should include(CounterpartyNotFoundByCounterpartyId)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("Charging a card needs access to the card's account", ApiEndpoint10) {}
+    } else {
+      scenario("Charging a card needs access to the card's account", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        When("a User with no view on the card's account presents the right card details")
+        val requestByUser2 = (v4_0_0_Request / "transaction-request-types" / "CARD" / "transaction-requests").POST <@ (user2)
+        val response = makePostRequest(requestByUser2, write(helper.transactionRequestBodyCard))
+
+        Then("it is refused and no money moves")
+        response.code should equal(400)
+        (response.body \ "message").extract[String] should include(InsufficientAuthorisationToCreateTransactionRequest)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint10) {}
     } else {
       scenario("No challenge, No FX ", ApiEndpoint10) {

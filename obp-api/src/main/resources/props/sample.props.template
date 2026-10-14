@@ -971,8 +971,21 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # Configure Bearer-JWT validation via the oauth2.* props further below
 # (oauth2.jwk_set.url, oauth2.keycloak.*, oauth2.obp_oidc.*).
 
+# The longest delay GET /obp/v5.1.0/waiting-for-godot?sleep=N will make, in milliseconds.
+# A larger requested value is reduced to this. (The endpoint also needs the Role CanGetWaitingForGodot.)
+#waiting_for_godot_max_sleep_in_milliseconds = 5000
+
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
+
+# Optional. Limits which hosts a Consumer redirect URL may point to.
+# Empty (the default) puts no limit on hosts: any host that passes the redirect URL rules
+# (https, http only for localhost, reverse-domain app schemes) is accepted.
+# When set: a comma-separated list of exact hosts (portal.example.com) or domains (.example.com,
+# which allows example.com and any host under it). The API's own host (hostname) is always included.
+# Checked when a Consumer redirect URL is created or updated. App schemes, Berlin Group dynamic
+# registration and TPP-Redirect-URI headers, and redirect URLs already stored are not affected.
+#redirect_url_allowed_hosts =
 
 # Autocomplete for login form has to be explicitly set
 autocomplete_at_login_form_enabled=false
@@ -1682,11 +1695,20 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 #berlin_group_mandatory_headers = Content-Type,Date,Digest,PSU-Device-ID,PSU-Device-Name,PSU-IP-Address,Signature,TPP-Signature-Certificate,X-Request-ID
 #berlin_group_mandatory_header_consent = TPP-Redirect-URI
 
+# Require the TPP signature to cover TPP-Redirect-URI and TPP-Nok-Redirect-URI whenever they are sent.
+# When true, the Signature header's headers list must include each of them that the request carries.
+#berlin_group_require_signed_tpp_redirect_uri = false
+
 ## Berlin Group Create Consent Frequency per Day Upper Limit
 #berlin_group_frequency_per_day_upper_limit = 4
 
 ## Berlin Group Create Consent ASPSP-SCA-Approach response header value
 #berlin_group_aspsp_sca_approach = redirect
+
+# Whether a Berlin Group signing basket may be authorised (PUT /signing-baskets/{basketId}/authorisations/{authorisationId}).
+# Default false: the call answers 403 SERVICE_BLOCKED. Answering the authorisation books the basket's payments one
+# after another. Creating, reading, starting an authorisation on and deleting baskets are not affected.
+#signing_basket_authorisation_enabled = false
 
 # Support multiple brands on one instance. Note this needs checking on a clustered environment
 #brands_enabled=false
@@ -1960,6 +1982,10 @@ user_account_is_validated = false
 # than 600 so successive runs drift across the wall clock instead of phase-locking
 # to every 10th minute and to other periodic schedulers.
 # retain_metrics_scheduler_interval_in_seconds = 599
+# The longest date range, in days, that one GET /management/aggregate-metrics call may cover.
+# An aggregate reads every metric row in its range, so the cost grows with the range; a
+# longer range is refused with 400. A call without from_date covers this many days.
+# aggregate_metrics_max_days = 31
 
 
 # Defines endpoints we want to store responses at Metric table

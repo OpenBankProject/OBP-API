@@ -357,6 +357,13 @@
       <version>1.17.1</version>
     </dependency>
     <!-- ********** flexmark END ********** -->
+    <!-- Cleans the HTML rendered from ResourceDoc and Glossary descriptions against an allowlist.
+         See PegdownOptions.sanitiseHtml. -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.18.3</version>
+    </dependency>
     <!--class scanning, replaces classutil for better Fat JAR support-->
     <dependency>
       <groupId>org.reflections</groupId>

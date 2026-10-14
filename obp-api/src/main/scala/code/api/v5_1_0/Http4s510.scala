@@ -147,8 +147,8 @@ object Http4s510 {
       ConsentStatus.REVOKED.toString
     )
 
-    // Used by lifted consumer-management endpoint descriptions.
-    private def consumerDisabledText(): String = {
+    // Used by lifted consumer-management endpoint descriptions (and their v7.0.0 versions).
+    def consumerDisabledText(): String = {
       if (APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) == false) {
         "Please note: Your consumer may be disabled as a result of this action."
       } else {
@@ -275,7 +275,8 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(httpParams, Some(cc))
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(limitedHttpParams, Some(cc))
             aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, true)
               .map(x => unboxFullOrFail(x, Some(cc), GetAggregateMetricsError))
           } yield createAggregateMetricJson(aggregateMetrics).headOption
@@ -296,7 +297,9 @@ object Http4s510 {
          |&verb=GET&anon=false&app_name=MapperPostman
          |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
          |
-         |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
+         |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
+         |
+         |1 from_date (defaults to ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days before to_date): eg:from_date=$DateWithMsExampleString
          |
          |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
          |
@@ -330,7 +333,7 @@ object Http4s510 {
          |
       """.stripMargin,
       EmptyBody, aggregateMetricsJSONV300,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, AggregateMetricsDateRangeTooLong, UnknownError),
       List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)),
       http4sPartialFunction = Some(getAggregateMetrics)
@@ -655,6 +658,7 @@ object Http4s510 {
               (js, appType)
             }
             (postedJson, appType) = tup
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postedJson.redirect_url, Some(cc))
             (consumer, _) <- createConsumerNewStyle(
               key = Some(Helpers.randomString(40).toLowerCase),
               secret = Some(Helpers.randomString(40).toLowerCase),
@@ -673,6 +677,13 @@ object Http4s510 {
           } yield JSONFactory510.createConsumerJsonOnlyForPostResponseV510(consumer, None)
         }
     }
+
+    // For the Consumer docs that take a redirect_url: the rules it must meet and this instance's host list.
+    val redirectUrlRulesText =
+      s"""**redirect_url** must meet the redirect URL rules (https; http only for localhost; or an app scheme in
+      |reverse-domain form; no wildcard, user information or fragment). ${code.api.util.RedirectUrlValidation.allowedHostsDescription}
+      |See ${Glossary.getGlossaryItemLink("Redirect URL")}
+      |""".stripMargin
 
     // For the Create Consumer docs: how an app the installation runs itself gets the Roles its own calls need.
     private val platformAppConsumerText =
@@ -767,6 +778,8 @@ object Http4s510 {
       |
       |**Important**: The key and secret are only shown once in the response. Save them securely as they cannot be retrieved later.
       |
+      |$redirectUrlRulesText
+      |
       |$platformAppConsumerText
       |
       |${consumerDisabledText()}
@@ -776,7 +789,7 @@ object Http4s510 {
       |""",
       createConsumerRequestJsonV510,
       consumerJsonOnlyForPostResponseV510,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)),
       authMode = UserOrApplication,
@@ -827,6 +840,8 @@ object Http4s510 {
       implementedInApiVersion, nameOf(getConsumers), "GET",
       "/management/consumers", "Get Consumers",
       s"""Get the all Consumers.
+      |
+      |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. Get Consumers v7.0.0 leaves the field out.
       |
       |${userAuthenticationMessage(true)}
       |
@@ -1350,14 +1365,24 @@ object Http4s510 {
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
+    // The longest delay waitingForGodot will make. Even with the Role required, an unbounded delay would let
+    // one caller hold requests open for as long as they liked.
+    private def waitingForGodotMaxSleepInMilliseconds: Long =
+      APIUtil.getPropsAsLongValue("waiting_for_godot_max_sleep_in_milliseconds", 5000L).max(0L)
+
     val waitingForGodot: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "waiting-for-godot" =>
-        EndpointHelpers.executeFuture(req) {
-          val sleep = req.uri.query.params.get("sleep").getOrElse("0")
-          val sleepInMillis: Long = scala.util.Try(sleep.trim.toLong).getOrElse(0L)
-          for { _ <- Future(Thread.sleep(sleepInMillis)) }
-            yield JSONFactory510.waitingForGodot(sleepInMillis)
-        }
+        val requested = req.uri.query.params.get("sleep").getOrElse("0")
+        // Clamped to [0, max]: a negative value used to reach Thread.sleep and fail with a 500.
+        val sleepInMillis: Long = scala.util.Try(requested.trim.toLong).getOrElse(0L)
+          .max(0L).min(waitingForGodotMaxSleepInMilliseconds)
+        // IO.sleep waits on the cats-effect timer without occupying a thread. The old
+        // Future(Thread.sleep(...)) blocked a thread of the shared global pool (one thread per core)
+        // for the whole delay, so a few concurrent calls stopped every other endpoint using that pool.
+        IO.sleep(scala.concurrent.duration.Duration(sleepInMillis, java.util.concurrent.TimeUnit.MILLISECONDS)) *>
+          EndpointHelpers.executeFuture(req) {
+            Future.successful(JSONFactory510.waitingForGodot(sleepInMillis))
+          }
     }
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
@@ -1365,16 +1390,23 @@ object Http4s510 {
       "GET",
       "/waiting-for-godot",
       "Waiting For Godot",
-      """Waiting For Godot
+      s"""Waiting For Godot
+      |
+      |A diagnostic endpoint for testing how clients, proxies and gateways handle a slow response.
+      |
+      |Authentication is Required, and the User needs the Role CanGetWaitingForGodot.
       |
       |Uses query parameter "sleep" in milliseconds.
       |For instance: .../waiting-for-godot?sleep=50 means postpone response in 50 milliseconds.
+      |
+      |On this instance the delay is at most ${waitingForGodotMaxSleepInMilliseconds} milliseconds: a larger value is reduced to that,
+      |and a negative or unreadable value counts as 0. The response reports the delay actually made.
       |""".stripMargin,
       EmptyBody,
       WaitingForGodotJsonV510(sleep_in_milliseconds = 50),
-      List(UnknownError, MandatoryPropertyIsNotSet),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagApi :: Nil,
-      None,
+      Some(List(canGetWaitingForGodot)),
       http4sPartialFunction = Some(waitingForGodot)
     )
 
@@ -2861,10 +2893,6 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            _ <- APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) match {
-              case true  => Future.successful(Full(()))
-              case false => NewStyle.function.hasEntitlement("", user.userId, ApiRole.canUpdateConsumerRedirectUrl, Some(cc))
-            }
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerRedirectUrlJSON]
             }
@@ -2872,12 +2900,13 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(UserNoPermissionUpdateConsumer, 400, Some(cc)) {
               consumer.createdByUserId.equals(user.userId)
             }
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postJson.redirect_url, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id = consumer.id.get,
               isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
               redirectURL = Some(postJson.redirect_url),
               callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2888,16 +2917,19 @@ object Http4s510 {
       "Update Consumer RedirectURL",
       s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
         |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
+        |
         | ${consumerDisabledText()}
         |
         | CONSUMER_ID can be obtained after you register the application.
         |
         | Or use the endpoint 'Get Consumers' to get it
         |
+        |$redirectUrlRulesText
       """.stripMargin,
       consumerRedirectUrlJSON,
       consumerJSON,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
       Some(List(canUpdateConsumerRedirectUrl)),
       http4sPartialFunction = Some(updateConsumerRedirectURL)
@@ -2914,7 +2946,7 @@ object Http4s510 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2924,6 +2956,8 @@ object Http4s510 {
       "/management/consumers/CONSUMER_ID/consumer/logo_url",
       "Update Consumer LogoURL",
       s"""Update an existing logoURL for a Consumer specified by CONSUMER_ID.
+        |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
         |
         | ${consumerDisabledText()}
         |
@@ -2951,7 +2985,7 @@ object Http4s510 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2961,6 +2995,8 @@ object Http4s510 {
       "/management/consumers/CONSUMER_ID/consumer/certificate",
       "Update Consumer Certificate",
       s"""Update a Certificate for a Consumer specified by CONSUMER_ID.
+        |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
         |
         | ${consumerDisabledText()}
         |
@@ -2988,7 +3024,7 @@ object Http4s510 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
               id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
-          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+          } yield JSONFactory510.createRedactedConsumerJSON(updatedConsumer)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2998,6 +3034,8 @@ object Http4s510 {
       "/management/consumers/CONSUMER_ID/consumer/name",
       "Update Consumer Name",
       s"""Update an existing name for a Consumer specified by CONSUMER_ID.
+        |
+        |`consumer_key` is returned as `${APIUtil.RedactedConsumerKey}`: the key is a credential. The v7.0.0 version leaves the field out.
         |
         | ${consumerDisabledText()}
         |
@@ -3056,6 +3094,7 @@ object Http4s510 {
               (js, appType)
             }
             (postedJson, appType) = tup
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postedJson.redirect_url, Some(cc))
             (consumer, _) <- createConsumerNewStyle(
               key = Some(Helpers.randomString(40).toLowerCase),
               secret = Some(Helpers.randomString(40).toLowerCase),
@@ -3082,11 +3121,13 @@ object Http4s510 {
       "Create a Consumer",
       s"""Create a Consumer (Authenticated access).
       |
+      |$redirectUrlRulesText
+      |
       |$platformAppConsumerText
       |""",
       createConsumerRequestJsonV510,
       consumerJsonV510,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
       None,
       http4sPartialFunction = Some(createMyConsumer)
@@ -3145,6 +3186,8 @@ object Http4s510 {
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(JwtUtil.getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
             }
+            // TPPs register their own domains, so this instance's redirect URL host list does not apply here.
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postedJson.redirect_url.getOrElse(""), Some(cc), applyHostList = false)
             certificateInfo: CertificateInfoJsonV510 <- Future(X509.getCertificateInfo(pem))
               .map(unboxFullOrFail(_, Some(cc), X509GeneralError))
             _ <- Helper.booleanToFuture(RegulatedEntityNotFoundByCertificate, 400, Some(cc)) {
@@ -3265,7 +3308,7 @@ object Http4s510 {
       |""",
       ConsumerJwtPostJsonV510("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXNjcmlwdGlvbiI6IlRQUCBkZXNjcmlwdGlvbiJ9.c5gPPsyUmnVW774y7h2xyLXg0wdtu25nbU2AvOmyzcWa7JTdCKuuy3CblxueGwqYkQDDQIya1Qny4blyAvh_a1Q28LgzEKBcH7Em9FZXerhkvR9v4FWbCC5AgNLdQ7sR8-rUQdShmJcGDKdVmsZjuO4XhY2Zx0nFnkcvYfsU9bccoAvkKpVJATXzwBqdoEOuFlplnbxsMH1wWbAd3hbcPPWTdvO43xavNZTB5ybgrXVDEYjw8D-98_ZkqxS0vfvhJ4cGefHViaFzp6zXm7msdBpcE__O9rFbdl9Gvup_bsMbrHJioIrmc2d15Yc-tTNTF9J4qjD_lNxMRlx5o2TZEw"),
       consumerJsonV510,
-      List(InvalidJsonFormat, UnknownError),
+      List(InvalidJsonFormat, InvalidRedirectUrl, UnknownError),
       List(apiTagDirectory, apiTagConsumer),
       Some(Nil),
       http4sPartialFunction = Some(createConsumerDynamicRegistration)

@@ -33,7 +33,7 @@ import cats.effect._
 import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{EmptyBody, _}
+import code.api.util.APIUtil.{Http4sRoute, EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
 import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
@@ -818,6 +818,233 @@ object Http4s700 {
       None,
       authMode = UserOrApplication,
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
+    )
+
+    // Route: GET /obp/v7.0.0/management/consumers
+    // Same list as v5.1.0 Get Consumers without consumer_key: the key is a credential, the list references Consumers by consumer_id.
+    val getConsumers: Http4sRoute = Http4sRoute {
+      case req @ GET -> `prefixPath` / "management" / "consumers" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            consumers <- code.consumer.Consumers.consumers.vend.getConsumersFuture(obpQueryParams, Some(cc))
+          } yield JSONFactory700.createConsumersJsonV700(consumers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumers),
+      "GET",
+      "/management/consumers",
+      "Get Consumers",
+      s"""Get all Consumers.
+        |
+        |The response has no `consumer_key`: the key is a credential. Refer to a Consumer by its `consumer_id`.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |${urlParametersDocument(true, true)}
+        |
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.consumersJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canGetConsumers)),
+      authMode = UserOrApplication,
+      http4sPartialFunction = Some(getConsumers)
+    )
+
+    // Route: GET /obp/v7.0.0/management/consumers/CONSUMER_ID
+    // v6.0.0 Get Consumer without consumer_key.
+    val getConsumer: Http4sRoute = Http4sRoute {
+      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: CallContext = req.callContext
+          for {
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            callCounters <- Future(code.api.util.RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            date = new java.util.Date()
+            (activeRateLimit, rateLimitIds) <- code.api.util.RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+          } yield JSONFactory700.createConsumerDetailsJsonV700(
+            JSONFactory600.createConsumerJsonV600(
+              consumer,
+              None,
+              JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, rateLimitIds, date),
+              JSONFactory600.createRedisCallCountersJson(callCounters)
+            )
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumer),
+      "GET",
+      "/management/consumers/CONSUMER_ID",
+      "Get Consumer",
+      s"""Get the Consumer specified by CONSUMER_ID, with its active rate limits and current call counters.
+        |
+        |The response has no `consumer_key` and no `consumer_secret`: both are credentials.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.consumerDetailsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canGetConsumers)),
+      http4sPartialFunction = Some(getConsumer)
+    )
+
+    // The four Consumer field updates share everything but the field: read the body, find the Consumer,
+    // apply the change, answer without the key.
+    private def updateConsumerField[T: Manifest](req: Request[IO], consumerId: String)(
+      update: (T, code.model.Consumer, CallContext) => Future[code.model.Consumer]
+    ): IO[Response[IO]] =
+      EndpointHelpers.executeFuture(req) {
+        implicit val cc: CallContext = req.callContext
+        for {
+          postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+            com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[T]
+          }
+          consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+          updatedConsumer <- update(postJson, consumer, cc)
+        } yield JSONFactory700.createConsumerJsonV700(updatedConsumer)
+      }
+
+    private val updateConsumerNoKeyText = "The response has no `consumer_key`: the key is a credential."
+    private val Implementations5_1_0 = code.api.v5_1_0.Http4s510.Implementations5_1_0
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/redirect_url
+    val updateConsumerRedirectURL: Http4sRoute = Http4sRoute {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "redirect_url" =>
+        updateConsumerField[code.api.v2_1_0.ConsumerRedirectUrlJSON](req, consumerId) { (postJson, consumer, cc) =>
+          implicit val callContext: CallContext = cc
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            _ <- Helper.booleanToFuture(UserNoPermissionUpdateConsumer, 400, Some(cc)) {
+              consumer.createdByUserId.equals(user.userId)
+            }
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postJson.redirect_url, Some(cc))
+            updatedConsumer <- NewStyle.function.updateConsumer(
+              id = consumer.id.get,
+              isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
+              redirectURL = Some(postJson.redirect_url),
+              callContext = Some(cc))
+          } yield updatedConsumer
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerRedirectURL),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/redirect_url",
+      "Update Consumer RedirectURL",
+      s"""Update the redirect URL of the Consumer specified by CONSUMER_ID. Only the user who created the Consumer may change it.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |
+        |${Implementations5_1_0.redirectUrlRulesText}
+        |""".stripMargin,
+      consumerRedirectUrlJSON,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId,
+        UserNoPermissionUpdateConsumer, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerRedirectUrl)),
+      http4sPartialFunction = Some(updateConsumerRedirectURL)
+    )
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/logo_url
+    val updateConsumerLogoURL: Http4sRoute = Http4sRoute {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "logo_url" =>
+        updateConsumerField[code.api.v5_1_0.ConsumerLogoUrlJson](req, consumerId) { (postJson, consumer, cc) =>
+          NewStyle.function.updateConsumer(id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerLogoURL),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/logo_url",
+      "Update Consumer LogoURL",
+      s"""Update the logo URL of the Consumer specified by CONSUMER_ID.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |""".stripMargin,
+      consumerLogoUrlJson,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerLogoUrl)),
+      http4sPartialFunction = Some(updateConsumerLogoURL)
+    )
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/certificate
+    val updateConsumerCertificate: Http4sRoute = Http4sRoute {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "certificate" =>
+        updateConsumerField[code.api.v5_1_0.ConsumerCertificateJson](req, consumerId) { (postJson, consumer, cc) =>
+          NewStyle.function.updateConsumer(id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerCertificate),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/certificate",
+      "Update Consumer Certificate",
+      s"""Update the certificate of the Consumer specified by CONSUMER_ID.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |""".stripMargin,
+      consumerCertificateJson,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerCertificate)),
+      http4sPartialFunction = Some(updateConsumerCertificate)
+    )
+
+    // Route: PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/name
+    val updateConsumerName: Http4sRoute = Http4sRoute {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "name" =>
+        updateConsumerField[code.api.v5_1_0.ConsumerNameJson](req, consumerId) { (postJson, consumer, cc) =>
+          NewStyle.function.updateConsumer(id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(updateConsumerName),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/name",
+      "Update Consumer Name",
+      s"""Update the name of the Consumer specified by CONSUMER_ID.
+        |
+        |${Implementations5_1_0.consumerDisabledText()}
+        |
+        |$updateConsumerNoKeyText
+        |""".stripMargin,
+      consumerNameJson,
+      JSONFactory700.consumersJsonV700Example.consumers.head,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ConsumerNotFoundByConsumerId, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(List(ApiRole.canUpdateConsumerName)),
+      http4sPartialFunction = Some(updateConsumerName)
     )
 
     // Route: GET /obp/v7.0.0/consumers/current/scopes
@@ -1605,6 +1832,51 @@ object Http4s700 {
       apiTagMetric :: apiTagApi :: Nil,
       Some(canReadMetrics :: Nil),
       http4sPartialFunction = Some(getTopConsumers)
+    )
+
+    // ─── getConsumerLastCalls ─────────────────────────────────────────────────────
+    // Read from Redis only (code.metrics.ConsumerLastCall), so it costs one HGETALL whatever the
+    // metric table holds. Without Redis the list is empty rather than an error.
+
+    val getConsumerLastCalls: Http4sRoute = Http4sRoute {
+      case req @ GET -> `prefixPath` / "management" / "metrics" / "consumer-last-calls" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val lastCalls =
+              try code.metrics.ConsumerLastCall.getAll()
+              catch {
+                case scala.util.control.NonFatal(e) =>
+                  logger.warn(s"getConsumerLastCalls says: Redis read failed: ${e.getMessage}")
+                  code.metrics.ConsumerLastCall.LastCalls(None, Map.empty)
+              }
+            JSONFactory700.createConsumerLastCallsJsonV700(lastCalls)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getConsumerLastCalls),
+      "GET",
+      "/management/metrics/consumer-last-calls",
+      "Get Consumer Last Calls",
+      s"""When each Consumer last called the API, most recent first.
+        |
+        |Kept in Redis, not in the metric table, so it is cheap to read for every Consumer at once. Each node records a
+        |Consumer at most once a minute, so `last_call_at` can be up to a minute early. The data is lost when Redis
+        |restarts: `tracked_since` is when recording began, and a Consumer that is not listed has made no call since then.
+        |`tracked_since` is null when nothing has been recorded yet, or Redis is not available.
+        |
+        |Recorded whether or not `write_metrics` is on.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.consumerLastCallsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagMetric :: apiTagConsumer :: Nil,
+      Some(canReadMetrics :: Nil),
+      http4sPartialFunction = Some(getConsumerLastCalls)
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────
@@ -3710,26 +3982,45 @@ object Http4s700 {
     private def normaliseGlossaryTitle(title: String): String =
       Option(title).getOrElse("").trim.toLowerCase.replaceAll("[-_/\\s]+", " ")
 
-    // Rendering every Item through Pegdown is too expensive to do per request, and a lazy val
-    // would never pick up a Dynamic Glossary Item change, so the merged Glossary is cached against
-    // the Dynamic Item watermark. Each entry keeps the database row it came from, so one lookup
-    // serves both the Glossary and a single Item without going back to the table.
-    private type GlossaryEntry = (Glossary.GlossaryItem, Option[code.glossaryitem.DynamicGlossaryItemTrait])
+    // Rendering every Item through Pegdown is too expensive to do per request: expanding the
+    // placeholders (which can inline whole other Items) and converting the markdown to HTML for
+    // the whole Glossary took several seconds a call in production. A lazy val would never pick
+    // up a Dynamic Glossary Item change, so the merged Glossary, already expanded and rendered,
+    // is cached against the Glossary version token. That token covers the Dynamic Item watermark
+    // and the glossary cache namespace; the first is re-read every ten minutes and the second every ten seconds.
+    // Each entry keeps the database row it came from, so one lookup serves both the Glossary and
+    // a single Item without going back to the table.
+    private case class GlossaryEntry(
+        item: Glossary.GlossaryItem,
+        meta: Option[code.glossaryitem.DynamicGlossaryItemTrait],
+        expandedDescription: JSONFactory700.GlossaryItemDescriptionJsonV700
+    )
 
     private val cachedGlossaryEntries =
       new java.util.concurrent.atomic.AtomicReference[Option[(String, List[GlossaryEntry])]](None)
 
     private def glossaryEntries: List[GlossaryEntry] = {
-      val version = Glossary.dynamicGlossaryItemsVersion
+      val version = Glossary.glossaryVersionForCacheKey
       cachedGlossaryEntries.get() match {
         case Some((cachedVersion, entries)) if cachedVersion == version => entries
         case _ =>
-          val rowsByTitle = DynamicGlossaryItems.dynamicGlossaryItem.vend.getAllDynamicGlossaryItems
-            .map(_.map(row => row.title.toLowerCase -> row).toMap)
-            .getOrElse(Map.empty[String, code.glossaryitem.DynamicGlossaryItemTrait])
-          val entries = APIUtil.getGlossaryItems.map(item => (item, rowsByTitle.get(item.title.toLowerCase)))
-          cachedGlossaryEntries.set(Some((version, entries)))
-          entries
+          // One request builds the Glossary while the others wait for it, rather than every
+          // request that arrives during a rebuild rendering the whole Glossary again itself.
+          cachedGlossaryEntries.synchronized {
+            cachedGlossaryEntries.get() match {
+              case Some((cachedVersion, entries)) if cachedVersion == version => entries
+              case _ =>
+                val rowsByTitle = DynamicGlossaryItems.dynamicGlossaryItem.vend.getAllDynamicGlossaryItems
+                  .map(_.map(row => row.title.toLowerCase -> row).toMap)
+                  .getOrElse(Map.empty[String, code.glossaryitem.DynamicGlossaryItemTrait])
+                val entries = APIUtil.getGlossaryItems.map { item =>
+                  GlossaryEntry(item, rowsByTitle.get(item.title.toLowerCase),
+                    JSONFactory700.createGlossaryItemDescriptionJsonV700(item, expanded = true))
+                }
+                cachedGlossaryEntries.set(Some((version, entries)))
+                entries
+            }
+          }
       }
     }
 
@@ -3760,7 +4051,8 @@ object Http4s700 {
             // alone found nothing at all. Every word must appear somewhere in the Item, and the
             // Items whose titles hold all of them are listed first, so an exact title still leads.
             val searchWords: List[String] = search.toList.flatMap(_.split("\\s+")).filter(_.nonEmpty)
-            val inSource = glossaryEntries.filter { case (item, _) =>
+            val inSource = glossaryEntries.filter { entry =>
+              val item = entry.item
               source match {
                 case "static"  => !item.isDynamic
                 case "dynamic" => item.isDynamic
@@ -3770,11 +4062,11 @@ object Http4s700 {
             val matching =
               if (searchWords.isEmpty) inSource
               else {
-                val (titleMatches, bodyMatches) = inSource.filter { case (item, _) =>
-                  val titleAndText = s"${item.title}\n${item.textDescription}".toLowerCase
+                val (titleMatches, bodyMatches) = inSource.filter { entry =>
+                  val titleAndText = s"${entry.item.title}\n${entry.item.textDescription}".toLowerCase
                   searchWords.forall(titleAndText.contains)
-                }.partition { case (item, _) =>
-                  val title = item.title.toLowerCase
+                }.partition { entry =>
+                  val title = entry.item.title.toLowerCase
                   searchWords.forall(title.contains)
                 }
                 titleMatches ++ bodyMatches
@@ -3785,8 +4077,9 @@ object Http4s700 {
               case None    => matching
             }
             JSONFactory700.createGlossaryJsonV700(
-              page.map { case (item, meta) =>
-                JSONFactory700.createServedGlossaryItemJsonV700(item, meta, expanded = true, includeAuthor = cc.user.isDefined)
+              page.map { entry =>
+                JSONFactory700.createServedGlossaryItemJsonV700(entry.item, entry.meta, entry.expandedDescription,
+                  includeAuthor = cc.user.isDefined)
               },
               totalCount = matching.size
             )
@@ -3860,9 +4153,15 @@ object Http4s700 {
             // Glossary itself, so this always answers with the text the Glossary is serving.
             json <- Future {
               val wanted = normaliseGlossaryTitle(titleSegment)
-              Box(glossaryEntries.find { case (item, _) => normaliseGlossaryTitle(item.title) == wanted }
-                .map { case (item, meta) =>
-                  JSONFactory700.createServedGlossaryItemJsonV700(item, meta, expanded, includeAuthor = cc.user.isDefined)
+              Box(glossaryEntries.find(entry => normaliseGlossaryTitle(entry.item.title) == wanted)
+                .map { entry =>
+                  // The expanded text is already rendered in the cache; the text as authored is
+                  // asked for rarely (by an editor) and is one Item, so it is rendered here.
+                  val description =
+                    if (expanded) entry.expandedDescription
+                    else JSONFactory700.createGlossaryItemDescriptionJsonV700(entry.item, expanded = false)
+                  JSONFactory700.createServedGlossaryItemJsonV700(entry.item, entry.meta, description,
+                    includeAuthor = cc.user.isDefined)
                 })
             }.map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
           } yield json
@@ -3934,8 +4233,8 @@ object Http4s700 {
                 createdByUserId = user.userId
               )
             }.map(unboxFullOrFail(_, Some(cc), CreateGlossaryItemError, 400))
-            // Reflect the write on this node at once; other nodes pick it up via the watermark.
-            _ = Glossary.invalidateGlossaryItemCache()
+            // Reflect the write on every node within ten seconds of the commit.
+            _ = Glossary.dynamicGlossaryItemsChanged()
           } yield JSONFactory700.createGlossaryItemJsonV700(created)
         }
     }
@@ -3993,7 +4292,7 @@ object Http4s700 {
               DynamicGlossaryItems.dynamicGlossaryItem.vend.updateDynamicGlossaryItem(
                 titleSegment, body.description, body.overrides_static_item)
             }.map(unboxFullOrFail(_, Some(cc), UpdateGlossaryItemError, 400))
-            _ = Glossary.invalidateGlossaryItemCache()
+            _ = Glossary.dynamicGlossaryItemsChanged()
           } yield JSONFactory700.createGlossaryItemJsonV700(updated)
         }
     }
@@ -4046,7 +4345,7 @@ object Http4s700 {
               .map(unboxFullOrFail(_, Some(cc), GlossaryItemNotFound, 404))
             _ <- Future(DynamicGlossaryItems.dynamicGlossaryItem.vend.deleteDynamicGlossaryItem(titleSegment))
               .map(unboxFullOrFail(_, Some(cc), DeleteGlossaryItemError, 400))
-            _ = Glossary.invalidateGlossaryItemCache()
+            _ = Glossary.dynamicGlossaryItemsChanged()
           } yield ()
         }
     }
@@ -7461,6 +7760,12 @@ object Http4s700 {
     // Telemetry, for people; Prometheus reads the separate Telemetry port instead.
     resourceDocs ++= Http4s700Telemetry.resourceDocs
 
+    // What has been granted across all Users and Consumers: every Scope, and the Role names anyone holds.
+    resourceDocs ++= Http4s700Grants.resourceDocs
+
+    // One Role as the caller holds it, for services that guard their own data with OBP Roles.
+    resourceDocs ++= Http4s700MyRoles.resourceDocs
+
     // IP penalties: an operator's temporary per-minute limit on one address.
     resourceDocs ++= Http4s700IpPenalties.resourceDocs
 
@@ -7481,6 +7786,9 @@ object Http4s700 {
 
     // The asset registry: the currencies, metals, accounting units, crypto assets and bank-issued assets amounts are held in.
     resourceDocs ++= Http4s700Assets.resourceDocs
+
+    // What an OIDC provider reads from OBP-API to finish signing a User in for a Consumer.
+    resourceDocs ++= Http4s700OpenIdConnect.resourceDocs
 
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request

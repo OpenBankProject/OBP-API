@@ -79,6 +79,7 @@ import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model._
+import code.context.UserAuthContextUpdateProvider
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{SuppliedAnswerType, _}
@@ -933,10 +934,18 @@ object NewStyle extends MdcLoggable{
       } map { unboxFull(_) }
     }
 
-    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    /**
+     * This returns the counterparty COUNTERPARTY_ID only if it belongs to the account BANK_ID / ACCOUNT_ID.
+     * A counterparty id is unique on its own, but the caller's access is checked for one account, so a
+     * counterparty of any other account must be treated as not found. The check is made here, whatever
+     * the connector returns, so that every endpoint which names a bank and account is held to them.
+     */
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] =
     {
       Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+        val counterpartyOfThisAccount = i._1.filter(counterparty =>
+          counterparty.thisBankId == bankId.value && counterparty.thisAccountId == accountId.value)
+        (unboxFullOrFail(counterpartyOfThisAccount, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
           i._2)
       }
     }
@@ -3544,6 +3553,20 @@ object NewStyle extends MdcLoggable{
       Constant.incrementCacheNamespaceVersion(Constant.RD_ALL_NAMESPACE)
     }
 
+    /**
+     * This says whether a new Dynamic Entity name is allowed in every API version: it may not contain a
+     * hyphen or any whitespace. A Domain API reads a hyphen in an entity-name segment of its URLs as an
+     * underscore, so a name with a hyphen could be confused with the name that has an underscore there.
+     * v6.0.0 and later also require lowercase snake_case; v4.0.0 still accepts other letters and digits.
+     * Entities created before this rule keep their names, and only a new or changed name is checked.
+     */
+    private def dynamicEntityNameIsAllowed(entityName: String): Boolean =
+      !entityName.exists(character => character == '-' || character.isWhitespace)
+
+    private def refuseDynamicEntityName(entityName: String, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] =
+      Helper.booleanToFuture(s"$DynamicEntityNameHasHyphenOrSpace Current value: '$entityName'", 400, cc=callContext)(false)
+        .map(_.asInstanceOf[Box[DynamicEntityT]])
+
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
       val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
 
@@ -3556,7 +3579,11 @@ object NewStyle extends MdcLoggable{
         return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
-      val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+      if (!dynamicEntityNameIsAllowed(dynamicEntity.entityName)) {
+        return refuseDynamicEntityName(dynamicEntity.entityName, callContext)
+      }
+
+      val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName, None)
       if (ambiguities.nonEmpty) {
         return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
@@ -3591,9 +3618,12 @@ object NewStyle extends MdcLoggable{
           return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
         }
 
-        // Only a new name is checked, so an entity caught in an ambiguity that predates the rule can
-        // still have its definition changed.
-        val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName)
+        // Only a new name is checked, so an entity caught in an ambiguity that predates the rule, or named
+        // with a hyphen before hyphens were refused, can still have its definition changed.
+        if (!dynamicEntityNameIsAllowed(dynamicEntity.entityName)) {
+          return refuseDynamicEntityName(dynamicEntity.entityName, callContext)
+        }
+        val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName, Some(originEntityName))
         if (ambiguities.nonEmpty) {
           return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
         }
@@ -4704,6 +4734,61 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
+    }
+
+    /**
+     * This checks that a User Auth Context Update may be requested at the bank bankId. A request emails a challenge
+     * to a Customer of that bank, so it must come from an App the bank has granted the Scope
+     * CanCreateUserAuthContextUpdate, or from a User it has granted the Role CanCreateUserAuthContextUpdate, in
+     * both cases at that bank. Either is enough. The check applies whatever the instance's scope settings are.
+     */
+    def checkCanRequestUserAuthContextUpdate(bankId: BankId, user: User, callContext: Option[CallContext]): Future[Box[Unit]] = {
+      val role = ApiRole.canCreateUserAuthContextUpdate
+      Helper.booleanToFuture(
+        s"$ConsumerHasMissingRoles $role at bank ${bankId.value}, and the User does not have the Role $role there either.",
+        failCode = 403, cc = callContext) {
+        APIUtil.hasScope(bankId.value, APIUtil.getConsumerPrimaryKey(callContext), role) ||
+          APIUtil.hasEntitlement(bankId.value, user.userId, role)
+      }
+    }
+
+    /**
+     * This answers the challenge of a User Auth Context Update on behalf of the User who requested it, and is
+     * shared by the v3.1.0 and v5.0.0 answer endpoints.
+     *
+     * The update must belong to the answering User and have been requested at the bank bankId. Otherwise any
+     * logged-in User could answer, or simply use up, the challenge of someone else's update, and a User who
+     * answered correctly for a CUSTOMER_NUMBER at one bank could be linked to the Customer with the same number at
+     * another bank. An update of another User or another bank is reported exactly like one that does not exist,
+     * and is checked before the answer, so its challenge is not used up. Only an ACCEPTED answer (the right one-time password) has any effect: it creates the User Auth
+     * Context and, for the key CUSTOMER_NUMBER, links the User to the Customer with that number at the bank. A
+     * REJECTED answer changes nothing, so a wrong answer can never link a User to someone else's Customer.
+     */
+    def answerUserAuthContextUpdateChallenge(
+      bankId: BankId,
+      authContextUpdateId: String,
+      answer: String,
+      answeringUser: User,
+      callContext: Option[CallContext]
+    ): OBPReturnType[UserAuthContextUpdate] = {
+      for {
+        _ <- Helper.booleanToFuture(UserAuthContextUpdateNotFound, cc = callContext) {
+          UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+            .getUserAuthContextUpdateOfUserAtBank(authContextUpdateId, answeringUser.userId, bankId.value).isDefined
+        }
+        (userAuthContextUpdate, callContext) <- checkAnswer(authContextUpdateId, answer, callContext)
+        callContext <- if (userAuthContextUpdate.status == UserAuthContextUpdateStatus.ACCEPTED.toString) {
+          val key = userAuthContextUpdate.key.trim
+          val value = userAuthContextUpdate.value.trim
+          for {
+            (_, callContext) <- createUserAuthContext(answeringUser, key, value, callContext)
+            callContext <- key match {
+              case "CUSTOMER_NUMBER" => getOCreateUserCustomerLink(bankId, value, answeringUser.userId, callContext).map(_._2)
+              case _ => Future.successful(callContext)
+            }
+          } yield callContext
+        } else Future.successful(callContext)
+      } yield (userAuthContextUpdate, callContext)
     }
 
     def sendCustomerNotification(

@@ -175,41 +175,87 @@ object Glossary extends MdcLoggable  {
 
 	// Expansion runs once per Resource Doc per Resource Doc cache TTL, and a cold cache expands
 	// hundreds of docs in one burst, so they share a lookup map rather than each reading the
-	// database. The map is keyed on the Dynamic Glossary Item watermark, and the watermark itself
-	// is re-read at most once a second.
-	private val GlossaryCacheRecheckMillis = 1000L
-	private val cachedItemsByTitle =
-		new java.util.concurrent.atomic.AtomicReference[(Long, String, Map[String, GlossaryItem])]((0L, "", Map.empty))
+	// database. The map is keyed on two versions, checked on different schedules:
+	//  - the glossary cache namespace counter, a Redis read, at most once every ten seconds. Every
+	//    Dynamic Glossary Item write bumps it (see dynamicGlossaryItemsChanged), as does the cache
+	//    page in API Manager, so a change reaches every node within those ten seconds.
+	//  - the Dynamic Glossary Item watermark, a database read, at most once every ten minutes. This
+	//    is the fallback for when the bump could not be made, for example with Redis unreachable.
+	private val GlossaryWatermarkRecheckMillis = 600000L
+	private val GlossaryNamespaceRecheckMillis = 10000L
+
+	/**
+	 * This holds the Glossary lookup map together with the two versions it was built from and
+	 * when each version was last read. A watermarkCheckedAt of 0 means nothing has been built yet.
+	 */
+	private case class GlossaryCacheState(
+		watermarkCheckedAt: Long,
+		watermark: String,
+		namespaceCheckedAt: Long,
+		namespaceVersion: Long,
+		itemsByTitle: Map[String, GlossaryItem]
+	) {
+		def token: String = s"$watermark-ns$namespaceVersion"
+	}
+
+	private val EmptyGlossaryCacheState = GlossaryCacheState(0L, "", 0L, 0L, Map.empty)
+
+	private val cachedGlossaryState =
+		new java.util.concurrent.atomic.AtomicReference[GlossaryCacheState](EmptyGlossaryCacheState)
 
 	/**
 	 * Drops the placeholder lookup cache so a write made on this node is reflected at once, rather
 	 * than on the next watermark re-read. Other nodes still pick the write up via the watermark.
 	 */
-	def invalidateGlossaryItemCache(): Unit = cachedItemsByTitle.set((0L, "", Map.empty))
+	def invalidateGlossaryItemCache(): Unit = cachedGlossaryState.set(EmptyGlossaryCacheState)
+
+	/**
+	 * Call this after creating, updating or deleting a Dynamic Glossary Item. It bumps the glossary
+	 * cache namespace, which every node re-reads every ten seconds, so all of them serve the change
+	 * within that time instead of waiting for the ten-minute watermark check. This node's own cache
+	 * is dropped at once.
+	 *
+	 * Both happen only after the request's transaction has committed. Done earlier, a node could
+	 * see the bump, read the Glossary before the write was visible, and keep the old text until
+	 * its next watermark check.
+	 */
+	def dynamicGlossaryItemsChanged(): Unit =
+		code.api.util.http4s.RequestScopeConnection.afterCommit {
+			code.api.Constant.incrementCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE)
+			invalidateGlossaryItemCache()
+		}
 
 	private def glossaryState: (String, Map[String, GlossaryItem]) = {
 		val now = System.currentTimeMillis
-		val (checkedAt, version, byTitle) = cachedItemsByTitle.get()
-		if (checkedAt != 0L && now - checkedAt < GlossaryCacheRecheckMillis) (version, byTitle)
+		val cached = cachedGlossaryState.get()
+		val isBuilt = cached.watermarkCheckedAt != 0L
+		val watermarkIsFresh = isBuilt && now - cached.watermarkCheckedAt < GlossaryWatermarkRecheckMillis
+		val namespaceIsFresh = isBuilt && now - cached.namespaceCheckedAt < GlossaryNamespaceRecheckMillis
+		if (watermarkIsFresh && namespaceIsFresh) (cached.token, cached.itemsByTitle)
 		else {
-			// The glossary cache namespace version is part of the token: bumping it (for example from
-			// the cache page in API Manager) reloads the Glossary here and, because the token is in
-			// every resource-docs cache key, rebuilds every cached document that embeds Glossary text.
-			val currentVersion =
-				s"$dynamicGlossaryItemsVersion-ns${code.api.Constant.recentCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE)}"
-			if (checkedAt != 0L && currentVersion == version) {
-				cachedItemsByTitle.set((now, version, byTitle))
-				(version, byTitle)
+			// The glossary cache namespace version is part of the token: bumping it reloads the
+			// Glossary here and, because the token is in every resource-docs cache key, rebuilds every
+			// cached document that embeds Glossary text.
+			val (watermarkCheckedAt, watermark) =
+				if (watermarkIsFresh) (cached.watermarkCheckedAt, cached.watermark)
+				else (now, dynamicGlossaryItemsVersion)
+			val (namespaceCheckedAt, namespaceVersion) =
+				if (namespaceIsFresh) (cached.namespaceCheckedAt, cached.namespaceVersion)
+				else (now, code.api.Constant.getCacheNamespaceVersion(code.api.Constant.GLOSSARY_NAMESPACE))
+			val checked = GlossaryCacheState(watermarkCheckedAt, watermark, namespaceCheckedAt, namespaceVersion, cached.itemsByTitle)
+			if (isBuilt && checked.token == cached.token) {
+				cachedGlossaryState.set(checked)
+				(checked.token, checked.itemsByTitle)
 			} else {
 				// allGlossaryItems yields one Item per exact title, but titles differing only in case
 				// survive and collapse together in this case-insensitive map. Reversing makes the first
 				// of those spellings win, as find() used to.
 				val items = allGlossaryItems
-				val rebuilt = items.reverse.map(item => item.title.toLowerCase -> item).toMap
-				cachedItemsByTitle.set((now, currentVersion, rebuilt))
+				val rebuilt = checked.copy(itemsByTitle = items.reverse.map(item => item.title.toLowerCase -> item).toMap)
+				cachedGlossaryState.set(rebuilt)
 				// Only on a real change, so this reports each edit once rather than on every read.
 				logStaticOverrides(items.filter(_.shadowsStaticItem))
-				(currentVersion, rebuilt)
+				(rebuilt.token, rebuilt.itemsByTitle)
 			}
 		}
 	}
@@ -3238,6 +3284,36 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Redirect URL",
+		description =
+			s"""
+|A Consumer's redirect URL is where an OIDC provider (such as OBP-OIDC) sends the User's browser, with an authorisation code, after the User signs in.
+|Because the code goes wherever the redirect URL points, OBP checks every redirect URL when a Consumer is created or its redirect URL is updated.
+|
+|The redirect URL field can hold several URLs separated by commas or spaces. Each one must:
+|
+|* use https with a host, or
+|* use http only for localhost, 127.0.0.1 or [::1] (for development), or
+|* use an app scheme in reverse-domain form, such as com.example.app:/callback
+|
+|and must not contain a wildcard (*), user information (user@host) or a fragment (#). A redirect URL that breaks these rules is refused with OBP-20108.
+|
+|## Allowed hosts
+|
+|${code.api.util.RedirectUrlValidation.allowedHostsDescription}
+|
+|An instance can optionally limit the hosts redirect URLs may point to. When it does, each https or http redirect URL must name one of the listed hosts,
+|or a host under a listed domain, and the API's own host is always allowed. A redirect URL whose host is not listed is refused with OBP-20109.
+|The host list is checked when a Consumer's redirect URL is created or updated. App schemes are not affected, and neither are
+|Berlin Group dynamic registration and TPP-Redirect-URI headers, which belong to third parties by definition, nor redirect URLs already stored.
+|
+|## Redirect URLs saved before these checks
+|
+|A Consumer saved before these checks existed may still hold a redirect URL that breaks them. Such an entry is left out when an OIDC provider reads the Consumer,
+|so it is never used as a redirect target, and the Consumer's owner should update it.
+|""")
+
+	glossaryItems += GlossaryItem(
 		title = "Berlin Group Mandatory Headers",
 		description =
 			s"""
@@ -3265,6 +3341,12 @@ object Glossary extends MdcLoggable  {
 |
 |* **TPP-Redirect-URI** - URI to redirect the PSU to after consent authorization
 |
+|Whenever TPP-Redirect-URI or TPP-Nok-Redirect-URI is sent, on any Berlin Group request, its value must meet the redirect URL rules:
+|https with a host; http only for localhost, 127.0.0.1 or [::1]; or an app scheme in reverse-domain form such as com.example.app.
+|It must not contain a wildcard, user information or a fragment. A value that breaks them is refused with HTTP 400 (OBP-20108).
+|
+|On this instance a signature that does not cover TPP-Redirect-URI and TPP-Nok-Redirect-URI is ${if (APIUtil.getPropsAsBoolValue("berlin_group_require_signed_tpp_redirect_uri", false)) "refused: when either header is sent, the Signature header's headers list must include it" else "accepted"}.
+|
 |## TPP Requests Without PSU Involvement
 |
 |For background/batch requests where no PSU is directly involved, set:
@@ -3281,6 +3363,7 @@ object Glossary extends MdcLoggable  {
 |
 |* `berlin_group_mandatory_headers` - Comma-separated list of mandatory header names. Set to empty to disable header checks.
 |* `berlin_group_mandatory_header_consent` - Additional headers required for consent creation endpoints.
+|* `berlin_group_require_signed_tpp_redirect_uri` - When true, a request that sends TPP-Redirect-URI or TPP-Nok-Redirect-URI must list that header in its Signature header. Default false.
 |
 |Example Props configuration:
 |
@@ -3300,10 +3383,12 @@ object Glossary extends MdcLoggable  {
 |2. **Date format check** - Validates the Date header conforms to RFC 7231
 |3. **X-Request-ID format check** - Validates the X-Request-ID is a valid UUID
 |4. **X-Request-ID uniqueness check** - Ensures the X-Request-ID has not been used in a previous successful POST (201) request
-|5. **Signature header check** - Parses the Signature header and verifies the keyId serial number matches the TPP certificate
-|6. **Consent-ID usage check** - Ensures the Consent-ID header is not sent on consent management endpoints where it is not expected
+|5. **TPP redirect URI check** - Refuses a TPP-Redirect-URI or TPP-Nok-Redirect-URI that breaks the redirect URL rules (OBP-20108)
+|6. **Signed TPP redirect URI check** - When `berlin_group_require_signed_tpp_redirect_uri` is true, refuses a request whose signature does not cover the TPP redirect headers it sends
+|7. **Signature header check** - Parses the Signature header and verifies the keyId serial number matches the TPP certificate
+|8. **Consent-ID usage check** - Ensures the Consent-ID header is not sent on consent management endpoints where it is not expected
 |
-|If any check fails, OBP returns an appropriate error message (OBP-20251 through OBP-20256) with HTTP status 400.
+|If any check fails, OBP returns an appropriate error message (OBP-20251 through OBP-20256, or OBP-20108 for a TPP redirect URI) with HTTP status 400.
 |
  """)
 
@@ -4264,15 +4349,21 @@ object Glossary extends MdcLoggable  {
 |* `/carbon-registry/v1/registry/summary` answers what the Dynamic Resource Doc at `/obp/dynamic-endpoint/banks/SYS/dynamic-resource-doc/registry/summary` answers;
 |* `/carbon-registry/v1/openapi.yaml` and `/carbon-registry/v1/openapi.json` are its OpenAPI document, with the Domain API's own title, description, version and server, and only its own endpoints.
 |
-|Dynamic Entity names are not renamed: only the part of the URL before them is. The endpoints that create and change definitions stay at their OBP URLs; a Domain API publishes the endpoints that serve and take data. Dynamic Endpoints made from a Swagger file are not published under a Domain API yet.
+|**Hyphens in entity names.** A Dynamic Entity name uses underscores, such as `technologies_practices_processes`, and a hyphen is the more usual word separator in a URL, so under a base path the hyphenated form of an entity name answers too: `/carbon-registry/v1/public/technologies-practices-processes` answers what `/carbon-registry/v1/public/technologies_practices_processes` answers. Only the segment that names the entity is read this way: the first one after the base path, or the one after `my`, `public` or `community`. Record ids (which may contain hyphens), `access` and the paths of Dynamic Resource Docs (such as `/registry/activities-query`) are passed on as written, and a Dynamic Resource Doc is still tried first. The OpenAPI document lists each entity path once, in the hyphenated form. Request and response JSON keys, Role names and the OBP URLs keep the underscored name, and API Metrics record the OBP URL the call was rewritten to. A new Dynamic Entity name may not contain a hyphen or a space in any API version (${ErrorMessages.DynamicEntityNameHasHyphenOrSpace.takeWhile(_ != ':')}), so a hyphen in a URL can only stand for an underscore.
+|
+|Apart from that, Dynamic Entity names are not renamed: only the part of the URL before them is. The endpoints that create and change definitions stay at their OBP URLs; a Domain API publishes the endpoints that serve and take data. Dynamic Endpoints made from a Swagger file are not published under a Domain API yet.
 |
 |**It only renames.** A call under a base path is rewritten to the OBP URL and runs exactly as a call to that URL would: the same authentication, Roles, Consents, rate limits, row-level access and field restrictions, and the same API Metrics. A Domain API gives no access the OBP URL would not give. The one difference in a response is that a Dynamic Entity record response leaves out `bank_id`, because the base path already fixes the space; the OpenAPI document's examples leave it out too.
 |
 |**Base path and version.** The base path is two to five segments of lowercase letters, digits, hyphens and dots, ending with the major version as `vN`, for example `carbon-registry/v1`. It may not start with a segment OBP serves itself (such as `obp` or `open-banking`), and may not overlap another Domain API's base path. The Domain API's `version` is its full semantic version, MAJOR.MINOR.PATCH, whose MAJOR is the N of the base path. A compatible change, such as a new optional field or a new Dynamic Query, edits `version` (or leaves it) and keeps every URL; a breaking change gets a new Domain API with a new base path, for example `carbon-registry/v2`, which can run alongside the old one while clients move. OBP never changes the version itself. For Dynamic Entities OBP already keeps changes compatible once an entity holds records (only optional properties may be added); a Dynamic Resource Doc can be changed in any way, so keeping its changes compatible is up to its author.
 |
-|**No ambiguous paths.** Under a base path the Dynamic Entities and Dynamic Resource Docs of the space share one set of paths, and a Dynamic Entity owns every path that starts with its name. Because a Domain API may be registered over any space at any time, OBP keeps every space unambiguous, with or without a Domain API: creating or changing a Dynamic Resource Doc is refused (${ErrorMessages.DynamicPathAmbiguous.takeWhile(_ != ':')}) when its path would start with a path variable, with `my`, `public`, `community`, `openapi.json` or `openapi.yaml`, or with the name of one of the space's Dynamic Entities, or when another doc of the same verb would match a request it matches (`/registry/REGISTRY_ID` and `/registry/summary` both match `/registry/summary`). Creating or renaming a Dynamic Entity is refused when one of the space's Dynamic Resource Docs starts with its name, or when it would be named one of those reserved segments. A space holding an ambiguity from before these rules can't have a Domain API (${ErrorMessages.DomainApiPathClash.takeWhile(_ != ':')}) until it is resolved. Under a base path a Dynamic Resource Doc is tried first, then a Dynamic Entity; with the rules above, at most one of them can answer a request.
+|**No ambiguous paths.** Under a base path the Dynamic Entities and Dynamic Resource Docs of the space share one set of paths, and a Dynamic Entity owns every path that starts with its name. Because a Domain API may be registered over any space at any time, OBP keeps every space unambiguous, with or without a Domain API: creating or changing a Dynamic Resource Doc is refused (${ErrorMessages.DynamicPathAmbiguous.takeWhile(_ != ':')}) when its path would start with a path variable, with `my`, `public`, `community`, `openapi.json` or `openapi.yaml`, or with the name of one of the space's Dynamic Entities in either spelling (a doc at `/like-this/summary` is refused while the entity `like_this` exists), or when another doc of the same verb would match a request it matches (`/registry/REGISTRY_ID` and `/registry/summary` both match `/registry/summary`). Creating or renaming a Dynamic Entity is refused when one of the space's Dynamic Resource Docs starts with its name in either spelling, when another of the space's Dynamic Entities has the same name once hyphens are read as underscores (possible only with a name from before hyphens were refused), or when it would be named one of those reserved segments. A space holding an ambiguity from before these rules can't have a Domain API (${ErrorMessages.DomainApiPathClash.takeWhile(_ != ':')}) until it is resolved. Under a base path a Dynamic Resource Doc is tried first, then a Dynamic Entity; with the rules above, at most one of them can answer a request.
 |
 |**Managing.** `/obp/v7.0.0/management/banks/BANK_ID/domain-apis` creates and lists a space's Domain APIs, and `/obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID` reads, updates and deletes one. BANK_ID is a bank's id or `SYS`. The Roles are CanCreateDomainApi, CanGetDomainApis, CanUpdateDomainApi and CanDeleteDomainApi, held at that BANK_ID.
+|
+|**Discovery.** A Domain API whose `is_publicly_discoverable` is true is listed, without logging in, at `/obp/v7.0.0/banks/BANK_ID/domain-apis`, with its base path, version, title, description, URL and OpenAPI document. `/obp/v7.0.0/domain-apis` lists them for every space at once. It is false unless set, so a Domain API is only listed publicly on purpose. It only controls that listing: the calls under the base path and the OpenAPI document are served the same either way.
+|
+|**Resource Docs.** `/obp/v7.0.0/banks/BANK_ID/domain-apis/resource-docs?base_path=BASE_PATH` gives the same endpoints as the OpenAPI document as OBP Resource Docs, each at its full published path, for API Explorer and other OBP tools. No login is needed.
 |
 """.stripMargin)
 
@@ -7077,6 +7168,101 @@ object Glossary extends MdcLoggable  {
 				 |See also: [API Metrics](/glossary#API-Metrics), [Connector](/glossary#Connector), [Connector Method](/glossary#Connector-Method), [Telemetry](/glossary#Telemetry).
 				 |
 """)
+
+
+	glossaryItems += GlossaryItem(
+		title = "OBP-Sentinel",
+		description =
+			s"""
+				 |# OBP-Sentinel
+				 |
+				 |**OBP-Sentinel** watches running OBP-API instances, and the apps around them (API Explorer II, the API Manager, the Portal, OBP-OIDC), for hours. It works out what is actually going wrong or getting slower, and suggests the few improvements that matter most. Fewer, better suggestions is the point.
+				 |
+				 |Watching is plain code and costs nothing. Only the analyst, the source review and the questions a person asks on a finding (Trace history, Look again) use Claude, each with a spending limit.
+				 |
+				 |## 1. Watching
+				 |
+				 |Every 2 minutes (by default) Sentinel reads from each instance, with its own token:
+				 |
+				 |- the **log cache**: the newest log lines for each level (GET /obp/v5.1.0/system/log-cache/LEVEL);
+				 |- **Telemetry**: counters and timings, such as how many calls each endpoint gets and how long they take (GET /obp/v7.0.0/management/telemetry);
+				 |- **aggregate metrics**: calls, response times, users and consumers, once per 15-minute period after it ends (GET /obp/v6.0.0/management/aggregate-metrics);
+				 |- which **commit** the instance runs, and once a day which endpoints it serves and which Roles anyone holds.
+				 |
+				 |The apps are watched too: see **The apps' monitoring endpoints** below.
+				 |
+				 |Each log line becomes a **signature**: the same message with its ids, numbers, quoted values, emails and IP addresses taken out. So one problem counts once, however many users hit it. Signatures are counted per 15-minute period, so Sentinel can tell a new or rising problem from an old, steady one. The log cache keeps only the newest 1000 lines per level: if more arrive between two reads, the read is marked as possibly missing lines.
+				 |
+				 |## The apps' monitoring endpoints
+				 |
+				 |API Explorer II, the API Manager, the Portal and OBP-OIDC each serve their own log cache and Telemetry, in the same shape as OBP-API's:
+				 |
+				 || App | Log cache | Telemetry |
+				 ||---|---|---|
+				 || API Explorer II | GET /api/monitoring/log-cache/LEVEL | GET /api/monitoring/telemetry |
+				 || API Manager | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+				 || Portal | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+				 || OBP-OIDC | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+				 |
+				 |LEVEL is a log level (error, warning, info, debug, trace) or `all`. Each app lists these endpoints on its `/status` page.
+				 |
+				 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheLEVEL (or CanGetSystemLogCacheAll; `all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself: it passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE) and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
+				 |
+				 |Sentinel finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_oidc_url) and watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
+				 |
+				 |## 2. The analyst
+				 |
+				 |Every few hours, once Sentinel has watched for long enough, Claude reads a summary of what was collected (the last hours compared with the hours before) and reads the source code to find the cause of what stands out. Each problem it is confident about becomes a **finding**, scored by:
+				 |
+				 |- **Impact**: how much it hurts users or the service;
+				 |- **Confidence**: how sure the analyst is about the cause;
+				 |- **Effort**: how much work the fix is;
+				 |- **Trend**: new, rising, stable or falling;
+				 |- **Priority**: these combined, what is worth doing first.
+				 |
+				 |## 3. Source review
+				 |
+				 |Besides following the logs, Sentinel can read the code of the endpoints each instance serves, looking for security problems such as SQL injection or missing authorisation checks. Go and Stop turn it on and off. It starts with the endpoints anyone can call without a login, then those that need a login, then those whose Role someone holds. It remembers what it read: an endpoint is read again only when its code changes.
+				 |
+				 |## 4. Suggestions
+				 |
+				 |A finding is suggested only if Sentinel has watched for long enough (4 hours by default), its priority is high enough, it was seen in more than one 15-minute period, and it was not already suggested, acted on, dismissed or fixed. At most 3 suggestions are made at a time, and at most 10 a week. When nothing qualifies, Sentinel says so rather than inventing work.
+				 |
+				 |## Using the page
+				 |
+				 |The tabs above the list sort the findings: **To review** (suggested and waiting for an answer), **Not yet suggested**, **Snoozed** and **Done**. Below them, three sections show Sentinel at work: monitoring activity, the Analyst (Run analysis now starts a run without waiting) and the Source review. With several instances, the first row of tabs chooses an OBP-API instance and the second row its apps.
+				 |
+				 |Each finding shows its evidence, why it happens, where in the code, and the suggested change. The copy button next to its title copies it all as text, ready to give to a coding agent.
+				 |
+				 |- **Trace history** lists the commits that changed the lines the finding names, and Claude says which commit introduced the problem (at most $$0.30).
+				 |- **Look again: still an issue?** has Claude read the code the instance runs now, the commits since the finding was made, and whether its log messages are still seen. It answers in one line: still an issue, fixed (and by which commit), or could not tell. It takes a few minutes and costs at most $$0.50. While it works, the page shows how long it has been going and the command it is running. It does not change the finding's status.
+				 |- **Look again at the security findings to review**, above the list, does the same for each security finding in To review, one at a time. Those Claude finds fixed are marked fixed and move to Done, with Claude's answer as the comment.
+				 |
+				 |Then answer, with a comment for the analyst if you like:
+				 |
+				 |- **Accept**: worth doing.
+				 |- **Later**: snooze it.
+				 |- **Some action taken**: someone tried to fix it; the analyst checks whether the problem went away.
+				 |- **Should be fixed now**: fixed; if it comes back, it will be suggested again.
+				 |- **Dismiss, never suggest again**: not useful; its log messages are also left out of future summaries.
+				 |
+				 |These answers teach the analyst what is worth suggesting.
+				 |
+				 |## The Secured check
+				 |
+				 |Once an hour Sentinel calls the endpoints it reads (log cache, Telemetry and, for OBP-API, aggregate metrics) without a token. They must refuse. The header shows **Secured** when every one refused (401 or 403), **Open** when at least one answered with data (fix this first: anyone can read those logs), and **Could not tell** when some gave no answer or an unexpected one, such as 404.
+				 |
+				 |## What Sentinel needs
+				 |
+				 |Its Consumer is a Platform App: an administrator marks it, Sentinel declares the Scopes it needs, and the administrator grants them. They are CanGetSystemLogCacheAll (or one per level), CanGetTelemetry and the Role for aggregate metrics. When something stops Sentinel from watching an instance, its page lists what to fix, most blocking first, with what OBP-API answered.
+				 |
+				 |## What Sentinel never does
+				 |
+				 |- It only reads OBP-API: it does not change settings or log levels, edit code, commit or open pull requests.
+				 |- It reads source code with git only, and never changes the checkout.
+				 |- Log text is treated as data: instructions inside a log line are never followed.
+				 |- Its page has no login: keep it on 127.0.0.1, or behind a proxy that asks for one.
+				 |""".stripMargin)
 
 
 	glossaryItems += GlossaryItem(

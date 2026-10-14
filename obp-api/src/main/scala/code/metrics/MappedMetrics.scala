@@ -231,40 +231,26 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     saved
   }
 
-  private def trueOrFalse(condition: Boolean): String = if (condition) s"1=1" else s"0=1"
-  private def falseOrTrue(condition: Boolean): String = if (condition) s"0=1" else s"1=1"
-  
-  private def sqlFriendly(value : Option[String]): String = {
-    value match {
-      case Some(value) => s"'$value'"
-      case None => "null"
-        
-    }
-  }
-  
-  private def sqlFriendlyInt(value : Option[Int]): String = {
-    value match {
-      case Some(value) => s"$value"
-      case None => "null"
-    }
-  }
-
-  /**
-   * Formats a Date as an ISO 8601 timestamp string for use in SQL queries.
-   * Uses the format yyyy-MM-dd'T'HH:mm:ss.SSS with the 'T' separator, which is
-   * universally safe across databases (PostgreSQL, SQL Server, H2, etc.).
-   *
-   * The 'T' separator is critical for SQL Server compatibility - without it,
-   * SQL Server may misinterpret the date based on regional/language settings.
-   *
-   * @param date The date to format
-   * @return ISO 8601 formatted timestamp string (e.g., "2024-01-15T10:30:45.123")
-   */
-  private def sqlTimestamp(date: Date): String = {
-    val sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-    sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
-    sdf.format(date)
-  }
+  /** The metric filters a request asked for, for the queries in DoobieMetricsQueries. */
+  private def metricsQueryFilters(queryParams: List[OBPQueryParam]): MetricsQueryFilters =
+    MetricsQueryFilters(
+      consumerId = queryParams.collectFirst { case OBPConsumerId(value) => value },
+      userId = queryParams.collectFirst { case OBPUserId(value) => value },
+      url = queryParams.collectFirst { case OBPUrl(value) => value },
+      appName = queryParams.collectFirst { case OBPAppName(value) => value },
+      implementedByPartialFunction = queryParams.collectFirst { case OBPImplementedByPartialFunction(value) => value },
+      implementedInVersion = queryParams.collectFirst { case OBPImplementedInVersion(value) => value },
+      verb = queryParams.collectFirst { case OBPVerb(value) => value },
+      anon = queryParams.collectFirst { case OBPAnon(value) => value },
+      correlationId = queryParams.collectFirst { case OBPCorrelationId(value) => value },
+      httpStatusCode = queryParams.collectFirst { case OBPHttpStatusCode(value) => value },
+      excludeAppNames = queryParams.collectFirst { case OBPExcludeAppNames(value) => value },
+      includeAppNames = queryParams.collectFirst { case OBPIncludeAppNames(value) => value },
+      excludeUrlPatterns = queryParams.collectFirst { case OBPExcludeUrlPatterns(value) => value },
+      includeUrlPatterns = queryParams.collectFirst { case OBPIncludeUrlPatterns(value) => value },
+      excludeImplementedByPartialFunctions = queryParams.collectFirst { case OBPExcludeImplementedByPartialFunctions(value) => value },
+      includeImplementedByPartialFunctions = queryParams.collectFirst { case OBPIncludeImplementedByPartialFunctions(value) => value }
+    )
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: do this all at the db level using an actual group by query
@@ -379,42 +365,6 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   }
   
-  private def extendLikeQuery(params:  List[String], isLike: Boolean): String = {
-    val isLikeQuery = if (isLike) s"" else s"NOT"
-    
-    if (params.length == 1)
-      s"'${params.head}'"
-    else
-    {
-      val sqlList: immutable.Seq[String] = for (i <- 1 to (params.length - 2)) yield
-        {
-          s" and url ${isLikeQuery} LIKE ('${params(i)}')"
-        }
-        
-      val sqlSingleLine = if (sqlList.length>1)
-        sqlList.reduce(_+_)
-      else
-        s""
-        
-      s"'${params.head}')"+ sqlSingleLine + s" and url  ${isLikeQuery} LIKE ('${params.last}'"
-    }
-  }
-  
-  
-    /**
-      * Example of a Tuple response
-      * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
-      * First value of the Tuple is a List of field names returned by SQL query.
-      * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
-      */
-      
-  private def extendPrepareStement(startLine: Int, stmt:PreparedStatement, excludeFiledValues : Set[String]) = {
-    for(i <- 0 until  excludeFiledValues.size) yield {
-      stmt.setString(startLine+i, excludeFiledValues.toList(i))
-    }
-  }
-  
-
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Box[List[AggregateMetrics]] = {
     logger.info(s"getAllAggregateMetricsBox called with ${queryParams.length} query params, isNewVersion=$isNewVersion")
@@ -430,122 +380,15 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     CacheKeyFromArguments.buildCacheKey { Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
       logger.info(s"getAllAggregateMetricsBox - CACHE MISS - Executing database query for aggregate metrics")
       val startTime = System.currentTimeMillis()
+      // The query is built by DoobieMetricsQueries with every filter value as a bound parameter.
+      val filters = metricsQueryFilters(queryParams)
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
-      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
-      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
-      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
-      val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
-      val includeAppNames = queryParams.collect { case OBPIncludeAppNames(value) => value }.headOption
-      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
-      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
-      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
-      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
-      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
-      val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
-      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
-      val includeUrlPatterns = queryParams.collect { case OBPIncludeUrlPatterns(value) => value }.headOption
-      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
-      val includeImplementedByPartialFunctions = queryParams.collect { case OBPIncludeImplementedByPartialFunctions(value) => value }.headOption
-
-      val excludeUrlPatternsList= excludeUrlPatterns.getOrElse(List(""))
-      val excludeAppNamesList = excludeAppNames.getOrElse(List("")).map(i => s"'$i'").mkString(",")
-      val excludeImplementedByPartialFunctionsList = 
-        excludeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
-
-      val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
-      
-      val includeUrlPatternsList= includeUrlPatterns.getOrElse(List(""))
-      val includeAppNamesList = includeAppNames.getOrElse(List("")).map(i => s"'$i'").mkString(",")
-      val includeImplementedByPartialFunctionsList = 
-        includeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
-
-      val includeUrlPatternsQueries = extendLikeQuery(includeUrlPatternsList, true)
-      val includeUrlPatternsQueriesSql = s"$includeUrlPatternsQueries" 
-      
-      // The LEFT JOIN attributes consent-borne calls to the granting (on-behalf-of) human:
-      // metric.userid records the AUTHENTICATED principal, which under a consent is the
-      // consent's own shadow user. COALESCE(consent.muserid, metric.userid) resolves such rows
-      // to the granting human at read time, mirroring CallContext.onBehalfOfUserId. (Rows
-      // written 2026-08 only, while toLight briefly recorded the human, resolve identically.)
-      // The consent side of the join is unique-indexed on consent_reference_id, so the join
-      // cannot fan out rows.
-      val result = {
-        val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better.
-          s"""SELECT count(*), avg(duration), min(duration), max(duration),
-              count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
-              count(DISTINCT CASE WHEN m.consumerid <> '' AND m.consumerid <> 'null' THEN m.consumerid END),
-              count(NULLIF(m.consent_reference_id, '')),
-              count(DISTINCT NULLIF(m.consent_reference_id, ''))
-              FROM metric m
-              LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
-              WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
-              AND date_c <= '${sqlTimestamp(toDate.get)}'
-              AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
-              AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
-              AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
-              AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
-              AND (${trueOrFalse(url.isEmpty)} or url = ${sqlFriendly(url)})
-              AND (${trueOrFalse(appName.isEmpty)} or appname = ${sqlFriendly(appName)})
-              AND (${trueOrFalse(verb.isEmpty)} or verb = ${sqlFriendly(verb)})
-              AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
-              AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
-              AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${sqlFriendly(correlationId)})
-              AND (${trueOrFalse(httpStatusCode.isEmpty)} or httpcode = ${sqlFriendlyInt(httpStatusCode)})
-              AND (${trueOrFalse(includeUrlPatterns.isEmpty) } or (url LIKE ($includeUrlPatternsQueriesSql)))
-              AND (${trueOrFalse(includeAppNames.isEmpty) } or (appname in ($includeAppNamesList)))
-              AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($includeImplementedByPartialFunctionsList))
-              """.stripMargin
-        else
-          s"""SELECT count(*), avg(duration), min(duration), max(duration),
-            count(DISTINCT CASE WHEN COALESCE(c.muserid, m.userid) <> 'null' THEN COALESCE(c.muserid, m.userid) END),
-            count(DISTINCT CASE WHEN m.consumerid <> '' AND m.consumerid <> 'null' THEN m.consumerid END),
-            count(NULLIF(m.consent_reference_id, '')),
-            count(DISTINCT NULLIF(m.consent_reference_id, ''))
-            FROM metric m
-            LEFT JOIN mappedconsent c ON m.consent_reference_id = c.consent_reference_id
-            WHERE date_c >= '${sqlTimestamp(fromDate.get)}'
-            AND date_c <= '${sqlTimestamp(toDate.get)}'
-            AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${sqlFriendly(consumerId)})
-            AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
-            AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
-            AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
-            AND (${trueOrFalse(url.isEmpty)} or url = ${sqlFriendly(url)})
-            AND (${trueOrFalse(appName.isEmpty)} or appname = ${sqlFriendly(appName)})
-            AND (${trueOrFalse(verb.isEmpty)} or verb = ${sqlFriendly(verb)})
-            AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
-            AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null')
-            AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${sqlFriendly(correlationId)})
-            AND (${trueOrFalse(httpStatusCode.isEmpty)} or httpcode = ${sqlFriendlyInt(httpStatusCode)})
-            AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
-            AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
-            AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))
-            """.stripMargin
-        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
-        val (_, rows) = DBUtil.runQuery(sqlQuery)
-        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlQuery --:  " + sqlQuery)
-        logger.info(s"getAllAggregateMetricsBox - Query executed, returned ${rows.length} rows")
-        val sqlResult = rows.map(
-              rs => // Map result to case class
-                AggregateMetrics(
-                  tryo(rs(0).toInt).getOrElse(0),
-                  tryo("%.2f".format(rs(1).toDouble).toDouble).getOrElse(0),
-                  tryo(rs(2).toDouble).getOrElse(0),
-                  tryo(rs(3).toDouble).getOrElse(0),
-                  tryo(rs(4).toInt).getOrElse(0),
-                  tryo(rs(5).toInt).getOrElse(0),
-                  tryo(rs(6).toInt).getOrElse(0),
-                  tryo(rs(7).toInt).getOrElse(0)
-                )
-        )
-        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlResult --:  " + sqlResult)
-        sqlResult
-      }
+      val result = tryo(DoobieMetricsQueries.getAggregateMetrics(fromDate.get, toDate.get, filters, isNewVersion))
+      logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlResult --:  " + result)
       val elapsedTime = System.currentTimeMillis() - startTime
       logger.info(s"getAllAggregateMetricsBox - Query completed in ${elapsedTime}ms")
-      tryo(result)
+      result
     }}
   }
   
@@ -737,76 +580,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   val cacheTTL = determineMetricsCacheTTL(queryParams)
   CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
   
+      // Built by DoobieMetricsQueries with every filter value as a bound parameter; see
+      // getAllAggregateMetricsBox.
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
-      val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
-      val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
-      val url = queryParams.collect { case OBPUrl(value) => value }.headOption
-      val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
-      val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
-      val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
-      val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
-      val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
-      val anon = queryParams.collect { case OBPAnon(value) => value }.headOption
-      val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
-      val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-      val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption
-      val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
-      val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
-      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse("500")
-
-      val excludeUrlPatternsList = excludeUrlPatterns.getOrElse(List(""))
-      val excludeAppNamesList = excludeAppNames.getOrElse(List("")).map(i => s"'$i'").mkString(",")
-      val excludeImplementedByPartialFunctionsList =
-        excludeImplementedByPartialFunctions.getOrElse(List("")).map(i => s"'$i'").mkString(",")
-
-      val excludeUrlPatternsQueries: String = extendLikeQuery(excludeUrlPatternsList, false)
-
-      val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
-
-      // MS SQL server has the specific syntax for limiting number of rows
-      val msSqlLimit = if (dbUrl.contains("sqlserver")) s"TOP ($limit)" else s""
-      // TODO Make it work in case of Oracle database
-      val otherDbLimit: String = if (dbUrl.contains("sqlserver")) s"" else s"LIMIT $limit"
-      val result: List[TopConsumer] = {
-        val sqlQuery =
-          s"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, metric.appname as appname,
-                consumer.developeremail as email, consumer.consumerid as consumerid
-                FROM metric, consumer
-                WHERE metric.appname = consumer.name
-                AND date_c >= '${sqlTimestamp(fromDate.get)}'
-                AND date_c <= '${sqlTimestamp(toDate.get)}'
-                AND (${trueOrFalse(consumerId.isEmpty)} or consumer.consumerid = ${sqlFriendly(consumerId)})
-                AND (${trueOrFalse(userId.isEmpty)} or userid = ${sqlFriendly(userId)})
-                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${sqlFriendly(implementedByPartialFunction)})
-                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${sqlFriendly(implementedInVersion)})
-                AND (${trueOrFalse(url.isEmpty)} or url = ${sqlFriendly(url)})
-                AND (${trueOrFalse(appName.isEmpty)} or appname = ${sqlFriendly(appName)})
-                AND (${trueOrFalse(verb.isEmpty)} or verb = ${sqlFriendly(verb)})
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = null) 
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != null) 
-                AND (${trueOrFalse(httpStatusCode.isEmpty)} or httpcode = ${sqlFriendlyInt(httpStatusCode)})
-                AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
-                AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
-                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))
-                GROUP BY appname, consumer.developeremail, consumer.id, consumer.consumerid
-                ORDER BY count DESC
-                ${otherDbLimit}
-                """.stripMargin
-        // Use DBUtil.runQuery which handles SQL Server NVARCHAR properly
-        val (_, rows) = DBUtil.runQuery(sqlQuery)
-        val sqlResult =
-          rows.map { rs => // Map result to case class
-            TopConsumer(
-              rs(0).toInt,
-              rs(4),
-              rs(2),
-              rs(3)
-            )
-          }
-        sqlResult
-      }
-      tryo(result)
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(500)
+      tryo(DoobieMetricsQueries.getTopConsumersByAppName(fromDate.get, toDate.get, limit, metricsQueryFilters(queryParams)))
     }
   }}
 

@@ -182,6 +182,78 @@ class BerlinGroupMandatoryHeadersTest extends BerlinGroupServerSetupV1_3 {
     }
   }
 
+  // ─── TPP redirect URI rules ──────────────────────────────────────────────
+
+  feature("BG TPP redirect URIs must meet the redirect URL rules") {
+
+    scenario("A javascript: TPP-Redirect-URI is rejected", MandatoryHeaders) {
+      val result = callValidate(bgConsentUrl, verb = "POST", headers = Map(
+        "X-Request-ID" -> UUID.randomUUID().toString,
+        "TPP-Redirect-URI" -> "javascript:alert(1)"
+      ))
+      result shouldBe a[Failure]
+      result.asInstanceOf[Failure].msg should include(ErrorMessages.InvalidRedirectUrl)
+      result.asInstanceOf[Failure].msg should include("TPP-Redirect-URI")
+    }
+
+    scenario("A plain-http public TPP-Nok-Redirect-URI is rejected, on any Berlin Group request", MandatoryHeaders) {
+      val result = callValidate(bgUrl, headers = Map(
+        "X-Request-ID" -> UUID.randomUUID().toString,
+        "TPP-Nok-Redirect-URI" -> "http://tpp.example.com/nok"
+      ))
+      result shouldBe a[Failure]
+      result.asInstanceOf[Failure].msg should include(ErrorMessages.InvalidRedirectUrl)
+      result.asInstanceOf[Failure].msg should include("TPP-Nok-Redirect-URI")
+    }
+
+    scenario("https and reverse-domain app scheme TPP redirect URIs are accepted", MandatoryHeaders) {
+      val result = callValidate(bgConsentUrl, verb = "POST", headers = Map(
+        "X-Request-ID" -> UUID.randomUUID().toString,
+        "TPP-Redirect-URI" -> "com.example.tppapp://redirect",
+        "TPP-Nok-Redirect-URI" -> "https://tpp.example.com/nok"
+      ))
+      result should not be a[Failure]
+    }
+  }
+
+  feature("BG TPP redirect URIs must be signed when berlin_group_require_signed_tpp_redirect_uri is true") {
+
+    scenario("A TPP-Redirect-URI that the signature does not cover is rejected", MandatoryHeaders) {
+      setPropsValues("berlin_group_require_signed_tpp_redirect_uri" -> "true")
+      val result = callValidate(bgConsentUrl, verb = "POST", headers = Map(
+        "X-Request-ID" -> UUID.randomUUID().toString,
+        "TPP-Redirect-URI" -> "https://tpp.example.com/redirect",
+        "Signature" -> """keyId="CA=CN=Test CA, SN=43A, O=Test", algorithm="rsa-sha256", headers="digest date x-request-id", signature="abc123==""""
+      ))
+      result shouldBe a[Failure]
+      result.asInstanceOf[Failure].msg should include(ErrorMessages.InvalidSignatureHeader)
+      result.asInstanceOf[Failure].msg should include("must cover TPP-Redirect-URI")
+    }
+
+    scenario("A TPP-Redirect-URI that the signature covers passes this check", MandatoryHeaders) {
+      setPropsValues("berlin_group_require_signed_tpp_redirect_uri" -> "true")
+      val result = callValidate(bgConsentUrl, verb = "POST", headers = Map(
+        "X-Request-ID" -> UUID.randomUUID().toString,
+        "TPP-Redirect-URI" -> "https://tpp.example.com/redirect",
+        "Signature" -> """keyId="CA=CN=Test CA, SN=43A, O=Test", algorithm="rsa-sha256", headers="digest date x-request-id tpp-redirect-uri", signature="abc123==""""
+      ))
+      // The signature itself is not verifiable here (no certificate), so a later check may still refuse it,
+      // but never for leaving the redirect header unsigned.
+      result match {
+        case failure: Failure => failure.msg should not include ("must cover")
+        case _ =>
+      }
+    }
+
+    scenario("An unsigned TPP-Redirect-URI is accepted when the prop is false", MandatoryHeaders) {
+      val result = callValidate(bgConsentUrl, verb = "POST", headers = Map(
+        "X-Request-ID" -> UUID.randomUUID().toString,
+        "TPP-Redirect-URI" -> "https://tpp.example.com/redirect"
+      ))
+      result should not be a[Failure]
+    }
+  }
+
   // ─── Disabled check ───────────────────────────────────────────────────────
 
   feature("BG mandatory headers - disabled when list is empty") {

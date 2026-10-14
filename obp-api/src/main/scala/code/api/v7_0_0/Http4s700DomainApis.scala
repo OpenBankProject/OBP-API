@@ -36,6 +36,8 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.{CallContext, CustomJsonFormats, Glossary}
+import code.api.v1_4_0.JSONFactory1_4_0
+import code.api.dynamic.domainapi.Http4sDomainApi
 import code.domainapi.{DomainApiDbProvider, DomainApiTrait, DomainApis}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -134,6 +136,11 @@ object Http4s700DomainApis {
        |
        |BANK_ID is the space: a bank's id, or `SYS` for the system space. The Role is checked at that BANK_ID.
        |
+       |`is_publicly_discoverable` says whether anyone, without logging in, may find the Domain API through
+       |`GET /obp/v7.0.0/banks/BANK_ID/domain-apis`. It is false when left out on create and keeps its current
+       |value when left out on update. It only controls that listing: the calls under the base path and the
+       |OpenAPI document are served the same either way.
+       |
        |`base_path` is two to five segments of lowercase letters, digits, hyphens and dots, ending with the
        |major version as `vN`, and must not overlap another Domain API's. `version` is the full semantic
        |version, MAJOR.MINOR.PATCH, whose MAJOR is the N of the base path: a compatible change edits `version`
@@ -162,7 +169,8 @@ object Http4s700DomainApis {
         val spaceId = space(bankIdInUrl)
         for {
           checked <- check(spaceId, body, None, cc)
-          created <- Future(provider.create(spaceId, checked.basePath, checked.version, checked.title, checked.description, user.userId))
+          created <- Future(provider.create(spaceId, checked.basePath, checked.version, checked.title, checked.description,
+            body.is_publicly_discoverable.getOrElse(false), user.userId))
             .map(fullOrFail(_, cc))
         } yield JSONFactory700DomainApis.createDomainApiJson(created)
       }
@@ -236,15 +244,125 @@ object Http4s700DomainApis {
     http4sPartialFunction = Some(getDomainApi)
   ).allowSystemSpace()
 
+  // Route: GET /obp/v7.0.0/banks/BANK_ID/domain-apis (public)
+  lazy val getPubliclyDiscoverableDomainApis: Http4sRoute = Http4sRoute {
+    case req @ GET -> `prefixPath` / "banks" / bankIdInUrl / "domain-apis" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        Future(provider.getPubliclyDiscoverable(space(bankIdInUrl))).map(box =>
+          PublicDomainApisJsonV700(fullOrFail(box, cc).map(JSONFactory700DomainApis.createPublicDomainApiJson)))
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getPubliclyDiscoverableDomainApis),
+    "GET",
+    "/banks/BANK_ID/domain-apis",
+    "Get Publicly Discoverable Domain APIs",
+    s"""The Domain APIs of a space whose owners made them publicly discoverable (`is_publicly_discoverable`),
+       |so that an app or a person can find where a space's API is published and its OpenAPI document without
+       |logging in. A Domain API that is not publicly discoverable is left out, though its base path still serves.
+       |
+       |Each one gives its base path, version, title and description, its `url` (this instance's host followed by
+       |the base path) and its `openapi_url`; `openapi.json` beside it is the same document as JSON.
+       |
+       |BANK_ID is the space: a bank's id, or `SYS` for the system space.
+       |
+       |No Authentication is Required.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink("Domain APIs")}""".stripMargin,
+    EmptyBody,
+    JSONFactory700DomainApis.publicDomainApisJsonV700Example,
+    List($BankNotFound, UnknownError),
+    apiTagDynamic :: apiTagApi :: Nil,
+    None,
+    http4sPartialFunction = Some(getPubliclyDiscoverableDomainApis)
+  ).allowSystemSpace()
+
+  // Route: GET /obp/v7.0.0/domain-apis (public)
+  lazy val getPubliclyDiscoverableDomainApisInEverySpace: Http4sRoute = Http4sRoute {
+    case req @ GET -> `prefixPath` / "domain-apis" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        Future(provider.getPubliclyDiscoverableInEverySpace()).map(box =>
+          PublicDomainApisJsonV700(fullOrFail(box, cc).map(JSONFactory700DomainApis.createPublicDomainApiJson)))
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getPubliclyDiscoverableDomainApisInEverySpace),
+    "GET",
+    "/domain-apis",
+    "Get Publicly Discoverable Domain APIs in Every Space",
+    s"""The publicly discoverable Domain APIs (`is_publicly_discoverable`) of every space on this instance, each
+       |with its space (`bank_id`), base path, version, title, description, `url` and `openapi_url`. For a tool
+       |such as API Explorer that offers every published API without knowing the spaces in advance;
+       |`GET /obp/v7.0.0/banks/BANK_ID/domain-apis` gives one space's.
+       |
+       |No Authentication is Required.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink("Domain APIs")}""".stripMargin,
+    EmptyBody,
+    JSONFactory700DomainApis.publicDomainApisJsonV700Example,
+    List(UnknownError),
+    apiTagDynamic :: apiTagApi :: Nil,
+    None,
+    http4sPartialFunction = Some(getPubliclyDiscoverableDomainApisInEverySpace)
+  )
+
+  // Route: GET /obp/v7.0.0/banks/BANK_ID/domain-apis/resource-docs?base_path=BASE_PATH (public)
+  lazy val getDomainApiResourceDocs: Http4sRoute = Http4sRoute {
+    case req @ GET -> `prefixPath` / "banks" / bankIdInUrl / "domain-apis" / "resource-docs" =>
+      EndpointHelpers.executeAndRespond(req) { cc =>
+        val spaceId = space(bankIdInUrl)
+        val basePath = req.uri.query.params.get("base_path").map(_.trim.stripPrefix("/").stripSuffix("/")).getOrElse("")
+        for {
+          _ <- Helper.booleanToFuture(s"$MissingQueryParams base_path", 400, Some(cc)) {
+            basePath.nonEmpty
+          }
+          route <- Future(provider.routes().find(route => route.bankId == spaceId && route.basePath == basePath)).map(found =>
+            code.api.util.APIUtil.unboxFullOrFail(Box(found), Some(cc), s"$DomainApiNotFound Current base_path is $basePath.", 404))
+        } yield JSONFactory1_4_0.createResourceDocsJson(Http4sDomainApi.publishedResourceDocs(route), isVersion4OrHigher = true, locale = None)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getDomainApiResourceDocs),
+    "GET",
+    "/banks/BANK_ID/domain-apis/resource-docs",
+    "Get Domain API Resource Docs",
+    s"""The endpoints a Domain API publishes, as OBP Resource Docs: the same endpoints as its OpenAPI document
+       |(`BASE_PATH/openapi.json`), in the format API Explorer and other OBP tools read. Each one's `request_url`
+       |and `specified_url` is its full published path, base path included (for example
+       |`/carbon-registry/v1/public/activity`), so it can be called as it stands.
+       |
+       |`base_path` (required) is the Domain API's base path, for example `carbon-registry/v1`. BANK_ID is its
+       |space: a bank's id, or `SYS` for the system space.
+       |
+       |Like the OpenAPI document, these are served whether or not the Domain API is publicly discoverable.
+       |
+       |No Authentication is Required.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink("Domain APIs")}""".stripMargin,
+    EmptyBody,
+    EmptyBody,
+    List($BankNotFound, MissingQueryParams, DomainApiNotFound, UnknownError),
+    apiTagDynamic :: apiTagApi :: apiTagDocumentation :: Nil,
+    None,
+    http4sPartialFunction = Some(getDomainApiResourceDocs)
+  ).allowSystemSpace()
+
   // Route: PUT /obp/v7.0.0/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID
   lazy val updateDomainApi: Http4sRoute = Http4sRoute {
     case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdInUrl / "domain-apis" / domainApiId =>
       EndpointHelpers.withUserAndBody[PostDomainApiJsonV700, DomainApiJsonV700](req) { (_, body, cc) =>
         val spaceId = space(bankIdInUrl)
         for {
-          _ <- found(spaceId, domainApiId, cc)
+          existing <- found(spaceId, domainApiId, cc)
           checked <- check(spaceId, body, Some(domainApiId), cc)
-          updated <- Future(provider.update(spaceId, domainApiId, checked.basePath, checked.version, checked.title, checked.description))
+          updated <- Future(provider.update(spaceId, domainApiId, checked.basePath, checked.version, checked.title, checked.description,
+            body.is_publicly_discoverable.getOrElse(existing.isPubliclyDiscoverable)))
             .map(fullOrFail(_, cc))
         } yield JSONFactory700DomainApis.createDomainApiJson(updated)
       }
@@ -256,7 +374,7 @@ object Http4s700DomainApis {
     "PUT",
     "/management/banks/BANK_ID/domain-apis/DOMAIN_API_ID",
     "Update Domain API",
-    s"""Change a Domain API: its base path, version, title or description. The same checks as on create apply.
+    s"""Change a Domain API: its base path, version, title, description or whether it is publicly discoverable. The same checks as on create apply.
        |Changing the base path moves every published URL, so it is a breaking change for its clients; a
        |compatible change only edits `version`.
        |

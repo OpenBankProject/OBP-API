@@ -99,6 +99,8 @@ trait AccountApplication {
 trait SigningBasketTrait {
   def basketId: String
   def status: String
+  /** The consumer (TPP) that created the basket. None on a basket created before ownership was recorded. */
+  def consumerId: Option[String] = None
 }
 case class SigningBasketContent(
                                 basket: SigningBasketTrait,

@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
 
   */
 package code.model
-import code.api.util.CommonFunctions.validUri
+import code.api.util.CommonFunctions.{validRedirectUrls, validUri}
 import code.api.util.migration.Migration.DbFunction
 import code.api.util._
 import code.consumer.{Consumers, ConsumersProvider}
@@ -279,7 +279,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           case None =>
         }
         redirectURL match {
-          case Some(v) => c.redirectURL(v)
+          case Some(v) =>
+            // updateConsumer does not run c.validate, so the redirect URL rules are applied here.
+            RedirectUrlValidation.consumerRedirectUrlError(v, applyHostList = false).foreach(error => throw new Error(error))
+            c.redirectURL(v)
           case None =>
         }
         logoURL match {
@@ -612,7 +615,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   }
   object redirectURL extends MappedString(this, 250){
     override def displayName = "Redirect URL:"
-    override def validations = validUri(this) _ :: super.validations
+    override def validations = validRedirectUrls(this) _ :: super.validations
   }
   
   object logoUrl extends MappedString(this, 250){
@@ -658,21 +661,6 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 object Consumer extends Consumer with MdcLoggable with LongKeyedMetaMapper[Consumer] {
 
   override def dbIndexes = UniqueIndex(key) :: UniqueIndex(azp, sub) :: super.dbIndexes
-
-  def getRedirectURLByConsumerKey(consumerKey: String): String = {
-    logger.debug("hello from getRedirectURLByConsumerKey")
-    val consumer: Consumer = Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
-    logger.debug(s"getRedirectURLByConsumerKey found consumer with id: ${consumer.id}, name is: ${consumer.name}, isActive is ${consumer.isActive}")
-    consumer.redirectURL.toString()
-  }
-
-  /**
-   * match the flow style, it can be http, https, or Private-Use URI Scheme Redirection for app:
-   * http://some.domain.com/path
-   * https://some.domain.com/path
-   * com.example.app:/oauth2redirect/example-provider
-   */
-  val redirectURLRegex = """^([.\w]+:|(http|https):/)/(www.)?\S+?(:\d{2,6})?\S*$""".r
 }
 
 object MappedNonceProvider extends NoncesProvider {

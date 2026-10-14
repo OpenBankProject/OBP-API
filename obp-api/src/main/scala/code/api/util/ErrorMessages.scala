@@ -118,7 +118,8 @@ object ErrorMessages {
   val DomainApiNotFound = "OBP-09029: Domain API not found in this space. Please specify a valid value for DOMAIN_API_ID."
   val InvalidDomainApiTitle = "OBP-09030: Invalid title or description. title must be 1 to 255 characters and description at most 2000."
   val DomainApiPathClash = "OBP-09031: Endpoints of this space are ambiguous with each other, so a Domain API cannot publish the space until one of them is renamed or removed: "
-  val DynamicPathAmbiguous = "OBP-09032: This would make a path ambiguous in its space. The Dynamic Entities and Dynamic Resource Docs of a space share one set of paths, which a Domain API can publish under its base path at any time, so a Dynamic Resource Doc's path may not start with a path variable, with my, public, community, openapi.json or openapi.yaml, or with the name of one of the space's Dynamic Entities; a Dynamic Entity may not be named my, public, community, openapi.json or openapi.yaml, nor after the first segment of one of the space's Dynamic Resource Docs; and two Dynamic Resource Docs of one verb may not both match one request. Rename one of them: "
+  val DynamicPathAmbiguous = "OBP-09032: This would make a path ambiguous in its space. The Dynamic Entities and Dynamic Resource Docs of a space share one set of paths, which a Domain API can publish under its base path at any time, and a Domain API reads a hyphen in an entity name as an underscore, so a Dynamic Resource Doc's path may not start with a path variable, with my, public, community, openapi.json or openapi.yaml, or with the name of one of the space's Dynamic Entities in either spelling (like-this or like_this); a Dynamic Entity may not be named my, public, community, openapi.json or openapi.yaml, nor after the first segment of one of the space's Dynamic Resource Docs, nor so that it differs from another of the space's Dynamic Entities only by hyphens for underscores; and two Dynamic Resource Docs of one verb may not both match one request. Rename one of them: "
+  val DynamicEntityNameHasHyphenOrSpace = "OBP-09033: Invalid Dynamic Entity name. A Dynamic Entity name may not contain a hyphen or a space; use an underscore between words, e.g. 'customer_preferences'. A Domain API serves the entity at the hyphenated form of its name as well. "
 
 
   // General messages (OBP-10XXX)
@@ -188,6 +189,7 @@ object ErrorMessages {
   val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!"
   val FilterDurationFormatError = s"OBP-10029: wrong value for `duration` parameter. Please send a positive integer (=>0)!"
   val FilterIsDeletedFormatError = s"OBP-10036: is_deleted parameter can only take two values: TRUE or FALSE!"
+  val AggregateMetricsDateRangeTooLong = "OBP-10069: The date range is too long for aggregate metrics. Set from_date and to_date closer together. "
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
   val IncorrectTriggerName = "OBP-10039: Incorrect Trigger name:"
@@ -303,6 +305,7 @@ object ErrorMessages {
   val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
   val DAuthIsDisabled = "OBP-20407: DAuth is disabled. Set allow_dauth=true to enable."
   val OpenIDConnectIsDisabled = "OBP-20408: OpenID Connect is disabled. Set allow_openid_connect=true to enable."
+  val DirectLoginIsDisabled = "OBP-20409: DirectLogin is disabled. Set allow_direct_login=true to enable."
 
   val InvalidProviderUrl = "OBP-20079: Cannot match the local identity provider."
 
@@ -349,6 +352,8 @@ object ErrorMessages {
   val BankAccountBalanceNotFoundById = "OBP-20105: BankAccountBalance not found. Please specify a valid value for BALANCE_ID."
   val UserNotFoundByToken = "OBP-20106: User not found by token. The validation token is invalid or expired."
   val UserAlreadyValidated = "OBP-20107: User email is already validated."
+  val InvalidRedirectUrl = "OBP-20108: Invalid redirect URL. Each redirect URL must use https, use http only for localhost, 127.0.0.1 or [::1], or use an app scheme in reverse-domain form such as com.example.app, and must not contain a wildcard, user information or a fragment. Rejected entry: "
+  val RedirectUrlHostNotAllowed = "OBP-20109: Redirect URL host not allowed. This instance only accepts redirect URLs that point to the hosts listed for it. Rejected entry: "
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
@@ -506,6 +511,7 @@ object ErrorMessages {
   val CardNotFound = "OBP-30059: This Card can not be found for the user "
   val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
   val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
+  val CounterpartyAttributeNotFound = "OBP-30121: Counterparty Attribute not found. Please specify a valid value for COUNTERPARTY_ATTRIBUTE_ID for this COUNTERPARTY_ID."
   val ParentProductNotFoundByProductCode = "OBP-30062: Parent product not found. Please specify an existing product code for parent_product_code. Leave empty if no parent product exists."
   val CannotGrantAccountAccess = "OBP-30063: Cannot grant account access."
   val CannotRevokeAccountAccess = "OBP-30064: Cannot revoke account access."
@@ -513,6 +519,7 @@ object ErrorMessages {
   val CannotGetAccounts = "OBP-30066: Could not get accounts."
   val TransactionNotFound = "OBP-30067: Transaction not found. Please specify a valid value for TRANSACTION_ID."
   val RefundedTransaction = "OBP-30068: Transaction was already refunded . Please specify a valid value for TRANSACTION_ID."
+  val RefundTransactionNotWithThisParty = "OBP-30122: The transaction to refund was not made with this party. Please specify a TRANSACTION_ID of a payment between this account and the party named in the request."
   val CustomerAttributeNotFound = "OBP-30069: Customer Attribute not found. Please specify a valid value for CUSTOMER_ATTRIBUTE_ID."
   val TransactionAttributeNotFound = "OBP-30070: Transaction Attribute not found. Please specify a valid value for TRANSACTION_ATTRIBUTE_ID."
   val AttributeNotFound = "OBP-30071: Attribute Definition not found. Please specify a valid value for ATTRIBUTE_DEFINITION_ID."
@@ -882,6 +889,16 @@ object ErrorMessages {
   val InvalidUKConsentPermissions = "OBP-35038: The Permissions array is not a valid combination for UK Open Banking. "
   val BerlinGroupPsuNotIdentified = "OBP-35039: The PSU this authorisation is for cannot be identified. Send the PSU-ID header, or authenticate as the PSU. "
   val ConsentNamesNoAccount = "OBP-35040: The Consent names no account, so it grants no access. It was authorised before consents were bound to accounts; re-authorise it to select which accounts it applies to. "
+  val SigningBasketAuthorisationVariantNotSupported = "OBP-35050: This request body is not supported on a signing basket authorisation. " +
+    "Send an empty body to start the authorisation, or {\"scaAuthenticationData\": ...} to answer it. " +
+    "PSU authentication, authentication method selection and confirmation code requests are not available for signing baskets. "
+  val SigningBasketNotFound = "OBP-35051: Signing basket not found by BASKET_ID. "
+  val SigningBasketAuthorisationNotFound = "OBP-35052: Signing basket authorisation not found by AUTHORISATION_ID. "
+  val SigningBasketStatusInvalid = "OBP-35053: The signing basket's status does not allow this operation. "
+  val SigningBasketAuthorisationDisabled = "OBP-35054: Authorising signing baskets is not enabled at this instance. "
+  val SigningBasketMemberNotFound = "OBP-35056: A payment named for the signing basket was not found. "
+  val SigningBasketMemberStatusInvalid = "OBP-35057: A payment named for the signing basket is not waiting for SCA. "
+  val SigningBasketConsentsNotSupported = "OBP-35058: Consents in a signing basket are not supported yet. Name payments only. "
   val ConsentMyResourcesInvalid = "OBP-35042: The Consent's my_resources block is invalid. "
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "

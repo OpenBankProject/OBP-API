@@ -724,8 +724,9 @@ object Http4s600 {
                 throw new Exception(s"$ExcludeParametersNotSupported Parameters found: [${excludes.map(_.name).mkString(", ")}]")
               else true
             }
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
+            limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(
               APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(limitedHttpParams, cc.callContext)
             // isNewVersion = true: v6 is include_* style (exclude_* is rejected above). With
             // false the include_app_names / include_url_patterns /
             // include_implemented_by_partial_functions filters were silently ignored.
@@ -2114,8 +2115,8 @@ object Http4s600 {
               }
             }
           } yield {
-            val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
-              .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList).getOrElse(List.empty)
+            // Stored entries that fail the redirect URL rules (written before they existed) are never handed out.
+            val redirectUris = code.api.util.RedirectUrlValidation.validEntries(consumer.redirectURL.get)
             GetOidcClientResponseJsonV600(
               client_id = clientId, client_name = consumer.name.get,
               consumer_id = consumer.consumerId.get,
@@ -2137,8 +2138,7 @@ object Http4s600 {
           } yield {
             consumerBox match {
               case Full(consumer) if consumer.isActive.get && consumer.secret.get == postedData.client_secret =>
-                val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
-                  .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+                val redirectUris = Some(code.api.util.RedirectUrlValidation.validEntries(consumer.redirectURL.get)).filter(_.nonEmpty)
                 VerifyOidcClientResponseJsonV600(
                   valid = true,
                   client_id = Some(postedData.client_id),
@@ -2398,6 +2398,18 @@ object Http4s600 {
       s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
         AttributeTypeDocs.typesWithExamples
 
+    /**
+     * This returns the attribute COUNTERPARTY_ATTRIBUTE_ID only if it belongs to the counterparty in the URL.
+     * The middleware has already checked that the counterparty belongs to the bank and account in the URL
+     * (COUNTERPARTY_ID); an attribute is found by its own id, so it could belong to any counterparty.
+     */
+    private def counterpartyAttributeOfCounterparty(counterpartyIdStr: String,
+                                                    attributeId: String): Future[com.openbankproject.commons.model.CounterpartyAttributeTrait] =
+      for {
+        attributeBox <- code.counterpartyattribute.CounterpartyAttributeX.counterpartyAttributeProvider.vend.getCounterpartyAttributeById(attributeId)
+      } yield unboxFullOrFail(
+        attributeBox.filter(_.counterpartyId.value == counterpartyIdStr), None, CounterpartyAttributeNotFound, 404)
+
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes (201)
     lazy val createCounterpartyAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
@@ -2425,18 +2437,21 @@ object Http4s600 {
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val deleteCounterpartyAttribute: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.executeDelete(req) { cc =>
-          code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
+          for {
+            _ <- counterpartyAttributeOfCounterparty(counterpartyId, attributeId)
+            deleted <- code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
+          } yield deleted
         }
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val getCounterpartyAttributeById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
-            (attribute, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.getCounterpartyAttributeById(attributeId, Some(cc))
+            attribute <- counterpartyAttributeOfCounterparty(counterpartyId, attributeId)
           } yield JSONFactory600.createCounterpartyAttributeJson(attribute)
         }
     }
@@ -2458,6 +2473,7 @@ object Http4s600 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- counterpartyAttributeOfCounterparty(counterpartyId, attributeId)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
             }
@@ -5006,48 +5022,11 @@ object Http4s600 {
         }
     }
 
-    // DirectLogin header parser — mirrors the parsing in code.api.directlogin.DirectLogin.getAllParameters
-    // but reads from CallContext.requestHeaders (populated by the http4s context builder) instead of
-    // Lift's thread-local S.request.
-    private def parseDirectLoginParams(cc: CallContext): Map[String, String] = {
-      def find(name: String): Option[String] = code.api.util.RequestHeadersUtil.find(cc.requestHeaders, name)
-        .flatMap(_.values.headOption)
-      val directLoginHeader = find("DirectLogin")
-      val authHeader = find("Authorization")
-      val raw = directLoginHeader
-        .orElse(authHeader.filter(h => h.startsWith("DirectLogin") || h.contains("DirectLogin")))
-        .getOrElse("")
-      val cleaned = raw.stripPrefix("DirectLogin").split(",").map(_.trim).toList
-      val keys = Set("consumer_key", "token", "username", "password")
-      cleaned.flatMap { entry =>
-        if (entry.contains("=")) {
-          val s = entry.split("=", 2)
-          val v = s(1).replaceAll("^\"|\"$", "")
-          if (keys.contains(s(0)) && v.nonEmpty) Some(s(0) -> v) else None
-        } else None
-      }.toMap
-    }
-
+    // The token flow, including the allow_direct_login check, is shared with the unversioned route.
     lazy val directLoginEndpoint: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "logins" / "direct" =>
         EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc: CallContext = req.callContext
-          // If the parser found nothing usable, fall back to a single "error" key so that
-          // validatorFutureWithParams returns the MissingDirectLoginHeader message (preserves
-          // Lift's getAllParameters behaviour for the no-header case).
-          val parsed = parseDirectLoginParams(cc)
-          val params =
-            if (parsed.isEmpty) Map("error" -> code.api.util.ErrorMessages.MissingDirectLoginHeader)
-            else parsed
-          for {
-            triple <- code.api.DirectLogin.validatorFutureWithParams("authorizationToken", "POST", params)
-            (httpCode, message, dlParams) = triple
-            tokenTriple = code.api.DirectLogin.createTokenCommonPart(httpCode, message, dlParams)
-            _ <- Future(code.api.DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
-          } yield {
-            if (tokenTriple._1 == 200) JSONFactory600.createTokenJSON(tokenTriple._2)
-            else unboxFullOrFail(Empty, None, tokenTriple._2, tokenTriple._1)
-          }
+          code.api.DirectLoginRoutes.issueToken(req.callContext)
         }
     }
 
@@ -7122,7 +7101,7 @@ object Http4s600 {
         |
         |This endpoint returns all consumer fields including:
         |- Basic info: consumer_id, app_name, app_type, description, developer_email, company
-        |- OAuth: consumer_key, redirect_url
+        |- OAuth: redirect_url
         |- Status: enabled, created
         |- Certificate: certificate_pem, certificate_info (subject, issuer, validity dates, PSD2 roles)
         |- Branding: logo_url
@@ -7130,7 +7109,8 @@ object Http4s600 {
         |- Rate limits: active_rate_limits showing current rate limiting configuration
         |- Call counters: call_counters showing current API call usage from Redis
         |
-        |Note: consumer_secret is never returned for security reasons.
+        |Note: consumer_secret is never returned, and consumer_key is returned as `${APIUtil.RedactedConsumerKey}`:
+        |both are credentials. Get Consumer v7.0.0 leaves consumer_key out.
         |
         |${userAuthenticationMessage(true)}
         |
@@ -7864,6 +7844,8 @@ object Http4s600 {
            |This prevents accidentally querying all metrics since Unix Epoch and ensures reasonable response times.
            |For historical/reporting queries, always explicitly specify your desired `from_date`.
            |
+           |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
+           |
            |**IMPORTANT: Smart Caching & Performance**
            |
            |This endpoint uses intelligent two-tier caching to optimize performance:
@@ -7948,6 +7930,7 @@ object Http4s600 {
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
+          AggregateMetricsDateRangeTooLong,
           UnknownError
         ),
         List(apiTagMetric, apiTagAggregateMetrics),
@@ -9559,6 +9542,10 @@ object Http4s600 {
         |Returns client information including name, consumer_id, redirect_uris, and enabled status.
         |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
         |
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
+        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
+        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+
         |${userAuthenticationMessage(true)}
         |""",
         EmptyBody,
@@ -9586,6 +9573,10 @@ object Http4s600 {
         |Returns `valid: true` if the client_id and client_secret match an active consumer.
         |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
         |
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
+        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
+        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+
         |${userAuthenticationMessage(true)}
         |""",
         VerifyOidcClientRequestJsonV600(
@@ -9973,7 +9964,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(createCounterpartyAttribute),
         "POST",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
         "Create Counterparty Attribute",
         s"""
             | Create a new Counterparty Attribute for a given COUNTERPARTY_ID.
@@ -9984,7 +9975,7 @@ object Http4s600 {
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, $CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canCreateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(createCounterpartyAttribute)
@@ -9993,7 +9984,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(deleteCounterpartyAttribute),
         "DELETE",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
         "Delete Counterparty Attribute",
         s"""
             | Delete a Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
@@ -10003,7 +9994,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, $CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canDeleteCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(deleteCounterpartyAttribute)
@@ -10012,7 +10003,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getCounterpartyAttributeById),
         "GET",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
         "Get Counterparty Attribute By ID",
         s"""
             | Get a specific Counterparty Attribute by its COUNTERPARTY_ATTRIBUTE_ID.
@@ -10022,7 +10013,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, $CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(getCounterpartyAttributeById)
@@ -10031,7 +10022,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getAllCounterpartyAttributes),
         "GET",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
         "Get All Counterparty Attributes",
         s"""
             | Get all attributes for the specified Counterparty.
@@ -10041,7 +10032,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, $CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttributes :: Nil),
         http4sPartialFunction = Some(getAllCounterpartyAttributes)
@@ -10050,7 +10041,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(updateCounterpartyAttribute),
         "PUT",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
         "Update Counterparty Attribute",
         s"""
             | Update an existing Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
@@ -10060,7 +10051,7 @@ object Http4s600 {
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, $CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canUpdateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(updateCounterpartyAttribute)
@@ -13197,10 +13188,13 @@ object Http4s600 {
           |
           |    DirectLogin: token=YOUR_TOKEN
           |
+          |On this instance DirectLogin is ${if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) "enabled" else "disabled: this endpoint refuses every request with DirectLoginIsDisabled, without checking any credentials"}.
+          |
           |""".stripMargin,
           EmptyBody,
           JSONFactory600.createTokenJSON("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc"),
           List(
+            DirectLoginIsDisabled,
             InvalidDirectLoginParameters,
             InvalidLoginCredentials,
             InvalidConsumerCredentials,

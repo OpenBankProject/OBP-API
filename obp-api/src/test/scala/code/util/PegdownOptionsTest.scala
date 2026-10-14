@@ -497,4 +497,71 @@ Authentication is Mandatory""".stripMargin
     descriptionHtml should not include ("&ndash;")
     descriptionHtml should not include ("&ldquo;")
   }
+
+  "a script element" should "be removed from the rendered html" taggedAs FunctionsTag in {
+    val descriptionHtml = convertPegdownToHtmlTweaked("Before\n\n<script>alert(1)</script>\n\nAfter")
+    stringToNodeSeq(descriptionHtml)
+    descriptionHtml should not include ("<script")
+    descriptionHtml should not include ("alert(1)")
+    descriptionHtml should include ("After")
+  }
+
+  "an event handler attribute" should "be removed while the element is kept" taggedAs FunctionsTag in {
+    val descriptionHtml = convertPegdownToHtmlTweaked("""<img src="https://example.com/a.png" onerror="alert(1)">""")
+    stringToNodeSeq(descriptionHtml)
+    descriptionHtml should include ("src=\"https://example.com/a.png\"")
+    descriptionHtml should not include ("onerror")
+  }
+
+  "a javascript link" should "lose its href" taggedAs FunctionsTag in {
+    val markdownLink = convertPegdownToHtmlTweaked("[click](javascript:alert(1))")
+    val htmlLink = convertPegdownToHtmlTweaked("""<a href="javascript:alert(1)">click</a>""")
+    markdownLink should not include ("javascript:")
+    htmlLink should not include ("javascript:")
+    htmlLink should include ("click")
+  }
+
+  "a sized image whose url contains a double quote" should "not break out of the src attribute" taggedAs FunctionsTag in {
+    val descriptionHtml = convertPegdownToHtmlTweaked("""![logo](https://example.com/a.png" onload="alert(1) =10x20)""")
+    val image = stringToNodeSeq(descriptionHtml) \\ "img"
+    image.size should be (1)
+    // The quote is escaped, so onload stays text inside src rather than becoming an attribute.
+    image.head.attribute("onload") should be (None)
+    image.head \@ "src" should be ("https://example.com/a.png\" onload=\"alert(1)")
+    image.head \@ "width" should be ("10")
+  }
+
+  "formatting that descriptions use on purpose" should "survive sanitising" taggedAs FunctionsTag in {
+    val descriptionHtml = convertPegdownToHtmlTweaked(
+      """<details><summary>More</summary>
+        |
+        |<p>Inside <a href="https://example.com">a link</a></p>
+        |
+        |</details>
+        |
+        |[BANK_ID](/glossary#Bank.bank_id) and [Contact](#Contact)
+        |
+        |```json
+        |{
+        |  "indented": true
+        |}
+        |```
+        |
+        || a | b |
+        ||---|---|
+        || 1 | 2 |
+        |
+        |~~gone~~ and line<br>break
+        |""".stripMargin)
+    stringToNodeSeq(descriptionHtml)
+    descriptionHtml should include ("<details>")
+    descriptionHtml should include ("<summary>More</summary>")
+    descriptionHtml should include ("<a href=\"https://example.com\">a link</a>")
+    descriptionHtml should include ("<a href=\"/glossary#Bank.bank_id\">BANK_ID</a>")
+    descriptionHtml should include ("<a href=\"#Contact\">Contact</a>")
+    descriptionHtml should include ("\n  \"indented\": true\n")
+    descriptionHtml should include ("<table>")
+    descriptionHtml should include ("<del>gone</del>")
+    descriptionHtml should include ("<br />")
+  }
 }

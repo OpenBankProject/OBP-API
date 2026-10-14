@@ -1337,8 +1337,11 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
+  def createRedactedConsumerJSON(c: Consumer): ConsumerJsonV510 =
+    createConsumerJSON(c).copy(consumer_key = code.api.util.APIUtil.redactConsumerKey(c.key.get))
+
   def createConsumersJson(consumers:List[Consumer]) = {
-    ConsumersJsonV510(consumers.map(createConsumerJSON(_,None)))
+    ConsumersJsonV510(consumers.map(createRedactedConsumerJSON))
   }
 
   def createAgentJson(agent: Agent, bankAccount: BankAccount): AgentJsonV510 = {

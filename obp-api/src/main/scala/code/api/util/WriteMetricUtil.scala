@@ -54,6 +54,13 @@ object WriteMetricUtil extends MdcLoggable {
     operationIds.contains(operationId.getOrElse("None"))
   }
 
+  /**
+   * Called for every endpoint call, whether or not write_metrics is on: it is Redis-only and
+   * throttled (see code.metrics.ConsumerLastCall), so it costs next to nothing.
+   */
+  def recordConsumerLastCall(consumerId: Option[String], startTime: Option[Date]): Unit =
+    code.metrics.ConsumerLastCall.record(consumerId.orNull, startTime.getOrElse(new Date()))
+
   def writeEndpointMetric(responseBody: Any, callContext: Option[CallContextLight]): Unit = callContext match {
     case Some(cc) if code.metrics.MetricsProps.writeMetrics =>
       persistAndPublishMetric(responseBody, cc)

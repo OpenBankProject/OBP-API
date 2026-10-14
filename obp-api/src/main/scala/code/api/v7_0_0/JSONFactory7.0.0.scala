@@ -1021,27 +1021,37 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class GlossaryJsonV700(glossary_items: List[GlossaryItemJsonV700], total_count: Int)
 
   /**
-   * One Item as the Glossary serves it.
+   * The description of one Item as the Glossary serves it, in markdown and in HTML.
    *
    * `expanded` controls the Glossary placeholders that Items use to quote each other: true gives
    * the text a reader wants, false the text as authored, which is what an editor must PUT back.
-   * `includeAuthor` keeps created_by_user_id out of anonymous responses.
+   * This is the expensive part of serving an Item (placeholder expansion and a markdown to HTML
+   * conversion), so the Glossary endpoints cache its result rather than calling it per request.
+   */
+  def createGlossaryItemDescriptionJsonV700(item: Glossary.GlossaryItem, expanded: Boolean): GlossaryItemDescriptionJsonV700 = {
+    val raw = item.description()
+    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+    GlossaryItemDescriptionJsonV700(
+      markdown = markdown,
+      html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
+    )
+  }
+
+  /**
+   * One Item as the Glossary serves it, with its description already rendered by
+   * createGlossaryItemDescriptionJsonV700. `includeAuthor` keeps created_by_user_id out of
+   * anonymous responses.
    */
   def createServedGlossaryItemJsonV700(
       item: Glossary.GlossaryItem,
       meta: Option[code.glossaryitem.DynamicGlossaryItemTrait],
-      expanded: Boolean,
+      description: GlossaryItemDescriptionJsonV700,
       includeAuthor: Boolean
-  ): GlossaryItemJsonV700 = {
-    val raw = item.description()
-    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+  ): GlossaryItemJsonV700 =
     GlossaryItemJsonV700(
       glossary_item_id = meta.map(_.glossaryItemId),
       title = item.title,
-      description = GlossaryItemDescriptionJsonV700(
-        markdown = markdown,
-        html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
-      ),
+      description = description,
       is_dynamic = item.isDynamic,
       overrides_static_item = item.overridesStaticItem,
       shadows_static_glossary_item = item.shadowsStaticItem,
@@ -1049,7 +1059,6 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       created_at = meta.map(_.createdAt),
       updated_at = meta.map(_.updatedAt)
     )
-  }
 
   def createGlossaryJsonV700(items: List[GlossaryItemJsonV700], totalCount: Int): GlossaryJsonV700 =
     GlossaryJsonV700(glossary_items = items, total_count = totalCount)
@@ -2233,6 +2242,104 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     consumer_name = "OBP Portal"
   )
 
+  /** A Consumer in the management list. No consumer_key: the key is a credential, a Consumer is referenced by consumer_id. */
+  case class ConsumerJsonV700(
+    consumer_id: String,
+    app_name: String,
+    app_type: String,
+    description: String,
+    developer_email: String,
+    company: String,
+    redirect_url: String,
+    certificate_pem: String,
+    created_by_user: code.api.v2_1_0.ResourceUserJSON,
+    enabled: Boolean,
+    created: Date,
+    logo_url: Option[String]
+  )
+
+  case class ConsumersJsonV700(consumers: List[ConsumerJsonV700])
+
+  def createConsumerJsonV700(consumer: code.model.Consumer): ConsumerJsonV700 = {
+    val c = code.api.v5_1_0.JSONFactory510.createConsumerJSON(consumer)
+    ConsumerJsonV700(
+      consumer_id = c.consumer_id,
+      app_name = c.app_name,
+      app_type = c.app_type,
+      description = c.description,
+      developer_email = c.developer_email,
+      company = c.company,
+      redirect_url = c.redirect_url,
+      certificate_pem = c.certificate_pem,
+      created_by_user = c.created_by_user,
+      enabled = c.enabled,
+      created = c.created,
+      logo_url = c.logo_url
+    )
+  }
+
+  def createConsumersJsonV700(consumers: List[code.model.Consumer]): ConsumersJsonV700 =
+    ConsumersJsonV700(consumers.map(createConsumerJsonV700))
+
+  lazy val consumersJsonV700Example: ConsumersJsonV700 = {
+    val c = code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.consumerJsonV510
+    ConsumersJsonV700(List(ConsumerJsonV700(
+      consumer_id = c.consumer_id,
+      app_name = c.app_name,
+      app_type = c.app_type,
+      description = c.description,
+      developer_email = c.developer_email,
+      company = c.company,
+      redirect_url = c.redirect_url,
+      certificate_pem = c.certificate_pem,
+      created_by_user = c.created_by_user,
+      enabled = c.enabled,
+      created = c.created,
+      logo_url = c.logo_url
+    )))
+  }
+
+  /** One Consumer with its rate limits and call counters. No consumer_key: the key is a credential. */
+  case class ConsumerDetailsJsonV700(
+    consumer_id: String,
+    app_name: String,
+    app_type: String,
+    description: String,
+    developer_email: String,
+    company: String,
+    redirect_url: String,
+    certificate_pem: String,
+    certificate_info: Option[code.api.v5_1_0.CertificateInfoJsonV510],
+    created_by_user: code.api.v2_1_0.ResourceUserJSON,
+    enabled: Boolean,
+    created: Date,
+    logo_url: Option[String],
+    active_rate_limits: code.api.v6_0_0.ActiveRateLimitsJsonV600,
+    call_counters: code.api.v6_0_0.RedisCallCountersJsonV600
+  )
+
+  def createConsumerDetailsJsonV700(c: code.api.v6_0_0.ConsumerJsonV600): ConsumerDetailsJsonV700 =
+    ConsumerDetailsJsonV700(
+      consumer_id = c.consumer_id,
+      app_name = c.app_name,
+      app_type = c.app_type,
+      description = c.description,
+      developer_email = c.developer_email,
+      company = c.company,
+      redirect_url = c.redirect_url,
+      certificate_pem = c.certificate_pem,
+      certificate_info = c.certificate_info,
+      created_by_user = c.created_by_user,
+      enabled = c.enabled,
+      created = c.created,
+      logo_url = c.logo_url,
+      active_rate_limits = c.active_rate_limits,
+      call_counters = c.call_counters
+    )
+
+  lazy val consumerDetailsJsonV700Example: ConsumerDetailsJsonV700 =
+    createConsumerDetailsJsonV700(code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.consumerJsonV600)
+
   /** One Role the calling Consumer holds as a Scope, and where: a bank id, SYS, or "" for a system Role. */
   case class CurrentConsumerScopeJsonV700(
     role_name: String,
@@ -2256,6 +2363,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     consumer_id = ExampleValue.consumerIdExample.value,
     scopes = List(CurrentConsumerScopeJsonV700(role_name = "CanGetDynamicEntityDefinitions", bank_id = "SYS"))
   )
+
+  /** One Scope on this instance: which Consumer holds which Role, and where. */
+  case class ScopeJsonV700(
+    bank_id: String,
+    role_name: String,
+    consumer_id: String
+  )
+
+  case class ScopesJsonV700(scopes: List[ScopeJsonV700])
+
+  def createAllScopesJsonV700(scopes: List[code.scope.Scope]): ScopesJsonV700 =
+    ScopesJsonV700(scopes.map(s => ScopeJsonV700(bank_id = s.bankId, role_name = s.roleName, consumer_id = s.consumerId))
+      .sortBy(s => (s.role_name, s.bank_id, s.consumer_id)))
+
+  lazy val allScopesJsonV700Example = ScopesJsonV700(List(
+    ScopeJsonV700(bank_id = "", role_name = "CanGetTelemetry", consumer_id = ExampleValue.consumerIdExample.value)))
+
+  /** The Role names someone holds, as an Entitlement or a Scope, each once. No Users, Consumers or bank ids. */
+  case class ReachableRolesJsonV700(role_names: List[String])
+
+  def createReachableRolesJsonV700(roleNames: List[String]): ReachableRolesJsonV700 =
+    ReachableRolesJsonV700(roleNames.distinct.sorted)
+
+  lazy val reachableRolesJsonV700Example = ReachableRolesJsonV700(List("CanGetCustomersAtOneBank", "CanGetTelemetry"))
 
   case class PasswordPolicyJsonV700(
     description: String,
@@ -2436,6 +2567,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         TopConsumerJsonV700(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)
       )
     )
+
+  // ─── Consumer Last Calls (v7.0.0) ───
+  // From Redis (code.metrics.ConsumerLastCall). tracked_since is when recording began; a Consumer
+  // not listed has made no call since then.
+  case class ConsumerLastCallJsonV700(consumer_id: String, last_call_at: java.util.Date)
+  case class ConsumerLastCallsJsonV700(
+      tracked_since: Option[java.util.Date],
+      consumer_last_calls: List[ConsumerLastCallJsonV700]
+  )
+
+  def createConsumerLastCallsJsonV700(lastCalls: code.metrics.ConsumerLastCall.LastCalls): ConsumerLastCallsJsonV700 =
+    ConsumerLastCallsJsonV700(
+      tracked_since = lastCalls.trackedSince,
+      consumer_last_calls = lastCalls.lastCalls.toList
+        .sortBy { case (consumerId, at) => (-at.getTime, consumerId) }
+        .map { case (consumerId, at) => ConsumerLastCallJsonV700(consumerId, at) }
+    )
+
+  lazy val consumerLastCallsJsonV700Example = ConsumerLastCallsJsonV700(
+    tracked_since = Some(APIUtil.DateWithDayExampleObject),
+    consumer_last_calls = List(
+      ConsumerLastCallJsonV700("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", APIUtil.DateWithDayExampleObject)
+    )
+  )
 
   // ─── Top Users (v7.0.0) ───
   // One distinct user and their call count. On-behalf-of aware: consent-borne calls are

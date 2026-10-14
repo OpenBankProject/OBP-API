@@ -78,27 +78,39 @@ object DirectLoginRoutes {
     }.toMap
   }
 
-  private val directLoginAllowed: Boolean =
-    code.api.util.APIUtil.getPropsAsBoolValue("allow_direct_login", true)
+  /**
+   * This checks DirectLogin credentials and issues a token. It is the one implementation behind both the
+   * unversioned POST /my/logins/direct and the versioned POST /obp/v6.0.0/my/logins/direct, so the two cannot drift.
+   *
+   * When allow_direct_login is false it refuses before reading any credentials, so the endpoint neither checks
+   * passwords nor stores tokens on an instance where DirectLogin is turned off. The prop is read on each request.
+   */
+  def issueToken(cc: CallContext): Future[code.api.v6_0_0.TokenJSON] = {
+    val directLoginAllowed = code.api.util.APIUtil.getPropsAsBoolValue("allow_direct_login", true)
+    for {
+      _ <- code.util.Helper.booleanToFuture(code.api.util.ErrorMessages.DirectLoginIsDisabled, failCode = 403, cc = Some(cc)) {
+        directLoginAllowed
+      }
+      // If the parser found nothing usable, fall back to a single "error" key so that
+      // validatorFutureWithParams returns the MissingDirectLoginHeader message.
+      parsed = parseDirectLoginParams(cc)
+      params = if (parsed.isEmpty) Map("error" -> code.api.util.ErrorMessages.MissingDirectLoginHeader) else parsed
+      triple <- DirectLogin.validatorFutureWithParams("authorizationToken", "POST", params)
+      (httpCode, message, dlParams) = triple
+      tokenTriple = DirectLogin.createTokenCommonPart(httpCode, message, dlParams)
+      _ <- Future(DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
+    } yield {
+      if (tokenTriple._1 == 200) JSONFactory600.createTokenJSON(tokenTriple._2)
+      else code.api.util.APIUtil.unboxFullOrFail(Empty, None, tokenTriple._2, tokenTriple._1)
+    }
+  }
 
-  val routes: HttpRoutes[IO] = if (!directLoginAllowed) HttpRoutes.empty[IO] else HttpRoutes.of[IO] {
+  val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> Root / "my" / "logins" / "direct" =>
       Http4sCallContextBuilder.fromRequest(req, apiVersion = "").flatMap { cc =>
         val reqWithCC = req.withAttribute(Http4sRequestAttributes.callContextKey, cc)
         EndpointHelpers.executeFutureCreated(reqWithCC) {
-          val parsed = parseDirectLoginParams(cc)
-          val params =
-            if (parsed.isEmpty) Map("error" -> code.api.util.ErrorMessages.MissingDirectLoginHeader)
-            else parsed
-          for {
-            triple <- DirectLogin.validatorFutureWithParams("authorizationToken", "POST", params)
-            (httpCode, message, dlParams) = triple
-            tokenTriple = DirectLogin.createTokenCommonPart(httpCode, message, dlParams)
-            _ <- Future(DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
-          } yield {
-            if (tokenTriple._1 == 200) JSONFactory600.createTokenJSON(tokenTriple._2)
-            else code.api.util.APIUtil.unboxFullOrFail(Empty, None, tokenTriple._2, tokenTriple._1)
-          }
+          issueToken(cc)
         }
       }
   }

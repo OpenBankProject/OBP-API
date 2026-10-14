@@ -54,6 +54,14 @@ object CommonFunctions extends MdcLoggable {
       Nil
   }
 
+  /**
+   * This validation applies the redirect URL rules of RedirectUrlValidation to a Mapper field, so a Consumer
+   * cannot be saved through createConsumer with a redirect URL that breaks them. The instance's host list is an
+   * endpoint-level policy (dynamic registration is exempt), so it is not applied here.
+   */
+  def validRedirectUrls[T <: MappedString[_]](field: T)(s: String): List[FieldError] =
+    RedirectUrlValidation.consumerRedirectUrlError(s, applyHostList = false).map(error => FieldError(field, error)).toList
+
   private def validUrl[T <: MappedString[_]](field: T)(s: String): List[FieldError] = {
     import java.net.URL
 

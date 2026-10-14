@@ -426,7 +426,7 @@ object BerlinGroupSigning extends MdcLoggable {
     val dateHeader = getCurrentDate
 
 
-    val redirectUri = "www.redirect-uri.com"
+    val redirectUri = "https://tpp.example.com/redirect"
     val headers = Map(
       RequestHeader.Digest -> s"SHA-256=$digest",
       RequestHeader.`X-Request-ID` -> xRequestId,

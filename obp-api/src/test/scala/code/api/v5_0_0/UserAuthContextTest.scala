@@ -36,6 +36,8 @@ import code.api.util.ErrorMessages._
 import code.api.v3_1_0.CustomerJsonV310
 import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.entitlement.Entitlement
+import code.usercustomerlinks.UserCustomerLink
+import com.openbankproject.commons.model.UserAuthContextUpdateStatus
 import com.github.dwickern.macros.NameOf.nameOf
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
@@ -63,7 +65,7 @@ class UserAuthContextTest extends V500ServerSetup {
   feature("Add/Get Auth Context v5.0.0") {
     scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
-      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST
+      val request500 = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").POST
       val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
       Then("We should get a 401")
       response500.code should equal(401)
@@ -72,7 +74,7 @@ class UserAuthContextTest extends V500ServerSetup {
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
-      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
+      val request500 = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").POST <@(user1)
       val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
       Then("We should get a 403")
       response500.code should equal(403)
@@ -82,7 +84,7 @@ class UserAuthContextTest extends V500ServerSetup {
 
     scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.0.0")
-      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET
+      val request500 = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").GET
       val response500 = makeGetRequest(request500)
       Then("We should get a 401")
       response500.code should equal(401)
@@ -91,7 +93,7 @@ class UserAuthContextTest extends V500ServerSetup {
     }
     scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.0.0")
-      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
+      val request500 = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").GET <@(user1)
       val response500 = makeGetRequest(request500)
       Then("We should get a 403")
       response500.code should equal(403)
@@ -103,14 +105,14 @@ class UserAuthContextTest extends V500ServerSetup {
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2,  VersionOfApi) {
       When("We try to create the UserAuthContext v5.0.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateUserAuthContext.toString)
-      val requestUserAuthContext500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
+      val requestUserAuthContext500 = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").POST <@(user1)
       val responseUserAuthContext500 = makePostRequest(requestUserAuthContext500, write(postUserAuthContextJsonV310))
       Then("We should get a 201")
       responseUserAuthContext500.code should equal(201)
       val customerJson = responseUserAuthContext500.body.extract[UserAuthContextJsonV500]
 
       When("We try to create the UserAuthContext v5.0.0")
-      val successReq = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
+      val successReq = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").POST <@(user1)
       val successRes = makePostRequest(successReq, write(postUserAuthContextJsonV5002))
       Then("We should get a 201")
       successRes.code should equal(201)
@@ -118,12 +120,12 @@ class UserAuthContextTest extends V500ServerSetup {
 
       When("We try to make the GET request v5.0.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
-      val successGetReq = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
+      val successGetReq = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").GET <@(user1)
       val successGetRes = makeGetRequest(successGetReq)
       Then("We should get a 200")
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
-      userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.user_id).forall(resourceUser1.userId ==) shouldBe (true)
       userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
     }
 
@@ -163,6 +165,7 @@ class UserAuthContextTest extends V500ServerSetup {
       val customerNumner = infoPost.customer_number
       
       When(s"We try to create the UserAuthContextRequestUpdate v5.0.0 $ApiEndpoint3")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateUserAuthContextUpdate.toString)
       val requestUserAuthContext500 = (v5_0_0_Request / "banks"/testBankId1.value /  "users" / "current" / "auth-context-updates" / "SMS" ).POST <@(user1)
       val responseUserAuthContext500 = makePostRequest(requestUserAuthContext500, write(postUserAuthContextJsonV310.copy(value = customerNumner)))
       Then("We should get a 201")
@@ -177,16 +180,19 @@ class UserAuthContextTest extends V500ServerSetup {
       Then("We should get a 200")
       successRes.code should equal(200)
       val result = successRes.body.extract[UserAuthContextUpdateJsonV500]
+      And("The example answer is wrong, so the update is rejected and the User is not linked to the Customer")
+      result.status should equal(UserAuthContextUpdateStatus.REJECTED.toString)
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(resourceUser1.userId, infoPost.customer_id).isDefined should equal(false)
       
 
       When("We try to make the GET request v5.0.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
-      val successGetReq = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
+      val successGetReq = (v5_0_0_Request / "users" / resourceUser1.userId / "auth-context").GET <@(user1)
       val successGetRes = makeGetRequest(successGetReq)
       Then("We should get a 200")
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
-      userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.user_id).forall(resourceUser1.userId ==) shouldBe (true)
       userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
     }
     

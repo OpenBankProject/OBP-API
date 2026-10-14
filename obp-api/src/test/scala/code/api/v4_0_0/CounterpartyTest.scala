@@ -35,6 +35,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
+import code.metadata.counterparties.Counterparties
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, ErrorMessage, ViewId, BankIdAccountIdViewId}
@@ -417,7 +418,9 @@ class CounterpartyTest extends V400ServerSetup {
       }
 
       Then(s"we can test the $ApiEndpoint7")
-      val requestDelete = (v4_0_0_Request /  "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" / "xxx" ).DELETE <@ (user1)
+      // A real counterparty of this account, so that the view's missing permission is what refuses the request.
+      val existingCounterpartyId = createCounterparty(bankId.value, accountId.value, accountId.value, true, resourceUser1.userId).counterpartyId
+      val requestDelete = (v4_0_0_Request /  "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" / existingCounterpartyId ).DELETE <@ (user1)
       val responseDelete = makeDeleteRequest(requestDelete)
       responseDelete.code should equal(403)
       responseDelete.body.toString contains(s"${ErrorMessages.NoViewPermission}")
@@ -427,4 +430,63 @@ class CounterpartyTest extends V400ServerSetup {
 
   }
 
+  feature("A counterparty is only reachable through its own account") {
+
+    // A counterparty of testAccount0, addressed through testAccount1. user1 has the owner view on both,
+    // so only the rule that a counterparty belongs to one account can refuse these requests.
+    def counterpartyOfTestAccount0(): String = {
+      val counterparty = createCounterparty(testBankId1.value, testAccountId0.value, testAccountId0.value, true, resourceUser1.userId)
+      Counterparties.counterparties.vend.getOrCreateMetadata(
+        testBankId1, testAccountId0, counterparty.counterpartyId, counterparty.name)
+      counterparty.counterpartyId
+    }
+    def stillExists(counterpartyId: String): Boolean =
+      Counterparties.counterparties.vend.getCounterparty(counterpartyId).isDefined
+    val accountUrl = v4_0_0_Request / "banks" / testBankId1.value / "accounts" / testAccountId1.value / SYSTEM_OWNER_VIEW_ID
+    val managementUrl = v4_0_0_Request / "management" / "banks" / testBankId1.value / "accounts" / testAccountId1.value / SYSTEM_OWNER_VIEW_ID
+
+    scenario("Get and Delete through a view refuse a counterparty of another account", VersionOfApi, ApiEndpoint6, ApiEndpoint7) {
+      val counterpartyId = counterpartyOfTestAccount0()
+
+      val getResponse = makeGetRequest((accountUrl / "counterparties" / counterpartyId).GET <@ user1)
+      getResponse.code should equal(400)
+      getResponse.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyNotFoundByCounterpartyId)
+
+      val deleteResponse = makeDeleteRequest((accountUrl / "counterparties" / counterpartyId).DELETE <@ user1)
+      deleteResponse.code should equal(400)
+      deleteResponse.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyNotFoundByCounterpartyId)
+      stillExists(counterpartyId) should equal(true)
+    }
+
+    scenario("The management Get and Delete refuse a counterparty of another account", VersionOfApi, ApiEndpoint3, ApiEndpoint4) {
+      val counterpartyId = counterpartyOfTestAccount0()
+      val entitlements = List(CanGetCounterparty, CanDeleteCounterparty).map(role =>
+        Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, role.toString))
+
+      val getResponse = makeGetRequest((managementUrl / "counterparties" / counterpartyId).GET <@ user1)
+      getResponse.code should equal(400)
+      getResponse.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyNotFoundByCounterpartyId)
+
+      val deleteResponse = makeDeleteRequest((managementUrl / "counterparties" / counterpartyId).DELETE <@ user1)
+      deleteResponse.code should equal(400)
+      deleteResponse.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyNotFoundByCounterpartyId)
+      stillExists(counterpartyId) should equal(true)
+
+      entitlements.foreach(Entitlement.entitlement.vend.deleteEntitlement(_))
+    }
+
+    scenario("A COUNTERPARTY transaction request refuses a counterparty of another account", VersionOfApi) {
+      val counterpartyId = counterpartyOfTestAccount0()
+      val body = code.api.v2_1_0.TransactionRequestBodyCounterpartyJSON(
+        code.api.v2_1_0.CounterpartyIdJson(counterpartyId),
+        com.openbankproject.commons.model.AmountOfMoneyJsonV121("EUR", "1"),
+        "Pay a counterparty of another account",
+        "SHARED")
+
+      val response = makePostRequest(
+        (accountUrl / "transaction-request-types" / "COUNTERPARTY" / "transaction-requests").POST <@ user1, write(body))
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyNotFoundByCounterpartyId)
+    }
+  }
 }

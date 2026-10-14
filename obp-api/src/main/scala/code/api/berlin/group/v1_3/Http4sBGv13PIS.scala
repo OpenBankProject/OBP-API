@@ -122,7 +122,7 @@ object Http4sBGv13PIS extends MdcLoggable {
    *    a payment lodged on a client-credentials token can still be authorised under the PSU's token
    *    and the other way round. A payment carrying neither identity belongs to nobody.
    */
-  private def getOwnPaymentImpl(paymentId: String, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
+  def getOwnPaymentImpl(paymentId: String, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     for {
       (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
       initiators = Set(transactionRequest.user_id, transactionRequest.on_behalf_of_user_id).flatten.filter(_.nonEmpty)

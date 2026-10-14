@@ -778,9 +778,7 @@ object Http4s500 {
           val bankId = BankId(bankIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            _ <- Helper.booleanToFuture(ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate, cc = Some(cc)) {
-              checkScope(bankId.value, getConsumerPrimaryKey(Some(cc)), ApiRole.canCreateUserAuthContextUpdate)
-            }
+            _ <- NewStyle.function.checkCanRequestUserAuthContextUpdate(bankId, user, Some(cc))
             _ <- Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc = Some(cc)) {
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).contains(scaMethod)
             }
@@ -803,13 +801,19 @@ object Http4s500 {
       s"""Create User Auth Context Update Request.
       |${userAuthenticationMessage(true)}
       |
-      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+      |A User uses this to prove that they are a Customer of the bank BANK_ID, for example by naming their CUSTOMER_NUMBER.
+      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the Customer's own contact details,
+      |via the transport defined in SCA_METHOD, and the User then answers it with Answer User Auth Context Update Challenge.
       |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+      |
+      |Because this sends a message to a Customer of the bank, the request must come either from an App (Consumer) that has
+      |the Scope ${canCreateUserAuthContextUpdate} at BANK_ID, or from a User that has the Role ${canCreateUserAuthContextUpdate} at BANK_ID.
+      |Either one is enough. A Scope is granted with Create Scope for a Consumer (POST /consumers/CONSUMER_ID/scopes).
       |
       |""",
       postUserAuthContextJson,
       userAuthContextUpdateJsonV500,
-      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, CreateUserAuthContextError, UnknownError),
+      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsumerHasMissingRoles, CreateUserAuthContextError, UnknownError),
       List(apiTagUser),
       None,
       http4sPartialFunction = Some(createUserAuthContextUpdateRequest)
@@ -828,22 +832,9 @@ object Http4s500 {
             postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextUpdateJsonV310]
             }
-            (userAuthContextUpdate, _) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, Some(cc))
-            (user, _) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, Some(cc))
-            _ <- userAuthContextUpdate.status match {
-              case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString =>
-                NewStyle.function.createUserAuthContext(
-                  user, userAuthContextUpdate.key.trim, userAuthContextUpdate.value.trim, Some(cc))
-                  .map(x => (Some(x._1), x._2))
-              case _ =>
-                Future.successful((None, Some(cc)))
-            }
-            _ <- userAuthContextUpdate.key match {
-              case "CUSTOMER_NUMBER" =>
-                NewStyle.function.getOCreateUserCustomerLink(bankId, userAuthContextUpdate.value, user.userId, Some(cc))
-              case _ =>
-                Future.successful((None, Some(cc)))
-            }
+            (userAuthContextUpdate, _) <- NewStyle.function.answerUserAuthContextUpdateChallenge(
+              bankId, authContextUpdateId, postUserAuthContextUpdateJson.answer,
+              cc.user.openOrThrowException(AuthenticatedUserIsRequired), Some(cc))
           } yield JSONFactory500.createUserAuthContextUpdateJson(userAuthContextUpdate)
         }
     }
@@ -856,10 +847,17 @@ object Http4s500 {
       "Answer User Auth Context Update Challenge",
       s"""
       |Answer User Auth Context Update Challenge.
+      |
+      |Only the User who requested the update can answer it, and only at the bank (BANK_ID) it was requested at.
+      |An update of another User or another bank is reported as not found, and its challenge is not used up.
+      |
+      |A right answer sets the status to ACCEPTED and adds the User Auth Context. For the key CUSTOMER_NUMBER it also
+      |links the User to the Customer with that number at the bank. A wrong answer sets the status to REJECTED and
+      |changes nothing else.
       |""",
       postUserAuthContextUpdateJsonV310,
       userAuthContextUpdateJsonV500,
-      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, InvalidConnectorResponse, UnknownError),
+      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UserAuthContextUpdateNotFound, InvalidConnectorResponse, UnknownError),
       apiTagUser :: Nil,
       None,
       http4sPartialFunction = Some(answerUserAuthContextUpdateChallenge)

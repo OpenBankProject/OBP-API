@@ -43,6 +43,7 @@ import scala.concurrent.{ExecutionContext, Future}
  *   - RequestScopeConnection.makeProxy  — lifecycle methods are no-ops
  *   - RequestAwareConnectionManager     — proxy vs. delegate selection
  *   - RequestScopeConnection.fromFuture — TTL propagation to Future workers
+ *   - RequestScopeConnection.afterCommit — actions held until the transaction succeeds
  *
  * All tests use JDK dynamic proxy to build trackable mock Connections; no
  * mocking framework is needed.  The `after` block resets the global TTL so
@@ -60,6 +61,8 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
     RequestScopeConnection.currentProxy.set(null)
     RequestScopeConnection.requestProxyLocal.set(None).unsafeRunSync()
     RequestScopeConnection.requestLazyAcquire.set(None).unsafeRunSync()
+    RequestScopeConnection.currentAfterCommit.set(null)
+    RequestScopeConnection.requestAfterCommitLocal.set(None).unsafeRunSync()
   }
 
   // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -327,6 +330,78 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
 
       Then("The returned value matches the Future's result")
       result shouldBe 42
+    }
+  }
+
+  // ─── RequestScopeConnection.afterCommit ──────────────────────────────────────
+
+  // These routes make no database call, so withBusinessDBTransaction borrows no connection and
+  // the scenarios need no database. The ordering they check is the same as when a commit runs.
+  feature("RequestScopeConnection.afterCommit — actions wait for the transaction") {
+
+    scenario("An action registered inside a transaction runs only after the route has succeeded") {
+      Given("A route that registers an action from a Future callback")
+      val ranAfterCommit = new java.util.concurrent.atomic.AtomicBoolean(false)
+      var ranBeforeRouteFinished = true
+      val route: IO[org.http4s.Response[IO]] = for {
+        _ <- RequestScopeConnection.fromFuture {
+               Future(()).map(_ => RequestScopeConnection.afterCommit(ranAfterCommit.set(true)))
+             }
+        _ <- IO { ranBeforeRouteFinished = ranAfterCommit.get() }
+      } yield org.http4s.Response[IO](org.http4s.Status.Ok)
+
+      When("The route runs inside withBusinessDBTransaction")
+      RequestScopeConnection.withBusinessDBTransaction(route).unsafeRunSync()
+
+      Then("The action had not run while the route was still running")
+      ranBeforeRouteFinished shouldBe false
+      And("It ran once the transaction scope finished successfully")
+      ranAfterCommit.get() shouldBe true
+    }
+
+    scenario("An action registered inside a transaction is dropped when the route fails") {
+      Given("A route that registers an action and then fails")
+      val ran = new java.util.concurrent.atomic.AtomicBoolean(false)
+      val route: IO[org.http4s.Response[IO]] = for {
+        _ <- RequestScopeConnection.fromFuture(Future(RequestScopeConnection.afterCommit(ran.set(true))))
+        response <- IO.raiseError[org.http4s.Response[IO]](new RuntimeException("route failed"))
+      } yield response
+
+      When("The route runs inside withBusinessDBTransaction")
+      val outcome = RequestScopeConnection.withBusinessDBTransaction(route).attempt.unsafeRunSync()
+
+      Then("The failure reaches the caller and the action never runs")
+      outcome.isLeft shouldBe true
+      ran.get() shouldBe false
+    }
+
+    scenario("An action registered outside any transaction runs at once") {
+      Given("No transaction scope")
+      val ran = new java.util.concurrent.atomic.AtomicBoolean(false)
+
+      When("An action is registered from a Future")
+      RequestScopeConnection.fromFuture(Future(RequestScopeConnection.afterCommit(ran.set(true)))).unsafeRunSync()
+
+      Then("It has already run")
+      ran.get() shouldBe true
+    }
+
+    scenario("A failing action does not stop the others or fail the request") {
+      Given("A route that registers a failing action followed by a good one")
+      val goodRan = new java.util.concurrent.atomic.AtomicBoolean(false)
+      val route: IO[org.http4s.Response[IO]] = for {
+        _ <- RequestScopeConnection.fromFuture(Future {
+               RequestScopeConnection.afterCommit(throw new RuntimeException("action failed"))
+               RequestScopeConnection.afterCommit(goodRan.set(true))
+             })
+      } yield org.http4s.Response[IO](org.http4s.Status.Ok)
+
+      When("The route runs inside withBusinessDBTransaction")
+      val response = RequestScopeConnection.withBusinessDBTransaction(route).unsafeRunSync()
+
+      Then("The response is the route's and the good action ran")
+      response.status shouldBe org.http4s.Status.Ok
+      goodRan.get() shouldBe true
     }
   }
 }

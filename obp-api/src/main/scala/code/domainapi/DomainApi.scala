@@ -59,6 +59,8 @@ trait DomainApiTrait {
   def version: String
   def title: String
   def description: String
+  /** Whether anyone, without logging in, may find it through GET /obp/v7.0.0/banks/BANK_ID/domain-apis. */
+  def isPubliclyDiscoverable: Boolean
   def createdByUserId: String
   def createdAt: Date
   def updatedAt: Date
@@ -72,13 +74,17 @@ case class DomainApiRoute(domainApiId: String, bankId: String, basePath: String,
 
 trait DomainApiProvider {
   def create(bankId: String, basePath: String, version: String, title: String, description: String,
-             createdByUserId: String): Box[DomainApiTrait]
+             isPubliclyDiscoverable: Boolean, createdByUserId: String): Box[DomainApiTrait]
   def get(bankId: String, domainApiId: String): Box[DomainApiTrait]
   def getAll(bankId: String): Box[List[DomainApiTrait]]
+  /** The Domain APIs of a space that are publicly discoverable. */
+  def getPubliclyDiscoverable(bankId: String): Box[List[DomainApiTrait]]
+  /** The publicly discoverable Domain APIs of every space. */
+  def getPubliclyDiscoverableInEverySpace(): Box[List[DomainApiTrait]]
   /** Every Domain API of every space, read from the table (not the request path's cached list). */
   def getAllInEverySpace(): Box[List[DomainApiTrait]]
   def update(bankId: String, domainApiId: String, basePath: String, version: String, title: String,
-             description: String): Box[DomainApiTrait]
+             description: String, isPubliclyDiscoverable: Boolean): Box[DomainApiTrait]
   def delete(bankId: String, domainApiId: String): Box[Boolean]
   /** Every Domain API of every space, for the request path; see [[DomainApiDbProvider.routes]]. */
   def routes(): List[DomainApiRoute]
@@ -113,7 +119,7 @@ object DomainApiDbProvider extends DomainApiProvider {
   }
 
   override def create(bankId: String, basePath: String, version: String, title: String, description: String,
-                      createdByUserId: String): Box[DomainApiTrait] = {
+                      isPubliclyDiscoverable: Boolean, createdByUserId: String): Box[DomainApiTrait] = {
     val created = tryo {
       DomainApi.create
         .DomainApiId(APIUtil.generateUUID())
@@ -122,6 +128,7 @@ object DomainApiDbProvider extends DomainApiProvider {
         .Version(version)
         .Title(title)
         .Description(description)
+        .IsPubliclyDiscoverable(isPubliclyDiscoverable)
         // A consent user's Domain API belongs to the person the Consent is for (UserReference).
         .CreatedByUserId(code.users.Users.users.vend.attributedUserId(createdByUserId, code.users.UserReference.DomainApi_CreatedByUserId).openOr(createdByUserId))
         .saveMe()
@@ -136,14 +143,21 @@ object DomainApiDbProvider extends DomainApiProvider {
   override def getAll(bankId: String): Box[List[DomainApiTrait]] =
     tryo(DomainApi.findAll(By(DomainApi.BankId, bankId), OrderBy(DomainApi.BasePath, Ascending)))
 
+  override def getPubliclyDiscoverable(bankId: String): Box[List[DomainApiTrait]] =
+    tryo(DomainApi.findAll(By(DomainApi.BankId, bankId), By(DomainApi.IsPubliclyDiscoverable, true), OrderBy(DomainApi.BasePath, Ascending)))
+
+  override def getPubliclyDiscoverableInEverySpace(): Box[List[DomainApiTrait]] =
+    tryo(DomainApi.findAll(By(DomainApi.IsPubliclyDiscoverable, true), OrderBy(DomainApi.BasePath, Ascending)))
+
   override def getAllInEverySpace(): Box[List[DomainApiTrait]] =
     tryo(DomainApi.findAll(OrderBy(DomainApi.BasePath, Ascending)))
 
   override def update(bankId: String, domainApiId: String, basePath: String, version: String, title: String,
-                      description: String): Box[DomainApiTrait] = {
+                      description: String, isPubliclyDiscoverable: Boolean): Box[DomainApiTrait] = {
     val updated = DomainApi.find(By(DomainApi.BankId, bankId), By(DomainApi.DomainApiId, domainApiId)).flatMap { row =>
       tryo {
-        row.BasePath(basePath).Version(version).Title(title).Description(description).UpdatedAt(new Date()).saveMe()
+        row.BasePath(basePath).Version(version).Title(title).Description(description)
+          .IsPubliclyDiscoverable(isPubliclyDiscoverable).UpdatedAt(new Date()).saveMe()
       }
     }
     forget()
@@ -180,6 +194,11 @@ class DomainApi extends DomainApiTrait with LongKeyedMapper[DomainApi] with IdPK
   object Description extends MappedString(this, 2000) {
     override def dbColumnName = "description"
   }
+  // False until its owner says otherwise: a Domain API is only listed publicly on purpose.
+  object IsPubliclyDiscoverable extends MappedBoolean(this) {
+    override def dbColumnName = "is_publicly_discoverable"
+    override def defaultValue = false
+  }
   object CreatedByUserId extends MappedString(this, 255) {
     override def dbColumnName = "created_by_user_id"
   }
@@ -198,6 +217,7 @@ class DomainApi extends DomainApiTrait with LongKeyedMapper[DomainApi] with IdPK
   override def version: String = Version.get
   override def title: String = Title.get
   override def description: String = Option(Description.get).getOrElse("")
+  override def isPubliclyDiscoverable: Boolean = IsPubliclyDiscoverable.get
   override def createdByUserId: String = CreatedByUserId.get
   override def createdAt: Date = CreatedAt.get
   override def updatedAt: Date = UpdatedAt.get
