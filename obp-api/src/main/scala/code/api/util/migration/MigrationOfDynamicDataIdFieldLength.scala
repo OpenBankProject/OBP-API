@@ -63,7 +63,21 @@ object MigrationOfDynamicDataIdFieldLength {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE dynamicdata ALTER COLUMN dynamicdataid varchar(255);
+                    |IF EXISTS (
+                    |  SELECT 1 FROM sys.columns c
+                    |  WHERE c.object_id = OBJECT_ID('dynamicdata')
+                    |    AND c.name = 'dynamicdataid'
+                    |    AND c.max_length < 255
+                    |)
+                    |BEGIN
+                    |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'dynamicdata_bankid_dynamicentityname_dynamicdataid' AND object_id = OBJECT_ID('dynamicdata'))
+                    |    DROP INDEX dynamicdata_bankid_dynamicentityname_dynamicdataid ON dynamicdata;
+                    |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'dynamicdata_dynamicdataid' AND object_id = OBJECT_ID('dynamicdata'))
+                    |    DROP INDEX dynamicdata_dynamicdataid ON dynamicdata;
+                    |  ALTER TABLE dynamicdata ALTER COLUMN dynamicdataid varchar(255);
+                    |  CREATE UNIQUE INDEX dynamicdata_bankid_dynamicentityname_dynamicdataid
+                    |    ON dynamicdata (bankid, dynamicentityname, dynamicdataid);
+                    |END;
                     |""".stripMargin
               case _ =>
                 () =>
