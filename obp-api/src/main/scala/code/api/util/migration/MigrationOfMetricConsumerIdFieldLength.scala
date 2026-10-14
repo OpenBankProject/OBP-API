@@ -72,16 +72,11 @@ object MigrationOfMetricConsumerIdFieldLength {
         val alterMetricSql = DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
           if (isSqlServer) {
             """
-              |IF EXISTS (
-              |  SELECT 1 FROM sys.columns c
-              |  WHERE c.object_id = OBJECT_ID('metric')
-              |    AND c.name = 'consumerid'
-              |    AND c.max_length < 250
-              |)
+              |IF COLUMNPROPERTY(OBJECT_ID('metric'), 'consumerid', 'charmaxlen') < 250
               |BEGIN
               |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'Metric_consumerid' AND object_id = OBJECT_ID('metric'))
               |    DROP INDEX Metric_consumerid ON metric;
-              |  ALTER TABLE metric ALTER COLUMN consumerid varchar(250);
+              |  ALTER TABLE metric ALTER COLUMN consumerid NVARCHAR(250);
               |  CREATE INDEX Metric_consumerid ON metric (consumerid);
               |END;
               |""".stripMargin
@@ -96,16 +91,11 @@ object MigrationOfMetricConsumerIdFieldLength {
             DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
               if (isSqlServer) {
                 """
-                  |IF EXISTS (
-                  |  SELECT 1 FROM sys.columns c
-                  |  WHERE c.object_id = OBJECT_ID('metricarchive')
-                  |    AND c.name = 'consumerid'
-                  |    AND c.max_length < 250
-                  |)
+                  |IF COLUMNPROPERTY(OBJECT_ID('metricarchive'), 'consumerid', 'charmaxlen') < 250
                   |BEGIN
                   |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'MetricArchive_consumerid' AND object_id = OBJECT_ID('metricarchive'))
                   |    DROP INDEX MetricArchive_consumerid ON metricarchive;
-                  |  ALTER TABLE metricarchive ALTER COLUMN consumerid varchar(250);
+                  |  ALTER TABLE metricarchive ALTER COLUMN consumerid NVARCHAR(250);
                   |  CREATE INDEX MetricArchive_consumerid ON metricarchive (consumerid);
                   |END;
                   |""".stripMargin
