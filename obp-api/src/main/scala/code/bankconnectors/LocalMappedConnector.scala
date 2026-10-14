@@ -1485,6 +1485,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
+    val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CONCAT('scheme:', bankaccountrouting.accountroutingscheme, ',address:', bankaccountrouting.accountroutingaddress)"
+    } else {
+      fr"'scheme:' || bankaccountrouting.accountroutingscheme || ',address:' || bankaccountrouting.accountroutingaddress"
+    }
+
+    val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue)"
+    } else {
+      fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
+    }
+
+    val pagination = if (code.api.util.DBUtil.isSqlServer) {
+      fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
+    } else {
+      fr"LIMIT $limit OFFSET $offset"
+    }
+
     val query = (fr"""
        select
            mappedbankaccount.theaccountid as account_id,
@@ -1494,11 +1512,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.kind as kind,
            mappedbankaccount.mbranchid as branch_id,
            (select
-               string_agg(
-                   'scheme:'
-                   ||bankaccountrouting.accountroutingscheme
-                   ||',address:'
-                   ||bankaccountrouting.accountroutingaddress,
+               string_agg(""" ++ routingConcat ++ fr""",
                    '::'
                    ) as account_routings
                from bankaccountrouting
@@ -1507,13 +1521,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                  and bankaccountrouting.bankid = mappedbankaccount.bank
             ),
            (select
-               string_agg(
-                       'type:'
-                       || mappedaccountattribute.mtype
-                       ||',code:'
-                       ||mappedaccountattribute.mcode
-                       ||',value:'
-                       ||mappedaccountattribute.mvalue,
+               string_agg(""" ++ attrConcat ++ fr""",
                    '::') as account_attributes
            from mappedaccountattribute
            where
@@ -1522,9 +1530,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        from mappedbankaccount
        WHERE mappedbankaccount.bank = ${bankId.value}
        ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr"""
-       LIMIT $limit
-       OFFSET $offset
-       """)
+       """ ++ pagination)
       .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])]
       .to[List]
       .map(_.map { case (id, bankIdCol, label, number, kind, branchId, routings, attributes) =>

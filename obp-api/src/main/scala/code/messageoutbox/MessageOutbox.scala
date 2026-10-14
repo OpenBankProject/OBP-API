@@ -217,7 +217,7 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
     import doobie.implicits._
     code.api.util.DoobieUtil.runUpdate(
       sql"""UPDATE message_outbox
-            SET attempts = attempts + 1, updated_at = NOW()
+            SET attempts = attempts + 1, updated_at = CURRENT_TIMESTAMP
             WHERE id = ${row.id.get}
               AND status = $STATUS_PENDING
               AND attempts = ${row.attempts}""".update.run) == 1

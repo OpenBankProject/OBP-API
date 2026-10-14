@@ -35,18 +35,26 @@ import net.liftweb.util.Helpers.tryo
 
 object DoobieChallengeQueries {
 
-  private def incrementAndSelectCounter(challengeId: String): ConnectionIO[Int] =
+  private def incrementAndSelectCounter(challengeId: String): ConnectionIO[Int] = {
+    val selectLock = if (code.api.util.DBUtil.isSqlServer) {
+      sql"""SELECT attemptcounter
+            FROM ExpectedChallengeAnswer WITH (UPDLOCK, ROWLOCK)
+            WHERE challengeid = $challengeId"""
+    } else {
+      sql"""SELECT attemptcounter
+            FROM ExpectedChallengeAnswer
+            WHERE challengeid = $challengeId
+            FOR UPDATE"""
+    }
     for {
-      _ <- sql"""SELECT attemptcounter
-                 FROM ExpectedChallengeAnswer
-                 WHERE challengeid = $challengeId
-                 FOR UPDATE""".query[Int].option
+      _ <- selectLock.query[Int].option
       _ <- sql"""UPDATE ExpectedChallengeAnswer
                  SET attemptcounter = attemptcounter + 1
                  WHERE challengeid = $challengeId""".update.run
       counter <- sql"""SELECT attemptcounter FROM ExpectedChallengeAnswer
                        WHERE challengeid = $challengeId""".query[Int].unique
     } yield counter
+  }
 
   def incrementAndGetChallengeCounter(challengeId: String): Int =
     DoobieUtil.runUpdate(incrementAndSelectCounter(challengeId))

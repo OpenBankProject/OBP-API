@@ -47,7 +47,12 @@ object DoobieTransactionRequestQueries extends MdcLoggable {
    * "lock failed" 400.
    */
   def atomicallyLockTransactionRequest(transReqId: String): ConnectionIO[Option[String]] = {
-    sql"SELECT mstatus FROM mappedtransactionrequest WHERE mtransactionrequestid = $transReqId FOR UPDATE".query[String].option
+    val selectLock = if (code.api.util.DBUtil.isSqlServer) {
+      sql"SELECT mstatus FROM mappedtransactionrequest WITH (UPDLOCK, ROWLOCK) WHERE mtransactionrequestid = $transReqId"
+    } else {
+      sql"SELECT mstatus FROM mappedtransactionrequest WHERE mtransactionrequestid = $transReqId FOR UPDATE"
+    }
+    selectLock.query[String].option
   }
 
   /**

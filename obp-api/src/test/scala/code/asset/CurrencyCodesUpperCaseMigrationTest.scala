@@ -82,6 +82,9 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
     }
 
     scenario("A currency row whose upper-case code already exists is left as it is") {
+      if (code.api.util.DBUtil.isSqlServer) {
+        cancel("SQL Server uses case-insensitive collation for primary keys, preventing duplicate-case rows")
+      }
       Given("a currency stored as qqa and as QQA, and another stored only as qqb")
       addCurrency("qqa")
       addCurrency("QQA")

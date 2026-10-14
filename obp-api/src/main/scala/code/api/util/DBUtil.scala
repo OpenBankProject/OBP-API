@@ -37,7 +37,7 @@ import java.sql.{ResultSet, Types}
 object DBUtil {
   def dbUrl: String = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
 
-  def isSqlServer: Boolean = dbUrl.contains("sqlserver")
+  def isSqlServer: Boolean = dbUrl.contains("sqlserver") || APIUtil.getPropsValue("db.driver").exists(_.contains("sqlserver"))
 
   /** The endpoint timeout in whole seconds, rounded up, which is the unit JDBC takes. */
   private[code] def queryTimeoutSeconds: Int =
