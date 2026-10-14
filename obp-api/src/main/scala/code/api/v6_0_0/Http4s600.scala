@@ -5456,12 +5456,22 @@ object Http4s600 {
         _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
           !entity.hasPersonalEntity
         }
-        (box, _) <- NewStyle.function.invokeDynamicConnector(
-          com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
-          entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
+        // The records are read from the table so that each one comes with the id of its row. The stored JSON
+        // of a record written by an earlier version may lack `<entity>_id`; its row id is put back, because
+        // the backup and the delete below both go by that id.
+        idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
         resultList <- Future {
-          box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
-            .openOrThrowException(s"$UnknownError ")
+          org.json4s.JsonAST.JArray(
+            code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend
+              .getAll(entity.bankId, entity.entityName, None, false)
+              .map { row =>
+                val stored = com.openbankproject.commons.util.JsonAliases.parse(row.dataJson).asInstanceOf[org.json4s.JObject]
+                (stored \ idField, row.dynamicDataId) match {
+                  case (org.json4s.JString(_), _) => stored
+                  case (_, Some(rowId)) => org.json4s.JObject(stored.obj.filterNot(_._1 == idField) :+ org.json4s.JField(idField, org.json4s.JString(rowId)))
+                  case _ => stored
+                }
+              })
         }
         _ <- Future {
           if (!entity.entityName.startsWith("ZZ_BAK_"))
@@ -5469,7 +5479,6 @@ object Http4s600 {
         }
         _ <- Future.sequence {
           resultList.arr.map { record =>
-            val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
             val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
             Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
               entity.bankId, entity.entityName, recordId, None, false))

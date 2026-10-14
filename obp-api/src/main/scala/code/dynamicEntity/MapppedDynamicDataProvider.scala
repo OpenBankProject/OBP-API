@@ -207,7 +207,21 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       .openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
       .asInstanceOf[DynamicData]
     // Preserve the row's existing owner/personal flag — row-level access changes the data, not provenance.
-    saveOrUpdate(bankId, entityName, requestBody, Option(dynamicData.UserId.get), dynamicData.IsPersonalEntity.get, callerUserId, dynamicData)
+    saveOrUpdate(bankId, entityName, withRecordId(entityName, requestBody, id), Option(dynamicData.UserId.get), dynamicData.IsPersonalEntity.get, callerUserId, dynamicData)
+  }
+
+  /**
+   * The stored JSON of a record carries the record's own id under `<entity>_id`, which is how a read gives
+   * it back and how a cascade delete finds the record. The regular write path adds it before the call
+   * (NewStyle.invokeDynamicConnector). The row-level endpoints write straight through this provider, and a
+   * PUT or PATCH body does not carry the id, so it is added here when it is missing.
+   */
+  private def withRecordId(entityName: String, requestBody: JObject, id: String): JObject = {
+    val idName = getIdName(entityName)
+    (requestBody \ idName) match {
+      case JString(_) => requestBody
+      case _          => JObject(requestBody.obj.filterNot(_._1 == idName) :+ JField(idName, JString(id)))
+    }
   }
 
   override def getByIds(bankId: Option[String], entityName: String, ids: List[String]): List[DynamicDataT] =
