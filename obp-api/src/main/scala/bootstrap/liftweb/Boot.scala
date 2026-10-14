@@ -674,51 +674,9 @@ class Boot extends MdcLoggable {
   }
 
   private def upgradeSqlServerDateTimeColumns(): Unit = {
-    DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-
-      try {
-        val stmt = conn.createStatement()
-        val columns = scala.collection.mutable.ListBuffer[(String, String, String)]()
-        try {
-          val rs = stmt.executeQuery(
-            """
-              |SELECT c.TABLE_SCHEMA, c.TABLE_NAME, c.COLUMN_NAME
-              |FROM INFORMATION_SCHEMA.COLUMNS c
-              |JOIN INFORMATION_SCHEMA.TABLES t
-              |  ON c.TABLE_NAME = t.TABLE_NAME AND c.TABLE_SCHEMA = t.TABLE_SCHEMA
-              |WHERE c.DATA_TYPE = 'datetime' AND t.TABLE_TYPE = 'BASE TABLE'
-              |""".stripMargin
-          )
-          while (rs.next()) {
-            columns += ((rs.getString(1), rs.getString(2), rs.getString(3)))
-          }
-          rs.close()
-        } finally {
-          stmt.close()
-        }
-
-        val failed = scala.collection.mutable.ListBuffer[String]()
-        for ((schema, table, column) <- columns) {
-          try {
-            val alterStmt = conn.createStatement()
-            try {
-              alterStmt.execute(s"ALTER TABLE [$schema].[$table] ALTER COLUMN [$column] DATETIME2 NULL")
-              conn.commit()
-            } finally {
-              alterStmt.close()
-            }
-          } catch {
-            case NonFatal(e) =>
-              failed += s"[$schema].[$table].[$column] (${e.getMessage})"
-          }
-        }
-        if (failed.nonEmpty) {
-          logger.warn(s"upgradeSqlServerDateTimeColumns: ${failed.size} of ${columns.size} DATETIME columns could not be altered to DATETIME2 and keep the 1753 date floor: ${failed.mkString("; ")}")
-        }
-      } catch {
-        case NonFatal(e) =>
-          logger.warn(s"upgradeSqlServerDateTimeColumns dynamic query failed: ${e.getMessage}")
-      }
+    val result = code.api.util.SqlServerDateTimeUpgrade.upgradeAll()
+    if (result.failed.nonEmpty) {
+      logger.warn(s"upgradeSqlServerDateTimeColumns: ${result.failed.size} DATETIME columns could not be altered to DATETIME2 and keep the 1753 date floor: ${result.failed.mkString("; ")}")
     }
   }
 
