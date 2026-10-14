@@ -194,7 +194,6 @@ object Migration extends MdcLoggable {
       renameDynamicEntityRoles()
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()
-      alterSqlServerDateTimeColumns()
       ensureConsentViewExists()
     }
 
@@ -975,13 +974,6 @@ object Migration extends MdcLoggable {
       val name = nameOf(ensureConsentViewExists)
       runOnce(name) {
         MigrationOfConsentView.addConsentView(name)
-      }
-    }
-
-    private def alterSqlServerDateTimeColumns(): Boolean = {
-      val name = nameOf(alterSqlServerDateTimeColumns)
-      runOnce(name) {
-        MigrationOfSqlServerDateTimeColumns.alterColumns(name)
       }
     }
 
